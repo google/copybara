@@ -16,13 +16,13 @@
 
 package com.google.copybara.transform;
 
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.Truth;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
@@ -33,12 +33,8 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -367,6 +363,46 @@ public class CopyOrMoveTest {
   }
 
   @Test
+  public void testFailMoveToCheckoutDirRoot() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'third_party/java/one.java', after = '')\n");
+    touch("third_party/java/one.java");
+    try {
+      transform(mover);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains(
+              "Can only move a path to the root when the path is a "
+                  + "folder. But 'third_party/java/one.java' is a file. Use instead "
+                  + "core.move('third_party/java/one.java', 'one.java')");
+      assertThatPath(checkoutDir).containsFiles("third_party/java/one.java")
+          .containsNoMoreFiles();
+    }
+  }
+
+  @Test
+  public void testFailMoveRootFileToCheckoutDirRoot() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'one.java', after = '')\n");
+    touch("one.java");
+    try {
+      transform(mover);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains(
+              "Can only move a path to the root when the path is a "
+                  + "folder. But 'one.java' is a file. Use instead "
+                  + "core.move('one.java', 'one.java')");
+      assertThatPath(checkoutDir).containsFiles("one.java")
+          .containsNoMoreFiles();
+    }
+  }
+
+  @Test
   public void testCopyToCheckoutDirRoot() throws Exception {
     CopyOrMove copier = skylark.eval("m",
         "m = core.copy(before = 'third_party/java', after = '')\n");
@@ -502,7 +538,7 @@ public class CopyOrMoveTest {
   public void errorForMissingBefore() throws Exception {
     try {
       skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n");
-      Assert.fail();
+      fail();
     } catch (ValidationException expected) {}
 
     console.assertThat()
@@ -513,7 +549,7 @@ public class CopyOrMoveTest {
   public void errorForMissingAfter() throws Exception {
     try {
       skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n");
-      Assert.fail();
+      fail();
     } catch (ValidationException expected) {}
 
     console.assertThat()

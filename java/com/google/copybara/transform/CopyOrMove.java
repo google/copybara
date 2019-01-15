@@ -126,6 +126,12 @@ public class CopyOrMove implements Transformation {
               "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
                   + paths);
         }
+        if (this.after.isEmpty() && !beforeIsDir) {
+          throw new ValidationException(
+              "Can only move a path to the root when the path is a folder. But '%s' is a "
+                  + "file. Use instead core.move('%s', '%s')", this.before, this.before,
+              before.getFileName().toString());
+        }
         Files.walkFileTree(before,
             new CopyMoveVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
                 overwrite, isCopy));
