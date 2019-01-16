@@ -18,6 +18,7 @@ package com.google.copybara.hg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.Glob.affectsRoots;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -42,12 +43,15 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /**
  * A class for manipulating Hg repositories
  */
 public class HgOrigin implements Origin<HgRevision> {
+
+  public static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   private final GeneralOptions generalOptions;
   private final HgOptions hgOptions;
@@ -87,7 +91,21 @@ public class HgOrigin implements Origin<HgRevision> {
       }
       ref = configRef;
     }
-    repo.pullFromRef(repoUrl, ref);
+
+    // Avoid fetch if a SHA-1 is passed and we already have in our local repo.
+    if (COMPLETE_SHA1_PATTERN.matcher(ref).matches()) {
+      try {
+        return repo.identify(ref);
+      } catch (CannotResolveRevisionException ignore) {
+        // Not present locally. Pull from remote instead.
+      }
+    }
+    // Fetch all instead of an specific ref:
+    //  - It is usually faster
+    //  - fetching an specific ref creates a local tag 'tip' instead of the original name. Then
+    //  the next hg identify call needs to be aware of using tip (but not always, for example
+    //  if user tries to resolve '0'
+    repo.pullFromRef(repoUrl, /*ref=*/ null);
     return repo.identify(ref);
   }
 

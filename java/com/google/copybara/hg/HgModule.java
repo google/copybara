@@ -54,9 +54,9 @@ public class HgModule implements LabelsAwareModule{
           @Param(name = "ref",
               type = String.class,
               named = true,
-              defaultValue = "'default'",
+              defaultValue = "\"default\"",
               doc = "Represents the default reference that will be used to read a revision "
-                  + "from the repository. The reference defaults to 'default', the most recent"
+                  + "from the repository. The reference defaults to `default`, the most recent "
                   + "revision on the default branch. References can be in a variety of "
                   + "formats:<br>"
                   + "<ul> "

@@ -235,6 +235,35 @@ public class HgOriginTest {
   }
 
   @Test
+  public void testTagCheckout() throws Exception {
+    Reader<HgRevision> reader = newReader();
+
+    Path workDir = Files.createTempDirectory("workDir");
+
+    Files.write(remotePath.resolve("foo.txt"), "hello".getBytes(UTF_8));
+
+    repository.hg(remotePath, "add", "foo.txt");
+    repository.hg(remotePath, "commit", "-m", "foo");
+
+    HgRevision tip = repository.identify("tip");
+
+    Files.write(remotePath.resolve("bar.txt"), "hello".getBytes(UTF_8));
+    repository.hg(remotePath, "add", "bar.txt");
+    repository.hg(remotePath, "commit", "-m", "bar");
+
+    repository.hg(remotePath, "tag", "-r", tip.asString(), "mytag");
+    configRef = "mytag";
+    origin = origin();
+
+    reader.checkout(origin.resolve("mytag"), workDir);
+
+    assertThatPath(workDir)
+        .containsFile("foo.txt", "hello")
+        .containsFiles(".hg_archival.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testChanges() throws Exception {
     ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
     String author = "Copy Bara <copy@bara.com>";
@@ -333,8 +362,7 @@ public class HgOriginTest {
   @Test
   public void testUnknownChanges() throws Exception {
     try {
-      ChangesResponse<HgRevision> changes =
-          newReader().changes(origin.resolve("4"), origin.resolve("7"));
+      newReader().changes(origin.resolve("4"), origin.resolve("7"));
     } catch (ValidationException expected) {
       assertThat(expected.getMessage()).contains("Unknown revision");
     }

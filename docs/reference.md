@@ -2071,7 +2071,7 @@ Set of functions to define Mercurial (Hg) origins and destinations.
 
 <b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.
 
-`hgOrigin hg.origin(url, ref='default')`
+`hgOrigin hg.origin(url, ref="default")`
 
 
 #### Parameters:
@@ -2079,7 +2079,7 @@ Set of functions to define Mercurial (Hg) origins and destinations.
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the Hg repository</p>
-ref | `string`<br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to 'default', the most recentrevision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
+ref | `string`<br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to `default`, the most recent revision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
 
 
 

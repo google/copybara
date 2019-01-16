@@ -126,7 +126,7 @@ public class HgRepository {
   }
 
 
-  public void pull(String url, boolean force, String ref)
+  public void pull(String url, boolean force, @Nullable String ref)
       throws RepoException, ValidationException {
     ImmutableList.Builder<String> builder = ImmutableList.builder();
 
