@@ -516,7 +516,7 @@ public final class ReplaceTest {
         + ")"));
     console.assertThat()
         .onceInLog(MessageType.WARNING,
-            ".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files[.]");
+            ".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files");
 
     console.clearMessages();
 
@@ -527,7 +527,7 @@ public final class ReplaceTest {
         + ")"));
     console.assertThat()
         .onceInLog(MessageType.WARNING,
-            ".*BEFORE.*lulz.*was a no-op because it didn't match any file[.]");
+            ".*BEFORE.*lulz.*was a no-op because it didn't match any file");
   }
 
   @Test

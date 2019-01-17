@@ -129,7 +129,7 @@ public final class Replace implements Transformation {
       workflowOptions.reportNoop(
           work.getConsole(),
           "Transformation '" + toString() + "' was a no-op because it didn't "
-              + (matchedFile ? "change any of the matching files." : "match any file."),
+              + (matchedFile ? "change any of the matching files" : "match any file"),
           work.getIgnoreNoop());
     }
   }
