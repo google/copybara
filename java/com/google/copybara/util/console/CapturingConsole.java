@@ -62,11 +62,11 @@ public class CapturingConsole extends DelegateConsole {
     this.captureTypes = captureTypes;
   }
 
-  public ImmutableList<Message> getMessages() {
+  public synchronized ImmutableList<Message> getMessages() {
     return ImmutableList.copyOf(messages);
   }
 
-  public void clearMessages() {
+  public synchronized void clearMessages() {
     messages.clear();
   }
 
