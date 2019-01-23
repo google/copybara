@@ -16,8 +16,8 @@
 
 package com.google.copybara.util;
 
-import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.AbnormalTerminationException;
+import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandResult;
 
