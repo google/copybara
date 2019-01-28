@@ -40,8 +40,7 @@ public class ValidationException extends Exception {
 
   public ValidationException(Throwable cause, String message) {
     super(message, cause);
-    retryable = cause != null
-        && cause instanceof ValidationException
+    retryable = cause instanceof ValidationException
         && ((ValidationException) cause).retryable;
   }
 
