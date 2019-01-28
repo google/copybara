@@ -175,7 +175,7 @@ public class Core implements LabelsAwareModule {
                   + " files in java/src.",
               defaultValue = "None", noneable = true, positional = false),
           @Param(name = "mode", named = true, type = String.class, doc = ""
-              + "Workflow mode. Currently we support three modes:<br>"
+              + "Workflow mode. Currently we support four modes:<br>"
               + "<ul>"
               + "<li><b>'SQUASH'</b>: Create a single commit in the destination with new tree"
               + " state.</li>"
@@ -285,6 +285,12 @@ public class Core implements LabelsAwareModule {
       Environment env)
       throws EvalException {
     WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
+    if (generalOptions.squash && mode != WorkflowMode.SQUASH) {
+      generalOptions
+          .console()
+          .infoFmt("Overriding workflow '%s' mode '%s' with 'SQUASH'.", workflowName, mode);
+      mode = WorkflowMode.SQUASH;
+    }
 
     Sequence sequenceTransform = Sequence.fromConfig(generalOptions.profiler(),
         workflowOptions.joinTransformations(),

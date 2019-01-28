@@ -57,6 +57,7 @@ public final class GeneralOptions implements Option {
   public static final String OUTPUT_ROOT_FLAG = "--output-root";
   public static final String OUTPUT_LIMIT_FLAG = "--output-limit";
   public static final String DRY_RUN_FLAG = "--dry-run";
+  public static final String SQUASH_FLAG = "--squash";
 
   private Map<String, String> environment;
   private FileSystem fileSystem;
@@ -349,4 +350,10 @@ public final class GeneralOptions implements Option {
           + " have some side effects (like creating a code review), but never submit to a main"
           + " branch.")
   public boolean dryRunMode = false;
+
+  @Parameter(names = SQUASH_FLAG, description = "Override workflow's mode with 'SQUASH'. This is "
+      + "useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single "
+      + "export with 'SQUASH', maybe to fix an issue. Always use " + DRY_RUN_FLAG + " before, to "
+      + "test your changes locally.")
+  public boolean squash = false;
 }
