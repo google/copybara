@@ -523,35 +523,98 @@ public class GerritDestinationTest {
     mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestination", "TEST", /*dryRun=*/ false, new DummyRevision("test"));
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_REVIEWER")
+                                ? ImmutableList.of("foo@example.com")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console.getMessages().stream()
+            .anyMatch(
+                message ->
+                    message
+                        .getText()
+                        .contains("refs/for/master%topic=testTopic,r=foo@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
+  public void testDescribe() throws Exception {
+    pushToRefsFor = "master";
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    GerritDestination destination = destination("submit = False", "notify ='ALL'");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
+    // %topic and %notify should not be part of describe()
+    assertThat(destination.describe(glob).get("push"))
+        .isEqualTo(ImmutableSet.of("refs/for/master"));
+  }
+
+  @Test
+  public void testSubmitAndDisableNotifications() {
+    try {
+      destination("submit = True", "notify = 'OWNER'");
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected)
+          .hasMessageThat()
+          .contains(
+              "Cannot set 'notify' with 'submit = True' in "
+                  + "git.gerrit_destination()");
+    }
+  }
+
+  @Test
+  public void testDisableNotifications() throws Exception {
+    pushToRefsFor = "master";
+    fetch = "master";
+    options.setForce(true);
+
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+    writeFile(workTree, "file.txt", "some content");
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Some commit");
+    writeFile(workdir, "file.txt", "new content");
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
         new WriterContext(
             "GerritDestination",
             "TEST",
             /*dryRun=*/ false,
             new DummyRevision("test"));
-    List<DestinationEffect> result = destination
-        .newWriter(writerContext)
-        .write(
-            TransformResults.of(workdir, originRef)
-                .withSummary("Test message")
-                .withIdentity(originRef.asString())
-                .withLabelFinder (e-> e.equals("SOME_REVIEWER")
-                                  ? ImmutableList.of("foo@example.com")
-                                  : ImmutableList.of()),
-            glob,
-            console);
+    ImmutableList<DestinationEffect> result =
+        destination("submit = False", "notify = 'NONE'")
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
+                Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
+                console);
     assertThat(result).hasSize(1);
-    assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console
-            .getMessages()
-            .stream()
-            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic,r=foo@example.com"));
-    assertThat(correctMessage).isTrue();
-  }
 
+    GitTesting.assertThatCheckout(repo(), "refs/for/master%notify=NONE")
+        .containsFile("file.txt", "new content")
+        .containsNoMoreFiles();
+  }
 
   @Test
   public void testReviewerFieldWithNoTopic() throws Exception {
@@ -627,10 +690,13 @@ public class GerritDestinationTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
     boolean correctMessage =
-        console
-            .getMessages()
-            .stream()
-            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic,r=foo@example.com,r=bar@example.com"));
+        console.getMessages().stream()
+            .anyMatch(
+                message ->
+                    message
+                        .getText()
+                        .contains(
+                            "refs/for/master%topic=testTopic,r=foo@example.com,r=bar@example.com"));
     assertThat(correctMessage).isTrue();
   }
 
@@ -819,7 +885,9 @@ public class GerritDestinationTest {
             new Author("foo", "foo@example.com"),
             reviewerTemplates,
             ChangeIdPolicy.REPLACE,
-            /*allowEmptyDiffPatchSet=*/ true, /*endpointChecker=*/ null);
+            /*allowEmptyDiffPatchSet=*/ true,
+            /*endpointChecker=*/ null,
+            /*notifyOption*/ null);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
@@ -863,7 +931,9 @@ public class GerritDestinationTest {
             new Author("foo", "foo@example.com"),
             reviewerTemplates,
             ChangeIdPolicy.REPLACE,
-            /*allowEmptyDiffPatchSet=*/ true, /*endpointChecker=*/ null);
+            /*allowEmptyDiffPatchSet=*/ true,
+            /*endpointChecker=*/ null,
+            /*notifyOption*/ null);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(

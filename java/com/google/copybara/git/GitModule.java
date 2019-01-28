@@ -51,6 +51,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
+import com.google.copybara.git.GerritDestination.NotifyOption;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.GitHubPROrigin.ReviewState;
 import com.google.copybara.git.GitHubPROrigin.StateFilter;
@@ -812,6 +813,16 @@ public class GitModule implements LabelsAwareModule {
                   "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
                       + " This is effectively a git.destination that sets a Change-Id",
               defaultValue = "False"),
+          @Param(name = "notify", type = String.class,
+              named = true,
+              doc =
+                  ""
+                      + "Type of Gerrit notify option "
+                      + "(https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). "
+                      + "Sends notifications by default.",
+              defaultValue = "None",
+              noneable = true
+          ),
           @Param(
               name = "change_id_policy", type = String.class, defaultValue = "'FAIL_IF_PRESENT'",
               named = true,
@@ -846,12 +857,20 @@ public class GitModule implements LabelsAwareModule {
   @UsesFlags(GitDestinationOptions.class)
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
-      String url, String fetch, Object pushToRefsFor, Boolean submit, String changeIdPolicy,
-      Boolean allowEmptyPatchSet, SkylarkList<String> reviewers, Object checkerObj,
-      Location location) throws EvalException {
+      String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
+      String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
+      Object checkerObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     List<String> newReviewers =
             Type.STRING_LIST.convert(reviewers, "reviewers");
+
+    String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
+    check(location, !(submit && notifyOptionStr != null),
+        "Cannot set 'notify' with 'submit = True' in git.gerrit_destination().");
+    NotifyOption notifyOption =
+        notifyOptionStr == null
+            ? null
+            : stringToEnum(location, "notify", notifyOptionStr, NotifyOption.class);
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, location),
@@ -864,6 +883,7 @@ public class GitModule implements LabelsAwareModule {
                 fetch),
             "push_to_refs_for", location),
         submit,
+        notifyOption,
         stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,
         newReviewers,
