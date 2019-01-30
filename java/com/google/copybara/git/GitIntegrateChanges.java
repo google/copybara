@@ -98,7 +98,7 @@ public class GitIntegrateChanges {
         continue;
       }
       if (label.getValue().isEmpty()) {
-        throw new CannotIntegrateException("Found an empty value for label %s", this.label);
+        throw new CannotIntegrateException("Found an empty value for label " + this.label);
       }
       try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
           ImmutableMap.of("URL", label.getValue()))) {
@@ -118,7 +118,7 @@ public class GitIntegrateChanges {
         strategy.integrate(repository, integrateLabel, externalFiles, label,
             messageInfo, generalOptions.console(), generalOptions.getDirFactory());
       } catch (ValidationException e) {
-        throw new CannotIntegrateException(e, "Error resolving %s", label.getValue());
+        throw new CannotIntegrateException("Error resolving " + label.getValue(), e);
       }
     }
   }
@@ -191,8 +191,7 @@ public class GitIntegrateChanges {
           repository.apply(diff, /*index=*/true);
         } catch (RebaseConflictException e) {
           // Add more context information
-          throw new CannotIntegrateException(e,
-              "Cannot apply the changes from %s", integrateLabel.toString());
+          throw new CannotIntegrateException("Cannot apply the changes from " + integrateLabel, e);
         }
 
         List<String> toRevert = new ArrayList<>();

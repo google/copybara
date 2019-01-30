@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -567,12 +568,9 @@ public final class GitDestination implements Destination<GitRevision> {
         console.progress("Git Destination: Fetching: " + repoUrl + " " + completeFetchRef);
         return repo.fetchSingleRef(repoUrl, completeFetchRef);
       } catch (CannotResolveRevisionException e) {
-        String warning = String.format("Git Destination: '%s' doesn't exist in '%s'",
+        String warning = format("Git Destination: '%s' doesn't exist in '%s'",
             completeFetchRef, repoUrl);
-        if (!force) {
-          throw new ValidationException(
-              "%s. Use %s flag if you want to push anyway", warning, FORCE);
-        }
+        checkCondition(force, "%s. Use %s flag if you want to push anyway", warning, FORCE);
         console.warn(warning);
       }
       return null;

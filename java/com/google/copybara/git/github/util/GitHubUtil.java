@@ -56,7 +56,7 @@ public class GitHubUtil {
   public static String getProjectNameFromUrl(String url) throws ValidationException {
 
     checkCondition(!Strings.isNullOrEmpty(url), "Empty url");
-    
+
     if (url.startsWith(GIT_GITHUB_PROTOCOL)) {
       return url.substring(GIT_GITHUB_PROTOCOL.length()).replaceAll("([.]git|/)$", "");
     }
@@ -69,16 +69,12 @@ public class GitHubUtil {
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);
     }
-    if (!Objects.equals(uri.getHost(), GITHUB_HOST)) {
-      throw new ValidationException("Not a github url: " + url);
-    }
+    checkCondition(Objects.equals(uri.getHost(), GITHUB_HOST), "Not a github url: %s", url);
     String name = uri.getPath()
         .replaceAll("^/", "")
         .replaceAll("([.]git|/)$", "");
 
-    if (Strings.isNullOrEmpty(name)) {
-      throw new ValidationException("Cannot find project name from url " + url);
-    }
+    checkCondition(!Strings.isNullOrEmpty(name), "Cannot find project name from url %s", url);
     return name;
   }
 
@@ -100,9 +96,8 @@ public class GitHubUtil {
    */
   public static String getValidBranchName(String branchName)
       throws ValidationException {
-    if (branchName.startsWith("/") || branchName.startsWith("refs/")) {
-      throw new ValidationException("Branch name has invalid prefix: \"/\" or \"refs/\"");
-    }
+    checkCondition(!branchName.startsWith("/") && !branchName.startsWith("refs/"),
+        "Branch name has invalid prefix: \"/\" or \"refs/\"");
     return branchName.replaceAll("[^A-Za-z0-9/_-]", "_");
   }
 

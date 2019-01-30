@@ -27,7 +27,7 @@ public class CheckerException extends ValidationException {
     super(message, cause);
   }
 
-  public CheckerException(String message, Object... args) {
-    super(message, args);
+  public CheckerException(String message) {
+    super(message);
   }
 }

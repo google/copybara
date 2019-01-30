@@ -16,6 +16,8 @@
 
 package com.google.copybara.util;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.copybara.exception.ValidationException;
 
 /**
@@ -26,11 +28,9 @@ public class RepositoryUtil {
   /**
    * Verify that a repo URL is not plain HTTP
    */
-  public static String validateNotHttp(String url) throws ValidationException  {
-    if (url.startsWith("http://")) {
-      throw new ValidationException(
-          String.format("URL '%s' is not valid - should be using https.", url));
-    }
+  public static String validateNotHttp(String url) throws ValidationException {
+    checkCondition(!url.startsWith("http://"),
+        "URL '%s' is not valid - should be using https.", url);
     return url;
   }
 

@@ -27,6 +27,6 @@ public class CommandLineException extends ValidationException {
   }
 
   public CommandLineException(String message, Throwable cause) {
-    super(cause, message);
+    super(message, cause);
   }
 }

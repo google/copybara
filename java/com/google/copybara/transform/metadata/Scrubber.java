@@ -54,10 +54,9 @@ public class Scrubber implements Transformation {
       }
       work.setMessage(scrubbedMessage);
     } catch (IndexOutOfBoundsException e) {
-      throw new ValidationException(
-          e,
+      throw new ValidationException(String.format(
           "Could not find matching group. Are you missing a group in your regex '%s'?",
-          pattern.toString());
+          pattern), e);
     }
   }
 

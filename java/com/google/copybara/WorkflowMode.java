@@ -16,11 +16,14 @@
 
 package com.google.copybara;
 
+
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason.NO_CHANGES;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG;
 import static com.google.copybara.WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.exception.ValidationException.retriableException;
+import static java.lang.String.format;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -96,7 +99,7 @@ public enum WorkflowMode {
       // Remove changes that don't affect origin_files
       ImmutableList<Change<O>> changes = filterChanges(
           detectedChanges, conditionalChanges, helperForChanges);
-      if(changes.isEmpty() && isHistorySupported(runHelper)) {
+      if (changes.isEmpty() && isHistorySupported(runHelper)) {
         manageNoChangesDetectedForSquash(runHelper, current, lastRev, NO_CHANGES);
       }
 
@@ -279,21 +282,17 @@ public enum WorkflowMode {
       }
 
       if (destinationBaseline == null) {
-        if (originBaseline == null) {
-          throw new ValidationException(
-              /*retryable=*/ false,
-              "Couldn't find any parent change for %s and origin_files = %s",
-              runHelper.getResolvedRef().asString(), runHelper.getOriginFiles());
-        }
+        checkCondition(originBaseline != null,
+            "Couldn't find any parent change for %s and origin_files = %s",
+            runHelper.getResolvedRef().asString(), runHelper.getOriginFiles());
 
-        throw new ValidationException(
-            /*retryable=*/ true,
+        throw retriableException(format(
             "Couldn't find a change in the destination with %s label and %s value. Make sure"
                 + " to sync the submitted changes from the origin -> destination first or use"
                 + " SQUASH mode or use %s",
             runHelper.getOriginLabelName(),
-            originBaseline.asString(),
-            CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG);
+            originBaseline,
+            CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG));
       }
       runChangeRequest(runHelper, Optional.of(new Baseline<>(destinationBaseline, originBaseline)));
     }
@@ -362,37 +361,35 @@ public enum WorkflowMode {
   private static <O extends Revision, D extends Revision> void runChangeRequest(
         WorkflowRunHelper<O, D> runHelper, Optional<Baseline<O>> baseline)
         throws ValidationException, RepoException, IOException {
-      if (!baseline.isPresent()) {
-        throw new ValidationException(
-            "Cannot find matching parent commit in in the destination. Use '"
-                + CHANGE_REQUEST_PARENT_FLAG
-                + "' flag to force a parent commit to use as baseline in the destination.");
-      }
-      logger.atInfo().log("Found baseline %s", baseline.get().getBaseline());
+    checkCondition(baseline.isPresent(),
+        "Cannot find matching parent commit in in the destination. Use '%s' flag to force a"
+            + " parent commit to use as baseline in the destination.",
+        CHANGE_REQUEST_PARENT_FLAG);
+    logger.atInfo().log("Found baseline %s", baseline.get().getBaseline());
 
     ChangeMigrator<O, D> migrator = runHelper.getDefaultMigrator();
     // If --change_request_parent was used, we don't have information about the origin changes
     // included in the CHANGE_REQUEST so we assume the last change is the only change
     ImmutableList<Change<O>> changes;
     if (baseline.get().getOriginRevision() == null) {
-        changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
-      } else {
-        ChangesResponse<O> changesResponse = runHelper.getOriginReader()
-            .changes(baseline.get().getOriginRevision(),
-                runHelper.getResolvedRef());
+      changes = ImmutableList.of(runHelper.getOriginReader().change(runHelper.getResolvedRef()));
+    } else {
+      ChangesResponse<O> changesResponse = runHelper.getOriginReader()
+          .changes(baseline.get().getOriginRevision(),
+              runHelper.getResolvedRef());
       if (changesResponse.isEmpty()) {
-        throw new EmptyChangeException(String
-            .format("Change '%s' doesn't include any change for origin_files = %s",
+        throw new EmptyChangeException(
+            format("Change '%s' doesn't include any change for origin_files = %s",
                 runHelper.getResolvedRef(), runHelper.getOriginFiles()));
       }
       changes = filterChanges(
           changesResponse.getChanges(), changesResponse.getConditionalChanges(), migrator);
-        if (changes.isEmpty()) {
-          throw new EmptyChangeException(String
-              .format("Change '%s' doesn't include any change for origin_files = %s",
-                  runHelper.getResolvedRef(), runHelper.getOriginFiles()));
-        }
+      if (changes.isEmpty()) {
+        throw new EmptyChangeException(
+            format("Change '%s' doesn't include any change for origin_files = %s",
+                runHelper.getResolvedRef(), runHelper.getOriginFiles()));
       }
+    }
 
     // --read-config-from-change is not implemented in CHANGE_REQUEST mode
     migrator.migrate(
@@ -409,7 +406,7 @@ public enum WorkflowMode {
         new Changes(changes.reverse(), ImmutableList.of()),
         baseline.get(),
         runHelper.getResolvedRef());
-    }
+  }
 
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(
       WorkflowRunHelper<O, D> runHelper, O current, O lastRev, EmptyReason emptyReason)
@@ -503,9 +500,9 @@ public enum WorkflowMode {
             "Cannot find last imported revision, but proceeding because of %s flag",
             GeneralOptions.FORCE);
       } else {
-        throw new ValidationException(e,
-            "Cannot find last imported revision. Use %s if you really want to proceed with the"
-                + " migration", FORCE);
+        throw new ValidationException(
+            String.format("Cannot find last imported revision. Use %s if you really want to proceed"
+                + " with the migration", FORCE), e);
       }
       return null;
     }

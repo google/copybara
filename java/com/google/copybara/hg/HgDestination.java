@@ -17,6 +17,7 @@
 package com.google.copybara.hg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.flogger.FluentLogger;
@@ -194,10 +195,8 @@ public class HgDestination implements Destination<HgRevision> {
       } catch (CannotResolveRevisionException e) {
         String warning = String.format("Hg Destination: '%s' doesn't exist in '%s'",
             reference, repoUrl);
-        if (!force) {
-          throw new ValidationException(
-              "%s. Use %s flag if you want to push anyway", warning, GeneralOptions.FORCE);
-        }
+        checkCondition(force, "%s. Use %s flag if you want to push anyway", warning,
+            GeneralOptions.FORCE);
         console.warn(warning);
       }
     }

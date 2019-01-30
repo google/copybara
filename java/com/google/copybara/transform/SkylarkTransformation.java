@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.NonReversibleValidationException;
@@ -54,17 +56,16 @@ public class SkylarkTransformation implements Transformation {
         .withParams(params);
     try {
       Object result = function.call(
-          ImmutableList.of(skylarkWork),/*kwargs=*/null,/*ast*/null, dynamicEnv.get());
-      if (!(result instanceof NoneType)) {
-        throw new ValidationException("Message transformer functions should not return"
-            + " anything, but '" + function.getName() + "' returned:" + result);
-      }
+          ImmutableList.of(skylarkWork), /*kwargs=*/null, /*ast*/null, dynamicEnv.get());
+      checkCondition(result instanceof NoneType,
+          "Message transformer functions should not return anything, but '%s' returned: %s",
+          function.getName(), result);
     } catch (EvalException e) {
       throw new ValidationException(
-          e,
           String.format(
               "Error while executing the skylark transformation %s: %s. Location: %s",
-              function.getName(), e.getMessage(), e.getLocation()));
+              function.getName(), e.getMessage(), e.getLocation()), e
+      );
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);
@@ -72,10 +73,8 @@ public class SkylarkTransformation implements Transformation {
       work.updateFrom(skylarkWork);
     }
 
-    if (skylarkConsole.getErrorCount() > 0) {
-      throw new ValidationException(
-          "%d error(s) while executing %s", skylarkConsole.getErrorCount(), function.getName());
-    }
+    checkCondition(skylarkConsole.getErrorCount() == 0, "%d error(s) while executing %s",
+        skylarkConsole.getErrorCount(), function.getName());
   }
 
   @Override

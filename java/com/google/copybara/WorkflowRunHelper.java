@@ -498,12 +498,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           try {
             FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
           } catch (NoSuchFileException e) {
-            throw new ValidationException(e,
-                String.format(""
-                    + "Failed to perform reversible check of transformations due to symlink '%s' "
-                    + "that points outside the checkout dir. Consider removing this symlink from "
-                    + "your origin_files or, alternatively, set reversible_check = False in your "
-                    + "workflow.", e.getFile()));
+            throw new ValidationException(String.format(""
+                + "Failed to perform reversible check of transformations due to symlink '%s' "
+                + "that points outside the checkout dir. Consider removing this symlink from "
+                + "your origin_files or, alternatively, set reversible_check = False in your "
+                + "workflow.", e.getFile()), e
+            );
           }
         }
       }
@@ -531,12 +531,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           try {
             FileUtil.copyFilesRecursively(checkoutDir, reverse, FAIL_OUTSIDE_SYMLINKS);
           } catch (NoSuchFileException e) {
-            throw new ValidationException(e,
-                ""
-                    + "Failed to perform reversible check of transformations due to a symlink that "
-                    + "points outside the checkout dir. Consider removing this symlink from your "
-                    + "origin_files or, alternatively, set reversible_check = False in your "
-                    + "workflow.");
+            throw new ValidationException(""
+                + "Failed to perform reversible check of transformations due to a symlink that "
+                + "points outside the checkout dir. Consider removing this symlink from your "
+                + "origin_files or, alternatively, set reversible_check = False in your "
+                + "workflow.", e
+            );
           }
         }
 
@@ -558,16 +558,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               workflow.getGeneralOptions().getEnvironment()),
               StandardCharsets.UTF_8);
         } catch (InsideGitDirException e) {
-          throw new ValidationException(
+          throw new ValidationException(String.format(
               "Cannot use 'reversible_check = True' because Copybara temporary directory (%s) is"
                   + " inside a git directory (%s). Please remove the git repository or use %s"
-                  + " flag.",
-              e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG);
+                  + " flag.", e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
         }
         if (!diff.trim().isEmpty()) {
           workflow.getConsole().error("Non reversible transformations:\n"
               + DiffUtil.colorize(workflow.getConsole(), diff));
-          throw new ValidationException("Workflow '%s' is not reversible", workflow.getName());
+          throw new ValidationException(
+              String.format("Workflow '%s' is not reversible", workflow.getName()));
         }
       }
 
@@ -625,8 +625,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     workflow.getGeneralOptions().getEnvironment());
             transformResult = transformResult.withAffectedFilesForSmartPrune(affectedFiles);
           } catch (InsideGitDirException e) {
-            throw new ValidationException(e.getCause(),
-                "Error computing diff for smart_prune: %s", e.getMessage());
+            throw new ValidationException("Error computing diff for smart_prune: " + e.getMessage(),
+                e.getCause());
           }
         }
       }

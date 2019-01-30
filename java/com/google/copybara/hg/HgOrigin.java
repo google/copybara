@@ -18,7 +18,6 @@ package com.google.copybara.hg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
-import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.Glob.affectsRoots;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -148,7 +147,7 @@ public class HgOrigin implements Origin<HgRevision> {
         repo.archive(workDir.toString()); // update the working directory
       } catch (RepoException e) {
         if (e.getMessage().contains("abort: no files match the archive pattern")) {
-          throw new ValidationException(e, "The origin repository is empty");
+          throw new ValidationException("The origin repository is empty", e);
         }
         throw e;
       } catch (IOException e) {
@@ -175,9 +174,7 @@ public class HgOrigin implements Origin<HgRevision> {
           return noChanges(EmptyReason.NO_CHANGES);
         }
         return noChanges(getEmptyReason(fromRef.getGlobalId(), toRef.getGlobalId()));
-      }
-
-      catch (ValidationException e) {
+      } catch (ValidationException e) {
         throw new RepoException(
             String.format("Error querying changes: %s", e.getMessage()), e.getCause());
       }

@@ -24,6 +24,6 @@ public class CannotResolveRevisionException extends ValidationException {
   }
 
   public CannotResolveRevisionException(String message, Throwable cause) {
-    super(cause, message);
+    super(message, cause);
   }
 }

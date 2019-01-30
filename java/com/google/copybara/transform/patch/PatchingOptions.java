@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.patch;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.DiffUtil.checkNotInsideGitRepo;
 
 import com.beust.jcommander.Parameter;
@@ -149,17 +150,18 @@ public class PatchingOptions implements Option {
         return false;
       }
 
-      throw new ValidationException(
+      throw new ValidationException(String.format(
           "Too old version of GNU Patch (%s). Copybara required at least 2.7 version."
               + " Path used: %s. Use %s to use a different path",
-          version, patchBin, PATCH_BIN_FLAG);
+          version, patchBin, PATCH_BIN_FLAG));
 
     } catch (CommandException e) {
       // While this might be an environment error, normally it is attributable to the user
       // (not having patch available).
-      throw new ValidationException(e,
-          "Error using GNU Patch. Path used: %s. Use %s to use a different path",
-          patchBin, PATCH_BIN_FLAG);
+      throw new ValidationException(
+          String.format("Error using GNU Patch. Path used: %s. Use %s to use a different path",
+              patchBin, PATCH_BIN_FLAG),
+          e);
     }
   }
 
@@ -171,11 +173,9 @@ public class PatchingOptions implements Option {
         .getStdout()
         .trim();
     Matcher matcher = PATCH_VERSION_FORMAT.matcher(out);
-    if (!matcher.matches()) {
-      throw new ValidationException(
-          "Unknown version of GNU Patch. Path used: %s. Use %s to use a different path",
-          this.patchBin, PATCH_BIN_FLAG);
-    }
+    checkCondition(matcher.matches(),
+        "Unknown version of GNU Patch. Path used: %s. Use %s to use a different path",
+        this.patchBin, PATCH_BIN_FLAG);
     int major = Integer.parseInt(matcher.group("major"));
     int minor = Integer.parseInt(matcher.group("minor"));
     return new Version(major, minor);

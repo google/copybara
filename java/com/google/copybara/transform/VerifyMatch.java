@@ -91,7 +91,7 @@ public final class VerifyMatch implements Transformation {
 
   private class BatchRun implements TransformFunc<FileState, List<String>> {
 
-    private Path checkoutDir;
+    private final Path checkoutDir;
 
     private BatchRun(Path checkoutDir) {
       this.checkoutDir = Preconditions.checkNotNull(checkoutDir);

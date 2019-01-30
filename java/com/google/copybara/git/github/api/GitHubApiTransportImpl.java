@@ -193,8 +193,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
         return repo.credentialFill(GITHUB_WEB_URL);
       } catch (ValidationException e1) {
         // Ugly, but helpful...
-        throw new ValidationException(
-            e1,
+        throw new ValidationException(String.format(
             "Cannot get credentials for host https://api.github.com or https://github.com from"
                 + " credentials helper. Make sure either your credential helper has the username"
                 + " and password/token or if you don't use one, that file '%s'"
@@ -205,7 +204,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
                 + "\n"
                 + "Note that spaces or other special characters need to be escaped. For example"
                 + " ' ' should be %%20 and '@' should be %%40 (For example when using the email"
-                + " as username)", storePath);
+                + " as username)", storePath), e1);
       }
     }
   }

@@ -144,12 +144,10 @@ public class HgRepository {
       hg(hgDir, builder.build(), fetchTimeout);
     } catch (RepoException e) {
       if (INVALID_HG_REPOSITORY.matcher(e.getMessage()).find()){
-        throw new ValidationException(
-            String.format("Repository not found: %s", e.getMessage()));
+        throw new ValidationException("Repository not found: " + e.getMessage());
       }
       if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
-        throw new ValidationException(
-            String.format("Unknown revision: %s", e.getMessage()));
+        throw new ValidationException("Unknown revision: " + e.getMessage());
       }
       throw e;
     }
@@ -358,12 +356,10 @@ public class HgRepository {
         return parseLog(output.getStdout());
       } catch (RepoException e) {
         if (UNKNOWN_REVISION.matcher(e.getMessage()).find()) {
-          throw new ValidationException(
-              String.format("Unknown revision: %s", e.getMessage()));
+          throw new ValidationException("Unknown revision: " + e.getMessage());
         }
         if (INVALID_REF_EXPRESSION.matcher(e.getMessage()).find()) {
-          throw new RepoException(
-              String.format("Syntax error in reference expression: %s", e.getMessage()));
+          throw new RepoException("Syntax error in reference expression: " + e.getMessage());
         }
         throw e;
       }

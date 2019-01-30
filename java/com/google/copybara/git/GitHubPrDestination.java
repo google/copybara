@@ -292,7 +292,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           .resolve(e -> e.equals("CONTEXT_REFERENCE") ? contextReference : prBranch);
     } catch (LabelNotFoundException e) {
       throw new ValidationException(
-          e, "Cannot find some labels in the GitHub PR branch name field: %s", e.getMessage());
+          "Cannot find some labels in the GitHub PR branch name field: " + e.getMessage(), e);
     }
   }
 

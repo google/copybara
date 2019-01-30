@@ -16,6 +16,8 @@
 
 package com.google.copybara.folder;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -68,22 +70,16 @@ public class FolderOrigin implements Origin<FolderRevision> {
 
   @Override
   public FolderRevision resolve(@Nullable String reference) throws ValidationException {
-    if (reference == null) {
-      throw new ValidationException(""
-          + "A path is expected as reference in the command line. Invoke copybara as:\n"
-          + "    copybara copy.bara.sky workflow_name ORIGIN_FOLDER");
-    }
+    checkCondition(reference != null, ""
+        + "A path is expected as reference in the command line. Invoke copybara as:\n"
+        + "    copybara copy.bara.sky workflow_name ORIGIN_FOLDER");
     Path path = fs.getPath(reference);
     if (!path.isAbsolute()) {
       path = cwd.resolve(path);
     }
-    if (!Files.exists(path)) {
-      throw new ValidationException(path + " folder doesn't exist");
-    } else if (!Files.isDirectory(path)) {
-      throw new ValidationException(path + " is not a folder");
-    } else if (!Files.isReadable(path) || !Files.isExecutable(path)) {
-      throw new ValidationException(path + " is not readable/executable");
-    }
+    checkCondition(Files.exists(path), "%s folder doesn't exist", path);
+    checkCondition(Files.isDirectory(path), "%s is not a folder", path);
+    checkCondition(Files.isReadable(path) && Files.isExecutable(path), "%s is not readable/executable", path);
 
     return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()));
   }
@@ -100,11 +96,10 @@ public class FolderOrigin implements Origin<FolderRevision> {
           FileUtil.addPermissionsAllRecursively(workdir, FILE_PERMISSIONS);
         } catch (AbsoluteSymlinksNotAllowed e) {
           throw new ValidationException(
-              "Cannot copy files into the workdir: Some"
-                  + " symlinks refer to locations outside of the folder and"
-                  + " 'materialize_outside_symlinks' config option was not used:\n"
-                  + "  %s -> %s\n",
-              e.getSymlink(), e.getDestinationFile());
+              String.format("Cannot copy files into the workdir: Some"
+                        + " symlinks refer to locations outside of the folder and"
+                        + " 'materialize_outside_symlinks' config option was not used:\n"
+                        + "  %s -> %s\n", e.getSymlink(), e.getDestinationFile()));
         } catch (IOException e) {
           throw new RepoException(
               String.format(

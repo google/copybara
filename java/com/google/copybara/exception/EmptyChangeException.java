@@ -27,10 +27,6 @@ public class EmptyChangeException extends ValidationException {
   }
 
   public EmptyChangeException(Throwable cause, String message) {
-    super(cause, message);
-  }
-
-  public EmptyChangeException(Throwable cause, String message, Object... args) {
-    super(cause, message, args);
+    super(message, cause);
   }
 }

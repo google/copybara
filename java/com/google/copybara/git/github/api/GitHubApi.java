@@ -303,7 +303,7 @@ public class GitHubApi {
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
-      throw new ValidationException(e, "%s not found: %s", entity, e.getRawError());
+      throw new ValidationException(String.format("%s not found: %s", entity, e.getRawError()), e);
     }
     throw e;
   }

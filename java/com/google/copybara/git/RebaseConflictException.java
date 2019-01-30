@@ -26,6 +26,6 @@ public class RebaseConflictException extends ValidationException {
   }
 
   public RebaseConflictException(Throwable cause, String message) {
-    super(cause, message);
+    super(message, cause);
   }
 }

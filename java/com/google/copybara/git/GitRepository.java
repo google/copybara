@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.CommandRunner.NO_INPUT;
 
@@ -293,18 +294,19 @@ public class GitRepository {
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
-    } else if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()) {
+    }
+    if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException(
           String.format("Invalid Git repository: %s. Error: %s", url, output.getStderr()));
-    } else if (output.getStderr().contains(
+    }
+    if (output.getStderr().contains(
         "Server does not allow request for unadvertised object")) {
       throw new CannotResolveRevisionException(
           String.format("%s: %s", url, output.getStderr().trim()));
-    } else if (output.getStderr().contains("Repository not found")) {
-      throw new ValidationException(String.format("%s: %s", url, output.getStderr()));
-    } else {
-      throw throwUnknownGitError(output, args);
     }
+    checkCondition(!output.getStderr().contains("Repository not found"),
+        "%s: %s", url, output.getStderr());
+    throw throwUnknownGitError(output, args);
   }
 
   /**

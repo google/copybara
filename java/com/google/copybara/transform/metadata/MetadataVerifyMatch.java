@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform.metadata;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -43,14 +45,11 @@ public class MetadataVerifyMatch implements Transformation {
   @Override
   public void transform(TransformWork work) throws IOException, ValidationException {
     boolean found = pattern.matcher(work.getMessage()).find();
-    if (!found && !verifyNoMatch) {
-      throw new ValidationException(
-          "Could not find '%s' in the change message. Message was:\n%s",
-          pattern, work.getMessage());
-    } else if (found && verifyNoMatch) {
-      throw new ValidationException(
-          "'%s' found in the change message. Message was:\n%s", pattern, work.getMessage());
-    }
+    checkCondition(found || verifyNoMatch,
+        "Could not find '%s' in the change message. Message was:\n%s", pattern, work.getMessage());
+
+    checkCondition(!found || !verifyNoMatch,
+        "'%s' found in the change message. Message was:\n%s", pattern, work.getMessage());
   }
 
   @Override

@@ -23,38 +23,39 @@ package com.google.copybara.exception;
 public class ValidationException extends Exception {
 
   private final boolean retryable;
+  
   public ValidationException(String message) {
-    super(message);
-    retryable = false;
+    this(false, message);
   }
 
-  public ValidationException(String message, Object... args) {
-    super(String.format(message, args));
-    retryable = false;
-  }
-
-  public ValidationException(boolean retryable, String message, Object... args) {
-    super(String.format(message, args));
-    this.retryable = retryable;
-  }
-
-  public ValidationException(Throwable cause, String message) {
+  public ValidationException(String message, Throwable cause) {
     super(message, cause);
     retryable = cause instanceof ValidationException
         && ((ValidationException) cause).retryable;
   }
 
-  public ValidationException(Throwable cause, String message, Object... args) {
-    this(cause, String.format(message, args));
+  private ValidationException(boolean retryable, String message) {
+    super(message);
+    this.retryable = retryable;
   }
 
+  /**
+   * Check a condition and throw {@link ValidationException} if false
+   * @throws ValidationException if {@code condition} is false
+   */
   public static void checkCondition(boolean condition, String format, Object... args)
       throws ValidationException {
     if (!condition) {
-      throw new ValidationException(format, args);
+      throw new ValidationException(String.format(format, args));
     }
   }
 
+  /** Throw a {@link ValidationException} that can be retried */
+  public static ValidationException retriableException(String message) {
+    return new ValidationException(true, message);
+  }
+
+  /** If the execution could be retried and succeed */
   public boolean isRetryable() {
     return retryable;
   }

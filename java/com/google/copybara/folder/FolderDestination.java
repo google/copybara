@@ -106,11 +106,11 @@ public class FolderDestination implements Destination<Revision> {
         throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
             + "' already exists and is not a directory");
       } catch (AccessDeniedException e) {
-        throw new ValidationException(e, "Path is not accessible: " + localFolder);
+        throw new ValidationException("Path is not accessible: " + localFolder, e);
       } catch (FileSystemException e) {
         if (e.getMessage().contains("Read-only file system")
             || e.getMessage().contains("Operation not permitted")) {
-          throw new ValidationException(e, "Path is not accessible: " + localFolder);
+          throw new ValidationException("Path is not accessible: " + localFolder, e);
         }
         throw e;
       }

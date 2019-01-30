@@ -17,16 +17,18 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.ChangeVisitable.VisitResult.CONTINUE;
+import static com.google.copybara.ChangeVisitable.VisitResult.TERMINATE;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.ChangeVisitable;
-import com.google.copybara.ChangeVisitable.VisitResult;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
@@ -136,35 +138,29 @@ public class ReferenceMigrator implements Transformation {
     AtomicInteger changesVisited = new AtomicInteger(0);
     ImmutableList<String> originLabels =
         ImmutableList.<String>builder().add(originLabel).addAll(additionalLabels).build();
-    if (destinationReader == null) {
-      throw new ValidationException("Destination does not support reading change history.");
-    }
+    checkCondition(destinationReader != null,
+        "Destination does not support reading change history.");
     if (knownChanges.containsKey(refBeingMigrated)) {
       return knownChanges.get(refBeingMigrated);
-    } else {
-      try {
-        destinationReader.visitChangesWithAnyLabel(null, originLabels, (input, labels) -> {
-          for (String labelValue : labels.values()) {
-              knownChanges.putIfAbsent(labelValue, input.getRef());
-              if (labelValue.equals(refBeingMigrated)) {
-                return VisitResult.TERMINATE;
-              }
+    }
+    try {
+      destinationReader.visitChangesWithAnyLabel(null, originLabels, (input, labels) -> {
+        for (String labelValue : labels.values()) {
+          knownChanges.putIfAbsent(labelValue, input.getRef());
+          if (labelValue.equals(refBeingMigrated)) {
+            return TERMINATE;
           }
-          if (changesVisited.incrementAndGet() > MAX_CHANGES_TO_VISIT) {
-            return VisitResult.TERMINATE;
-          } else {
-            return VisitResult.CONTINUE;
-          }
-        });
-        String retVal = knownChanges.get(refBeingMigrated);
-        if (reversePattern != null && retVal != null && !reversePattern.matches(retVal)) {
-          throw new ValidationException(
-              "Reference %s does not match regex '%s'", retVal, reversePattern);
         }
-        return retVal;
-      } catch (RepoException exception) {
-        throw new ValidationException(exception, "Exception finding reference.");
+        return changesVisited.incrementAndGet() > MAX_CHANGES_TO_VISIT ? TERMINATE : CONTINUE;
+      });
+      String retVal = knownChanges.get(refBeingMigrated);
+      if (reversePattern != null && retVal != null && !reversePattern.matches(retVal)) {
+        throw new ValidationException(
+            String.format("Reference %s does not match regex '%s'", retVal, reversePattern));
       }
+      return retVal;
+    } catch (RepoException exception) {
+      throw new ValidationException("Exception finding reference.", exception);
     }
   }
 

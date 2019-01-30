@@ -23,11 +23,11 @@ import com.google.copybara.exception.ValidationException;
  */
 public class CannotIntegrateException extends ValidationException {
 
-  CannotIntegrateException(String message, String... args) {
-    super(String.format(message, (Object[]) args));
+  CannotIntegrateException(String message) {
+    super(message);
   }
 
-  CannotIntegrateException(Throwable cause, String message, String... args) {
-    super(cause, message, (Object[]) args);
+  CannotIntegrateException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

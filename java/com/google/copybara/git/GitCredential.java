@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.regex.Pattern.compile;
 
@@ -73,18 +75,16 @@ public final class GitCredential {
     try {
       uri = URI.create(url);
     } catch (IllegalArgumentException e) {
-      throw new ValidationException(e, "Cannot get credentials for " + url);
+      throw new ValidationException("Cannot get credentials for " + url, e);
     }
     String protocol = uri.getScheme();
-    if (Strings.isNullOrEmpty(protocol)) {
-      throw new ValidationException("Cannot find the protocol for " + url);
-    }
+    checkCondition(!Strings.isNullOrEmpty(protocol), "Cannot find the protocol for " + url);
     String host = uri.getHost();
     Command cmd = new Command(new String[]{gitBinary, "credential", "fill"}, env,
         cwd.toFile());
-    String request = String.format("protocol=%s\nhost=%s\n", protocol, host);
+    String request = format("protocol=%s\nhost=%s\n", protocol, host);
     if (!Strings.isNullOrEmpty(uri.getPath())) {
-      request += String.format("path=%s\n", uri.getPath());
+      request += format("path=%s\n", uri.getPath());
     }
     request += "\n";
 
@@ -103,10 +103,9 @@ public final class GitCredential {
       }
     } catch (BadExitStatusException e) {
       String errStr = new String(err.toByteArray(), UTF_8);
-      if (errStr.contains("could not read")) {
-        throw new ValidationException("Interactive prompting of passwords for git is disabled,"
-            + " use git credential store before calling Copybara.");
-      }
+      checkCondition(!errStr.contains("could not read"),
+          "Interactive prompting of passwords for git is disabled,"
+              + " use git credential store before calling Copybara.");
       throw new RepoException("Error getting credentials:\n" + errStr, e);
     } catch (CommandException e) {
       throw new RepoException("Error getting credentials", e);

@@ -55,9 +55,10 @@ public class TemplateMessage implements Transformation {
       if (ignoreIfLabelNotFound) {
         return;
       }
-      throw new ValidationException(
+      throw new ValidationException(String.format(
           "Cannot find label '%s' in message:\n %s\nor any of the original commit messages",
-          e.getLabel(), work.getMessage());
+          e.getLabel(), work.getMessage())
+      );
     }
     if (!replaceMessage) {
       newMsg += (newLine ? "\n" : "") + work.getMessage();

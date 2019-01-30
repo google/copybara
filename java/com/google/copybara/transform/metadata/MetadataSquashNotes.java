@@ -64,9 +64,10 @@ public class MetadataSquashNotes implements Transformation {
     try {
       sb = new StringBuilder(prefixTemplate.resolve(work::getLabel));
     } catch (LabelNotFoundException e) {
-      throw new ValidationException(
+      throw new ValidationException(String.format(
           "Cannot find label '%s' in message:\n %s\nor any of the original commit messages",
-          e.getLabel(), work.getMessage());
+          e.getLabel(), work.getMessage())
+      );
     }
     if (max == 0) {
       // Don't force changes to be computed if we don't want any change back.

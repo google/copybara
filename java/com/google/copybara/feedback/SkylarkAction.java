@@ -58,14 +58,13 @@ public class SkylarkAction implements Action {
               "Error while executing the skylark transformation %s: %s",
               function.getName(), e.getMessage());
       if (e.getCause() instanceof ValidationException) {
-        throw new ValidationException(e.getCause(), error);
+        throw new ValidationException(error, e.getCause());
       } else if (e.getCause() instanceof RepoException) {
         throw new RepoException(error, e.getCause());
       }
       throw new ValidationException(
-          e.getCause(),
-          "Error while executing the skylark transformation %s: %s. Location: %s",
-          function.getName(), e.getMessage(), e.getLocation());
+          String.format("Error while executing the skylark transformation %s: %s. Location: %s",
+              function.getName(), e.getMessage(), e.getLocation()), e.getCause());
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

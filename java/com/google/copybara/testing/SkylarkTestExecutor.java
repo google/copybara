@@ -18,7 +18,6 @@ package com.google.copybara.testing;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -88,7 +87,6 @@ public class SkylarkTestExecutor {
     return this;
   }
 
-  @VisibleForTesting
   public Iterable<Class<?>> getModules(){
     return skylarkParser.getModules();
   }
@@ -106,7 +104,7 @@ public class SkylarkTestExecutor {
       throw new RuntimeException(
           String.format("Should not happen: %s.\n %s", e.getMessage(), getLogErrors()), e);
     } catch (ValidationException ve) {
-      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
+      throw new ValidationException(ve.getMessage() + getLogErrors(), ve);
     }
   }
 
@@ -169,7 +167,7 @@ public class SkylarkTestExecutor {
     try {
       return skylarkParser.loadConfig(configFile, createModuleSet(), options.general.console());
     } catch (ValidationException ve) {
-      throw new ValidationException(ve, ve.getMessage() + getLogErrors());
+      throw new ValidationException(ve.getMessage() + getLogErrors(), ve);
     }
   }
 

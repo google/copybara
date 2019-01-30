@@ -18,9 +18,12 @@ package com.google.copybara.git;
 
 import com.google.copybara.exception.ValidationException;
 
+/**
+ * Exception thrown when an invalid refspec is passed to Copybara via config, flags, etc.
+ */
 public class InvalidRefspecException extends ValidationException {
 
-  public InvalidRefspecException(String message) {
+  InvalidRefspecException(String message) {
     super(message);
   }
 }

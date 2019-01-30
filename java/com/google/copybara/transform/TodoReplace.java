@@ -17,6 +17,7 @@
 package com.google.copybara.transform;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.transform.TodoReplace.Mode.MAP_OR_FAIL;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Joiner;
@@ -57,14 +58,14 @@ public class TodoReplace implements Transformation {
   private static final Pattern SINGLE_USER_PATTERN = Pattern.compile("([ \t]*)([^ \t]*)([ \t]*)");
 
   private final Pattern pattern;
-  private Location location;
-  private Glob glob;
-  private ImmutableList<String> todoTags;
+  private final Location location;
+  private final Glob glob;
+  private final ImmutableList<String> todoTags;
   private final LocalParallelizer parallelizer;
-  private Mode mode;
-  private ImmutableMap<String, String> mapping;
+  private final Mode mode;
+  private final ImmutableMap<String, String> mapping;
   @Nullable
-  private String defaultString;
+  private final String defaultString;
 
   public TodoReplace(Location location, Glob glob, ImmutableList<String> todoTags,
       Mode mode,
@@ -98,7 +99,8 @@ public class TodoReplace implements Transformation {
                 files -> run(files, work.getConsole()))));
   }
 
-  private Set<FileState> run(Iterable<FileState> files, Console console) throws IOException, ValidationException {
+  private Set<FileState> run(Iterable<FileState> files, Console console)
+      throws IOException, ValidationException {
     Set<FileState> modifiedFiles = new HashSet<>();
     // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
     Pattern batchPattern = Pattern.compile(pattern.pattern(), pattern.flags());
@@ -138,12 +140,10 @@ public class TodoReplace implements Transformation {
       Matcher matcher = SINGLE_USER_PATTERN.matcher(rawUser);
       // Throw VE if the pattern doesn't match and mode is MAP_OR_FAIL
       if (!matcher.matches()) {
-        if (mode == Mode.MAP_OR_FAIL) {
-          throw new ValidationException("Unexpected '%s' doesn't match expected format", rawUser);
-        } else {
-          console.warnFmt("Skipping '%s' that doesn't match expected format", rawUser);
-          continue;
-        }
+        checkCondition(mode != MAP_OR_FAIL,
+            "Unexpected '%s' doesn't match expected format", rawUser);
+        console.warnFmt("Skipping '%s' that doesn't match expected format", rawUser);
+        continue;
       }
       String prefix = matcher.group(1);
       String originUser = matcher.group(2);

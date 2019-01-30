@@ -66,7 +66,7 @@ public class ExamplesTest {
                 : executor.eval(example.testExistingVariable(),
                     example.code());
           } catch (ValidationException e) {
-            throw new ValidationException(e, "'%s' contains errors.", exampleRef);
+            throw new ValidationException(String.format("'%s' contains errors.", exampleRef), e);
           }
           assertWithMessage(exampleRef).that(val).isNotNull();
         }

@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -121,23 +123,19 @@ public class CopyOrMove implements Transformation {
       createParentDirs(after);
       try {
         boolean beforeIsDir = Files.isDirectory(before);
-        if (paths != Glob.ALL_FILES && !beforeIsDir) {
-          throw new ValidationException(
-              "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
-                  + paths);
-        }
-        if (this.after.isEmpty() && !beforeIsDir) {
-          throw new ValidationException(
-              "Can only move a path to the root when the path is a folder. But '%s' is a "
-                  + "file. Use instead core.move('%s', '%s')", this.before, this.before,
-              before.getFileName().toString());
-        }
+        checkCondition(paths.equals(Glob.ALL_FILES) || beforeIsDir,
+            "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
+                + paths);
+        checkCondition(!this.after.isEmpty() || beforeIsDir,
+            "Can only move a path to the root when the path is a folder. But '%s' is a "
+                + "file. Use instead core.move('%s', '%s')", this.before, this.before,
+            before.getFileName().toString());
         Files.walkFileTree(before,
             new CopyMoveVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
                 overwrite, isCopy));
       } catch (FileAlreadyExistsException e) {
-      throw new ValidationException(
-          "Cannot move file to '%s' because it already exists", e.getFile());
+        throw new ValidationException(
+            String.format("Cannot move file to '%s' because it already exists", e.getFile()));
       }
   }
 
@@ -173,9 +171,10 @@ public class CopyOrMove implements Transformation {
       Files.createDirectories(after.getParent());
     } catch (FileAlreadyExistsException e) {
       // This exception message is particularly bad and we don't want to treat it as unhandled
-      throw new ValidationException(
+      throw new ValidationException(String.format(
           "Cannot create '%s' because '%s' already exists and is not a directory",
-          after.getParent(), e.getFile());
+          after.getParent(), e.getFile())
+      );
     }
   }
 

@@ -18,6 +18,8 @@ package com.google.copybara;
 
 import static com.google.common.base.Joiner.on;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.lang.String.format;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -139,9 +141,9 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     @Override
     ChangeMigrator<O, D> getMigratorForChangeAndWriter(Change<?> change, Writer<D> writer)
         throws ValidationException, RepoException {
-      Preconditions.checkNotNull(change);
+      checkNotNull(change);
 
-      logger.info(String.format("Loading configuration for change '%s %s'",
+      logger.info(format("Loading configuration for change '%s %s'",
           change.getRef(), change.firstLineMessage()));
 
       Config config = ReadConfigFromChangeWorkflow.this.configLoader.
@@ -152,18 +154,13 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
           configValidator
               .validate(config, workflowName)
               .getErrors();
-      if (!errors.isEmpty()) {
-        throw new ValidationException(
-            "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
-            change.getRef(), configLoader.location(), workflowName, on('\n').join(errors));
-      }
+      checkCondition(errors.isEmpty(), "Invalid configuration [ref '%s': %s ]: '%s': \n%s",
+          change.getRef(), configLoader.location(), workflowName, on('\n').join(errors));
 
       Migration migration = config.getMigration(workflowName);
-      if (!(migration instanceof Workflow)) {
-        throw new ValidationException(
-            "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow",
-            change.getRef(), configLoader.location(), workflowName);
-      }
+      checkCondition(migration instanceof Workflow,
+          "Invalid configuration [ref '%s': %s ]: '%s' is not a workflow", change.getRef(),
+          configLoader.location(), workflowName);
       @SuppressWarnings("unchecked")
       Workflow<O, D> workflowForChange = (Workflow<O, D>) migration;
       Reader<O> newReader = workflowForChange

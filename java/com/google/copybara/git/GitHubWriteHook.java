@@ -113,8 +113,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
           new LabelTemplate(prBranchToUpdate).resolve(e -> labelDict.get(e)));
     } catch (LabelNotFoundException e) {
       throw new ValidationException(
-          e,
-          "Template '%s' has an error: %s", prBranchToUpdate, e.getMessage());
+          String.format("Template '%s' has an error: %s", prBranchToUpdate, e.getMessage()), e);
     }
   }
 }
