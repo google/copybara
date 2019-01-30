@@ -29,13 +29,13 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitEnvironment;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.InsideGitDirException;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -242,6 +242,10 @@ public class PatchingOptions implements Option {
     if (reverse) {
       params.add("-R");
     }
+
+    // Only apply in the direction requested. Yes, -R --forward semantics is that it reverses
+    // and only applies if can be applied like that (-R will try to apply reverse and forward).
+    params.add("--forward");
 
     Command cmd =
         new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());

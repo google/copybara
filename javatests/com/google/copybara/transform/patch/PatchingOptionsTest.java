@@ -81,6 +81,66 @@ public class PatchingOptionsTest {
   }
 
   @Test
+  public void testPatchAlreadyApplied_gitApply() throws Exception {
+    useGitApply();
+    checkPatchAlreadyApplied("patch does not apply", "patch does not apply");
+  }
+
+  @Test
+  public void testPatchAlreadyApplied_gnuPatch() throws Exception {
+    setDefaultPatchImplementation();
+    checkPatchAlreadyApplied("[Rr]eversed .* patch detected", "Unreversed patch detected");
+  }
+
+  private void checkPatchAlreadyApplied(String forwardError, String reverseError)
+      throws IOException, InsideGitDirException, ValidationException {
+    String before = ""
+        + "foo\n"
+        + "more foo\n"
+        + "for foo == foo\n"
+        + "   fooooo\n";
+
+    String after = ""
+        + "foo\n"
+        + "some edit\n"
+        + "more foo\n"
+        + "if foo == foo\n"
+        + "   fooooo\n";
+
+    writeFile(left, "file.txt", before);
+    writeFile(right, "file.txt", after);
+    writeFile(destination, "file.txt", before);
+
+    byte[] patch = DiffUtil.diff(left, right, VERBOSE, System.getenv());
+
+    runPatch(destination, patch, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
+
+    assertThatPath(destination).containsFile("file.txt", after);
+
+    try {
+      // Re-applying the patch should fail, not revert...
+      runPatch(destination, patch, /*reverse=*/ false, STRIP_SLASHES, NO_EXCLUDED);
+      fail();
+    } catch (IOException e) {
+      assertThat(e).hasMessageThat().containsMatch(forwardError);
+    }
+    // Patch was really not applied
+    assertThatPath(destination).containsFile("file.txt", after);
+
+    runPatch(destination, patch, /*reverse=*/ true, STRIP_SLASHES, NO_EXCLUDED);
+
+    assertThatPath(destination).containsFile("file.txt", before);
+
+    try {
+      runPatch(destination, patch, /*reverse=*/ true, STRIP_SLASHES, NO_EXCLUDED);
+      fail();
+    } catch (IOException e) {
+      assertThat(e).hasMessageThat().containsMatch(reverseError);
+    }
+    assertThatPath(destination).containsFile("file.txt", before);
+  }
+
+  @Test
   public void testPatchSkipVersionCheck() throws Exception {
     forceUseGnuPatch();
     Map<String, String> env = new HashMap<>(options.general.getEnvironment());
