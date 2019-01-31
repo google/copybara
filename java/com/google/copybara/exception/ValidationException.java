@@ -46,6 +46,10 @@ public class ValidationException extends Exception {
   public static void checkCondition(boolean condition, String format, Object... args)
       throws ValidationException {
     if (!condition) {
+      // Don't try to format if there is no args. This allows strings like '%Fooooo'¡
+      if (args.length == 0) {
+        throw new ValidationException(format);
+      }
       throw new ValidationException(String.format(format, args));
     }
   }
