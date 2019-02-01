@@ -253,6 +253,23 @@ public class CopyOrMoveTest {
   }
 
   @Test
+  public void testSomeMove() throws Exception {
+    CopyOrMove mover = skylark.eval("m", "m = core.move('foo', 'bar')");
+
+    Files.createDirectories(checkoutDir.resolve("foo"));
+    Files.createDirectories(checkoutDir.resolve("bar"));
+    Files.write(checkoutDir.resolve("foo/foo.txt"), "foo".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("bar/bar.txt"), "bar".getBytes(UTF_8));
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("bar/bar.txt")
+        .containsFiles("bar/foo.txt")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testCopyNoOverwrite() throws Exception {
     CopyOrMove copier = skylark.eval("m", "m = core.copy('foo', 'bar')");
 
@@ -349,6 +366,90 @@ public class CopyOrMoveTest {
 
   @Test
   public void testMoveToCheckoutDirRoot() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'third_party/java', after = '')\n");
+
+    touch("third_party/java/one.java");
+    touch("third_party/java/org/two.java");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one.java", "org/two.java")
+        .containsNoDirs("third_party/java") // java folder is really moved. Not only the files.
+        .containsDirs("third_party") // We requested to move java. We don't touch third_party
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveToCheckoutDirRoot_samelevel() throws Exception {
+    CopyOrMove mover = skylark.eval("m", "m = core.move(before = 'foo', after = 'bar')\n");
+
+    touch("foo/one.java");
+    touch("foo/two.cc");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("bar/one.java")
+        .containsFiles("bar/two.cc")
+        .containsNoDirs("foo")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveToCheckoutDirRoot_samelevel_glob() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'foo', after = 'bar', paths = glob(['**.java']))\n");
+
+    touch("foo/one.java");
+    touch("foo/two.cc");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/two.cc") // Not deleted
+        .containsFiles("bar/one.java")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveToCheckoutDirRoot_subdir() throws Exception {
+    CopyOrMove mover = skylark.eval("m", "m = core.move(before = 'foo', after = 'foo/bar')\n");
+
+    touch("foo/old/test.java");
+    touch("foo/two.cc");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo/bar/old/test.java", "foo/bar/two.cc")
+        .containsNoDirs("foo.old")
+        .containsNoMoreFiles();
+  }
+
+  /**
+   * Tricky case: a folder called 'foo' that contains a file called 'foo'. If we move directory
+   * contents to the root weneed to make sure we do it right so that we delete the folder before
+   * copying the file.
+   */
+  @Test
+  public void testMoveToCheckoutDirRoot_sameName() throws Exception {
+    Transformation mover = skylark.eval("m", "m = core.move(before = 'foo', after = '')");
+
+    touch("foo/foo");
+    touch("foo/bar");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("foo")
+        .containsFiles("bar")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveToCheckoutDirRoot_subfolder() throws Exception {
     CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java', after = '')\n");
 

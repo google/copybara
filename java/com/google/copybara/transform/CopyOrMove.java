@@ -31,11 +31,15 @@ import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -130,13 +134,68 @@ public class CopyOrMove implements Transformation {
             "Can only move a path to the root when the path is a folder. But '%s' is a "
                 + "file. Use instead core.move('%s', '%s')", this.before, this.before,
             before.getFileName().toString());
+
+        // Simple move of all the contents of a directory
+        if (beforeIsDir && !isCopy && paths.equals(Glob.ALL_FILES)) {
+          moveAllFilesInDir(before, after, work.getCheckoutDir());
+          return;
+        }
+
         Files.walkFileTree(before,
             new CopyMoveVisitor(before, after, beforeIsDir ? paths.relativeTo(before) : null,
                 overwrite, isCopy));
+
+        // Delete 'before' folder if we moved all the files. We don't traverse to check emptyness
+        // recursively but it should be good enough for now.
+        if (beforeIsDir && !isCopy) {
+          deleteIfEmpty(before);
+        }
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
-            String.format("Cannot move file to '%s' because it already exists", e.getFile()));
+            String.format("Cannot move file to '%s' because it already exists", e.getFile()), e);
       }
+  }
+
+  private void deleteIfEmpty(Path dir) throws IOException {
+    try {
+      Files.delete(dir);
+    } catch (DirectoryNotEmptyException ignore) {
+    }
+  }
+
+  /**
+   * Move all the files and directories inside {@code before} to {@code after}.
+   *
+   * <p>Instead of doing a direct move we use a temporary directory to support moving directories
+   * from subdir to the root and viceversa.
+   */
+  private void moveAllFilesInDir(Path before, Path after, Path checkoutDir) throws IOException {
+    List<Path> beforeFiles = listDirFiles(before);
+    Path tmp = Files.createTempDirectory(checkoutDir, "core.move");
+    for (Path file : beforeFiles) {
+      Files.move(file, tmp.resolve(file.getFileName()));
+    }
+
+    if (!checkoutDir.equals(before)) {
+      deleteIfEmpty(before);
+    }
+
+    // If directory exists after the move to tmp, it can contain files. Move each file individually.
+    if (Files.isDirectory(after)) {
+      for (Path file : listDirFiles(tmp)) {
+        Files.move(file, after.resolve(file.getFileName()));
+      }
+    } else {
+      // Ensure parent exist and then rename tmp.
+      Files.createDirectories(after.getParent());
+      Files.move(tmp, after);
+    }
+  }
+
+  private List<Path> listDirFiles(Path before) throws IOException {
+    try(Stream<Path> stream = Files.list(before)) {
+      return stream.collect(Collectors.toList());
+    }
   }
 
   @Override

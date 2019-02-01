@@ -91,6 +91,32 @@ public class FileSubjects {
     }
 
     /**
+     * Check that {@code dirs} directories exist
+     */
+    public PathSubject containsDirs(String... dirs) {
+      for (String filename : dirs) {
+        Path filePath = actual().resolve(filename);
+        if (!Files.isDirectory(filePath)) {
+          fail("does have directory", filePath);
+        }
+      }
+      return this;
+    }
+
+    /**
+     * Check that {@code dirs} directories do not exist (but could be regular files)
+     */
+    public PathSubject containsNoDirs(String... dirs) {
+      for (String filename : dirs) {
+        Path filePath = actual().resolve(filename);
+        if (Files.isDirectory(filePath)) {
+          fail("does not have directory", filePath);
+        }
+      }
+      return this;
+    }
+
+    /**
      * Checks that a filename exists relative to the path, and that the contents match.
      */
     public PathSubject containsFile(String filename, String fileContents) throws IOException {
