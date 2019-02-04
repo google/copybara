@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -379,6 +380,58 @@ public class CopyOrMoveTest {
         .containsNoDirs("third_party/java") // java folder is really moved. Not only the files.
         .containsDirs("third_party") // We requested to move java. We don't touch third_party
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveFoldersWithExistingFiles() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'foo', after = 'bar')\n");
+
+    touch("foo/dir/subdir/file1.txt");
+    touch("bar/dir/subdir/file2.txt");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("bar/dir/subdir/file1.txt", "bar/dir/subdir/file2.txt")
+        .containsNoDirs("foo") // foo was moved
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testMoveFoldersDeleteRecursively() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'foo', after = 'bar', paths = glob(['**.txt']))\n");
+
+    touch("foo/dir/subdir/file1.txt");
+    touch("bar/dir/subdir/file2.txt");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("bar/dir/subdir/file1.txt", "bar/dir/subdir/file2.txt")
+        .containsNoDirs("foo") // foo was moved
+        .containsNoMoreFiles();
+    }
+
+  @Test
+  public void testMoveFoldersDeleteRecursively_moveFolders() throws Exception {
+    CopyOrMove mover = skylark.eval("m",
+        "m = core.move(before = 'foo', after = 'bar')\n");
+
+    touch("foo/dir/subdir/file1.txt");
+    touch("bar/dir/subdir/file2.txt");
+
+    transform(mover);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("bar/dir/subdir/file1.txt", "bar/dir/subdir/file2.txt")
+        .containsNoDirs("foo") // foo was moved
+        .containsNoMoreFiles();
+
+    // We deleted temporary directories.
+    assertThat(Files.list(checkoutDir)
+        .anyMatch(e -> !e.getFileName().toString().contains("bar"))).isFalse();
   }
 
   @Test

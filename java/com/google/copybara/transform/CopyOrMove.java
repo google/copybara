@@ -33,10 +33,13 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -148,7 +151,7 @@ public class CopyOrMove implements Transformation {
         // Delete 'before' folder if we moved all the files. We don't traverse to check emptyness
         // recursively but it should be good enough for now.
         if (beforeIsDir && !isCopy) {
-          deleteIfEmpty(before);
+          recursiveDeleteIfEmpty(before);
         }
       } catch (FileAlreadyExistsException e) {
         throw new ValidationException(
@@ -156,11 +159,24 @@ public class CopyOrMove implements Transformation {
       }
   }
 
-  private void deleteIfEmpty(Path dir) throws IOException {
-    try {
-      Files.delete(dir);
-    } catch (DirectoryNotEmptyException ignore) {
-    }
+  /** Traverse a directory files/folders recursively and delete any empty folder */
+  private void recursiveDeleteIfEmpty(Path dir) throws IOException {
+    Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+        return FileVisitResult.SKIP_SIBLINGS;
+      }
+
+      @Override
+      public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+        try {
+          Files.delete(dir);
+        } catch (DirectoryNotEmptyException ignore) {
+          // Folder not empty. Ignore.
+        }
+        return FileVisitResult.CONTINUE;
+      }
+    });
   }
 
   /**
@@ -177,19 +193,24 @@ public class CopyOrMove implements Transformation {
     }
 
     if (!checkoutDir.equals(before)) {
-      deleteIfEmpty(before);
+      recursiveDeleteIfEmpty(before);
     }
 
     // If directory exists after the move to tmp, it can contain files. Move each file individually.
-    if (Files.isDirectory(after)) {
-      for (Path file : listDirFiles(tmp)) {
-        Files.move(file, after.resolve(file.getFileName()));
-      }
-    } else {
+    if (!Files.exists(after)) {
       // Ensure parent exist and then rename tmp.
       Files.createDirectories(after.getParent());
       Files.move(tmp, after);
+      return;
     }
+
+    // Use our less-efficient move per file, We could try to be more clever here and do per
+    // non-empty subfolder. But lot of stuff to deal with for good errors, covering all the
+    // cases (symlink, dir, file transitions, etc.).
+    Files.walkFileTree(tmp,
+        new CopyMoveVisitor(tmp, after, /*pathMatcher=*/null, overwrite, /*isCopy=*/false));
+
+    recursiveDeleteIfEmpty(tmp);
   }
 
   private List<Path> listDirFiles(Path before) throws IOException {
