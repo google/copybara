@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -430,8 +430,11 @@ public class CopyOrMoveTest {
         .containsNoMoreFiles();
 
     // We deleted temporary directories.
-    assertThat(Files.list(checkoutDir)
-        .anyMatch(e -> !e.getFileName().toString().contains("bar"))).isFalse();
+
+    try(Stream<Path> files = Files.list(checkoutDir);) {
+      assertThat(files
+          .anyMatch(e -> !e.getFileName().toString().contains("bar"))).isFalse();
+    }
   }
 
   @Test
