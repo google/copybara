@@ -109,7 +109,7 @@ public class CopyOrMoveTest {
   }
 
   @Test
-  public void testEmptyMoveOrCopy() throws Exception {
+  public void testEmptyMoveOrCopy() {
     skylark.evalFails("core.move('foo', 'foo')",
         "Moving from the same folder to the same folder is a noop");
     skylark.evalFails("core.copy('foo', 'foo')",
@@ -314,7 +314,7 @@ public class CopyOrMoveTest {
   }
 
   @Test
-  public void testAbsoluteBefore() throws Exception {
+  public void testAbsoluteBefore() {
     for (String t : ImmutableList.of("move", "copy")) {
       options.setConsole(new TestingConsole());
       skylark.evalFails(
@@ -324,7 +324,7 @@ public class CopyOrMoveTest {
   }
 
   @Test
-  public void testAbsoluteAfter() throws Exception {
+  public void testAbsoluteAfter() {
     for (String t : ImmutableList.of("move", "copy")) {
       options.setConsole(new TestingConsole());
       skylark.evalFails(
@@ -334,7 +334,7 @@ public class CopyOrMoveTest {
   }
 
   @Test
-  public void testDotDot() throws Exception {
+  public void testDotDot() {
     for (String t : ImmutableList.of("move", "copy")) {
       options.setConsole(new TestingConsole());
       skylark.evalFails(
@@ -431,7 +431,7 @@ public class CopyOrMoveTest {
 
     // We deleted temporary directories.
 
-    try(Stream<Path> files = Files.list(checkoutDir);) {
+    try(Stream<Path> files = Files.list(checkoutDir)) {
       assertThat(files
           .anyMatch(e -> !e.getFileName().toString().contains("bar"))).isFalse();
     }
@@ -626,6 +626,7 @@ public class CopyOrMoveTest {
 
     try {
       transform(mover);
+      fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains(
               "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
@@ -685,6 +686,7 @@ public class CopyOrMoveTest {
     touch("foo.txt");
     try {
       transform(t);
+      fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat()
           .contains("Cannot move file to '" + checkoutDir + "/foo.txt' because it already exists");
@@ -692,24 +694,25 @@ public class CopyOrMoveTest {
   }
 
   @Test
-  public void errorForMissingBefore() throws Exception {
+  public void errorForMissingBefore() {
     try {
       skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n");
       fail();
-    } catch (ValidationException expected) {}
+    } catch (ValidationException expected) {
+      console.assertThat()
+          .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
+    }
 
-    console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
   }
 
   @Test
-  public void errorForMissingAfter() throws Exception {
+  public void errorForMissingAfter() {
     try {
       skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n");
       fail();
-    } catch (ValidationException expected) {}
-
-    console.assertThat()
-        .onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
+    } catch (ValidationException expected) {
+      console.assertThat()
+          .onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
+    }
   }
 }
