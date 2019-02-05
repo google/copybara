@@ -908,6 +908,11 @@ public class GitRepository {
     }
   }
 
+  void forceClean() throws RepoException {
+    Preconditions.checkNotNull(workTree, "Clean only acts on the worktree. A worktree is needed");
+    // Force clean and also untracked directories.
+    simpleCommand("clean", "-f", "-d");
+  }
   /**
    * Execute git apply.
    *

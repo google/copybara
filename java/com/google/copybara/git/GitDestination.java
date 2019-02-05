@@ -481,7 +481,7 @@ public final class GitDestination implements Destination<GitRevision> {
       // Clean unstaged:
       scratchClone.simpleCommand("reset", "--hard");
       // ...and untracked ones:
-      scratchClone.simpleCommand("clean", "-f");
+      scratchClone.forceClean();
 
       if (baseline != null && rebase) {
         // Note that it is a different work-tree from the previous reset

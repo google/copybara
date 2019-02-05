@@ -227,7 +227,7 @@ public class GitIntegrateChanges {
         }
         // Cleanup any non-comitted file
         repository.simpleCommand("reset", "--hard");
-        repository.simpleCommand("clean", "-f");
+        repository.forceClean();
       }
 
       private void revertIfInternal(List<String> toRevert, Predicate<String> externalFiles,

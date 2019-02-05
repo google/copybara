@@ -21,6 +21,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
+import static com.google.copybara.git.GitRepository.StatusCode.UNTRACKED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -167,6 +168,30 @@ public class GitRepositoryTest {
         new StatusFile("modified3", /*newFileName=*/null, UNMODIFIED, MODIFIED)
     );
 
+  }
+
+  @Test
+  public void testForceClean() throws RepoException, IOException {
+    GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+    dest.init();
+
+    Files.write(Files.createDirectories(workdir.resolve("some/folder")).resolve("file.txt"),
+        "".getBytes(UTF_8));
+
+    repository.add().all().run();
+
+    repository.simpleCommand("commit", "-a", "-m", "message");
+
+    Files.write(Files.createDirectories(workdir.resolve("other/folder")).resolve("file.txt"),
+        "".getBytes(UTF_8));
+
+    assertThat(repository.status()).containsExactly(
+        new StatusFile("other/", /*newFileName=*/null, UNTRACKED, UNTRACKED));
+
+    repository.forceClean();
+
+    assertThat(repository.status()).isEmpty();
   }
 
   /**

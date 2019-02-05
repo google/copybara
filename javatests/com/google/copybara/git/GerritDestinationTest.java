@@ -1005,6 +1005,31 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testNoAllowEmptyPatchSet_delete() throws Exception {
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+
+    writeFile(workTree, "foo/bar/baz/foo.txt", "content!");
+    writeFile(workTree, "other.txt", "not important");
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Old parent");
+
+    GitRevision oldParent = repo.resolveReference("HEAD");
+
+    Files.delete(workTree.resolve("foo/bar/baz/foo.txt"));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "previous patchset");
+
+    GitRevision currentRev = repo.resolveReference("HEAD");
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    repo.simpleCommand("reset", "--hard", "HEAD~1");
+
+    mockChangeFound(currentRev, 12310);
+
+    runAllowEmptyPatchSetFalse(oldParent.getSha1());
+  }
+
+  @Test
   public void testNoAllowEmptyPatchSet() throws Exception {
     // TODO(b/111567027): Add a test setting options.gitDestination.localRepoPath = some_folder.
     // Currently it doesn't work for unrelated reasons (refs/for/master is not a branch name
@@ -1083,22 +1108,7 @@ public class GerritDestinationTest {
     writeFile(workdir, "foo.txt", secondChange);
     writeFile(workdir, "non_relevant.txt", "bar");
 
-    when(gitUtil
-            .httpTransport()
-            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
-        .then(
-            (Answer<LowLevelHttpRequest>)
-                invocation -> {
-                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
-                  return mockResponse(
-                      String.format(
-                          "[{"
-                              + "change_id : '%s',"
-                              + "status : 'NEW',"
-                              + "_number : '12310',"
-                              + "current_revision = '%s'}]",
-                          change, currentRev.getSha1()));
-                });
+    mockChangeFound(currentRev, 12310);
 
     try {
       runAllowEmptyPatchSetFalse(newParent.getSha1());
@@ -1130,6 +1140,25 @@ public class GerritDestinationTest {
         .containsFile("non_relevant.txt", "bar")
         .containsFile("foo.txt", thirdChange)
         .containsNoMoreFiles();
+  }
+
+  private void mockChangeFound(GitRevision currentRev, int changeNum) throws IOException {
+    when(gitUtil
+            .httpTransport()
+            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
+        .then(
+            (Answer<LowLevelHttpRequest>)
+                invocation -> {
+                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  return mockResponse(
+                      String.format(
+                          "[{"
+                              + "change_id : '%s',"
+                              + "status : 'NEW',"
+                              + "_number : '" + changeNum + "',"
+                              + "current_revision = '%s'}]",
+                          change, currentRev.getSha1()));
+                });
   }
 
   private void runAllowEmptyPatchSetFalse(String baseline)
