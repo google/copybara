@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
@@ -309,6 +310,33 @@ public class GerritApiTest {
     assertThat(projects.get("external/bison").getDescription()).isEqualTo("GNU parser generator");
     assertThat(projects.get("external/gcc").getId()).isEqualTo("external%2Fgcc");
     assertThat(projects.get("external/openssl").getId()).isEqualTo("external%2Fopenssl");
+  }
+
+  @Test
+  public void testCreateProject() throws Exception {
+    mockResponse(new CheckRequest("PUT", "/projects/external%2Ftest"), ""
+        + ")]}'\n"
+        + "{\n"
+        + "      \"id\": \"external%2Ftest\",\n"
+        + "      \"name\": \"external/test\",\n"
+        + "      \"description\": \"Some test project\"\n"
+        + "  }");
+
+    ProjectInfo projects = gerritApi.createProject("external/test");
+
+    assertThat(projects.getId()).isEqualTo("external%2Ftest");
+    assertThat(projects.getName()).isEqualTo("external/test");
+    assertThat(projects.getDescription()).isEqualTo("Some test project");
+  }
+
+  @Test
+  public void testCreateProject_invalid() throws Exception {
+    try {
+      gerritApi.createProject("some project");
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("has spaces");
+    }
   }
 
   @Test

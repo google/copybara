@@ -64,4 +64,20 @@ public class GerritApiTransportWithChecker implements GerritApiTransport {
     }
     return delegate.post(path, request, responseType);
   }
+
+  @Override
+  public <T> T put(String path, Object request, Type responseType)
+      throws RepoException, ValidationException {
+    try {
+      checker.doCheck(
+          ImmutableMap.of(
+              "path", path,
+              "request", request.toString(),
+              "response_type", responseType.toString()),
+          console);
+    } catch (IOException e) {
+      throw new RuntimeException("Error running checker", e);
+    }
+    return delegate.put(path, request, responseType);
+  }
 }

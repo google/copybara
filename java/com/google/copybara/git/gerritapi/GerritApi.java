@@ -16,6 +16,8 @@
 
 package com.google.copybara.git.gerritapi;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
@@ -83,6 +85,19 @@ public class GerritApi {
       return transport.get("/projects/?" + listProjectsInput.asUrlParams(),
           new TypeToken<Map<String, ProjectInfo>>() {}.getType());
     }
+  }
+
+  public ProjectInfo createProject(String project) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_create_project")) {
+      return transport.put("/projects/" + escape(project), new ProjectInput(),
+          new TypeToken<ProjectInfo>() {}.getType());
+    }
+  }
+
+  private String escape(String project) throws ValidationException {
+    // Gerrit does a good validation in the server side, but we do some basic checks
+    checkCondition(!project.contains(" "), "Invalid project name, has spaces: '%s'", project);
+    return project.replace("/", "%2F");
   }
 
   public ProjectAccessInfo getAccessInfo(String project)

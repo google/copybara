@@ -82,6 +82,19 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     }
   }
 
+  @Override
+  public <T> T put(String path, Object request, Type responseType)
+      throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials(uri.toString()));
+    GenericUrl url = getUrl(path);
+    try {
+      return execute(responseType, requestFactory.buildPutRequest(
+          url, new JsonHttpContent(JSON_FACTORY, request)));
+    } catch (IOException e) {
+      throw new RepoException("Error running Gerrit API operation " + url, e);
+    }
+  }
+
   public GenericUrl getUrl(String path) {
     Preconditions.checkArgument(path.startsWith("/"), path);
     return new GenericUrl(uri.resolve(uri.getPath() + path));

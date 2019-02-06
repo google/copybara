@@ -37,4 +37,10 @@ public interface GerritApiTransport {
    */
   <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException;
+
+  /**
+   * Do a http PUT call
+   */
+  <T> T put(String path, Object request, Type responseType)
+      throws RepoException, ValidationException;
 }
