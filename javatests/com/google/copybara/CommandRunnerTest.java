@@ -25,8 +25,12 @@ import com.google.common.base.Strings;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.CommandTimeoutException;
+import com.google.copybara.shell.AbnormalTerminationException;
+import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.copybara.shell.Killable;
+import com.google.copybara.shell.KillableObserver;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -82,6 +86,37 @@ public class CommandRunnerTest {
       assertThat(e.getMessage())
           .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
       assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
+    }
+  }
+
+  @Test
+  public void testObserverCanTerminate() throws Exception {
+    KillableObserver tester = new KillableObserver() {
+      @Override
+      public void startObserving(Killable killable) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException ignored) {
+          // ignored
+        }
+        killable.kill();
+      }
+
+      @Override
+      public void stopObserving(Killable killable) {
+      }
+    };
+    Command command = bashCommand(""
+        + "echo stdout msg\n"
+        + ">&2 echo stderr msg\n"
+        + "sleep 10\n");
+    try {
+      runCommand(new CommandRunner(command, Duration.ofSeconds(90)).withObserver(tester));
+      fail();
+    } catch (AbnormalTerminationException e) {
+      assertThat(e.getMessage()).containsMatch("Process terminated by signal 15");
+      assertThat(e.getMessage())
+          .doesNotContainMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
     }
   }
 

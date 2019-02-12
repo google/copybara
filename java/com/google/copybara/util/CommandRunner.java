@@ -21,12 +21,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.shell.AbnormalTerminationException;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.shell.CommandResult;
+import com.google.copybara.shell.Killable;
+import com.google.copybara.shell.KillableObserver;
 import com.google.copybara.shell.ShellUtils;
 import com.google.copybara.shell.TerminationStatus;
 import com.google.copybara.shell.TimeoutKillableObserver;
@@ -36,6 +40,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import javax.annotation.CheckReturnValue;
@@ -60,22 +65,24 @@ public final class CommandRunner {
   private final byte[] input;
   private final int maxOutLogLines;
   private final Duration timeout;
+  private final ImmutableList<KillableObserver> additionalObservers;
 
   private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines,
-      Duration timeout) {
+      Duration timeout, ImmutableList<KillableObserver> additionalObservers) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
     this.maxOutLogLines = maxOutLogLines;
     this.timeout = Preconditions.checkNotNull(timeout);
+    this.additionalObservers = Preconditions.checkNotNull(additionalObservers);
   }
 
   public CommandRunner(Command cmd) {
-    this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT);
+    this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT, ImmutableList.of());
   }
 
   public CommandRunner(Command cmd, Duration timeout) {
-    this(cmd, false, NO_INPUT, -1, timeout);
+    this(cmd, false, NO_INPUT, -1, timeout, ImmutableList.of());
   }
 
   /**
@@ -83,7 +90,8 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withVerbose(boolean verbose) {
-    return new CommandRunner(this.cmd, verbose, this.input, this.maxOutLogLines, timeout);
+    return new CommandRunner(
+        this.cmd, verbose, this.input, this.maxOutLogLines, timeout, additionalObservers);
   }
 
   /**
@@ -91,7 +99,8 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withInput(byte[] input) {
-    return new CommandRunner(this.cmd, this.verbose, input, this.maxOutLogLines, timeout);
+    return new CommandRunner(
+        this.cmd, this.verbose, input, this.maxOutLogLines, timeout, additionalObservers);
   }
 
   /**
@@ -99,7 +108,18 @@ public final class CommandRunner {
    */
   @CheckReturnValue
   public CommandRunner withMaxStdOutLogLines(int lines) {
-    return new CommandRunner(this.cmd, this.verbose, this.input, lines, timeout);
+    return new CommandRunner(
+        this.cmd, this.verbose, this.input, lines, timeout, additionalObservers);
+  }
+
+  /**
+   * Adds another observer to the call executions
+   */
+  @CheckReturnValue
+  public CommandRunner withObserver(KillableObserver observer) {
+    return new CommandRunner(
+        this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
+        ImmutableList.<KillableObserver>builder().addAll(additionalObservers).add(observer).build());
   }
 
   /**
@@ -122,7 +142,8 @@ public final class CommandRunner {
     OutputStream stdoutStream = commandOutputStream(stdoutCollector);
     OutputStream stderrStream = commandOutputStream(stderrCollector);
     TerminationStatus exitStatus = null;
-    TimeoutKillableObserver cmdMonitor = new TimeoutKillableObserver(timeout.toMillis());
+    CombinedKillableObserver cmdMonitor =
+        new CombinedKillableObserver(timeout, additionalObservers.toArray(new KillableObserver[0]));
     try {
       CommandResult cmdResult = cmd.execute(input,
           cmdMonitor,
@@ -178,7 +199,7 @@ public final class CommandRunner {
   }
 
   private void maybeTreatTimeout(ByteArrayOutputStream stdoutCollector,
-      ByteArrayOutputStream stderrCollector, TimeoutKillableObserver cmdMonitor,
+      ByteArrayOutputStream stderrCollector, CombinedKillableObserver cmdMonitor,
       AbnormalTerminationException e) throws CommandTimeoutException {
     if (!cmdMonitor.hasTimedOut()) {
       return;
@@ -272,6 +293,43 @@ public final class CommandRunner {
       if (ex != null) {
         throw ex;
       }
+    }
+  }
+
+  /**
+   * Multiplex KillableObserver to allow monitoring processes
+   */
+  private static class CombinedKillableObserver implements KillableObserver {
+
+    private final TimeoutKillableObserver timed;
+    private final ImmutableList<KillableObserver> others;
+
+    private CombinedKillableObserver(Duration timeout, KillableObserver... others) {
+      this.timed = new TimeoutKillableObserver(timeout.toMillis());
+      this.others = ImmutableList.copyOf(others);
+    }
+
+    @Override
+    public void startObserving(Killable killable) {
+      timed.startObserving(killable);
+      for (KillableObserver other : others) {
+        other.startObserving(killable);
+      }
+    }
+
+    @Override
+    public void stopObserving(Killable killable) {
+      timed.stopObserving(killable);
+      for (KillableObserver other : others) {
+        other.stopObserving(killable);
+      }
+    }
+
+    /**
+     * Returns true if the observed process was killed by this observer.
+     */
+    public boolean hasTimedOut() {
+      return timed.hasTimedOut();
     }
   }
 }
