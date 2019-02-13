@@ -53,6 +53,7 @@ public final class CommandRunner {
   public static final byte[] NO_INPUT = new byte[]{};
   // By default we kill the command after 15 minutes.
   public static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(15);
+  public static final int MAX_COMMAND_LENGTH = 40000;
 
   private final Command cmd;
   private final boolean verbose;
@@ -107,11 +108,13 @@ public final class CommandRunner {
    */
   public CommandOutputWithStatus execute() throws CommandException {
     Stopwatch stopwatch = Stopwatch.createStarted();
-    String startMsg = "Executing ["
-        + ShellUtils.prettyPrintArgv(Arrays.asList(cmd.getCommandLineElements())) + "]";
-    logger.atInfo().log(startMsg);
+    String startMsg = ShellUtils.prettyPrintArgv(Arrays.asList(cmd.getCommandLineElements()));
+    startMsg = startMsg.length() > MAX_COMMAND_LENGTH
+        ? startMsg.substring(0, MAX_COMMAND_LENGTH) + "..." : startMsg;
+    String validStartMsg = "Executing [" + startMsg + "]";
+    logger.atInfo().log(validStartMsg);
     if (verbose) {
-      System.err.println(startMsg);
+      System.err.println(validStartMsg);
     }
     ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
     ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();

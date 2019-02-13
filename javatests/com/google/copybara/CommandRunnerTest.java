@@ -127,6 +127,19 @@ public class CommandRunnerTest {
   }
 
   @Test
+  public void testMaxCommandLength() throws Exception {
+    String[] args = new String[10000];
+    args[0] = "echo";
+    for (int i = 1; i < 10000; i++) {
+      args[i] = "hello world!";
+    }
+    Command command = new Command(args);
+    CommandOutputWithStatus result = runCommand(new CommandRunner(command).withVerbose(true));
+    assertThat(result.getTerminationStatus().success()).isTrue();
+    assertLogContains("...", "'echo' STDOUT: hello world!", "Command 'echo' finished" );
+  }
+
+  @Test
   public void testCommandWithMaxLogLines() throws Exception {
     Command command = new Command(new String[]{"echo", "hello\n", "world"});
     CommandOutputWithStatus result =
