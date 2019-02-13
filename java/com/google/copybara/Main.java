@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
-import com.google.common.primitives.Ints;
 import com.google.copybara.MainArguments.CommandWithArgs;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
@@ -39,6 +38,7 @@ import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.ExitCode;
@@ -55,6 +55,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -388,17 +389,10 @@ public class Main {
   /**
    * Returns the console flush rate from the flag, if present and valid, or 0 (no flush) otherwise.
    */
-  protected int getConsoleFlushRate(String[] args) {
-    Optional<String> maybeConsoleFlushRate =
-        findFlagValue(args, GeneralOptions.CONSOLE_FILE_FLUSH_RATE);
-    int consoleFlushRate = 0;
-    if (maybeConsoleFlushRate.isPresent()) {
-      Integer parsed = Ints.tryParse(maybeConsoleFlushRate.get());
-      if (parsed != null && parsed >= 0) {
-        consoleFlushRate = parsed;
-      }
-    }
-    return consoleFlushRate;
+  protected Duration getConsoleFlushRate(String[] args) {
+    return findFlagValue(args, GeneralOptions.CONSOLE_FILE_FLUSH_INTERVAL)
+        .map(e -> new DurationConverter().convert(e))
+        .orElse(GeneralOptions.DEFAULT_CONSOLE_FILE_FLUSH_INTERVAL);
   }
 
   protected void configureLog(FileSystem fs) throws IOException {

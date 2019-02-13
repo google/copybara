@@ -18,6 +18,9 @@ package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.copybara.util.console.Message.MessageType;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -26,9 +29,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 /**
@@ -39,8 +46,7 @@ import javax.annotation.Nullable;
  *
  * <p>Caller is responsible for closing this console to free resources.
  *
- * <p>TODO(danielromero): Writer is flushed only at the end. We should introduce a flushing
- * mechanism (probably every N messages)
+ * <p> The console can be configured to flush on a fixed rate intervals.
  */
 public class FileConsole extends DelegateConsole {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
@@ -48,11 +54,11 @@ public class FileConsole extends DelegateConsole {
       DateTimeFormatter.ofPattern("MMdd HH:mm:ss.SSS");
 
   protected final Path filePath;
-  private final int consoleFlushRate;
+  private final ListeningScheduledExecutorService executor;
 
-  private int messageCount = 0;
   private boolean failed = false;
   @Nullable private Writer writer;
+
 
   /**
    * Creates a new {@link FileConsole}.
@@ -61,10 +67,31 @@ public class FileConsole extends DelegateConsole {
    * @param filePath A file path to write to. The parent directories must be created in advance.
    * @param consoleFlushRate How often (in number of messages) to flush this file console.
    */
-  public FileConsole(Console delegate, Path filePath, int consoleFlushRate) {
+  public FileConsole(Console delegate, Path filePath, Duration consoleFlushRate) {
     super(delegate);
     this.filePath = Preconditions.checkNotNull(filePath);
-    this.consoleFlushRate = consoleFlushRate;
+    if (consoleFlushRate.isNegative() || consoleFlushRate.isZero()) {
+      executor = null;
+    } else {
+      executor = MoreExecutors.listeningDecorator(
+          Executors.newSingleThreadScheduledExecutor(
+              new ThreadFactoryBuilder()
+                  .setNameFormat("Console flush thread %d")
+                  .setDaemon(true)
+                  .setUncaughtExceptionHandler(
+                      (t, e) -> {
+                        logger.atSevere().withCause(e).log(
+                            "Thread %s threw an unhandled exception: %s", t, e.getMessage());
+                        System.exit(31 /*ExitCode.INTERNAL_ERROR*/);
+                      })
+                  .build()));
+
+      //noinspection unused : Ignored as this is best effort
+      Future<?> ignored = executor.scheduleAtFixedRate(() -> {
+        logger.atInfo().log("Executing console flush");
+        flush();
+      }, consoleFlushRate.toMillis(), consoleFlushRate.toMillis(), TimeUnit.MILLISECONDS);
+    }
   }
 
   @Override
@@ -72,8 +99,6 @@ public class FileConsole extends DelegateConsole {
     if (failed) {
       return;
     }
-    messageCount++;
-
     Writer writer = getWriter();
     if (writer == null) {
       return;
@@ -83,13 +108,25 @@ public class FileConsole extends DelegateConsole {
           String.format(
               "%s %s: %s\n",
               ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message));
-      if (consoleFlushRate > 0 && messageCount % consoleFlushRate == 0) {
-        writer.flush();
-      }
     } catch (IOException e) {
       failed = true;
       logger.atSevere().withCause(e).log(
           "Could not write to file: %s. Redirecting will be disabled.", filePath);
+    }
+  }
+  private synchronized void flush() {
+    if (failed) {
+      return;
+    }
+    Writer writer = getWriter();
+    if (writer != null) {
+      try {
+        writer.flush();
+      } catch (IOException e) {
+        failed = true;
+        logger.atSevere().withCause(e).log(
+            "Could not write to file: %s. Redirecting will be disabled.", filePath);
+      }
     }
   }
 
@@ -129,6 +166,10 @@ public class FileConsole extends DelegateConsole {
       failed = true;
       logger.atSevere().withCause(e).log(
           "Could not close file: %s. Redirecting will be disabled.", filePath);
+    }
+
+    if (executor != null) {
+      executor.shutdownNow();
     }
   }
 }

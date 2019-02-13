@@ -16,11 +16,9 @@
 
 package com.google.copybara.jcommander;
 
-import com.google.common.primitives.Ints;
-
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.ParameterException;
-
+import com.google.common.primitives.Ints;
 import java.time.Duration;
 
 /**
@@ -35,7 +33,7 @@ public class DurationConverter implements IStringConverter<Duration> {
     }
 
     Integer num = Ints.tryParse(value.substring(0, value.length() - 1));
-    if (num == null || num <= 0) {
+    if (num == null || num < 0) {
       return durationException(value);
     }
     char unit = value.charAt(value.length() - 1);

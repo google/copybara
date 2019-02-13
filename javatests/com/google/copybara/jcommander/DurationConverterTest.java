@@ -39,6 +39,7 @@ public class DurationConverterTest {
 
   @Test
   public void testParsing() throws Exception {
+    checkFetchTimeout("0s", Duration.ZERO);
     checkFetchTimeout("20s", Duration.ofSeconds(20));
     checkFetchTimeout("20m", Duration.ofMinutes(20));
     checkFetchTimeout("20h", Duration.ofHours(20));

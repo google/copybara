@@ -58,6 +58,7 @@ public final class GeneralOptions implements Option {
   public static final String OUTPUT_LIMIT_FLAG = "--output-limit";
   public static final String DRY_RUN_FLAG = "--dry-run";
   public static final String SQUASH_FLAG = "--squash";
+  static final Duration DEFAULT_CONSOLE_FILE_FLUSH_INTERVAL = Duration.ofSeconds(30);
 
   private Map<String, String> environment;
   private FileSystem fileSystem;
@@ -334,16 +335,27 @@ public final class GeneralOptions implements Option {
       description = "If set, write the console output also to the given file path.")
   String consoleFilePath;
 
-  static final String CONSOLE_FILE_FLUSH_RATE = "--console-file-flush-rate";
+  // This flag is read before we parse the arguments, because of the console lifecycle
+  @SuppressWarnings("unused")
+  @Deprecated
+  @Parameter(
+      names = "--console-file-flush-rate",
+      description =
+          "How often in number of lines to flush the console to the output file. "
+              + "If set to 0, console will be flushed only at the end.", hidden = true)
+  int consoleFileFlushRateDeprecatedDontUse = -1;
 
+  static final String CONSOLE_FILE_FLUSH_INTERVAL = "--console-file-flush-interval";
+ 
   // This flag is read before we parse the arguments, because of the console lifecycle
   @SuppressWarnings("unused")
   @Parameter(
-      names = CONSOLE_FILE_FLUSH_RATE,
+      names = CONSOLE_FILE_FLUSH_INTERVAL,
+      converter = DurationConverter.class,
       description =
-          "How often in number of lines to flush the console to the output file. "
-              + "If set to 0 console will be flushed only at the end.")
-  int consoleFileFlushRate = 100;
+          "How often Copybara should flush the console to the output file. (10s, 1m, etc.)"
+              + "If set to 0s, console will be flushed only at the end.")
+  Duration consoleFileFlushInterval = DEFAULT_CONSOLE_FILE_FLUSH_INTERVAL;
 
   @Parameter(names = DRY_RUN_FLAG,
       description = "Run the migration in dry-run mode. Some destination implementations might"

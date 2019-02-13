@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +56,7 @@ public class FileConsoleTest {
 
   private void runTest(Path file) throws IOException {
     TestingConsole delegate = new TestingConsole();
-    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 0)) {
+    try (FileConsole fileConsole = new FileConsole(delegate, file, Duration.ZERO)) {
       fileConsole.startupMessage("v1");
       fileConsole.info("This is info");
       fileConsole.warn("This is warning");
@@ -86,20 +87,48 @@ public class FileConsoleTest {
   @Test
   public void testFlushingFrequency() throws Exception {
     TestingConsole delegate = new TestingConsole();
-    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 5)) {
+    try (FileConsole fileConsole = new FileConsole(delegate, file, Duration.ofSeconds(2))) {
       fileConsole.startupMessage("v1");
       fileConsole.info("This is info");
       fileConsole.warn("This is warning");
       assertThat(Files.readAllLines(file)).isEmpty();
+      Thread.sleep(3000);
       fileConsole.error("This is error");
       fileConsole.verbose("This is verbose");
       List<String> lines = Files.readAllLines(file);
-      assertThat(lines).hasSize(5);
+      assertThat(lines).hasSize(3);
       assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
       assertThat(lines.get(1)).contains("INFO: This is info");
       assertThat(lines.get(2)).contains("WARNING: This is warning");
-      assertThat(lines.get(3)).contains("ERROR: This is error");
-      assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
+      fileConsole.progress("This is progress");
+    }
+
+    List<String> lines = Files.readAllLines(file);
+    assertThat(lines).hasSize(6);
+    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(1)).contains("INFO: This is info");
+    assertThat(lines.get(2)).contains("WARNING: This is warning");
+    assertThat(lines.get(3)).contains("ERROR: This is error");
+    assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
+    assertThat(lines.get(5)).contains("PROGRESS: This is progress");
+  }
+
+  /**
+   * We only flush when the file is closed
+   */
+  @Test
+  public void testFlushingFrequencyDeactivated() throws Exception {
+    TestingConsole delegate = new TestingConsole();
+    try (FileConsole fileConsole = new FileConsole(delegate, file, Duration.ZERO)) {
+      fileConsole.startupMessage("v1");
+      fileConsole.info("This is info");
+      fileConsole.warn("This is warning");
+      assertThat(Files.readAllLines(file)).isEmpty();
+      Thread.sleep(3000);
+      fileConsole.error("This is error");
+      fileConsole.verbose("This is verbose");
+      List<String> lines = Files.readAllLines(file);
+      assertThat(lines).hasSize(0);
       fileConsole.progress("This is progress");
     }
 
@@ -116,7 +145,7 @@ public class FileConsoleTest {
   @Test
   public void testFlushingFrequency_disabled() throws Exception {
     TestingConsole delegate = new TestingConsole();
-    try (FileConsole fileConsole = new FileConsole(delegate, file, /*consoleFlushRate*/ 0)) {
+    try (FileConsole fileConsole = new FileConsole(delegate, file, Duration.ZERO)) {
       fileConsole.startupMessage("v1");
       fileConsole.info("This is info");
       fileConsole.warn("This is warning");
