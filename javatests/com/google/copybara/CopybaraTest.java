@@ -108,8 +108,8 @@ public class CopybaraTest {
         .assertThat()
         .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*")
         .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
-        .onceInLog(MessageType.INFO, ".*2018-11-07 03:06:19.*2222.*First change.*Foo <Bar>.*")
-        .onceInLog(MessageType.INFO, ".*2018-11-07 05:19:39.*3333.*Second change.*Foo <Bar>.*");
+        .onceInLog(MessageType.INFO, ".*2018-11-07 15:06:19.*2222.*First change.*Foo <Bar>.*")
+        .onceInLog(MessageType.INFO, ".*2018-11-07 17:19:39.*3333.*Second change.*Foo <Bar>.*");
   }
 
   private Change<DummyRevision> newChange(

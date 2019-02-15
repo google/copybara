@@ -60,6 +60,8 @@ public class Copybara {
           + "s | %-"
           + AUTHOR_LENGTH
           + "s |";
+  private static final DateTimeFormatter DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private final ConfigValidator configValidator;
   private final Consumer<Migration> migrationRanConsumer;
@@ -140,7 +142,7 @@ public class Copybara {
             revision = revision.substring(0, REVISION_LENGTH);
           }
           console.info(String.format(COLUMN_FORMAT,
-              change.getDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")),
+              change.getDateTime().format(DATE_FORMATTER),
               revision,
               trim(change.firstLineMessage(), DESCRIPTION_LENGTH),
               trim(change.getAuthor().toString(), AUTHOR_LENGTH)));
