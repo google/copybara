@@ -405,7 +405,8 @@ public final class GitDestination implements Destination<GitRevision> {
     public ImmutableList<DestinationEffect> write(TransformResult transformResult,
         Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
-      logger.atInfo().log("Exporting from %s to: %s", transformResult.getPath(), this);
+      logger.atInfo().log(
+          "Exporting from %s to: url=%s ref=%s", transformResult.getPath(), repoUrl, remotePush);
       String baseline = transformResult.getBaseline();
 
       GitRepository scratchClone = getRepository(console);
@@ -450,10 +451,14 @@ public final class GitDestination implements Destination<GitRevision> {
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
 
       console.progress("Git Destination: Adding all files");
-      alternate.add().force().all().run();
+      try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
+        alternate.add().force().all().run();
+      }
 
       console.progress("Git Destination: Excluding files");
-      excludedAdder.add();
+      try (ProfilerTask ignored = generalOptions.profiler().start("exclude_files")) {
+        excludedAdder.add();
+      }
 
       console.progress("Git Destination: Creating a local commit");
       MessageInfo messageInfo = writeHook.generateMessageInfo(transformResult);
