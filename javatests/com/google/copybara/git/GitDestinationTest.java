@@ -118,7 +118,7 @@ public class GitDestinationTest {
     return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
   }
 
-  private GitEnvironment getEnv() {
+  public GitEnvironment getEnv() {
     Map<String, String> joinedEnv = Maps.newHashMap(options.general.getEnvironment());
     joinedEnv.putAll(getGitEnv().getEnvironment());
     return new GitEnvironment(joinedEnv);

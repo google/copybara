@@ -20,7 +20,6 @@ import static com.google.copybara.util.FileUtil.createDirInCache;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
@@ -71,7 +70,6 @@ public class GitOptions implements Option {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
-  @VisibleForTesting
   public Path getRepoStorage() throws IOException {
     return generalOptions.getDirFactory().getCacheDir("git_repos");
   }
