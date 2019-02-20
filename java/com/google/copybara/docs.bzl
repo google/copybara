@@ -19,7 +19,7 @@ def _doc_impl(ctx):
     for dep in ctx.attr.deps:
         for jar in dep.java.transitive_source_jars:
             jars.append(jar)
-    tmp = ctx.new_file("tmp.md")
+    tmp = ctx.actions.declare_file("tmp.md")
     ctx.actions.run(
         inputs = [ctx.executable._doc_tool] + jars,
         outputs = [tmp],
@@ -58,7 +58,7 @@ doc_generator = rule(
             allow_files = True,
             default = Label("//java/com/google/copybara:doc_skylark.sh"),
         ),
-        "suffix_file": attr.label(mandatory = False, allow_files = True, single_file = True),
+        "suffix_file": attr.label(mandatory = False, allow_single_file = True),
     },
     outputs = {"out": "%{name}.md"},
     implementation = _doc_impl,
