@@ -76,7 +76,7 @@ public class GitOptions implements Option {
     return generalOptions.getDirFactory().getCacheDir("git_repos");
   }
 
-  public final GitRepository cachedBareRepoForUrl(String url) throws RepoException {
+  public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
       return createBareRepo(generalOptions, createDirInCache(url, getRepoStorage()));
