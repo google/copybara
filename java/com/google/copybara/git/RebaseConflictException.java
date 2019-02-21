@@ -21,11 +21,8 @@ import com.google.copybara.exception.ValidationException;
 /** Indicates that the rebase failed because of a conflict. */
 public class RebaseConflictException extends ValidationException {
 
-  public RebaseConflictException(String message) {
+  RebaseConflictException(String message) {
     super(message);
   }
 
-  public RebaseConflictException(Throwable cause, String message) {
-    super(message, cause);
-  }
 }

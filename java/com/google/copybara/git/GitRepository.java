@@ -625,8 +625,11 @@ public class GitRepository {
 
     if (FAILED_REBASE.matcher(output.getStderr()).find()) {
       throw new RebaseConflictException(
-          "Conflict detected while rebasing " + workTree + " to " + newBaseline
-              + ". Git output was:\n" + output.getStdout());
+          String.format(
+              ""
+                  + "Conflict detected while rebasing %s to %s. Please sync or update the change "
+                  + "in the origin and retry. Git output was:\n%s",
+              workTree, newBaseline, output.getStdout()));
     }
     throw new RepoException(output.getStderr());
   }
