@@ -140,6 +140,7 @@ java_library(
     name = "skylark-lang",
     exports = [
         "@io_bazel//src/main/java/com/google/devtools/build/lib:skylark-lang",
+        "@io_bazel//src/main/java/com/google/devtools/build/lib:skylark_semantics",
     ],
 )
 
