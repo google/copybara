@@ -2048,6 +2048,17 @@ glob(["{java,javatests}/**"])
 This matches any file in `java` and `javatests` folders.
 
 
+##### Glob union:
+
+This is useful when you want to exclude a broad subset of files but you want to still include some of those files.
+
+```python
+glob(["folder/**"], exclude = ["folder/**.excluded"]) + glob(['folder/includeme.excluded'])
+```
+
+This matches all the files in `folder`, excludes all files in that folder that ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>`+` operator for globs is equivalent to `OR` operation.
+
+
 <a id="parse_message" aria-hidden="true"></a>
 ### parse_message
 

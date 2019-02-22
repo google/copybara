@@ -72,6 +72,14 @@ public class CoreGlobal {
           + " compact approach:",
       code = "glob([\"{java,javatests}/**\"])",
       after = "This matches any file in `java` and `javatests` folders.")
+  @Example(title = "Glob union",
+      before = "This is useful when you want to exclude a broad subset of files but you want to"
+          + " still include some of those files.",
+      code = "glob([\"folder/**\"], exclude = [\"folder/**.excluded\"])"
+          + " + glob([\'folder/includeme.excluded\'])",
+      after = "This matches all the files in `folder`, excludes all files in that folder that"
+          + " ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>"
+          + "`+` operator for globs is equivalent to `OR` operation.")
   public Glob glob(SkylarkList<?> include, SkylarkList<?> exclude, Location location)
       throws EvalException {
     List<String> includeStrings = Type.STRING_LIST.convert(include, "include");
