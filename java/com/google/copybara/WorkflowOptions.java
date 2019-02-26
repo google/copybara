@@ -114,7 +114,7 @@ public class WorkflowOptions implements Option {
       description = "Number of origin baseline changes to use for trying to match one in the"
           + " destination. It can be used if the are many parent changes in the origin that are a"
           + " no-op in the destination")
-  public int changeRequestFromSotLimit = 10;
+  public int changeRequestFromSotLimit = 25;
 
   @Parameter(names = "--threads-min-size",
       description = "Minimum size of the lists to process to run them in parallel")
