@@ -543,7 +543,11 @@ public class Core implements LabelsAwareModule {
       parameters = {
           @Param(name = "before", named = true, type = String.class,
               doc = "The text before the transformation. Can contain references to regex groups."
-                  + " For example \"foo${x}text\".<p>If '$' literal character needs to be matched, "
+                  + " For example \"foo${x}text\"."
+                  + "<p>`before` can only contain 1 reference to each unique `regex_group`."
+                  + " If you require multiple references to the same `regex_group`, add"
+                  + " `repeated_groups: True`."
+                  + "<p>If '$' literal character needs to be matched, "
                   + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
           @Param(name = "after", named = true, type = String.class,
               doc = "The text after the transformation. It can also contain references to regex "
