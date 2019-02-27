@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.shell.AbnormalTerminationException;
@@ -34,7 +33,6 @@ import com.google.copybara.shell.KillableObserver;
 import com.google.copybara.shell.ShellUtils;
 import com.google.copybara.shell.TerminationStatus;
 import com.google.copybara.shell.TimeoutKillableObserver;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -42,7 +40,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
-
 import javax.annotation.CheckReturnValue;
 
 /**
@@ -66,23 +63,33 @@ public final class CommandRunner {
   private final int maxOutLogLines;
   private final Duration timeout;
   private final ImmutableList<KillableObserver> additionalObservers;
+  private final Optional<OutputStream> asyncStdoutStream;
+  private final Optional<OutputStream> asyncErrStream;
+
 
   private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines,
-      Duration timeout, ImmutableList<KillableObserver> additionalObservers) {
+      Duration timeout,
+      ImmutableList<KillableObserver> additionalObservers,
+      Optional<OutputStream> stdoutStream,
+      Optional<OutputStream> errStream) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
     this.maxOutLogLines = maxOutLogLines;
     this.timeout = Preconditions.checkNotNull(timeout);
     this.additionalObservers = Preconditions.checkNotNull(additionalObservers);
+    this.asyncStdoutStream = Preconditions.checkNotNull(stdoutStream);
+    this.asyncErrStream = Preconditions.checkNotNull(errStream);
   }
 
   public CommandRunner(Command cmd) {
-    this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT, ImmutableList.of());
+    this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT, ImmutableList.of(),
+        Optional.empty(), Optional.empty());
   }
 
   public CommandRunner(Command cmd, Duration timeout) {
-    this(cmd, false, NO_INPUT, -1, timeout, ImmutableList.of());
+    this(cmd, false, NO_INPUT, -1, timeout, ImmutableList.of(),
+        Optional.empty(), Optional.empty());
   }
 
   /**
@@ -91,7 +98,8 @@ public final class CommandRunner {
   @CheckReturnValue
   public CommandRunner withVerbose(boolean verbose) {
     return new CommandRunner(
-        this.cmd, verbose, this.input, this.maxOutLogLines, timeout, additionalObservers);
+        this.cmd, verbose, this.input, this.maxOutLogLines, timeout, additionalObservers,
+        asyncStdoutStream, asyncErrStream);
   }
 
   /**
@@ -100,7 +108,8 @@ public final class CommandRunner {
   @CheckReturnValue
   public CommandRunner withInput(byte[] input) {
     return new CommandRunner(
-        this.cmd, this.verbose, input, this.maxOutLogLines, timeout, additionalObservers);
+        this.cmd, this.verbose, input, this.maxOutLogLines, timeout, additionalObservers,
+        asyncStdoutStream, asyncErrStream);
   }
 
   /**
@@ -109,7 +118,8 @@ public final class CommandRunner {
   @CheckReturnValue
   public CommandRunner withMaxStdOutLogLines(int lines) {
     return new CommandRunner(
-        this.cmd, this.verbose, this.input, lines, timeout, additionalObservers);
+        this.cmd, this.verbose, this.input, lines, timeout, additionalObservers,
+        asyncStdoutStream, asyncErrStream);
   }
 
   /**
@@ -119,7 +129,32 @@ public final class CommandRunner {
   public CommandRunner withObserver(KillableObserver observer) {
     return new CommandRunner(
         this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
-        ImmutableList.<KillableObserver>builder().addAll(additionalObservers).add(observer).build());
+        ImmutableList.<KillableObserver>builder().addAll(additionalObservers).add(observer).build(),
+        asyncStdoutStream, asyncErrStream);
+  }
+
+  /**
+   * Sets a stream to redirect stdOut output to
+   */
+  @CheckReturnValue
+  public CommandRunner withStdOutStream(OutputStream stream) {
+    return new CommandRunner(
+        this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
+        additionalObservers,
+        Optional.ofNullable(stream),
+        asyncErrStream);
+  }
+
+  /**
+   * Sets a stream to redirect stdErr output to
+   */
+  @CheckReturnValue
+  public CommandRunner withStdErrStream(OutputStream stream) {
+    return new CommandRunner(
+        this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
+        additionalObservers,
+        asyncStdoutStream,
+        Optional.ofNullable(stream));
   }
 
   /**
@@ -136,14 +171,24 @@ public final class CommandRunner {
     if (verbose) {
       System.err.println(validStartMsg);
     }
-    ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
-    ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
-
-    OutputStream stdoutStream = commandOutputStream(stdoutCollector);
-    OutputStream stderrStream = commandOutputStream(stderrCollector);
     TerminationStatus exitStatus = null;
     CombinedKillableObserver cmdMonitor =
         new CombinedKillableObserver(timeout, additionalObservers.toArray(new KillableObserver[0]));
+    ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
+    ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
+    try {
+      if (asyncStdoutStream.isPresent()) {
+        stdoutCollector.write("stdOut redirected to external observer.".getBytes(UTF_8));
+      }
+      if (asyncErrStream.isPresent()) {
+        stderrCollector.write("stdErr redirected to external observer.".getBytes(UTF_8));
+      }
+    } catch (IOException e) {
+      logger.atSevere().withCause(e).log("Error writing output.");
+    }
+    OutputStream stdoutStream = commandOutputStream(asyncStdoutStream.orElse(stdoutCollector));
+    OutputStream stderrStream = commandOutputStream(asyncErrStream.orElse(stderrCollector));
+
     try {
       CommandResult cmdResult = cmd.execute(input,
           cmdMonitor,
@@ -222,11 +267,11 @@ public final class CommandRunner {
    */
   private OutputStream commandOutputStream(OutputStream outputStream) {
     // If verbose we stream to the user console too
-    return verbose ? new DemultiplexOutputStream(System.err, outputStream) : outputStream;
+    return verbose ? new MultiplexOutputStream(System.err, outputStream) : outputStream;
   }
 
   /**
-   * Log to the appropiate log level the output of the command
+   * Log to the appropriate log level the output of the command
    */
   private static void logOutput(
       Level level, String prefix, ByteArrayOutputStream outputBytes, int maxLogLines) {
@@ -252,12 +297,12 @@ public final class CommandRunner {
   /**
    * An {@link OutputStream} that can output to two {@code OutputStream}
    */
-  private static class DemultiplexOutputStream extends OutputStream {
+  private static class MultiplexOutputStream extends OutputStream {
 
     private final OutputStream s1;
     private final OutputStream s2;
 
-    private DemultiplexOutputStream(OutputStream s1, OutputStream s2) {
+    private MultiplexOutputStream(OutputStream s1, OutputStream s2) {
       this.s1 = s1;
       this.s2 = s2;
     }

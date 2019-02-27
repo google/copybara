@@ -26,7 +26,6 @@ import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.CommandTimeoutException;
 import com.google.copybara.shell.AbnormalTerminationException;
-import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.shell.Killable;
@@ -203,6 +202,23 @@ public class CommandRunnerTest {
     for (int i = 1; i < LINES_SIZE - 1; i++) {
       assertThat(logLines.get(i)).endsWith(singleLine);
     }
+  }
+
+  @Test
+  public void testCommandWithExtraOutput() throws Exception {
+    Command command = bashCommand(""
+        + "echo hello\n"
+        + "echo >&2 world\n");
+    ByteArrayOutputStream stdoutCollector = new ByteArrayOutputStream();
+    ByteArrayOutputStream stderrCollector = new ByteArrayOutputStream();
+
+    runCommand(new CommandRunner(command)
+        .withStdErrStream(stderrCollector)
+        .withStdOutStream(stdoutCollector));
+    String stderr = new String(stderrCollector.toByteArray(), UTF_8);
+    String stdout = new String(stdoutCollector.toByteArray(), UTF_8);
+    assertThat(stderr).contains("world");
+    assertThat(stdout).contains("hello");
   }
 
 
