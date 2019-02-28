@@ -16,10 +16,10 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -35,14 +35,11 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Action;
-import com.google.copybara.feedback.FinishHookContext;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
@@ -57,10 +54,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
@@ -77,6 +72,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final Origin.Reader<O> originReader;
   protected final Destination.Writer<D> writer;
   @Nullable final String rawSourceRef;
+  private final Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor;
 
   WorkflowRunHelper(
       Workflow<O, D> workflow,
@@ -84,13 +80,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       O resolvedRef,
       Reader<O> originReader,
       Writer<D> destinationWriter,
-      @Nullable String rawSourceRef) {
-    this.workflow = Preconditions.checkNotNull(workflow);
-    this.workdir = Preconditions.checkNotNull(workdir);
-    this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-    this.originReader = Preconditions.checkNotNull(originReader);
-    this.writer = Preconditions.checkNotNull(destinationWriter);
+      @Nullable String rawSourceRef,
+      Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor) {
+    this.workflow = checkNotNull(workflow);
+    this.workdir = checkNotNull(workdir);
+    this.resolvedRef = checkNotNull(resolvedRef);
+    this.originReader = checkNotNull(originReader);
+    this.writer = checkNotNull(destinationWriter);
     this.rawSourceRef = rawSourceRef;
+    this.migrationFinishedMonitor = checkNotNull(migrationFinishedMonitor);
+  }
+
+  public Consumer<ChangeMigrationFinishedEvent> getMigrationFinishedMonitor() {
+    return migrationFinishedMonitor;
   }
 
   /**
@@ -107,14 +109,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
   ChangeMigrator<O, D> getMigratorForChangeAndWriter(Change<?> change, Writer<D> writer)
       throws ValidationException, RepoException {
-    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef);
+    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef,
+        migrationFinishedMonitor);
   }
 
   /**
    * Get a default migrator for the current writer
    */
   ChangeMigrator<O, D> getDefaultMigrator() {
-    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef);
+    return new ChangeMigrator<>(workflow, workdir, originReader, writer, resolvedRef, rawSourceRef,
+        migrationFinishedMonitor);
   }
 
   public Profiler profiler() {
@@ -269,15 +273,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     private final Writer<D> writer;
     @Nullable
     private final String rawSourceRef;
+    private final Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor;
 
     ChangeMigrator(Workflow<O, D> workflow, Path workdir, Reader<O> reader,
-        Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef) {
-      this.workflow = Preconditions.checkNotNull(workflow);
-      this.workdir = Preconditions.checkNotNull(workdir);
-      this.resolvedRef = Preconditions.checkNotNull(resolvedRef);
-      this.reader = Preconditions.checkNotNull(reader);
-      this.writer = Preconditions.checkNotNull(writer);
+        Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef,
+        Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor) {
+      this.workflow = checkNotNull(workflow);
+      this.workdir = checkNotNull(workdir);
+      this.resolvedRef = checkNotNull(resolvedRef);
+      this.reader = checkNotNull(reader);
+      this.writer = checkNotNull(writer);
       this.rawSourceRef = rawSourceRef;
+      this.migrationFinishedMonitor = checkNotNull(migrationFinishedMonitor);
     }
 
     /**
@@ -410,51 +417,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         throw e;
       } finally {
         try {
-          boolean dryRunModeFlag = workflow.getGeneralOptions().dryRunMode;
-          if (!dryRunModeFlag) {
-            SkylarkConsole console = new SkylarkConsole(workflow.getConsole());
-            try (ProfilerTask ignored = profiler().start("finish_hooks")) {
-              List<DestinationEffect> hookDestinationEffects = new ArrayList<>();
-              // Only do this once for all the actions
-              LazyResourceLoader<Endpoint> originEndpoint =
-                  LazyResourceLoader.memoized(reader::getFeedbackEndPoint);
-              LazyResourceLoader<Endpoint> destinationEndpoint =
-                  LazyResourceLoader.memoized(writer::getFeedbackEndPoint);
-              for (Action action : workflow.getAfterMigrationActions()) {
-                try (ProfilerTask ignored2 = profiler().start(action.getName())) {
-                  logger.log(Level.INFO, "Running after migration hook: " + action.getName());
-                  FinishHookContext context =
-                      new FinishHookContext(
-                          action,
-                          originEndpoint,
-                          destinationEndpoint,
-                          ImmutableList.copyOf(effects),
-                          resolvedRef,
-                          console);
-                  action.run(context);
-                  hookDestinationEffects.addAll(context.getNewDestinationEffects());
-                }
-              }
-              effects =
-                  ImmutableList.<DestinationEffect>builder()
-                      .addAll(effects)
-                      .addAll(hookDestinationEffects)
-                      .build();
+          if (!workflow.getGeneralOptions().dryRunMode) {
+            try (ProfilerTask ignored = profiler().start("after_migration")) {
+              effects = workflow.runHooks(effects, workflow.getAfterMigrationActions(),
+                  // Only do this once for all the actions
+                  LazyResourceLoader.memoized(reader::getFeedbackEndPoint),
+                  // Only do this once for all the actions
+                  LazyResourceLoader.memoized(writer::getFeedbackEndPoint),
+                  resolvedRef);
             }
-          } else if (dryRunModeFlag && !workflow.getAfterMigrationActions().isEmpty()) {
+          } else if (!workflow.getAfterMigrationActions().isEmpty()) {
             workflow.getConsole()
                 .infoFmt(
                     "Not calling 'after_migration' actions because of %s mode",
                     GeneralOptions.DRY_RUN_FLAG);
           }
         } finally {
-          workflow.eventMonitor()
-              .onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
+          migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects));
         }
       }
       return effects;
     }
 
+    
     private ImmutableList<DestinationEffect> doMigrate(
         O rev,
         @Nullable O lastRev,

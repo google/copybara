@@ -31,10 +31,12 @@ import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 
@@ -42,7 +44,8 @@ import javax.annotation.Nullable;
  * An extension of {@link Workflow} that is capable of reloading itself, reading the configuration
  * from the origin location provided.
  *
- * <p>How it works is with the method {@link Workflow#newRunHelper(Path, Revision, String)} and
+ * <p>How it works is with the method
+ * {@link Workflow#newRunHelper(Path, Revision, String, Consumer<ChangeMigrationFinishedEvent>)} and
  * {@link WorkflowRunHelper}. The core implementation returns a regular run helper that always
  * returns {@code this} for any changes, which means that no config is read and the workflow remains
  * immutable.
@@ -80,6 +83,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.isDryRunMode(),
         workflow.isCheckLastRevState(),
         workflow.getAfterMigrationActions(),
+        workflow.getAfterAllMigrationActions(),
         workflow.getChangeIdentity(),
         workflow.isSetRevId(),
         workflow.isSmartPrune(),
@@ -91,8 +95,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
 
   @Override
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef,
-      String rawSourceRef)
-      throws ValidationException, RepoException {
+      String rawSourceRef, Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor)
+      throws ValidationException {
     Reader<O> reader = this.getOrigin().newReader(this.getOriginFiles(), this.getAuthoring());
     return new ReloadingRunHelper(
         this,
@@ -101,7 +105,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         resolvedRef,
         createWriter(resolvedRef),
         reader,
-        rawSourceRef);
+        rawSourceRef,
+        migrationFinishedMonitor);
   }
 
   @Override
@@ -124,16 +129,11 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         O resolvedRef,
         Writer<D> writer,
         Reader<O> originReader,
-        @Nullable String rawSourceRef)
-        throws ValidationException, RepoException {
+        @Nullable String rawSourceRef,
+        Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor) {
 
-      super(
-          workflow,
-          workdir,
-          resolvedRef,
-          originReader,
-          writer,
-          rawSourceRef);
+      super(workflow, workdir, resolvedRef, originReader, writer, rawSourceRef,
+          migrationFinishedMonitor);
       this.workflow = workflow;
       this.workflowName = checkNotNull(workflowName, "workflowName");
     }
@@ -173,7 +173,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
           newReader,
           writer,
           getResolvedRef(),
-          rawSourceRef);
+          rawSourceRef,
+          getMigrationFinishedMonitor());
     }
   }
 
@@ -184,8 +185,10 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
 
     ReloadingChangeMigrator(Workflow<O, D> headWorkflow, Workflow<O, D> changeWorkflow,
         Path workdir, Reader<O> reader,
-        Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef) {
-      super(headWorkflow, workdir, reader, writer, resolvedRef, rawSourceRef);
+        Writer<D> writer, O resolvedRef, @Nullable String rawSourceRef,
+        Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor) {
+      super(headWorkflow, workdir, reader, writer, resolvedRef, rawSourceRef,
+          migrationFinishedMonitor);
       this.changeWorkflow = Preconditions.checkNotNull(changeWorkflow);
     }
 

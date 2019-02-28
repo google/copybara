@@ -210,7 +210,14 @@ public class Core implements LabelsAwareModule {
                   + " main branch.",
               defaultValue = "False", positional = false),
           @Param(name = "after_migration", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after one migration happens.",
+              doc = "Run a feedback workflow after one migration happens. This runs once per"
+                  + " change in `ITERATIVE` mode and only once for `SQUASH`.",
+              defaultValue = "[]", positional = false),
+          @Param(name = "after_workflow", named = true, type = SkylarkList.class,
+              doc = "Run a feedback workflow after all the changes for this workflow run are"
+                  + " migrated. Prefer `after_migration` as it is executed per change (in ITERATIVE"
+                  + " mode). Tasks in this hook shouldn't be critical to execute. These actions"
+                  + " shouldn't record effects (They'll be ignored).",
               defaultValue = "[]", positional = false),
           @Param(name = "change_identity", named = true, type = String.class,
               doc = "By default, Copybara hashes several fields so that each change has an"
@@ -276,6 +283,7 @@ public class Core implements LabelsAwareModule {
       Boolean askForConfirmation,
       Boolean dryRunMode,
       SkylarkList<?> afterMigrations,
+      SkylarkList<?> afterAllMigrations,
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
@@ -359,6 +367,7 @@ public class Core implements LabelsAwareModule {
         dryRunMode,
         checkLastRevState || workflowOptions.checkLastRevState,
         convertFeedbackActions(afterMigrations, location, dynamicEnvironment),
+        convertFeedbackActions(afterAllMigrations, location, dynamicEnvironment),
         changeIdentity,
         setRevId,
         smartPrune,

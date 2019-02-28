@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
@@ -35,11 +36,14 @@ import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Action;
+import com.google.copybara.feedback.FinishHookContext;
 import com.google.copybara.monitor.EventMonitor;
+import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
+import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
@@ -50,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -102,6 +107,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean smartPrune;
   private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
+  private final ImmutableList<Action> afterAllMigrationActions;
   @Nullable private final String customRevId;
 
   public Workflow(
@@ -124,6 +130,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean dryRunModeField,
       boolean checkLastRevState,
       ImmutableList<Action> afterMigrationActions,
+      ImmutableList<Action> afterAllMigrationActions,
       ImmutableList<Token> changeIdentity,
       boolean setRevId,
       boolean smartPrune,
@@ -153,6 +160,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.effectiveDryRunMode = dryRunModeField || generalOptions.dryRunMode;
     this.dryRunModeField = dryRunModeField;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
+    this.afterAllMigrationActions = Preconditions.checkNotNull(afterAllMigrationActions);
     this.changeIdentity = Preconditions.checkNotNull(changeIdentity);
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
@@ -244,9 +252,31 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               name, resolvedRef.asString(),
               this.toString()));
       logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
-      WorkflowRunHelper<O, D> helper = newRunHelper(workdir, resolvedRef, sourceRef);
+      ImmutableList.Builder<DestinationEffect> allEffects = ImmutableList.builder();
+      WorkflowRunHelper<O, D> helper = newRunHelper(workdir, resolvedRef, sourceRef,
+          event -> {
+            allEffects.addAll(event.getDestinationEffects());
+            eventMonitor().onChangeMigrationFinished(event);
+          });
       try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
         mode.run(helper);
+      } finally {
+        if (!getGeneralOptions().dryRunMode) {
+          try (ProfilerTask ignored = profiler().start("after_all_migration")) {
+            ImmutableList<DestinationEffect> effects = allEffects.build();
+            ImmutableList<DestinationEffect> resultEffects = runHooks(
+                effects,
+                getAfterAllMigrationActions(),
+                // Only do this once for all the actions
+                memoized(c -> helper.getOriginReader().getFeedbackEndPoint(c)),
+                // Only do this once for all the actions
+                memoized(c -> helper.getDestinationWriter().getFeedbackEndPoint(c)),
+                resolvedRef);
+            if (effects.size() != resultEffects.size()) {
+              console.warn("Effects where created in after_all_migrations, but they are ignored.");
+            }
+          }
+        }
       }
     }
   }
@@ -265,13 +295,15 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                 WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
   }
 
-  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef, String rawSourceRef)
-      throws ValidationException, RepoException {
+  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef, String rawSourceRef,
+      Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor)
+      throws ValidationException {
 
     Reader<O> reader = getOrigin()
         .newReader(getOriginFiles(), getAuthoring());
     return new WorkflowRunHelper<>(
-        this, workdir, resolvedRef, reader, createWriter(resolvedRef), rawSourceRef);
+        this, workdir, resolvedRef, reader, createWriter(resolvedRef), rawSourceRef,
+        migrationFinishedMonitor);
   }
 
   /**
@@ -318,7 +350,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               WorkflowRunHelper<O, D> helper = newRunHelper(
                   // We shouldn't use this path for info
                   Paths.get("shouldnt_be_used"),
-                  lastResolved, /*rawSourceRef=*/null);
+                  lastResolved, /*rawSourceRef=*/null,
+                  // We don't create effects on info
+                  changeMigrationFinishedEvent -> {});
 
               List<Change<O>> affectedChanges = new ArrayList<>();
               for (Change<O> change : allChanges) {
@@ -515,6 +549,41 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   ImmutableList<Action> getAfterMigrationActions() {
     return afterMigrationActions;
+  }
+
+  public ImmutableList<Action> getAfterAllMigrationActions() {
+    return afterAllMigrationActions;
+  }
+
+  ImmutableList<DestinationEffect> runHooks(
+      ImmutableList<DestinationEffect> effects,
+      ImmutableList<Action> actions,
+      LazyResourceLoader<Endpoint> originEndpoint,
+      LazyResourceLoader<Endpoint> destinationEndpoint,
+      Revision resolvedRef)
+      throws ValidationException, RepoException {
+    SkylarkConsole console = new SkylarkConsole(getConsole());
+
+    List<DestinationEffect> hookDestinationEffects = new ArrayList<>();
+    for (Action action : actions) {
+      try (ProfilerTask ignored2 = profiler().start(action.getName())) {
+        logger.log(Level.INFO, "Running after migration hook: " + action.getName());
+        FinishHookContext context =
+            new FinishHookContext(
+                action,
+                originEndpoint,
+                destinationEndpoint,
+                ImmutableList.copyOf(effects),
+                resolvedRef,
+                console);
+        action.run(context);
+        hookDestinationEffects.addAll(context.getNewDestinationEffects());
+      }
+    }
+    return ImmutableList.<DestinationEffect>builder()
+        .addAll(effects)
+        .addAll(hookDestinationEffects)
+        .build();
   }
 
   ImmutableList<Token> getChangeIdentity() {

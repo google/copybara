@@ -2290,6 +2290,63 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testAfterAllMigrations1() throws Exception {
+    checkAfterAllMigrations("1", ITERATIVE);
+    assertThat(destination.getEndpoint().messages).containsExactly(
+        "after [\"CREATED destination/1\"]",
+        "after_all [\"CREATED destination/1\"]");
+  }
+
+  @Test
+  public void testAfterAllMigrations2() throws Exception {
+    checkAfterAllMigrations("3", ITERATIVE);
+    assertThat(destination.getEndpoint().messages).containsExactly(
+        "after [\"CREATED destination/1\"]",
+        "after [\"CREATED destination/2\"]",
+        "after [\"CREATED destination/3\"]",
+        "after_all [\"CREATED destination/1\","
+            + " \"CREATED destination/2\","
+            + " \"CREATED destination/3\"]");
+  }
+  
+  @Test
+  public void testAfterAllMigrations3() throws Exception {
+    checkAfterAllMigrations("3", SQUASH);
+    assertThat(destination.getEndpoint().messages).containsExactly(
+        "after [\"CREATED destination/1\"]",
+        "after_all [\"CREATED destination/1\"]");
+  }
+
+  private void checkAfterAllMigrations(String rev, WorkflowMode mode) throws Exception {
+    origin.singleFileChange(0, "base commit", "foo.txt", "0");
+    DummyRevision base = origin.resolve("HEAD");
+    origin.singleFileChange(1, "first commit", "foo.txt", "1");
+    origin.singleFileChange(2, "second commit", "foo.txt", "2");
+    origin.singleFileChange(3, "third commit", "foo.txt", "3");
+
+    String config = ""
+        + "def after_all(ctx):\n"
+        + "  ctx.destination.message('after_all '"
+        + " + str([e.type + ' ' + e.destination_ref.id for e in ctx.effects]))\n"
+        + "def after(ctx):\n"
+        + "  ctx.destination.message('after '"
+        + " + str([e.type + ' ' + e.destination_ref.id for e in ctx.effects]))\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  mode = \"" + mode.name() + "\",\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [after],\n"
+        + "  after_workflow = [after_all]"
+        + ")\n";
+    options.setLastRevision(base.asString());
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of(rev));
+  }
+
+  @Test
   public void testOnFinishHookCreatesEffects() throws Exception {
     origin.singleFileChange(0, "one commit", "foo.txt", "1");
 
