@@ -78,7 +78,8 @@ import org.mockito.stubbing.Answer;
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
 
-  private static final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
+  // TODO(danielromero): Remove once we are sure that Gerrit has transitioned completely
+  private static final String GERRIT_RESPONSE_OLD = "Counting objects: 9, done.\n"
       + "Delta compression using up to 4 threads.\n"
       + "Compressing objects: 100% (6/6), done.\n"
       + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
@@ -92,6 +93,22 @@ public class GerritDestinationTest {
       + "To sso://team/copybara-team/copybara\n"
       + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
       + "<o> [master] ~/dev/copybara$\n";
+  private static final String GERRIT_RESPONSE = "Counting objects: 9, done.\n"
+      + "Delta compression using up to 4 threads.\n"
+      + "Compressing objects: 100% (6/6), done.\n"
+      + "Writing objects: 100% (9/9), 3.20 KiB | 0 bytes/s, done.\n"
+      + "Total 9 (delta 4), reused 0 (delta 0)\n"
+      + "remote: Resolving deltas: 100% (4/4)\n"
+      + "remote: Processing changes: updated: 1, done\n"
+      + "remote:\n"
+      + "remote: SUCCESS\n"
+      + "remote:\n"
+      + "remote:   https://some.url.google.com/1234 This is a message [NEW]\n"
+      + "remote:\n"
+      + "To sso://team/copybara-team/copybara\n"
+      + " * [new branch]      HEAD -> refs/for/master%notify=NONE\n"
+      + "<o> [master] ~/dev/copybara$\n";
+
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
 
   private String url;
@@ -876,7 +893,42 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testProcessPushOutput_new_oldFormat() throws Exception {
+    testProcesPushOutput(
+        /*newReview*/ true,
+        Type.CREATED, GERRIT_RESPONSE_OLD,
+        "New Gerrit review created at https://some.url.google.com/1234"
+    );
+  }
+
+  @Test
+  public void testProcessPushOutput_existing_oldFormat() throws Exception {
+    testProcesPushOutput(/*newReview*/ false,
+        Type.UPDATED, GERRIT_RESPONSE_OLD,
+        "Updated existing Gerrit review at https://some.url.google.com/1234"
+    );
+  }
+
+  @Test
   public void testProcessPushOutput_new() throws Exception {
+    testProcesPushOutput(
+        /*newReview*/ true,
+        Type.CREATED, GERRIT_RESPONSE,
+        "New Gerrit review created at https://some.url.google.com/1234"
+    );
+  }
+
+  @Test
+  public void testProcessPushOutput_existing() throws Exception {
+    testProcesPushOutput(/*newReview*/ false,
+        Type.UPDATED, GERRIT_RESPONSE,
+        "Updated existing Gerrit review at https://some.url.google.com/1234"
+    );
+  }
+
+  private void testProcesPushOutput(boolean newReview, Type created, String gerritResponse,
+      String expectedConsoleMessage)
+      throws IOException, RepoException, ValidationException {
     GerritWriteHook process =
         new GerritWriteHook(
             options.general,
@@ -891,12 +943,12 @@ public class GerritDestinationTest {
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
-        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/true,
+        gerritResponse, new GerritMessageInfo(ImmutableList.of(), newReview,
             CONSTANT_CHANGE_ID),
         repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
 
     console.assertThat().onceInLog(MessageType.INFO,
-        "New Gerrit review created at https://some.url.google.com/1234");
+        expectedConsoleMessage);
 
     assertThat(result).hasSize(2);
     assertThat(result.get(0).getErrors()).isEmpty();
@@ -905,8 +957,8 @@ public class GerritDestinationTest {
     assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
     assertThat(result.get(1).getSummary())
-        .contains("New Gerrit review created at https://some.url.google.com/1234");
-    assertThat(result.get(1).getType()).isEqualTo(Type.CREATED);
+        .contains(expectedConsoleMessage);
+    assertThat(result.get(1).getType()).isEqualTo(created);
     assertThat(result.get(1).getDestinationRef().getId()).isEqualTo("1234");
     assertThat(result.get(1).getDestinationRef().getType()).isEqualTo("gerrit_review");
     assertThat(result.get(1).getDestinationRef().getUrl())
@@ -919,44 +971,6 @@ public class GerritDestinationTest {
     Files.write(scratchTree.resolve("foo"), new byte[0]);
     repo.add().all().run();
     repo.commit("foo <foo@foo.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
-  }
-
-  @Test
-  public void testProcessPushOutput_existing() throws Exception {
-    GerritWriteHook process =
-        new GerritWriteHook(
-            options.general,
-            options.gerrit,
-            "http://example.com/foo",
-            new Author("foo", "foo@example.com"),
-            reviewerTemplates,
-            ChangeIdPolicy.REPLACE,
-            /*allowEmptyDiffPatchSet=*/ true,
-            /*endpointChecker=*/ null,
-            /*notifyOption*/ null);
-    fakeOneCommitInDestination();
-
-    ImmutableList<DestinationEffect> result = process.afterPush(
-        GERRIT_RESPONSE, new GerritMessageInfo(ImmutableList.of(), /*newReview=*/ false,
-            CONSTANT_CHANGE_ID),
-        repo().resolveReference("HEAD"), Changes.EMPTY.getCurrent());
-
-    console.assertThat().onceInLog(MessageType.INFO,
-        "Updated existing Gerrit review at https://some.url.google.com/1234");
-
-    assertThat(result).hasSize(2);
-    assertThat(result.get(0).getErrors()).isEmpty();
-    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
-    assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
-    assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
-
-    assertThat(result.get(1).getSummary())
-        .contains("Updated existing Gerrit review at https://some.url.google.com/1234");
-    assertThat(result.get(1).getType()).isEqualTo(Type.UPDATED);
-    assertThat(result.get(1).getDestinationRef().getId()).isEqualTo("1234");
-    assertThat(result.get(1).getDestinationRef().getType()).isEqualTo("gerrit_review");
-    assertThat(result.get(1).getDestinationRef().getUrl())
-        .isEqualTo("https://some.url.google.com/1234");
   }
 
   @Test

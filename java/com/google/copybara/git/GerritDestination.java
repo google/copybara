@@ -291,33 +291,63 @@ public final class GerritDestination implements Destination<GitRevision> {
                       pushedRevision.getSha1(), "commit", /*url=*/ null)));
 
       List<String> lines = Splitter.on("\n").splitToList(serverResponse);
+      Matcher gerritUrlMatcher = tryFindGerritUrl(lines);
+      if (gerritUrlMatcher == null || !gerritUrlMatcher.matches()) {
+        gerritUrlMatcher = tryFindGerritUrlOldFormat(lines);
+      }
+      if (gerritUrlMatcher != null && gerritUrlMatcher.matches()) {
+        String message = gerritMessageInfo.newReview
+            ? "New Gerrit review created at "
+            : "Updated existing Gerrit review at ";
+        String url = gerritUrlMatcher.group(1);
+        String changeNum = url.substring(url.lastIndexOf("/") + 1);
+        message = message + url;
+        console.info(message);
+        result.add(
+            new DestinationEffect(
+                gerritMessageInfo.newReview
+                    ? DestinationEffect.Type.CREATED
+                    : DestinationEffect.Type.UPDATED,
+                message,
+                originChanges,
+                new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url)));
+      }
+
+      return result.build();
+    }
+
+    @Nullable
+    private Matcher tryFindGerritUrl(List<String> lines) {
+      boolean successFound = false;
+      for (String line : lines) {
+        if ((line.contains("SUCCESS"))) {
+          successFound = true;
+        }
+        if (successFound) {
+          // Usually next line is empty, but let's try best effort to find the URL after "SUCCESS"
+          Matcher urlMatcher = GERRIT_URL_LINE.matcher(line);
+          if (urlMatcher.matches()) {
+            return urlMatcher;
+          }
+        }
+      }
+      return null;
+    }
+
+    @Nullable
+    private Matcher tryFindGerritUrlOldFormat(List<String> lines) {
       for (Iterator<String> iterator = lines.iterator(); iterator.hasNext(); ) {
         String line = iterator.next();
         if ((line.contains("New Changes") || line.contains("Updated Changes"))
             && iterator.hasNext()) {
           String next = iterator.next();
-          Matcher matcher = GERRIT_URL_LINE.matcher(next);
-          if (matcher.matches()) {
-            String message = gerritMessageInfo.newReview
-                ? "New Gerrit review created at "
-                : "Updated existing Gerrit review at ";
-            String url = matcher.group(1);
-            String changeNum = url.substring(url.lastIndexOf("/") + 1);
-            message = message + url;
-            console.info(message);
-            result.add(
-                new DestinationEffect(
-                    gerritMessageInfo.newReview
-                        ? DestinationEffect.Type.CREATED
-                        : DestinationEffect.Type.UPDATED,
-                    message,
-                    originChanges,
-                    new DestinationEffect.DestinationRef(changeNum, "gerrit_review", url)));
-            break;
+          Matcher urlMatcher = GERRIT_URL_LINE.matcher(next);
+          if (urlMatcher.matches()) {
+            return urlMatcher;
           }
         }
       }
-      return result.build();
+      return null;
     }
 
     @Nullable
