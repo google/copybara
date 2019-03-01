@@ -91,12 +91,18 @@ public class SkylarkTestExecutor {
     return skylarkParser.getModules();
   }
 
-  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+
   public <T> T eval(String var, String config) throws ValidationException {
+    return evalWithConfigFilePath(var, config, DEFAULT_FILE);
+  }
+
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  public <T> T evalWithConfigFilePath(String var, String config, String configPath)
+      throws ValidationException {
     try {
       Environment env =
           skylarkParser.executeSkylark(
-              createConfigFile(DEFAULT_FILE, config), createModuleSet(), options.general.console());
+              createConfigFile(configPath, config), createModuleSet(), options.general.console());
       T t = (T) env.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;

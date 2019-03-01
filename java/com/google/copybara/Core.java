@@ -901,11 +901,16 @@ public class Core implements LabelsAwareModule {
               doc = "The parameters to the function. Will be available under ctx.params",
               defaultValue = "{}"),
       },
-      useEnvironment = true, documented = false)
-  public Action dynamicFeedback(BaseFunction impl, SkylarkDict<?, ?> params,
-      Environment env) {
-    return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params),
-        dynamicEnvironment);
+      useEnvironment = true)
+  public Action dynamicFeedback(BaseFunction impl, SkylarkDict<?, ?> params, Environment env) {
+    return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), dynamicEnvironment);
+  }
+
+  @SkylarkCallable(name = "main_config_path",
+      doc = "Location of the config file. This is subject to change",
+      structField = true)
+  public String getMainConfigFile() {
+    return mainConfigFile.getIdentifier();
   }
 
   @SuppressWarnings("unused")

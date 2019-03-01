@@ -20,6 +20,7 @@
     - [console.warn](#console.warn)
   - [core](#core)
     - [core.copy](#core.copy)
+    - [core.dynamic_feedback](#core.dynamic_feedback)
     - [core.dynamic_transform](#core.dynamic_transform)
     - [core.feedback](#core.feedback)
     - [core.move](#core.move)
@@ -426,6 +427,13 @@ message | `string`<br><p>message to log</p>
 Core functionality for creating migrations, and basic transformations.
 
 
+#### Fields:
+
+Name | Description
+---- | -----------
+main_config_path | Location of the config file. This is subject to change
+
+
 
 **Command line flags:**
 
@@ -488,6 +496,21 @@ core.transform(
 )
 ```
 
+
+<a id="core.dynamic_feedback" aria-hidden="true"></a>
+### core.dynamic_feedback
+
+Create a dynamic Skylark feedback migration. This should only be used by libraries developers
+
+`feedback.action core.dynamic_feedback(impl, params={})`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+impl | `baseFunction`<br><p>The Skylark function to call</p>
+params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.dynamic_transform" aria-hidden="true"></a>
 ### core.dynamic_transform
