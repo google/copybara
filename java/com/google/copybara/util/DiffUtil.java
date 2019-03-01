@@ -199,7 +199,7 @@ public class DiffUtil {
       GitEnvironment gitEnv = new GitEnvironment(environment);
       checkNotInsideGitRepo(one, verbose, gitEnv);
       Path root = one.getParent();
-      List<String> params = Lists.newArrayList("git", "diff", "--no-color");
+      List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color");
       if (nameStatus) {
         params.add("--name-status");
       }
@@ -230,7 +230,6 @@ public class DiffUtil {
       } catch (CommandException e) {
         throw new IOException("Error executing 'git diff'", e);
       }
-
     }
   }
 
