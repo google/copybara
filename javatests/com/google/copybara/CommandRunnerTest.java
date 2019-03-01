@@ -24,15 +24,18 @@ import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Strings;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
+import com.google.copybara.util.CommandRunner.CommandExecutor;
 import com.google.copybara.util.CommandTimeoutException;
 import com.google.copybara.shell.AbnormalTerminationException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.copybara.shell.Killable;
 import com.google.copybara.shell.KillableObserver;
+import com.google.copybara.shell.TerminationStatus;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -170,7 +173,7 @@ public class CommandRunnerTest {
     Command command = new Command(args);
     CommandOutputWithStatus result = runCommand(new CommandRunner(command).withVerbose(true));
     assertThat(result.getTerminationStatus().success()).isTrue();
-    assertLogContains("...", "'echo' STDOUT: hello world!", "Command 'echo' finished" );
+    assertLogContains("...", "'echo' STDOUT: hello world!", "Command 'echo' finished");
   }
 
   @Test
@@ -221,6 +224,24 @@ public class CommandRunnerTest {
     assertThat(stdout).contains("hello");
   }
 
+  @Test
+  public void testCommandWithCustomRunner() throws Exception {
+    Command command = bashCommand("");
+    try {
+      runCommand(new CommandRunner(command)
+          .withCommandExecutor(new CommandExecutor() {
+            @Override
+            public TerminationStatus getCommandOutputWithStatus(Command cmd, byte[] input,
+                KillableObserver cmdMonitor, OutputStream stdoutStream,
+                OutputStream stderrStream) throws CommandException {
+              throw new CommandException(cmd, "OH NOES!");
+            }
+          }));
+      fail("expected exception");
+    } catch (CommandException e) {
+      assertThat(e).hasMessageThat().contains("OH NOES!");
+    }
+  }
 
   private CommandOutputWithStatus runCommand(CommandRunner commandRunner) throws CommandException {
     Logger logger = Logger.getLogger(CommandRunner.class.getName());

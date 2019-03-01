@@ -27,7 +27,6 @@ import com.google.copybara.shell.AbnormalTerminationException;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
-import com.google.copybara.shell.CommandResult;
 import com.google.copybara.shell.Killable;
 import com.google.copybara.shell.KillableObserver;
 import com.google.copybara.shell.ShellUtils;
@@ -65,13 +64,15 @@ public final class CommandRunner {
   private final ImmutableList<KillableObserver> additionalObservers;
   private final Optional<OutputStream> asyncStdoutStream;
   private final Optional<OutputStream> asyncErrStream;
+  private final Optional<CommandExecutor> executor;
 
 
   private CommandRunner(Command cmd, boolean verbose, byte[] input, int maxOutLogLines,
       Duration timeout,
       ImmutableList<KillableObserver> additionalObservers,
       Optional<OutputStream> stdoutStream,
-      Optional<OutputStream> errStream) {
+      Optional<OutputStream> errStream,
+      Optional<CommandExecutor> executor) {
     this.cmd = Preconditions.checkNotNull(cmd);
     this.verbose = verbose;
     this.input = Preconditions.checkNotNull(input);
@@ -80,16 +81,17 @@ public final class CommandRunner {
     this.additionalObservers = Preconditions.checkNotNull(additionalObservers);
     this.asyncStdoutStream = Preconditions.checkNotNull(stdoutStream);
     this.asyncErrStream = Preconditions.checkNotNull(errStream);
+    this.executor = Preconditions.checkNotNull(executor);
   }
 
   public CommandRunner(Command cmd) {
     this(cmd, false, NO_INPUT, -1, DEFAULT_TIMEOUT, ImmutableList.of(),
-        Optional.empty(), Optional.empty());
+        Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   public CommandRunner(Command cmd, Duration timeout) {
     this(cmd, false, NO_INPUT, -1, timeout, ImmutableList.of(),
-        Optional.empty(), Optional.empty());
+        Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   /**
@@ -99,7 +101,7 @@ public final class CommandRunner {
   public CommandRunner withVerbose(boolean verbose) {
     return new CommandRunner(
         this.cmd, verbose, this.input, this.maxOutLogLines, timeout, additionalObservers,
-        asyncStdoutStream, asyncErrStream);
+        asyncStdoutStream, asyncErrStream, executor);
   }
 
   /**
@@ -109,7 +111,7 @@ public final class CommandRunner {
   public CommandRunner withInput(byte[] input) {
     return new CommandRunner(
         this.cmd, this.verbose, input, this.maxOutLogLines, timeout, additionalObservers,
-        asyncStdoutStream, asyncErrStream);
+        asyncStdoutStream, asyncErrStream, executor);
   }
 
   /**
@@ -119,7 +121,7 @@ public final class CommandRunner {
   public CommandRunner withMaxStdOutLogLines(int lines) {
     return new CommandRunner(
         this.cmd, this.verbose, this.input, lines, timeout, additionalObservers,
-        asyncStdoutStream, asyncErrStream);
+        asyncStdoutStream, asyncErrStream, executor);
   }
 
   /**
@@ -130,7 +132,7 @@ public final class CommandRunner {
     return new CommandRunner(
         this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
         ImmutableList.<KillableObserver>builder().addAll(additionalObservers).add(observer).build(),
-        asyncStdoutStream, asyncErrStream);
+        asyncStdoutStream, asyncErrStream, executor);
   }
 
   /**
@@ -142,7 +144,8 @@ public final class CommandRunner {
         this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
         additionalObservers,
         Optional.ofNullable(stream),
-        asyncErrStream);
+        asyncErrStream,
+        executor);
   }
 
   /**
@@ -154,7 +157,21 @@ public final class CommandRunner {
         this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
         additionalObservers,
         asyncStdoutStream,
-        Optional.ofNullable(stream));
+        Optional.ofNullable(stream),
+        executor);
+  }
+
+  /**
+   * Sets a stream to redirect stdErr output to
+   */
+  @CheckReturnValue
+  public CommandRunner withCommandExecutor(CommandExecutor runner) {
+    return new CommandRunner(
+        this.cmd, this.verbose, this.input, maxOutLogLines, timeout,
+        additionalObservers,
+        asyncStdoutStream,
+        asyncErrStream,
+        Optional.of(runner));
   }
 
   /**
@@ -190,12 +207,11 @@ public final class CommandRunner {
     OutputStream stderrStream = commandOutputStream(asyncErrStream.orElse(stderrCollector));
 
     try {
-      CommandResult cmdResult = cmd.execute(input,
-          cmdMonitor,
-              stdoutStream, stderrStream, true);
-      exitStatus = cmdResult.getTerminationStatus();
+      CommandExecutor runner = executor.orElse(new DefaultExecutor());
+      TerminationStatus status =
+          runner.getCommandOutputWithStatus(cmd, input, cmdMonitor, stdoutStream, stderrStream);
       return new CommandOutputWithStatus(
-          cmdResult.getTerminationStatus(),
+          status,
           stdoutCollector.toByteArray(),
           stderrCollector.toByteArray());
     } catch (BadExitStatusException e) {
@@ -242,6 +258,17 @@ public final class CommandRunner {
       }
     }
   }
+
+private static class DefaultExecutor implements CommandExecutor {
+
+  @Override
+  public TerminationStatus getCommandOutputWithStatus(Command cmd, byte[] input,
+      KillableObserver cmdMonitor, OutputStream stdoutStream, OutputStream stderrStream)
+      throws CommandException {
+    return cmd.execute(input, cmdMonitor, stdoutStream, stderrStream, true)
+        .getTerminationStatus();
+  }
+}
 
   private void maybeTreatTimeout(ByteArrayOutputStream stdoutCollector,
       ByteArrayOutputStream stderrCollector, CombinedKillableObserver cmdMonitor,
@@ -376,5 +403,29 @@ public final class CommandRunner {
     public boolean hasTimedOut() {
       return timed.hasTimedOut();
     }
+  }
+
+  /**
+   * Interface to insert custom command options not otherwise supported by the type.
+   */
+  public interface CommandExecutor {
+
+    /**
+     * Actual invocation of cmd.Execute. This hook is required as implementations of Command differ
+     * between versions and implementations. Use with caution.
+     *
+     * @param cmd cmd to to be run
+     * @param input input
+     * @param cmdMonitor Observer for terminating job
+     * @param stdoutStream Stream for cmd.execute
+     * @param stderrStream Stream for cmd.execute
+     */
+    TerminationStatus getCommandOutputWithStatus(
+        Command cmd,
+        byte[] input,
+        KillableObserver cmdMonitor,
+        OutputStream stdoutStream,
+        OutputStream stderrStream)
+        throws CommandException;
   }
 }
