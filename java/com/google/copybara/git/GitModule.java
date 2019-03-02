@@ -846,6 +846,10 @@ public class GitModule implements LabelsAwareModule {
                   + "The element in the list is: an email, for example: \"foo@example.com\" or "
                   + "label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
                   + "assuming that users have registered to gerrit repos"),
+          @Param(name = "cc", type = SkylarkList.class, named = true,
+              defaultValue = "[]",
+              doc = "The list of the email addresses or users that will be CCed in the review. Can"
+                  + " use labels as the `reviewers` field."),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
                   + "This field is not required if the workflow hooks don't use the "
@@ -859,10 +863,11 @@ public class GitModule implements LabelsAwareModule {
   public GerritDestination gerritDestination(
       String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
       String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
-      Object checkerObj, Location location) throws EvalException {
+      SkylarkList<String> ccParam, Object checkerObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
-    List<String> newReviewers =
-            Type.STRING_LIST.convert(reviewers, "reviewers");
+
+    List<String> newReviewers = Type.STRING_LIST.convert(reviewers, "reviewers");
+    List<String> cc = Type.STRING_LIST.convert(ccParam, "cc");
 
     String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
     check(location, !(submit && notifyOptionStr != null),
@@ -887,6 +892,7 @@ public class GitModule implements LabelsAwareModule {
         stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,
         newReviewers,
+        cc,
         convertFromNoneable(checkerObj, null));
   }
 

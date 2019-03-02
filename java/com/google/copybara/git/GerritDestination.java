@@ -109,11 +109,12 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final ChangeIdPolicy changeIdPolicy;
     private final boolean allowEmptyDiffPatchSet;
     private final GeneralOptions generalOptions;
+    private final List<String> ccTemplate;
 
     GerritWriteHook(GeneralOptions generalOptions, GerritOptions gerritOptions, String repoUrl,
-        Author committer, List<String> reviewersTemplate, ChangeIdPolicy changeIdPolicy,
-        boolean allowEmptyDiffPatchSet, @Nullable Checker endpointChecker,
-        @Nullable NotifyOption notifyOption) {
+        Author committer, List<String> reviewersTemplate, List<String> ccTemplate,
+        ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet,
+        @Nullable Checker endpointChecker, @Nullable NotifyOption notifyOption) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -122,6 +123,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.changeIdPolicy = Preconditions.checkNotNull(changeIdPolicy);
       this.allowEmptyDiffPatchSet = allowEmptyDiffPatchSet;
       this.reviewersTemplate = Preconditions.checkNotNull(reviewersTemplate);
+      this.ccTemplate = Preconditions.checkNotNull(ccTemplate);
       this.endpointChecker = endpointChecker;
       this.notifyOption = notifyOption;
     }
@@ -239,6 +241,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     public String getPushReference(String pushToRefsFor, TransformResult transformResult) {
       ImmutableList<String> reviewers =
           SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate);
+      ImmutableList<String> cc =
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate);
       List<String> options = new ArrayList<>();
       if (notifyOption != null) {
         options.add("notify=" + notifyOption);
@@ -247,15 +251,18 @@ public final class GerritDestination implements Destination<GitRevision> {
         options.add("topic=" + gerritOptions.gerritTopic);
       }
       if (!reviewers.isEmpty()) {
-        options.add(reviewersOption(reviewers));
+        options.add(asGerritParam("r", reviewers));
+      }
+      if (!cc.isEmpty()) {
+        options.add(asGerritParam("cc", cc));
       }
       return options.isEmpty() ? pushToRefsFor : pushToRefsFor + '%' + Joiner.on(',').join(options);
     }
 
-    private static String reviewersOption(ImmutableList<String> reviewers) {
+    private static String asGerritParam(String param, ImmutableList<String> values) {
       List<String> newReviewers = new ArrayList<>();
-      for (String reviewer : reviewers) {
-        newReviewers.add(String.format("r=%s", reviewer));
+      for (String reviewer : values) {
+        newReviewers.add(String.format(param + "=%s", reviewer));
       }
       return Joiner.on(",").join(newReviewers);
     }
@@ -453,6 +460,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       ChangeIdPolicy changeIdPolicy,
       boolean allowEmptyPatchSet,
       List<String> reviewers,
+      List<String> cc,
       @Nullable Checker endpointChecker) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
@@ -472,6 +480,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 url,
                 destinationOptions.getCommitter(),
                 reviewers,
+                cc,
                 changeIdPolicy,
                 allowEmptyPatchSet,
                 endpointChecker,

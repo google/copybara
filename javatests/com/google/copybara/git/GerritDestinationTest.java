@@ -120,7 +120,6 @@ public class GerritDestinationTest {
   private TestingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
   private SkylarkTestExecutor skylark;
-  private ImmutableList<String> reviewerTemplates;
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -148,7 +147,6 @@ public class GerritDestinationTest {
     repo().init();
 
     skylark = new SkylarkTestExecutor(options);
-    reviewerTemplates = ImmutableList.of();
 
     when(gitUtil
             .httpTransport()
@@ -573,6 +571,50 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testCc() throws Exception {
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "cc = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestination", "TEST", /*dryRun=*/ false, new DummyRevision("test"));
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_REVIEWER")
+                                ? ImmutableList.of("foo@example.com")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console.getMessages().stream()
+            .anyMatch(
+                message ->
+                    message
+                        .getText()
+                        .contains("refs/for/master%topic=testTopic,cc=foo@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
   public void testDescribe() throws Exception {
     pushToRefsFor = "master";
     fetch = "master";
@@ -935,7 +977,8 @@ public class GerritDestinationTest {
             options.gerrit,
             "http://example.com/foo",
             new Author("foo", "foo@example.com"),
-            reviewerTemplates,
+            ImmutableList.of(),
+            ImmutableList.of(),
             ChangeIdPolicy.REPLACE,
             /*allowEmptyDiffPatchSet=*/ true,
             /*endpointChecker=*/ null,

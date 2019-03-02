@@ -1506,7 +1506,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], api_checker=None)`
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], api_checker=None)`
 
 
 #### Parameters:
@@ -1521,6 +1521,7 @@ notify | `string`<br><p>Type of Gerrit notify option (https://gerrit-review.goog
 change_id_policy | `string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
 allow_empty_diff_patchset | `boolean`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
 reviewers | `sequence`<br><p>The list of the reviewers will be added to gerrit change reviewer listThe element in the list is: an email, for example: "foo@example.com" or label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of assuming that users have registered to gerrit repos</p>
+cc | `sequence`<br><p>The list of the email addresses or users that will be CCed in the review. Can use labels as the `reviewers` field.</p>
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 
 
