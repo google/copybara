@@ -74,6 +74,7 @@
     - [git.review_input](#git.review_input)
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.create_status](#github_api_obj.create_status)
+    - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
@@ -1930,6 +1931,20 @@ state | `string`<br><p>The state of the commit status: 'success', 'error', 'pend
 context | `string`<br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
 description | `string`<br><p>Description about what happened</p>
 target_url | `string`<br><p>Url with expanded information about the event</p>
+
+<a id="github_api_obj.delete_reference" aria-hidden="true"></a>
+### github_api_obj.delete_reference
+
+Delete a reference.
+
+`github_api_obj.delete_reference(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The name of the reference.</p>
 
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status

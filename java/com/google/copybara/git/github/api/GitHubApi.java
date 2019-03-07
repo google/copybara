@@ -16,6 +16,7 @@
 
 package com.google.copybara.git.github.api;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
 
@@ -248,11 +249,13 @@ public class GitHubApi {
     }
   }
 
-  public Ref updateReference(String projectId, String branchName, UpdateReferenceRequest request)
+  public Ref updateReference(String projectId, String ref, UpdateReferenceRequest request)
       throws RepoException, ValidationException {
+    checkArgument(ref.startsWith("refs/"),
+        "References has to be complete references in the form of refs/heads/foo. But was: %s", ref);
     try (ProfilerTask ignore = profiler.start("github_api_update_reference")) {
       Ref result = transport.post(
-          String.format("repos/%s/git/refs/heads/%s", projectId, branchName), request, Ref.class);
+          String.format("repos/%s/git/%s", projectId, ref), request, Ref.class);
       if (result.getRef() == null || result.getSha() == null || result.getUrl() == null) {
         throw new RepoException(
             String.format(
@@ -261,6 +264,19 @@ public class GitHubApi {
                 result.getRef(), result.getSha(), result.getUrl()));
       }
       return result;
+    }
+  }
+
+  public void deleteReference(String projectId, String ref)
+      throws RepoException, ValidationException {
+    checkArgument(ref.startsWith("refs/"),
+        "References has to be complete references in the form of refs/heads/foo. But was: %s", ref);
+    // There is no good reason for deleting master.
+    checkArgument(!ref.equals("refs/heads/master"), "Copybara doesn't allow to delete master"
+        + " branch for security reasons");
+
+    try (ProfilerTask ignore = profiler.start("github_api_delete_reference")) {
+      transport.delete(String.format("repos/%s/git/%s", projectId, ref));
     }
   }
 

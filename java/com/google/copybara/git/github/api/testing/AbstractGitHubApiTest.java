@@ -53,6 +53,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +82,8 @@ public abstract class AbstractGitHubApiTest {
   }
 
   public abstract void trainMockPost(String apiPath, Predicate<String> validator, byte[] response);
+
+  public abstract void trainMockDelete(String apiPath, Predicate<String> validator, int statusCode);
 
   @Test
   public void testGetPulls() throws Exception {
@@ -332,13 +335,13 @@ public abstract class AbstractGitHubApiTest {
         createValidator(
             TestUpdateReferenceRequest.class,
             urr ->
-                urr.getSha1().equals("6dcb09b5b57875f334f61aebed695e2e4193db5e") &&
-                urr.getForce()),
+                urr.getSha1().equals("6dcb09b5b57875f334f61aebed695e2e4193db5e")
+                    && urr.getForce()),
         getResource("update_reference_response_testdata.json"));
 
     Ref response = api.updateReference("octocat/Hello-World",
-        "test",
-        new UpdateReferenceRequest("6dcb09b5b57875f334f61aebed695e2e4193db5e",true));
+        "refs/heads/test",
+        new UpdateReferenceRequest("6dcb09b5b57875f334f61aebed695e2e4193db5e", true));
 
     assertThat(response.getRef()).isEqualTo("refs/heads/test");
     assertThat(response.getSha()).isEqualTo("6dcb09b5b57875f334f61aebed695e2e4193db5e");
@@ -347,12 +350,38 @@ public abstract class AbstractGitHubApiTest {
   }
 
   @Test
+  public void testDeleteRef() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    trainMockDelete("/repos/octocat/Hello-World/git/refs/heads/test",
+        s -> {
+          called.set(true);
+          return true;
+        }, 202);
+
+    api.deleteReference("octocat/Hello-World", "refs/heads/test");
+    assertThat(called.get()).isTrue();
+  }
+
+  @Test
+  public void testDeleteRefFail() throws Exception {
+
+    trainMockDelete("/repos/octocat/Hello-World/git/refs/heads/test", s -> true, 404);
+
+    try {
+      api.deleteReference("octocat/Hello-World", "refs/heads/test");
+      fail();
+    } catch (GitHubApiException e) {
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
+  }
+
+  @Test
   public void testGetReference() throws Exception {
     trainMockGet(
         "/repos/octocat/Hello-World/git/refs/heads/g3",
         getResource("get_reference_response_testdata.json"));
 
-    Ref response = api.getReference("octocat/Hello-World","refs/heads/g3");
+    Ref response = api.getReference("octocat/Hello-World", "refs/heads/g3");
 
     assertThat(response.getRef()).isEqualTo("refs/heads/g3");
     assertThat(response.getSha()).isEqualTo("9a2f372a62761ac378a62935c44cfcb9695d0661");

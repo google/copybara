@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.mockGitHubNotFound;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
@@ -46,6 +47,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -352,7 +354,8 @@ public class GitHubEndpointTest {
   public void testFeedbackUpdateReference() throws Exception{
     String var =
         "git.github_api(url = 'https://github.com/google/example')"
-            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', 'test', True)";
+            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', "
+            + "'refs/heads/test', True)";
     ImmutableMap<String, Object> expectedFieldValues =
         ImmutableMap.<String, Object>builder()
             .put("ref", "refs/heads/test")
@@ -360,6 +363,52 @@ public class GitHubEndpointTest {
             .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testFeedbackUpdateReferenceShortRef() throws Exception{
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', "
+            + "'test', True)";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("ref", "refs/heads/test")
+            .put("url", "https://github.com/google/example/git/refs/heads/test")
+            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testFeedbackDeleteReference() throws Exception{
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(eq("DELETE"), contains("/git/refs/heads/test"),
+        mockResponseWithStatus("", 202, s -> {
+          called.set(true);
+          return true;
+        }));
+
+    skylark.eval("not_used", "not_used = git.github_api(url = 'https://github.com/google/example')"
+        + ".delete_reference('refs/heads/test')");
+
+    assertThat(called.get()).isTrue();
+  }
+
+  @Test
+  public void testFeedbackDeleteReference_MasterCheck() {
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(eq("DELETE"), contains("/git/refs/heads/master"),
+        mockResponseWithStatus("", 202, s -> {
+          called.set(true);
+          return true;
+        }));
+
+    skylark.evalFails("git.github_api(url = 'https://github.com/google/example')"
+        + ".delete_reference('refs/heads/master')",
+        "Copybara doesn't allow to delete master branch for security reasons");
+
+    assertThat(called.get()).isFalse();
   }
 
   /**

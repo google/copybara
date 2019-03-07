@@ -164,6 +164,21 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
+  @Override
+  public void delete(String path) throws RepoException, ValidationException {
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
+
+    GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
+    try {
+      requestFactory.buildDeleteRequest(url).execute();
+    } catch (HttpResponseException e) {
+      throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
+          "DELETE", path, /*request=*/ null, e.getContent());
+    } catch (IOException e) {
+      throw new RepoException("Error running GitHub API operation " + path, e);
+    }
+  }
+
   private HttpRequestFactory getHttpRequestFactory(@Nullable UserPassword userPassword)
       throws RepoException, ValidationException {
     return httpTransport.createRequestFactory(

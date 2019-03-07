@@ -19,6 +19,7 @@ package com.google.copybara.git.github.api;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.lang.reflect.Type;
+
 /**
  * Http transport interface for talking to GitHub.
  */
@@ -33,4 +34,10 @@ public interface GitHubApiTransport {
    */
   <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException;
+
+  /**
+   * Do a http DELETE call
+   */
+  void delete(String path) throws RepoException, ValidationException;
+
 }

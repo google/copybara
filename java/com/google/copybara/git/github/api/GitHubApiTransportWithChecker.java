@@ -64,4 +64,14 @@ public class GitHubApiTransportWithChecker implements GitHubApiTransport {
     }
     return delegate.post(path, request, responseType);
   }
+
+  @Override
+  public void delete(String path) throws RepoException, ValidationException {
+    try {
+      checker.doCheck(ImmutableMap.of("path", path), console);
+    } catch (IOException e) {
+      throw new RuntimeException("Error running checker", e);
+    }
+    delegate.delete(path);
+  }
 }

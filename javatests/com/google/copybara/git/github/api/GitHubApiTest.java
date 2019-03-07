@@ -130,4 +130,15 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
     requestToResponse.put(path, new MockLowLevelHttpResponse().setContent(response));
     requestValidators.put(path, requestValidator);
   }
+
+  @Override
+  public void trainMockDelete(String apiPath, Predicate<String> requestValidator, int statusCode) {
+    String path = String.format("DELETE https://api.github.com%s", apiPath);
+    MockLowLevelHttpResponse response = new MockLowLevelHttpResponse().setStatusCode(statusCode);
+    if (statusCode >= 400) {
+      response.setContent("{ message: 'Error on delete' }");
+    }
+    requestToResponse.put(path, response);
+    requestValidators.put(path, requestValidator);
+  }
 }

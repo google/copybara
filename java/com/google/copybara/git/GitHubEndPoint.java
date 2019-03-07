@@ -178,9 +178,37 @@ public class GitHubEndPoint implements Endpoint {
           "Not a valid complete SHA-1: %s", sha);
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
 
+      if (!ref.startsWith("refs/")) {
+        // TODO(malcon): Remove this functionality and use a check once library migrated.
+        console.warnFmt(
+            "Non-complete ref passed to update_reference '%s'. Assuming refs/heads/%s", ref, ref);
+        ref = "refs/heads/" + ref;
+      }
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(location, e);
+    }
+  }
+
+  @SkylarkCallable(name = "delete_reference",
+      doc = "Delete a reference.",
+      parameters = {
+          @Param(name = "ref", type = String.class, named = true,
+              doc = "The name of the reference."),
+      },
+      useLocation = true
+  )
+  public void deleteReference(String ref, Location location)
+      throws EvalException {
+    try {
+      checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
+      checkCondition(ref.startsWith("refs/"), "ref needs to be a complete reference."
+          + " Example: refs/heads/foo");
+
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      apiSupplier.load(console).deleteReference(project, ref);
     } catch (RepoException | ValidationException e) {
       throw new EvalException(location, e);
     }
