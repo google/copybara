@@ -27,6 +27,7 @@ import static junit.framework.TestCase.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
 import com.google.copybara.Destination.Writer;
@@ -39,6 +40,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -48,6 +50,7 @@ import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,6 +88,7 @@ public class GitHubDestinationTest {
         new OptionsBuilder()
             .setConsole(console)
             .setOutputRootToTmpDir();
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("bad_word"));
     workdir = Files.createTempDirectory("workdir");
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     gitUtil = new GitTestUtil(options);
@@ -279,6 +283,28 @@ public class GitHubDestinationTest {
         .containsNoMoreFiles();
     console.assertThat().onceInLog(MessageType.INFO, "Branch other_12345 does not exist");
     console.assertThat().onceInLog(MessageType.INFO, "Branch other_6789 does not exist");
+  }
+
+  @Test
+  public void testChecker() throws Exception {
+    GitDestination d = skylark.eval("r", "r = git.github_destination("
+        + "    url = 'http://github.com/example/example', \n"
+        + "    api_checker = testing.dummy_checker(),\n"
+        + ")");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            /*dryRun=*/ false,
+            new DummyRevision("origin_ref1"));
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitHubEndPoint endpoint = (GitHubEndPoint) writer.getFeedbackEndPoint(console);
+    try {
+      endpoint.getCombinedStatus("bad_word", null);
+      fail();
+    } catch (EvalException e) {
+      assertThat(e).hasMessageThat().contains("Bad word found");
+    }
   }
 
   @Test

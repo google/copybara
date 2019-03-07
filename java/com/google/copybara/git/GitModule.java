@@ -611,11 +611,17 @@ public class GitModule implements LabelsAwareModule {
               doc = "Integrate changes from a url present in the migrated change"
                   + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                   + " present in the message", positional = false, noneable = true),
+          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
+              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                  + "This field is not required if the workflow hooks don't use the "
+                  + "origin/destination endpoints.",
+              named = true, positional = false,
+              noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination gitHubDestination(String url, String push, Object fetch,
-      Object prBranchToUpdate, Object integrates, Location location)
+      Object prBranchToUpdate, Object integrates, Object checker, Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
@@ -639,7 +645,8 @@ public class GitModule implements LabelsAwareModule {
             repoUrl,
             options.get(GitHubOptions.class),
             convertFromNoneable(prBranchToUpdate, null),
-            getGeneralConsole()),
+            getGeneralConsole(),
+            convertFromNoneable(checker, null)),
         SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"));
   }

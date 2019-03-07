@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Change;
+import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
@@ -41,21 +43,23 @@ public class GitHubWriteHook extends DefaultWriteHook {
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final Console console;
-  @Nullable
-  private final String prBranchToUpdate;
+  @Nullable private final Checker endpointChecker;
+  @Nullable private final String prBranchToUpdate;
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
-  public GitHubWriteHook(
+  GitHubWriteHook(
       GeneralOptions generalOptions,
       String repoUrl,
       GitHubOptions gitHubOptions,
       String prBranchToUpdate,
-      Console console) {
+      Console console,
+      @Nullable Checker endpointChecker) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.prBranchToUpdate = prBranchToUpdate;
     this.console = console;
+    this.endpointChecker = endpointChecker;
   }
 
   @Override
@@ -97,6 +101,13 @@ public class GitHubWriteHook extends DefaultWriteHook {
         throw e;
       }
     }
+  }
+
+  @Override
+  public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
+    gitHubOptions.validateEndpointChecker(endpointChecker);
+    return new GitHubEndPoint(
+        gitHubOptions.newGitHubApiSupplier(repoUrl, endpointChecker), repoUrl, console);
   }
 
   @Override
