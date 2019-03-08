@@ -112,9 +112,18 @@ public class Core implements LabelsAwareModule {
       Location location) throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
-    for (Transformation t : transforms.getContents(Transformation.class, "transformations")) {
+    for (Object t : transforms.getContents(Object.class, "transformations")) {
       try {
-        builder.add(t.reverse());
+        if (t instanceof BaseFunction) {
+          builder.add(
+              new SkylarkTransformation((BaseFunction) t, SkylarkDict.empty(), dynamicEnvironment)
+                  .reverse());
+        } else if (t instanceof Transformation) {
+          builder.add(((Transformation) t).reverse());
+        } else {
+          throw new EvalException(
+              location, "Expected type 'transformation' or function, but found: " + t);
+        }
       } catch (NonReversibleValidationException e) {
         throw new EvalException(location, e.getMessage());
       }

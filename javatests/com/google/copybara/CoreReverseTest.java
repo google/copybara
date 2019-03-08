@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -65,6 +66,23 @@ public final class CoreReverseTest {
   }
 
   @Test
+  public void reverseTest2() throws Exception {
+    List<Transformation> reverse =
+        skylark.eval(
+            "foo",
+            ""
+                + "def test(ctx):\n"
+                + "    ctx.console.info('Foo')\n"
+                + "\n"
+                + "foo = core.reverse([\n"
+                + "    mock.transform('foo'),\n"
+                + "    core.transform([test]),\n"
+                + "])");
+    assertThat(reverse.get(0)).isInstanceOf(ExplicitReversal.class);
+    assertThat(reverse.get(1)).isEqualTo(new SimpleReplace("reverse foo", null));
+  }
+
+  @Test
   public void reverseSingle() throws Exception {
     assertThat(skylark.<List<Transformation>>eval(
         "foo", "foo = core.reverse([mock.transform('foo')])"))
@@ -83,8 +101,7 @@ public final class CoreReverseTest {
       fail();
     } catch (ValidationException e) {
       console.assertThat().onceInLog(MessageType.ERROR,
-          ".*expected type '?transformation'? for 'transformations' element but got type '?int'?"
-              + " instead.*");
+          ".*Expected type '?transformation'? or function, but found: 42.*");
     }
   }
 
