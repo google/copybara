@@ -195,6 +195,17 @@ public class GitHubApi {
   }
 
   /**
+   * Update a pull request
+   */
+  public PullRequest updatePullRequest(String projectId, long number, UpdatePullRequest request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
+      return transport.post(
+          String.format("repos/%s/pulls/%s", projectId, number), request, PullRequest.class);
+    }
+  }
+
+  /**
    * Get a specific issue for a project.
    *
    * <p>Use this method to get the Pull Request labels.

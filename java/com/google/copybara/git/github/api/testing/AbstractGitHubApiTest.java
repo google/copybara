@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +46,7 @@ import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
+import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
@@ -157,6 +159,23 @@ public abstract class AbstractGitHubApiTest {
     assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
     assertThat(pullRequest.getHead().getSha()).isEqualTo(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  }
+
+  @Test
+  public void testUpdatePullRequest() throws Exception {
+    JsonValidator<UpdatePullRequest> validator = createValidator(UpdatePullRequest.class,
+        (request) ->
+            request.getTitle().equals("title")
+                && request.getBody().equals("body")
+                && request.getState().equals(UpdatePullRequest.State.CLOSED));
+
+    trainMockPost(
+        "/repos/example/project/pulls/12345", validator, getResource("pulls_12345_testdata.json"));
+
+    api.updatePullRequest("example/project", 12345,
+        new UpdatePullRequest("title", "body", UpdatePullRequest.State.CLOSED));
+
+    assertThat(validator.wasCalled()).isTrue();
   }
 
   @Test
@@ -486,15 +505,8 @@ public abstract class AbstractGitHubApiTest {
             .resolve(testfile));
   }
 
-  private <T> Predicate<String> createValidator(Class<T> clazz, Predicate<T> predicate) {
-    return s -> {
-      try {
-        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
-        return predicate.test(requestObject);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    };
+  private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {
+    return new JsonValidator<>(clazz, predicate);
   }
 
   // We don't want CreatePullRequest to be instantiable, this subclass sidesteps the issue.
@@ -517,6 +529,32 @@ public abstract class AbstractGitHubApiTest {
 
     public TestUpdateReferenceRequest() {
       super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);
+    }
+  }
+
+  private static class JsonValidator<T> implements Predicate<String> {
+    private boolean called;
+    private final Class<T> clazz;
+    private final Predicate<T> predicate;
+
+    JsonValidator(Class<T> clazz, Predicate<T> predicate) {
+      this.clazz = Preconditions.checkNotNull(clazz);
+      this.predicate = Preconditions.checkNotNull(predicate);
+    }
+
+    @Override
+    public boolean test(String s) {
+      try {
+        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
+        called = true;
+        return predicate.test(requestObject);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    boolean wasCalled() {
+      return called;
     }
   }
 }
