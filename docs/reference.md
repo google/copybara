@@ -77,6 +77,7 @@
     - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
+    - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
     - [github_api_obj.get_references](#github_api_obj.get_references)
     - [github_api_obj.update_reference](#github_api_obj.update_reference)
@@ -1973,6 +1974,24 @@ Get information for a commit in GitHub. Returns None if not found.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The SHA-1 for which we want to get the combined status</p>
+
+<a id="github_api_obj.get_pull_requests" aria-hidden="true"></a>
+### github_api_obj.get_pull_requests
+
+Get Pull Requests for a repo
+
+`immutableList<E> github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+head_prefix | `string`<br><p>Only return PRs wher the branch name has head_prefix</p>
+base_prefix | `string`<br><p>Only return PRs where the destination branch name has base_prefix</p>
+state | `string`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"` or `"ALL"`</p>
+sort | `string`<br><p>Sort filter for retrieving the Pull Requests. Can be `"CREATED"`, `"UPDATED"` or `"POPULARITY"`</p>
+direction | `string`<br><p>Direction of the filter. Can be `"ASC"` or `"DESC"`</p>
 
 <a id="github_api_obj.get_reference" aria-hidden="true"></a>
 ### github_api_obj.get_reference

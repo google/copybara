@@ -29,6 +29,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -445,6 +447,50 @@ public class GitHubEndpointTest {
             .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
             .build();
     skylark.verifyFields(var + "[0]", expectedFieldValues);
+  }
+
+  /**
+   * A test that uses get_pull_requests.
+   */
+  @Test
+  public void testPullRequests() throws Exception {
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".get_pull_requests(state='OPEN')";
+    gitUtil.mockApi(anyString(), contains(
+        "repos/google/example/pulls?per_page=100&state=open&sort=created&direction=asc"),
+        mockResponse(toJson(
+            ImmutableList.of(
+                ImmutableMap.of(
+                    "number", 12345,
+                    "state", "open",
+                    "head", ImmutableMap.of(
+                        "label", "someuser:somebranch",
+                        "sha", Strings.repeat("a", 40),
+                        "ref", "somebranch"
+                    ))))));
+
+    skylark.verifyFields(var + "[0]", ImmutableMap.<String, Object>builder()
+        .put("number", 12345)
+        .put("state", "OPEN")
+        .put("head.label", "someuser:somebranch")
+        .put("head.sha", Strings.repeat("a", 40))
+        .put("head.ref", "somebranch")
+        .build());
+  }
+
+  /**
+   * A test that uses get_pull_requests.
+   */
+  @Test
+  public void testPullRequests_badPrefix() throws Exception {
+    skylark.evalFails("git.github_api(url = 'https://github.com/google/example')"
+        + ".get_pull_requests(head_prefix = 'bad@*')",
+        "'bad@\\*' is not a valid head_prefix");
+  }
+
+  private String toJson(Object obj) throws IOException {
+    return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }
 
   private Feedback feedback(String actionFunction) throws IOException, ValidationException {

@@ -18,22 +18,34 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.List;
 
 /**
  * Represents a pull request returned by
  * https://api.github.com/repos/REPO_ID/pulls/NUMBER
  */
+@SkylarkModule(
+    name = "github_api_pull_request_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc =
+        "Information about a pull request as defined in"
+            + " https://developer.github.com/v3/repos/pulls. This is a subset of the available"
+            + " fields in GitHub")
 public class PullRequest extends PullRequestOrIssue {
 
   @Key private Revision head;
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
 
+  @SkylarkCallable(name = "head", doc = "Information about head", structField = true)
   public Revision getHead() {
     return head;
   }
 
+  @SkylarkCallable(name = "base", doc = "Information about base", structField = true)
   public Revision getBase() {
     return base;
   }

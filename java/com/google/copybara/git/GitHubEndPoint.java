@@ -16,12 +16,15 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
@@ -30,9 +33,14 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter;
+import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.StateFilter;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
+import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
@@ -46,6 +54,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
@@ -63,6 +72,10 @@ public class GitHubEndPoint implements Endpoint {
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
   private final Console console;
+  // This might not be complete but it is only used for filtering get_pull_requests. We can
+  // add more chars on demand.
+  private static final Pattern SAFE_BRANCH_NAME_PREFIX = Pattern.compile("[\\w_.-][\\w/_.-]*");
+
 
   GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
@@ -228,6 +241,59 @@ public class GitHubEndPoint implements Endpoint {
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getReference(project, ref);
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(location, e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_pull_requests",
+      doc = "Get Pull Requests for a repo",
+      parameters = {
+          @Param(name = "head_prefix", type = String.class, named = true,
+              doc = "Only return PRs wher the branch name has head_prefix",
+              defaultValue = "None", noneable = true),
+          @Param(name = "base_prefix", type = String.class, named = true,
+              doc = "Only return PRs where the destination branch name has base_prefix",
+              defaultValue = "None", noneable = true),
+          @Param(name = "state", type = String.class,
+              doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"` or `\"ALL\"`",
+              defaultValue = "\"OPEN\"", named = true),
+          @Param(name = "sort", type = String.class,
+              doc = "Sort filter for retrieving the Pull Requests. Can be `\"CREATED\"`,"
+                  + " `\"UPDATED\"` or `\"POPULARITY\"`", named = true,
+              defaultValue = "\"CREATED\""),
+          @Param(name = "direction", type = String.class,
+              doc = "Direction of the filter. Can be `\"ASC\"` or `\"DESC\"`",
+              defaultValue = "\"ASC\"", named = true)
+      },
+      useLocation = true, allowReturnNones = true)
+  @Nullable
+  public ImmutableList<PullRequest> getPullRequests(Object headPrefixParam, Object basePrefixParam,
+      String state, String sort, String direction, Location location) throws EvalException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      PullRequestListParams request = PullRequestListParams.DEFAULT;
+      String headPrefix = convertFromNoneable(headPrefixParam, null);
+      String basePrefix = convertFromNoneable(basePrefixParam, null);
+      if (!Strings.isNullOrEmpty(headPrefix)) {
+        checkCondition(SAFE_BRANCH_NAME_PREFIX.matches(headPrefix),
+            "'%s' is not a valid head_prefix (%s is used for validation)",
+            headPrefix, SAFE_BRANCH_NAME_PREFIX.pattern());
+        request = request.withHead(headPrefix);
+      }
+      if (!Strings.isNullOrEmpty(basePrefix)) {
+        checkCondition(SAFE_BRANCH_NAME_PREFIX.matches(basePrefix),
+            "'%s' is not a valid base_prefix (%s is used for validation)",
+            basePrefix, SAFE_BRANCH_NAME_PREFIX.pattern());
+        request = request.withHead(basePrefix);
+      }
+
+      return apiSupplier.load(console).getPullRequests(project,
+          request.withState(stringToEnum(location, "state", state, StateFilter.class))
+              .withDirection(stringToEnum(location, "direction", direction, DirectionFilter.class))
+              .withSort(stringToEnum(location, "sort", sort, SortFilter.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {

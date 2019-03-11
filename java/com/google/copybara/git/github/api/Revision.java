@@ -18,28 +18,36 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 
 /**
  * Represents a revision: information about the origin of a pull request like the ref (branch) or
  * specific SHA-1.
  */
+@SkylarkModule(
+    name = "github_api_revision_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Information about a GitHub revision (Used in Pull Request and other entities)"
+)
 public class Revision {
 
-  @Key
-  private String label;
-  @Key
-  private String ref;
-  @Key
-  private String sha;
+  @Key private String label;
+  @Key private String ref;
+  @Key private String sha;
 
+  @SkylarkCallable(name = "label", doc = "Label for the revision", structField = true)
   public String getLabel() {
     return label;
   }
 
+  @SkylarkCallable(name = "ref", doc = "Reference", structField = true)
   public String getRef() {
     return ref;
   }
 
+  @SkylarkCallable(name = "sha", doc = "SHA of the reference", structField = true)
   public String getSha() {
     return sha;
   }
