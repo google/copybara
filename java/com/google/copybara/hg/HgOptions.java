@@ -16,7 +16,7 @@
 
 package com.google.copybara.hg;
 
-import static com.google.copybara.util.FileUtil.createDirInCache;
+import static com.google.copybara.util.FileUtil.resolveDirInCache;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
@@ -65,7 +65,7 @@ public class HgOptions implements Option {
    */
   private HgRepository createBareRepo(String url, Path path)
       throws RepoException {
-    Path repoPath = createDirInCache(url, path);
+    Path repoPath = resolveDirInCache(url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo =

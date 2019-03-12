@@ -455,7 +455,7 @@ public final class FileUtil {
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
 
-  public static Path createDirInCache(String url, Path repoStorage) {
+  public static Path resolveDirInCache(String url, Path repoStorage) {
     String escapedUrl = PERCENT_ESCAPER.escape(url);
 
     // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo

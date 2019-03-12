@@ -16,7 +16,7 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.util.FileUtil.createDirInCache;
+import static com.google.copybara.util.FileUtil.resolveDirInCache;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
@@ -77,7 +77,7 @@ public class GitOptions implements Option {
   public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
-      return createBareRepo(generalOptions, createDirInCache(url, getRepoStorage()));
+      return createBareRepo(generalOptions, resolveDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
