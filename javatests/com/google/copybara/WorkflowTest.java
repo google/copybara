@@ -1669,7 +1669,7 @@ public class WorkflowTest {
       fail();
     } catch (ValidationException e) {
       console().assertThat().onceInLog(MessageType.ERROR,
-          ".*smart_prune is only supported for CHANGE_REQUEST mode.*");
+          ".*'smart_prune = True' is only supported for CHANGE_REQUEST mode.*");
     }
   }
 

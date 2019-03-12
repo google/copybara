@@ -302,12 +302,6 @@ public class Core implements LabelsAwareModule {
       Environment env)
       throws EvalException {
     WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
-    if (generalOptions.squash && mode != WorkflowMode.SQUASH) {
-      generalOptions
-          .console()
-          .infoFmt("Overriding workflow '%s' mode '%s' with 'SQUASH'.", workflowName, mode);
-      mode = WorkflowMode.SQUASH;
-    }
 
     Sequence sequenceTransform = Sequence.fromConfig(generalOptions.profiler(),
         workflowOptions.joinTransformations(),
@@ -335,11 +329,11 @@ public class Core implements LabelsAwareModule {
               + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
-      check(location, mode == WorkflowMode.CHANGE_REQUEST, "Disabling RevId is only supported"
+      check(location, mode == WorkflowMode.CHANGE_REQUEST, "'set_rev_id = False' is only supported"
           + " for CHANGE_REQUEST mode.");
     }
     if (smartPrune) {
-      check(location, mode == WorkflowMode.CHANGE_REQUEST, "smart_prune is only supported"
+      check(location, mode == WorkflowMode.CHANGE_REQUEST, "'smart_prune = True' is only supported"
           + " for CHANGE_REQUEST mode.");
     }
 
@@ -356,6 +350,7 @@ public class Core implements LabelsAwareModule {
           authoring.getWhitelist());
     }
 
+    WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
     getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
         workflowName,
         origin,
@@ -367,7 +362,7 @@ public class Core implements LabelsAwareModule {
         generalOptions,
         convertFromNoneable(originFiles, Glob.ALL_FILES),
         convertFromNoneable(destinationFiles, Glob.ALL_FILES),
-        mode,
+        effectiveMode,
         workflowOptions,
         reverseTransform,
         askForConfirmation,

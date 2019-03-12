@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
+import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
@@ -287,12 +288,24 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    * @throws ValidationException if flags are invalid for this workflow
    */
   private void validateFlags() throws ValidationException {
-    checkCondition(!isInitHistory() || mode != WorkflowMode.CHANGE_REQUEST,
+    checkCondition(!isInitHistory() || mode != CHANGE_REQUEST,
         "%s is not compatible with %s",
-            WorkflowOptions.INIT_HISTORY_FLAG, WorkflowMode.CHANGE_REQUEST);
-    checkCondition(!isCheckLastRevState() || mode != WorkflowMode.CHANGE_REQUEST,
+            WorkflowOptions.INIT_HISTORY_FLAG, CHANGE_REQUEST);
+    checkCondition(!isCheckLastRevState() || mode != CHANGE_REQUEST,
             "%s is not compatible with %s",
-                WorkflowOptions.CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
+                WorkflowOptions.CHECK_LAST_REV_STATE, CHANGE_REQUEST);
+    checkCondition(
+        !isSmartPrune() || mode == CHANGE_REQUEST,
+        "'smart_prune = True' is only supported for CHANGE_REQUEST mode.");
+    if (isSetRevId()) {
+      checkCondition(mode != CHANGE_REQUEST || customRevId == null,
+          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
+              + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
+              + " for the baseline in the origin. No revId is stored in the destination.");
+    } else {
+      checkCondition(mode == CHANGE_REQUEST, "'set_rev_id = False' is only supported"
+          + " for CHANGE_REQUEST mode.");
+    }
   }
 
   protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef, String rawSourceRef,

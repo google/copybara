@@ -224,7 +224,7 @@ public class Main {
       Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
 
       commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs());
-      generalOptions.console().progressFmt("Running %s",subcommand.name());
+      generalOptions.console().progressFmt("Running %s", subcommand.name());
       ExitCode exitCode = subcommand.run(commandEnv);
       return new CommandResult(exitCode, subcommand, commandEnv);
 
