@@ -83,6 +83,7 @@ public class GitIntegrateChanges {
     } catch (RepoException e) {
       if (ignoreIntegrationErrors || ignoreErrors) {
         logger.atSevere().withCause(e).log("Cannot integrate changes");
+        generalOptions.console().warnFmt("Cannot integrate changes: %s", e.getMessage());
       } else {
         throw e;
       }
