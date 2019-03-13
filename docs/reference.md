@@ -80,6 +80,7 @@
     - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
     - [github_api_obj.get_references](#github_api_obj.get_references)
+    - [github_api_obj.update_pull_request](#github_api_obj.update_pull_request)
     - [github_api_obj.update_reference](#github_api_obj.update_reference)
   - [Globals](#globals)
     - [glob](#glob)
@@ -2013,6 +2014,23 @@ ref | `string`<br><p>The name of the reference. For example: "refs/heads/branchN
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
 `sequence of github_api_ref_obj github_api_obj.get_references()`
+
+<a id="github_api_obj.update_pull_request" aria-hidden="true"></a>
+### github_api_obj.update_pull_request
+
+Update Pull Requests for a repo. Returns None if not found
+
+`github_api_pull_request_obj github_api_obj.update_pull_request(number, title=None, body=None, state=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `integer`<br><p>Pull Request number</p>
+title | `string`<br><p>New Pull Request title</p>
+body | `string`<br><p>New Pull Request body</p>
+state | `string`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
 
 <a id="github_api_obj.update_reference" aria-hidden="true"></a>
 ### github_api_obj.update_reference

@@ -50,6 +50,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -473,6 +474,31 @@ public class GitHubEndpointTest {
     skylark.verifyFields(var + "[0]", ImmutableMap.<String, Object>builder()
         .put("number", 12345)
         .put("state", "OPEN")
+        .put("head.label", "someuser:somebranch")
+        .put("head.sha", Strings.repeat("a", 40))
+        .put("head.ref", "somebranch")
+        .build());
+  }
+
+  @Test
+  public void testUpdatePullRequest() throws Exception {
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".update_pull_request(12345, state='CLOSED')";
+    gitUtil.mockApi(eq("POST"), contains("repos/google/example/pulls/12345"),
+        mockResponseAndValidateRequest(toJson(
+            ImmutableMap.of(
+                "number", 12345,
+                "state", "closed",
+                "head", ImmutableMap.of(
+                    "label", "someuser:somebranch",
+                    "sha", Strings.repeat("a", 40),
+                    "ref", "somebranch"
+                ))), s -> s.contains("{\"state\":\"closed\"}")));
+
+    skylark.verifyFields(var, ImmutableMap.<String, Object>builder()
+        .put("number", 12345)
+        .put("state", "CLOSED")
         .put("head.label", "someuser:somebranch")
         .put("head.sha", Strings.repeat("a", 40))
         .put("head.ref", "somebranch")

@@ -16,7 +16,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
@@ -44,6 +43,7 @@ import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
+import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
@@ -294,6 +294,42 @@ public class GitHubEndPoint implements Endpoint {
           request.withState(stringToEnum(location, "state", state, StateFilter.class))
               .withDirection(stringToEnum(location, "direction", direction, DirectionFilter.class))
               .withSort(stringToEnum(location, "sort", sort, SortFilter.class)));
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
+    } catch (RepoException | ValidationException e) {
+      throw new EvalException(location, e);
+    }
+  }
+
+  @SkylarkCallable(name = "update_pull_request",
+      doc = "Update Pull Requests for a repo. Returns None if not found",
+      parameters = {
+          @Param(name = "number", type = Integer.class, named = true,
+              doc = "Pull Request number"),
+          @Param(name = "title", type = String.class, named = true,
+              doc = "New Pull Request title",
+              defaultValue = "None", noneable = true),
+          @Param(name = "body", type = String.class, named = true,
+              doc = "New Pull Request body",
+              defaultValue = "None", noneable = true),
+          @Param(name = "state", type = String.class,
+              doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"`", named = true,
+              noneable = true, defaultValue = "None"),
+      },
+      useLocation = true, allowReturnNones = true)
+  @Nullable
+  public PullRequest updatePullRequest(
+      Integer number, Object title, Object body, Object state, Location location)
+      throws EvalException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+
+      return apiSupplier.load(console).updatePullRequest(project, number,
+          new UpdatePullRequest(
+              convertFromNoneable(title, null),
+              convertFromNoneable(body, null),
+              stringToEnum(location, "state",
+                  convertFromNoneable(state, null), UpdatePullRequest.State.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException e) {
