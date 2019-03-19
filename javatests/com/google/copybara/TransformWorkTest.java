@@ -374,8 +374,9 @@ public class TransformWorkTest {
           + "   ctx.console.error('Another error message')\n");
       fail();
     } catch (ValidationException e) {
-      assertThat(e).hasMessage("2 error(s) while executing test");
-      console.assertThat()
+      assertThat(e).hasMessageThat().isEqualTo("2 error(s) while executing test");
+      console
+          .assertThat()
           .onceInLog(MessageType.ERROR, "Error message")
           .onceInLog(MessageType.ERROR, "Another error message");
     }

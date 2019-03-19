@@ -455,31 +455,37 @@ public class WorkflowTest {
   @Test
   public void testIterativeModeProducesNoop() throws Exception {
     assertThat(checkIterativeModeWithError(new EmptyChangeException("This was an empty change!")))
-        .hasMessage(
-            "Iterative workflow produced no changes in the destination for resolved ref: 3");
-    console().assertThat()
-        .onceInLog(MessageType.WARNING,
-            "Migration of origin revision '2' resulted in an empty change.*")
-        .onceInLog(MessageType.WARNING,
-            "Migration of origin revision '3' resulted in an empty change.*");
-
+        .hasMessageThat()
+        .isEqualTo("Iterative workflow produced no changes in the destination for resolved ref: 3");
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING, "Migration of origin revision '2' resulted in an empty change.*")
+        .onceInLog(
+            MessageType.WARNING, "Migration of origin revision '3' resulted in an empty change.*");
   }
 
   @Test
   public void testIterativeValidationException() throws Exception {
     assertThat(checkIterativeModeWithError(new ValidationException("Your change is wrong!")))
-        .hasMessage("Your change is wrong!");
-    console().assertThat()
-        .onceInLog(MessageType.ERROR,
+        .hasMessageThat()
+        .isEqualTo("Your change is wrong!");
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
             "Migration of origin revision '2' failed with error: Your change is wrong.*");
   }
 
   @Test
   public void testIterativeRepoException() throws Exception {
     assertThat(checkIterativeModeWithError(new RepoException("Your change is wrong!")))
-        .hasMessage("Your change is wrong!");
-    console().assertThat()
-        .onceInLog(MessageType.ERROR,
+        .hasMessageThat()
+        .isEqualTo("Your change is wrong!");
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
             "Migration of origin revision '2' failed with error: Your change is wrong.*");
   }
 
@@ -2192,7 +2198,7 @@ public class WorkflowTest {
       workflow.run(workdir, ImmutableList.of("1"));
       fail();
     } catch (ValidationException e) {
-      assertThat(e).hasMessage("Workflow 'default' is not reversible");
+      assertThat(e).hasMessageThat().isEqualTo("Workflow 'default' is not reversible");
     }
     console().assertThat()
         .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
