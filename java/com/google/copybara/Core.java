@@ -191,7 +191,7 @@ public class Core implements LabelsAwareModule {
               + "<li><b>'ITERATIVE'</b>: Import each origin change individually.</li>"
               + "<li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth."
               + " This could be a GH Pull Request, a Gerrit Change, etc. The final intention should"
-              + " be to submit the change.</li>"
+              + " be to submit the change in the SoT (destination in this case).</li>"
               + "<li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the"
               + " Source-of-Truth. This mode is useful when, despite the pending change being"
               + " already in the SoT, the users want to review the code on a different system."
