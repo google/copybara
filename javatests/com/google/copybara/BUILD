@@ -32,6 +32,7 @@ DEPS = [
     "//java/com/google/copybara/git:core",
     "//java/com/google/copybara:copybara_lib",
     "//java/com/google/copybara/doc:annotations",
+    "//java/com/google/copybara/checks",
     "//java/com/google/copybara/exception",
     "//java/com/google/copybara/monitor",
     "//java/com/google/copybara/profiler",

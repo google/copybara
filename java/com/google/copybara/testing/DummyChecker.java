@@ -16,7 +16,6 @@
 
 package com.google.copybara.testing;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.checks.Checker;
@@ -25,11 +24,12 @@ import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map.Entry;
 
 /**
- * A dummy checker for tests
+ * A dummy, not very efficient, checker for tests.
  *
  * TODO(danielromero): Promote to a real transform that uses regex
  */
@@ -41,22 +41,46 @@ public class DummyChecker implements Checker {
 
   private final ImmutableSet<String> badWords;
 
+  /**
+   * Creates a new checker.
+   *
+   * @param badWords Case-insensitive set of bad words
+   */
   public DummyChecker(ImmutableSet<String> badWords) {
-    this.badWords = Preconditions.checkNotNull(badWords);
+    this.badWords = badWords.stream().map(String::toLowerCase).collect(ImmutableSet.toImmutableSet());
   }
 
+  /**
+   * Fails on first bad word found.
+   */
   @Override
   public void doCheck(ImmutableMap<String, String> fields, Console console)
-      throws CheckerException, IOException {
+      throws CheckerException {
     for (Entry<String, String> entry : fields.entrySet()) {
-      if (badWords.stream().anyMatch(s -> entry.getValue().contains(s))) {
-        throw new CheckerException("Bad word found!");
+      for (String badWord : badWords) {
+        if (entry.getValue().toLowerCase().contains(badWord)) {
+          throw new CheckerException(
+              String.format("Bad word '%s' found: field '%s'", badWord, entry.getKey()));
+        }
       }
     }
   }
 
+  /**
+   * Does a line by line check. Does not detect bad words if multi-line. Fails on first bad word
+   * found.
+   */
   @Override
   public void doCheck(Path target, Console console) throws CheckerException, IOException {
-    throw new UnsupportedOperationException("Not implemented yet");
+    int lineNum = 0;
+    for (String line : Files.readAllLines(target)) {
+      lineNum++;
+      for (String badWord : badWords) {
+        if (line.toLowerCase().contains(badWord)) {
+          throw new CheckerException(
+              String.format("Bad word '%s' found: %s:%d", badWord, target, lineNum));
+        }
+      }
+    }
   }
 }

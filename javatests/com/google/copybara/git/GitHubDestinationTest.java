@@ -371,7 +371,7 @@ public class GitHubDestinationTest {
       endpoint.getCombinedStatus("bad_word", null);
       fail();
     } catch (EvalException e) {
-      assertThat(e).hasMessageThat().contains("Bad word found");
+      assertThat(e).hasMessageThat().contains("Bad word 'bad_word' found: field 'path'");
     }
   }
 

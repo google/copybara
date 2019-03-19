@@ -146,7 +146,7 @@ public class GerritEndpointTest {
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()
-          .contains("Bad word found!. Location: copy.bara.sky:2:3");
+          .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
     }
   }
 

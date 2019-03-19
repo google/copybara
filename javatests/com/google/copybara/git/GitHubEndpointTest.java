@@ -50,7 +50,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -195,7 +194,7 @@ public class GitHubEndpointTest {
       fail();
     } catch (ValidationException expected) {
       assertThat(expected).hasMessageThat()
-          .contains("Bad word found!. Location: copy.bara.sky:2:3");
+          .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
     }
   }
 
