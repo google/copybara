@@ -356,7 +356,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * Process the server response from the push command and compute the effects that happened
        */
       ImmutableList<DestinationEffect> afterPush(String serverResponse, MessageInfo messageInfo,
-          GitRevision pushedRevision, List<? extends Change<?>> originChanges);
+          GitRevision pushedRevision, List<? extends Change<?>> originChanges)
+          throws ValidationException, RepoException;
 
       default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         return Endpoint.NOOP_ENDPOINT;
@@ -385,7 +386,7 @@ public final class GitDestination implements Destination<GitRevision> {
       @Override
       public ImmutableList<DestinationEffect> afterPush(String serverResponse,
           MessageInfo messageInfo, GitRevision pushedRevision,
-          List<? extends Change<?>> originChanges) {
+          List<? extends Change<?>> originChanges) throws ValidationException, RepoException {
         return ImmutableList.of(
             new DestinationEffect(
                 DestinationEffect.Type.CREATED,

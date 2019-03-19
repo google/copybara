@@ -1611,12 +1611,20 @@ Parameter | Description
 url | `string`<br><p>Indicates the GitHub repo URL.</p>
 checker | `checker`<br><p>A checker for the GitHub API transport.</p>
 
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--github-destination-delete-pr-branch`</nobr> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+
 <a id="git.github_destination" aria-hidden="true"></a>
 ### git.github_destination
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-`gitDestination git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, integrates=None, api_checker=None)`
+`gitDestination git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, delete_pr_branch=False, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -1627,6 +1635,7 @@ url | `string`<br><p>Indicates the URL to push to as well as the URL from which 
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 pr_branch_to_update | `string`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
+delete_pr_branch | `boolean`<br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 

@@ -23,6 +23,12 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static junit.framework.TestCase.fail;
+import static org.mockito.Matchers.contains;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -94,6 +100,11 @@ public class GitHubDestinationTest {
     gitUtil = new GitTestUtil(options);
     gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
     remote = gitUtil.mockRemoteRepo("github.com/foo");
+
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
@@ -144,7 +155,39 @@ public class GitHubDestinationTest {
   }
 
   @Test
-  public void testPrToUpdateWithRegularString() throws Exception {
+  public void testPrToUpdateWithRegularString_defaultDelete() throws Exception {
+    checkPrToUpdateWithRegularString(/*deletePrBranch=*/"None" , /*expectDeletePrBranch*/ false);
+  }
+
+  @Test
+  public void testPrToUpdateWithRegularString_deleteRef() throws Exception {
+    checkPrToUpdateWithRegularString(/*deletePrBranch=*/"True", /*expectDeletePrBranch*/ true);
+  }
+
+  @Test
+  public void testPrToUpdateWithRegularString_deleteRefDisabled() throws Exception {
+    checkPrToUpdateWithRegularString(/*deletePrBranch=*/"False", /*expectDeletePrBranch*/ false);
+  }
+
+  @Test
+  public void testPrToUpdateWithRegularString_deleteRefDisabledByFlag() throws Exception {
+    options.github.gitHubDeletePrBranch = false;
+    checkPrToUpdateWithRegularString(/*deletePrBranch=*/"True", /*expectDeletePrBranch*/ false);
+  }
+
+  @Test
+  public void testPrToUpdateWithRegularString_deleteRefEnabledByFlag() throws Exception {
+    options.github.gitHubDeletePrBranch = true;
+    checkPrToUpdateWithRegularString(/*deletePrBranch=*/"False", /*expectDeletePrBranch*/ true);
+  }
+
+  private void checkPrToUpdateWithRegularString(String deletePrBranch, boolean expectDeletePrBranch)
+      throws Exception {
+    if (expectDeletePrBranch) {
+      when(gitUtil.httpTransport().buildRequest(eq("DELETE"),
+          contains("repos/foo/git/refs/heads/other"))).thenReturn(
+          mockResponseWithStatus("", 204, (req) -> true));
+    }
     gitUtil.mockApi("GET",
         "https://api.github.com/repos/foo/git/refs/heads/other",
         mockResponse(
@@ -178,8 +221,31 @@ public class GitHubDestinationTest {
             new DummyRevision("origin_ref1"));
     writeFile(this.workdir, "test.txt", "some content");
     Writer<GitRevision> writer =
-        destinationWithExistingPrBranch("other").newWriter(writerContext);
-    process(writer, new DummyRevision("origin_ref1"));
+        destinationWithExistingPrBranch("other", deletePrBranch).newWriter(
+            writerContext);
+    DummyRevision ref = new DummyRevision("origin_ref1");
+    TransformResult result = TransformResults.of(workdir, ref);
+
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345")),
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "6789"))),
+        ImmutableList.of());
+    result = result.withChanges(changes);
+    ImmutableList<DestinationEffect> destinationResult =
+        writer.write(result, destinationFiles, console);
+    assertThat(destinationResult).hasSize(expectDeletePrBranch ? 3 : 1);
+    assertThat(destinationResult.get(0).getErrors()).isEmpty();
+    assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(destinationResult.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+
+    // This is a migration of two changes (use the same ref because mocks)
+    verify(gitUtil.httpTransport(), times(expectDeletePrBranch ? 2 : 0)).buildRequest(eq("DELETE"),
+        contains("refs/heads/other"));
+
     GitTesting.assertThatCheckout(remote, "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
@@ -240,7 +306,8 @@ public class GitHubDestinationTest {
             "test",
             /*dryRun=*/ false,
             new DummyRevision("origin_ref1"));
-    Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+    Writer<GitRevision> writer = destinationWithExistingPrBranch(
+        "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
     GitTesting.assertThatCheckout(remote, "master")
         .containsFile("test.txt", "some content")
@@ -276,7 +343,8 @@ public class GitHubDestinationTest {
             "test",
             /*dryRun=*/ false,
             new DummyRevision("origin_ref1"));
-    Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+    Writer<GitRevision> writer = destinationWithExistingPrBranch(
+        "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
     GitTesting.assertThatCheckout(remote, "master")
         .containsFile("test.txt", "some content")
@@ -327,7 +395,8 @@ public class GitHubDestinationTest {
               "test",
               /*dryRun=*/ false,
               new DummyRevision("origin_ref1"));
-      Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${my_label}").newWriter(writerContext);
+      Writer<GitRevision> writer = destinationWithExistingPrBranch(
+          "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
       process(writer, new DummyRevision("origin_ref1"));
       fail();
     } catch (GitHubApiException e) {
@@ -349,7 +418,8 @@ public class GitHubDestinationTest {
               "test",
               /*dryRun=*/ false,
               new DummyRevision("origin_ref1"));
-      Writer<GitRevision> writer = destinationWithExistingPrBranch("other_${no_such_label}").newWriter(writerContext);
+      Writer<GitRevision> writer = destinationWithExistingPrBranch(
+          "other_${no_such_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
       process(writer, new DummyRevision("origin_ref1"));
       fail();
     } catch (ValidationException e) {
@@ -380,7 +450,23 @@ public class GitHubDestinationTest {
 
   private void process(Writer<GitRevision> writer, DummyRevision ref)
       throws ValidationException, RepoException, IOException {
-    process(writer, destinationFiles, ref);
+    TransformResult result = TransformResults.of(workdir, ref);
+
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345")),
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "6789"))),
+        ImmutableList.of());
+    result = result.withChanges(changes);
+    ImmutableList<DestinationEffect> destinationResult =
+        writer.write(result, destinationFiles, console);
+    assertThat(destinationResult).hasSize(1);
+    assertThat(destinationResult.get(0).getErrors()).isEmpty();
+    assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(destinationResult.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
   }
 
   private Writer<GitRevision> newWriter() throws ValidationException {
@@ -407,7 +493,8 @@ public class GitHubDestinationTest {
     return evalDestination();
   }
 
-  private GitDestination destinationWithExistingPrBranch(String prBranchToUpdate)
+  private GitDestination destinationWithExistingPrBranch(
+      String prBranchToUpdate, String deletePrBranch)
       throws ValidationException {
     options.setForce(force);
     return skylark.eval("result",
@@ -416,33 +503,18 @@ public class GitHubDestinationTest {
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
             + "    pr_branch_to_update = '%s',\n"
-            + ")", url, fetch, push, prBranchToUpdate));
-  }
-
-  private void process(Writer<GitRevision> writer, Glob destinationFiles, DummyRevision originRef)
-      throws ValidationException, RepoException, IOException {
-    processWithBaseline(writer, destinationFiles, originRef, /*baseline=*/ null);
-  }
-
-  private void processWithBaseline(Writer<GitRevision> writer, Glob destinationFiles,
-      DummyRevision originRef, String baseline)
-      throws RepoException, ValidationException, IOException {
-    processWithBaselineAndConfirmation(writer, destinationFiles, originRef, baseline,
-        /*askForConfirmation*/false);
+            + "    delete_pr_branch = %s,\n"
+            + ")", url, fetch, push, prBranchToUpdate, deletePrBranch));
   }
 
   private void processWithBaselineAndConfirmation(Writer<GitRevision> writer,
-      Glob destinationFiles, DummyRevision originRef, String baseline,
-      boolean askForConfirmation)
+      Glob destinationFiles, DummyRevision originRef, String baseline)
       throws ValidationException, RepoException, IOException {
     TransformResult result = TransformResults.of(workdir, originRef);
     if (baseline != null) {
       result = result.withBaseline(baseline);
     }
 
-    if (askForConfirmation) {
-      result = result.withAskForConfirmation(true);
-    }
     Changes changes = new Changes(
         ImmutableList.of(
             new Change<>(originRef, new Author("foo", "foo@foo.com"), "message",

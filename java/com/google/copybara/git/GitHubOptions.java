@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import com.beust.jcommander.Parameter;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
@@ -87,6 +88,10 @@ public class GitHubOptions implements Option {
     }
     return new GitHubApi(transport, generalOptions.profiler());
   }
+
+  @Parameter(names = "--github-destination-delete-pr-branch",
+      description = "Overwrite git.github_destination delete_pr_branch field", arity = 1)
+  Boolean gitHubDeletePrBranch = null;
 
   @VisibleForTesting
   protected GitRepository getCredentialsRepo() throws RepoException {

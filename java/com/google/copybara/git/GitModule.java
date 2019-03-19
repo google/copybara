@@ -46,6 +46,7 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -606,6 +607,11 @@ public class GitModule implements LabelsAwareModule {
                   + "${label}_pr_branch_name. And the value of label must be in changes' label"
                   + " list. Otherwise, nothing will happen.",
               defaultValue = "None", noneable = true),
+          @Param(name = "delete_pr_branch", type = Boolean.class, named = true,
+              doc = "When `pr_branch_to_update` is enabled, it will delete the branch reference"
+                  + " after the push to the branch and main branch (i.e master) happens. This"
+                  + " allows to cleanup temporary branches created for testing.",
+              noneable = true, defaultValue = "None"),
           @Param(name = "integrates", type = SkylarkList.class, named = true,
               generic1 = GitIntegrateChanges.class, defaultValue = "None",
               doc = "Integrate changes from a url present in the migrated change"
@@ -620,15 +626,22 @@ public class GitModule implements LabelsAwareModule {
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
+  // Used to detect in the future users that don't set it and change the default
+  @DocDefault(field = "delete_pr_branch", value = "False")
   public GitDestination gitHubDestination(String url, String push, Object fetch,
-      Object prBranchToUpdate, Object integrates, Object checker, Location location)
-      throws EvalException {
+      Object prBranchToUpdate, Object deletePrBranchParam, Object integrates, Object checker,
+      Location location) throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     String repoUrl = fixHttp(checkNotEmpty(
         firstNotNull(destinationOptions.url, url), "url", location), location);
+    String branchToUpdate = convertFromNoneable(prBranchToUpdate, null);
+    Boolean deletePrBranch = convertFromNoneable(deletePrBranchParam, null);
+    SkylarkUtil.check(location, branchToUpdate != null || deletePrBranch == null,
+        "'delete_pr_branch' can only be set if 'delete_pr_branch' is used");
+    GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitDestination(
         repoUrl,
         checkNotEmpty(
@@ -643,8 +656,15 @@ public class GitModule implements LabelsAwareModule {
         new GitHubWriteHook(
             generalOptions,
             repoUrl,
-            options.get(GitHubOptions.class),
-            convertFromNoneable(prBranchToUpdate, null),
+            gitHubOptions,
+            branchToUpdate,
+            // First flag has priority, then field, and then (for now) we set it to false.
+            // TODO(malcon): Once this is stable the default will be 'branchToUpdate != null'
+            gitHubOptions.gitHubDeletePrBranch != null
+                ? gitHubOptions.gitHubDeletePrBranch
+                : deletePrBranch != null
+                    ? deletePrBranch
+                    : false,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
         SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
