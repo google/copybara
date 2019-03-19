@@ -285,8 +285,8 @@ public class SkylarkParser {
         .toBuilder()
         // TODO(malcon): Temporary until we fix internal usages
         .incompatibleDisallowDictPlus(false)
-        // TODO(malcon): Temporary until we fix internal usages
         .incompatibleNoTransitiveLoads(false)
+        .incompatibleBzlDisallowLoadAfterStatement(false)
         .build();
   }
 
