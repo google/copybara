@@ -26,8 +26,6 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.copybara.exception.RepoException;
@@ -44,19 +42,17 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitHubApiTransportImplTest {
-  private static final JsonFactory JSON_FACTORY = new GsonFactory();
 
   private static final int STATUS_CODE = 400;
   private static final String ERROR_MESSAGE = "errorMessage";
   private MockHttpTransport httpTransport;
 
   private GitHubApiTransport transport;
-  private Path credentialsFile;
   private GitRepository repo;
 
   @Before
   public void setup() throws Exception {
-    credentialsFile = Files.createTempFile("credentials", "test");
+    Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     repo =
         newBareRepo(Files.createTempDirectory("test_repo"), getGitEnv(), /*verbose=*/ true,
@@ -114,15 +110,13 @@ public class GitHubApiTransportImplTest {
   private MockHttpTransport createMockHttpTransport(IOException ioException) {
     return new MockHttpTransport() {
       @Override
-      public LowLevelHttpRequest buildRequest(String method, String url) throws IOException {
-        MockLowLevelHttpRequest request =
-            new MockLowLevelHttpRequest() {
-              @Override
-              public LowLevelHttpResponse execute() throws IOException {
-                throw ioException;
-              }
-            };
-        return request;
+      public LowLevelHttpRequest buildRequest(String method, String url) {
+        return new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() throws IOException {
+            throw ioException;
+          }
+        };
       }
     };
   }
