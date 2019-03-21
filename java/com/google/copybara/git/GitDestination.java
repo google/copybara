@@ -633,6 +633,10 @@ public final class GitDestination implements Destination<GitRevision> {
         .toString();
   }
 
+  public WriteHook getWriterHook() {
+    return writerHook;
+  }
+
   /**
    * Not a public API. It is subject to change.
    */

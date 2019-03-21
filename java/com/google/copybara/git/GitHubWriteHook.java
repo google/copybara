@@ -175,4 +175,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
           String.format("Template '%s' has an error: %s", prBranchToUpdate, e.getMessage()), e);
     }
   }
+
+  public boolean isDeletePrBranch() {
+    return deletePrBranch;
+  }
 }
