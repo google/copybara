@@ -30,9 +30,6 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
-import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_DESCRIPTION_LABEL;
-import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_ID_LABEL;
-import static com.google.copybara.git.GitRepoType.GERRIT_CHANGE_NUMBER_LABEL;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
 
 import com.google.common.base.Preconditions;
@@ -294,9 +291,9 @@ public class GitModule implements LabelsAwareModule {
           + "\n"
           + "Implicit labels that can be used/exposed:\n"
           + "\n"
-          + "  - " + GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the Gerrit review.\n"
-          + "  - " + GERRIT_CHANGE_ID_LABEL + ": The change id for the Gerrit review.\n"
-          + "  - " + GERRIT_CHANGE_DESCRIPTION_LABEL + ": The description of the Gerrit review.\n"
+          + "  - " + GerritChange.GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the Gerrit review.\n"
+          + "  - " + GerritChange.GERRIT_CHANGE_ID_LABEL + ": The change id for the Gerrit review.\n"
+          + "  - " + GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL + ": The description of the Gerrit review.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
           + " integrate automatically in the reverse workflow.\n",
       parameters = {

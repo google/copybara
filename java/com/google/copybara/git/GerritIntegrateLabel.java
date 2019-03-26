@@ -101,7 +101,7 @@ class GerritIntegrateLabel implements IntegrateLabel {
 
   @Override
   public GitRevision getRevision() throws RepoException, ValidationException {
-    int latestPatchSet = GitRepoType.getGerritPatchSets(repository, url, changeNumber)
+    int latestPatchSet = GerritChange.getGerritPatchSets(repository, url, changeNumber)
         .lastEntry().getKey();
 
     if (patchSet == null) {
