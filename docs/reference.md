@@ -1415,7 +1415,7 @@ include_results | `sequence of string`<br><p>What to include in the response. Se
 <a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
 ### gerrit_api_obj.post_review
 
-Post a label to a Gerrit change for a particular revision. The label will be authored by the user running the tool, or the role account if running in the service.
+Post a review to a Gerrit change for a particular revision. The review will be authored by the user running the tool, or the role account if running in the service.
 
 
 `gerritapi.ReviewResult gerrit_api_obj.post_review(change_id, revision_id, review_input)`

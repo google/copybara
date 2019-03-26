@@ -118,8 +118,8 @@ public class GerritEndpoint implements Endpoint {
   @SkylarkCallable(
       name = "post_review",
       doc =
-          "Post a label to a Gerrit change for a particular revision. The label will be authored by"
-              + " the user running the tool, or the role account if running in the service.\n",
+          "Post a review to a Gerrit change for a particular revision. The review will be authored "
+              + "by the user running the tool, or the role account if running in the service.\n",
       parameters = {
         @Param(
             name = "change_id",
@@ -138,7 +138,7 @@ public class GerritEndpoint implements Endpoint {
             named = true),
       },
       useLocation = true)
-  public ReviewResult postLabel(
+  public ReviewResult postReview(
       String changeId, String revisionId, SetReviewInput reviewInput, Location location)
       throws EvalException {
     try {
