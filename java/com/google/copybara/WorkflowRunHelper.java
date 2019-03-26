@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -400,7 +401,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             ImmutableList.of(
                 new DestinationEffect(
                     Type.NOOP,
-                    empty.getMessage(),
+                    String.format("Cannot migrate revisions [%s]: %s",
+                        changes.getCurrent().isEmpty()
+                            ? "Unknown"
+                            : Joiner.on(", ").join(changes.getCurrent().stream()
+                                .map(c -> c.getRevision().asString())
+                                .iterator()),
+                        empty.getMessage()),
                     changes.getCurrent(),
                     /*destinationRef=*/ null));
         throw empty;
