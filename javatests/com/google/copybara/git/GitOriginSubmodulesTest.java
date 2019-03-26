@@ -157,6 +157,32 @@ public class GitOriginSubmodulesTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testDifferentPathFromName() throws Exception {
+    Path base = Files.createTempDirectory("base");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+
+    r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
+        "file://" + r1.getWorkTree(), "subfolder/r1");
+    Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
+    // Replace master with '.'. This is a valid branch reference but I haven't found a way of
+    // adding it with the submodule command.
+    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace("master", ".")
+        .getBytes());
+    commit(r2, "adding r1 submodule");
+
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
+    GitRevision master = origin.resolve("master");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("foo", "1")
+        .containsFile("subfolder/r1/foo", "1")
+        .containsNoMoreFiles();
+  }
+
   /**
    * Test that even if submodules config are tracking a moving ref (master, etc.), each
    * commit is associated with an specific SHA-1.

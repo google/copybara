@@ -47,14 +47,14 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.RepositoryUtil;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -72,10 +72,12 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -88,8 +90,6 @@ import javax.annotation.Nullable;
 public class GitRepository {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-
-  private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("( |\t)+");
 
   // TODO(malcon): Make this generic (Using URIish.java)
   private static final Pattern FULL_URI = Pattern.compile(
@@ -590,6 +590,30 @@ public class GitRepository {
     throw new RepoException("Error executing git config:\n" + out.getStderr());
   }
 
+  private ImmutableSet<String> getSubmoduleNames() throws RepoException {
+    // No submodules
+    if (!Files.exists(getCwd().resolve(".gitmodules"))) {
+      return ImmutableSet.of();
+    }
+    ImmutableList.Builder<String> params = ImmutableList.builder();
+    params.add("config", "-f", ".gitmodules", "-l", "--name-only");
+    CommandOutputWithStatus out = gitAllowNonZeroExit(NO_INPUT, params.build(), DEFAULT_TIMEOUT);
+    if (out.getTerminationStatus().success()) {
+      Set<String> modules = new LinkedHashSet<>();
+      for (String line : Splitter.on('\n').omitEmptyStrings().trimResults().split(
+          out.getStdout().trim())) {
+        if (!line.startsWith("submodule.")) {
+          continue;
+        }
+        modules.add(Splitter.on('.').splitToList(line).get(1));
+      }
+      return ImmutableSet.copyOf(modules);
+    } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
+      return ImmutableSet.of();
+    }
+    throw new RepoException("Error executing git config:\n" + out.getStderr());
+  }
+
   /**
    * Resolves a git reference to the SHA-1 reference
    */
@@ -745,17 +769,7 @@ public class GitRepository {
    */
   Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
     ImmutableList.Builder<Submodule> result = ImmutableList.builder();
-    String rawOutput = simpleCommand("submodule--helper", "list").getStdout();
-    for (String line : Splitter.on('\n').split(rawOutput)) {
-      if (line.isEmpty()) {
-        continue;
-      }
-      List<String> fields = Splitter.on(SPACES).splitToList(line);
-      String submoduleName = fields.get(3);
-      if (Strings.isNullOrEmpty(submoduleName)) {
-        throw new RepoException("Empty submodule name for " + line);
-      }
-
+    for (String submoduleName : getSubmoduleNames()) {
       String path = getSubmoduleField(submoduleName, "path");
 
       if (path == null) {
