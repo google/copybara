@@ -476,8 +476,7 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           commitMessage);
-      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
-          "Change description is empty.");
+
       for (GitIntegrateChanges integrate : integrates) {
         integrate.run(alternate, generalOptions, messageInfo,
             path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
@@ -495,7 +494,17 @@ public final class GitDestination implements Destination<GitRevision> {
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
         alternate.rebase(localBranchRevision.getSha1());
+        GitRevision afterRebaseRev = alternate.resolveReference("HEAD");
+        if (afterRebaseRev.getSha1().equals(localBranchRevision.getSha1())) {
+          throw new EmptyChangeException("Empty change after rebase. The only affected"
+              + " paths were already applied in main branch. This usually happens if"
+              + " in presubmit workflows where the used config file is more up-to-date"
+              + " than the origin change baseline.");
+        }
       }
+
+      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
+          "Change description is empty.");
 
       if (localRepoPath != null) {
         scratchClone.simpleCommand("checkout", state.localBranch);

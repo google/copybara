@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -490,6 +491,66 @@ public class GitDestinationTest {
         .containsFile("foo/bar", "content")
         .containsFile("foo/baz", "content")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void emptyRebaseTest() throws Exception {
+    fetch = "master";
+    push = "master";
+    GitRepository destRepo = repo().withWorkTree(workdir);
+
+    writeFile(workdir, "foo", "");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "baseline");
+
+    GitRevision baseline = destRepo.resolveReference("HEAD");
+
+    writeFile(workdir, "foo", "updated");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "master head");
+
+    writeFile(workdir, "foo", "updated");
+
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
+    try {
+      processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
+          baseline.getSha1());
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains("Empty change after rebase");
+    }
+  }
+
+  @Test
+  public void emptyRebaseEmptyDescription() throws Exception {
+    fetch = "master";
+    push = "master";
+    GitRepository destRepo = repo().withWorkTree(workdir);
+
+    writeFile(workdir, "foo", "");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "baseline");
+
+    GitRevision baseline = destRepo.resolveReference("HEAD");
+
+    writeFile(workdir, "foo", "updated");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "master head");
+
+    writeFile(workdir, "foo", "updated");
+
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
+    TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
+        .withBaseline(baseline.getSha1()).withSummary("");
+    try {
+
+      ImmutableList<DestinationEffect> destinationResult =
+          newWriter().write(result, destinationFiles, console);
+      fail();
+    } catch (EmptyChangeException e) {
+      // Should throw empty change. Not complain about the message being empty
+      assertThat(e).hasMessageThat().contains("Empty change after rebase");
+    }
   }
 
   @Test
