@@ -18,8 +18,8 @@ package com.google.copybara;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
@@ -30,6 +30,7 @@ import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
+import com.google.copybara.util.TablePrinter;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -44,22 +45,9 @@ import java.util.function.Consumer;
  */
 public class Copybara {
 
-  private static final int DATE_LENGTH = 19;
-  private static final int REVISION_LENGTH = 15;
-  private static final int DESCRIPTION_LENGTH = 80;
-  private static final int AUTHOR_LENGTH = 40;
-  private static final int TOTAL_LENGTH =
-      DATE_LENGTH + REVISION_LENGTH + DESCRIPTION_LENGTH + AUTHOR_LENGTH + 13;
-  private static final String COLUMN_FORMAT =
-      "| %-"
-          + DATE_LENGTH
-          + "s | %-"
-          + REVISION_LENGTH
-          + "s | %-"
-          + DESCRIPTION_LENGTH
-          + "s | %-"
-          + AUTHOR_LENGTH
-          + "s |";
+  private static final int REVISION_MAX_LENGTH = 15;
+  private static final int DESCRIPTION_MAX_LENGTH = 80;
+  private static final int AUTHOR_MAX_LENGTH = 40;
   private static final DateTimeFormatter DATE_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -130,24 +118,19 @@ public class Copybara {
                 ? String.format("(%d)", availableToMigrate.size())
                 : String.format(
                     "(showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
-
-        console.info(Strings.repeat("-", TOTAL_LENGTH));
-        console.info(String.format(COLUMN_FORMAT, "Date", "Revision", "Description", "Author"));
-        console.info(Strings.repeat("-", TOTAL_LENGTH));
+        TablePrinter table = new TablePrinter("Date", "Revision", "Description", "Author");
         for (Change<? extends Revision> change :
             Iterables.limit(availableToMigrate, outputLimit)) {
           outputSize++;
-          String revision = change.getRevision().asString();
-          if (revision.length() > REVISION_LENGTH) {
-            revision = revision.substring(0, REVISION_LENGTH);
-          }
-          console.info(String.format(COLUMN_FORMAT,
+          table.addRow(
               change.getDateTime().format(DATE_FORMATTER),
-              revision,
-              trim(change.firstLineMessage(), DESCRIPTION_LENGTH),
-              trim(change.getAuthor().toString(), AUTHOR_LENGTH)));
+              Ascii.truncate(change.getRevision().asString(), REVISION_MAX_LENGTH, ""),
+              Ascii.truncate(change.firstLineMessage(), DESCRIPTION_MAX_LENGTH, "..."),
+              Ascii.truncate(change.getAuthor().toString(), AUTHOR_MAX_LENGTH, "..."));
         }
-        console.info(Strings.repeat("-", TOTAL_LENGTH));
+        for (String line : table.build()) {
+          console.info(line);
+        }
       }
       // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
       if (outputSize > 100) {
@@ -156,13 +139,6 @@ public class Copybara {
       }
     }
     options.get(GeneralOptions.class).eventMonitor().onInfoFinished(new InfoFinishedEvent(info));
-  }
-
-  private static String trim(String text, int size) {
-    if (text.length() <= size) {
-      return text;
-    }
-    return text.substring(0, size - 3) + "...";
   }
 
   /** Returns the {@link Info} of the {@code migrationName}. */

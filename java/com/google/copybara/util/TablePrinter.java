@@ -61,15 +61,24 @@ public class TablePrinter {
    * Build the table.
    */
   @CheckReturnValue
-  public String print() {
-    String ret = printRow('+', '-', ImmutableList.of());
-    ret += printRow('|', ' ', headers);
-    ret += printRow('+', '-', ImmutableList.of());
+  public List<String> build() {
+    ImmutableList.Builder<String> lines = ImmutableList.builder();
+    lines.add(printRow('+', '-', ImmutableList.of()));
+    lines.add(printRow('|', ' ', headers));
+    lines.add(printRow('+', '-', ImmutableList.of()));
     for (List<String> row : rowBuilder.build()) {
-      ret += printRow('|', ' ', row);
+      lines.add(printRow('|', ' ', row));
     }
-    ret += printRow('+', '-', ImmutableList.of());
-    return ret;
+    lines.add(printRow('+', '-', ImmutableList.of()));
+    return lines.build();
+  }
+
+  /**
+   * Build the table.
+   */
+  @CheckReturnValue
+  public String print() {
+    return Joiner.on('\n').join(build());
   }
 
   private String printRow(char delim, char filler, List<String> vals) {
@@ -78,7 +87,7 @@ public class TablePrinter {
       String val = vals.size() > col ? vals.get(col) : "";
       paddedVals.add(Strings.padEnd(val, columnWidths[col] + 1, filler));
     }
-    return String.format("%1$c%2$s%1$c\n", delim, Joiner.on(delim).join(paddedVals.build()));
+    return String.format("%1$c%2$s%1$c", delim, Joiner.on(delim).join(paddedVals.build()));
   }
 
 }
