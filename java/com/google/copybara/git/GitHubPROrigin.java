@@ -435,6 +435,16 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     return "git.github_pr_origin";
   }
 
+  @VisibleForTesting
+  public ReviewState getReviewState() {
+    return reviewState;
+  }
+
+  @VisibleForTesting
+  public Set<String> getRequiredLabels() {
+    return requiredLabels;
+  }
+
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
@@ -458,7 +468,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     ALL
   }
 
-  enum ReviewState {
+  @VisibleForTesting
+  public enum ReviewState {
     /**
      * Requires that the current head commit has at least one valid approval
      */
