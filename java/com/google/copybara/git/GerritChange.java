@@ -50,9 +50,15 @@ class GerritChange {
 
   public static final String GERRIT_CHANGE_NUMBER_LABEL = "GERRIT_CHANGE_NUMBER";
   public static final String GERRIT_CHANGE_ID_LABEL = "GERRIT_CHANGE_ID";
+  public static final String GERRIT_COMPLETE_CHANGE_ID_LABEL =
+      "GERRIT_COMPLETE_CHANGE_ID";
   // TODO(danielromero): Implement (and refer from gerrit_origin documentation in GitModule)
   public static final String GERRIT_CHANGE_URL_LABEL = "GERRIT_CHANGE_URL";
+  public static final String GERRIT_CHANGE_BRANCH = "GERRIT_CHANGE_BRANCH";
+  public static final String GERRIT_CHANGE_TOPIC = "GERRIT_CHANGE_TOPIC";
   public static final String GERRIT_CHANGE_DESCRIPTION_LABEL = "GERRIT_CHANGE_DESCRIPTION";
+  public static final String GERRIT_OWNER_EMAIL_LABEL = "GERRIT_OWNER_EMAIL";
+  public static final String GERRIT_OWNER_USERNAME_LABEL = "GERRIT_OWNER_USERNAME";
   private static final String GERRIT_PATCH_SET_REF_PREFIX = "PatchSet ";
 
   private static final Pattern WHOLE_GERRIT_REF =
@@ -209,6 +215,8 @@ class GerritChange {
   /**
    * Use NoteDB for extracting the Change-id. It should be the first commit in the log
    * of the meta reference.
+   *
+   * TODO(malcon): Remove usage and use Gerrit API in GerritOrigin
    */
   private String getChangeIdFromMeta(GitRepository repo, GitRevision metaRevision,
       String metaRef) throws RepoException {

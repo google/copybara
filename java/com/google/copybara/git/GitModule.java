@@ -315,11 +315,14 @@ public class GitModule implements LabelsAwareModule {
               named = true, positional = false,
               noneable = true),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
+          @Param(name = "branch", type = String.class, defaultValue = "None",
+              named = true, positional = false, noneable = true, doc = "Limit the import to"
+              + " changes that are for this branch. By default imports everything.")
       },
       useLocation = true)
   public GitOrigin gerritOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object checkerObj, Object patch, Location location)
+      Boolean firstParent, Object checkerObj, Object patch, Object branch, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
@@ -340,7 +343,8 @@ public class GitModule implements LabelsAwareModule {
     return GerritOrigin.newGerritOrigin(
         options, url, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class), firstParent,
-        convertFromNoneable(checkerObj, null), patchTransformation);
+        convertFromNoneable(checkerObj, null), patchTransformation,
+        convertFromNoneable(branch, null));
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";

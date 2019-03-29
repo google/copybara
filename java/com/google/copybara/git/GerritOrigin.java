@@ -18,9 +18,12 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_ACCOUNTS;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
@@ -29,11 +32,18 @@ import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.AccountInfo;
+import com.google.copybara.git.gerritapi.ChangeInfo;
+import com.google.copybara.git.gerritapi.GerritApi;
+import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import java.util.List;
+import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 /**
@@ -50,6 +60,7 @@ public class GerritOrigin extends GitOrigin {
   private final boolean includeBranchCommitLogs;
   @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
+  @Nullable private final String branch;
 
   private GerritOrigin(
       GeneralOptions generalOptions,
@@ -62,7 +73,8 @@ public class GerritOrigin extends GitOrigin {
       boolean includeBranchCommitLogs,
       boolean firstParent,
       @Nullable Checker endpointChecker,
-      @Nullable PatchTransformation patchTransformation) {
+      @Nullable PatchTransformation patchTransformation,
+      @Nullable String branch) {
     super(
         generalOptions,
         repoUrl,
@@ -82,6 +94,7 @@ public class GerritOrigin extends GitOrigin {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
+    this.branch = branch;
   }
 
   @Override
@@ -89,13 +102,51 @@ public class GerritOrigin extends GitOrigin {
     generalOptions.console().progress("Git Origin: Initializing local repo");
 
     checkCondition(!Strings.isNullOrEmpty(reference), "Expecting a change number as reference");
-    return GitRepoType.GERRIT.resolveRef(getRepository(), repoUrl, reference, this.generalOptions);
+
+    GerritChange change = GerritChange.resolve(getRepository(), repoUrl, reference,
+        this.generalOptions);
+    if (change == null) {
+      return GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
+          this.generalOptions);
+    }
+    GerritApi api = gerritOptions.newGerritApi(repoUrl);
+
+    ChangeInfo response = api.getChange(Integer.toString(change.getChange()),
+        new GetChangeInput(ImmutableSet.of(DETAILED_ACCOUNTS)));
+
+    if (branch != null && !branch.equals(response.getBranch())) {
+      throw new EmptyChangeException(String.format(
+          "Skipping import of change %s for branch %s. Only tracking changes for branch %s",
+          change.getChange(), response.getBranch(), branch));
+    }
+
+    ImmutableMultimap.Builder<String, String> labels = ImmutableMultimap.builder();
+
+    labels.put(GerritChange.GERRIT_CHANGE_BRANCH, response.getBranch());
+    if (response.getTopic() != null) {
+      labels.put(GerritChange.GERRIT_CHANGE_TOPIC, response.getTopic());
+    }
+    labels.put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, response.getId());
+    for (Entry<String, List<AccountInfo>> e : response.getReviewers().entrySet()) {
+      for (AccountInfo info : e.getValue()) {
+        if (info.getEmail() != null) {
+          labels.put("GERRIT_" + e.getKey() + "_EMAIL", info.getEmail());
+        }
+      }
+    }
+
+    if (response.getOwner().getEmail() != null) {
+      labels.put(GerritChange.GERRIT_OWNER_EMAIL_LABEL, response.getOwner().getEmail());
+    }
+
+    return change.fetch(labels.build());
   }
 
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
       Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
-      @Nullable Checker endpointChecker, @Nullable PatchTransformation patchTransformation) {
+      @Nullable Checker endpointChecker, @Nullable PatchTransformation patchTransformation,
+      @Nullable String branch) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -108,7 +159,8 @@ public class GerritOrigin extends GitOrigin {
         /*includeBranchCommitLogs=*/ false,
         firstParent,
         endpointChecker,
-        patchTransformation);
+        patchTransformation,
+        branch);
   }
 
   @Override

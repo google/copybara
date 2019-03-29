@@ -17,9 +17,15 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GerritChange.GERRIT_OWNER_EMAIL_LABEL;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static junit.framework.TestCase.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.when;
 
+import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -30,6 +36,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -37,6 +44,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -45,6 +53,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
 
 @RunWith(JUnit4.class)
 public class GerritOriginTest {
@@ -59,11 +68,13 @@ public class GerritOriginTest {
   private static final String CHANGE_DESCRIPTION = "Create patch set 2\n"
       + "\n"
       + "Uploaded patch set 2.";
+  public static final String REPO_URL = "localhost:33333/foo/bar";
 
   private GitOrigin origin;
   private Path remote;
   private OptionsBuilder options;
   private GitRepository repo;
+  private GitTestUtil gitUtil;
 
   @Rule public final ExpectedException thrown = ExpectedException.none();
 
@@ -89,9 +100,12 @@ public class GerritOriginTest {
     options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     options.setHomeDir(userHomeForTest.toString());
 
-    createTestRepo(Files.createTempDirectory("remote"));
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
 
-    String url = "file://" + remote.toFile().getAbsolutePath();
+    createTestRepo();
+
+    String url = "https://" + REPO_URL;
 
     origin =
         skylark.eval(
@@ -113,11 +127,15 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GerritChange.gerritPatchSetAsReviewReference(1),
             "12345",
-            ImmutableListMultimap.of(
-                GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID), url);
+            ImmutableListMultimap.<String, String>builder()
+                .put(GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345")
+                .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
+                .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
+                .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
+                .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
+                .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID)
+                .build(), url);
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
@@ -127,11 +145,15 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GerritChange.gerritPatchSetAsReviewReference(2),
             "12345",
-            ImmutableListMultimap.of(
-                GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID), url);
+            ImmutableListMultimap.<String, String>builder()
+                .put(GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345")
+                .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
+                .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
+                .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
+                .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
+                .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID)
+                .build(), url);
     git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
@@ -141,11 +163,16 @@ public class GerritOriginTest {
             repo.parseRef("HEAD"),
             GerritChange.gerritPatchSetAsReviewReference(3),
             "12345",
-            ImmutableListMultimap.of(
-                GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345",
-                GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID,
-                GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION,
-                DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID), url);
+            ImmutableListMultimap.<String, String>builder()
+                .put(GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345")
+                .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
+                .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
+                .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
+                .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
+                .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID)
+                .build()
+            , url);
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
 
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 12345, CHANGE_ID);
@@ -157,7 +184,8 @@ public class GerritOriginTest {
   }
 
   @Test
-  public void testReferencesWithContext() throws RepoException, ValidationException {
+  public void testReferencesWithContext() throws Exception {
+    mockChange(12345);
     validateSameGitRevision(origin.resolve("12345"), thirdRevision);
     validateSameGitRevision(origin.resolve("http://foo.com/#/c/12345"), thirdRevision);
     validateSameGitRevision(origin.resolve("http://foo.com/c/12345"), thirdRevision);
@@ -185,8 +213,49 @@ public class GerritOriginTest {
     assertThat(origin.resolve("master").contextReference()).isEqualTo("master");
   }
 
+  private void mockChange(int changeNumber) throws IOException {
+    when(gitUtil
+        .httpTransport()
+        .buildRequest(eq("GET"),
+            startsWith(
+                "https://localhost:33333/changes/" + changeNumber + "?o=DETAILED_ACCOUNTS")))
+        .then(
+            (Answer<LowLevelHttpRequest>)
+                invocation -> {
+                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  return mockResponse(
+                      "{"
+                          + "  id : \"my_branch-" + changeNumber + "\","
+                          + "  change_id : \"" + change + "\","
+                          + "  status : \"NEW\","
+                          + "  branch : \"my_branch\","
+                          + "  owner : { email : \"the_owner@example.com\"}"
+                          + "}");
+                });
+  }
+
   @Test
-  public void testChanges() throws RepoException, ValidationException {
+  public void testBranchFiltering() throws Exception {
+    mockChange(12345);
+    GerritOrigin origin = skylark.eval("g", "g = git.gerrit_origin("
+        + "  url = 'https://" + REPO_URL + "',"
+        + "  branch = 'master')");
+
+    try {
+      origin.resolve("12345");
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains(
+          "Skipping import of change 12345 for branch my_branch");
+    }
+
+    // But this should work, as the last-rev needs to be resolved:
+    origin.resolve(firstRevision.getSha1());
+  }
+
+  @Test
+  public void testChanges() throws Exception {
+    mockChange(12345);
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, AUTHORING);
     Change<GitRevision> res = reader.change(origin.resolve("http://foo.com/#/c/12345/2"));
     assertThat(res.getRevision()).isEqualTo(secondRevision);
@@ -246,12 +315,17 @@ public class GerritOriginTest {
     assertThat(resolved.getUrl()).isEqualTo(expected.getUrl());
   }
 
-  private void createTestRepo(Path folder) throws Exception {
-    remote = folder;
-    repo = GitRepository.newRepo(true, remote, GitTestUtil.getGitEnv(), DEFAULT_TIMEOUT).init();
+  private void createTestRepo() throws Exception {
+    repo = gitUtil.mockRemoteRepo(REPO_URL).withWorkTree(
+        Files.createTempDirectory("remote"));
+    remote = repo.getWorkTree();
   }
 
   private String git(String... params) throws RepoException {
-    return repo.git(remote, params).getStdout();
+    return repo.simpleCommand(params).getStdout();
+  }
+
+  private String changeIdFromRequest(String url) {
+    return url.replaceAll(".*(I[a-z0-9]{40}).*", "$1");
   }
 }

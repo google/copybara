@@ -1557,7 +1557,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None)`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None)`
 
 
 #### Parameters:
@@ -1570,6 +1570,7 @@ submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIV
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+branch | `string`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger
