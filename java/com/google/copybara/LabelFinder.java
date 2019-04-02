@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Preconditions;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -61,23 +63,38 @@ public class LabelFinder {
     return isLabel() && getName().equals(labelName);
   }
 
+  /**
+   * Returns the name of the label.
+   *
+   * <p>Use isLabel() method before calling this method.
+   */
   public String getName() {
     checkIsLabel();
     return matcher.group(1);
   }
 
+  /**
+   * Returns the separator of the label.
+   *
+   * <p>Use isLabel() method before calling this method.
+   */
   public String getSeparator() {
     checkIsLabel();
     return matcher.group(2);
   }
 
+  /**
+   * Returns the value of the label.
+   *
+   * <p>Use isLabel() method before calling this method.
+   */
   public String getValue() {
     checkIsLabel();
     return matcher.group(3);
   }
 
   private void checkIsLabel() {
-    Preconditions.checkState(isLabel(), "Not a label: '" + line + "'");
+    checkState(isLabel(), "Not a label: '" + line + "'. Please call isLabel() first");
   }
 
   public String getLine() {
