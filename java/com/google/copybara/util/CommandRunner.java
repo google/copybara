@@ -36,6 +36,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -243,13 +245,13 @@ public final class CommandRunner {
       if (cmdMonitor.hasTimedOut()) {
         finishMsg = String.format(
             "Command '%s' was killed after timeout. Execution time %s. %s",
-            commandName, stopwatch,
+            commandName, formatDuration(stopwatch.elapsed()),
             exitStatus != null ? exitStatus.toString() : "(No exit status)");
         logger.atSevere().log(finishMsg);
       } else {
         finishMsg = String.format(
             "Command '%s' finished in %s. %s",
-            commandName, stopwatch,
+            commandName, formatDuration(stopwatch.elapsed()),
             exitStatus != null ? exitStatus.toString() : "(No exit status)");
         logger.atInfo().log(finishMsg);
       }
@@ -257,6 +259,15 @@ public final class CommandRunner {
         System.err.println(finishMsg);
       }
     }
+  }
+
+  /**
+   * Format a duration to a human-readable string. This assumes that the duration is less than
+   * 24 hours, which should always be true for a command (usually takes from a few ms to a few
+   * minutes).
+   */
+  private String formatDuration(Duration duration) {
+    return LocalTime.MIDNIGHT.plus(duration).format(DateTimeFormatter.ofPattern("mm:ss.SSS"));
   }
 
 private static class DefaultExecutor implements CommandExecutor {
