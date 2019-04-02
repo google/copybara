@@ -25,7 +25,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static junit.framework.TestCase.fail;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -126,11 +125,8 @@ public class GitHubDestinationTest {
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     remote.simpleCommand("branch", "other");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ true,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", true, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
@@ -214,11 +210,8 @@ public class GitHubDestinationTest {
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ false,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     writeFile(this.workdir, "test.txt", "some content");
     Writer<GitRevision> writer =
         destinationWithExistingPrBranch("other", deletePrBranch).newWriter(
@@ -301,11 +294,8 @@ public class GitHubDestinationTest {
 
     writeFile(this.workdir, "test.txt", "some content");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ false,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destinationWithExistingPrBranch(
         "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
@@ -338,11 +328,8 @@ public class GitHubDestinationTest {
         .containsNoMoreFiles();
     writeFile(this.workdir, "test.txt", "some content");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ false,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destinationWithExistingPrBranch(
         "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
@@ -360,11 +347,8 @@ public class GitHubDestinationTest {
         + "    api_checker = testing.dummy_checker(),\n"
         + ")");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ false,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitHubEndPoint endpoint = (GitHubEndPoint) writer.getFeedbackEndPoint(console);
     try {
@@ -390,11 +374,8 @@ public class GitHubDestinationTest {
           "first change",
           ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
       WriterContext writerContext =
-          new WriterContext(
-              "piper_to_github",
-              "test",
-              /*dryRun=*/ false,
-              new DummyRevision("origin_ref1"));
+          new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+              Glob.ALL_FILES.roots());
       Writer<GitRevision> writer = destinationWithExistingPrBranch(
           "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
       process(writer, new DummyRevision("origin_ref1"));
@@ -413,11 +394,8 @@ public class GitHubDestinationTest {
           "first change",
           ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
       WriterContext writerContext =
-          new WriterContext(
-              "piper_to_github",
-              "test",
-              /*dryRun=*/ false,
-              new DummyRevision("origin_ref1"));
+          new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+              Glob.ALL_FILES.roots());
       Writer<GitRevision> writer = destinationWithExistingPrBranch(
           "other_${no_such_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
       process(writer, new DummyRevision("origin_ref1"));
@@ -471,11 +449,8 @@ public class GitHubDestinationTest {
 
   private Writer<GitRevision> newWriter() throws ValidationException {
     return destination().newWriter(
-        new WriterContext(
-            "piper_to_github",
-            /*workflowIdentityUser=*/ "TEST",
-            false,
-            new DummyRevision("test")));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots()));
   }
 
   private GitDestination evalDestination()

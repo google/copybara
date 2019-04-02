@@ -408,8 +408,8 @@ public class GitDestinationTest {
 
     destinationFiles = Glob.createGlob(ImmutableList.of("dir/**"));
     WriterContext writerContext =
-        new WriterContext("piper_to_github", "TEST",
-            /*dryRun=*/ false, new DummyRevision("feature"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature"),
+            Glob.ALL_FILES.roots());
     DestinationStatus status = destination().newWriter(writerContext)
         .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME);
 
@@ -570,8 +570,8 @@ public class GitDestinationTest {
 
     Glob firstGlob = Glob.createGlob(ImmutableList.of("foo/**", "bar/**"));
     WriterContext writerContext =
-        new WriterContext("piper_to_github", /*workflowIdentityUser=*/"TEST",
-            /*dryRun=*/false, new DummyRevision("test"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
 
     Writer<GitRevision> writer = destinationFirstCommit().newWriter(writerContext);
     process(writer, ref1);
@@ -1296,11 +1296,8 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/ true,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("piper_to_github", "test", true, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
@@ -1327,11 +1324,8 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
-        new WriterContext(
-            "GitDestinationTest",
-            "test",
-            /*dryRun=*/ true,
-            new DummyRevision("origin_ref1"));
+        new WriterContext("GitDestinationTest", "test", true, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     try {
       writer.write(
@@ -1548,17 +1542,14 @@ public class GitDestinationTest {
 
   private Writer<GitRevision> newWriter(boolean dryRun) throws ValidationException {
     return destination().newWriter(
-        new WriterContext(
-            "piper_to_github",
-            /*workflowIdentityUser=*/ "TEST",
-            dryRun,
-            new DummyRevision("test")));
+        new WriterContext("piper_to_github", "TEST", dryRun, new DummyRevision("test"),
+            Glob.ALL_FILES.roots()));
   }
 
   private Writer<GitRevision> firstCommitWriter() throws ValidationException {
     WriterContext writerContext =
-        new WriterContext("piper_to_github", /*workflowIdentityUser=*/"TEST",
-            /*dryRun=*/false, new DummyRevision("test"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
 
     return destinationFirstCommit().newWriter(writerContext);
   }

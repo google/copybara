@@ -16,8 +16,8 @@
 
 package com.google.copybara;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import javax.annotation.Nullable;
 
 /**
@@ -29,20 +29,20 @@ public class WriterContext {
   private final String workflowIdentityUser;
   private final boolean dryRun;
   private final Revision originalRevision;
+  private final ImmutableSet<String> roots;
 
-  @VisibleForTesting
-  public WriterContext(
-      String workflowName,
+  public WriterContext(String workflowName,
       @Nullable String workflowIdentityUser,
       boolean dryRun,
-      Revision originalRevision) {
-
+      Revision originalRevision,
+      ImmutableSet<String> roots) {
     this.workflowName = Preconditions.checkNotNull(workflowName);
     this.workflowIdentityUser = workflowIdentityUser != null
         ? workflowIdentityUser
         : System.getProperty("user.name");
     this.dryRun = dryRun;
     this.originalRevision = Preconditions.checkNotNull(originalRevision);
+    this.roots = Preconditions.checkNotNull(roots);
   }
 
   public Revision getOriginalRevision() {
@@ -59,5 +59,9 @@ public class WriterContext {
 
   public boolean isDryRun() {
     return dryRun;
+  }
+
+  public ImmutableSet<String> getRoots() {
+    return roots;
   }
 }

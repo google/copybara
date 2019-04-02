@@ -102,8 +102,8 @@ public class GitHubPrDestinationTest {
   @Test
   public void testWrite_noContextReference() throws ValidationException {
     WriterContext writerContext =
-        new WriterContext("piper_to_github_pr", "TEST",
-            false, new DummyRevision("feature", null));
+        new WriterContext("piper_to_github_pr", "TEST", false, new DummyRevision("feature", null),
+            Glob.ALL_FILES.roots());
     GitHubPrDestination d = skylark.eval(
         "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
     thrown.expect(ValidationException.class);
@@ -143,11 +143,8 @@ public class GitHubPrDestinationTest {
         + "    body = 'custom body',\n"
         + ")");
     WriterContext writerContext =
-        new WriterContext(
-            /*workflowName=*/"piper_to_github",
-            /*workflowIdentityUser=*/"TEST",
-            /*dryRun=*/false,
-            new DummyRevision("feature", "feature"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
@@ -198,11 +195,8 @@ public class GitHubPrDestinationTest {
         + ")");
 
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github",
-            "test",
-            /*dryRun=*/false,
-            new DummyRevision("feature", "feature"));
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
@@ -261,11 +255,8 @@ public class GitHubPrDestinationTest {
         skylark.eval(
             "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
 
-    Writer<GitRevision> writer = d.newWriter(new WriterContext(
-        /*workflowName=*/"piper_to_github_pr",
-        /*workflowIdentityUser=*/"TEST",
-        /*dryRun=*/false,
-        revision));
+    Writer<GitRevision> writer = d.newWriter(new WriterContext("piper_to_github_pr", "TEST", false,
+        revision, Glob.ALL_FILES.roots()));
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
@@ -300,11 +291,8 @@ public class GitHubPrDestinationTest {
 
     // If we don't keep writer state (same as a new migration). We do a rebase of
     // all the changes.
-    writer = d.newWriter(new WriterContext(
-        /*workflowName=*/"piper_to_github_pr",
-        /*workflowIdentityUser=*/"TEST",
-        /*dryRun=*/ false,
-        revision));
+    writer = d.newWriter(
+        new WriterContext("piper_to_github_pr", "TEST", false, revision, Glob.ALL_FILES.roots()));
 
     writeFile(this.workdir, "test.txt", "and content");
 
@@ -383,8 +371,8 @@ public class GitHubPrDestinationTest {
         + ")");
     DummyRevision dummyRevision = new DummyRevision("dummyReference", "feature");
     WriterContext writerContext =
-        new WriterContext( /*workflowName=*/"piper_to_github_pr", /*workflowIdentityUser=*/"TEST",
-            /*dryRun=*/false, dummyRevision);
+        new WriterContext("piper_to_github_pr", "TEST", false, dummyRevision,
+            Glob.ALL_FILES.roots());
     String branchName =
         Identity.computeIdentity(
             "OriginGroupIdentity",
@@ -478,11 +466,8 @@ public class GitHubPrDestinationTest {
                         + "\",\"title\":\"test summary\"}")));
 
     WriterContext writerContext =
-        new WriterContext(
-            /*workflowName=*/ "piper_to_github_pr",
-            /*workflowIdentityUser=*/ "TEST",
-            /*dryRun=*/ false,
-            dummyRevision);
+        new WriterContext("piper_to_github_pr", "TEST", false, dummyRevision,
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
@@ -520,8 +505,8 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo'"
         + ")");
-    WriterContext writerContext = new WriterContext(
-        "piper_to_github", "TEST", /*dryRun=*/false, new DummyRevision("feature", "feature"));
+    WriterContext writerContext = new WriterContext("piper_to_github", "TEST", false,
+        new DummyRevision("feature", "feature"), Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");

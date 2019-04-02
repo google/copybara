@@ -216,11 +216,8 @@ public class GerritDestinationTest {
   private void process(DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination",
-            "TEST",
-            /*dryRun=*/ false,
-            new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     ImmutableList<DestinationEffect> result =
         destination()
             .newWriter(writerContext)
@@ -463,11 +460,8 @@ public class GerritDestinationTest {
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestinationTest",
-            "test",
-            /*dryRun=*/ false,
-            /*originalRevision=*/ originRef);
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result =
         destination(config)
             .newWriter(writerContext)
@@ -500,11 +494,8 @@ public class GerritDestinationTest {
     GerritDestination destination = destination("submit = True");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestinationTest",
-            "test",
-            false,
-            originRef);
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result =
         destination
             .newWriter(writerContext)
@@ -542,8 +533,8 @@ public class GerritDestinationTest {
         destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination", "TEST", /*dryRun=*/ false, new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result =
         destination
             .newWriter(writerContext)
@@ -586,8 +577,8 @@ public class GerritDestinationTest {
         destination("submit = False", "cc = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination", "TEST", /*dryRun=*/ false, new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result =
         destination
             .newWriter(writerContext)
@@ -656,11 +647,8 @@ public class GerritDestinationTest {
 
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination",
-            "TEST",
-            /*dryRun=*/ false,
-            new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     ImmutableList<DestinationEffect> result =
         destination("submit = False", "notify = 'NONE'")
             .newWriter(writerContext)
@@ -689,11 +677,8 @@ public class GerritDestinationTest {
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination",
-            "TEST",
-            /*dryRun=*/ false,
-            new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result = destination
         .newWriter(writerContext)
         .write(
@@ -730,11 +715,8 @@ public class GerritDestinationTest {
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination",
-            "TEST",
-            /*dryRun=*/ false,
-            new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result = destination
         .newWriter(writerContext)
         .write(
@@ -774,11 +756,8 @@ public class GerritDestinationTest {
     GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestination",
-            "TEST",
-            /*dryRun=*/ false,
-            new DummyRevision("test"));
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     List<DestinationEffect> result = destination
         .newWriter(writerContext)
         .write(
@@ -1223,11 +1202,8 @@ public class GerritDestinationTest {
     fetch = "master";
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
-        new WriterContext(
-            "GerritDestinationTest",
-            "test",
-            /*dryRun=*/ false,
-            /*originalRevision=*/ originRef);
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
     ImmutableList<DestinationEffect> result =
         destination("allow_empty_diff_patchset = False")
             .newWriter(writerContext)

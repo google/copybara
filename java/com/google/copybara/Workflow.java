@@ -402,7 +402,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         name,
         workflowOptions.workflowIdentityUser,
         effectiveDryRunMode,
-        revision));
+        revision,
+        destinationFiles.roots()));
   }
 
   /** Create a writer in dry-run mode */
@@ -410,7 +411,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return destination.newWriter(new WriterContext(
         name, workflowOptions.workflowIdentityUser,
         /*dryRun=*/true,
-        revision));
+        revision,
+        destinationFiles.roots()));
   }
 
   @Override

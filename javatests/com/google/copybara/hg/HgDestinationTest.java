@@ -299,7 +299,8 @@ public class HgDestinationTest {
   }
 
   private Writer<HgRevision> newWriter() {
-    WriterContext writerContext = new WriterContext("", "Test", false, new HgRevision("test"));
+    WriterContext writerContext = new WriterContext("", "Test", false, new HgRevision("test"),
+        Glob.ALL_FILES.roots());
     return destination.newWriter(writerContext);
   }
 }

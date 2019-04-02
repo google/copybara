@@ -212,8 +212,8 @@ public class GitDestinationIntegrateTest {
         + "\n"
         + DummyOrigin.LABEL_NAME + ": the_rev\n");
     WriterContext writerContext =
-        new WriterContext(
-            "piper_to_github", "TEST",  /*dryRun=*/false, new DummyRevision("feature"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature"),
+            Glob.ALL_FILES.roots());
     DestinationStatus destinationStatus = destination.newWriter(writerContext)
         .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME);
     assertWithMessage(gitDir.toString()).that(destinationStatus.getBaseline()).isEqualTo("the_rev");
@@ -572,8 +572,8 @@ public class GitDestinationIntegrateTest {
       String file, String content,
       String originRef) throws IOException, RepoException, ValidationException {
     WriterContext writerContext =
-        new WriterContext("piper_to_github", "TEST",
-            /*dryRun=*/false, new DummyRevision("test"));
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destination.newWriter(writerContext);
 
     Files.createDirectories(workdir.resolve(file).getParent());

@@ -1048,8 +1048,8 @@ public class WorkflowTest {
 
     options.setForce(true);
     workflow().run(workdir, ImmutableList.of(HEAD));
-    WriterContext writerContext = new WriterContext(
-        "piper_to_github", "TEST",   /*dryRun=*/ false, new DummyRevision("test"));
+    WriterContext writerContext = new WriterContext("piper_to_github", "TEST", false,
+        new DummyRevision("test"), Glob.ALL_FILES.roots());
     assertThat(
             destination
                 .newWriter(writerContext)

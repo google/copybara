@@ -119,7 +119,8 @@ public final class SubmodulesInDestinationTest {
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
     WriterContext writerContext =
-        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"));
+        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
     ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")),
@@ -177,7 +178,8 @@ public final class SubmodulesInDestinationTest {
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/c"), new byte[] {1});
     WriterContext writerContext =
-        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"));
+        new WriterContext("SubmodulesInDestinationTest", "Test", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
     Destination.Writer<GitRevision> writer = destination().newWriter(writerContext);
     ImmutableList<DestinationEffect> result = writer.write(
         TransformResults.of(workdir, new DummyRevision("ref1")), destinationFiles, console);

@@ -72,11 +72,8 @@ public class FolderDestinationTest {
 
   private void write() throws ValidationException, RepoException, IOException {
     WriterContext writerContext =
-        new WriterContext(
-            "FolderDestinationTest",
-            "test",
-            /*dryRun=*/ false,
-            new DummyRevision("origin_ref"));
+        new WriterContext("FolderDestinationTest", "test", false, new DummyRevision("origin_ref"),
+            Glob.ALL_FILES.roots());
     skylark
         .<Destination<Revision>>eval("dest", "dest = folder.destination()")
         .newWriter(writerContext)
@@ -117,11 +114,8 @@ public class FolderDestinationTest {
     options.folderDestination.localFolder = dest.resolve("../one").toString();
 
     WriterContext writerContext =
-        new WriterContext(
-            "not_important",
-            "not_important",
-            /*dryRun=*/ false,
-            new DummyRevision("not_important"));
+        new WriterContext("not_important", "not_important", false,
+            new DummyRevision("not_important"), Glob.ALL_FILES.roots());
     skylark.<FolderDestination>eval("dest", "dest = folder.destination()")
         .newWriter(writerContext)
         .write(TransformResults.of(workdir, new DummyRevision("not_important")),
