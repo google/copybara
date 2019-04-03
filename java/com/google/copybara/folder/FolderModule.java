@@ -75,7 +75,8 @@ public class FolderModule {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(name = "origin",
-      doc = "A folder origin is a origin that uses a folder as input",
+      doc = "A folder origin is a origin that uses a folder as input. The folder is specified via "
+          + "the source_ref argument.",
       parameters = {
           @Param(name = "materialize_outside_symlinks", type = Boolean.class,
               doc = "By default folder.origin will refuse any symlink in the migration folder"

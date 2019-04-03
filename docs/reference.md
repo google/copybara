@@ -1130,7 +1130,7 @@ Name | Type | Description
 <a id="folder.origin" aria-hidden="true"></a>
 ### folder.origin
 
-A folder origin is a origin that uses a folder as input
+A folder origin is a origin that uses a folder as input. The folder is specified via the source_ref argument.
 
 `folderOrigin folder.origin(materialize_outside_symlinks=False)`
 
