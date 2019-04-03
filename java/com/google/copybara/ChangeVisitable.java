@@ -24,6 +24,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 /**
  * An interface stating that the implementing class accepts child visitors to explore repository
  * state beyond the changes being migrated.
@@ -37,14 +39,14 @@ public interface ChangeVisitable <R extends Revision> {
    *
    * <p>It is up to the Origin how and what changes it provides to the function.
    */
-  void visitChanges(R start, ChangesVisitor visitor)
+  void visitChanges(@Nullable R start, ChangesVisitor visitor)
       throws RepoException, ValidationException;
 
   /**
    * Visit only changes that contain any of the labels in {@code labels}.
    */
   default void visitChangesWithAnyLabel(
-      R start, ImmutableCollection<String> labels, ChangesLabelVisitor visitor)
+      @Nullable R start, ImmutableCollection<String> labels, ChangesLabelVisitor visitor)
       throws RepoException, ValidationException {
     visitChanges(start, input -> {
       // We could return all the label values, but this is really only used for
