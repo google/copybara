@@ -201,6 +201,11 @@ public final class Change<R extends Revision> extends OriginRef {
         .toString();
   }
 
+  public Change<R> withLabels(ImmutableListMultimap<String, String> newLabels) {
+    return new Change<>(revision, author, message, dateTime,
+        Revision.addNewLabels(labels, newLabels), changeFiles, merge, parents);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

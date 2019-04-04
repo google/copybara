@@ -111,7 +111,8 @@ public class GitIntegrateChanges {
               generalOptions);
           if (integrateLabel == null) {
             GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
-                                                                 label.getValue(), generalOptions);
+                                                                 label.getValue(), generalOptions,
+                /*describeVersion=*/false);
             integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
           }
         }

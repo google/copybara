@@ -26,6 +26,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -88,12 +89,13 @@ public class GitOrigin implements Origin<GitRevision> {
   private final boolean includeBranchCommitLogs;
   boolean firstParent;
   @Nullable private final PatchTransformation patchTransformation;
+  protected final boolean describeVersion;
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs, boolean firstParent,
-      @Nullable PatchTransformation patchTransformation) {
+      @Nullable PatchTransformation patchTransformation, boolean describeVersion) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -108,6 +110,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.firstParent = firstParent;
     this.patchTransformation = patchTransformation;
+    this.describeVersion = describeVersion;
   }
 
   @VisibleForTesting
@@ -119,7 +122,7 @@ public class GitOrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
         gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent, patchTransformation);
+        firstParent, patchTransformation, describeVersion);
   }
 
   @Override
@@ -134,7 +137,9 @@ public class GitOrigin implements Origin<GitRevision> {
     } else {
       ref = reference;
     }
-    return repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions);
+    GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
+        describeVersion);
+    return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 
   static class ReaderImpl implements Reader<GitRevision> {
@@ -149,6 +154,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final SubmoduleStrategy submoduleStrategy;
     private final boolean firstParent;
     @Nullable private final PatchTransformation patchTransformation;
+    private final boolean describeVersion;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
         GitOptions gitOptions,
@@ -157,7 +163,8 @@ public class GitOrigin implements Origin<GitRevision> {
         boolean includeBranchCommitLogs,
         SubmoduleStrategy submoduleStrategy,
         boolean firstParent,
-        @Nullable PatchTransformation patchTransformation) {
+        @Nullable PatchTransformation patchTransformation,
+        boolean describeVersion) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -168,6 +175,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
       this.firstParent = firstParent;
       this.patchTransformation = patchTransformation;
+      this.describeVersion = describeVersion;
     }
 
     private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -289,7 +297,18 @@ public class GitOrigin implements Origin<GitRevision> {
           .build();
       ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange);
       if (!gitChanges.isEmpty()) {
-        return ChangesResponse.forChangesWithMerges(gitChanges);
+        if (!describeVersion) {
+          return ChangesResponse.forChangesWithMerges(gitChanges);
+        }
+        ImmutableList.Builder<Change<GitRevision>> newGitChanges = ImmutableList.builder();
+        for (Change<GitRevision> gitChange : gitChanges) {
+          String describe = getRepository().describe(gitChange.getRevision());
+          newGitChanges.add(
+              gitChange.withLabels(ImmutableListMultimap.of(
+                  GitRepository.GIT_DESCRIBE_CHANGE_VERSION, describe)));
+
+        }
+        return ChangesResponse.forChangesWithMerges(newGitChanges.build());
       }
       if (fromRef == null) {
         return noChanges(EmptyReason.NO_CHANGES);
@@ -372,11 +391,12 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
-      @Nullable PatchTransformation patchTransformation) {
+      @Nullable PatchTransformation patchTransformation, boolean describeVersion) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        submoduleStrategy, includeBranchCommitLogs, firstParent, patchTransformation);
+        submoduleStrategy, includeBranchCommitLogs, firstParent, patchTransformation,
+        describeVersion);
   }
 
   @Override

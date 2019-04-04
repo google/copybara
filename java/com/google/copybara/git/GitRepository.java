@@ -140,6 +140,8 @@ public class GitRepository {
    * repo folder name.
    */
   private static final int  DEFAULT_MAX_LOG_LINES = -1;
+  public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
+  public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -234,6 +236,11 @@ public class GitRepository {
    */
   public GitRevision fetchSingleRef(String url, String ref)
       throws RepoException, ValidationException {
+    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false);
+  }
+
+  public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags)
+      throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -245,6 +252,7 @@ public class GitRepository {
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
     if (isSha1Reference(ref)) {
+      // Tags are fetched by the default refspec
       fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
       try {
         return resolveReferenceWithContext(ref, /*contextRef=*/ref, url);
@@ -252,8 +260,29 @@ public class GitRepository {
         // Ignore, the fetch below will attempt using the SHA-1.
       }
     }
-    fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
-    return resolveReferenceWithContext("FETCH_HEAD", /*contextRef=*/ref, url);
+
+    if (fetchTags) {
+      fetch(url, /*prune=*/false, /*force=*/true,
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"));
+      return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
+    } else {
+      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
+      return resolveReferenceWithContext("FETCH_HEAD", /*contextRef=*/ref, url);
+    }
+  }
+
+  public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
+    return rev.withLabels(ImmutableListMultimap.of(GIT_DESCRIBE_REQUESTED_VERSION, describe(rev)));
+  }
+
+  public String describe(GitRevision rev) throws RepoException {
+    try {
+      return simpleCommand("describe", "--", rev.getSha1()).getStdout().trim();
+    } catch (RepoException e) {
+      logger.atWarning()
+          .withCause(e).log("Cannot get describe version for commit " + rev.getSha1());
+      return simpleCommand("describe", "--always", "--", rev.getSha1()).getStdout().trim();
+    }
   }
 
   /**
@@ -280,8 +309,12 @@ public class GitRepository {
     if (force) {
       args.add("-f");
     }
+
+    List<String> requestedRefs = new ArrayList<>();
     for (String ref : refspecs) {
-      createRefSpec(ref);
+      // Validates refspec:
+      Refspec refSpec = createRefSpec(ref);
+      requestedRefs.add(refSpec.getOrigin());
       args.add(ref);
     }
 
@@ -293,7 +326,7 @@ public class GitRepository {
     }
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
-      throw new CannotResolveRevisionException("Cannot find references: " + refspecs);
+      throw new CannotResolveRevisionException("Cannot find reference(s): " + requestedRefs);
     }
     if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException(

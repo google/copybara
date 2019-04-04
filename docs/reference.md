@@ -1559,7 +1559,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None)`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None, describe_version=True)`
 
 
 #### Parameters:
@@ -1573,6 +1573,7 @@ first_parent | `boolean`<br><p>If true, it only uses the first parent when looki
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
+describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger
@@ -1664,7 +1665,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None)`
+`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None, describe_version=True)`
 
 
 #### Parameters:
@@ -1676,6 +1677,7 @@ ref | `string`<br><p>Represents the default reference that will be used for read
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
@@ -1779,7 +1781,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None)`
+`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=True)`
 
 
 #### Parameters:
@@ -1799,6 +1801,7 @@ review_approvers | `sequence of string`<br><p>The set of reviewer types that are
 api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string`<br><p>If set, it will only migrate pull requests for this base branch</p>
+describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 
 
 
@@ -1877,7 +1880,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None)`
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None, describe_version=True)`
 
 
 #### Parameters:
@@ -1890,6 +1893,7 @@ submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIV
 include_branch_commit_logs | `boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input

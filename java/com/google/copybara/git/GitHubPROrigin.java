@@ -114,6 +114,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
+  private final boolean describeVersion;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
@@ -122,7 +123,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
-      @Nullable String branch) {
+      @Nullable String branch,
+      boolean describeVersion) {
     this.url = Preconditions.checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -141,6 +143,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
     this.branch = branch;
+    this.describeVersion = describeVersion;
   }
 
   @Override
@@ -321,7 +324,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         .map(User::getLogin)
         .collect(Collectors.toList()));
 
-    return new GitRevision(
+    GitRevision result = new GitRevision(
         getRepository(),
         gitRevision.getSha1(),
         // TODO(malcon): Decide the format to use here:
@@ -329,6 +332,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         useMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
         labels.build(),
         url);
+
+    return describeVersion ? getRepository().addDescribeVersion(result) : result;
   }
 
   @VisibleForTesting
@@ -341,7 +346,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       throws ValidationException {
     return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent,
-        patchTransformation) {
+        patchTransformation, describeVersion) {
 
       /**
        * Disable rebase since this is controlled by useMerge field.

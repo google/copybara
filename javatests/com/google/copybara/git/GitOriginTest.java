@@ -275,6 +275,32 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testResolveWithGitDescribe() throws Exception {
+    git("tag", "-m", "This is a tag", "0.1");
+
+    // The default is to describe
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+        .containsExactly("0.1");
+
+    moreOriginArgs = "describe_version = False";
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+        .isEmpty();
+
+    moreOriginArgs = "describe_version = True";
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+        .containsExactly("0.1");
+
+    writeFile(remote, "test.txt", "updated");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "first file", "--date", COMMIT_TIME);
+
+    GitRevision head = this.origin.resolve("HEAD");
+
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+        .containsExactly("0.1-1-g" + head.asString().substring(0, 7));
+  }
+
+  @Test
   public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);
@@ -497,6 +523,7 @@ public class GitOriginTest {
     ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "change2", "test.txt", "some content2");
+    git("tag", "-m", "This is a tag", "0.1");
     singleFileCommit(author, "change3", "test.txt", "some content3");
     singleFileCommit(author, "change4", "test.txt", "some content4");
 
@@ -509,8 +536,18 @@ public class GitOriginTest {
         .allMatch(c -> c.startsWith("file://")))
         .isTrue();
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
+    assertThat(changes.get(0).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION"))
+        .contains("0.1");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
+
+    assertThat(changes.get(1).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION"))
+        .contains("0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7));
+
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
+
+    assertThat(changes.get(2).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION")).
+        contains("0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7));
+
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
@@ -578,7 +615,7 @@ public class GitOriginTest {
     origin.resolve(firstCommitRef);
 
     thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find references: [foo]");
+    thrown.expectMessage("Cannot find reference(s): [foo, refs/tags/*]");
 
     origin.resolve("foo");
   }

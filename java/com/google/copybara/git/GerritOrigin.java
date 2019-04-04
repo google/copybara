@@ -74,7 +74,8 @@ public class GerritOrigin extends GitOrigin {
       boolean firstParent,
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
-      @Nullable String branch) {
+      @Nullable String branch,
+      boolean describeVersion) {
     super(
         generalOptions,
         repoUrl,
@@ -85,7 +86,7 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         includeBranchCommitLogs,
         firstParent,
-        patchTransformation);
+        patchTransformation, describeVersion);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -106,8 +107,9 @@ public class GerritOrigin extends GitOrigin {
     GerritChange change = GerritChange.resolve(getRepository(), repoUrl, reference,
         this.generalOptions);
     if (change == null) {
-      return GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
-          this.generalOptions);
+      GitRevision gitRevision = GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
+          this.generalOptions, describeVersion);
+      return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
     }
     GerritApi api = gerritOptions.newGerritApi(repoUrl);
 
@@ -139,14 +141,15 @@ public class GerritOrigin extends GitOrigin {
       labels.put(GerritChange.GERRIT_OWNER_EMAIL_LABEL, response.getOwner().getEmail());
     }
 
-    return change.fetch(labels.build());
+    GitRevision gitRevision = change.fetch(labels.build());
+    return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
       Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
       @Nullable Checker endpointChecker, @Nullable PatchTransformation patchTransformation,
-      @Nullable String branch) {
+      @Nullable String branch, boolean describeVersion) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -160,14 +163,15 @@ public class GerritOrigin extends GitOrigin {
         firstParent,
         endpointChecker,
         patchTransformation,
-        branch);
+        branch,
+        describeVersion);
   }
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent,
-        patchTransformation) {
+        patchTransformation, describeVersion) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(

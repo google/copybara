@@ -106,6 +106,14 @@ public class GitModule implements LabelsAwareModule {
   private static final String PATCH_FIELD_DESC =
       "Patch the checkout dir. The difference with `patch.apply` transformation is"
           + " that here we can apply it using three-way";
+  private static final String DESCRIBE_VERSION_FIELD_DOC =
+      "Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>"
+          + "   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being"
+          + " migrated. The value changes per change in `ITERATIVE` mode and will be the latest"
+          + " migrated change in `SQUASH` (In other words, doesn't include excluded changes). this"
+          + " is normally what users want to use.<br>"
+          + "   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version."
+          + " Constant in `ITERATIVE` mode and includes filtered changes.<br>";
 
   protected final Options options;
   private ConfigFile mainConfigFile;
@@ -151,10 +159,12 @@ public class GitModule implements LabelsAwareModule {
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch."),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
+          @Param(name = "describe_version", type = Boolean.class, defaultValue = "True",
+              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC),
       }, useLocation = true)
   public GitOrigin origin(String url, Object ref, String submodules,
-      Boolean includeBranchCommitLogs, Boolean firstParent, Object patch,
+      Boolean includeBranchCommitLogs, Boolean firstParent, Object patch, Boolean describeVersion,
       Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
@@ -164,7 +174,7 @@ public class GitModule implements LabelsAwareModule {
         options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GIT, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
-        includeBranchCommitLogs, firstParent, patchTransformation);
+        includeBranchCommitLogs, firstParent, patchTransformation, describeVersion);
   }
 
   @Nullable
@@ -322,12 +332,14 @@ public class GitModule implements LabelsAwareModule {
               named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
           @Param(name = "branch", type = String.class, defaultValue = "None",
               named = true, positional = false, noneable = true, doc = "Limit the import to"
-              + " changes that are for this branch. By default imports everything.")
+              + " changes that are for this branch. By default imports everything."),
+          @Param(name = "describe_version", type = Boolean.class, defaultValue = "True",
+              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC),
       },
       useLocation = true)
   public GitOrigin gerritOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object checkerObj, Object patch, Object branch, Location location)
-      throws EvalException {
+      Boolean firstParent, Object checkerObj, Object patch, Object branch, Boolean describeVersion,
+      Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
     String refField = Type.STRING.convertOptional(ref, "ref");
@@ -342,13 +354,13 @@ public class GitModule implements LabelsAwareModule {
           options, url, refField, GitRepoType.GERRIT,
           stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false, firstParent, patchTransformation);
+          /*includeBranchCommitLogs=*/false, firstParent, patchTransformation, describeVersion);
     }
     return GerritOrigin.newGerritOrigin(
         options, url, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class), firstParent,
         convertFromNoneable(checkerObj, null), patchTransformation,
-        convertFromNoneable(branch, null));
+        convertFromNoneable(branch, null), describeVersion);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
@@ -439,6 +451,8 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "branch", type = String.class, named = true, positional = false,
               defaultValue = "None", noneable = true,
               doc = "If set, it will only migrate pull requests for this base branch"),
+          @Param(name = "describe_version", type = Boolean.class, defaultValue = "True",
+              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC),
       },
       useLocation = true)
   @UsesFlags(GitHubPrOriginOptions.class)
@@ -447,7 +461,7 @@ public class GitModule implements LabelsAwareModule {
       SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
       Boolean baselineFromBranch, Boolean firstParent, String state,
       Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Object patch,
-      Object branch, Location location) throws EvalException {
+      Object branch, Boolean describeVersion, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
     if (!url.contains("github.com")) {
       throw new EvalException(location, "Invalid Github URL: " + url);
@@ -497,7 +511,8 @@ public class GitModule implements LabelsAwareModule {
         reviewApprovers,
         convertFromNoneable(checkerObj, null),
         patchTransformation,
-        convertFromNoneable(branch, null));
+        convertFromNoneable(branch, null),
+        describeVersion);
   }
 
   @SuppressWarnings("unused")
@@ -518,11 +533,14 @@ public class GitModule implements LabelsAwareModule {
                   + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                   + " change of the merged branch.", positional = false),
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC)
+              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
+          @Param(name = "describe_version", type = Boolean.class, defaultValue = "True",
+              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC),
       },
       useLocation = true)
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object patch, Location location) throws EvalException {
+      Boolean firstParent, Object patch, Boolean describeVersion, Location location)
+      throws EvalException {
     if (!GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
       throw new EvalException(location, "Invalid Github URL: " + url);
     }
@@ -534,7 +552,7 @@ public class GitModule implements LabelsAwareModule {
         options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GITHUB, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
-        /*includeBranchCommitLogs=*/false, firstParent, patchTransformation);
+        /*includeBranchCommitLogs=*/false, firstParent, patchTransformation, describeVersion);
   }
 
   @SuppressWarnings("unused")

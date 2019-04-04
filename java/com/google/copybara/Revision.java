@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Collection;
+import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 /**
@@ -81,4 +83,24 @@ public interface Revision {
   @Nullable default String getUrl() {
     return null;
   }
+
+  /**
+   * Given a list of labels it adds new labels without repeating them
+   */
+  static ImmutableListMultimap<String, String> addNewLabels(
+      ImmutableListMultimap<String, String> existingLabels,
+      ImmutableListMultimap<String, String> newLabels) {
+    ImmutableListMultimap.Builder<String, String> builder = ImmutableListMultimap.builder();
+    builder.putAll(existingLabels);
+    for (Entry<String, Collection<String>> k : newLabels.asMap().entrySet()) {
+      for (String v : k.getValue()) {
+        if (existingLabels.containsEntry(k.getKey(), v)) {
+          continue;
+        }
+        builder.put(k.getKey(), v);
+      }
+    }
+    return builder.build();
+  }
+
 }

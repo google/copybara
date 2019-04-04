@@ -163,4 +163,9 @@ public final class GitRevision implements Revision {
   GitRevision withUrl(String url) {
     return new GitRevision(repository, sha1, reviewReference, reference, associatedLabels, url);
   }
+
+  GitRevision withLabels(ImmutableListMultimap<String, String> labels) {
+    return new GitRevision(repository, sha1, reviewReference, reference,
+        Revision.addNewLabels(associatedLabels, labels), url);
+  }
 }

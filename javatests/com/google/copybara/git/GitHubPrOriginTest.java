@@ -64,7 +64,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
-import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -150,6 +149,25 @@ public class GitHubPrOriginTest {
             "required_labels = ['foo: yes', 'bar: yes']"),
         "https://github.com/google/example/pull/123",
         123);
+  }
+
+  @Test
+  public void testGitResolveWithGitDescribe() throws Exception {
+    mockPullRequestAndIssue(123, "open", "foo: yes", "bar: yes");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
+    addFiles(remote, "first change", ImmutableMap.<String, String>builder()
+        .put(123 + ".txt", "").build());
+    String sha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), sha1);
+
+    remote.simpleCommand("tag", "-m", "This is a tag", "1.0");
+
+    GitRevision rev = githubPrOrigin(
+        "url = 'https://github.com/google/example'",
+        "required_labels = ['foo: yes', 'bar: yes']")
+        .resolve("https://github.com/google/example/pull/123");
+
+    assertThat(rev.associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION")).containsExactly("1.0");
   }
 
   @Test

@@ -1817,8 +1817,81 @@ public class WorkflowTest {
               + "points outside the checkout dir. Consider removing this symlink from your "
               + "origin_files or, alternatively, set reversible_check = False in your "
               + "workflow.");
-
     }
+  }
+
+  @Test
+  public void testGitDescribeVersionSemanticsForFilteredChanges_squash() throws Exception {
+    runGitDescribeVersionSemanticsForFilteredChanges("SQUASH");
+
+    assertThat(destination.processed).hasSize(1);
+    // GIT_DESCRIBE_REQUESTED_VERSION points to the resolved, head revision
+    // GIT_CHANGE_DESCRIBE_REVISION points to the most up-to-date change that is being migrated
+    assertThat(destination.processed.get(0).getChangesSummary()).matches(
+        "Resolved revision is 0.1-3-g.* and change revision is 0.1-2-g(.|\n)*"
+    );
+  }
+
+  @Test
+  public void testGitDescribeVersionSemanticsForFilteredChanges_iterative() throws Exception {
+    runGitDescribeVersionSemanticsForFilteredChanges("ITERATIVE");
+
+    assertThat(destination.processed).hasSize(2);
+
+    // GIT_DESCRIBE_REQUESTED_VERSION points to the resolved, head revision
+    // GIT_CHANGE_DESCRIBE_REVISION points to the current change that is being migrated
+    assertThat(destination.processed.get(0).getChangesSummary()).matches(
+        "Resolved revision is 0.1-3-g.* and change revision is 0.1-1-g(.|\n)*"
+    );
+    assertThat(destination.processed.get(1).getChangesSummary()).matches(
+        "Resolved revision is 0.1-3-g.* and change revision is 0.1-2-g(.|\n)*"
+    );
+  }
+
+  private void runGitDescribeVersionSemanticsForFilteredChanges(String mode)
+      throws IOException, RepoException, ValidationException {
+    Path someRoot = Files.createTempDirectory("someRoot");
+    Path originPath = someRoot.resolve("origin");
+    Files.createDirectories(originPath);
+
+    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
+        .init();
+    options.setOutputRootToTmpDir();
+
+    String config = "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + "    destination = testing.destination(),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    origin_files = glob(['included/**']),\n"
+        + "    mode = '" + mode + "',\n"
+        + "    transformations = ["
+        + "metadata.add_header('Resolved revision is ${GIT_DESCRIBE_REQUESTED_VERSION}"
+        + " and change revision is ${GIT_DESCRIBE_CHANGE_VERSION}')]"
+        + ")\n";
+
+
+    GitTestUtil.writeFile(originPath, "initial.txt", "initial");
+    origin.add().files("initial.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "Initial");
+    origin.simpleCommand("tag", "-m", "this is a tag!", "0.1");
+
+    options.setLastRevision(origin.parseRef("HEAD"));
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    GitTestUtil.writeFile(originPath, "included/foo.txt", "a");
+    origin.add().files("included/foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "one");
+
+    GitTestUtil.writeFile(originPath, "included/foo.txt", "b");
+    origin.add().files("included/foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "two");
+
+    GitTestUtil.writeFile(originPath, "excluded/foo.txt", "c");
+    origin.add().files("excluded/foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "three");
+
+    workflow.run(workdir, ImmutableList.of());
   }
 
   @Test
