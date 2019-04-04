@@ -43,6 +43,10 @@ public class GitOriginOptions implements Option {
           + "(usually 'master'). Note that, if the repo uses submodules, they won't be rebased.")
   String originRebaseRef = null;
 
+  @Parameter(names = "--git-origin-describe-default", description = "The default for git describe"
+      + "in git.*origin.", arity = 1, hidden = true)
+  boolean gitDescribeDefault = true;
+
   void maybeRunCheckoutHook(Path checkoutDir, GeneralOptions generalOptions) throws RepoException {
     if (Strings.isNullOrEmpty(originCheckoutHook)) {
       return;

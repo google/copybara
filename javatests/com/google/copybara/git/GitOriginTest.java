@@ -301,6 +301,15 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testResolveWithGitDescribeDisabled() throws Exception {
+    git("tag", "-m", "This is a tag", "0.1");
+    options.gitOrigin.gitDescribeDefault = false;
+    // The default is disabled
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+        .isEmpty();
+  }
+
+  @Test
   public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
     newReader().checkout(origin.resolve("master"), checkoutDir);

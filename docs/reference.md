@@ -1559,7 +1559,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None, describe_version=True)`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -1665,7 +1665,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None, describe_version=True)`
+`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -1781,7 +1781,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=True)`
+`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -1880,7 +1880,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None, describe_version=True)`
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None, describe_version=None)`
 
 
 #### Parameters:
