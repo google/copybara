@@ -65,6 +65,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
       ConfigLoader configLoader, ConfigValidator configValidator) {
     super(
         workflow.getName(),
+        workflow.getDescription(),
         workflow.getOrigin(),
         workflow.getDestination(),
         workflow.getAuthoring(),

@@ -78,6 +78,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   static final String COPYBARA_REFERENCE_LABEL_VAR = "label:";
 
   private final String name;
+  @Nullable private final String description;
   private final Origin<O> origin;
   private final Destination<D> destination;
   private final Authoring authoring;
@@ -113,6 +114,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public Workflow(
       String name,
+      @Nullable String description,
       Origin<O> origin,
       Destination<D> destination,
       Authoring authoring,
@@ -138,6 +140,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean migrateNoopChanges,
       @Nullable String customRevId) {
     this.name = Preconditions.checkNotNull(name);
+    this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.authoring = Preconditions.checkNotNull(authoring);
@@ -171,6 +174,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public String getName() {
     return name;
+  }
+
+  @Nullable
+  @Override
+  public String getDescription() {
+    return description;
   }
 
   /**

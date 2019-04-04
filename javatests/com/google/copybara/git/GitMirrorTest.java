@@ -175,6 +175,20 @@ public class GitMirrorTest {
     checkRefDoesntExist("refs/heads/other");
   }
 
+  @Test
+  public void testMirrorDescription() throws Exception {
+    String cfgContent = ""
+        + "git.mirror("
+        + "    name = 'one',"
+        + "    description = 'Do foo with bar',"
+        + "    origin = 'https://example.com/foo',"
+        + "    destination = 'https://example.com/bar',"
+        + ")";
+
+    assertThat(loadMigration(cfgContent, "one").getDescription())
+        .isEqualTo("Do foo with bar");
+  }
+
   private Migration loadMigration(String cfgContent, String name)
       throws IOException, ValidationException {
     return skylark.loadConfig(cfgContent).getMigration(name);

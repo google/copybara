@@ -24,6 +24,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 
 /**
  * A migration is a process that moves files and/or metadata (comments, labels...) at a particular
@@ -61,6 +62,8 @@ public interface Migration {
    */
   String getName();
 
+  /** An optional description that users can set to describe what this workflow achieves. */
+  @Nullable String getDescription();
 
   /**
    * @return The migration's mode.

@@ -568,6 +568,12 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testDescription() throws Exception {
+    extraWorkflowFields = ImmutableList.of("description = \"Do foo with bar\"");
+    assertThat(workflow().getDescription()).isEqualTo("Do foo with bar");
+  }
+
+  @Test
   public void testForcedChangeMessageAndAuthorFlags_squash() throws Exception {
     options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
     options.workflowOptions.forcedAuthor = FORCED_AUTHOR;

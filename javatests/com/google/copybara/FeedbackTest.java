@@ -83,6 +83,24 @@ public class FeedbackTest {
   }
 
   @Test
+  public void testDescription() throws Exception {
+    String config = ""
+        + "def test_action(ctx):\n"
+        + "    return ctx.success()\n"
+        + "\n"
+        + "core.feedback(\n"
+        + "    name = 'default',\n"
+        + "    description = 'Do foo with bar',\n"
+        + "    origin = testing.dummy_trigger(),\n"
+        + "    destination = testing.dummy_endpoint(),\n"
+        + "    actions = [test_action],\n"
+        + ")";
+    Feedback feedback = (Feedback) loadConfig(config).getMigration("default");
+    assertThat(feedback.getDescription()).isEqualTo("Do foo with bar");
+  }
+
+
+  @Test
   public void testDescribeActions() throws Exception {
     Feedback feedback = feedback(
         ""

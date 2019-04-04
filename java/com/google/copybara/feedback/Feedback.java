@@ -39,6 +39,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 
 /**
  * A migration of feedback or other metadata between an origin and destination.
@@ -46,6 +47,7 @@ import java.nio.file.Path;
 public class Feedback implements Migration {
 
   private final String name;
+  @Nullable private final String description;
   private final ConfigFile configFile;
   private final Trigger trigger;
   private final Endpoint destination;
@@ -54,12 +56,14 @@ public class Feedback implements Migration {
 
   public Feedback(
       String name,
+      @Nullable String description,
       ConfigFile configFile,
       Trigger trigger,
       Endpoint destination,
       ImmutableList<Action> actions,
       GeneralOptions generalOptions) {
     this.name = Preconditions.checkNotNull(name);
+    this.description = description;
     this.configFile = Preconditions.checkNotNull(configFile);
     this.trigger = Preconditions.checkNotNull(trigger);
     this.destination = Preconditions.checkNotNull(destination);
@@ -111,6 +115,12 @@ public class Feedback implements Migration {
   @Override
   public String getName() {
     return name;
+  }
+
+  @Nullable
+  @Override
+  public String getDescription() {
+    return description;
   }
 
   @Override

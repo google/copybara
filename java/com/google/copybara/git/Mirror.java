@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * Mirror one or more refspects between git repositories.
@@ -52,10 +53,11 @@ public class Mirror implements Migration {
   private final GitMirrorOptions mirrorOptions;
   private final boolean prune;
   private final ConfigFile mainConfigFile;
+  @Nullable private final String description;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
       String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
-      ConfigFile mainConfigFile) {
+      ConfigFile mainConfigFile, @Nullable String description) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -65,6 +67,7 @@ public class Mirror implements Migration {
     this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
     this.prune = prune;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
+    this.description = description;
   }
 
   @Override
@@ -128,6 +131,12 @@ public class Mirror implements Migration {
   @Override
   public String getName() {
     return name;
+  }
+
+  @Nullable
+  @Override
+  public String getDescription() {
+    return description;
   }
 
   @Override

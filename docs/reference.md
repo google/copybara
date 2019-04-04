@@ -568,7 +568,7 @@ For the purpose of this workflow, it is not considered metadata the commit messa
 
 
 
-`core.feedback(name, origin, destination, actions=[])`
+`core.feedback(name, origin, destination, actions=[], description=None)`
 
 
 #### Parameters:
@@ -583,6 +583,7 @@ actions | `sequence`<br><p>A list of feedback actions to perform, with the follo
   - Actions need to be independent from each other.
   - Failure in one action might prevent other actions from executing.
 </p>
+description | `string`<br><p>A description of what this workflow achieves</p>
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -927,7 +928,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, migrate_noop_changes=False, experimental_custom_rev_id=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=True for CHANGE_REQUEST, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None)`
 
 
 #### Parameters:
@@ -953,6 +954,7 @@ set_rev_id | `boolean`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the 
 smart_prune | `boolean`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
 migrate_noop_changes | `boolean`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 experimental_custom_rev_id | `string`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
+description | `string`<br><p>A description of what this workflow achieves</p>
 
 
 
@@ -1848,7 +1850,7 @@ It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration.
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False)`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, description=None)`
 
 
 #### Parameters:
@@ -1860,6 +1862,7 @@ origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
 refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination.For example 'refs/heads/*:refs/remotes/origin/*' will mirror any referenceinside refs/heads to refs/remotes/origin.</p>
 prune | `boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
+description | `string`<br><p>A description of what this workflow achieves</p>
 
 
 

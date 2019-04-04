@@ -246,12 +246,15 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "prune", type = Boolean.class, named = true,
               doc = "Remove remote refs that don't have a origin counterpart",
               defaultValue = "False"),
-
+          @Param(name = "description", type = String.class, named = true, noneable = true,
+              positional = false,
+              doc = "A description of what this workflow achieves", defaultValue = "None"),
       },
       useLocation = true, useEnvironment = true)
   @UsesFlags(GitMirrorOptions.class)
   public NoneType mirror(String name, String origin, String destination,
-      SkylarkList<String> strRefSpecs, Boolean prune, Location location, Environment env)
+      SkylarkList<String> strRefSpecs, Boolean prune, Object description,
+      Location location, Environment env)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitOptions gitOptions = options.get(GitOptions.class);
@@ -281,7 +284,8 @@ public class GitModule implements LabelsAwareModule {
                 refspecs,
                 options.get(GitMirrorOptions.class),
                 prune,
-                mainConfigFile));
+                mainConfigFile,
+                convertFromNoneable(description, null)));
     return Runtime.NONE;
   }
 

@@ -272,6 +272,9 @@ public class Core implements LabelsAwareModule {
               doc = "Use this label name instead of the one provided by the origin. This is subject"
                   + " to change and there is no guarantee.",
               defaultValue = "None", positional = false, noneable = true),
+          @Param(name = "description", type = String.class, named = true, noneable = true,
+              positional = false,
+              doc = "A description of what this workflow achieves", defaultValue = "None"),
       },
       useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -298,6 +301,7 @@ public class Core implements LabelsAwareModule {
       Boolean smartPrune,
       Boolean migrateNoopChanges,
       Object customRevIdField,
+      Object description,
       Location location,
       Environment env)
       throws EvalException {
@@ -353,6 +357,7 @@ public class Core implements LabelsAwareModule {
     WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
     getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
         workflowName,
+        convertFromNoneable(description, null),
         origin,
         destination,
         resolvedAuthoring,
@@ -967,6 +972,10 @@ public class Core implements LabelsAwareModule {
                   + "  - Failure in one action might prevent other actions from executing.\n",
               defaultValue = "[]", positional = false, named = true
           ),
+          @Param(name = "description", type = String.class, named = true, noneable = true,
+              positional = false,
+              doc = "A description of what this workflow achieves", defaultValue = "None"),
+
       }, useLocation = true, useEnvironment = true)
   @UsesFlags({FeedbackOptions.class})
   /*TODO(danielromero): Add default values*/
@@ -975,6 +984,7 @@ public class Core implements LabelsAwareModule {
       Trigger trigger,
       Endpoint destination,
       SkylarkList<?> feedbackActions,
+      Object description,
       Location location,
       Environment env)
       throws EvalException {
@@ -986,6 +996,7 @@ public class Core implements LabelsAwareModule {
             workflowName,
             new Feedback(
                 workflowName,
+                convertFromNoneable(description, null),
                 mainConfigFile,
                 trigger,
                 destination,
