@@ -20,6 +20,7 @@ import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -455,7 +456,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   @Nullable
-  Transformation getReverseTransformForCheck() {
+  @VisibleForTesting
+  public Transformation getReverseTransformForCheck() {
     return reverseTransformForCheck;
   }
 
