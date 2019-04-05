@@ -17,12 +17,17 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.TablePrinter;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -51,8 +56,35 @@ public class InfoCmd implements CopybaraCmd {
     Config config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
         .load(commandEnv.getOptions().get(GeneralOptions.class).console());
-    copybara.info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
+    if (configFileArgs.hasWorkflowName()) {
+      copybara.info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
+    } else {
+      showAllMigrations(commandEnv, config);
+    }
     return ExitCode.SUCCESS;
+  }
+
+  protected void showAllMigrations(CommandEnv commandEnv, Config config) {
+    TablePrinter table = new TablePrinter("Name", "Origin", "Destination", "Mode", "Description");
+    for (Migration m : config.getMigrations().values()) {
+      table.addRow(m.getName(),
+          prettyOriginDestination(m.getOriginDescription()),
+          prettyOriginDestination(m.getDestinationDescription()),
+          m.getModeString(),
+          Strings.nullToEmpty(m.getDescription()));
+    }
+    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    for (String line : table.build()) {
+      console.info(line);
+    }
+    console.info("To get information about the state of any migration run:\n\n"
+        + "    copybara info " + config.getLocation() + " [workflow_name]"
+        + "\n");
+  }
+
+  private String prettyOriginDestination(ImmutableSetMultimap<String, String> desc) {
+    return Iterables.getOnlyElement(desc.get("type"))
+        + (desc.containsKey("url") ? " (" + Iterables.getOnlyElement(desc.get("url")) + ")" : "");
   }
 
   @Override

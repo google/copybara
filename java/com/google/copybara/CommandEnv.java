@@ -64,7 +64,7 @@ public class CommandEnv {
     String configPath = args.get(0);
 
     if (args.size() < 2) {
-      configFileArgs = new ConfigFileArgs(configPath, "default");
+      configFileArgs = new ConfigFileArgs(configPath, /*workflowName=*/null);
       return configFileArgs;
     }
     String workflowName = args.get(1);

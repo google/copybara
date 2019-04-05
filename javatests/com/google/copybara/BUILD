@@ -16,10 +16,11 @@ load(":test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-LOCAL_TESTS = [
-    "WorkflowTest.java",
-    "util/DiffUtilTest.java",
-]
+LOCAL_TESTS = {
+    "InfoTest.java" : 1,
+    "util/DiffUtilTest.java" : 5,
+    "WorkflowTest.java" : 5,
+}
 
 DEPS = [
     "//java/com/google/copybara/authoring",
@@ -54,17 +55,17 @@ DEPS = [
     "//third_party:truth",
 ]
 
-all_tests(
-    shard_count = 5,  # WorkflowTest is slow and it wont hurt DiffUtilTest
+[all_tests(
+    shard_count = count,
     tags = ["local"],
-    tests = LOCAL_TESTS,
+    tests = [file],
     deps = DEPS,
-)
+) for file, count in LOCAL_TESTS.items()]
 
 all_tests(
     tests = glob(
         ["**/*Test.java"],
-        exclude = LOCAL_TESTS,
+        exclude = LOCAL_TESTS.keys(),
     ),
     deps = DEPS,
 )

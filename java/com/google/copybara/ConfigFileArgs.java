@@ -37,7 +37,7 @@ public final class ConfigFileArgs {
     this(configPath, workflowName, ImmutableList.of());
   }
 
-  ConfigFileArgs(String configPath, String workflowName, List<String> sourceRefs) {
+  ConfigFileArgs(String configPath, @Nullable String workflowName, List<String> sourceRefs) {
     this.configPath = Preconditions.checkNotNull(configPath);
     this.workflowName = workflowName;
     this.sourceRefs = ImmutableList.copyOf(sourceRefs);
@@ -47,9 +47,12 @@ public final class ConfigFileArgs {
     return configPath;
   }
 
-  @Nullable
   public String getWorkflowName() {
-    return workflowName;
+    return workflowName == null ? "default" : workflowName;
+  }
+
+  public boolean hasWorkflowName() {
+    return workflowName != null;
   }
 
   /**
