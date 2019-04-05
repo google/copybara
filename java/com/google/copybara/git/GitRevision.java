@@ -89,7 +89,15 @@ public final class GitRevision implements Revision {
     this.repository = Preconditions.checkNotNull(repository);
     this.sha1 = sha1;
     this.reference = reference;
-    this.associatedLabels = associatedLabels;
+    ImmutableListMultimap.Builder<String, String> labelBuilder =
+        ImmutableListMultimap.<String, String>builder()
+        .putAll(associatedLabels);
+    if (!associatedLabels.containsKey("GIT_SHA1")) {
+      labelBuilder
+         .put("GIT_SHA1", sha1)
+         .put("GIT_SHORT_SHA1", sha1.substring(0, 7));
+    }
+    this.associatedLabels = labelBuilder.build();
     this.url = url;
   }
 

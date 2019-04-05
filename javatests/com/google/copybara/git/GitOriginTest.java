@@ -301,6 +301,20 @@ public class GitOriginTest {
   }
 
   @Test
+  public void getGitRevisionHasShaLabel() throws Exception {
+    GitRevision head = repo.resolveReference("master");
+    assertThat(head.associatedLabels().get("GIT_SHA1")).containsExactly(head.getSha1());
+    assertThat(head.associatedLabels().get("GIT_SHORT_SHA1"))
+        .containsExactly(head.getSha1().substring(0, 7));
+
+    // Same as above but thru git.origin
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_SHA1"))
+        .containsExactly(head.getSha1());
+    assertThat(origin().resolve("master").associatedLabels().get("GIT_SHORT_SHA1"))
+        .containsExactly(head.getSha1().substring(0, 7));
+  }
+
+  @Test
   public void testResolveWithGitDescribeDisabled() throws Exception {
     git("tag", "-m", "This is a tag", "0.1");
     options.gitOrigin.gitDescribeDefault = false;
