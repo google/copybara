@@ -131,7 +131,7 @@ public class GitOrigin implements Origin<GitRevision> {
     console.progress("Git Origin: Initializing local repo");
     String ref;
     if (Strings.isNullOrEmpty(reference)) {
-      checkCondition(configRef != null, "No reference was passed as an command line argument for"
+      checkCondition(configRef != null, "No reference was passed as a command line argument for"
               + " %s and no default reference was configured in the config file", repoUrl);
       ref = configRef;
     } else {
