@@ -1557,6 +1557,12 @@ Implicit labels that can be used/exposed:
   - GERRIT_CHANGE_ID: The change id for the Gerrit review.
   - GERRIT_CHANGE_DESCRIPTION: The description of the Gerrit review.
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
+  - GERRIT_CHANGE_BRANCH: The destination branch for thechange
+  - GERRIT_CHANGE_TOPIC: The change topic
+  - GERRIT_COMPLETE_CHANGE_ID: Complete Change-Id with project, branch and Change-Id
+  - GERRIT_OWNER_EMAIL: Owner email
+  - GERRIT_REVIEWER_EMAIL: Multiple value field with the email of the reviewers
+  - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
 `gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, api_checker=None, patch=None, branch=None, describe_version=None)`

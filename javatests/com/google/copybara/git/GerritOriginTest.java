@@ -133,6 +133,9 @@ public class GerritOriginTest {
                 .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
                 .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
                 .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "foo@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "bar@example.com")
+                .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID)
                 .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
@@ -153,6 +156,9 @@ public class GerritOriginTest {
                 .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
                 .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
                 .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "foo@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "bar@example.com")
+                .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
                 .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
                     repo.parseRef("HEAD").substring(0,7))
@@ -172,6 +178,9 @@ public class GerritOriginTest {
                 .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
                 .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
                 .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "foo@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "bar@example.com")
+                .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
                 .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
@@ -224,7 +233,8 @@ public class GerritOriginTest {
         .httpTransport()
         .buildRequest(eq("GET"),
             startsWith(
-                "https://localhost:33333/changes/" + changeNumber + "?o=DETAILED_ACCOUNTS")))
+                "https://localhost:33333/changes/" + changeNumber
+                    + "?o=DETAILED_ACCOUNTS&o=DETAILED_LABELS")))
         .then(
             (Answer<LowLevelHttpRequest>)
                 invocation -> {
@@ -235,7 +245,25 @@ public class GerritOriginTest {
                           + "  change_id : \"" + change + "\","
                           + "  status : \"NEW\","
                           + "  branch : \"my_branch\","
-                          + "  owner : { email : \"the_owner@example.com\"}"
+                          + "  owner : { email : \"the_owner@example.com\"},"
+                          + "  \"reviewers\": {\n"
+                          + "    \"REVIEWER\": [\n"
+                          + "      {\n"
+                          + "        \"_account_id\": 1,\n"
+                          + "        \"email\": \"foo@example.com\"\n"
+                          + "      },\n"
+                          + "      {\n"
+                          + "        \"_account_id\": 2,\n"
+                          + "        \"email\": \"bar@example.com\"\n"
+                          + "      },\n"
+                          + "    ],\n"
+                          + "    \"CC\": [\n"
+                          + "      {\n"
+                          + "        \"_account_id\": 3,\n"
+                          + "        \"email\": \"baz@example.com\"\n"
+                          + "      }\n"
+                          + "    ]\n"
+                          + "   }"
                           + "}");
                 });
   }

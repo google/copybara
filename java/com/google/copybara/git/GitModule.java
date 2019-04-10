@@ -310,7 +310,14 @@ public class GitModule implements LabelsAwareModule {
           + "  - " + GerritChange.GERRIT_CHANGE_ID_LABEL + ": The change id for the Gerrit review.\n"
           + "  - " + GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL + ": The description of the Gerrit review.\n"
           + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
-          + " integrate automatically in the reverse workflow.\n",
+          + " integrate automatically in the reverse workflow.\n"
+          + "  - " + GerritChange.GERRIT_CHANGE_BRANCH + ": The destination branch for thechange\n"
+          + "  - " + GerritChange.GERRIT_CHANGE_TOPIC + ": The change topic\n"
+          + "  - " + GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL
+          + ": Complete Change-Id with project, branch and Change-Id\n"
+          + "  - " + GerritChange.GERRIT_OWNER_EMAIL_LABEL + ": Owner email\n"
+          + "  - GERRIT_REVIEWER_EMAIL: Multiple value field with the email of the reviewers\n"
+          + "  - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc\n",
       parameters = {
           @Param(name = "url", type = String.class, named = true,
               doc = "Indicates the URL of the git repository"),

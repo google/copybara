@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_ACCOUNTS;
+import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -114,7 +115,7 @@ public class GerritOrigin extends GitOrigin {
     GerritApi api = gerritOptions.newGerritApi(repoUrl);
 
     ChangeInfo response = api.getChange(Integer.toString(change.getChange()),
-        new GetChangeInput(ImmutableSet.of(DETAILED_ACCOUNTS)));
+        new GetChangeInput(ImmutableSet.of(DETAILED_ACCOUNTS, DETAILED_LABELS)));
 
     if (branch != null && !branch.equals(response.getBranch())) {
       throw new EmptyChangeException(String.format(
