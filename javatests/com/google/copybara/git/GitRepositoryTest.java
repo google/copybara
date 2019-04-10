@@ -99,6 +99,28 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testShowDiff() throws Exception {
+    GitRepository repo = repository.withWorkTree(workdir);
+    repo.init();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    ImmutableMap<String, GitRevision> revisionsFoo = repo.showRef();
+
+    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    repository.add().files("bar.txt").run();
+    repo.simpleCommand("commit", "bar.txt", "-m", "message_s");
+    ImmutableMap<String, GitRevision> revisionsBar = repo.showRef();
+
+    String diff = repo.showDiff(revisionsFoo.values().asList().get(0).getSha1(),
+        revisionsBar.values().asList().get(0).getSha1());
+    assertThat("index 0000000..805c36b\n--- /dev/null\n").matches("(.*\n){2}");
+    assertThat(diff).matches("(diff --git a/bar.txt b/bar.txt\nnew file mode 100644\n)"
+        + "(.*\n){4}(\\+change content\n)(.*\n)");
+  }
+
+  @Test
   public void testBadCommitInLog() throws RepoException, IOException {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();

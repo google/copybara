@@ -142,6 +142,12 @@ public class GitOrigin implements Origin<GitRevision> {
     return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 
+  @Override
+  @Nullable
+  public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
+    return getRepository().showDiff(referenceFrom, referenceTo);
+  }
+
   static class ReaderImpl implements Reader<GitRevision> {
 
     private final String repoUrl;

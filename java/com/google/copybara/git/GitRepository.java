@@ -285,6 +285,12 @@ public class GitRepository {
     }
   }
 
+  public String showDiff(String referenceFrom, String referenceTo) throws RepoException{
+      Preconditions.checkNotNull(referenceFrom, "Parameter referenceFrom should not be null");
+      Preconditions.checkNotNull(referenceTo, "Parameter referenceTo should not be null");
+      return simpleCommand("diff", referenceFrom, referenceTo).getStdout();
+  }
+
   /**
    * Fetch zero or more refspecs in the local repository
    *

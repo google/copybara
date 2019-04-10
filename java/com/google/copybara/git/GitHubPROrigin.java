@@ -191,6 +191,12 @@ public class GitHubPROrigin implements Origin<GitRevision> {
             reference));
   }
 
+  @Override
+  @Nullable
+  public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
+    return getRepository().showDiff(referenceFrom, referenceTo);
+  }
+
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
     GitHubApi api = gitHubOptions.newGitHubApi(project);

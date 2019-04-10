@@ -65,6 +65,17 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
   R resolve(String reference) throws RepoException, ValidationException;
 
   /**
+   * Show different changes between two references. Returns null if the origin doesn't
+   * support generating differences.
+   *
+   * @throws RepoException
+   */
+  @Nullable
+  default String showDiff(String referenceFrom, String referenceTo) throws RepoException {
+    return null;
+  }
+
+  /**
    * An object which is capable of checking out code from the origin at particular paths. This can
    * also enumerate changes in the history and transform authorship information.
    */
