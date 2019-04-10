@@ -266,8 +266,8 @@ public class GitRepository {
           ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"));
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
-      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref));
-      return resolveReferenceWithContext("FETCH_HEAD", /*contextRef=*/ref, url);
+      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(ref + ":refs/copybara_fetch/" + ref));
+      return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     }
   }
 

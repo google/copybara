@@ -539,7 +539,8 @@ public class GitRepositoryTest {
     // head and if it fails we do one for the ref
     assertThat(requestedFetches).isEqualTo(ImmutableList.of(
         ImmutableList.of(),
-        ImmutableList.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+        ImmutableList.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
+            + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
   }
 
   @Test
