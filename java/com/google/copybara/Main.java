@@ -21,6 +21,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
@@ -214,7 +215,11 @@ public class Main {
       ImmutableMap<String, CopybaraCmd> commands =
           Maps.uniqueIndex(getCommands(moduleSet, configLoaderProvider, jCommander),
               CopybaraCmd::name);
-
+      // Tell jcommander about the commands; we don't actually use the feature, this is solely for
+      // generating the usage info.
+      for (Map.Entry<String, CopybaraCmd> cmd : commands.entrySet()) {
+        jCommander.addCommand(cmd.getKey(), cmd.getValue());
+      }
       CommandWithArgs cmdToRun = mainArgs.parseCommand(commands, commands.get("migrate"));
       subcommand = cmdToRun.getSubcommand();
 
@@ -521,6 +526,7 @@ public class Main {
   }
 
   /** Prints the Copybara version */
+  @Parameters(separators = "=", commandDescription = "Shows the version of Copybara.")
   private class VersionCmd implements CopybaraCmd {
 
     @Override
@@ -540,6 +546,7 @@ public class Main {
    * Prints the help message
    * TODO(malcon): Implement help per command
    */
+  @Parameters(separators = "=", commandDescription = "Shows the help.")
   private class HelpCmd implements CopybaraCmd {
 
     private final JCommander jCommander;

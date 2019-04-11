@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.beust.jcommander.Parameters;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.ValidationResult;
@@ -32,6 +33,7 @@ import java.util.function.Consumer;
 /**
  * Validates that the configuration is correct.
  */
+@Parameters(separators = "=", commandDescription = "Validates that the configuration is correct.")
 public class ValidateCmd implements CopybaraCmd {
 
   private final ConfigValidator configValidator;

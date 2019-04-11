@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -30,6 +31,7 @@ import java.util.function.Consumer;
 /**
  * Executes the migration for the given config.
  */
+@Parameters(separators = "=", commandDescription = "Executes the migration for the given config.")
 public class MigrateCmd implements CopybaraCmd {
 
   private final ConfigValidator configValidator;

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -34,6 +35,8 @@ import java.util.function.Consumer;
 /**
  * Reads the last migrated revision in the origin and destination.
  */
+@Parameters(separators = "=",
+    commandDescription = "Reads the last migrated revision in the origin and destination.")
 public class InfoCmd implements CopybaraCmd {
 
   private final ConfigValidator configValidator;
