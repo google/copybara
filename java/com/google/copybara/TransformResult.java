@@ -52,6 +52,7 @@ public final class TransformResult {
   @Nullable private final ImmutableList<DiffFile> affectedFilesForSmartPrune;
   private final Function<String, Collection<String>> labelFinder;
   private final String revIdLabel;
+  private final boolean confirmedInOrigin;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -87,7 +88,8 @@ public final class TransformResult {
         setRevId,
         /*affectedFilesForSmartPrune=*/ null,
         labelFinder,
-        revIdLabel);
+        revIdLabel,
+        /*confirmedInOrigin=*/ false);
   }
 
   private TransformResult(
@@ -106,7 +108,8 @@ public final class TransformResult {
       boolean setRevId,
       @Nullable ImmutableList<DiffFile> affectedFilesForSmartPrune,
       Function<String, Collection<String>> labelFinder,
-      String revIdLabel) {
+      String revIdLabel,
+      boolean confirmedInOrigin) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -123,6 +126,7 @@ public final class TransformResult {
     this.affectedFilesForSmartPrune = affectedFilesForSmartPrune;
     this.labelFinder = Preconditions.checkNotNull(labelFinder);
     this.revIdLabel = Preconditions.checkNotNull(revIdLabel);
+    this.confirmedInOrigin = confirmedInOrigin;
   }
 
   @CheckReturnValue
@@ -144,7 +148,8 @@ public final class TransformResult {
         this.setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   /**
@@ -169,7 +174,8 @@ public final class TransformResult {
         this.setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -190,7 +196,8 @@ public final class TransformResult {
         setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -211,7 +218,8 @@ public final class TransformResult {
         this.setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -232,7 +240,8 @@ public final class TransformResult {
         this.setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -253,7 +262,8 @@ public final class TransformResult {
         setRevId,
         this.affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -276,7 +286,8 @@ public final class TransformResult {
         this.setRevId,
         affectedFilesForSmartPrune,
         this.labelFinder,
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
   }
 
   @CheckReturnValue
@@ -297,7 +308,30 @@ public final class TransformResult {
         this.setRevId,
         this.affectedFilesForSmartPrune,
         Preconditions.checkNotNull(labelMapper),
-        this.revIdLabel);
+        this.revIdLabel,
+        this.confirmedInOrigin);
+  }
+
+  @CheckReturnValue
+  public TransformResult withDiffInOrigin(boolean diffInOrigin) {
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        this.changes,
+        this.rawSourceRef,
+        this.setRevId,
+        this.affectedFilesForSmartPrune,
+        this.labelFinder,
+        this.revIdLabel,
+        diffInOrigin);
   }
 
   /**
@@ -383,6 +417,14 @@ public final class TransformResult {
    */
   public boolean isAskForConfirmation() {
     return askForConfirmation;
+  }
+
+  /**
+   * If true, the destination will not ask for confirmation. Instead, it will show the diff  it will des
+   *
+   */
+  public boolean isConfirmedInOrigin() {
+    return confirmedInOrigin;
   }
 
   /**

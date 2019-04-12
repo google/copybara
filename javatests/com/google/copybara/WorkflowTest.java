@@ -312,6 +312,91 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testTestWorkflowWithDiffInOrigin() throws Exception {
+    GitRepository remote = GitRepository.newBareRepo(
+        Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
+            DEFAULT_TIMEOUT).withWorkTree(workdir);
+    remote.init();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    GitRevision lastRev = remote.resolveReference("master");
+
+    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    remote.add().files("bar.txt").run();
+    remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
+
+    TestingConsole testingConsole = new  TestingConsole().respondYes();
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options
+        .setWorkdirToRealTempDir()
+        .setConsole(testingConsole)
+        .setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
+            "core.workflow(\n"
+        + "    name = 'foo',\n"
+        + "    origin = git.origin(url='" + remote.getGitDir()+"'),\n"
+        + "    destination = folder.destination(),\n"
+        + "    mode = 'ITERATIVE',\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    transformations = [metadata.replace_message(''),],\n"
+        + ")\n")
+        .getMigration("foo");
+    workflow.getWorkflowOptions().diffInOrigin = true;
+    workflow.run(workdir, ImmutableList.of("master"));
+    testingConsole.assertThat()
+        .onceInLog(MessageType.WARNING, "Change 1 of 1 \\(.*\\)\\: Continue to migrate with '"
+        + workflow.getMode() + "'"+" to " + workflow.getDestination().getType()+ "\\?");
+  }
+
+  @Test
+  public void testTestWorkflowWithDiffInOriginAndRespondNo() throws Exception {
+    GitRepository remote = GitRepository.newBareRepo(
+        Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
+        DEFAULT_TIMEOUT).withWorkTree(workdir);
+    remote.init();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    GitRevision lastRev = remote.resolveReference("master");
+
+    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    remote.add().files("bar.txt").run();
+    remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
+
+    TestingConsole testingConsole = new  TestingConsole().respondNo();
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options
+        .setWorkdirToRealTempDir()
+        .setConsole(testingConsole)
+        .setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
+            "core.workflow(\n"
+                + "    name = 'foo',\n"
+                + "    origin = git.origin(url='" + remote.getGitDir()+"'),\n"
+                + "    destination = folder.destination(),\n"
+                + "    mode = 'ITERATIVE',\n"
+                + "    authoring = " + authoring + ",\n"
+                + "    transformations = [metadata.replace_message(''),],\n"
+                + ")\n")
+            .getMigration("foo");
+    workflow.getWorkflowOptions().diffInOrigin = true;
+    try {
+      workflow.run(workdir, ImmutableList.of("master"));
+      fail();
+    } catch(ChangeRejectedException e) {
+      assertThat(e.getMessage())
+          .contains("User aborted execution: did not confirm diff in origin changes.");
+    }
+  }
+
+  @Test
   public void iterativeWorkflowTestRecordContextReference() throws Exception {
     for (int timestamp = 0; timestamp < 10; timestamp++) {
       origin.addSimpleChange(timestamp);

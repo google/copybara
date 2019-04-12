@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asGithubUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
@@ -125,21 +126,21 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
       boolean describeVersion) {
-    this.url = Preconditions.checkNotNull(url);
+    this.url = checkNotNull(url);
     this.useMerge = useMerge;
-    this.generalOptions = Preconditions.checkNotNull(generalOptions);
-    this.gitOptions = Preconditions.checkNotNull(gitOptions);
-    this.gitOriginOptions = Preconditions.checkNotNull(gitOriginOptions);
+    this.generalOptions = checkNotNull(generalOptions);
+    this.gitOptions = checkNotNull(gitOptions);
+    this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.gitHubOptions = gitHubOptions;
-    this.requiredLabels = Preconditions.checkNotNull(requiredLabels);
-    this.retryableLabels = Preconditions.checkNotNull(retryableLabels);
-    this.submoduleStrategy = Preconditions.checkNotNull(submoduleStrategy);
+    this.requiredLabels = checkNotNull(requiredLabels);
+    this.retryableLabels = checkNotNull(retryableLabels);
+    this.submoduleStrategy = checkNotNull(submoduleStrategy);
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
     this.firstParent = firstParent;
-    this.requiredState = Preconditions.checkNotNull(requiredState);
+    this.requiredState = checkNotNull(requiredState);
     this.reviewState = reviewState;
-    this.reviewApprovers = Preconditions.checkNotNull(reviewApprovers);
+    this.reviewApprovers = checkNotNull(reviewApprovers);
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
     this.branch = branch;
@@ -193,8 +194,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
   @Override
   @Nullable
-  public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
-    return getRepository().showDiff(referenceFrom, referenceTo);
+  public String showDiff(GitRevision revisionFrom, GitRevision revisionTo) throws RepoException {
+    return getRepository().showDiff(
+        checkNotNull(revisionFrom, "revisionFrom should not be null").getSha1(),
+        checkNotNull(revisionTo, "revisionTo should not be null").getSha1());
   }
 
   private GitRevision getRevisionForPR(String project, int prNumber)
@@ -379,7 +382,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
           throws RepoException, ValidationException {
         String baseline = Iterables.getLast(
             startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1), null);
-        Preconditions.checkNotNull(baseline, "%s label should be present in %s",
+        checkNotNull(baseline, "%s label should be present in %s",
                                    GITHUB_BASE_BRANCH_SHA1, startRevision);
 
         GitRevision baselineRev = getRepository().resolveReference(baseline);

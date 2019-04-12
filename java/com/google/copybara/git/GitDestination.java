@@ -23,7 +23,6 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -510,7 +509,9 @@ public final class GitDestination implements Destination<GitRevision> {
         scratchClone.simpleCommand("checkout", state.localBranch);
       }
 
-      if (transformResult.isAskForConfirmation()) {
+      if (transformResult.isConfirmedInOrigin()) {
+        logger.atInfo().log("Diffs were shown and approved in origin");
+      } else if (transformResult.isAskForConfirmation()) {
         // The git repo contains the staged changes at this point. Git diff writes to Stdout
         console.info(DiffUtil.colorize(
             console, scratchClone.simpleCommand("show", "HEAD").getStdout()));

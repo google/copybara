@@ -143,8 +143,8 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   @Nullable
-  public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
-    return getRepository().showDiff(referenceFrom, referenceTo);
+  public String showDiff(GitRevision revisionFrom, GitRevision revisionTo) throws RepoException {
+    return getRepository().showDiff(revisionFrom.getSha1(), revisionTo.getSha1());
   }
 
   static class ReaderImpl implements Reader<GitRevision> {

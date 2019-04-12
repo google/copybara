@@ -967,6 +967,7 @@ Name | Type | Description
 <nobr>`--change_request_parent`</nobr> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 <nobr>`--check-last-rev-state`</nobr> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 <nobr>`--default-author`</nobr> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
+<nobr>`--diff-in-origin`</nobr> | *boolean* | When this flag is enabled, copybara will show different changes between last Revision and current revision in origin instead of in destination. NOTE: it Only works for SQUASH and ITERATIVE
 <nobr>`--force-author`</nobr> | *author* | Force the author to this. Note that this only changes the author before the transformations happen, you can still use the transformations to alter it.
 <nobr>`--force-message`</nobr> | *string* | Force the change description to this. Note that this only changes the message before the transformations happen, you can still use the transformations to alter it.
 <nobr>`--ignore-noop`</nobr> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.

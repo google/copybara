@@ -21,6 +21,7 @@ import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -33,6 +34,7 @@ import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -46,6 +48,7 @@ import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
 import java.io.IOException;
@@ -446,7 +449,36 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return effects;
     }
 
-    
+    private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
+        throws RepoException, ChangeRejectedException {
+        if (!workflow.getWorkflowOptions().diffInOrigin
+            || workflow.getMode() == WorkflowMode.CHANGE_REQUEST
+            || workflow.getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
+            || lastRev == null) {
+            return false;
+        }
+        String diff = workflow.getOrigin().showDiff(lastRev, rev);
+        StringBuilder sb = new StringBuilder();
+        for (String line : Splitter.on('\n').split(diff)) {
+          sb.append("\n");
+          if (line.startsWith("+")) {
+            sb.append(processConsole.colorize(AnsiColor.GREEN, line));
+          } else if (line.startsWith("-")) {
+            sb.append(processConsole.colorize(AnsiColor.RED, line));
+          } else {
+            sb.append(line);
+          }
+        }
+        processConsole.info(sb.toString());
+        if (!processConsole.promptConfirmation(String.format("Continue to migrate with '%s' to "
+                + "%s?", workflow.getMode(), workflow.getDestination().getType()))){
+          processConsole.warn("Migration aborted by user.");
+          throw new ChangeRejectedException(
+              "User aborted execution: did not confirm diff in origin changes.");
+        }
+        return true;
+    }
+
     private ImmutableList<DestinationEffect> doMigrate(
         O rev,
         @Nullable O lastRev,
@@ -465,6 +497,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Files.createDirectories(checkoutDir);
       }
       processConsole.progress("Checking out the change");
+      boolean isShowDiffInOrigin = showDiffInOrigin(rev, lastRev, processConsole);
 
       try (ProfilerTask ignored = profiler().start(
           "origin.checkout", profiler().taskType(workflow.getOrigin().getType()))) {
@@ -624,6 +657,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       transformResult = transformResult
           .withAskForConfirmation(workflow.isAskForConfirmation())
+          .withDiffInOrigin(isShowDiffInOrigin)
           .withIdentity(workflow.getMigrationIdentity(changeIdentityRevision, transformWork));
 
       ImmutableList<DestinationEffect> result;

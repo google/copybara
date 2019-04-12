@@ -71,7 +71,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription {
    * @throws RepoException
    */
   @Nullable
-  default String showDiff(String referenceFrom, String referenceTo) throws RepoException {
+  default String showDiff(R revisionFrom, R revisionTo) throws RepoException {
     return null;
   }
 

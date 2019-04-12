@@ -169,6 +169,12 @@ public class WorkflowOptions implements Option {
           + " to alter it.", converter = AuthorConverter.class)
   Author forcedAuthor = null;
 
+  @Parameter(names = "--diff-in-origin",
+      description = "When this flag is enabled, copybara will show different changes between last"
+          + " Revision and current revision in origin instead of in destination. NOTE: it Only"
+          + " works for SQUASH and ITERATIVE")
+  public boolean diffInOrigin = false;
+
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {
     if (defaultAuthor == null) {
