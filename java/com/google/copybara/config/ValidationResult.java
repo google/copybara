@@ -19,6 +19,7 @@ package com.google.copybara.config;
 import static com.google.copybara.config.ValidationResult.Level.ERROR;
 import static com.google.copybara.config.ValidationResult.Level.WARNING;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -69,6 +70,13 @@ public class ValidationResult {
           .collect(ImmutableList.toImmutableList());
   }
 
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+      .add("messages", messages)
+      .toString();
+  }
+
   /**
    * Levels of validation messages. Can only be warning or error, because it doesn't make sense
    * to have info here.
@@ -94,6 +102,15 @@ public class ValidationResult {
 
     public String getMessage() {
       return message;
+    }
+
+    /**
+     * Generates a string from this validation message with padded level and
+     * message text.
+     */
+    @Override
+    public String toString() {
+      return String.format("%-8s %s", level, message);
     }
   }
 
