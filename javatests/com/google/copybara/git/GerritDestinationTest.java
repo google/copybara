@@ -562,6 +562,49 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testReviewerFieldWithLabel() throws Exception {
+    pushToRefsFor = "master%label=Foo";
+    writeFile(workdir, "file", "some content");
+    fetch = "master";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_REVIEWER")
+                                ? ImmutableList.of("foo@example.com")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console.getMessages().stream()
+            .anyMatch(
+                message ->
+                    message
+                        .getText()
+                        .contains("refs/for/master%label=Foo,r=foo@example.com"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
   public void testCc() throws Exception {
     pushToRefsFor = "master";
     writeFile(workdir, "file", "some content");

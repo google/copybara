@@ -256,7 +256,12 @@ public final class GerritDestination implements Destination<GitRevision> {
       if (!cc.isEmpty()) {
         options.add(asGerritParam("cc", cc));
       }
-      return options.isEmpty() ? pushToRefsFor : pushToRefsFor + '%' + Joiner.on(',').join(options);
+      return options.isEmpty() ? pushToRefsFor : pushToRefsFor +
+          // Don't add % if the push_to_refs_for reference already contains '%'. This happens
+          // if labels or other things are set in the push ref (For things we don't have support
+          // as specific fields).
+          (pushToRefsFor.contains("%") ? ',' : '%')
+          + Joiner.on(',').join(options);
     }
 
     private static String asGerritParam(String param, ImmutableList<String> values) {
