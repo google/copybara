@@ -110,11 +110,20 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final boolean allowEmptyDiffPatchSet;
     private final GeneralOptions generalOptions;
     private final List<String> ccTemplate;
+    private final List<String> labelsTemplate;
 
-    GerritWriteHook(GeneralOptions generalOptions, GerritOptions gerritOptions, String repoUrl,
-        Author committer, List<String> reviewersTemplate, List<String> ccTemplate,
-        ChangeIdPolicy changeIdPolicy, boolean allowEmptyDiffPatchSet,
-        @Nullable Checker endpointChecker, @Nullable NotifyOption notifyOption) {
+    GerritWriteHook(
+        GeneralOptions generalOptions,
+        GerritOptions gerritOptions,
+        String repoUrl,
+        Author committer,
+        List<String> reviewersTemplate,
+        List<String> ccTemplate,
+        ChangeIdPolicy changeIdPolicy,
+        boolean allowEmptyDiffPatchSet,
+        List<String> labelsTemplate,
+        @Nullable Checker endpointChecker,
+        @Nullable NotifyOption notifyOption) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -126,6 +135,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.ccTemplate = Preconditions.checkNotNull(ccTemplate);
       this.endpointChecker = endpointChecker;
       this.notifyOption = notifyOption;
+      this.labelsTemplate = labelsTemplate;
     }
 
     /**
@@ -243,6 +253,8 @@ public final class GerritDestination implements Destination<GitRevision> {
           SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate);
       ImmutableList<String> cc =
           SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate);
+      ImmutableList<String> labels =
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate);
       List<String> options = new ArrayList<>();
       if (notifyOption != null) {
         options.add("notify=" + notifyOption);
@@ -255,6 +267,9 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
       if (!cc.isEmpty()) {
         options.add(asGerritParam("cc", cc));
+      }
+      if (!labels.isEmpty()) {
+        options.add(asGerritParam("label", labels));
       }
       return options.isEmpty() ? pushToRefsFor : pushToRefsFor +
           // Don't add % if the push_to_refs_for reference already contains '%'. This happens
@@ -466,6 +481,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       boolean allowEmptyPatchSet,
       List<String> reviewers,
       List<String> cc,
+      List<String> labels,
       @Nullable Checker endpointChecker) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
@@ -488,6 +504,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 cc,
                 changeIdPolicy,
                 allowEmptyPatchSet,
+                labels,
                 endpointChecker,
                 notifyOption),
             DEFAULT_GIT_INTEGRATES),

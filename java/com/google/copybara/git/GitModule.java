@@ -913,6 +913,10 @@ public class GitModule implements LabelsAwareModule {
               defaultValue = "[]",
               doc = "The list of the email addresses or users that will be CCed in the review. Can"
                   + " use labels as the `reviewers` field."),
+          @Param(name = "labels", type = SkylarkList.class, named = true,
+              defaultValue = "[]",
+              doc = "The list of labels to be pushed with the change. The format is the label "
+                  + "along with the associated value. For example: Run-Presubmit+1"),
           @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
               doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
                   + "This field is not required if the workflow hooks don't use the "
@@ -926,11 +930,13 @@ public class GitModule implements LabelsAwareModule {
   public GerritDestination gerritDestination(
       String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
       String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
-      SkylarkList<String> ccParam, Object checkerObj, Location location) throws EvalException {
+      SkylarkList<String> ccParam, SkylarkList<String> labelsParam,
+      Object checkerObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
 
     List<String> newReviewers = Type.STRING_LIST.convert(reviewers, "reviewers");
     List<String> cc = Type.STRING_LIST.convert(ccParam, "cc");
+    List<String> labels = Type.STRING_LIST.convert(labelsParam, "labels");
 
     String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
     check(location, !(submit && notifyOptionStr != null),
@@ -956,6 +962,7 @@ public class GitModule implements LabelsAwareModule {
         allowEmptyPatchSet,
         newReviewers,
         cc,
+        labels,
         convertFromNoneable(checkerObj, null));
   }
 

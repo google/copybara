@@ -649,6 +649,50 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testLabels() throws Exception {
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "labels = [\"${SOME_LABELS}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_LABELS")
+                                ? ImmutableList.of("Foo+1", "Bar-1")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    boolean correctMessage =
+        console.getMessages().stream()
+            .anyMatch(
+                message ->
+                    message
+                        .getText()
+                        .contains("refs/for/master%topic=testTopic,label=Foo+1,label=Bar-1"));
+    assertThat(correctMessage).isTrue();
+  }
+
+  @Test
   public void testDescribe() throws Exception {
     pushToRefsFor = "master";
     fetch = "master";
@@ -1003,6 +1047,7 @@ public class GerritDestinationTest {
             ImmutableList.of(),
             ChangeIdPolicy.REPLACE,
             /*allowEmptyDiffPatchSet=*/ true,
+            /*labels*/ ImmutableList.of(),
             /*endpointChecker=*/ null,
             /*notifyOption*/ null);
     fakeOneCommitInDestination();

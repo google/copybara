@@ -420,7 +420,7 @@ public final class TransformResult {
   }
 
   /**
-   * If true, the destination will not ask for confirmation. Instead, it will show the diff  it will des
+   * If true, the destination will not ask for confirmation. Instead, it will show the diff.
    *
    */
   public boolean isConfirmedInOrigin() {
