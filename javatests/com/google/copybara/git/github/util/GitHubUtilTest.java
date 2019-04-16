@@ -31,9 +31,13 @@ import org.junit.runners.JUnit4;
 public class GitHubUtilTest {
 
   @Test
-  public void testGetPRojectNameFromUrl() throws Exception {
+  public void testGetProjectNameFromUrl() throws Exception {
     assertThat(getProjectNameFromUrl("https://github.com/foo")).isEqualTo("foo");
+    assertThat(getProjectNameFromUrl("http://github.com/foo")).isEqualTo("foo");
+    assertThat(getProjectNameFromUrl("https://www.github.com/foo")).isEqualTo("foo");
     assertThat(getProjectNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo/bar");
+    assertThat(getProjectNameFromUrl("http://github.com/foo/bar")).isEqualTo("foo/bar");
+    assertThat(getProjectNameFromUrl("https://www.github.com/foo/bar")).isEqualTo("foo/bar");
     assertThat(getProjectNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo/bar");
     assertThat(getProjectNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo/bar");
     assertThat(getProjectNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo/bar");

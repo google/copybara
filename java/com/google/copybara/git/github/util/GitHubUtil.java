@@ -20,11 +20,11 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.net.URI;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -35,7 +35,8 @@ public class GitHubUtil {
   private static final Pattern GITHUB_PULL_REQUEST =
       Pattern.compile("https://github[.]com/(.+)/pull/([0-9]+)");
   private static final String GIT_GITHUB_PROTOCOL = "git@github.com:";
-  private static final String GITHUB_HOST = "github.com";
+  private static final ImmutableSet<String> GITHUB_HOSTS =
+      ImmutableSet.of("www.github.com", "github.com");
 
   private GitHubUtil() {
   }
@@ -54,7 +55,6 @@ public class GitHubUtil {
    * Given a url that represents a GitHub repository, return the project name.
    */
   public static String getProjectNameFromUrl(String url) throws ValidationException {
-
     checkCondition(!Strings.isNullOrEmpty(url), "Empty url");
 
     if (url.startsWith(GIT_GITHUB_PROTOCOL)) {
@@ -69,7 +69,7 @@ public class GitHubUtil {
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);
     }
-    checkCondition(Objects.equals(uri.getHost(), GITHUB_HOST), "Not a github url: %s", url);
+    checkCondition(GITHUB_HOSTS.contains(uri.getHost()), "Not a github url: %s", url);
     String name = uri.getPath()
         .replaceAll("^/", "")
         .replaceAll("([.]git|/)$", "");
