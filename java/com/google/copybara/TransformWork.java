@@ -445,11 +445,21 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
           return SkylarkList.createImmutable(result);
         }
       }
+      ImmutableList<String> revVal = change.getRevision().associatedLabel(label);
+      if (!revVal.isEmpty()) {
+        result.addAll(revVal);
+        if (!all) {
+          return SkylarkList.createImmutable(result);
+        }
+      }
     }
 
     // Try to find the label in the resolved reference
     ImmutableList<String> resolvedRefLabel = resolvedReference.associatedLabels().get(label);
-    result.addAll(resolvedRefLabel);
+    if (result.addAll(resolvedRefLabel) && !all) {
+      return SkylarkList.createImmutable(result);
+    }
+
     return SkylarkList.createImmutable(result);
   }
 

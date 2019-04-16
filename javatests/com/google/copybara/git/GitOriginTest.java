@@ -33,10 +33,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
+import com.google.copybara.Changes;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.Revision;
+import com.google.copybara.TransformWork;
 import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -50,12 +52,14 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -559,17 +563,30 @@ public class GitOriginTest {
         .allMatch(c -> c.startsWith("file://")))
         .isTrue();
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
-    assertThat(changes.get(0).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION"))
+    assertThat(changes.get(0).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION"))
         .contains("0.1");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
 
-    assertThat(changes.get(1).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION"))
+    assertThat(changes.get(1).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION"))
         .contains("0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7));
 
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
 
-    assertThat(changes.get(2).getLabelsAllForSkylark().get("GIT_DESCRIBE_CHANGE_VERSION")).
+    assertThat(changes.get(2).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION")).
         contains("0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7));
+
+    TransformWork work = TransformWorks.of(Paths.get(""), "some msg", console).withChanges(
+        new Changes(changes.reverse(), ImmutableList.of())
+    );
+
+    assertThat(work.getLabel("GIT_DESCRIBE_CHANGE_VERSION"))
+        .isEqualTo("0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7));
+
+    assertThat(work.getAllLabels("GIT_DESCRIBE_CHANGE_VERSION").getImmutableList())
+        .isEqualTo(ImmutableList.of(
+            "0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7),
+            "0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7),
+            "0.1"));
 
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");

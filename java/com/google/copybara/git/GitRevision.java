@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Revision;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
@@ -33,6 +34,7 @@ import javax.annotation.Nullable;
 /** A Git repository reference */
 public final class GitRevision implements Revision {
 
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   public static final Pattern COMPLETE_SHA1_PATTERN = Pattern.compile("[a-f0-9]{40}");
 
   private final GitRepository repository;
@@ -41,6 +43,7 @@ public final class GitRevision implements Revision {
   private final ImmutableListMultimap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
   @Nullable private final String url;
+  private String describe;
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
    *
@@ -166,6 +169,37 @@ public final class GitRevision implements Revision {
   @Override
   public ImmutableListMultimap<String, String> associatedLabels() {
     return associatedLabels;
+  }
+
+  @Override
+  public ImmutableList<String> associatedLabel(String label) {
+    // We only return git describe if specifically ask for this label
+    if (label.equals(GitRepository.GIT_DESCRIBE_CHANGE_VERSION)) {
+      return populateDescribe();
+    }
+    return associatedLabels.get(label);
+  }
+
+  /**
+   * Lazily compute describe. In general we could compute this in git.origin, but sometimes
+   * there are thousands of changes to be migrated and we end up calling 'git describe' lot of
+   * times. Then in the workflow we generally only need one per migration or one per iteration.
+   * This is a waste of time (and a real performance issue). Instead we compute here on demand.
+   *
+   * <p>Synchronized to make sure we do this only once in case it is being called from parallel
+   * transformations.
+   */
+  private synchronized ImmutableList<String> populateDescribe() {
+    if (describe == null) {
+      try {
+        describe = repository.describe(this);
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Cannot describe version for %s. Using short sha", sha1);
+        describe = sha1.substring(0, 7);
+      }
+    }
+    return ImmutableList.of(describe);
   }
 
   GitRevision withUrl(String url) {

@@ -26,7 +26,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -306,15 +305,7 @@ public class GitOrigin implements Origin<GitRevision> {
         if (!describeVersion) {
           return ChangesResponse.forChangesWithMerges(gitChanges);
         }
-        ImmutableList.Builder<Change<GitRevision>> newGitChanges = ImmutableList.builder();
-        for (Change<GitRevision> gitChange : gitChanges) {
-          String describe = getRepository().describe(gitChange.getRevision());
-          newGitChanges.add(
-              gitChange.withLabels(ImmutableListMultimap.of(
-                  GitRepository.GIT_DESCRIBE_CHANGE_VERSION, describe)));
-
-        }
-        return ChangesResponse.forChangesWithMerges(newGitChanges.build());
+        return ChangesResponse.forChangesWithMerges(gitChanges);
       }
       if (fromRef == null) {
         return noChanges(EmptyReason.NO_CHANGES);

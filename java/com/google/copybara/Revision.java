@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import java.time.Instant;
@@ -75,6 +76,13 @@ public interface Revision {
    */
   default ImmutableListMultimap<String, String> associatedLabels() {
     return ImmutableListMultimap.of();
+  }
+
+  /**
+   * Find a specific label
+   */
+  default ImmutableList<String> associatedLabel(String label) {
+    return associatedLabels().get(label);
   }
 
   /**
