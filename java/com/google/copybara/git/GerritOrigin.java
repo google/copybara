@@ -87,7 +87,8 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         includeBranchCommitLogs,
         firstParent,
-        patchTransformation, describeVersion);
+        patchTransformation, describeVersion,
+        /*versionSelector=*/null);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);

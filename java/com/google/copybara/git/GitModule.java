@@ -30,6 +30,8 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.LatestVersionSelector.VersionElementType.ALPHABETIC;
+import static com.google.copybara.git.LatestVersionSelector.VersionElementType.NUMERIC;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
 
 import com.google.common.base.Preconditions;
@@ -43,7 +45,6 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -55,10 +56,12 @@ import com.google.copybara.git.GitHubPROrigin.ReviewState;
 import com.google.copybara.git.GitHubPROrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
+import com.google.copybara.git.LatestVersionSelector.VersionElementType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
@@ -75,10 +78,13 @@ import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -162,20 +168,30 @@ public class GitModule implements LabelsAwareModule {
               named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
           @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
               named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true),
+          @Param(name = "version_selector", type = LatestVersionSelector.class, defaultValue = "None",
+              named = true, positional = false, doc = "Select a custom version (tag)to migrate"
+              + " instead of 'ref'", noneable = true),
       }, useLocation = true)
   public GitOrigin origin(String url, Object ref, String submodules,
       Boolean includeBranchCommitLogs, Boolean firstParent, Object patch, Object describeVersion,
-      Location location)
+      Object versionSelector, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+
+    if (versionSelector != Runtime.NONE) {
+      check(location, ref == Runtime.NONE,
+          "Cannot use ref field and version_selector. Version selector will decide the ref"
+              + " to migrate");
+    }
 
     return GitOrigin.newGitOrigin(
         options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
         GitRepoType.GIT, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs, firstParent, patchTransformation,
-        convertDescribeVersion(describeVersion));
+        convertDescribeVersion(describeVersion),
+        convertFromNoneable(versionSelector, null));
   }
 
   @Nullable
@@ -362,7 +378,7 @@ public class GitModule implements LabelsAwareModule {
           stringToEnum(location, "submodules",
               submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/false, firstParent, patchTransformation,
-          convertDescribeVersion(describeVersion));
+          convertDescribeVersion(describeVersion), /*versionSelector=*/null);
     }
     return GerritOrigin.newGerritOrigin(
         options, url, stringToEnum(location, "submodules",
@@ -543,13 +559,24 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
               named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
           @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
-              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true)},
+              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true),
+          @Param(name = "version_selector", type = LatestVersionSelector.class, defaultValue = "None",
+              named = true, positional = false, doc = "Select a custom version (tag)to migrate"
+              + " instead of 'ref'", noneable = true),
+      },
+
       useLocation = true)
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object patch, Object describeVersion, Location location)
-      throws EvalException {
+      Boolean firstParent, Object patch, Object describeVersion, Object versionSelector,
+      Location location) throws EvalException {
     if (!GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
       throw new EvalException(location, "Invalid Github URL: " + url);
+    }
+
+    if (versionSelector != Runtime.NONE) {
+      check(location, ref == Runtime.NONE,
+          "Cannot use ref field and version_selector. Version selector will decide the ref"
+              + " to migrate");
     }
 
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
@@ -560,7 +587,7 @@ public class GitModule implements LabelsAwareModule {
         GitRepoType.GITHUB, stringToEnum(location, "submodules",
             submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/false, firstParent, patchTransformation,
-        convertDescribeVersion(describeVersion));
+        convertDescribeVersion(describeVersion), convertFromNoneable(versionSelector, null));
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -675,7 +702,7 @@ public class GitModule implements LabelsAwareModule {
         firstNotNull(destinationOptions.url, url), "url", location), location);
     String branchToUpdate = convertFromNoneable(prBranchToUpdate, null);
     Boolean deletePrBranch = convertFromNoneable(deletePrBranchParam, null);
-    SkylarkUtil.check(location, branchToUpdate != null || deletePrBranch == null,
+    check(location, branchToUpdate != null || deletePrBranch == null,
         "'delete_pr_branch' can only be set if 'delete_pr_branch' is used");
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitDestination(
@@ -1126,6 +1153,59 @@ public class GitModule implements LabelsAwareModule {
     return SetReviewInput.create(convertFromNoneable(message, null),
         SkylarkDict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review labels"));
+  }
+
+  @SuppressWarnings("unused")
+  @SkylarkCallable(
+      name = "latest_version",
+      doc = "Customize what version of the available branches and tags to pick."
+          + " By default it ignores the reference passed as parameter. Using `force:reference`"
+          + " in the CLI will force to use that reference instead.",
+      parameters = {
+          @Param(
+              name = "refspec_format",
+              type = String.class,
+              doc = "The format of of the branch/tag",
+              named = true,
+              defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\"", noneable = true),
+          @Param(name = "refspec_groups", named = true, type = SkylarkDict.class,
+              doc = "A set of named regexes that can be used to match part of the versions."
+                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                  + " Use the following nomenclature n0, n1, n2 for the version part (will use"
+                  + " numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can"
+                  + " be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is"
+                  + " valid but not n0, s0, n1. n0 has more priority than n1. If there are fields"
+                  + " where order is not important, use s(N+1) where N ist he latest sorted field."
+                  + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
+              defaultValue = "{'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'}"),
+      },
+      useLocation = true)
+  public LatestVersionSelector versionSelector(String refspec,SkylarkDict<String, String> groups,
+      Location location) throws EvalException {
+    check(location, refspec.startsWith("refs/"), "Wrong value '%s'. Refspec has to"
+        + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'");
+
+    TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
+    Pattern regexKey = Pattern.compile("([sn])([0-9])");
+    for (String s : groups.keySet()) {
+      Matcher matcher = regexKey.matcher(s);
+      check(location, matcher.matches(), "Incorrect key for refspec_group. Should be in the "
+          + "format of n0, n1, etc. or s0, s1, etc. Value: %s", s);
+      VersionElementType type = matcher.group(1).equals("s") ? ALPHABETIC : NUMERIC;
+      int num = Integer.parseInt(matcher.group(2));
+      check(location, !elements.containsKey(num) || elements.get(num) == type,
+          "Cannot use same n in both s%s and n%s: %s", num, num, s);
+      elements.put(num, type);
+    }
+    for (Integer num : elements.keySet()) {
+      if (num > 0 ) {
+        check(location, elements.containsKey(num -1), "Cannot have s%s or n%s if s%s or n%s"
+            + " doesn't exist", num, num, num -1 , num -1);
+      }
+    }
+
+    return new LatestVersionSelector(
+        refspec, Replace.parsePatterns(location, groups), elements, location);
   }
 
   @Override

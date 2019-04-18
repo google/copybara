@@ -47,6 +47,14 @@ public class GitOriginOptions implements Option {
       + "in git.*origin.", arity = 1, hidden = true)
   boolean gitDescribeDefault = true;
 
+  @Parameter(names = "--nogit-origin-version-selector", description = "Disable the version selector"
+      + " for the migration. Only useful for forcing a migration to the passed version in the CLI")
+  boolean noGitVersionSelector = false;
+
+  public boolean useGitVersionSelector() {
+    return !noGitVersionSelector;
+  }
+
   void maybeRunCheckoutHook(Path checkoutDir, GeneralOptions generalOptions) throws RepoException {
     if (Strings.isNullOrEmpty(originCheckoutHook)) {
       return;

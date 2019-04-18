@@ -158,15 +158,7 @@ public final class Replace implements Transformation {
       boolean repeatedGroups, List<String> patternsToIgnore,
       WorkflowOptions workflowOptions)
       throws EvalException {
-    Map<String, Pattern> parsedGroups = new HashMap<>();
-    for (Map.Entry<String, String> group : regexGroups.entrySet()) {
-      try {
-        parsedGroups.put(group.getKey(), Pattern.compile(group.getValue()));
-      } catch (PatternSyntaxException e) {
-        throw new EvalException(location, "'regex_groups' includes invalid regex for key "
-            + group.getKey() + ": " + group.getValue(), e);
-      }
-    }
+    Map<String, Pattern> parsedGroups = parsePatterns(location, regexGroups);
 
     RegexTemplateTokens beforeTokens =
         new RegexTemplateTokens(location, before, parsedGroups, repeatedGroups);
@@ -193,6 +185,20 @@ public final class Replace implements Transformation {
     return new Replace(
         beforeTokens, afterTokens, parsedGroups, firstOnly, multiline, repeatedGroups, paths,
         parsedIgnorePatterns, workflowOptions);
+  }
+
+  public static Map<String, Pattern> parsePatterns(Location location,
+      Map<String, String> regexGroups) throws EvalException {
+    Map<String, Pattern> parsedGroups = new HashMap<>();
+    for (Map.Entry<String, String> group : regexGroups.entrySet()) {
+      try {
+        parsedGroups.put(group.getKey(), Pattern.compile(group.getValue()));
+      } catch (PatternSyntaxException e) {
+        throw new EvalException(location, "'regex_groups' includes invalid regex for key "
+            + group.getKey() + ": " + group.getValue(), e);
+      }
+    }
+    return parsedGroups;
   }
 
   private final static class BatchReplace

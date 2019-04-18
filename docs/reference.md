@@ -69,6 +69,7 @@
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
     - [git.integrate](#git.integrate)
+    - [git.latest_version](#git.latest_version)
     - [git.mirror](#git.mirror)
     - [git.origin](#git.origin)
     - [git.review_input](#git.review_input)
@@ -1674,7 +1675,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None, describe_version=None)`
+`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, patch=None, describe_version=None, version_selector=None)`
 
 
 #### Parameters:
@@ -1687,6 +1688,7 @@ submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIV
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
@@ -1857,6 +1859,21 @@ git.destination(
 It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration. If the label is found, it will fetch the git url and add that change as an additional parent to the migration commit (merge). It will fake-merge any change from the url that matches destination_files but it will include changes not matching it.
 
 
+<a id="git.latest_version" aria-hidden="true"></a>
+### git.latest_version
+
+Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using `force:reference` in the CLI will force to use that reference instead.
+
+`latestVersionSelector git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+refspec_format | `string`<br><p>The format of of the branch/tag</p>
+refspec_groups | `dict`<br><p>A set of named regexes that can be used to match part of the versions.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
+
 <a id="git.mirror" aria-hidden="true"></a>
 ### git.mirror
 
@@ -1889,7 +1906,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None, describe_version=None)`
+`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, patch=None, describe_version=None, version_selector=None)`
 
 
 #### Parameters:
@@ -1903,6 +1920,7 @@ include_branch_commit_logs | `boolean`<br><p>Whether to include raw logs of bran
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input

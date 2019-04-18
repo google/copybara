@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -68,8 +69,12 @@ public final class RegexTemplateTokens {
    * How this template can be used when it is the "before" value of core.replace - as a regex to
    * search for.
    */
-  Pattern getBefore() {
+  public Pattern getBefore() {
     return before;
+  }
+
+  public ImmutableListMultimap<String, Integer> getGroupIndexes() {
+    return ImmutableListMultimap.copyOf(groupIndexes);
   }
 
   public Replacer replacer(

@@ -89,12 +89,14 @@ public class GitOrigin implements Origin<GitRevision> {
   boolean firstParent;
   @Nullable private final PatchTransformation patchTransformation;
   protected final boolean describeVersion;
+  @Nullable private final LatestVersionSelector versionSelector;
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs, boolean firstParent,
-      @Nullable PatchTransformation patchTransformation, boolean describeVersion) {
+      @Nullable PatchTransformation patchTransformation, boolean describeVersion,
+      @Nullable LatestVersionSelector versionSelector) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -110,6 +112,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.firstParent = firstParent;
     this.patchTransformation = patchTransformation;
     this.describeVersion = describeVersion;
+    this.versionSelector = versionSelector;
   }
 
   @VisibleForTesting
@@ -129,13 +132,17 @@ public class GitOrigin implements Origin<GitRevision> {
       throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
     String ref;
-    if (Strings.isNullOrEmpty(reference)) {
+    if (gitOriginOptions.useGitVersionSelector() && versionSelector != null) {
+      ref = versionSelector.selectVersion(reference, getRepository(), repoUrl, console);
+      checkCondition(ref != null, "Cannot find any matching version for latest_version");
+    } else if (Strings.isNullOrEmpty(reference)) {
       checkCondition(configRef != null, "No reference was passed as a command line argument for"
               + " %s and no default reference was configured in the config file", repoUrl);
       ref = configRef;
     } else {
       ref = reference;
     }
+
     GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
         describeVersion);
     return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
@@ -388,12 +395,13 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
-      @Nullable PatchTransformation patchTransformation, boolean describeVersion) {
+      @Nullable PatchTransformation patchTransformation, boolean describeVersion,
+      @Nullable LatestVersionSelector versionSelector) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         submoduleStrategy, includeBranchCommitLogs, firstParent, patchTransformation,
-        describeVersion);
+        describeVersion, versionSelector);
   }
 
   @Override
@@ -411,6 +419,9 @@ public class GitOrigin implements Origin<GitRevision> {
             .put("submodules", submoduleStrategy.name());
     if (configRef != null) {
       builder.put("ref", configRef);
+    }
+    if (versionSelector != null) {
+      builder.put("refspec", versionSelector.asGitRefspec());
     }
     return builder.build();
   }
