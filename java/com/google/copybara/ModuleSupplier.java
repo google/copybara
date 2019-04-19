@@ -53,8 +53,7 @@ public class ModuleSupplier {
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
       CoreGlobal.class,
       Authoring.Module.class,
-      MetadataModule.class,
-      PatchModule.class);
+      MetadataModule.class);
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
   private final Console console;
@@ -85,7 +84,8 @@ public class ModuleSupplier {
         new FolderModule(
             options.get(FolderOriginOptions.class),
             options.get(FolderDestinationOptions.class),
-            general)
+            general),
+        new PatchModule(options.get(PatchingOptions.class))
     );
   }
 
