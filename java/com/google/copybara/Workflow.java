@@ -112,6 +112,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean checkLastRevState;
   private final ImmutableList<Action> afterAllMigrationActions;
   @Nullable private final String customRevId;
+  private final boolean checkout;
 
   public Workflow(
       String name,
@@ -139,7 +140,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean setRevId,
       boolean smartPrune,
       boolean migrateNoopChanges,
-      @Nullable String customRevId) {
+      @Nullable String customRevId,
+      boolean checkout) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -162,6 +164,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.allConfigFiles = allConfigFiles;
     this.checkLastRevState = checkLastRevState;
     this.customRevId = customRevId;
+    this.checkout = checkout;
     this.effectiveDryRunMode = dryRunModeField || generalOptions.dryRunMode;
     this.dryRunModeField = dryRunModeField;
     this.afterMigrationActions = Preconditions.checkNotNull(afterMigrationActions);
@@ -493,6 +496,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public boolean isDryRunModeField() {
     return dryRunModeField;
+  }
+
+  public boolean isCheckout() {
+    return checkout;
   }
 
   /**

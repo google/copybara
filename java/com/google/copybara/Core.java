@@ -275,6 +275,12 @@ public class Core implements LabelsAwareModule {
           @Param(name = "description", type = String.class, named = true, noneable = true,
               positional = false,
               doc = "A description of what this workflow achieves", defaultValue = "None"),
+          @Param(name = "checkout", type = Boolean.class, named = true,
+              positional = false,
+              doc = "Allows disabling the checkout. The usage of this feature is rare. This could"
+                  + " be used to update a file of your own repo when a dependant repo version"
+                  + " changes and you are not interested on the files of the dependant repo, just"
+                  + " the new version.", defaultValue = "True"),
       },
       useLocation = true, useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
@@ -302,6 +308,7 @@ public class Core implements LabelsAwareModule {
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
+      Boolean checkout,
       Location location,
       Environment env)
       throws EvalException {
@@ -381,7 +388,8 @@ public class Core implements LabelsAwareModule {
         setRevId,
         smartPrune,
         workflowOptions.migrateNoopChanges || migrateNoopChanges,
-        customRevId));
+        customRevId,
+        checkout));
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)

@@ -499,9 +499,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       processConsole.progress("Checking out the change");
       boolean isShowDiffInOrigin = showDiffInOrigin(rev, lastRev, processConsole);
 
-      try (ProfilerTask ignored = profiler().start(
-          "origin.checkout", profiler().taskType(workflow.getOrigin().getType()))) {
-        reader.checkout(rev, checkoutDir);
+      if (workflow.isCheckout() ) {
+        try (ProfilerTask ignored = profiler().start(
+            "origin.checkout", profiler().taskType(workflow.getOrigin().getType()))) {
+          reader.checkout(rev, checkoutDir);
+        }
       }
 
       // Remove excluded origin files.

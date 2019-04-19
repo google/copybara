@@ -295,6 +295,18 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testDisableCheckout() throws Exception {
+    transformations = ImmutableList.of();
+    extraWorkflowFields = ImmutableList.of("checkout = False");
+    Workflow<?, ?> workflow = workflow();
+    DummyRevision head = origin.resolve("HEAD");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getOriginRef()).isEqualTo(head);
+    assertThatPath(workdir).containsNoMoreFiles();
+  }
+
+  @Test
   public void testEmptyDescriptionForFolderDestination() throws Exception {
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
     options
