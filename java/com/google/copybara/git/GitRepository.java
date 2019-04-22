@@ -124,6 +124,12 @@ public class GitRepository {
               + "|ERR want .+ not valid)");
   private static final Pattern NO_GIT_REPOSITORY =
       Pattern.compile("does not appear to be a git repository");
+  private static final Pattern PROTECTED_BRANCH =
+      Pattern.compile(
+          ""
+              // Protected brach errors in GitHub
+              + "([Pp]rotected branch hook declined)");
+
 
   /**
    * Label to be used for marking the original revision id (Git SHA-1) for migrated commits.
@@ -1420,7 +1426,15 @@ public class GitRepository {
      * Runs the push command and returns the response from the server.
      */
     public String run() throws RepoException, ValidationException {
-      return repo.runPush(this);
+      String output = repo.runPush(this);
+      checkCondition(
+          !PROTECTED_BRANCH.matcher(output).find(),
+          "Cannot push to %s refspecs %s. Please request an admin of the repo to verify the "
+              + "branch protection rules at %s/settings/branches if you think it's a legit branch.",
+          url,
+          refspecs,
+          url);
+      return output;
     }
 
   }
