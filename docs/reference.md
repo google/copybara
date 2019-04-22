@@ -2587,7 +2587,7 @@ label | `string`<br><p>The label to use for storing the author</p>
 
 Removes part of the change message using a regex
 
-`transformation metadata.scrubber(regex, replacement='')`
+`transformation metadata.scrubber(regex, msg_if_no_match=None, fail_if_no_match=False, replacement='')`
 
 
 #### Parameters:
@@ -2595,6 +2595,8 @@ Removes part of the change message using a regex
 Parameter | Description
 --------- | -----------
 regex | `string`<br><p>Any text matching the regex will be removed. Note that the regex is runs in multiline mode.</p>
+msg_if_no_match | `string`<br><p>If set, Copybara will use this text when the scrubbing regex doesn't match.</p>
+fail_if_no_match | `boolean`<br><p>If set, msg_if_no_match must be None and then fail if the scrubbing regex doesn't match. </p>
 replacement | `string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 

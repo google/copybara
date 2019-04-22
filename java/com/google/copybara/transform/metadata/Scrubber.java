@@ -25,6 +25,7 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import com.google.re2j.Pattern;
 import java.io.IOException;
+import javax.annotation.Nullable;
 
 /**
  * A transformer that removes matching substrings from the change description.
@@ -33,9 +34,15 @@ public class Scrubber implements Transformation {
 
   private final Pattern pattern;
   private final String replacement;
+  @Nullable
+  private final String defaultPublicMsg;
+  private final boolean failIfNotMacth;
 
-  Scrubber(Pattern pattern, String replacement) {
+  Scrubber(Pattern pattern, @Nullable String defaultPublicMsg, boolean failIfNotMacth,
+      String replacement) {
     this.pattern = Preconditions.checkNotNull(pattern);
+    this.defaultPublicMsg = defaultPublicMsg;
+    this.failIfNotMacth = failIfNotMacth;
     this.replacement = Preconditions.checkNotNull(replacement);
   }
 
@@ -48,11 +55,14 @@ public class Scrubber implements Transformation {
         work.getConsole()
             .verboseFmt(
                 "Scrubbed change description '%s' by '%s'", work.getMessage(), scrubbedMessage);
-      } else {
-        work.getConsole()
-            .verboseFmt("Scrubber didn't match the change description: %s", work.getMessage());
+        work.setMessage(scrubbedMessage);
+        return;
       }
-      work.setMessage(scrubbedMessage);
+      ValidationException.checkCondition(!failIfNotMacth,
+          "Scrubber regex didn't match for description: %s", work.getMessage());
+      if (defaultPublicMsg != null) {
+        work.setMessage(defaultPublicMsg);
+      }
     } catch (IndexOutOfBoundsException e) {
       throw new ValidationException(String.format(
           "Could not find matching group. Are you missing a group in your regex '%s'?",

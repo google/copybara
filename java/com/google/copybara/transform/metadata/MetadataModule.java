@@ -18,6 +18,7 @@ package com.google.copybara.transform.metadata;
 
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Transformation;
@@ -458,6 +459,13 @@ public class MetadataModule {
           @Param(name = "regex", type = String.class, named = true,
               doc = "Any text matching the regex will be removed. Note that the regex is"
                   + " runs in multiline mode."),
+          @Param(name = "msg_if_no_match", type = String.class, named = true,
+              doc = "If set, Copybara will use this text when the scrubbing regex doesn't match.",
+              defaultValue = "None", noneable = true),
+          @Param(name = "fail_if_no_match", type = Boolean.class, named = true,
+              doc = "If set, msg_if_no_match must be None and then fail if the scrubbing "
+                  + "regex doesn't match. ",
+              defaultValue = "False"),
           @Param(name = "replacement", type = String.class, named = true,
               doc = "Text replacement for the matching substrings. References to regex group"
                   + " numbers can be used in the form of $1, $2, etc.",
@@ -495,16 +503,19 @@ public class MetadataModule {
           + "```\n"
           + "but this is public\nvery public\n"
           + "```\n\n")
-  public Transformation scrubber(String regex, String replacement,
-        Location location)
-        throws EvalException {
+  public Transformation scrubber(String regex, Object msgIfNoMatchObj, Boolean failIfNoMatch,
+      String replacement, Location location)
+      throws EvalException {
       Pattern pattern;
       try {
         pattern = Pattern.compile(regex, Pattern.MULTILINE);
       } catch (PatternSyntaxException e) {
         throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
       }
-      return new Scrubber(pattern, replacement);
+      String msgIfNoMatch = convertFromNoneable(msgIfNoMatchObj, null);
+      Preconditions.checkArgument(!failIfNoMatch || msgIfNoMatch == null,
+            "If fail_if_no_match is true, msg_if_no_match should be None.");
+      return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement);
     }
 
   @SuppressWarnings("unused")

@@ -906,6 +906,55 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testScrubberWithoutDefaultPublicMsg() throws Exception {
+    checkScrubber(
+        "this\nis\nvery confidential\nbut this is not public\nnot for public\n",
+        "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+            + "msg_if_no_match = 'This is not confidential.', "
+            + "replacement = '$1')",
+        "This is not confidential.");
+  }
+
+  @Test
+  public void testScrubberWithPreconditionFailForCustomizeMsg() throws Exception {
+    try {
+      checkScrubber(
+          "this\nis\nvery confidential\nbut this is not public\nnot for public\n",
+          "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+              + "msg_if_no_match = 'This is not confidential.',"
+              + "fail_if_no_match = True,"
+              + "replacement = '$1')",
+          /*not used*/ null);
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains("If fail_if_no_match is true, msg_if_no_match should be None.");
+    }
+  }
+
+  @Test
+  public void testScrubberFailWithNoPublicMsg() throws Exception {
+    try {
+      origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
+      origin.addSimpleChange(0, "Confidential 1\nPUBLIC: It is a public msg\n Confidential\n");
+      options.testingOptions.origin = origin;
+      checkScrubber(
+          "This\nis\nvery confidential\nbut this is public\nvery public\n",
+          "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+              + "fail_if_no_match = True,"
+              + "replacement = '$1')",
+          /*not used*/ null);
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains(
+              "Scrubber regex didn't match for description: "
+                  + "This\nis\nvery confidential\nbut this is public\nvery public\n");
+    }
+  }
+
+  @Test
   public void testScrubberForLabel() throws Exception {
     checkScrubber(
         "this is public\nvery public\nCONFIDENTIAL:"
