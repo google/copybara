@@ -67,7 +67,7 @@ public class ReadConfigFromChangeWorkflowTest {
             skylark.createModuleSet(),
             skylark.createConfigFile("copy.bara.sky", configCode)) {
           @Override
-          public Config loadForRevision(Console console, Revision revision)
+          protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
             try {
               return skylark.loadConfig(mutatingWorkflow(revision.asString()));

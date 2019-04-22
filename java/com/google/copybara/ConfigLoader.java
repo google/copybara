@@ -66,7 +66,7 @@ public class ConfigLoader {
     console.progressFmt("Loading config and dependencies %s", configFile.getIdentifier());
 
     try (ProfilerTask ignore = moduleSet.getOptions().get(GeneralOptions.class).profiler()
-        .start("loading_config_with_deps")){
+        .start("loading_config_with_deps")) {
       return skylarkParser.getConfigWithTransitiveImports(configFile, moduleSet, console);
     }
   }
@@ -76,15 +76,23 @@ public class ConfigLoader {
     console.progressFmt("Loading config %s", configFile.getIdentifier());
 
     try (ProfilerTask ignore = moduleSet.getOptions().get(GeneralOptions.class).profiler()
-        .start("loading_config")){
+        .start("loading_config")) {
       return skylarkParser.loadConfig(configFile, moduleSet, console);
     }
   }
 
-  public Config loadForRevision(Console console, Revision revision)
-      throws ValidationException, RepoException{
-    throw new RuntimeException("This origin/configuration doesn't allow loading configs from"
-        + " specific revisions");
+  protected Config doLoadForRevision(Console console, Revision revision)
+      throws ValidationException, RepoException {
+    throw new UnsupportedOperationException(
+        "This origin/configuration doesn't allow loading configs from specific revisions");
+  }
+
+  public final Config loadForRevision(Console console, Revision revision)
+      throws ValidationException, RepoException {
+    try (ProfilerTask ignore = moduleSet.getOptions().get(GeneralOptions.class).profiler()
+        .start("loading_config_for_revision")) {
+      return doLoadForRevision(console, revision);
+    }
   }
 
   public boolean supportsLoadForRevision() {

@@ -59,7 +59,7 @@ public class InfoTest {
             skylark.createModuleSet(),
             skylark.createConfigFile("copy.bara.sky", config)) {
           @Override
-          public Config loadForRevision(Console console, Revision revision)
+          protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
             try {
               return skylark.loadConfig(configPath);
