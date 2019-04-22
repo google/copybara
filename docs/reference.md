@@ -6,7 +6,6 @@
     - [authoring.overwrite](#authoring.overwrite)
     - [authoring.pass_thru](#authoring.pass_thru)
     - [authoring.whitelisted](#authoring.whitelisted)
-    - [new_author](#new_author)
   - [authoring_class](#authoring_class)
   - [change](#change)
   - [ChangeMessage](#changemessage)
@@ -85,6 +84,7 @@
     - [github_api_obj.update_reference](#github_api_obj.update_reference)
   - [Globals](#globals)
     - [glob](#glob)
+    - [new_author](#new_author)
     - [parse_message](#parse_message)
   - [hg](#hg)
     - [hg.origin](#hg.origin)
@@ -249,33 +249,6 @@ authoring.whitelisted(
        "another",
     ],
 )
-```
-
-
-<a id="new_author" aria-hidden="true"></a>
-### new_author
-
-Create a new author from a string with the form 'name <foo@bar.com>'
-
-`author new_author(author_string)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-author_string | `string`<br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
-
-
-#### Example:
-
-
-##### Create a new author:
-
-
-
-```python
-new_author('Foo Bar <foobar@myorg.com>')
 ```
 
 
@@ -2179,6 +2152,33 @@ glob(["folder/**"], exclude = ["folder/**.excluded"]) + glob(['folder/includeme.
 ```
 
 This matches all the files in `folder`, excludes all files in that folder that ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>`+` operator for globs is equivalent to `OR` operation.
+
+
+<a id="new_author" aria-hidden="true"></a>
+### new_author
+
+Create a new author from a string with the form 'name <foo@bar.com>'
+
+`author new_author(author_string)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+author_string | `string`<br><p>A string representation of the author with the form 'name <foo@bar.com>'</p>
+
+
+#### Example:
+
+
+##### Create a new author:
+
+
+
+```python
+new_author('Foo Bar <foobar@myorg.com>')
+```
 
 
 <a id="parse_message" aria-hidden="true"></a>

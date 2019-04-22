@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
@@ -109,4 +110,17 @@ public class CoreGlobal {
           "Cannot parse change message '%s': %s", changeMessage, e.getMessage()), e);
     }
   }
+
+    @SkylarkCallable(name = "new_author",
+        doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
+        parameters = {
+            @Param(name = "author_string", type = String.class, named = true,
+                doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
+        }, useLocation = true)
+    @Example(title = "Create a new author", before = "",
+        code = "new_author('Foo Bar <foobar@myorg.com>')")
+    public Author newAuthor(String authorString, Location location)
+        throws EvalException {
+      return Author.parse(location, authorString);
+    }
 }

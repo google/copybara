@@ -16,17 +16,15 @@
 
 package com.google.copybara.authoring;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
@@ -106,72 +104,51 @@ public final class Authoring {
       category = SkylarkModuleCategory.BUILTIN)
   public static final class Module {
 
-    @SkylarkSignature(name = "overwrite", returnType = Authoring.class,
+    @SkylarkCallable(name = "overwrite",
         doc = "Use the default author for all the submits in the destination. Note that some"
             + " destinations might choose to ignore this author and use the current user running"
             + " the tool (In other words they don't allow impersonation).",
         parameters = {
-            @Param(name = "default", type = String.class,
+            @Param(name = "default", type = String.class, named = true,
                 doc = "The default author for commits in the destination"),
-        },
-        objectType = Module.class, useLocation = true)
+        }, useLocation = true)
     @Example(title = "Overwrite usage example",
         before = "Create an authoring object that will overwrite any origin author with"
             + " noreply@foobar.com mail.",
         code = "authoring.overwrite(\"Foo Bar <noreply@foobar.com>\")")
-    public static final BuiltinFunction OVERWRITE = new BuiltinFunction("overwrite") {
-      public Authoring invoke(String defaultAuthor, Location location)
-          throws EvalException {
-        return new Authoring(Author.parse(location, defaultAuthor),
-            AuthoringMappingMode.OVERWRITE,
-            ImmutableSet.of());
-      }
-    };
+    public Authoring overwrite(String defaultAuthor, Location location)
+        throws EvalException {
+      return new Authoring(Author.parse(location, defaultAuthor),
+          AuthoringMappingMode.OVERWRITE,
+          ImmutableSet.of());
+    }
 
-    @SkylarkSignature(name = "new_author", returnType = Author.class,
-        doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
-        parameters = {
-            @Param(name = "author_string", type = String.class,
-                doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
-        }, useLocation = true)
-    @Example(title = "Create a new author", before = "",
-        code = "new_author('Foo Bar <foobar@myorg.com>')")
-    public static final BuiltinFunction NEW_AUTHOR = new BuiltinFunction("new_author") {
-      public Author invoke(String authorString, Location location)
-          throws EvalException {
-        return Author.parse(location, authorString);
-      }
-    };
     @Example(title = "Pass thru usage example", before = "",
         code = "authoring.pass_thru(default = \"Foo Bar <noreply@foobar.com>\")")
-    @SkylarkSignature(name = "pass_thru", returnType = Authoring.class,
+    @SkylarkCallable(name = "pass_thru",
         doc = "Use the origin author as the author in the destination, no whitelisting.",
         parameters = {
-            @Param(name = "default", type = String.class,
+            @Param(name = "default", type = String.class,  named = true,
                 doc = "The default author for commits in the destination. This is used"
                     + " in squash mode workflows or if author cannot be determined."),
-        },
-        objectType = Module.class, useLocation = true)
-    public static final BuiltinFunction PASS_THRU = new BuiltinFunction("pass_thru") {
-      public Authoring invoke(String defaultAuthor, Location location)
+        }, useLocation = true)
+    public Authoring passThru(String defaultAuthor, Location location)
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.PASS_THRU,
             ImmutableSet.of());
       }
-    };
 
-    @SkylarkSignature(name = "whitelisted", returnType = Authoring.class,
+    @SkylarkCallable(name = "whitelisted",
         doc = "Create an individual or team that contributes code.",
         parameters = {
-            @Param(name = "default", type = String.class,
+            @Param(name = "default", type = String.class,  named = true,
                 doc = "The default author for commits in the destination. This is used"
                     + " in squash mode workflows or when users are not whitelisted."),
             @Param(name = "whitelist", type = SkylarkList.class,
-                generic1 = String.class,
+                generic1 = String.class,  named = true,
                 doc = "List of white listed authors in the origin. The authors must be unique"),
-        },
-        objectType = Module.class, useLocation = true)
+        }, useLocation = true)
     @Example(title = "Only pass thru whitelisted users",
         before = "",
         code = "authoring.whitelisted(\n"
@@ -193,15 +170,13 @@ public final class Authoring {
             + "       \"another\",\n"
             + "    ],\n"
             + ")")
-    public static final BuiltinFunction WHITELISTED = new BuiltinFunction("whitelisted") {
-      public Authoring invoke(String defaultAuthor, SkylarkList<String> whitelist,
+    public Authoring whitelisted(String defaultAuthor, SkylarkList<String> whitelist,
           Location location)
           throws EvalException {
         return new Authoring(Author.parse(location, defaultAuthor),
             AuthoringMappingMode.WHITELISTED,
             createWhitelist(location, Type.STRING_LIST.convert(whitelist, "whitelist")));
       }
-    };
 
     private static ImmutableSet<String> createWhitelist(Location location, List<String> whitelist)
         throws EvalException {
@@ -227,15 +202,16 @@ public final class Authoring {
    */
   public enum AuthoringMappingMode {
     /**
-     * Corresponds with {@link Authoring.Module#OVERWRITE} built-in function.
+     * Corresponds with {@link Authoring.Module#overwrite(String, Location)} built-in function.
      */
     OVERWRITE,
     /**
-     * Corresponds with {@link Authoring.Module#PASS_THRU} built-in function.
+     * Corresponds with {@link Authoring.Module#passThru(String, Location)} built-in function.
      */
     PASS_THRU,
     /**
-     * Corresponds with {@link Authoring.Module#WHITELISTED} built-in function.
+     * Corresponds with {@link Authoring.Module#whitelisted(String, SkylarkList, Location)}
+     * built-in function.
      */
     WHITELISTED
   }

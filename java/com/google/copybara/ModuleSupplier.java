@@ -51,8 +51,7 @@ import java.util.function.Function;
 public class ModuleSupplier {
 
   private static final ImmutableSet<Class<?>> BASIC_MODULES = ImmutableSet.of(
-      CoreGlobal.class,
-      Authoring.Module.class);
+      CoreGlobal.class);
   private final Map<String, String> environment;
   private final FileSystem fileSystem;
   private final Console console;
@@ -85,8 +84,8 @@ public class ModuleSupplier {
             options.get(FolderDestinationOptions.class),
             general),
         new PatchModule(options.get(PatchingOptions.class)),
-        new MetadataModule()
-    );
+        new MetadataModule(),
+        new Authoring.Module());
   }
 
   /** Returns a new list of {@link Option}s. */

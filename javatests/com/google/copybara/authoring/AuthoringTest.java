@@ -91,7 +91,7 @@ public class AuthoringTest {
   @Test
   public void testDefaultAuthorNotEmpty() throws Exception {
     skylark.evalFails("authoring.overwrite()\n",
-        "insufficient arguments received by overwrite\\(default: string\\)");
+        "parameter 'default' has no default value");
   }
 
 
