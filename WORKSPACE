@@ -20,8 +20,8 @@ load("//third_party:bazel.bzl", "bazel_version")
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava",
-    artifact = "com.google.guava:guava:27.0.1-jre",
-    sha1 = "bd41a290787b5301e63929676d792c507bbc00ae",
+    artifact = "com.google.guava:guava:27.1-jre",
+    sha1 = "e47b59c893079b87743cdcfb6f17ca95c08c592c",
 )
 
 maven_jar(
@@ -33,8 +33,8 @@ maven_jar(
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "guava_testlib",
-    artifact = "com.google.guava:guava-testlib:27.0.1-jre",
-    sha1 = "97247f5b2229f6e23bea40f4c9668546cc8b38dd",
+    artifact = "com.google.guava:guava-testlib:27.1-jre",
+    sha1 = "e0f8a9eb1d8a2b97a29ae7dc813dcf57ee6cd0d9",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
@@ -68,8 +68,8 @@ maven_jar(
 # LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "truth",
-    artifact = "com.google.truth:truth:0.42",
-    sha1 = "b5768f644b114e6cf5c3962c2ebcb072f788dcbb",
+    artifact = "com.google.truth:truth:0.44",
+    sha1 = "11eff954c0c14da7d43276d7b3bcf71463105368",
 )
 
 # LICENSE: The Apache Software License, Version 2.0

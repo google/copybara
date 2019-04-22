@@ -131,10 +131,10 @@ public class FolderOriginTest {
         .containsNoMoreFiles();
     Path cannotWriteDestination = workdir.resolve("foo/file_cannot_write");
     assertThat(Files.getPosixFilePermissions(cannotWriteDestination))
-        .containsAllOf(OWNER_READ, OWNER_WRITE);
+        .containsAtLeast(OWNER_READ, OWNER_WRITE);
     Path executableCannotWriteDestination = workdir.resolve("foo/executable_cannot_write");
     assertThat(Files.getPosixFilePermissions(executableCannotWriteDestination))
-        .containsAllOf(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE);
+        .containsAtLeast(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE);
   }
 
   @Test
