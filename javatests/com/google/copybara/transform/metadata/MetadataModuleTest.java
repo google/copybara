@@ -944,6 +944,21 @@ public class MetadataModuleTest {
         .isEqualTo("John Example <other.example@example.com>"); // No match
   }
 
+  /**
+   * Internally we have a couple of cases like this. This is due to an issue in @SkylarkSignature.
+   */
+  @Test
+  public void testMapAuthor_mapFieldsPositionalArgs() throws Exception {
+    options.setLastRevision(origin.resolve("HEAD").asString());
+    createWorkflow(WorkflowMode.ITERATIVE, ""
+        + "metadata.map_author({} ,"
+        + "           False,"
+        + "           False,"
+        + "           False,"
+        + "           False,"
+        + "           False)");
+  }
+
   @Test
   public void testMapAuthor_failIfNotFound() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
