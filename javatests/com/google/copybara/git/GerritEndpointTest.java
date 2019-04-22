@@ -176,7 +176,8 @@ public class GerritEndpointTest {
     mockForTest();
     Feedback feedback = notifyChangeToOriginFeedback();
     feedback.run(workdir, ImmutableList.of("12345"));
-    assertThat(dummyTrigger.messages).containsAllIn(ImmutableList.of("Change number 12345"));
+    assertThat(dummyTrigger.messages)
+        .containsAtLeastElementsIn(ImmutableList.of("Change number 12345"));
   }
 
   @Test
