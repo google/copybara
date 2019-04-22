@@ -489,11 +489,12 @@ public final class GitDestination implements Destination<GitRevision> {
       // ...and untracked ones:
       scratchClone.forceClean();
 
+      GitRevision afterRebaseRev = null;
       if (baseline != null && rebase) {
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
         alternate.rebase(localBranchRevision.getSha1());
-        GitRevision afterRebaseRev = alternate.resolveReference("HEAD");
+        afterRebaseRev = alternate.resolveReference("HEAD");
         if (afterRebaseRev.getSha1().equals(localBranchRevision.getSha1())) {
           throw new EmptyChangeException("Empty change after rebase. The only affected"
               + " paths were already applied in main branch. This usually happens if"
@@ -505,7 +506,12 @@ public final class GitDestination implements Destination<GitRevision> {
       ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
           "Change description is empty.");
 
+      String localBranchName = "";
       if (localRepoPath != null) {
+        if (afterRebaseRev != null) {
+          localBranchName = "copybara/local";
+          alternate.simpleCommand("checkout", "-B", localBranchName, afterRebaseRev.getSha1());
+        }
         scratchClone.simpleCommand("checkout", state.localBranch);
       }
 
@@ -529,8 +535,9 @@ public final class GitDestination implements Destination<GitRevision> {
       writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);
       if (skipPush) {
         console.infoFmt(
-            "Git Destination: skipped push to remote. Check the local commits at %s",
-            scratchClone.getGitDir());
+            "Git Destination: skipped push to remote. Check the local commits by running: cd %s &&"
+                + " git log %s",
+            scratchClone.getGitDir(), localBranchName);
         return ImmutableList.of(
             new DestinationEffect(
                 DestinationEffect.Type.CREATED,

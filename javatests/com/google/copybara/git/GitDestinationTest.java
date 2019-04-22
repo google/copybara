@@ -1379,6 +1379,8 @@ public class GitDestinationTest {
     Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+    String baseline =
+        repo().withWorkTree(scratchTree).simpleCommand("rev-parse", "HEAD").getStdout().trim();
 
     Path localPath = Files.createTempDirectory("local_repo");
 
@@ -1396,25 +1398,26 @@ public class GitDestinationTest {
         .containsNoMoreFiles();
 
     Files.write(workdir.resolve("test.txt"), "another content".getBytes());
-    process(writer, new DummyRevision("origin_ref2"));
+    processWithBaseline(writer, destinationFiles, new DummyRevision("origin_ref2"), baseline);
 
     GitTesting.assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
 
-    ImmutableList<GitLogEntry> entries = localRepo.log("HEAD").run();
-    assertThat(entries.get(0).getBody()).isEqualTo(""
-        + "test summary\n"
-        + "\n"
-        + "DummyOrigin-RevId: origin_ref2\n");
+    for (String ref : ImmutableList.of("HEAD", "copybara/local")) {
+      ImmutableList<GitLogEntry> entries = localRepo.log(ref).run();
+      assertThat(entries.get(0).getBody()).isEqualTo(""
+          + "test summary\n"
+          + "\n"
+          + "DummyOrigin-RevId: origin_ref2\n");
 
-    assertThat(entries.get(1).getBody()).isEqualTo(""
-        + "test summary\n"
-        + "\n"
-        + "DummyOrigin-RevId: origin_ref1\n");
+      assertThat(entries.get(1).getBody()).isEqualTo(""
+          + "test summary\n"
+          + "\n"
+          + "DummyOrigin-RevId: origin_ref1\n");
 
-    assertThat(entries.get(2).getBody()).isEqualTo("change\n");
-
+      assertThat(entries.get(2).getBody()).isEqualTo("change\n");
+    }
     return localRepo;
   }
 
