@@ -814,7 +814,7 @@ public class GitModule implements LabelsAwareModule {
       before = "Create a branch by using copybara's computerIdentity algorithm:",
       code =
           "git.github_pr_destination(\n"
-              + "        url = github_url,\n"
+              + "        url = \"https://github.com/google/copybara\",\n"
               + "        destination_ref = \"master\",\n"
               + "    )")
   @Example(
@@ -822,7 +822,7 @@ public class GitModule implements LabelsAwareModule {
       before = "Customize pr_branch with context reference:",
       code =
           "git.github_pr_destination(\n"
-              + "         url = github_url,\n"
+              + "        url = \"https://github.com/google/copybara\",\n"
               + "         destination_ref = \"master\",\n"
               + "         pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
               + "    )")
@@ -831,7 +831,7 @@ public class GitModule implements LabelsAwareModule {
       before = "Customize pr_branch with a constant string:",
       code =
           "git.github_pr_destination(\n"
-              + "        url = github_url,\n"
+              + "        url = \"https://github.com/google/copybara\",\n"
               + "        destination_ref = \"master\",\n"
               + "        pr_branch = 'test_my_branch',\n"
               + "    )")

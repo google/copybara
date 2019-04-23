@@ -88,11 +88,6 @@ public class SkylarkParser {
     }
   }
 
-  @VisibleForTesting
-  public Iterable<Class<?>> getModules() {
-    return modules;
-  }
-
   @SuppressWarnings("unchecked")
   public Config loadConfig(ConfigFile config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {

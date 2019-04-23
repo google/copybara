@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for running a simple skylark code and getting back a declared variable.
@@ -88,9 +89,14 @@ public class SkylarkTestExecutor {
   }
 
   public Iterable<Class<?>> getModules(){
-    return skylarkParser.getModules();
+    ModuleSet moduleSet = createModuleSet();
+    return ImmutableSet.<Class<?>>builder()
+        .addAll(moduleSet.getModules().values().stream()
+            .map(Object::getClass)
+            .collect(Collectors.toList()))
+        .addAll(moduleSet.getStaticModules())
+        .build();
   }
-
 
   public <T> T eval(String var, String config) throws ValidationException {
     return evalWithConfigFilePath(var, config, DEFAULT_FILE);

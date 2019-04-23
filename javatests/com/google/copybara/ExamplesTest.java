@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.doc.annotations.Example;
@@ -26,6 +27,11 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -37,12 +43,29 @@ import org.junit.runners.JUnit4;
 public class ExamplesTest {
 
   @Test
-  public void testExamples() throws ValidationException {
+  public void testExamples() {
 
-    SkylarkTestExecutor executor = new SkylarkTestExecutor(new OptionsBuilder());
+    SkylarkTestExecutor executor = getExecutor();
 
-    boolean anyFound = false;
+    ImmutableList.Builder<Result> resBuilder = ImmutableList.builder();
     for (Class<?> module : executor.getModules()) {
+      for (Method method : module.getMethods()) {
+        Examples examples = method.getAnnotation(Examples.class);
+        ImmutableList<Example> samples;
+        if (examples == null) {
+          Example singleSample = method.getAnnotation(Example.class);
+          if (singleSample != null) {
+            samples = ImmutableList.of(singleSample);
+          } else {
+            continue;
+          }
+        } else {
+          samples = ImmutableList.copyOf(examples.value());
+        }
+        resBuilder.addAll(checkExamples(executor, module, samples, method.getName()));
+      }
+
+      // Legacy @SkylarkSignature uses declared field (cannot use parent class methods)
       for (Field field : module.getDeclaredFields()) {
         Examples examples = field.getAnnotation(Examples.class);
         ImmutableList<Example> samples;
@@ -56,22 +79,70 @@ public class ExamplesTest {
         } else {
           samples = ImmutableList.copyOf(examples.value());
         }
-        for (Example example : samples) {
-          anyFound = true;
-          Object val;
-          String exampleRef = module.getName() + "#" + field.getName() + ": " + example.title();
-          try {
-            val = Strings.isNullOrEmpty(example.testExistingVariable())
-                ? executor.eval("a", "a=" + example.code())
-                : executor.eval(example.testExistingVariable(),
-                    example.code());
-          } catch (ValidationException e) {
-            throw new ValidationException(String.format("'%s' contains errors.", exampleRef), e);
-          }
-          assertWithMessage(exampleRef).that(val).isNotNull();
-        }
+        resBuilder.addAll(checkExamples(executor, module, samples, field.getName()));
       }
     }
-    assertWithMessage("Could not find any example to run!").that(anyFound).isTrue();
+    ImmutableList<Result> result = resBuilder.build();
+
+    // Normally we won't remove examples or modules. This checks that we don't go down. This
+    // is the number of modules in Apr 2019. We can update this from time to time. It is not
+    // critical to have an accurate number, but that we don't lose at least these.
+    assertWithMessage("Less examples than expected").that(result.size()).isAtLeast(48);
+    Set<? extends Class<?>> modules = result.stream().map(e -> e.cls).collect(Collectors.toSet());
+    assertWithMessage("Less classes than expected: " + modules).that(modules.size()).isAtLeast(5);
+
+    List<Result> errors = result.stream().filter(Result::isError).collect(Collectors.toList());
+
+    assertWithMessage(
+        "Errors in examples(" + errors.size() + "):\n\n"
+            + Joiner.on("\n-----------------------------\n")
+            .join(errors)).that(errors).isEmpty();
+  }
+
+  protected SkylarkTestExecutor getExecutor() {
+    return new SkylarkTestExecutor(new OptionsBuilder());
+  }
+
+  private ImmutableList<Result> checkExamples(SkylarkTestExecutor executor, Class<?> module,
+      ImmutableList<Example> samples, String name) {
+
+    ImmutableList.Builder<Result> result = ImmutableList.builder();
+    for (Example example : samples) {
+      Object val;
+      String exampleRef = module.getName() + "#" + name + ": " + example.title();
+      try {
+        val = Strings.isNullOrEmpty(example.testExistingVariable())
+            ? executor.eval("a", "a=" + example.code())
+            : executor.eval(example.testExistingVariable(),
+                example.code());
+        assertWithMessage(exampleRef).that(val).isNotNull();
+        result.add(new Result(exampleRef, module, null));
+      } catch (ValidationException | AssertionError e) {
+        result.add(new Result(exampleRef, module, e));
+      }
+    }
+    return result.build();
+  }
+
+  private static class Result {
+
+    private final String name;
+    private final Class<?> cls;
+    @Nullable private final Throwable error;
+
+    Result(String name, Class<?> cls, @Nullable Throwable error) {
+      this.name = name;
+      this.cls = cls;
+      this.error = error;
+    }
+
+    private boolean isError() {
+      return error != null;
+    }
+
+    @Override
+    public String toString() {
+      return name +":\n" + error;
+    }
   }
 }

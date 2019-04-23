@@ -1720,7 +1720,7 @@ Create a branch by using copybara's computerIdentity algorithm:
 
 ```python
 git.github_pr_destination(
-        url = github_url,
+        url = "https://github.com/google/copybara",
         destination_ref = "master",
     )
 ```
@@ -1732,7 +1732,7 @@ Customize pr_branch with context reference:
 
 ```python
 git.github_pr_destination(
-         url = github_url,
+        url = "https://github.com/google/copybara",
          destination_ref = "master",
          pr_branch = 'test_${CONTEXT_REFERENCE}',
     )
@@ -1745,7 +1745,7 @@ Customize pr_branch with a constant string:
 
 ```python
 git.github_pr_destination(
-        url = github_url,
+        url = "https://github.com/google/copybara",
         destination_ref = "master",
         pr_branch = 'test_my_branch',
     )
