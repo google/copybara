@@ -212,6 +212,7 @@ public final class CommandRunner {
       CommandExecutor runner = executor.orElse(new DefaultExecutor());
       TerminationStatus status =
           runner.getCommandOutputWithStatus(cmd, input, cmdMonitor, stdoutStream, stderrStream);
+      exitStatus = status;
       return new CommandOutputWithStatus(
           status,
           stdoutCollector.toByteArray(),
