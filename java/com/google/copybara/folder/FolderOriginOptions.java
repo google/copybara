@@ -18,7 +18,6 @@ package com.google.copybara.folder;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.copybara.Option;
 
 /**
@@ -30,12 +29,10 @@ public final class FolderOriginOptions implements Option {
   @Parameter(names = "--folder-origin-author",
       description = "Deprecated. Please use '--force-author'."
           + " Author of the change being migrated from folder.origin()")
-  @VisibleForTesting
   public String author = "Copybara <noreply@copybara.io>";
 
   @Parameter(names = "--folder-origin-message",
       description = "Deprecated. Please use '--force-message'. Message of the change being migrated"
           + " from folder.origin()")
-  @VisibleForTesting
   public String message = "Copybara code migration";
 }

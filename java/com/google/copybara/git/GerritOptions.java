@@ -89,7 +89,7 @@ public class GerritOptions implements Option {
   /**
    * Returns a lazy supplier of {@link GerritApi}.
    */
-  public LazyResourceLoader<GerritApi> newGerritApiSupplier(String url, @Nullable Checker checker) {
+  LazyResourceLoader<GerritApi> newGerritApiSupplier(String url, @Nullable Checker checker) {
     return (console) ->
         checker == null ? newGerritApi(url) : newGerritApi(url, checker, console);
   }
@@ -97,7 +97,6 @@ public class GerritOptions implements Option {
   /**
    * Override this method in a class for a specific Gerrit implementation.
    */
-  @VisibleForTesting
   public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
     return new GerritApi(newGerritApiTransport(hostUrl(url)),
                          generalOptions.profiler());
@@ -106,7 +105,7 @@ public class GerritOptions implements Option {
   /**
    * Creates a new {@link GerritApi} enforcing the given {@link Checker}.
    */
-  public GerritApi newGerritApi(String url, Checker checker, Console console)
+  private GerritApi newGerritApi(String url, Checker checker, Console console)
       throws ValidationException, RepoException {
     return new GerritApi(newGerritApiTransport(hostUrl(url), checker, console),
         generalOptions.profiler());
@@ -143,7 +142,7 @@ public class GerritOptions implements Option {
    * other flags in the future.
    */
   @SuppressWarnings("MethodMayBeStatic")
-  public String getProject(String url) throws ValidationException {
+  String getProject(String url) throws ValidationException {
     String file = asUri(url).getPath();
     if (file.startsWith("/")) {
       file = file.substring(1);
@@ -165,7 +164,7 @@ public class GerritOptions implements Option {
   /**
    * Create a Gerrit http transport for a URI and {@link Checker}.
    */
-  protected GerritApiTransport newGerritApiTransport(URI uri, Checker checker, Console console)
+  private GerritApiTransport newGerritApiTransport(URI uri, Checker checker, Console console)
       throws RepoException, ValidationException {
     return new GerritApiTransportWithChecker(newGerritApiTransport(uri), checker, console);
   }
