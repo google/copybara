@@ -997,9 +997,7 @@ public class GitModule implements LabelsAwareModule {
   @SkylarkCallable(
     name = GITHUB_API,
     doc =
-        ""
-            + "[EXPERIMENTAL] Defines a feedback API endpoint for GitHub, that exposes relevant "
-            + "GitHub API operations.",
+        "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.",
     parameters = {
         @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
             named = true),
@@ -1024,9 +1022,7 @@ public class GitModule implements LabelsAwareModule {
   @SkylarkCallable(
       name = GERRIT_API,
       doc =
-          ""
-              + "[EXPERIMENTAL] Defines a feedback API endpoint for Gerrit, that exposes relevant "
-              + "Gerrit API operations.",
+          "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.",
       parameters = {
         @Param(
             name = "url",
@@ -1061,7 +1057,7 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = GERRIT_TRIGGER,
-      doc = "[EXPERIMENTAL] Defines a feedback trigger based on updates on a Gerrit change.",
+      doc = "Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
           @Param(name = "url", type = String.class, doc = "Indicates the Gerrit repo URL.",
               named = true),
@@ -1085,7 +1081,7 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = GITHUB_TRIGGER,
-      doc = "[EXPERIMENTAL] Defines a feedback trigger based on updates on a GitHub PR.",
+      doc = "Defines a feedback trigger based on updates on a GitHub PR.",
       parameters = {
         @Param(
             name = "url",

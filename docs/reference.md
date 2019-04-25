@@ -529,8 +529,6 @@ After defining this function, you can use `test('example', 42)` as a transformat
 <a id="core.feedback" aria-hidden="true"></a>
 ### core.feedback
 
-[EXPERIMENTAL] This feature is currently under development.
-
 Defines a migration of changes' metadata, that can be invoked via the Copybara command in the same way as a regular workflow migrates the change itself.
 
 It is considered change metadata any information associated with a change (pending or submitted) that is not core to the change itself. A few examples:
@@ -1350,7 +1348,7 @@ uploader | The uploader of the patch set as an AccountInfo entity.
 
 ## gerrit_api_obj
 
-[EXPERIMENTAL] Gerrit API endpoint implementation for feedback migrations and after migration hooks.
+Gerrit API endpoint implementation for feedback migrations and after migration hooks.
 
 
 #### Fields:
@@ -1460,7 +1458,7 @@ Name | Type | Description
 <a id="git.gerrit_api" aria-hidden="true"></a>
 ### git.gerrit_api
 
-[EXPERIMENTAL] Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
+Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
 `gerrit_api_obj git.gerrit_api(url, checker=None)`
 
@@ -1561,7 +1559,7 @@ describe_version | `boolean`<br><p>Download tags and use 'git describe' to creat
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger
 
-[EXPERIMENTAL] Defines a feedback trigger based on updates on a Gerrit change.
+Defines a feedback trigger based on updates on a Gerrit change.
 
 `gerritTrigger git.gerrit_trigger(url, checker=None)`
 
@@ -1586,7 +1584,7 @@ Name | Type | Description
 <a id="git.github_api" aria-hidden="true"></a>
 ### git.github_api
 
-[EXPERIMENTAL] Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
+Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
 `github_api_obj git.github_api(url, checker=None)`
 
@@ -1924,7 +1922,7 @@ Name | Type | Description
 
 ## github_api_obj
 
-[EXPERIMENTAL] GitHub API endpoint implementation for feedback migrations and after migration hooks.
+GitHub API endpoint implementation for feedback migrations and after migration hooks.
 
 
 #### Fields:

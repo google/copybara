@@ -938,8 +938,6 @@ public class Core implements LabelsAwareModule {
   @SkylarkCallable(
       name = "feedback",
       doc = ""
-          + "[EXPERIMENTAL] This feature is currently under development.\n"
-          + "\n"
           + "Defines a migration of changes' metadata, that can be invoked via the Copybara "
           + "command in the same way as a regular workflow migrates the change itself.\n"
           + "\n"

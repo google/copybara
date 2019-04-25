@@ -46,10 +46,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 @SkylarkModule(
     name = "gerrit_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
-    doc =
-        ""
-            + "[EXPERIMENTAL] Gerrit API endpoint implementation for feedback migrations and after "
-            + "migration hooks.")
+    doc = "Gerrit API endpoint implementation for feedback migrations and after migration hooks.")
 public class GerritEndpoint implements Endpoint {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
@@ -158,16 +155,16 @@ public class GerritEndpoint implements Endpoint {
   @SkylarkCallable(
       name = "list_changes_by_commit",
       doc =
-          "Get changes from Gerrit based on a query."
-              + " See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.\n",
+          "Get changes from Gerrit based on a query. See"
+              + " https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.\n",
       parameters = {
         @Param(
             name = "commit",
             type = String.class,
             named = true,
             doc =
-                "The commit sha to list changes by."
-                    + " See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
+                "The commit sha to list changes by. See"
+                    + " https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
         @Param(
             name = "include_results",
             named = true,

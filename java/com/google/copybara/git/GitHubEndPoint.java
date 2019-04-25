@@ -62,10 +62,7 @@ import javax.annotation.Nullable;
 @SkylarkModule(
   name = "github_api_obj",
   category = SkylarkModuleCategory.BUILTIN,
-  doc =
-      ""
-          + "[EXPERIMENTAL] GitHub API endpoint implementation for feedback migrations and after "
-          + "migration hooks."
+  doc = "GitHub API endpoint implementation for feedback migrations and after migration hooks."
 )
 public class GitHubEndPoint implements Endpoint {
 
