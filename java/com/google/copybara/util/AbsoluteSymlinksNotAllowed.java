@@ -29,7 +29,7 @@ public class AbsoluteSymlinksNotAllowed extends IOException {
   private final Path symlink;
   private final Path destinationFile;
 
-  AbsoluteSymlinksNotAllowed(String msg, Path symlink, Path destinationFile) {
+  public AbsoluteSymlinksNotAllowed(String msg, Path symlink, Path destinationFile) {
     super(msg);
     this.symlink = symlink;
     this.destinationFile = destinationFile;
@@ -49,5 +49,11 @@ public class AbsoluteSymlinksNotAllowed extends IOException {
         .add("symlink", symlink)
         .add("destinationFile", destinationFile)
         .toString();
+  }
+
+  @Override
+  public String getMessage() {
+    return String.format("%s\nAbsolute symlinks cannot be migrated: (%s -> %s)",
+        super.getMessage(), symlink, destinationFile);
   }
 }
