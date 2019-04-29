@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
@@ -61,6 +62,9 @@ public class SkylarkTransformation implements Transformation {
           "Message transformer functions should not return anything, but '%s' returned: %s",
           function.getName(), result);
     } catch (EvalException e) {
+      if (e.getCause() instanceof EmptyChangeException) {
+        throw ((EmptyChangeException) e.getCause());
+      }
       throw new ValidationException(
           String.format(
               "Error while executing the skylark transformation %s: %s. Location: %s",

@@ -2313,6 +2313,28 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testFailWithNoopFunc() throws Exception {
+    Transformation transformation = ((Workflow<?, ?>) loadConfig(""
+        + "def fail_test(ctx):\n"
+        + "  core.fail_with_noop('Hello, this is empty!')\n"
+        + ""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    authoring = " + authoring + "\n,"
+        + "    origin = testing.origin(),\n"
+        + "    destination = testing.destination(),\n"
+        + "    transformations = [fail_test],"
+        + ")\n").getMigration("default")).getTransformation();
+
+    try {
+      transformation.transform(TransformWorks.of(workdir, "message", console()));
+      fail();
+    } catch (EmptyChangeException e) {
+      assertThat(e).hasMessageThat().contains("Hello, this is empty!");
+    }
+  }
+
+  @Test
   public void testWorkflowDefinedInParentConfig() throws Exception {
     Workflow<?, ?> wf = ((Workflow<?, ?>) skylark.loadConfig(
         new MapConfigFile(

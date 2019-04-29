@@ -32,6 +32,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.SkylarkAction;
@@ -925,6 +926,20 @@ public class Core implements LabelsAwareModule {
       useEnvironment = true)
   public Action dynamicFeedback(BaseFunction impl, SkylarkDict<?, ?> params, Environment env) {
     return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), dynamicEnvironment);
+  }
+
+  @SuppressWarnings("unused")
+  @SkylarkCallable(
+      name = "fail_with_noop",
+
+      doc = "If invoked, it will fail the current migration as a noop",
+      parameters = {
+          @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
+      },
+      useLocation = true)
+  public Action failWithNoop(String msg, Location location) throws EmptyChangeException {
+    // Add an internal EvalException to know the location of the error.
+    throw new EmptyChangeException(new EvalException(location, msg), msg);
   }
 
   @SkylarkCallable(name = "main_config_path",

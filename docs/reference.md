@@ -21,6 +21,7 @@
     - [core.copy](#core.copy)
     - [core.dynamic_feedback](#core.dynamic_feedback)
     - [core.dynamic_transform](#core.dynamic_transform)
+    - [core.fail_with_noop](#core.fail_with_noop)
     - [core.feedback](#core.feedback)
     - [core.move](#core.move)
     - [core.remove](#core.remove)
@@ -525,6 +526,20 @@ def test(name, number = 2):
 
 After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
 
+
+<a id="core.fail_with_noop" aria-hidden="true"></a>
+### core.fail_with_noop
+
+If invoked, it will fail the current migration as a noop
+
+`feedback.action core.fail_with_noop(msg)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string`<br><p>The noop message</p>
 
 <a id="core.feedback" aria-hidden="true"></a>
 ### core.feedback
