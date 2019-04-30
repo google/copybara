@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
+import static com.google.copybara.git.testing.GitTesting.assertThatCheckout;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
@@ -50,6 +51,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -487,7 +489,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("foo/**"));
     process(newWriter(), new DummyRevision("origin_ref"));
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/bar", "content")
         .containsFile("foo/baz", "content")
         .containsNoMoreFiles();
@@ -519,6 +521,46 @@ public class GitDestinationTest {
     } catch (EmptyChangeException e) {
       assertThat(e).hasMessageThat().contains("Empty change after rebase");
     }
+  }
+
+  @Test
+  public void previousRebaseFailureDoesNotAffectNextOne() throws Exception {
+    fetch = "master";
+    push = "master";
+    GitRepository destRepo = repo().withWorkTree(workdir);
+
+    writeFile(workdir, "foo", "");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "baseline");
+
+    GitRevision baseline = destRepo.resolveReference("HEAD");
+
+    writeFile(workdir, "foo", "conflict");
+    destRepo.add().files("foo").run();
+    destRepo.simpleCommand("commit", "-m", "master head");
+
+    writeFile(workdir, "foo", "updated");
+
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
+    try {
+      processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
+          baseline.getSha1());
+      fail();
+    } catch (RebaseConflictException ignore) {
+
+    }
+
+    writeFile(workdir, "foo", "conflict");
+    writeFile(workdir, "bar", "other file");
+
+    destinationFiles = Glob.createGlob(ImmutableList.of("foo", "bar"));
+    processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
+        baseline.getSha1());
+
+    assertThatCheckout(destRepo, "HEAD")
+        .containsFile("foo", "conflict")
+        .containsFile("bar", "other file")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -621,7 +663,7 @@ public class GitDestinationTest {
     DummyRevision repoAfirstRev = new DummyRevision("Foo first");
     process(writer1, repoAglob, repoAfirstRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Second version")
         .containsFile("bar/one", "First version")
         .containsFile("baz/one", "First version")
@@ -634,7 +676,7 @@ public class GitDestinationTest {
     DummyRevision repoBfirstRev = new DummyRevision("Bar first");
     process(writer2, repoBglob, repoBfirstRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Second version")
         .containsFile("bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -648,7 +690,7 @@ public class GitDestinationTest {
     DummyRevision repoASecondRev = new DummyRevision("Foo second");
     process(writer3, repoAglob, repoASecondRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Third version")
         .containsFile("bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -692,7 +734,7 @@ public class GitDestinationTest {
     DummyRevision repoAfirstRev = new DummyRevision("Foo first");
     process(writer1, repoAglob, repoAfirstRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Second version")
         .containsFile("foo/bar/one", "First version")
         .containsFile("baz/one", "First version")
@@ -705,7 +747,7 @@ public class GitDestinationTest {
     DummyRevision repoBfirstRev = new DummyRevision("Bar first");
     process(writer2, repoBglob, repoBfirstRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Second version")
         .containsFile("foo/bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -719,7 +761,7 @@ public class GitDestinationTest {
     DummyRevision repoASecondRev = new DummyRevision("Foo second");
     process(writer3, repoAglob, repoASecondRev);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo/one", "Third version")
         .containsFile("foo/bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -1036,7 +1078,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     process(newWriter(), new DummyRevision("ref"));
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
@@ -1061,7 +1103,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
 
     process(newWriter(), new DummyRevision("ref"));
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("notgit/HEAD", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
@@ -1089,7 +1131,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("other.txt"), "other file".getBytes());
     processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "new content")
         .containsFile("other.txt", "other file")
         .containsFile("excluded", "some content")
@@ -1120,7 +1162,7 @@ public class GitDestinationTest {
     push = "refs/heads/my_branch";
     processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
 
-    GitTesting.assertThatCheckout(repo(), "refs/heads/my_branch")
+    assertThatCheckout(repo(), "refs/heads/my_branch")
         .containsFile("test.txt", "some content")
         .containsFile("other.txt", "other file")
         .containsFile("excluded", "some content")
@@ -1167,7 +1209,7 @@ public class GitDestinationTest {
 
     processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
 
-    GitTesting.assertThatCheckout(repo(), "master").containsFile("test.txt",
+    assertThatCheckout(repo(), "master").containsFile("test.txt",
         text.replace("Line 200", "Line 200 Modified")
             .replace("Line 500", "Line 500 Modified")).containsNoMoreFiles();
   }
@@ -1232,10 +1274,10 @@ public class GitDestinationTest {
     assertThat(repo().parseRef("refs_for_master~1")).isEqualTo(firstCommitHash);
 
     // Make sure commits have correct file content.
-    GitTesting.assertThatCheckout(repo(), "refs_for_master~1")
+    assertThatCheckout(repo(), "refs_for_master~1")
         .containsFile("test42", "42")
         .containsNoMoreFiles();
-    GitTesting.assertThatCheckout(repo(), "refs_for_master")
+    assertThatCheckout(repo(), "refs_for_master")
         .containsFile("test42", "42")
         .containsFile("test99", "99")
         .containsNoMoreFiles();
@@ -1249,7 +1291,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve(".gitignore"), ".gitignore\n".getBytes());
     DummyRevision ref = new DummyRevision("origin_ref");
     process(firstCommitWriter(), ref);
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
         .containsFile(".gitignore", ".gitignore\n")
         .containsNoMoreFiles();
@@ -1269,7 +1311,7 @@ public class GitDestinationTest {
 
     DummyRevision ref = new DummyRevision("origin_ref");
     process(newWriter(), ref);
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
         .containsFile(".gitignore", ".gitignore\n")
         .containsNoMoreFiles();
@@ -1279,7 +1321,7 @@ public class GitDestinationTest {
   public void testLocalRepo() throws Exception {
     checkLocalRepo(false);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
   }
@@ -1301,7 +1343,7 @@ public class GitDestinationTest {
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo", "foo\n")
         .containsNoMoreFiles();
 
@@ -1309,7 +1351,7 @@ public class GitDestinationTest {
     writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
@@ -1342,14 +1384,14 @@ public class GitDestinationTest {
   public void testLocalRepoSkipPushFlag() throws Exception {
     GitRepository localRepo = checkLocalRepo(true);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("foo", "foo\n")
         .containsNoMoreFiles();
 
     // A simple push without origin is able to update the correct destination reference
     localRepo.push().run();
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), "master")
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
   }
@@ -1393,14 +1435,14 @@ public class GitDestinationTest {
         .init(
     );
 
-    GitTesting.assertThatCheckout(localRepo, "master")
+    assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
 
     Files.write(workdir.resolve("test.txt"), "another content".getBytes());
     processWithBaseline(writer, destinationFiles, new DummyRevision("origin_ref2"), baseline);
 
-    GitTesting.assertThatCheckout(localRepo, "master")
+    assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
 

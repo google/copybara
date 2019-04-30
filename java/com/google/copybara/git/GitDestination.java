@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.util.FileUtil.deleteRecursively;
 import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -49,10 +50,13 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.List;
@@ -491,6 +495,11 @@ public final class GitDestination implements Destination<GitRevision> {
 
       GitRevision afterRebaseRev = null;
       if (baseline != null && rebase) {
+        Path rebaseLock = alternate.getGitDir().resolve("rebase-apply");
+        if (Files.exists(rebaseLock)){
+          console.warn("Removing previous rebase failure lock: "+ rebaseLock);
+          deleteRecursively(rebaseLock);
+        }
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
         alternate.rebase(localBranchRevision.getSha1());
