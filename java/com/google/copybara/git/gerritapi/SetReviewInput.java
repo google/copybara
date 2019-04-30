@@ -58,6 +58,14 @@ public class SetReviewInput implements SkylarkValue {
     return new SetReviewInput(message, labels);
   }
 
+  public String getMessage() {
+    return message;
+  }
+
+  public Map<String, Integer> getLabels() {
+    return labels;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
@@ -71,7 +79,7 @@ public class SetReviewInput implements SkylarkValue {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof SetReviewInput)) {
       return false;
     }
     SetReviewInput setReviewInput = (SetReviewInput) o;

@@ -580,7 +580,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return generalOptions;
   }
 
-  ImmutableList<Action> getAfterMigrationActions() {
+  public ImmutableList<Action> getAfterMigrationActions() {
     return afterMigrationActions;
   }
 

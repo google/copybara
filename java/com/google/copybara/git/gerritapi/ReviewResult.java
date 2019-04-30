@@ -34,6 +34,14 @@ public class ReviewResult {
   @Key private Map<String, Integer> labels;
   @Key private boolean ready;
 
+  public ReviewResult(Map<String, Integer> labels, boolean ready) {
+    this.labels = labels;
+    this.ready = ready;
+  }
+
+  public ReviewResult() {
+  }
+
   @SkylarkCallable(
       name = "labels",
       doc = "Map of labels to values after the review was posted.",
