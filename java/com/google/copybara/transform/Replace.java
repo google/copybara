@@ -198,7 +198,6 @@ public final class Replace implements Transformation {
             + group.getKey() + ": " + group.getValue(), e);
       }
     }
-    Pattern p = Pattern.compile("\\A(?s:.)*PUBLIC:[\\t ]*(.*)($|\\n(?s:.)*)");
     return parsedGroups;
   }
 
