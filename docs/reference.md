@@ -2664,6 +2664,60 @@ very public
 
 
 
+##### Use default msg when the scrubbing regex doesn't match:
+
+Assign msg_if_no_match a default msg. For example: 
+
+
+```python
+metadata.scrubber('^(?:\n|.)*<public>((?:\n|.)*)</public>(?:\n|.)*$', msg_if_no_match = 'Internal Change.', replacement = '$1')
+```
+
+So a message like:
+
+```
+this
+is
+very confidential
+This is not public msg.
+
+and this is a secret too
+```
+
+would be transformed into:
+
+```
+Internal Change.
+```
+
+
+
+
+##### Fail if the scrubbing regex doesn't match:
+
+Set fail_if_no_match to true
+
+```python
+metadata.scrubber('^(?:\n|.)*<public>((?:\n|.)*)</public>(?:\n|.)*$', fail_if_no_match = True, replacement = '$1')
+```
+
+So a message like:
+
+```
+this
+is
+very confidential
+but this is not public
+
+and this is a secret too
+```
+
+This would fail. Error msg:  Scrubber regex didn't match for description with.
+```
+
+
+
+
 <a id="metadata.squash_notes" aria-hidden="true"></a>
 ### metadata.squash_notes
 

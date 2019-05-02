@@ -503,6 +503,30 @@ public class MetadataModule {
           + "```\n"
           + "but this is public\nvery public\n"
           + "```\n\n")
+  @Example(title = "Use default msg when the scrubbing regex doesn't match",
+      before = "Assign msg_if_no_match a default msg. For example: \n",
+      code = "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
+          + "msg_if_no_match = 'Internal Change.', replacement = '$1')",
+      after = "So a message like:\n\n"
+          + "```\n"
+          + "this\nis\nvery confidential\nThis is not public msg.\n"
+          + "\nand this is a secret too\n"
+          + "```\n\n"
+          + "would be transformed into:\n\n"
+          + "```\n"
+          + "Internal Change.\n"
+          + "```\n\n")
+  @Example(title = "Fail if the scrubbing regex doesn't match",
+      before = "Set fail_if_no_match to true",
+      code = "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
+          + "fail_if_no_match = True, replacement = '$1')",
+      after = "So a message like:\n\n"
+          + "```\n"
+          + "this\nis\nvery confidential\nbut this is not public\n"
+          + "\nand this is a secret too\n"
+          + "```\n\n"
+          + "This would fail. Error msg:  Scrubber regex didn't match for description with.\n"
+          + "```\n\n")
   public Transformation scrubber(String regex, Object msgIfNoMatchObj, Boolean failIfNoMatch,
       String replacement, Location location)
       throws EvalException {
