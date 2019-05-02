@@ -34,7 +34,7 @@ import java.nio.file.FileSystem;
  */
 @SkylarkModule(
     name = "folder",
-    doc = "Module for dealing with local filesytem folders",
+    doc = "Module for dealing with local filesystem folders",
     category = SkylarkModuleCategory.BUILTIN)
 public class FolderModule {
 

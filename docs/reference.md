@@ -1184,7 +1184,7 @@ labels | A dictionary with the labels detected for the requested/resolved revisi
 
 ## folder
 
-Module for dealing with local filesytem folders
+Module for dealing with local filesystem folders
 
 <a id="folder.destination" aria-hidden="true"></a>
 ### folder.destination
@@ -1517,7 +1517,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--git-credential-helper-store-file`</nobr> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <nobr>`--nogit-credential-helper-store`</nobr> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
-<nobr>`--nogit-prompt`</nobr> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is inteded for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
+<nobr>`--nogit-prompt`</nobr> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
 
 <a id="git.destination" aria-hidden="true"></a>
 ### git.destination
@@ -1958,7 +1958,7 @@ Parameter | Description
 name | `string`<br><p>Migration name</p>
 origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
-refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination.For example 'refs/heads/*:refs/remotes/origin/*' will mirror any referenceinside refs/heads to refs/remotes/origin.</p>
+refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
 prune | `boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
 description | `string`<br><p>A description of what this workflow achieves</p>
 

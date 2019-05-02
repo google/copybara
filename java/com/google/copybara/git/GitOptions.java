@@ -57,8 +57,9 @@ public class GitOptions implements Option {
       names = "--nogit-prompt",
       description =
           "Disable username/password prompt and fail if no credentials are found. This "
-              + "flag sets the environment variable GIT_TERMINAL_PROMPT which is inteded for automated "
-              + "jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem")
+              + "flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for"
+              + " automated jobs running Git"
+              + " https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem")
   boolean noGitPrompt = false;
 
   @Parameter(names = "--git-visit-changes-page-size",

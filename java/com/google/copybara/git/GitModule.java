@@ -268,8 +268,8 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "refspecs", type = SkylarkList.class, generic1 = String.class, named = true,
               defaultValue = "['refs/heads/*']",
               doc = "Represents a list of git refspecs to mirror between origin and destination."
-                  + "For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
-                  + "inside refs/heads to refs/remotes/origin."),
+                  + " For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
+                  + " inside refs/heads to refs/remotes/origin."),
           @Param(name = "prune", type = Boolean.class, named = true,
               doc = "Remove remote refs that don't have a origin counterpart",
               defaultValue = "False"),
