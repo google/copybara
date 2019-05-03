@@ -949,8 +949,8 @@ public class MetadataModuleTest {
       assertThat(e)
           .hasMessageThat()
           .contains(
-              "Scrubber regex didn't match for description: "
-                  + "This\nis\nvery confidential\nbut this is public\nvery public\n");
+              "Scrubber regex: '^(?:\n|.)*PUBLIC:((?:\n|.)*)(?:\n|.)*$' didn't match for "
+                  + "description: 'This\nis\nvery confidential\nbut this is public\nvery public\n'");
     }
   }
 

@@ -525,7 +525,12 @@ public class MetadataModule {
           + "this\nis\nvery confidential\nbut this is not public\n"
           + "\nand this is a secret too\n"
           + "```\n\n"
-          + "This would fail. Error msg:  Scrubber regex didn't match for description with.\n"
+          + "This would fail. Error msg:  Scrubber regex: "
+          + "\'^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$\' didn't match for description: "
+          + "```\n"
+          + "this\nis\nvery confidential\nbut this is not public\n"
+          + "\nand this is a secret too\n"
+          + "```\n\n"
           + "```\n\n")
   public Transformation scrubber(String regex, Object msgIfNoMatchObj, Boolean failIfNoMatch,
       String replacement, Location location)

@@ -59,7 +59,7 @@ public class Scrubber implements Transformation {
         return;
       }
       ValidationException.checkCondition(!failIfNotMacth,
-          "Scrubber regex didn't match for description: %s", work.getMessage());
+          "Scrubber regex: '%s' didn't match for description: '%s'", pattern.pattern(), work.getMessage());
       if (defaultPublicMsg != null) {
         work.setMessage(defaultPublicMsg);
       }

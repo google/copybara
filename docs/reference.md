@@ -2801,7 +2801,15 @@ but this is not public
 and this is a secret too
 ```
 
-This would fail. Error msg:  Scrubber regex didn't match for description with.
+This would fail. Error msg:  Scrubber regex: '^(?:\n|.)*<public>((?:\n|.)*)</public>(?:\n|.)*$' didn't match for description: ```
+this
+is
+very confidential
+but this is not public
+
+and this is a secret too
+```
+
 ```
 
 
