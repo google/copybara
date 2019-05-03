@@ -16,6 +16,8 @@
 
 package com.google.copybara.testing;
 
+import static com.google.common.truth.Fact.fact;
+import static com.google.common.truth.Fact.simpleFact;
 import static com.google.common.truth.Truth.assertAbout;
 
 import com.google.common.hash.HashCode;
@@ -31,7 +33,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Truth subjects for file assertions.
@@ -97,7 +98,7 @@ public class FileSubjects {
       for (String filename : dirs) {
         Path filePath = actual().resolve(filename);
         if (!Files.isDirectory(filePath)) {
-          fail("does have directory", filePath);
+          failWithActual("expected to have directory", filePath);
         }
       }
       return this;
@@ -122,9 +123,7 @@ public class FileSubjects {
     public PathSubject containsFile(String filename, String fileContents) throws IOException {
       Path filePath = checkFile(filename);
       String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-      if (!realContents.equals(fileContents)) {
-        failWithCustomSubject(filename + " file content equals", fileContents, realContents);
-      }
+      check("contentsOf(%s)", filename).that(realContents).isEqualTo(fileContents);
       return this;
     }
 
@@ -132,10 +131,7 @@ public class FileSubjects {
         throws IOException {
       Path filePath = checkFile(filename);
       String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-      if (!Pattern.compile(contentMatcher).matcher(realContents).matches()) {
-        failWithCustomSubject(filename + " file content doesn't match", contentMatcher,
-            realContents);
-      }
+      check("contentsOf(%s)", filename).that(realContents).matches(contentMatcher);
       return this;
     }
 
@@ -143,9 +139,7 @@ public class FileSubjects {
         throws IOException {
       Path filePath = checkFile(filename);
       HashCode realHash = Hashing.sha256().hashBytes(Files.readAllBytes(filePath));
-      if (!realHash.equals(hash)) {
-        failWithCustomSubject(filename + " file contents hash", hash, realHash);
-      }
+      check("hashOf(%s)", filename).that(realHash).isEqualTo(hash);
       return this;
     }
 
@@ -158,7 +152,7 @@ public class FileSubjects {
       containsFile(filename, fileContents);
       Path filePath = checkFile(filename);
       if (!Files.isExecutable(filePath)) {
-        fail("should be executable", filePath);
+        failWithActual(simpleFact("expected to be executable"));
       }
       return this;
     }
@@ -176,7 +170,10 @@ public class FileSubjects {
       }
       Path realTarget = filePath.resolveSibling(Files.readSymbolicLink(filePath));
       if (!Files.isSameFile(realTarget, targetPath)) {
-        failWithCustomSubject(filename + " Does not point to expected target", target, realTarget);
+        failWithoutActual(
+            fact("expected to point to", target),
+            fact("but points to", realTarget),
+            fact("given path was", filename));
       }
       return this;
     }
