@@ -41,8 +41,11 @@ import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
+import com.google.copybara.transform.FilterReplace;
 import com.google.copybara.transform.Remove;
 import com.google.copybara.transform.Replace;
+import com.google.copybara.transform.ReplaceMapper;
+import com.google.copybara.transform.ReversibleFunction;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.transform.SkylarkTransformation;
 import com.google.copybara.transform.TodoReplace;
@@ -761,6 +764,143 @@ public class Core implements LabelsAwareModule {
     }
     return new TodoReplace(location, convertFromNoneable(paths, Glob.ALL_FILES), tags, mode,
         mapping, defaultString, workflowOptions.parallelizer());
+  }
+
+  public static final String TODO_FILTER_REPLACE_EXAMPLE = ""
+      + "core.filter_replace(\n"
+      + "    regex = 'TODO\\((.*?)\\)',\n"
+      + "    group = 1,\n"
+      + "        mapping = core.replace_mapper([\n"
+      + "            core.replace(\n"
+      + "                before = '${p}foo${s}',\n"
+      + "                after = '${p}fooz${s}',\n"
+      + "                regex_groups = { 'p': '.*', 's': '.*'}\n"
+      + "            ),\n"
+      + "            core.replace(\n"
+      + "                before = '${p}baz${s}',\n"
+      + "                after = '${p}bazz${s}',\n"
+      + "                regex_groups = { 'p': '.*', 's': '.*'}\n"
+      + "            ),\n"
+      + "        ],\n"
+      + "        all = True\n"
+      + "    )\n"
+      + ")\n";
+
+  public static final String SIMPLE_FILTER_REPLACE_EXAMPLE = ""
+      + "core.filter_replace(\n"
+      + "    regex = 'a.*',\n"
+      + "    mapping = {\n"
+      + "        'afoo': 'abar',\n"
+      + "        'abaz': 'abam'\n"
+      + "    }\n"
+      + ")\n";
+
+  @SuppressWarnings({"unused", "unchecked"})
+  @SkylarkCallable(
+      name = "filter_replace",
+
+      doc = "Applies an initial filtering to find a substring to be replaced and then applies"
+          + "a `mapping` of replaces for the matched text.",
+      parameters = {
+          @Param(name = "regex", named = true, type = String.class,
+              doc = "A re2 regex to match a substring of the file"),
+          @Param(name = "mapping", named = true,
+              doc = "A mapping function like core.replace_mapper or a dict with mapping values.",
+              defaultValue = "{}"),
+          @Param(name = "group", named = true, type = Integer.class,
+              doc = "Extract a regex group from the matching text and pass this as parameter to"
+                  + " the mapping instead of the whole matching text.",
+              noneable = true, defaultValue = "None"),
+          @Param(name = "paths", named = true, type = Glob.class,
+              doc = "A glob expression relative to the workdir representing the files to apply"
+                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
+                  + " recursively. Defaults to match all the files recursively.",
+              defaultValue = "None", noneable = true),
+          @Param(name = "reverse", named = true, type = String.class,
+              doc = "A re2 regex used as reverse transformation",
+              defaultValue = "None", noneable = true),
+      },
+      useLocation = true)
+  @DocDefault(field = "paths", value = "glob([\"**\"])")
+  @DocDefault(field = "reverse", value = "`regex`")
+  @DocDefault(field = "group", value = "Whole text")
+  @Example(title = "Simple replace with mapping",
+      before = "Simplest mapping",
+      code = SIMPLE_FILTER_REPLACE_EXAMPLE)
+  @Example(title = "TODO replace",
+      before = "This replace is similar to what it can be achieved with core.todo_replace:",
+      code = TODO_FILTER_REPLACE_EXAMPLE)
+  public FilterReplace filterReplace(String regex,
+      Object mapping, Object group, Object paths, Object reverse, Location location)
+      throws EvalException {
+    ReversibleFunction<String, String> func;
+    if (mapping instanceof SkylarkDict) {
+      ImmutableMap<String, String> map = ImmutableMap.copyOf(
+          SkylarkDict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
+      check(location, !map.isEmpty(), "Empty mapping is not allowed."
+          + " Remove the transformation instead");
+      func = new MapMapper(map, location);
+    } else {
+      check(location, mapping instanceof ReversibleFunction, "mapping has to be instance of"
+          + " map or a reversible function");
+      func = (ReversibleFunction<String, String>) mapping;
+    }
+
+    String afterPattern = convertFromNoneable(reverse, regex);
+    int numGroup = convertFromNoneable(group, 0);
+    Pattern before = Pattern.compile(regex);
+    check(location, numGroup <= before.groupCount(),
+        "group idx is greater than the number of groups defined in '%s'. Regex has %s groups",
+        before.pattern(), before.groupCount());
+    Pattern after = Pattern.compile(afterPattern);
+    check(location, numGroup <= after.groupCount(),
+        "reverse_group idx is greater than the number of groups defined in '%s'."
+            + " Regex has %s groups",
+        after.pattern(), after.groupCount());
+    return new FilterReplace(
+        workflowOptions,
+        before,
+        after,
+        numGroup,
+        numGroup,
+        func,
+        convertFromNoneable(paths, Glob.ALL_FILES), location);
+  }
+
+  @SkylarkCallable(
+      name = "replace_mapper",
+      doc = "A mapping function that applies a list of replaces until one replaces the text"
+          + " (Unless `all = True` is used). This should be used with core.filter_replace or"
+          + " other transformations that accept text mapping as parameter.",
+      parameters = {
+          @Param(
+              name = "mapping",
+              type = SkylarkList.class, generic1 = Transformation.class, named = true,
+              noneable = true,
+              doc = "The list of core.replace transformations",
+              defaultValue = "None"
+          ),
+          @Param(
+              name = "all",
+              type = Boolean.class, named = true, positional = false,
+              doc = "Run all the mappings despite a replace happens.",
+              defaultValue = "False"
+          ),
+      },
+      useLocation = true)
+  public ReplaceMapper mapImports(SkylarkList<Transformation> mapping,
+      Boolean all, Location location) throws EvalException {
+    check(location, !mapping.isEmpty(), "Empty mapping is not allowed");
+    ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
+    for (Transformation t : mapping) {
+      check(location, t instanceof Replace,
+          "Only core.replace can be used as mapping, but got: " + t.describe());
+      Replace replace = (Replace) t;
+      check(location, replace.getPaths().equals(Glob.ALL_FILES), "core.replace cannot use"
+          + " 'paths' inside go.map_imports");
+      replaces.add(replace);
+    }
+    return new ReplaceMapper(replaces.build(), all);
   }
 
   @SuppressWarnings("unused")

@@ -23,9 +23,11 @@
     - [core.dynamic_transform](#core.dynamic_transform)
     - [core.fail_with_noop](#core.fail_with_noop)
     - [core.feedback](#core.feedback)
+    - [core.filter_replace](#core.filter_replace)
     - [core.move](#core.move)
     - [core.remove](#core.remove)
     - [core.replace](#core.replace)
+    - [core.replace_mapper](#core.replace_mapper)
     - [core.reverse](#core.reverse)
     - [core.todo_replace](#core.todo_replace)
     - [core.transform](#core.transform)
@@ -89,6 +91,7 @@
     - [parse_message](#parse_message)
   - [hg](#hg)
     - [hg.origin](#hg.origin)
+  - [mapping_function](#mapping_function)
   - [metadata](#metadata)
     - [metadata.add_header](#metadata.add_header)
     - [metadata.expose_label](#metadata.expose_label)
@@ -572,6 +575,71 @@ actions | `sequence`<br><p>A list of feedback actions to perform, with the follo
 </p>
 description | `string`<br><p>A description of what this workflow achieves</p>
 
+<a id="core.filter_replace" aria-hidden="true"></a>
+### core.filter_replace
+
+Applies an initial filtering to find a substring to be replaced and then appliesa `mapping` of replaces for the matched text.
+
+`filterReplace core.filter_replace(regex, mapping={}, group=Whole text, paths=glob(["**"]), reverse=`regex`)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex | `string`<br><p>A re2 regex to match a substring of the file</p>
+mapping | `object`<br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
+group | `integer`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
+paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+reverse | `string`<br><p>A re2 regex used as reverse transformation</p>
+
+
+#### Examples:
+
+
+##### Simple replace with mapping:
+
+Simplest mapping
+
+```python
+core.filter_replace(
+    regex = 'a.*',
+    mapping = {
+        'afoo': 'abar',
+        'abaz': 'abam'
+    }
+)
+
+```
+
+
+##### TODO replace:
+
+This replace is similar to what it can be achieved with core.todo_replace:
+
+```python
+core.filter_replace(
+    regex = 'TODO\((.*?)\)',
+    group = 1,
+        mapping = core.replace_mapper([
+            core.replace(
+                before = '${p}foo${s}',
+                after = '${p}fooz${s}',
+                regex_groups = { 'p': '.*', 's': '.*'}
+            ),
+            core.replace(
+                before = '${p}baz${s}',
+                after = '${p}bazz${s}',
+                regex_groups = { 'p': '.*', 's': '.*'}
+            ),
+        ],
+        all = True
+    )
+)
+
+```
+
+
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
 
@@ -802,6 +870,21 @@ more public code
 
 
 
+
+<a id="core.replace_mapper" aria-hidden="true"></a>
+### core.replace_mapper
+
+A mapping function that applies a list of replaces until one replaces the text (Unless `all = True` is used). This should be used with core.filter_replace or other transformations that accept text mapping as parameter.
+
+`replaceMapper core.replace_mapper(mapping=None, all=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+mapping | `sequence of transformation`<br><p>The list of core.replace transformations</p>
+all | `boolean`<br><p>Run all the mappings despite a replace happens.</p>
 
 <a id="core.reverse" aria-hidden="true"></a>
 ### core.reverse
@@ -2228,6 +2311,12 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the Hg repository</p>
 ref | `string`<br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to `default`, the most recent revision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
+
+
+
+## mapping_function
+
+A function that given an object can map to another object
 
 
 

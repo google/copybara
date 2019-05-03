@@ -16,10 +16,10 @@
 
 package com.google.copybara.transform;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -44,6 +44,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Supplier;
 
 /**
  * A source code transformation which replaces a regular expression with some other string.
@@ -75,25 +77,25 @@ public final class Replace implements Transformation {
   private final boolean firstOnly;
   private final boolean multiline;
   private final boolean repeatedGroups;
-  private final Glob fileMatcherBuilder;
+  private final Glob paths;
   private final ImmutableList<Pattern> patternsToIgnore;
   private final WorkflowOptions workflowOptions;
 
   private Replace(RegexTemplateTokens before, RegexTemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       boolean repeatedGroups,
-      Glob fileMatcherBuilder,
+      Glob paths,
       List<Pattern> patternsToIgnore,
       WorkflowOptions workflowOptions) {
-    this.before = Preconditions.checkNotNull(before);
-    this.after = Preconditions.checkNotNull(after);
+    this.before = checkNotNull(before);
+    this.after = checkNotNull(after);
     this.regexGroups = ImmutableMap.copyOf(regexGroups);
     this.firstOnly = firstOnly;
     this.multiline = multiline;
     this.repeatedGroups = repeatedGroups;
-    this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
+    this.paths = checkNotNull(paths);
     this.patternsToIgnore = ImmutableList.copyOf(patternsToIgnore);
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.workflowOptions = checkNotNull(workflowOptions);
   }
 
   @Override
@@ -104,7 +106,7 @@ public final class Replace implements Transformation {
         .add("regexGroups", regexGroups)
         .add("firstOnly", firstOnly)
         .add("multiline", multiline)
-        .add("path", fileMatcherBuilder)
+        .add("path", paths)
         .add("patternsToIgnore", patternsToIgnore)
         .toString();
   }
@@ -115,9 +117,8 @@ public final class Replace implements Transformation {
     Path checkoutDir = work.getCheckoutDir();
 
     Iterable<FileState> files = work.getTreeState().find(
-        fileMatcherBuilder.relativeTo(checkoutDir));
-    BatchReplace batchReplace = new BatchReplace(
-        before, after, firstOnly, multiline, patternsToIgnore);
+        paths.relativeTo(checkoutDir));
+    BatchReplace batchReplace = new BatchReplace(this::createReplacer);
     workflowOptions.parallelizer().run(files, batchReplace);
     List<FileState> changed = batchReplace.getChanged();
     boolean matchedFile = batchReplace.isMatchedFile();
@@ -150,7 +151,7 @@ public final class Replace implements Transformation {
     }
     //TODO remove repeatedGroups boolean?
     return new Replace(after, before, regexGroups, firstOnly, multiline, repeatedGroups,
-        fileMatcherBuilder, patternsToIgnore, workflowOptions);
+        paths, patternsToIgnore, workflowOptions);
   }
 
   public static Replace create(Location location, String before, String after,
@@ -190,7 +191,7 @@ public final class Replace implements Transformation {
   public static Map<String, Pattern> parsePatterns(Location location,
       Map<String, String> regexGroups) throws EvalException {
     Map<String, Pattern> parsedGroups = new HashMap<>();
-    for (Map.Entry<String, String> group : regexGroups.entrySet()) {
+    for (Entry<String, String> group : regexGroups.entrySet()) {
       try {
         parsedGroups.put(group.getKey(), Pattern.compile(group.getValue()));
       } catch (PatternSyntaxException e) {
@@ -205,22 +206,13 @@ public final class Replace implements Transformation {
       implements LocalParallelizer.TransformFunc<FileState, Boolean> {
 
 
-    private final RegexTemplateTokens before;
-    private final RegexTemplateTokens after;
-    private final boolean firstOnly;
-    private final boolean multiline;
-    private final ImmutableList<Pattern> patternsToIgnore;
+    private final Supplier<Replacer> replacerSupplier;
 
     private final List<FileState> changed = new ArrayList<>();
     private boolean matchedFile = false;
 
-    BatchReplace(RegexTemplateTokens before, RegexTemplateTokens after, boolean firstOnly,
-        boolean multiline, ImmutableList<Pattern> patternsToIgnore) {
-      this.before = before;
-      this.after = after;
-      this.firstOnly = firstOnly;
-      this.multiline = multiline;
-      this.patternsToIgnore = patternsToIgnore;
+    BatchReplace(Supplier<Replacer> replacerSupplier) {
+      this.replacerSupplier = checkNotNull(replacerSupplier);
     }
 
     public List<FileState> getChanged() {
@@ -232,8 +224,8 @@ public final class Replace implements Transformation {
     }
 
     @Override
-    public Boolean run(Iterable<FileState> elements) throws IOException, ValidationException {
-      Replacer replacer = before.replacer(after, firstOnly, multiline, patternsToIgnore);
+    public Boolean run(Iterable<FileState> elements) throws IOException {
+      Replacer replacer = replacerSupplier.get();
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
       for (FileState file : elements) {
@@ -257,5 +249,14 @@ public final class Replace implements Transformation {
       // We cannot return null here.
       return true;
     }
+
+  }
+
+  public Replacer createReplacer() {
+    return before.replacer(after, firstOnly, multiline, patternsToIgnore);
+  }
+
+  public Glob getPaths() {
+    return paths;
   }
 }

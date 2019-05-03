@@ -150,7 +150,7 @@ public final class RegexTemplateTokens {
       }
 
       Matcher matcher = before.matcher(line);
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder(line.length());
       while (matcher.find()) {
         for (Collection<Integer> groupIndexes : repeatedGroups.asMap().values()) {
           // Check that all the references of the repeated group match the same string
