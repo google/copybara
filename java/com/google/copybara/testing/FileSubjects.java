@@ -60,10 +60,12 @@ public class FileSubjects {
 
   public static class PathSubject extends Subject<PathSubject, Path> {
 
+    private final Path actual;
     private final Set<Path> whitelistedPaths = new HashSet<>();
 
     PathSubject(FailureMetadata failureMetadata, Path target) {
       super(failureMetadata, target);
+      this.actual = target;
     }
 
     /**
@@ -84,7 +86,7 @@ public class FileSubjects {
      */
     public void containsNoFiles(String... filenames) {
       for (String filename : filenames) {
-        Path filePath = getSubject().resolve(filename);
+        Path filePath = actual.resolve(filename);
         if (Files.exists(filePath)) {
           failWithActual("expected not to have file", filePath);
         }
@@ -96,7 +98,7 @@ public class FileSubjects {
      */
     public PathSubject containsDirs(String... dirs) {
       for (String filename : dirs) {
-        Path filePath = actual().resolve(filename);
+        Path filePath = actual.resolve(filename);
         if (!Files.isDirectory(filePath)) {
           failWithActual("expected to have directory", filePath);
         }
@@ -109,7 +111,7 @@ public class FileSubjects {
      */
     public PathSubject containsNoDirs(String... dirs) {
       for (String filename : dirs) {
-        Path filePath = actual().resolve(filename);
+        Path filePath = actual.resolve(filename);
         if (Files.isDirectory(filePath)) {
           failWithActual("expected not to have directory", filePath);
         }
@@ -162,7 +164,7 @@ public class FileSubjects {
      * target.
      */
     public PathSubject containsSymlink(String filename, String target) throws IOException {
-      Path filePath =  getSubject().resolve(filename);
+      Path filePath = actual.resolve(filename);
       Path targetPath = checkFile(target);
 
       if (!Files.isSymbolicLink(filePath)) {
@@ -183,13 +185,13 @@ public class FileSubjects {
      */
     public PathSubject containsNoMoreFiles() throws IOException {
       Files.walkFileTree(
-          getSubject(),
+          actual,
           new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                 throws IOException {
               if (attrs.isRegularFile()) {
-                Path relativeFile = getSubject().relativize(file);
+                Path relativeFile = actual.relativize(file);
                 if (!whitelistedPaths.contains(relativeFile)) {
                   failWithActual("expected to contain no more files", relativeFile.toString());
                 }
@@ -201,11 +203,11 @@ public class FileSubjects {
     }
 
     private Path checkFile(String filename) {
-      Path filePath = getSubject().resolve(filename);
+      Path filePath = actual.resolve(filename);
       if (!Files.exists(filePath)) {
         failWithActual("expected to have file", filePath);
       }
-      whitelistedPaths.add(getSubject().relativize(filePath));
+      whitelistedPaths.add(actual.relativize(filePath));
       return filePath;
     }
   }
