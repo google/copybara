@@ -833,18 +833,7 @@ public class Core implements LabelsAwareModule {
   public FilterReplace filterReplace(String regex,
       Object mapping, Object group, Object paths, Object reverse, Location location)
       throws EvalException {
-    ReversibleFunction<String, String> func;
-    if (mapping instanceof SkylarkDict) {
-      ImmutableMap<String, String> map = ImmutableMap.copyOf(
-          SkylarkDict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
-      check(location, !map.isEmpty(), "Empty mapping is not allowed."
-          + " Remove the transformation instead");
-      func = new MapMapper(map, location);
-    } else {
-      check(location, mapping instanceof ReversibleFunction, "mapping has to be instance of"
-          + " map or a reversible function");
-      func = (ReversibleFunction<String, String>) mapping;
-    }
+    ReversibleFunction<String, String> func = getMappingFunction(mapping, location);
 
     String afterPattern = convertFromNoneable(reverse, regex);
     int numGroup = convertFromNoneable(group, 0);
@@ -865,6 +854,22 @@ public class Core implements LabelsAwareModule {
         numGroup,
         func,
         convertFromNoneable(paths, Glob.ALL_FILES), location);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static ReversibleFunction<String, String> getMappingFunction(Object mapping,
+      Location location)
+      throws EvalException {
+    if (mapping instanceof SkylarkDict) {
+      ImmutableMap<String, String> map = ImmutableMap.copyOf(
+          SkylarkDict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
+      check(location, !map.isEmpty(), "Empty mapping is not allowed."
+          + " Remove the transformation instead");
+      return new MapMapper(map, location);
+    }
+    check(location, mapping instanceof ReversibleFunction, "mapping has to be instance of"
+        + " map or a reversible function");
+    return  (ReversibleFunction<String, String>) mapping;
   }
 
   @SkylarkCallable(
