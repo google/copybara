@@ -130,7 +130,7 @@ public class Main {
 
   /** Helper to find out about verbose output before JCommander has been initialized .*/
   protected static boolean isVerbose(String[] args) {
-    return Arrays.stream(args).anyMatch(Predicate.isEqual("-v"));
+    return Arrays.stream(args).anyMatch(s -> s.equals("-v") || s.equals("--verbose"));
   }
 
   /**
