@@ -104,7 +104,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false);
+            /*reverse=*/ false, /*strip=*/1);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -120,7 +120,7 @@ public class PatchTransformationTest {
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false);
+            /*reverse=*/ false, /*strip=*/1);
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
     transform.transform(TransformWorks.of(foo, "testmsg", console));
@@ -131,7 +131,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ true);
+            /*reverse=*/ true, /*strip=*/1);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
@@ -147,6 +147,30 @@ public class PatchTransformationTest {
             "r = patch.apply(\n"
                 + "  patches = ['diff.patch'],\n"
                 + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+    assertThatPath(checkoutDir)
+        .containsFile("test.txt", "bar\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testPathStrip() throws Exception {
+    patchingOptions.skipVersionCheck = true;
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    skylark.addConfigFile("diff.patch",       ""
+        + "diff --git test.txt test.txt\n"
+        + "index 257cc56..5716ca5 100644\n"
+        + "--- test.txt\n"
+        + "+++ test.txt\n"
+        + "@@ -1 +1 @@\n"
+        + "-foo\n"
+        + "+bar\n");
+    PatchTransformation transformation =
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  patches = ['diff.patch'],\n"
+                + "  strip = 0,\n"
                 + ")\n");
     transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
@@ -175,7 +199,7 @@ public class PatchTransformationTest {
   public void testDescribe() {
     PatchTransformation transform = new PatchTransformation(
         ImmutableList.of(patchFile, patchFile), excludedFromPatch, patchingOptions,
-        /*reverse=*/ false);
+        /*reverse=*/ false, /*strip=*/1);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }

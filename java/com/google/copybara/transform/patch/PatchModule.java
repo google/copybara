@@ -22,6 +22,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -84,12 +85,18 @@ public class PatchModule implements LabelsAwareModule {
                   + "component will be stripped (-p1).:<br>:<br>"
                   + "This field can be combined with 'patches'. Both 'patches' and 'series' will "
                   + "be applied in order (patches first)."),
+          @Param(name = "strip", named = true, positional = false,
+              type = Integer.class, defaultValue = "1",
+              doc = "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
+                  + "By default it uses -p1"),
       },
       useLocation = true)
+  @UsesFlags(PatchingOptions.class)
   public PatchTransformation apply(
       SkylarkList patches,
       SkylarkList excludedPaths,
       Object seriesOrNone,
+      Integer strip,
       Location location) throws EvalException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     for (String patch : Type.STRING_LIST.convert(patches, "patches")) {
@@ -119,7 +126,7 @@ public class PatchModule implements LabelsAwareModule {
     return new PatchTransformation(
         builder.build(),
         ImmutableList.copyOf(Type.STRING_LIST.convert(excludedPaths, "excludedPaths")),
-        patchingOptions, /*reverse=*/ false);
+        patchingOptions, /*reverse=*/ false, strip);
   }
 
 

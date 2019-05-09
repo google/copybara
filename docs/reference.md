@@ -2991,7 +2991,7 @@ Module for applying patches.
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-`patchTransformation patch.apply(patches=[], excluded_patch_paths=[], series=None)`
+`patchTransformation patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1)`
 
 
 #### Parameters:
@@ -3001,6 +3001,17 @@ Parameter | Description
 patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first).</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
+strip | `integer`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--patch-bin`</nobr> | *string* | Path for GNU Patch command
+<nobr>`--patch-skip-version-check`</nobr> | *boolean* | Skip checking the version of patch and assume it is fine
+<nobr>`--patch-use-git-apply`</nobr> | *boolean* | Don't use GNU Patch and instead use 'git apply'
 
 
 
