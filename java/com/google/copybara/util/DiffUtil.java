@@ -199,7 +199,9 @@ public class DiffUtil {
       GitEnvironment gitEnv = new GitEnvironment(environment);
       checkNotInsideGitRepo(one, verbose, gitEnv);
       Path root = one.getParent();
-      List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color");
+      List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color",
+          // Be careful, no test coverage for this:
+          "--no-ext-diff");
       if (nameStatus) {
         params.add("--name-status");
       }
