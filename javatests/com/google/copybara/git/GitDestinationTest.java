@@ -344,6 +344,7 @@ public class GitDestinationTest {
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding all files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Excluding files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Creating a local commit")
+        .matchesNext(MessageType.VERBOSE, "Integrates for.*")
         // Validate that we showed the confirmation
         .matchesNext(MessageType.INFO, "(?m)(\n|.)*test summary(\n|.)+"
             + "diff --git a/test.txt b/test.txt\n"

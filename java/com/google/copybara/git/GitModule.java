@@ -950,6 +950,11 @@ public class GitModule implements LabelsAwareModule {
                   + "origin/destination endpoints.",
               named = true, positional = false,
               noneable = true),
+          @Param(name = "integrates", type = SkylarkList.class, named = true,
+              generic1 = GitIntegrateChanges.class, defaultValue = "None",
+              doc = "Integrate changes from a url present in the migrated change"
+                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                  + " present in the message", positional = false, noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -958,7 +963,7 @@ public class GitModule implements LabelsAwareModule {
       String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
       String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
       SkylarkList<String> ccParam, SkylarkList<String> labelsParam,
-      Object checkerObj, Location location) throws EvalException {
+      Object checkerObj, Object integrates, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
 
     List<String> newReviewers = Type.STRING_LIST.convert(reviewers, "reviewers");
@@ -990,7 +995,9 @@ public class GitModule implements LabelsAwareModule {
         newReviewers,
         cc,
         labels,
-        convertFromNoneable(checkerObj, null));
+        convertFromNoneable(checkerObj, null),
+        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            GitIntegrateChanges.class, "integrates"));
   }
 
   @SuppressWarnings("unused")

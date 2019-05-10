@@ -16,8 +16,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.GitModule.DEFAULT_GIT_INTEGRATES;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -482,7 +480,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       List<String> reviewers,
       List<String> cc,
       List<String> labels,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker,
+      Iterable<GitIntegrateChanges> integrates) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push = submit ? pushToRefsFor : String.format("refs/for/%s", pushToRefsFor);
@@ -507,7 +506,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 labels,
                 endpointChecker,
                 notifyOption),
-            DEFAULT_GIT_INTEGRATES),
+            integrates),
         submit);
   }
 

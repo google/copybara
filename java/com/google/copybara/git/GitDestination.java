@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -50,7 +51,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
-import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -71,6 +71,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
   static class MessageInfo {
+
     final ImmutableList<LabelFinder> labelsToAdd;
 
     MessageInfo(ImmutableList<LabelFinder> labelsToAdd) {
@@ -136,7 +137,7 @@ public final class GitDestination implements Destination<GitRevision> {
   public Writer<GitRevision> newWriter(WriterContext writerContext) {
 
     WriterState state = new WriterState(
-              localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
+        localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
 
     return new WriterImpl<>(
         writerContext.isDryRun(),
@@ -340,7 +341,7 @@ public final class GitDestination implements Destination<GitRevision> {
       /** Customize the writer for a particular destination. */
       MessageInfo generateMessageInfo(TransformResult transformResult)
           throws ValidationException, RepoException;
-      
+
       /**
        * Validate or do modifications to the current change to be pushed.
        *
@@ -349,7 +350,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * point to a new/modified changes(s).
        */
       default void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush,
-          List<? extends Change<?>> originChanges) throws RepoException, ValidationException { }
+          List<? extends Change<?>> originChanges) throws RepoException, ValidationException {
+      }
 
       /**
        * Construct the reference to push based on the pushToRefsFor reference. Implementations of
@@ -380,12 +382,12 @@ public final class GitDestination implements Destination<GitRevision> {
 
       @Override
       public MessageInfo generateMessageInfo(TransformResult transformResult) {
-          Revision rev = transformResult.getCurrentRevision();
-          return new MessageInfo(
-              transformResult.isSetRevId()
-                  ? ImmutableList.of(new LabelFinder(
-                  transformResult.getRevIdLabel() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
-                  : ImmutableList.of());
+        Revision rev = transformResult.getCurrentRevision();
+        return new MessageInfo(
+            transformResult.isSetRevId()
+                ? ImmutableList.of(new LabelFinder(
+                transformResult.getRevIdLabel() + ORIGIN_LABEL_SEPARATOR + rev.asString()))
+                : ImmutableList.of());
       }
 
       @Override
@@ -479,6 +481,9 @@ public final class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           commitMessage);
+
+      // Don't remove. Used internally in test
+      console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
       for (GitIntegrateChanges integrate : integrates) {
         integrate.run(alternate, generalOptions, messageInfo,
@@ -585,8 +590,8 @@ public final class GitDestination implements Destination<GitRevision> {
       if (baseline != null && !repo.refExists(baseline)) {
         throw new RepoException("Cannot find baseline '" + baseline
             + (getLocalBranchRevision(repo) != null
-               ? "' from fetch reference '" + remoteFetch + "'"
-               : "' and fetch reference '" + remoteFetch + "' itself")
+            ? "' from fetch reference '" + remoteFetch + "'"
+            : "' and fetch reference '" + remoteFetch + "' itself")
             + " in " + repoUrl + ".");
       } else if (baseline != null) {
         // Update the local branch to use the baseline
@@ -598,7 +603,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private GitRevision fetchFromRemote(Console console, GitRepository repo, String repoUrl,
         String fetch) throws RepoException, ValidationException {
       String completeFetchRef = getCompleteRef(fetch);
-      try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")){
+      try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")) {
         console.progress("Git Destination: Fetching: " + repoUrl + " " + completeFetchRef);
         return repo.fetchSingleRef(repoUrl, completeFetchRef);
       } catch (CannotResolveRevisionException e) {
