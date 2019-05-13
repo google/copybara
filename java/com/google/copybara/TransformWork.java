@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -272,7 +273,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
     if (fullPath.getParent() != null) {
       Files.createDirectories(fullPath.getParent());
     }
-    Files.write(fullPath, content.getBytes(StandardCharsets.UTF_8));
+    Files.write(fullPath, content.getBytes(UTF_8));
   }
 
   @SkylarkCallable(
@@ -282,7 +283,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
               doc = "The string representing the path"),
       })
   public String readPath(CheckoutPath path) throws FuncallException, IOException {
-    return new String(Files.readAllBytes(asCheckoutPath(path)));
+    return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
   }
 
   private Path asCheckoutPath(CheckoutPath path) throws FuncallException {
