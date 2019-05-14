@@ -30,4 +30,8 @@ public class NonReversibleValidationException extends EvalException {
   public NonReversibleValidationException(Location location, String message) {
     super(location, message);
   }
+
+  public NonReversibleValidationException(Location location, String message, Throwable cause) {
+    super(location, message, cause);
+  }
 }

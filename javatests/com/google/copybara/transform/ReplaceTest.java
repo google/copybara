@@ -379,7 +379,9 @@ public final class ReplaceTest {
         .containsFile("foo","foo123");
 
     // But it fails if we ask for the reverse
-    skylark.evalFails("core.reverse([" + transform + "])", "defined but not used: \\[bar\\]");
+    skylark.evalFails("core.reverse([" + transform + "])",
+        "The transformation is not automatically reversible. Add an explicit reversal field with "
+            + "core.transform");
   }
 
   @Test

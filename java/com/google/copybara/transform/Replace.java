@@ -147,7 +147,9 @@ public final class Replace implements Transformation {
     try {
       after.validateUnused();
     } catch (EvalException e) {
-      throw new NonReversibleValidationException(e.getLocation(), e.getMessage());
+      throw new NonReversibleValidationException(e.getLocation(),
+          "The transformation is not automatically reversible. Add an explicit reversal field with "
+              + "core.transform.", e.getCause());
     }
     //TODO remove repeatedGroups boolean?
     return new Replace(after, before, regexGroups, firstOnly, multiline, repeatedGroups,
