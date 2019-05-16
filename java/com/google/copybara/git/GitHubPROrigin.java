@@ -464,6 +464,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
             .put("url", url);
+    if (branch != null) {
+      builder.put("branch", branch);
+    }
     if (reviewState != null) {
       builder.put("review_state", reviewState.name());
       builder.putAll("review_approvers",

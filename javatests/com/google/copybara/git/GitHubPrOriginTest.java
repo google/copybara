@@ -643,6 +643,15 @@ public class GitHubPrOriginTest {
         .contains("https://github.com/google/example");
   }
 
+  @Test
+  public void testDescribeBranch() throws Exception {
+    GitHubPROrigin val =
+        skylark.eval(
+            "origin", "origin = git.github_pr_origin("
+                + "url = 'http://github.com/google/example', branch = 'dev')\n");
+    assertThat(val.describe(Glob.ALL_FILES).get("branch"))
+        .contains("dev");
+  }
 
   private GitRevision checkReviewApprovers(String... configLines)
       throws RepoException, IOException, ValidationException {
