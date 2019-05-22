@@ -263,8 +263,8 @@ public class Main {
       // This usually indicates a serious programming error that will require Copybara team
       // intervention. Print stack trace without concern for presentation.
       e.printStackTrace();
-      handleUnexpectedError(console, "Unexpected error (please file a bug): " + e.getMessage(),
-          args, e);
+      handleUnexpectedError(console,
+          "Unexpected error (please file a bug against copybara): " + e.getMessage(), args, e);
       return new CommandResult(ExitCode.INTERNAL_ERROR, subcommand, commandEnv);
     }
   }
