@@ -257,6 +257,10 @@ public final class FileUtil {
      * Fail if any symlink outside of the folder is found.
      */
     FAIL_OUTSIDE_SYMLINKS,
+    /**
+     * If any symlink points to an invalid/outside path, ignore them
+     */
+    IGNORE_INVALID_SYMLINKS,
   }
 
   /**
@@ -319,9 +323,15 @@ public final class FileUtil {
           if (symlinkStrategy == CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS) {
             throw new AbsoluteSymlinksNotAllowed(msg, file, resolvedSymlink.regularFile);
           }
+          if (symlinkStrategy == CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS) {
+            return FileVisitResult.CONTINUE;
+          }
           logger.atInfo().log("%s Materializing the symlink.", msg);
         }
-
+        if (symlinkStrategy == CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS
+            && !Files.exists(resolvedSymlink.regularFile)) {
+          return FileVisitResult.CONTINUE;
+        }
         if (symlinkStrategy == CopySymlinkStrategy.MATERIALIZE_ALL || escapedRoot) {
           if (Files.isDirectory(file)) {
             // A symlink to a directory outside 'from'. Copy all the files recursively as regular

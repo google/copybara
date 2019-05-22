@@ -94,7 +94,8 @@ public class FolderModule {
         Author.parse(location, originOptions.author),
         originOptions.message,
         generalOptions.getCwd(),
-        materializeOutsideSymlinks);
+        materializeOutsideSymlinks,
+        originOptions.ignoreInvalidSymlinks);
   }
 
 }

@@ -1222,6 +1222,7 @@ materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will ref
 Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--folder-origin-author`</nobr> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
+<nobr>`--folder-origin-ignore-invalid-symlinks`</nobr> | *boolean* | If an invalid symlink is found, ignore it instead of failing
 <nobr>`--folder-origin-message`</nobr> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
 
 

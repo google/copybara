@@ -58,14 +58,16 @@ public class FolderOrigin implements Origin<FolderRevision> {
   private final CopySymlinkStrategy copySymlinkStrategy;
 
   FolderOrigin(FileSystem fs, Author author, String message, Path cwd,
-      boolean materializeOutsideSymlinks) {
+      boolean materializeOutsideSymlinks, boolean ignoreInvalidSymlinks) {
     this.fs = Preconditions.checkNotNull(fs);
     this.author = author;
     this.message = message;
     this.cwd = Preconditions.checkNotNull(cwd);
-    this.copySymlinkStrategy = materializeOutsideSymlinks
-        ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
-        : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+    this.copySymlinkStrategy = ignoreInvalidSymlinks
+            ? CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS
+            : materializeOutsideSymlinks
+                ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
+                : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
   }
 
   @Override

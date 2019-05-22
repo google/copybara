@@ -24,6 +24,7 @@ import static java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
+import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableSet;
@@ -40,6 +41,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Set;
@@ -239,6 +241,37 @@ public class FolderOriginTest {
         .containsFile("foo", "abc")
         .containsNoMoreFiles();
     assertThat(Files.isSymbolicLink(workdir.resolve("foo"))).isFalse();
+  }
+
+  @Test
+  public void testInvalidSymlinks() throws Exception {
+    try {
+      checkInvalidSymlink();
+      fail();
+    } catch (RepoException e) {
+      assertThat(e).hasCauseThat().isInstanceOf(NoSuchFileException.class);
+      assertThat(e).hasCauseThat().hasMessageThat().contains("foo");
+    }
+  }
+
+  @Test
+  public void testInvalidSymlinks_ignore() throws Exception {
+    options.folderOrigin.ignoreInvalidSymlinks = true;
+    checkInvalidSymlink();
+  }
+
+  private void checkInvalidSymlink()
+      throws IOException, ValidationException, RepoException {
+    Path localFolder = Files.createTempDirectory("local_folder");
+    Files.createSymbolicLink(localFolder.resolve("foo"), localFolder.resolve("invalid"));
+
+    FolderOrigin origin = skylark.eval("f", "f = " + "folder.origin()");
+
+    Reader<FolderRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    FolderRevision ref = origin.resolve(localFolder.toString());
+    reader.checkout(ref, workdir);
+
+    assertThatPath(workdir).containsNoMoreFiles();
   }
 
   @Test

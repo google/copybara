@@ -35,4 +35,8 @@ public final class FolderOriginOptions implements Option {
       description = "Deprecated. Please use '--force-message'. Message of the change being migrated"
           + " from folder.origin()")
   public String message = "Copybara code migration";
+
+  @Parameter(names = "--folder-origin-ignore-invalid-symlinks",
+      description = "If an invalid symlink is found, ignore it instead of failing")
+  public boolean ignoreInvalidSymlinks = false;
 }
