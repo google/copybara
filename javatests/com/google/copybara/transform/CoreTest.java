@@ -18,7 +18,6 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.truth.Truth;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import org.junit.Before;

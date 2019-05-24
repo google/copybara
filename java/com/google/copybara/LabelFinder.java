@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.base.Preconditions;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 

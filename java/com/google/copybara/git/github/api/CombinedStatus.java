@@ -17,7 +17,6 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
-import com.google.common.collect.ImmutableList;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
