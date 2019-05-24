@@ -169,7 +169,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       throws ValidationException {
     try {
       return GitHubUtil.getValidBranchName(
-          new LabelTemplate(prBranchToUpdate).resolve(e -> labelDict.get(e)));
+          new LabelTemplate(prBranchToUpdate).resolve(labelDict::get));
     } catch (LabelNotFoundException e) {
       throw new ValidationException(
           String.format("Template '%s' has an error: %s", prBranchToUpdate, e.getMessage()), e);
