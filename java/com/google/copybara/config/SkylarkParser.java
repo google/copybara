@@ -279,9 +279,10 @@ public class SkylarkParser {
     return StarlarkSemantics.DEFAULT_SEMANTICS
         .toBuilder()
         // TODO(malcon): Temporary until we fix internal usages
+        .incompatibleBzlDisallowLoadAfterStatement(false)
         .incompatibleDisallowDictPlus(false)
         .incompatibleNoTransitiveLoads(false)
-        .incompatibleBzlDisallowLoadAfterStatement(false)
+        .incompatibleStringJoinRequiresStrings(false)
         .build();
   }
 
