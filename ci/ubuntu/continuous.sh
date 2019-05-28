@@ -20,4 +20,4 @@ set -e
 set -x
 
 cd git/copybara
-./cloudbuild.sh
+./cibuild.sh
