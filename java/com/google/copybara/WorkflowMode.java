@@ -264,90 +264,82 @@ public enum WorkflowMode {
             runHelper.originResolve(runHelper.workflowOptions().changeBaseline));
       }
 
-      O originBaseline = null;
-      String destinationBaseline = null;
-      for (O current : originBaselines) {
-        originBaseline = current;
-        String originRevision = revisionWithoutReviewInfo(originBaseline.asString());
-        runHelper.getConsole().progressFmt("Looking for a change in destination that contains"
-                + " origin baseline revision %s",
-            originRevision);
-        destinationBaseline = getDestinationBaseline(runHelper, originRevision);
-        if (destinationBaseline != null) {
-          break;
-        }
-        runHelper.getConsole().warnFmt(
-            "Couldn't find a change in the destination for origin baseline revision %s",
-            originBaseline.asString());
-      }
+      Baseline<O> destinationBaseline = getDestinationBaseline(runHelper, originBaselines);
 
       if (destinationBaseline == null) {
-        checkCondition(originBaseline != null,
+        checkCondition(!originBaselines.isEmpty(),
             "Couldn't find any parent change for %s and origin_files = %s",
             runHelper.getResolvedRef().asString(), runHelper.getOriginFiles());
 
         throw retriableException(format(
-            "Couldn't find a change in the destination with %s label and %s value. Make sure"
+            "Couldn't find a change in the destination with %s label that matches a change from"
+                + " the origin. Make sure"
                 + " to sync the submitted changes from the origin -> destination first or use"
                 + " SQUASH mode or use %s",
             runHelper.getOriginLabelName(),
-            originBaseline,
             CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG));
       }
-      runChangeRequest(runHelper, Optional.of(new Baseline<>(destinationBaseline, originBaseline)));
+      runChangeRequest(runHelper, Optional.of(destinationBaseline));
     }
 
-      @Nullable
-      private <O extends Revision, D extends Revision> String getDestinationBaseline(
-          WorkflowRunHelper<O, D> runHelper, String originRevision)
-          throws RepoException, ValidationException {
+    @Nullable
+    private <O extends Revision, D extends Revision> Baseline<O>
+    getDestinationBaseline(WorkflowRunHelper<O, D> runHelper, ImmutableList<O> originRevision)
+        throws RepoException, ValidationException {
 
-        String result = getDestinationBaselineOneAttempt(runHelper, originRevision);
+      Baseline<O> result =
+          getDestinationBaselineOneAttempt(runHelper, originRevision);
+      if (result != null) {
+        return result;
+      }
+
+      for (Integer delay : runHelper.workflowOptions().changeRequestFromSotRetry) {
+        runHelper.getConsole().warnFmt(
+            "Couldn't find a change in the destination with %s label and %s value."
+                + " Retrying in %s seconds...",
+            runHelper.getOriginLabelName(), originRevision, delay);
+        try {
+          TimeUnit.SECONDS.sleep(delay);
+        } catch (InterruptedException e) {
+          throw new RepoException("Interrupted while waiting for CHANGE_REQUEST_FROM_SOT"
+              + " destination baseline to be available", e);
+        }
+        result = getDestinationBaselineOneAttempt(runHelper, originRevision);
         if (result != null) {
           return result;
         }
-
-        for (Integer delay : runHelper.workflowOptions().changeRequestFromSotRetry) {
-          runHelper.getConsole().warnFmt(
-              "Couldn't find a change in the destination with %s label and %s value."
-                  + " Retrying in %s seconds...",
-              runHelper.getOriginLabelName(), originRevision, delay);
-          try {
-            TimeUnit.SECONDS.sleep(delay);
-          } catch (InterruptedException e) {
-            throw new RepoException("Interrupted while waiting for CHANGE_REQUEST_FROM_SOT"
-                + " destination baseline to be available", e);
-          }
-          result = getDestinationBaselineOneAttempt(runHelper, originRevision);
-          if (result != null) {
-            return result;
-          }
-        }
-        return null;
       }
+      return null;
+    }
 
-      @Nullable
-      private <O extends Revision, D extends Revision> String getDestinationBaselineOneAttempt(
-          WorkflowRunHelper<O, D> runHelper, String originRevision)
-          throws RepoException, ValidationException {
-        String destinationBaseline[] = new String[] {null};
-        runHelper
-            .getDestinationWriter()
-            .visitChangesWithAnyLabel(
-                /*start=*/ null,
-                ImmutableList.of(runHelper.getOriginLabelName()),
-                (change, matchedLabels) -> {
-                  for (String value : matchedLabels.values()) {
-                    if (originRevision.equals(WorkflowMode.revisionWithoutReviewInfo(value))) {
-                      destinationBaseline[0] = change.getRevision().asString();
+    @Nullable
+    private <O extends Revision, D extends Revision> Baseline<O>
+    getDestinationBaselineOneAttempt(
+        WorkflowRunHelper<O, D> runHelper, ImmutableList<O> originRevisions)
+        throws RepoException, ValidationException {
+
+      @SuppressWarnings("unchecked")
+      Baseline<O>[] result = new Baseline[]{null};
+      runHelper
+          .getDestinationWriter()
+          .visitChangesWithAnyLabel(
+              /*start=*/ null,
+              ImmutableList.of(runHelper.getOriginLabelName()),
+              (change, matchedLabels) -> {
+                for (String value : matchedLabels.values()) {
+                  for (O originRevision : originRevisions) {
+                    if (revisionWithoutReviewInfo(originRevision.asString())
+                        .equals(revisionWithoutReviewInfo(value))) {
+                      result[0] = new Baseline<>(change.getRevision().asString(), originRevision);
                       return VisitResult.TERMINATE;
                     }
                   }
-                  return VisitResult.CONTINUE;
-                });
-        return destinationBaseline[0];
-      }
-    };
+                }
+                return VisitResult.CONTINUE;
+              });
+      return result[0];
+    }
+  };
 
   /**
    * Technically revisions can contain additional metadata in the String. For example:
