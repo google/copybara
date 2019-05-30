@@ -543,7 +543,7 @@ public class Core implements LabelsAwareModule {
       code = "core.transform(\n"
           + "    [core.copy(\"foo\", \"foo/public\")],\n"
           + "    reversal = [core.remove(glob([\"foo/public/**\"]))])",
-      after = "In this example, `foo/bar_internal/one` will be moved to `bar/one`.")
+      after = "In this example, `foo/one` will be moved to `foo/public/one`.")
   @Example(title = "Copy with reversal",
       before = "Copy all static files to a 'static' folder and use remove for reverting the change",
       code = ""

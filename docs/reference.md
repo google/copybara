@@ -722,7 +722,7 @@ core.transform(
     reversal = [core.remove(glob(["foo/public/**"]))])
 ```
 
-In this example, `foo/bar_internal/one` will be moved to `bar/one`.
+In this example, `foo/one` will be moved to `foo/public/one`.
 
 
 ##### Copy with reversal:
