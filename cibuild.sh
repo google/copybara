@@ -8,6 +8,12 @@ function log() {
 log "Running Copybara tests"
 
 log "Fetching dependencies"
+# Mercurial does not have an up-to-date .deb package
+# The official release needs to be installed with pip.
+sudo apt-get -y install python-pip
+sudo apt-get update
+sudo apt-get install locales
+sudo pip install mercurial
 
 log "Extracting Bazel"
 # Only because first time it extracts the installation
