@@ -541,7 +541,8 @@ public class MetadataModule {
       }
       String msgIfNoMatch = convertFromNoneable(msgIfNoMatchObj, null);
       if (failIfNoMatch && msgIfNoMatch != null) {
-        throw new EvalException(location, "If fail_if_no_match is true, msg_if_no_match should be None.");
+        throw new EvalException(
+            location, "If fail_if_no_match is true, msg_if_no_match should be None.");
       }
       return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement);
     }
