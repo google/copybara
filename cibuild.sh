@@ -13,7 +13,7 @@ log "Fetching dependencies"
 sudo apt-get -y install python-pip
 sudo apt-get update
 sudo apt-get install locales
-sudo pip install --upgrade mercurial
+sudo pip install --ignore-installed --upgrade mercurial
 
 log "Extracting Bazel"
 # Only because first time it extracts the installation
