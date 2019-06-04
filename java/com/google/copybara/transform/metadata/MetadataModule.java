@@ -18,7 +18,6 @@ package com.google.copybara.transform.metadata;
 
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Transformation;
@@ -541,8 +540,10 @@ public class MetadataModule {
         throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
       }
       String msgIfNoMatch = convertFromNoneable(msgIfNoMatchObj, null);
-      Preconditions.checkArgument(!failIfNoMatch || msgIfNoMatch == null,
-            "If fail_if_no_match is true, msg_if_no_match should be None.");
+      if (failIfNoMatch && msgIfNoMatch != null) {
+        throw new EvalException(
+            location, "If fail_if_no_match is true, msg_if_no_match should be None.");
+      }
       return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement);
     }
 
