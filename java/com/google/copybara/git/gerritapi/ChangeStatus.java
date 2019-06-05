@@ -23,5 +23,5 @@ package com.google.copybara.git.gerritapi;
 public enum ChangeStatus {
   NEW,
   MERGED,
-  ABANDONED;
+  ABANDONED
 }
