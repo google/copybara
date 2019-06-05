@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.config.SkylarkUtil.check;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
@@ -259,15 +261,12 @@ public final class RegexTemplateTokens {
       switch (token.getType()) {
         case INTERPOLATION:
           Pattern subPattern = regexesByInterpolationName.get(token.getValue());
-          if (subPattern == null) {
-            throw new EvalException(
-                location, "Interpolation is used but not defined: " + token.getValue());
-          }
+          check(
+              location, subPattern != null,
+              "Interpolation is used but not defined: %s", token.getValue());
           fullPattern.append(String.format("(%s)", subPattern.pattern()));
-          if (groupIndexes.get(token.getValue()).size() > 0 && !repeatedGroups) {
-            throw new EvalException(
-                location, "Regex group is used in template multiple times: " + token.getValue());
-          }
+          check(location, groupIndexes.get(token.getValue()).isEmpty() || repeatedGroups,
+              "Regex group is used in template multiple times: %s", token.getValue());
           groupIndexes.put(token.getValue(), groupCount);
           groupCount += subPattern.groupCount() + 1;
           break;
@@ -285,10 +284,9 @@ public final class RegexTemplateTokens {
    * @throws EvalException if not all interpolations are used in this template
    */
   public void validateUnused() throws EvalException {
-    if (!unusedGroups.isEmpty()) {
-      throw new EvalException(
-          location, "Following interpolations are defined but not used: " + unusedGroups);
-    }
+    check(
+        location, unusedGroups.isEmpty(),
+        "Following interpolations are defined but not used: %s", unusedGroups);
   }
 
   /**

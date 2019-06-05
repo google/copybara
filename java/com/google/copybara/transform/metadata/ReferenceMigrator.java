@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.ChangeVisitable.VisitResult.CONTINUE;
 import static com.google.copybara.ChangeVisitable.VisitResult.TERMINATE;
+import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.MoreObjects;
@@ -81,11 +82,9 @@ public class ReferenceMigrator implements Transformation {
     RegexTemplateTokens afterTokens =
         new RegexTemplateTokens(location, after, patterns, /* repeatedGroups= */ false);
     afterTokens.validateUnused();
-    if (after.lastIndexOf("$1") != -1) {
-      // TODO: Handle escaping
-      throw new EvalException(location,
-          String.format("Destination format '%s' uses the reserved token '$1'.", after));
-    }
+    check(
+        location, after.lastIndexOf("$1") == -1,
+        "Destination format '%s' uses the reserved token '$1'.", after);
     return new ReferenceMigrator(beforeTokens, afterTokens, backward, additionalLabels);
   }
 

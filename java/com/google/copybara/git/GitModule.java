@@ -487,9 +487,7 @@ public class GitModule implements LabelsAwareModule {
       Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Object patch,
       Object branch, Object describeVersion, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
-    if (!url.contains("github.com")) {
-      throw new EvalException(location, "Invalid Github URL: " + url);
-    }
+    check(location, url.contains("github.com"), "Invalid Github URL: %s", url);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
     String reviewStateString = convertFromNoneable(reviewStateParam, null);
@@ -510,10 +508,9 @@ public class GitModule implements LabelsAwareModule {
       }
       HashSet<AuthorAssociation> approvers = new HashSet<>();
       for (String r : reviewApproversStrings) {
-        if (!approvers.add(
-            stringToEnum(location, "review_approvers", r, AuthorAssociation.class))) {
-          throw new EvalException(location, "Repeated element " + r);
-        }
+        boolean added =
+            approvers.add(stringToEnum(location, "review_approvers", r, AuthorAssociation.class));
+        check(location, added, "Repeated element %s", r);
       }
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
@@ -569,9 +566,9 @@ public class GitModule implements LabelsAwareModule {
   public GitOrigin githubOrigin(String url, Object ref, String submodules,
       Boolean firstParent, Object patch, Object describeVersion, Object versionSelector,
       Location location) throws EvalException {
-    if (!GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location))) {
-      throw new EvalException(location, "Invalid Github URL: " + url);
-    }
+    check(
+        location, GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location)),
+        "Invalid Github URL: %s", url);
 
     if (versionSelector != Runtime.NONE) {
       check(location, ref == Runtime.NONE,

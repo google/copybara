@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CombinedStatus;
@@ -337,10 +338,8 @@ public class GitHubEndPoint implements Endpoint {
   @Nullable
   private <T> T returnNullOnNotFound(Location location, GitHubApiException e)
       throws EvalException {
-    if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
-      return null;
-    }
-    throw new EvalException(location, e);
+    SkylarkUtil.check(location, e.getResponseCode() == ResponseCode.NOT_FOUND, e.getMessage());
+    return null;
   }
 
   @SkylarkCallable(

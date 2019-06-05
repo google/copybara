@@ -78,9 +78,7 @@ public final class SkylarkUtil {
    */
   public static String checkNotEmpty(@Nullable String value, String name, Location location)
       throws EvalException {
-    if (Strings.isNullOrEmpty(value)) {
-      throw new EvalException(location, String.format("Invalid empty field '%s'.", name));
-    }
+    check(location, !Strings.isNullOrEmpty(value), "Invalid empty field '%s'.", name);
     return value;
   }
 

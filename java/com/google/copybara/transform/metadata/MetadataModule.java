@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
+import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
@@ -208,10 +209,10 @@ public class MetadataModule {
   public Transformation mapAuthor(SkylarkDict<String, String> authors,
         Boolean reversible, Boolean noopReverse, Boolean failIfNotFound,
         Boolean reverseFailIfNotFound, Boolean mapAll, Location location) throws EvalException {
-      SkylarkUtil.check(location, reversible || !reverseFailIfNotFound,
+      check(location, reversible || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
 
-      SkylarkUtil.check(location, !noopReverse || !reverseFailIfNotFound,
+      check(location, !noopReverse || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'noop_reverse' is not set");
 
       return MapAuthor.create(location, Type.STRING_DICT.convert(authors, "authors"),
@@ -239,11 +240,11 @@ public class MetadataModule {
       }, useLocation = true)
   public Transformation useLastChange(Boolean useAuthor, Boolean useMsg,
         Object defaultMsg, Boolean useMerge, Location location) throws EvalException {
-      SkylarkUtil.check(location, useAuthor || useMsg, "author or message should"
+      check(location, useAuthor || useMsg, "author or message should"
           + " be enabled");
       String defaultMessage = convertFromNoneable(defaultMsg, null);
 
-      SkylarkUtil.check(location, defaultMessage == null || useMsg,
+      check(location, defaultMessage == null || useMsg,
           "default_message can only be used if message = True ");
       return new UseLastChange(useAuthor, useMsg, defaultMessage, useMerge);
     }
@@ -290,12 +291,12 @@ public class MetadataModule {
   public Transformation exposeLabel(String label, Object newName,
         String separator, Boolean ignoreIfLabelNotFound, Boolean all, Location location)
         throws EvalException {
-      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
+      check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
           "'name': Invalid label name'%s'", label);
 
       String newLabelName = convertFromNoneable(newName, label);
 
-      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
+      check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
           "'new_name': Invalid label name '%s'", newLabelName);
 
       return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound, all);
@@ -312,7 +313,7 @@ public class MetadataModule {
       code = "metadata.remove_label('Change-Id')")
   public Transformation removeLabel(String label, Location location)
         throws EvalException {
-      SkylarkUtil.check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
+      check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
           "'name': Invalid label name'%s'", label);
 
       return new RemoveLabelInMessage(label);
@@ -540,10 +541,9 @@ public class MetadataModule {
         throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
       }
       String msgIfNoMatch = convertFromNoneable(msgIfNoMatchObj, null);
-      if (failIfNoMatch && msgIfNoMatch != null) {
-        throw new EvalException(
-            location, "If fail_if_no_match is true, msg_if_no_match should be None.");
-      }
+      check(
+          location, !failIfNoMatch || msgIfNoMatch == null,
+          "If fail_if_no_match is true, msg_if_no_match should be None.");
       return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement);
     }
 
@@ -621,36 +621,33 @@ public class MetadataModule {
         String destinationFormat, SkylarkDict<String, String> groups, SkylarkList<String> labels,
         Location location)
         throws EvalException {
-      if (!groups.containsKey("before_ref")
-          || (groups.size() == 2 && !groups.containsKey("after_ref"))
-          || groups.size() > 2) {
-        throw new EvalException(location,
-            String.format("Invalid 'regex_groups' - Should only contain 'before_ref' and "
-                + "optionally 'after_ref'. Was: %s.", groups.keySet()));
-      }
-      Pattern beforePattern;
-      Pattern afterPattern = null;
+    check(location, groups.containsKey("before_ref")
+        && (groups.size() != 2 || groups.containsKey("after_ref"))
+        && groups.size() <= 2, "Invalid 'regex_groups' - Should only contain 'before_ref' and "
+        + "optionally 'after_ref'. Was: %s.", groups.keySet());
+    Pattern beforePattern;
+    Pattern afterPattern = null;
+    try {
+      beforePattern = Pattern.compile(groups.get("before_ref"));
+    } catch (java.util.regex.PatternSyntaxException exception) {
+      throw new EvalException(location,
+          String.format("Invalid before_ref regex '%s'.", groups.get("before_ref")));
+    }
+    if (groups.containsKey("after_ref")) {
       try {
-        beforePattern = Pattern.compile(groups.get("before_ref"));
+        afterPattern = Pattern.compile(groups.get("after_ref"));
       } catch (java.util.regex.PatternSyntaxException exception) {
         throw new EvalException(location,
-            String.format("Invalid before_ref regex '%s'.", groups.get("before_ref")));
+            String.format("Invalid after_ref regex '%s'.", groups.get("after_ref")));
       }
-      if (groups.containsKey("after_ref")) {
-        try {
-          afterPattern = Pattern.compile(groups.get("after_ref"));
-        } catch (java.util.regex.PatternSyntaxException exception) {
-          throw new EvalException(location,
-              String.format("Invalid after_ref regex '%s'.", groups.get("after_ref")));
-        }
-      }
-      return
-          ReferenceMigrator.create(
-              originPattern,
-              destinationFormat,
-              beforePattern,
-              afterPattern,
-              ImmutableList.copyOf(Type.STRING_LIST.convert(labels, "labels")),
-              location);
+    }
+    return
+        ReferenceMigrator.create(
+            originPattern,
+            destinationFormat,
+            beforePattern,
+            afterPattern,
+            ImmutableList.copyOf(Type.STRING_LIST.convert(labels, "labels")),
+            location);
     }
 }

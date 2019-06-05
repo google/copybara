@@ -16,6 +16,8 @@
 
 package com.google.copybara.config;
 
+import static com.google.copybara.config.SkylarkUtil.check;
+
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -47,9 +49,8 @@ public class GlobalMigrations {
 
   public void addMigration(Location location, String name, Migration migration)
       throws EvalException {
-    if (migrations.put(name, migration) != null) {
-      throw new EvalException(
-          location, String.format("A migration with the name '%s' is already defined", name));
-    }
+    check(
+        location, migrations.put(name, migration) == null,
+        "A migration with the name '%s' is already defined", name);
   }
 }

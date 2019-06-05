@@ -187,6 +187,7 @@ public final class Authoring {
       Set<String> uniqueAuthors = new HashSet<>();
       for (String author : whitelist) {
         if (!uniqueAuthors.add(author)) {
+          // TODO(danielromero): Use SkylarkUtil.check (needs refactoring deps)
           throw new EvalException(location,
               String.format("Duplicated whitelist entry '%s'", author));
         }

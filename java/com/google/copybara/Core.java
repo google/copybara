@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR;
 import static com.google.copybara.config.GlobalMigrations.getGlobalMigrations;
 import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
@@ -28,7 +29,6 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -334,7 +334,7 @@ public class Core implements LabelsAwareModule {
     ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj, location);
 
     String customRevId = convertFromNoneable(customRevIdField, null);
-    SkylarkUtil.check(location,
+    check(location,
         customRevId == null || CUSTOM_REVID_FORMAT.matches(customRevId),
         "Invalid experimental_custom_rev_id format. Format: %s", CUSTOM_REVID_FORMAT.pattern());
 
@@ -409,7 +409,7 @@ public class Core implements LabelsAwareModule {
       if (token.getType() != TokenType.INTERPOLATION) {
         continue;
       }
-      if (token.getValue().equals(Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR)) {
+      if (token.getValue().equals(COPYBARA_CONFIG_PATH_IDENTITY_VAR)) {
         configVarFound = true;
         continue;
       }
@@ -421,10 +421,8 @@ public class Core implements LabelsAwareModule {
       throw new EvalException(location,
           String.format("Unrecognized variable: %s", token.getValue()));
     }
-    if (!configVarFound) {
-      throw new EvalException(location,
-          String.format("${%s} variable is required", Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR));
-    }
+    check(
+        location, configVarFound, "${%s} variable is required", COPYBARA_CONFIG_PATH_IDENTITY_VAR);
     return result;
   }
 

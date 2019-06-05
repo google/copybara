@@ -64,7 +64,6 @@ public abstract class Glob implements Concatable {
     throw new EvalException(loc, "Cannot concatenate " + lval + " with " + rval + ". Only a glob"
         + " can be concatenated to a glob");
   };
-
   /**
    * Checks if the given {@code changedFiles} are or are descendants of the {@code roots}.
    */
