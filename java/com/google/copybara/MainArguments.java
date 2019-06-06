@@ -67,7 +67,7 @@ public final class MainArguments {
           + "\n"
           + "source_ref: Optional. The reference(s) to be resolved in the origin. Most of the "
           + "times this argument is not needed, as Copybara can infer the last migrated reference "
-          + "in the destination. Different subcommands might require this argument, use ony one "
+          + "in the destination. Different subcommands might require this argument, use only one "
           + "source_ref or use all the list.\n"
   )
   List<String> unnamed = new ArrayList<>();
