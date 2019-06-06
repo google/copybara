@@ -44,6 +44,8 @@ public class DurationConverter implements IStringConverter<Duration> {
         return Duration.ofMinutes(num);
       case 'h':
         return Duration.ofHours(num);
+      case 'd':
+        return Duration.ofDays(num);
       default:
         return durationException(value);
     }
@@ -51,6 +53,6 @@ public class DurationConverter implements IStringConverter<Duration> {
 
   private Duration durationException(String value) {
     throw new ParameterException(String.format(
-        "Invalid value for duration '%s', valid value examples: 10s, 10m or 10h", value));
+        "Invalid value for duration '%s', valid value examples: 10s, 10m, 10h or 10d", value));
   }
 }

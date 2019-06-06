@@ -43,11 +43,13 @@ public class DurationConverterTest {
     checkFetchTimeout("20s", Duration.ofSeconds(20));
     checkFetchTimeout("20m", Duration.ofMinutes(20));
     checkFetchTimeout("20h", Duration.ofHours(20));
+    checkFetchTimeout("20d", Duration.ofDays(20));
     try {
-      checkFetchTimeout("20d", Duration.ZERO);
+      checkFetchTimeout("20a", Duration.ZERO);
       fail();
     } catch (ParameterException e) {
-      assertThat(e).hasMessageThat().contains("Invalid value for duration '20d'");
+      assertThat(e).hasMessageThat().contains("Invalid value for duration '20a', "
+          + "valid value examples: 10s, 10m, 10h or 10d");
     }
   }
 
