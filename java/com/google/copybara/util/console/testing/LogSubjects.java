@@ -40,7 +40,7 @@ public class LogSubjects {
 
   private LogSubjects() {}
 
-  public static class LogSubject extends Subject<LogSubject, TestingConsole> {
+  public static class LogSubject extends Subject {
 
     private final ArrayDeque<Message> messages;
 
