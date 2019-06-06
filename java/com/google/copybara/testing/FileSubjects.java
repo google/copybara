@@ -58,7 +58,7 @@ public class FileSubjects {
     return assertAbout(PATH_SUBJECT_FACTORY).that(path);
   }
 
-  public static class PathSubject extends Subject<PathSubject, Path> {
+  public static class PathSubject extends Subject {
 
     private final Path actual;
     private final Set<Path> whitelistedPaths = new HashSet<>();
