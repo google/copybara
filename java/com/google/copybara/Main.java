@@ -107,7 +107,7 @@ public class Main {
     // correct location in case of any error.
     FileSystem fs = FileSystems.getDefault();
     try {
-      configureLog(fs);
+      configureLog(fs, args);
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);
       return ExitCode.ENVIRONMENT_ERROR;
@@ -399,10 +399,11 @@ public class Main {
         .orElse(GeneralOptions.DEFAULT_CONSOLE_FILE_FLUSH_INTERVAL);
   }
 
-  protected void configureLog(FileSystem fs) throws IOException {
+  protected void configureLog(FileSystem fs, String[] args) throws IOException {
     String baseDir = getBaseExecDir();
     Files.createDirectories(fs.getPath(baseDir));
     if (System.getProperty("java.util.logging.config.file") == null) {
+      logger.atInfo().log("Setting up LogManager");
       LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
           "handlers=java.util.logging.FileHandler\n"
               + ".level=INFO\n"

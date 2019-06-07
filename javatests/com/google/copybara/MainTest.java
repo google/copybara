@@ -66,7 +66,7 @@ public class MainTest {
         Files.createTempDirectory("foo").toString());
     Main main = new Main(envWithHome) {
           @Override
-          protected void configureLog(FileSystem fs) {
+          protected void configureLog(FileSystem fs, String[] args) {
             called = true;
           }
         };
@@ -82,7 +82,7 @@ public class MainTest {
     Main main =
         new Main(envWithHome) {
           @Override
-          protected void configureLog(FileSystem fs) {}
+          protected void configureLog(FileSystem fs, String[] args) {}
 
           @Override
           protected void initEnvironment(Options options, CopybaraCmd copybaraCmd,
@@ -99,7 +99,7 @@ public class MainTest {
     Main main =
         new Main() {
           @Override
-          protected void configureLog(FileSystem fs) {}
+          protected void configureLog(FileSystem fs, String[] args) {}
 
           @Override
           protected void shutdown(CommandResult result) {
