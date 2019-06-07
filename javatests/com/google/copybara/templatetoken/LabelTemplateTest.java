@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.google.copybara.transform.metadata;
+package com.google.copybara.templatetoken;
 
 import static com.google.common.truth.Truth.assertThat;
 import static junit.framework.TestCase.fail;
 
-import com.google.copybara.transform.metadata.LabelTemplate.LabelNotFoundException;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;

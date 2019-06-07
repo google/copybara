@@ -54,6 +54,7 @@ java_library(
         "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",

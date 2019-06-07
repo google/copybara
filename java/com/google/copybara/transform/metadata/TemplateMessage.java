@@ -19,9 +19,10 @@ package com.google.copybara.transform.metadata;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.copybara.transform.metadata.LabelTemplate.LabelNotFoundException;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import java.io.IOException;
 
 /**

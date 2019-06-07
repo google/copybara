@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -35,6 +36,7 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl;
@@ -44,9 +46,10 @@ import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
 import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.util.GitHubUtil;
-import com.google.copybara.transform.metadata.LabelTemplate;
-import com.google.copybara.transform.metadata.LabelTemplate.LabelNotFoundException;
+import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
@@ -71,6 +74,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final Iterable<GitIntegrateChanges> integrates;
   @Nullable private final String title;
   @Nullable private final String body;
+  private final boolean updateDescription;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
@@ -89,7 +93,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable String title,
       @Nullable String body,
       ConfigFile mainConfigFile,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker,
+      boolean updateDescription) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
@@ -102,6 +107,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.integrates = Preconditions.checkNotNull(integrates);
     this.title = title;
     this.body = body;
+    this.updateDescription = updateDescription;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
@@ -183,6 +189,19 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             PullRequestListParams.DEFAULT
                 .withHead(String.format("%s:%s", getUserNameFromUrl(url), prBranch)));
 
+        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
+
+        String title = GitHubPrDestination.this.title == null
+            ? msg.firstLine()
+            : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
+                GitHubPrDestination.this.title, "title");
+
+        String prBody =
+            GitHubPrDestination.this.body == null
+                ? msg.getText()
+                : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
+                    GitHubPrDestination.this.body, "body");
+
         for (PullRequest pr : pullRequests) {
           if (pr.isOpen() && pr.getHead().getRef().equals(prBranch)) {
             console.infoFmt(
@@ -194,6 +213,15 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   "Current base branch '%s' is different from the PR base branch '%s'",
                   destinationRef, pr.getBase().getRef());
             }
+            if (updateDescription) {
+              checkCondition(
+                  !Strings.isNullOrEmpty(title),
+                  "Pull Request title cannot be empty. Either use 'title' field in"
+                      + " git.github_pr_destination or modify the message to not be empty");
+              api.updatePullRequest(getProjectName(), pr.getNumber(),
+                  new UpdatePullRequest(title, prBody, /*state=*/null));
+
+            }
             result.add(
                 new DestinationEffect(
                     DestinationEffect.Type.UPDATED,
@@ -204,20 +232,17 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             return result.build();
           }
         }
-        ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
-        String title =
-            GitHubPrDestination.this.title == null
-                ? msg.firstLine()
-                : GitHubPrDestination.this.title;
-        ValidationException.checkCondition(
+
+        checkCondition(
             !Strings.isNullOrEmpty(title),
             "Pull Request title cannot be empty. Either use 'title' field in"
                 + " git.github_pr_destination or modify the message to not be empty");
+
         PullRequest pr =
             api.createPullRequest(
                 getProjectName(),
                 new CreatePullRequest(
-                    title, body == null ? msg.getText() : body, prBranch, destinationRef));
+                    title, prBody, prBranch, destinationRef));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);
@@ -265,7 +290,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     // We could do more magic here with the change identity. But this is already complex so we
     // require  a group identity either provided by the origin or the workflow (Will be implemented
     // later.
-    ValidationException.checkCondition(contextReference != null,
+    checkCondition(contextReference != null,
         "git.github_pr_destination is incompatible with the current origin. Origin has to be"
             + " able to provide the contextReference or use '%s' flag",
         GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);

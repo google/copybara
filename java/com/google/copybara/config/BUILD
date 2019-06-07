@@ -35,6 +35,7 @@ java_library(
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/templatetoken",
         "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jsr305",

@@ -80,6 +80,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -768,8 +769,9 @@ public class GitModule implements LabelsAwareModule {
             named = true,
             positional = false,
             doc =
-                "When creating a pull request, use this title. By default it uses the change"
-                    + " first line."),
+                "When creating (or updating if `update_description` is set) a pull request, use"
+                    + " this title. By default it uses the change first line. This field accepts"
+                    + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "body",
             type = String.class,
@@ -778,8 +780,9 @@ public class GitModule implements LabelsAwareModule {
             named = true,
             positional = false,
             doc =
-                "When creating a pull request, use this body. By default it uses the change"
-                    + " summary."),
+                "When creating (or updating if `update_description` is set) a pull request, use"
+                    + " this title. By default it uses the change summary. This field accepts"
+                    + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "integrates",
             type = SkylarkList.class,
@@ -803,6 +806,15 @@ public class GitModule implements LabelsAwareModule {
             named = true,
             positional = false,
             noneable = true),
+          @Param(
+              name = "update_description",
+              type = Boolean.class,
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc = "By default, Copybara only set the title and body of the PR when creating"
+                  + " the PR. If this field is set to true, it will update those fields for"
+                  + " every update."),
       },
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -840,6 +852,7 @@ public class GitModule implements LabelsAwareModule {
       Object body,
       Object integrates,
       Object checkerObj,
+      Boolean updateDescription,
       Location location)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -864,7 +877,8 @@ public class GitModule implements LabelsAwareModule {
         convertFromNoneable(title, null),
         convertFromNoneable(body, null),
         mainConfigFile,
-        convertFromNoneable(checkerObj, null));
+        convertFromNoneable(checkerObj, null),
+        updateDescription);
   }
 
   private static String firstNotNull(String... values) {

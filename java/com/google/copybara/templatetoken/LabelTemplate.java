@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.google.copybara.transform.metadata;
+package com.google.copybara.templatetoken;
 
-import com.google.copybara.LabelFinder;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.HashMap;
@@ -28,11 +27,13 @@ import java.util.function.Function;
 
 /**
  * A template system that for texts like "This ${LABEL} is a template"
+ * TODO(malcon): Consolidate this class and Parser/Token.
  */
 public class LabelTemplate {
-
-  private static final Pattern VAR_PATTERN =
-      Pattern.compile("\\$\\{(" + LabelFinder.VALID_LABEL + ")}");
+  // ([\w-]+) is coming from LabelFinder.VALID_LABEL_EXPR. Dues to a a dependency
+  // issue we have it here inlined. It is not a big deal as the labels need to exist
+  // and also will be refactored into Parser/Token.
+  private static final Pattern VAR_PATTERN = Pattern.compile("\\$\\{([\\w-]+)}");
 
   private final Set<String> labels = new HashSet<>();
   private final String template;

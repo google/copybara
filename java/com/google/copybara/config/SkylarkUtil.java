@@ -19,7 +19,11 @@ package com.google.copybara.config;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.copybara.LabelFinder;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -113,5 +117,17 @@ public final class SkylarkUtil {
       result.addAll(Objects.requireNonNull(values));
     }
     return result.build();
+  }
+
+  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper, String template, String fieldName)
+      throws ValidationException {
+    try {
+      return new LabelTemplate(template).resolve(labelsMapper.andThen(
+          e -> Iterables.getFirst(e, null)));
+    } catch (LabelNotFoundException e) {
+      throw new ValidationException(
+          String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
+              e.getLabel(), template, fieldName), e);
+    }
   }
 }

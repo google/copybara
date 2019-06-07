@@ -25,11 +25,13 @@ import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -158,6 +160,104 @@ public class GitHubPrDestinationTest {
         .buildRequest("GET", getPullRequestsUrl("feature"));
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
+  }
+
+  @Test
+  public void testCustomTitleAndBody_withUpdate()
+      throws ValidationException, IOException, RepoException {
+    options.githubDestination.destinationPrBranch = "feature";
+
+    mockNoPullRequestsGet("feature");
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"custom title\",\n"
+                + "  \"body\": \"custom body\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"master\","
+                        + "\"body\":\"Body first a\","
+                        + "\"head\":\"feature\","
+                        + "\"title\":\"Title first a\"}")));
+
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo', \n"
+        + "    title = 'Title ${aaa}',\n"
+        + "    body = 'Body ${aaa}',\n"
+        + "    update_description = True,\n"
+        + ")");
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    writeFile(this.workdir, "test.txt", "some content");
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one"))
+            .withLabelFinder(Functions.forMap(
+                ImmutableMap.of("aaa", ImmutableList.of("first a", "second a"))
+            )), Glob.ALL_FILES, console);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("GET", getPullRequestsUrl("feature"));
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
+
+    reset(gitUtil.httpTransport());
+
+    gitUtil.mockApi(
+        "GET",
+        getPullRequestsUrl("feature"),
+        mockResponse(
+            ""
+                + "[{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\","
+                + "  \"head\": { \"ref\": \"feature\"},"
+                + "  \"base\": { \"ref\": \"feature\"}"
+                + "}]"));
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls/12345",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"custom title\",\n"
+                + "  \"body\": \"custom body\""
+                + "}",
+            req ->
+                req.equals("{\"body\":\"Body first b\","
+                        + "\"title\":\"Title first b\"}")));
+
+    writeFile(this.workdir, "test.txt", "some other content");
+    writer = d.newWriter(writerContext);
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("two"))
+            .withLabelFinder(Functions.forMap(
+                ImmutableMap.of("aaa", ImmutableList.of("first b", "second b"))
+            )), Glob.ALL_FILES, console);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("GET", getPullRequestsUrl("feature"));
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/pulls/12345");
+
   }
 
   @Test
