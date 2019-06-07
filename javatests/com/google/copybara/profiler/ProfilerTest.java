@@ -20,7 +20,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.flogger.LoggerConfig;
 import com.google.common.testing.FakeTicker;
+import com.google.common.testing.TestLogHandler;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.testing.profiler.RecordingListener;
@@ -30,6 +32,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -180,6 +184,22 @@ public class ProfilerTest {
     // when we do tasQueue.get() here:
     assertThat(profiler.taskQueue.get()).containsExactly(
         new Task("//detached_thread", time + 1, -1));
+  }
+
+  @Test
+  public void testListenerLogging() {
+    TestLogHandler assertingHandler = new TestLogHandler();
+    assertingHandler.setLevel(Level.FINE);
+     LoggerConfig.getConfig(LogProfilerListener.class).addHandler(assertingHandler);
+
+    profiler = new Profiler(ticker);
+    profiler.init(ImmutableList.of(new LogProfilerListener()));
+    try (ProfilerTask ignore = profiler.start("testListenerLogging")) {
+      // do something
+    }
+    LogRecord record = assertingHandler.getStoredLogRecords().get(0);
+    assertThat(record.getMessage()).contains("testListenerLogging");
+    assertThat(record.getSourceClassName()).contains(this.getClass().getName());
   }
 
   @Test

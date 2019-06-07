@@ -16,15 +16,18 @@
 
 package com.google.copybara.profiler;
 
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+
+import com.google.common.base.Throwables;
+import com.google.common.flogger.FluentLogger;
+import java.time.Duration;
+import java.util.List;
 
 /**
  * A simple callback for the profiler that logs the execution of the tasks when they finish.
  */
 public class LogProfilerListener implements Listener {
 
-  private final Logger logger = Logger.getLogger(this.getClass().getName());
+  static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   @Override
   public void taskStarted(Task task) {
@@ -33,9 +36,20 @@ public class LogProfilerListener implements Listener {
 
   @Override
   public void taskFinished(Task task) {
-    logger.info(
-        String.format(
-            "PROFILE: %6d %s",
-            TimeUnit.NANOSECONDS.toMillis(task.elapsedNanos()), task.getDescription()));
+    List<StackTraceElement> stack = Throwables.lazyStackTrace(new Throwable());
+    if (stack != null && stack.size() > 3) {
+      // Call-site -> AutoClosable -> profiler -> this;
+      StackTraceElement caller = stack.get(3);
+      logger.atInfo()
+          .withInjectedLogSite(
+              caller.getClassName(),
+              caller.getMethodName(),
+              caller.getLineNumber(),
+              caller.getFileName())
+          .log("PROFILE: %6d %s",
+              Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());
+    }
+    logger.atInfo().log("PROFILE: %6d %s",
+        Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());
   }
 }
