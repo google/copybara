@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class LogProfilerListener implements Listener {
 
-  static final FluentLogger logger = FluentLogger.forEnclosingClass();
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   @Override
   public void taskStarted(Task task) {
@@ -48,6 +48,7 @@ public class LogProfilerListener implements Listener {
               caller.getFileName())
           .log("PROFILE: %6d %s",
               Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());
+      return;
     }
     logger.atInfo().log("PROFILE: %6d %s",
         Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());

@@ -779,17 +779,17 @@ core.workflow(
 EOF
 
   copybara destination/copy.bara.sky --folder-dir destination
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/clean_outputdir"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/origin.resolve_source_ref"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/prepare_workdir"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/origin.checkout"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.txt"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.moved"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash/destination.write"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run/default/squash"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara/run"
-  expect_log "taskFinished.*PROFILE:.*[0-9]* //copybara"
+  expect_log "ioRepoTask.*PROFILE:.*[0-9]* //copybara/clean_outputdir"
+  expect_log "repoTask.*PROFILE:.*[0-9]* //copybara/run/default/origin.resolve_source_ref"
+  expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/prepare_workdir"
+  expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/origin.checkout"
+  expect_log "transform.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.txt"
+  expect_log "transform.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.moved"
+  expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms"
+  expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/destination.write"
+  expect_log "run.*PROFILE:.*[0-9]* //copybara/run/default/squash"
+  expect_log "run.*PROFILE:.*[0-9]* //copybara/run"
+  expect_log "shutdown.*PROFILE:.*[0-9]* //copybara"
   expect_in_file "foo" destination/test.moved2
 }
 

@@ -190,7 +190,7 @@ public class ProfilerTest {
   public void testListenerLogging() {
     TestLogHandler assertingHandler = new TestLogHandler();
     assertingHandler.setLevel(Level.FINE);
-     LoggerConfig.getConfig(LogProfilerListener.class).addHandler(assertingHandler);
+    LoggerConfig.getConfig(LogProfilerListener.class).addHandler(assertingHandler);
 
     profiler = new Profiler(ticker);
     profiler.init(ImmutableList.of(new LogProfilerListener()));
