@@ -2906,6 +2906,10 @@ public class WorkflowTest {
 
     Info<Revision> info = (Info<Revision>) loadConfig(config).getMigration("default").getInfo();
     verifyInfo(info, "change1\n");
+    assertThat(info.originDescription().get("url"))
+        .containsExactly("file://" + origin.getWorkTree());
+    assertThat(info.destinationDescription().get("url"))
+        .containsExactly("file://" + destination.getWorkTree());
   }
 
 

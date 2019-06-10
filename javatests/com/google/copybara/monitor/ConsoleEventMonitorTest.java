@@ -20,6 +20,7 @@ import static com.google.copybara.util.console.Message.MessageType.VERBOSE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
@@ -27,7 +28,6 @@ import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Info;
 import com.google.copybara.Info.MigrationReference;
-import com.google.copybara.Revision;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
@@ -75,7 +75,8 @@ public class ConsoleEventMonitorTest {
             "workflow",
             new DummyRevision("1111"),
             ImmutableList.of(newChange("2222"), newChange("3333")));
-    Info<? extends Revision> info = Info.create(ImmutableList.of(workflow));
+    Info<?> info = Info.create(ImmutableMultimap.of("origin", "foo"),
+        ImmutableMultimap.of("dest", "bar"), ImmutableList.of(workflow));
     eventMonitor.onInfoFinished(new InfoFinishedEvent(info));
 
     console
@@ -85,7 +86,8 @@ public class ConsoleEventMonitorTest {
         .equalsNext(VERBOSE, "onChangeMigrationStarted(): ChangeMigrationStartedEvent{}")
         .matchesNext(
             VERBOSE, "onChangeMigrationFinished[(][)]: ChangeMigrationFinishedEvent[{].*[}]")
-        .matchesNext(VERBOSE, "onInfoFinished[(][)]: InfoFinishedEvent[{].*[}]")
+        .matchesNext(VERBOSE, "onInfoFinished[(][)]: InfoFinishedEvent[{].*(origin).*"
+            + "(foo).*(dest).*(bar).*[}]")
         .containsNoMoreMessages();
   }
 

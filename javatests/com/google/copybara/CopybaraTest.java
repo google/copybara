@@ -17,11 +17,13 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.util.console.Message.MessageType.VERBOSE;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.config.Config;
@@ -49,9 +51,13 @@ public class CopybaraTest {
   private TestingEventMonitor eventMonitor;
   private Migration migration;
   private Config config;
+  private ImmutableMultimap<String, String> dummyOriginDescription;
+  private ImmutableMultimap<String, String> dummyDestinationDescription;
 
   @Before
   public void setUp() throws Exception {
+    dummyOriginDescription = ImmutableMultimap.of("origin", "foo");
+    dummyDestinationDescription = ImmutableMultimap.of("dest", "bar");
     optionsBuilder = new OptionsBuilder();
     console = new TestingConsole();
     eventMonitor = new TestingEventMonitor();
@@ -66,7 +72,10 @@ public class CopybaraTest {
   public void testInfoUpToDate() throws Exception {
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
-    Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
+    Info<?> mockedInfo = Info.create(
+        dummyOriginDescription,
+        dummyDestinationDescription,
+        ImmutableList.of(workflow));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
 
     Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
@@ -96,8 +105,11 @@ public class CopybaraTest {
                     "Second change",
                     ZonedDateTime.ofInstant(
                         Instant.ofEpochSecond(1541639979), ZoneId.of("-08:00")))));
-    Info<? extends Revision> mockedInfo = Info.create(ImmutableList.of(workflow));
-    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
+    Info<?> mockedInfo = Info.create(
+        dummyOriginDescription,
+        dummyDestinationDescription,
+        ImmutableList.of(workflow));
+    Mockito.<Info<?>>when(migration.getInfo()).thenReturn(mockedInfo);
 
     Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
     copybara.info(optionsBuilder.build(), config, "workflow");
@@ -109,7 +121,9 @@ public class CopybaraTest {
         .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*")
         .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
         .onceInLog(MessageType.INFO, ".*2018-11-07 15:06:19.*2222.*First change.*Foo <Bar>.*")
-        .onceInLog(MessageType.INFO, ".*2018-11-07 17:19:39.*3333.*Second change.*Foo <Bar>.*");
+        .onceInLog(MessageType.INFO, ".*2018-11-07 17:19:39.*3333.*Second change.*Foo <Bar>.*")
+        .onceInLog(VERBOSE, "onInfoFinished[(][)]: InfoFinishedEvent[{].*(origin).*"
+            + "(foo).*(dest).*(bar).*[}]");
   }
 
   private Change<DummyRevision> newChange(

@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -29,12 +30,26 @@ import javax.annotation.Nullable;
 @AutoValue
 public abstract class Info<O extends Revision> {
 
-  public static final Info<? extends Revision> EMPTY = create(ImmutableList.of());
+  public static final Info<? extends Revision> EMPTY = create(ImmutableMultimap.of(),
+      ImmutableMultimap.of(), ImmutableList.of());
 
   public static <O extends Revision> Info<O> create(
+      ImmutableMultimap<String, String> originDescription,
+      ImmutableMultimap<String, String> destinationDescription,
       Iterable<MigrationReference<O>> migrationReferences) {
-    return new AutoValue_Info<>(ImmutableList.copyOf(migrationReferences));
+    return new AutoValue_Info<>(originDescription, destinationDescription,
+        ImmutableList.copyOf(migrationReferences));
   }
+
+  /**
+   * Returns origin description of the migration.
+   */
+  public abstract ImmutableMultimap<String, String> originDescription();
+
+  /**
+   * Returns destination description of the migration.
+   */
+  public abstract ImmutableMultimap<String, String> destinationDescription();
 
   /**
    * Returns information about a migration for one reference (like 'master')

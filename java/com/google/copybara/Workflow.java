@@ -391,7 +391,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                   String.format("workflow_%s", name),
                   lastMigrated,
                   affectedChanges);
-              return Info.create(ImmutableList.of(migrationRef));
+
+              return Info.create(
+                  getOriginDescription(),
+                  getDestinationDescription(),
+                  ImmutableList.of(migrationRef));
             });
   }
 
