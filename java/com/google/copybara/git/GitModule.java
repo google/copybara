@@ -80,7 +80,6 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -516,7 +515,6 @@ public class GitModule implements LabelsAwareModule {
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
 
-    GitHubPrOriginOptions gitHubPrOriginOptions = options.get(GitHubPrOriginOptions.class);
     return new GitHubPROrigin(
         fixHttp(url, location),
         merge,
@@ -524,8 +522,9 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
-        gitHubPrOriginOptions.getRequiredLabels(requiredLabels),
-        gitHubPrOriginOptions.getRetryableLabels(retryableLabels),
+        options.get(GitHubPrOriginOptions.class),
+        ImmutableSet.copyOf(requiredLabels),
+        ImmutableSet.copyOf(retryableLabels),
         stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch, firstParent,
         stringToEnum(location, "state", state, StateFilter.class),

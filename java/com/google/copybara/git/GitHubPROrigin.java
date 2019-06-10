@@ -25,6 +25,7 @@ import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromU
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
@@ -102,8 +103,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
   private final GitHubOptions gitHubOptions;
-  private final Set<String> requiredLabels;
-  private final Set<String> retryableLabels;
+  private final Set<String> requiredLabelsField;
+  private final Set<String> retryableLabelsField;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
   private final boolean baselineFromBranch;
@@ -115,9 +116,11 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
   private final boolean describeVersion;
+  private final GitHubPrOriginOptions gitHubPrOriginOptions;
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
+      GitHubPrOriginOptions gitHubPrOriginOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
@@ -131,8 +134,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.gitHubOptions = gitHubOptions;
-    this.requiredLabels = checkNotNull(requiredLabels);
-    this.retryableLabels = checkNotNull(retryableLabels);
+    this.gitHubPrOriginOptions = Preconditions.checkNotNull(gitHubPrOriginOptions);
+    this.requiredLabelsField = checkNotNull(requiredLabels);
+    this.retryableLabelsField = checkNotNull(retryableLabels);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
@@ -202,7 +206,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private GitRevision getRevisionForPR(String project, int prNumber)
       throws RepoException, ValidationException {
     GitHubApi api = gitHubOptions.newGitHubApi(project);
-    if (!requiredLabels.isEmpty()) {
+    Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
+    Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
+
+    if (!gitHubPrOriginOptions.forceImport && !requiredLabels.isEmpty()) {
       int retryCount = 0;
       Set<String> requiredButNotPresent;
       do {
@@ -238,7 +245,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       prData = api.getPullRequest(project, prNumber);
     }
 
-    if (branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
+    if (!gitHubPrOriginOptions.forceImport
+        && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
       throw new EmptyChangeException(String.format(
           "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
               + " the workflow is configured to only migrate changes for branch '%s'",
@@ -249,7 +257,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     }
     if (reviewState != null) {
       ImmutableList<Review> reviews = api.getReviews(project, prNumber);
-      if (!reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha())) {
+      if (!gitHubPrOriginOptions.forceImport
+          && !reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha())) {
         throw new EmptyChangeException(String.format(
             "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
                 + " approvals (origin is configured as %s)",
@@ -268,11 +277,13 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       labels.putAll(GITHUB_PR_REVIEWER_OTHER, others);
     }
 
-    if (requiredState == StateFilter.OPEN && !prData.isOpen()) {
+    if (!gitHubPrOriginOptions.forceImport
+        && requiredState == StateFilter.OPEN && !prData.isOpen()) {
       throw new EmptyChangeException(String.format("Pull Request %d is not open", prNumber));
     }
 
-    if (requiredState == StateFilter.CLOSED && prData.isOpen()) {
+    if (!gitHubPrOriginOptions.forceImport
+        && requiredState == StateFilter.CLOSED && prData.isOpen()) {
       throw new EmptyChangeException(String.format("Pull Request %d is open", prNumber));
     }
 
@@ -455,7 +466,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
   @VisibleForTesting
   public Set<String> getRequiredLabels() {
-    return requiredLabels;
+    return gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
   }
 
   @Override

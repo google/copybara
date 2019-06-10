@@ -245,6 +245,18 @@ public class GitHubPrOriginTest {
   }
 
   @Test
+  public void testGitResolveRequiredLabelsNotFound_forceMigrate() throws Exception {
+    options.githubPrOrigin.forceImport = true;
+    mockPullRequestAndIssue(125, "open", "bar: yes");
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_labels = ['foo: yes', 'bar: yes']"),
+        "125",
+        125);
+  }
+
+  @Test
   public void testLimitByBranch() throws Exception {
     // This should work since it returns a PR for master.
     mockPullRequestAndIssue(125, "open", "bar: yes");
@@ -318,6 +330,14 @@ public class GitHubPrOriginTest {
     mockPullRequestAndIssue(125, "closed", "foo: yes");
     thrown.expect(EmptyChangeException.class);
     thrown.expectMessage("Pull Request 125 is not open");
+    checkResolve(
+        githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"), "125", 125);
+  }
+
+  @Test
+  public void testAlreadyClosed_only_open_forceMigration() throws Exception {
+    options.githubPrOrigin.forceImport = true;
+    mockPullRequestAndIssue(125, "closed", "foo: yes");
     checkResolve(
         githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"), "125", 125);
   }

@@ -45,6 +45,10 @@ public class GitHubPrOriginOptions implements Option {
       + " importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.")
   public boolean skipRequiredLabels = false;
 
+  @Parameter(names = "--github-force-import", description = "Force import regardless of the state"
+      + " of the PR")
+  public boolean forceImport = false;
+
   /**
    * Compute the labels that should be required by git.github_pr_origin for importing a
    * Pull Request.
