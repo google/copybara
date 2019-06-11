@@ -27,7 +27,7 @@ java_library(
     deps = [
         "//third_party:guava",
         "//third_party:jsr305",
-        "//third_party:skylark-lang",
         "//third_party:re2j",
+        "//third_party:skylark-lang",
     ],
 )

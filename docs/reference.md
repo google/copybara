@@ -1777,7 +1777,7 @@ url | `string`<br><p>Url of the GitHub project. For example "https://github.com/
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
-body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
+body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 update_description | `boolean`<br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>

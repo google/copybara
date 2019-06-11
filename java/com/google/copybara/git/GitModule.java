@@ -780,7 +780,7 @@ public class GitModule implements LabelsAwareModule {
             positional = false,
             doc =
                 "When creating (or updating if `update_description` is set) a pull request, use"
-                    + " this title. By default it uses the change summary. This field accepts"
+                    + " this body. By default it uses the change summary. This field accepts"
                     + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "integrates",
