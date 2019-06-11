@@ -276,6 +276,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @VisibleForTesting
+  public boolean isUpdateDescription() {
+    return updateDescription;
+  }
+
+  @VisibleForTesting
   Iterable<GitIntegrateChanges> getIntegrates() {
     return integrates;
   }
