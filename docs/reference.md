@@ -41,6 +41,7 @@
   - [feedback.finish_hook_context](#feedback.finish_hook_context)
     - [feedback.finish_hook_context.record_effect](#feedback.finish_hook_context.record_effect)
   - [feedback.revision_context](#feedback.revision_context)
+  - [filter_replace](#filter_replace)
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
@@ -580,7 +581,7 @@ description | `string`<br><p>A description of what this workflow achieves</p>
 
 Applies an initial filtering to find a substring to be replaced and then appliesa `mapping` of replaces for the matched text.
 
-`filterReplace core.filter_replace(regex, mapping={}, group=Whole text, paths=glob(["**"]), reverse=`regex`)`
+`filter_replace core.filter_replace(regex, mapping={}, group=Whole text, paths=glob(["**"]), reverse=`regex`)`
 
 
 #### Parameters:
@@ -1179,6 +1180,12 @@ Information about the revision request/resolved for the migration
 Name | Description
 ---- | -----------
 labels | A dictionary with the labels detected for the requested/resolved revision.
+
+
+
+## filter_replace
+
+A core.filter_replace transformation
 
 
 

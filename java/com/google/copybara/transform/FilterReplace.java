@@ -30,6 +30,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -39,7 +41,12 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 
-public class FilterReplace implements Transformation {
+// Module needed because both Transformation and ReversibleFunction are Starlark objects but
+// neither of them extend each other
+@SkylarkModule(name = "filter_replace",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "A core.filter_replace transformation")
+public class FilterReplace implements Transformation, ReversibleFunction<String, String>{
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
@@ -89,17 +96,32 @@ public class FilterReplace implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
+    return internalReverse();
+  }
+
+  private FilterReplace internalReverse() throws NonReversibleValidationException {
     if (after == null) {
       throw new NonReversibleValidationException(location, "No 'after' defined");
     }
 
-    return new FilterReplace(workflowOptions, after, before, reverseGroup, group, mapping.reverse(),
+    return new FilterReplace(workflowOptions, after, before, reverseGroup, group, mapping.reverseMapping(),
         glob, location);
   }
 
   @Override
   public String describe() {
-    return "Nested replace";
+    return "Nested replaceString";
+  }
+
+  @Override
+  public String apply(String s) {
+    return replaceString(s);
+  }
+
+  @Override
+  public ReversibleFunction<String, String> reverseMapping()
+      throws NonReversibleValidationException {
+    return internalReverse();
   }
 
   private class BatchReplace implements TransformFunc<FileState, Boolean> {
@@ -114,7 +136,6 @@ public class FilterReplace implements Transformation {
 
     @Override
     public Boolean run(Iterable<FileState> elements) throws IOException {
-      Pattern pattern = Pattern.compile(before.pattern());
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
       for (FileState file : elements) {
@@ -123,30 +144,15 @@ public class FilterReplace implements Transformation {
         }
         matchedFile = true;
         String originalContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-        Matcher matcher = pattern.matcher(originalContent);
-
-        boolean anyReplace = false;
-        StringBuilder result = new StringBuilder(originalContent.length());
-        while (matcher.find()) {
-          String val = matcher.group(FilterReplace.this.group);
-          String res = mapping.apply(val);
-          anyReplace |= !val.equals(res);
-          if (group == 0) {
-            matcher.appendReplacement(result, res);
-          } else {
-            String prefix = originalContent.substring(matcher.start(), matcher.start(group));
-            String suffix = originalContent.substring(matcher.end(group), matcher.end());
-            matcher.appendReplacement(result, prefix + res + suffix);
-          }
-        }
-
-        if (!anyReplace) {
+        String transformed = replaceString(originalContent);
+        // replaceString returns the same instance if not replacement happens. This avoid comparing
+        // the whole file content.
+        //noinspection StringEquality
+        if (transformed == originalContent) {
           continue;
         }
-
-        matcher.appendTail(result);
         changed.add(file);
-        Files.write(file.getPath(), result.toString().getBytes(UTF_8));
+        Files.write(file.getPath(), transformed.getBytes(UTF_8));
       }
 
       synchronized (this) {
@@ -156,6 +162,33 @@ public class FilterReplace implements Transformation {
       // We cannot return null here.
       return true;
     }
+  }
+
+  private String replaceString(String originalContent) {
+    Pattern pattern = Pattern.compile(before.pattern());
+    Matcher matcher = pattern.matcher(originalContent);
+
+    boolean anyReplace = false;
+    StringBuilder result = new StringBuilder(originalContent.length());
+    while (matcher.find()) {
+      String val = matcher.group(FilterReplace.this.group);
+      String res = mapping.apply(val);
+      anyReplace |= !val.equals(res);
+      if (group == 0) {
+        matcher.appendReplacement(result, res);
+      } else {
+        String prefix = originalContent.substring(matcher.start(), matcher.start(group));
+        String suffix = originalContent.substring(matcher.end(group), matcher.end());
+        matcher.appendReplacement(result, prefix + res + suffix);
+      }
+    }
+
+    if (!anyReplace) {
+      return originalContent;
+    }
+
+    matcher.appendTail(result);
+    return result.toString();
   }
 
   @Override

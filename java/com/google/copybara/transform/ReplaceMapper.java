@@ -46,7 +46,7 @@ public class ReplaceMapper implements ReversibleFunction<String, String> {
               }));
 
   @Override
-  public ReversibleFunction<String, String> reverse() throws NonReversibleValidationException {
+  public ReversibleFunction<String, String> reverseMapping() throws NonReversibleValidationException {
     ImmutableList.Builder<Replace> builder = ImmutableList.builder();
     for (Replace replace : replaces) {
       builder.add(replace.reverse());

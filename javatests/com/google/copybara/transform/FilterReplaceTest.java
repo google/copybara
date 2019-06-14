@@ -227,6 +227,59 @@ public class FilterReplaceTest {
 
   }
 
+  @Test
+  public void testNestedFilterReplace() throws Exception {
+
+    String original = ""
+        + "before\n"
+        + "// BEGIN SCRUBBER\n"
+        + "// some comment\n"
+        + "// some other comment\n"
+        + "//   with indentation\n"
+        + "// END SCRUBBER\n"
+        + "// other comment\n"
+        + "some code"
+        + "// BEGIN SCRUBBER\n"
+        + "// some comment\n"
+        + "// some other comment\n"
+        + "//   with indentation\n"
+        + "// END SCRUBBER\n"
+        + "after\n";
+    write("file.txt", original);
+
+    Transformation t = filterReplace(""
+        + "regex = '// BEGIN SCRUBBER\\n((\\n|.)*?\\n)// END SCRUBBER\\n',\n"
+        + "mapping = core.filter_replace(\n"
+        + "   regex = '// .*\\n',\n"
+        + "   mapping = core.replace_mapper([\n"
+        + "     core.replace(before = '// BEGIN SCRUBBER\\n', after = '', multiline = True),\n"
+        + "     core.replace(before = '// END SCRUBBER\\n', after = '', multiline = True),\n"
+        + "     core.replace(\n"
+        + "       before = '// ${content}\\n',\n"
+        + "       after = '${content}\\n',\n"
+        + "       regex_groups = {'content' : '.*'},\n"
+        + "       multiline = True,"
+        + "      ),\n"
+        + "   ])),\n"
+        + ")"
+    );
+    transform(t);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file.txt", ""
+            + "before\n"
+            + "some comment\n"
+            + "some other comment\n"
+            + "  with indentation\n"
+            + "// other comment\n"
+            + "some code"
+            + "some comment\n"
+            + "some other comment\n"
+            + "  with indentation\n"
+            + "after\n")
+        .containsNoMoreFiles();
+  }
+
   /**
    * Equivalent to core.todo_replace
    */

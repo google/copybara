@@ -33,7 +33,7 @@ public class MapMapper implements ReversibleFunction<String, String> {
   }
 
   @Override
-  public ReversibleFunction<String, String> reverse() throws NonReversibleValidationException {
+  public ReversibleFunction<String, String> reverseMapping() throws NonReversibleValidationException {
     try {
       return new MapMapper(ImmutableBiMap.copyOf(map).inverse(), location);
     } catch (IllegalArgumentException e) {

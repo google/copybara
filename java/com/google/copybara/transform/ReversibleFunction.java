@@ -30,5 +30,5 @@ public interface ReversibleFunction<T, R> extends Function<T, R> {
   /**
    * Create a reverse of the function
    */
-  ReversibleFunction<R, T> reverse() throws NonReversibleValidationException;
+  ReversibleFunction<R, T> reverseMapping() throws NonReversibleValidationException;
 }
