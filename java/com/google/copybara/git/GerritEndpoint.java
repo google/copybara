@@ -91,7 +91,7 @@ public class GerritEndpoint implements Endpoint {
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, e);
+      throw new EvalException(location, "Error getting change", e);
     }
   }
 
@@ -139,17 +139,11 @@ public class GerritEndpoint implements Endpoint {
       String changeId, String revisionId, SetReviewInput reviewInput, Location location)
       throws EvalException {
     try {
-      return doSetReview(changeId, revisionId, reviewInput);
+      GerritApi gerritApi = apiSupplier.load(console);
+      return gerritApi.setReview(changeId, revisionId, reviewInput);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, e);
+      throw new EvalException(location, "Error calling create_status", e);
     }
-  }
-
-  private ReviewResult doSetReview(
-      String changeId, String revisionId, SetReviewInput setReviewInput)
-      throws RepoException, ValidationException {
-    GerritApi gerritApi = apiSupplier.load(console);
-    return gerritApi.setReview(changeId, revisionId, setReviewInput);
   }
 
   @SkylarkCallable(
@@ -180,16 +174,13 @@ public class GerritEndpoint implements Endpoint {
       },
       useLocation = true)
   public SkylarkList<ChangeInfo> listChangesByCommit(
-      String commit, SkylarkList<?> includeResults, Location location) throws EvalException {
-    try {
+      String commit, SkylarkList<?> includeResults, Location location)
+      throws EvalException, RepoException, ValidationException {
       GerritApi gerritApi = apiSupplier.load(console);
       return SkylarkList.createImmutable(
           gerritApi.getChanges(
               new ChangesQuery(String.format("commit:%s", commit))
                   .withInclude(getIncludeResults(includeResults))));
-    } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, e);
-    }
   }
 
   @SkylarkCallable(

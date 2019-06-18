@@ -26,6 +26,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalException.EvalExceptionWithJavaCause;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.util.function.Supplier;
 
@@ -52,19 +53,20 @@ public class SkylarkAction implements Action {
       Object result = function.call(ImmutableList.of(actionContext), null,
           /*ast*/null, env.get());
       context.onFinish(result, actionContext);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
-      String error =
-          String.format(
-              "Error while executing the skylark transformation %s: %s",
-              function.getName(), e.getMessage());
-      if (e.getCause() instanceof ValidationException) {
-        throw new ValidationException(error, e.getCause());
-      } else if (e.getCause() instanceof RepoException) {
-        throw new RepoException(error, e.getCause());
+      Throwable cause = e.getCause();
+      if (cause instanceof EvalExceptionWithJavaCause) {
+        cause = cause.getCause();
       }
-      throw new ValidationException(
+      String error =
           String.format("Error while executing the skylark transformation %s: %s. Location: %s",
-              function.getName(), e.getMessage(), e.getLocation()), e.getCause());
+              function.getName(), e.getMessage(), e.getLocation());
+      if (cause instanceof RepoException) {
+        throw new RepoException(error, cause);
+      }
+      throw new ValidationException(error, cause);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

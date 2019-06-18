@@ -119,8 +119,8 @@ public class GitHubEndPoint implements Endpoint {
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling create_status", e);
     }
   }
 
@@ -139,8 +139,8 @@ public class GitHubEndPoint implements Endpoint {
       return apiSupplier.load(console).getCombinedStatus(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_combined_status", e);
     }
   }
 
@@ -161,8 +161,8 @@ public class GitHubEndPoint implements Endpoint {
       return apiSupplier.load(console).getCommit(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_commit", e);
     }
   }
 
@@ -198,8 +198,8 @@ public class GitHubEndPoint implements Endpoint {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling update_reference", e);
     }
   }
 
@@ -220,8 +220,8 @@ public class GitHubEndPoint implements Endpoint {
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       apiSupplier.load(console).deleteReference(project, ref);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling delete_reference", e);
     }
   }
 
@@ -241,8 +241,8 @@ public class GitHubEndPoint implements Endpoint {
       return apiSupplier.load(console).getReference(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_reference", e);
     }
   }
 
@@ -294,8 +294,8 @@ public class GitHubEndPoint implements Endpoint {
               .withSort(stringToEnum(location, "sort", sort, SortFilter.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_pull_requests", e);
     }
   }
 
@@ -330,8 +330,8 @@ public class GitHubEndPoint implements Endpoint {
                   convertFromNoneable(state, null), UpdatePullRequest.State.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(location, e);
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling update_pull_request", e);
     }
   }
 
@@ -352,8 +352,8 @@ public class GitHubEndPoint implements Endpoint {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return SkylarkList.createImmutable(apiSupplier.load(console).getReferences(project));
-    } catch (RepoException | ValidationException e) {
-      throw new EvalException(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_references", e);
     }
   }
 
