@@ -17,20 +17,23 @@
 package com.google.copybara;
 
 import com.beust.jcommander.Parameters;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.TablePrinter;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.util.function.Consumer;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Reads the last migrated revision in the origin and destination.
@@ -39,14 +42,15 @@ import java.util.function.Consumer;
     commandDescription = "Reads the last migrated revision in the origin and destination.")
 public class InfoCmd implements CopybaraCmd {
 
-  private final ConfigValidator configValidator;
-  private final Consumer<Migration> migrationRanConsumer;
+  private static final int REVISION_MAX_LENGTH = 15;
+  private static final int DESCRIPTION_MAX_LENGTH = 80;
+  private static final int AUTHOR_MAX_LENGTH = 40;
+  private static final DateTimeFormatter DATE_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
   private final ConfigLoaderProvider configLoaderProvider;
 
-  InfoCmd(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer,
-      ConfigLoaderProvider configLoaderProvider) {
-    this.configValidator = Preconditions.checkNotNull(configValidator);
-    this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
+  InfoCmd(ConfigLoaderProvider configLoaderProvider) {
     this.configLoaderProvider = Preconditions.checkNotNull(configLoaderProvider);
   }
 
@@ -54,13 +58,12 @@ public class InfoCmd implements CopybaraCmd {
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,  /*useSourceRef*/false);
-    Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
 
     Config config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
         .load(commandEnv.getOptions().get(GeneralOptions.class).console());
     if (configFileArgs.hasWorkflowName()) {
-      copybara.info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
+      info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
     } else {
       showAllMigrations(commandEnv, config);
     }
@@ -88,6 +91,61 @@ public class InfoCmd implements CopybaraCmd {
   private String prettyOriginDestination(ImmutableSetMultimap<String, String> desc) {
     return Iterables.getOnlyElement(desc.get("type"))
         + (desc.containsKey("url") ? " (" + Iterables.getOnlyElement(desc.get("url")) + ")" : "");
+  }
+
+  /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
+  private static void info(Options options, Config config, String migrationName)
+      throws ValidationException, RepoException {
+    @SuppressWarnings("unchecked")
+    Info<? extends Revision> info = getInfo(migrationName, config);
+    Console console = options.get(GeneralOptions.class).console();
+    int outputSize = 0;
+    for (MigrationReference<? extends Revision> migrationRef : info.migrationReferences()) {
+      console.info(String.format(
+          "'%s': last_migrated %s - last_available %s.",
+          migrationRef.getLabel(),
+          migrationRef.getLastMigrated() != null
+              ? migrationRef.getLastMigrated().asString() : "None",
+          migrationRef.getLastAvailableToMigrate() != null
+              ? migrationRef.getLastAvailableToMigrate().asString() : "None"));
+
+      ImmutableList<? extends Change<? extends Revision>> availableToMigrate =
+          migrationRef.getAvailableToMigrate();
+      int outputLimit = options.get(GeneralOptions.class).getOutputLimit();
+      if (!availableToMigrate.isEmpty()) {
+        console.infoFmt(
+            "Available changes %s:",
+            availableToMigrate.size() <= outputLimit
+                ? String.format("(%d)", availableToMigrate.size())
+                : String.format(
+                    "(showing only first %d out of %d)", outputLimit, availableToMigrate.size()));
+        TablePrinter table = new TablePrinter("Date", "Revision", "Description", "Author");
+        for (Change<? extends Revision> change :
+            Iterables.limit(availableToMigrate, outputLimit)) {
+          outputSize++;
+          table.addRow(
+              change.getDateTime().format(DATE_FORMATTER),
+              Ascii.truncate(change.getRevision().asString(), REVISION_MAX_LENGTH, ""),
+              Ascii.truncate(change.firstLineMessage(), DESCRIPTION_MAX_LENGTH, "..."),
+              Ascii.truncate(change.getAuthor().toString(), AUTHOR_MAX_LENGTH, "..."));
+        }
+        for (String line : table.build()) {
+          console.info(line);
+        }
+      }
+      // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
+      if (outputSize > 100) {
+        console.infoFmt(
+            "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);
+      }
+    }
+    options.get(GeneralOptions.class).eventMonitor().onInfoFinished(new InfoFinishedEvent(info));
+  }
+
+  /** Returns the {@link Info} of the {@code migrationName}. */
+  private static Info<? extends Revision> getInfo(String migrationName, Config config)
+      throws ValidationException, RepoException {
+    return config.getMigration(migrationName).getInfo();
   }
 
   @Override

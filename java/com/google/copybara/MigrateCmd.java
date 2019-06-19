@@ -16,16 +16,22 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
@@ -50,9 +56,8 @@ public class MigrateCmd implements CopybaraCmd {
       throws RepoException, ValidationException, IOException {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,
         /*useSourceRef*/true);
-    Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
     ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
-    copybara.run(
+    run(
         commandEnv.getOptions(),
         configLoaderProvider.newLoader(
             configFileArgs.getConfigPath(),
@@ -61,6 +66,52 @@ public class MigrateCmd implements CopybaraCmd {
         commandEnv.getWorkdir(),
         sourceRefs);
     return ExitCode.SUCCESS;
+  }
+
+  /**
+   * Runs the migration specified by {@code migrationName}.
+   */
+  private void run(Options options, ConfigLoader configLoader, String migrationName,
+      Path workdir, ImmutableList<String> sourceRefs)
+      throws RepoException, ValidationException, IOException {
+    Config config = loadConfig(options, configLoader, migrationName);
+    Migration migration = config.getMigration(migrationName);
+
+    if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
+      this.migrationRanConsumer.accept(migration);
+      migration.run(workdir, sourceRefs);
+      return;
+    }
+
+    checkCondition(configLoader.supportsLoadForRevision(),
+        "%s flag is not supported for the origin/config file path",
+        WorkflowOptions.READ_CONFIG_FROM_CHANGE);
+
+    // A safeguard, mirror workflows are not supported in the service anyway
+    checkCondition(migration instanceof Workflow,
+        "Flag --read-config-from-change is not supported for non-workflow migrations: %s",
+        migrationName);
+    migrationRanConsumer.accept(migration);
+    @SuppressWarnings("unchecked")
+    Workflow<? extends Revision, ? extends Revision> workflow =
+        (Workflow<? extends Revision, ? extends Revision>) migration;
+    new ReadConfigFromChangeWorkflow<>(workflow, options, configLoader, configValidator)
+        .run(workdir, sourceRefs);
+  }
+
+  private Config loadConfig(Options options, ConfigLoader configLoader, String migrationName)
+      throws IOException, ValidationException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    Console console = generalOptions.console();
+    Config config = configLoader.load(console);
+    console.progress("Validating configuration");
+    ValidationResult result = configValidator.validate(config, migrationName);
+    if (!result.hasErrors()) {
+      return config;
+    }
+    result.getErrors().forEach(console::error);
+    console.error("Configuration is invalid.");
+    throw new ValidationException("Error validating configuration: Configuration is invalid.");
   }
 
   @Override

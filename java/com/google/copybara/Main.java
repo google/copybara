@@ -276,7 +276,7 @@ public class Main {
     Consumer<Migration> consumer = getMigrationRanConsumer();
     return ImmutableSet.of(
         new MigrateCmd(validator, consumer, configLoaderProvider),
-        new InfoCmd(validator, consumer, configLoaderProvider),
+        new InfoCmd(configLoaderProvider),
         new ValidateCmd(validator, consumer, configLoaderProvider),
         new HelpCmd(jcommander),
         new VersionCmd());

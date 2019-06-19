@@ -18,46 +18,82 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.util.ExitCode.SUCCESS;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.copybara.Info.MigrationReference;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.config.Config;
-import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.Migration;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class InfoTest {
 
   private SkylarkTestExecutor skylark;
   private InfoCmd info;
-  private String config;
+  private String configInfo;
   private TestingConsole console;
 
+  private OptionsBuilder optionsBuilder;
+  private TestingEventMonitor eventMonitor;
+  private Migration migration;
+  private Config config;
+  private Path temp;
+  private ImmutableMultimap<String, String> dummyOriginDescription;
+  private ImmutableMultimap<String, String> dummyDestinationDescription;
+
   @Before
-  public void setUp() {
-    OptionsBuilder options = new OptionsBuilder();
-    options.setWorkdirToRealTempDir();
+  public void setUp() throws IOException {
+    dummyOriginDescription = ImmutableMultimap.of("origin", "foo");
+    dummyDestinationDescription = ImmutableMultimap.of("dest", "bar");
     console = new TestingConsole();
-    options.setConsole(console);
-    skylark = new SkylarkTestExecutor(options);
-    info = new InfoCmd(new ConfigValidator() {
-    },
-        migration -> {
-        },
+    temp = Files.createTempDirectory("temp");
+    optionsBuilder = new OptionsBuilder();
+    optionsBuilder.setConsole(console);
+    optionsBuilder.setWorkdirToRealTempDir();
+    skylark = new SkylarkTestExecutor(optionsBuilder);
+    eventMonitor = new TestingEventMonitor();
+    optionsBuilder.general.withEventMonitor(eventMonitor);
+    migration = mock(Migration.class);
+    config = new Config(ImmutableMap.of("workflow", migration),
+        temp.resolve("copy.bara.sky").toString(),
+        ImmutableMap.of());
+    configInfo = ""
+        + "core.workflow("
+        + "    name = 'workflow',"
+        + "    origin = git.origin(url = 'https://example.com/orig'),"
+        + "    destination = git.destination(url = 'https://example.com/dest'),"
+        + "    ref = 'master'"
+        + "    authoring = authoring.overwrite('Foo <foo@example.com>'),"
+        + ")\n\n"
+        + "";
+    info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", config)) {
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
           @Override
           protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
@@ -72,9 +108,9 @@ public class InfoTest {
 
   @Test
   public void testInfoAll() throws Exception {
-    config = ""
+    configInfo = ""
         + "core.workflow("
-        + "    name = 'foo',"
+        + "    name = 'workflow',"
         + "    origin = git.origin(url = 'https://example.com/orig'),"
         + "    destination = git.destination(url = 'https://example.com/dest'),"
         + "    authoring = authoring.overwrite('Foo <foo@example.com>'),"
@@ -86,15 +122,14 @@ public class InfoTest {
         + "    destination = 'https://example.com/mirror2',"
         + ")\n\n"
         + "";
-
-    ExitCode code = info.run(new CommandEnv(Files.createTempDirectory("test"),
+    ExitCode code = info.run(new CommandEnv(temp,
             skylark.createModuleSet().getOptions(),
             ImmutableList.of("copy.bara.sky")));
 
     assertThat(code).isEqualTo(SUCCESS);
 
     console.assertThat().onceInLog(MessageType.INFO,
-        ".*foo.*git\\.origin \\(https://example.com/orig\\)"
+        ".*workflow.*git\\.origin \\(https://example.com/orig\\)"
             + ".*git\\.destination \\(https://example.com/dest\\).*SQUASH.*");
     console.assertThat().onceInLog(MessageType.INFO,
         ".*example.*git\\.mirror \\(https://example.com/mirror1\\)"
@@ -103,5 +138,92 @@ public class InfoTest {
     console.assertThat().onceInLog(MessageType.INFO,
         "To get information about the state of any migration run:(.|\n)*"
             + "copybara info copy.bara.sky \\[workflow_name\\](.|\n)*");
+  }
+
+  @Test
+  public void testInfoUpToDate() throws Exception {
+    info = new InfoCmd(
+        (configPath, sourceRef) -> new ConfigLoader(
+            skylark.createModuleSet(),
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
+          @Override
+          public Config load(Console console) {
+            return config;
+          }
+        });
+    MigrationReference<DummyRevision> workflow =
+        MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
+    Info<?> mockedInfo = Info.create(
+        dummyOriginDescription,
+        dummyDestinationDescription,
+        ImmutableList.of(workflow));
+    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
+    info.run(new CommandEnv(temp,
+        optionsBuilder.build(),
+        ImmutableList.of("copy.bara.sky","workflow")));
+    assertThat(eventMonitor.infoFinishedEvent).isNotNull();
+    assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
+    console
+        .assertThat()
+        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available None.*");
+  }
+
+  @Test
+  public void testInfoAvailableToMigrate() throws Exception {
+    info = new InfoCmd(
+        (configPath, sourceRef) -> new ConfigLoader(
+            skylark.createModuleSet(),
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
+          @Override
+          public Config load(Console console) {
+            return config;
+          }
+        });
+    MigrationReference<DummyRevision> workflow =
+        MigrationReference.create(
+            "workflow",
+            new DummyRevision("1111"),
+            ImmutableList.of(
+                newChange(
+                    "2222",
+                    "First change",
+                    ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00"))),
+                newChange(
+                    "3333",
+                    "Second change",
+                    ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(1541639979), ZoneId.of("-08:00")))));
+    Info<?> mockedInfo = Info.create(
+        dummyOriginDescription,
+        dummyDestinationDescription,
+        ImmutableList.of(workflow));
+    Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
+
+    // Copybara copybara = new Copybara(new ConfigValidator() {}, migration -> {});
+    // copybara.info(optionsBuilder.build(), config, "workflow");
+
+    info.run(new CommandEnv(temp,
+        optionsBuilder.build(),
+        ImmutableList.of("copy.bara.sky","workflow")));
+
+    assertThat(eventMonitor.infoFinishedEvent).isNotNull();
+    assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
+    console
+        .assertThat()
+        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*")
+        .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
+        .onceInLog(MessageType.INFO, ".*2018-11-07 15:06:19.*2222.*First change.*Foo <Bar>.*")
+        .onceInLog(MessageType.INFO, ".*2018-11-07 17:19:39.*3333.*Second change.*Foo <Bar>.*");
+  }
+
+  private Change<DummyRevision> newChange(
+      String revision, String description, ZonedDateTime dateTime) {
+    return new Change<>(
+        new DummyRevision(revision),
+        new Author("Foo", "Bar"),
+        description,
+        dateTime,
+        ImmutableListMultimap.of());
   }
 }

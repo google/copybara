@@ -17,7 +17,7 @@ load(":test.bzl", "all_tests")
 licenses(["notice"])  # Apache 2.0
 
 LOCAL_TESTS = {
-    "InfoTest.java": 1,
+    "InfoTest.java": 3,
     "util/DiffUtilTest.java": 5,
     "WorkflowTest.java": 5,
 }

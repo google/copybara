@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.beust.jcommander.Parameters;
+import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.ValidationResult;
@@ -37,13 +38,11 @@ import java.util.function.Consumer;
 public class ValidateCmd implements CopybaraCmd {
 
   private final ConfigValidator configValidator;
-  private final Consumer<Migration> migrationRanConsumer;
   private final ConfigLoaderProvider configLoaderProvider;
 
   ValidateCmd(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer,
       ConfigLoaderProvider configLoaderProvider) {
     this.configValidator = checkNotNull(configValidator);
-    this.migrationRanConsumer = checkNotNull(migrationRanConsumer);
     this.configLoaderProvider = checkNotNull(configLoaderProvider);
   }
 
@@ -51,13 +50,11 @@ public class ValidateCmd implements CopybaraCmd {
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this, /*useSourceRef*/false);
-    Copybara copybara = new Copybara(configValidator, migrationRanConsumer);
-
     ConfigLoader configLoader =
         configLoaderProvider.newLoader(
             configFileArgs.getConfigPath(), configFileArgs.getSourceRef());
     ValidationResult result =
-        copybara.validate(
+        validate(
             commandEnv.getOptions(),
             configLoader,
             configFileArgs.getWorkflowName());
@@ -79,6 +76,36 @@ public class ValidateCmd implements CopybaraCmd {
     }
     console.infoFmt("Configuration '%s' is valid.", configLoader.location());
     return ExitCode.SUCCESS;
+  }
+
+  /**
+   * Validates that the configuration is correct and that there is a valid migration specified by
+   * {@code migrationName}.
+   *
+   * <p>Note that, besides validating the specific migration, all the configuration will be
+   * validated syntactically.
+   *
+   * Returns true iff this configuration is valid.
+   */
+  private ValidationResult validate(Options options, ConfigLoader configLoader,
+      String migrationName)
+      throws IOException {
+    Console console = options.get(GeneralOptions.class).console();
+    ValidationResult.Builder resultBuilder = new ValidationResult.Builder();
+    try {
+      Config config = configLoader.load(console);
+      resultBuilder.append(configValidator.validate(config, migrationName));
+    } catch (ValidationException e) {
+      // The validate subcommand should not throw Validation exceptions but log a result
+      StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
+      Throwable cause = e.getCause();
+      while (cause != null) {
+        error.append("  CAUSED BY: ").append(cause.getMessage()).append("\n");
+        cause = cause.getCause();
+      }
+      resultBuilder.error(error.toString());
+    }
+    return resultBuilder.build();
   }
 
   @Override
