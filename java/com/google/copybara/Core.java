@@ -900,7 +900,7 @@ public class Core implements LabelsAwareModule {
           "Only core.replace can be used as mapping, but got: " + t.describe());
       Replace replace = (Replace) t;
       check(location, replace.getPaths().equals(Glob.ALL_FILES), "core.replace cannot use"
-          + " 'paths' inside go.map_imports");
+          + " 'paths' inside core.replace_mapper");
       replaces.add(replace);
     }
     return new ReplaceMapper(replaces.build(), all);
