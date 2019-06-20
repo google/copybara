@@ -98,6 +98,31 @@ public class FilterReplaceTest {
   }
 
   @Test
+  public void testWithVariablesInContent() throws Exception {
+    String original = ""
+        + "afoo\n"
+        + "a${foo}\n"
+        + "$\n";
+    write("file1.txt", original);
+
+    Transformation transformation = eval(""
+        + "core.filter_replace(\n"
+        + "    regex = 'a.*',\n"
+        + "    mapping = {\n"
+        + "        'afoo': 'abar',\n"
+        + "    }\n"
+        + ")\n");
+    transform(transformation);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", ""
+            + "abar\n"
+            + "a${foo}\n"
+            + "$\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testPath() throws Exception {
 
     write("file1.txt", "foo\n");

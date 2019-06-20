@@ -120,7 +120,7 @@ public class TodoReplace implements Transformation {
         if (!mappedUsers.isEmpty()) {
           result += "(" + Joiner.on(",").join(mappedUsers) + ")";
         }
-        matcher.appendReplacement(sb, result);
+        matcher.appendReplacement(sb, result.replace("$", "\\$"));
       }
       matcher.appendTail(sb);
 

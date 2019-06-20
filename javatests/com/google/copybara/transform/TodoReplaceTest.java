@@ -279,6 +279,22 @@ public final class TodoReplaceTest {
   }
 
   @Test
+  public void testReplaceWithDollar() throws Exception {
+    TodoReplace replace = todoReplace("mapping = { 'aaa': '${hello}'}");
+
+    write("one.txt", ""
+        + "// TODO(aaa): test\n"
+        + "aaaaa\n");
+    run(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("one.txt", ""
+            + "// TODO(${hello}): test\n"
+            + "aaaaa\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testPaths() throws Exception {
     TodoReplace replace = todoReplace(
         "mapping = { 'aaa': 'foo'}",
