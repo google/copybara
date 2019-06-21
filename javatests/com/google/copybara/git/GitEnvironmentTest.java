@@ -28,12 +28,30 @@ import org.junit.runners.JUnit4;
 public class GitEnvironmentTest {
 
   private static final Map<String, String> environment =
-      ImmutableMap.<String, String>builder().put("FOO", "123").put("BAR", "456").buildOrThrow();
+      ImmutableMap.<String, String>builder()
+          .put("FOO", "123")
+          .put("BAR", "456")
+          .put("LANG", "en_US.UTF-8")
+          .buildOrThrow();
 
   @Test
   public void testEnvironmentReturned() {
     assertThat(new GitEnvironment(environment, /*noGitPrompt*/ false).getEnvironment())
         .containsExactlyEntriesIn(environment);
+  }
+
+  @Test
+  public void testLangIsSetToEnUsUtf8() {
+    assertThat(new GitEnvironment(ImmutableMap.of(), /*noGitPrompt*/ true).getEnvironment())
+        .containsEntry("LANG", "en_US.UTF-8");
+  }
+
+  @Test
+  public void testLangIsOverridenToEnUsUtf8() {
+    assertThat(
+            new GitEnvironment(ImmutableMap.of("LANG", "de_DE.UTF-8"), /*noGitPrompt*/ true)
+                .getEnvironment())
+        .containsEntry("LANG", "en_US.UTF-8");
   }
 
   @Test
