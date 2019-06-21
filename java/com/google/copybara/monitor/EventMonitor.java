@@ -19,6 +19,7 @@ package com.google.copybara.monitor;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Info;
 import com.google.copybara.Revision;
@@ -107,19 +108,29 @@ public interface EventMonitor {
   class InfoFinishedEvent {
 
     private final Info<? extends Revision> info;
+    private final ImmutableMap<String, String> context;
+
+    public InfoFinishedEvent(Info<? extends Revision> info, ImmutableMap<String, String> context) {
+      this.info = Preconditions.checkNotNull(info);
+      this.context = Preconditions.checkNotNull(context);
+    }
 
     public InfoFinishedEvent(Info<? extends Revision> info) {
-      this.info = Preconditions.checkNotNull(info);
+      this(info, ImmutableMap.of());
     }
 
     public Info<? extends Revision> getInfo() {
       return info;
+    }
+    public ImmutableMap<String, String> getContext() {
+      return context;
     }
 
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("info", info)
+          .add("context", context)
           .toString();
     }
 

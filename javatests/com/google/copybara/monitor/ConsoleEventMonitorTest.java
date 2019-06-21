@@ -20,6 +20,7 @@ import static com.google.copybara.util.console.Message.MessageType.VERBOSE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.DestinationEffect;
@@ -77,8 +78,8 @@ public class ConsoleEventMonitorTest {
             ImmutableList.of(newChange("2222"), newChange("3333")));
     Info<?> info = Info.create(ImmutableMultimap.of("origin", "foo"),
         ImmutableMultimap.of("dest", "bar"), ImmutableList.of(workflow));
-    eventMonitor.onInfoFinished(new InfoFinishedEvent(info));
-
+    eventMonitor.onInfoFinished(new InfoFinishedEvent(info,
+        ImmutableMap.of("foo_a", "foo_b")));
     console
         .assertThat()
         .equalsNext(VERBOSE, "onMigrationStarted(): MigrationStartedEvent")
@@ -87,7 +88,7 @@ public class ConsoleEventMonitorTest {
         .matchesNext(
             VERBOSE, "onChangeMigrationFinished[(][)]: ChangeMigrationFinishedEvent[{].*[}]")
         .matchesNext(VERBOSE, "onInfoFinished[(][)]: InfoFinishedEvent[{].*(origin).*"
-            + "(foo).*(dest).*(bar).*[}]")
+            + "(foo).*(dest).*(bar).*(foo_a).*(foo_b).*[}]")
         .containsNoMoreMessages();
   }
 

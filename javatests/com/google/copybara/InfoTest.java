@@ -103,7 +103,7 @@ public class InfoTest {
               throw new AssertionError("Should not fail", e);
             }
           }
-        });
+        },  getFakeContextProvider());
   }
 
   @Test
@@ -150,7 +150,7 @@ public class InfoTest {
           public Config load(Console console) {
             return config;
           }
-        });
+        }, getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
     Info<?> mockedInfo = Info.create(
@@ -178,7 +178,7 @@ public class InfoTest {
           public Config load(Console console) {
             return config;
           }
-        });
+        },  getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create(
             "workflow",
@@ -225,5 +225,9 @@ public class InfoTest {
         description,
         dateTime,
         ImmutableListMultimap.of());
+  }
+
+  private static ContextProvider getFakeContextProvider() {
+    return (metaDataConfig, configFileArgs, configLoaderProvider, console) -> ImmutableMap.of();
   }
 }

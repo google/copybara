@@ -21,6 +21,7 @@ import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
@@ -49,21 +50,25 @@ public class InfoCmd implements CopybaraCmd {
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
   private final ConfigLoaderProvider configLoaderProvider;
+  private final ContextProvider contextProvider;
 
-  InfoCmd(ConfigLoaderProvider configLoaderProvider) {
+  public InfoCmd(ConfigLoaderProvider configLoaderProvider, ContextProvider contextProvider) {
     this.configLoaderProvider = Preconditions.checkNotNull(configLoaderProvider);
+    this.contextProvider = Preconditions.checkNotNull(contextProvider);
   }
 
   @Override
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,  /*useSourceRef*/false);
-
+    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
     Config config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
-        .load(commandEnv.getOptions().get(GeneralOptions.class).console());
+        .load(console);
     if (configFileArgs.hasWorkflowName()) {
-      info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName());
+      ImmutableMap<String, String> context =
+          contextProvider.getContext(config, configFileArgs, configLoaderProvider, console);
+      info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName(), context);
     } else {
       showAllMigrations(commandEnv, config);
     }
@@ -88,13 +93,14 @@ public class InfoCmd implements CopybaraCmd {
         + "\n");
   }
 
-  private String prettyOriginDestination(ImmutableSetMultimap<String, String> desc) {
+  private static String prettyOriginDestination(ImmutableSetMultimap<String, String> desc) {
     return Iterables.getOnlyElement(desc.get("type"))
         + (desc.containsKey("url") ? " (" + Iterables.getOnlyElement(desc.get("url")) + ")" : "");
   }
 
   /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
-  private static void info(Options options, Config config, String migrationName)
+  private static void info(
+      Options options, Config config, String migrationName, ImmutableMap<String, String> context)
       throws ValidationException, RepoException {
     @SuppressWarnings("unchecked")
     Info<? extends Revision> info = getInfo(migrationName, config);
@@ -139,7 +145,8 @@ public class InfoCmd implements CopybaraCmd {
             "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);
       }
     }
-    options.get(GeneralOptions.class).eventMonitor().onInfoFinished(new InfoFinishedEvent(info));
+    options.get(GeneralOptions.class).eventMonitor().onInfoFinished(
+        new InfoFinishedEvent(info, context));
   }
 
   /** Returns the {@link Info} of the {@code migrationName}. */

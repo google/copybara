@@ -276,7 +276,7 @@ public class Main {
     Consumer<Migration> consumer = getMigrationRanConsumer();
     return ImmutableSet.of(
         new MigrateCmd(validator, consumer, configLoaderProvider),
-        new InfoCmd(configLoaderProvider),
+        new InfoCmd(configLoaderProvider, newInfoContextProvider()),
         new ValidateCmd(validator, consumer, configLoaderProvider),
         new HelpCmd(jcommander),
         new VersionCmd());
@@ -316,6 +316,10 @@ public class Main {
     return (configPath, sourceRef) -> new ConfigLoader(moduleSet,
         createConfigFileWithHeuristic(validateLocalConfig(generalOptions, configPath),
             generalOptions.getConfigRoot()));
+  }
+
+  protected ContextProvider newInfoContextProvider() {
+    return (config, configFileArgs, configLoaderProvider, console) -> ImmutableMap.of();
   }
 
   /**
