@@ -51,6 +51,7 @@ public class ChangeInfo implements SkylarkValue {
   @Key private String created;
   @Key private String updated;
   @Key private String submitted;
+  @Key private boolean submittable;
   @Key("_number") private long number;
   @Key private AccountInfo owner;
   @Key private Map<String, LabelInfo> labels;
@@ -167,6 +168,16 @@ public class ChangeInfo implements SkylarkValue {
       allowReturnNones = true)
   public String getSubmittedForSkylark() {
     return submitted;
+  }
+
+  @SkylarkCallable(
+      name = "submittable",
+      doc = "Whether the change has been approved by the project submit rules. Only set if "
+          + "requested via additional field SUBMITTABLE.",
+      structField = true,
+      allowReturnNones = true)
+  public boolean isSubmittable() {
+    return submittable;
   }
 
   public long getNumber() {

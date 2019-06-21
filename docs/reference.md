@@ -1319,6 +1319,7 @@ revisions | All patch sets of this change as a map that maps the commit ID of th
 Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.
 status | The status of the change (NEW, MERGED, ABANDONED).
 subject | The subject of the change (header line of the commit message).
+submittable | Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.
 submitted | The timestamp of when the change was submitted.
 topic | The topic to which this change belongs.
 updated | The timestamp of when the change was last updated.

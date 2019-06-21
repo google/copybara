@@ -24,6 +24,7 @@ import static com.google.copybara.git.gerritapi.ChangeStatus.NEW;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_COMMIT;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
+import static com.google.copybara.git.gerritapi.IncludeResult.SUBMITTABLE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -175,8 +176,11 @@ public class GerritApiTest {
   public void testGetChange() throws Exception {
     mockResponse(new CheckRequest("GET", "/changes/" + CHANGE_ID + "\\?o="), ""
         + ")]}'\n" + mockChangeInfo(NEW));
-    ChangeInfo change = gerritApi.getChange(CHANGE_ID,
-        new GetChangeInput(ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS)));
+    ChangeInfo change =
+        gerritApi.getChange(
+            CHANGE_ID,
+            new GetChangeInput(
+                ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS, SUBMITTABLE)));
 
     validateChangeInfoCommon(change);
   }
@@ -185,8 +189,11 @@ public class GerritApiTest {
   public void testGetChangeDetail() throws Exception {
     mockResponse(new CheckRequest("GET", "/changes/" + CHANGE_ID + "/detail\\?o="), ""
         + ")]}'\n" + mockChangeInfo(NEW, /*detail=*/ true));
-    ChangeInfo change = gerritApi.getChangeDetail(CHANGE_ID,
-        new GetChangeInput(ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS)));
+    ChangeInfo change =
+        gerritApi.getChangeDetail(
+            CHANGE_ID,
+            new GetChangeInput(
+                ImmutableSet.of(CURRENT_REVISION, CURRENT_COMMIT, DETAILED_LABELS, SUBMITTABLE)));
 
     validateChangeInfoCommon(change);
 
@@ -236,6 +243,7 @@ public class GerritApiTest {
     assertThat(change.getNumber()).isEqualTo(1082);
     assertThat(change.getUpdated().format(DateTimeFormatter.ISO_DATE_TIME))
         .isEqualTo("2017-12-01T17:33:30Z");
+    assertThat(change.isSubmittable()).isTrue();
     RevisionInfo revisionInfo = change.getAllRevisions().get(change.getCurrentRevision());
     assertThat(revisionInfo.getCommit().getMessage()).contains("JUST A TEST");
     assertThat(revisionInfo.getCommit().getMessage()).contains("Second line of description");
@@ -400,6 +408,7 @@ public class GerritApiTest {
         + "  'updated': '2017-12-01 17:33:30.000000000',\n"
         + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
         + "  'mergeable': true,\n"
+        + "  'submittable': true,\n"
         + "  'insertions': 2,\n"
         + "  'deletions': 10,\n"
         + "  'unresolved_comment_count': 0,\n"

@@ -219,6 +219,7 @@ public class GerritEndpointTest {
                 + "  'submitted': '2017-12-03 17:33:30.000000000',\n"
                 + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
                 + "  'mergeable': true,\n"
+                + "  'submittable': true,\n"
                 + "  'insertions': 2,\n"
                 + "  'deletions': 10,\n"
                 + "  'unresolved_comment_count': 0,\n"
@@ -338,6 +339,7 @@ public class GerritEndpointTest {
             .put("created", "2017-12-01 17:33:30.000000000")
             .put("updated", "2017-12-02 17:33:30.000000000")
             .put("submitted", "2017-12-03 17:33:30.000000000")
+            .put("submittable", true)
             .put("current_revision", "foo")
             .put("owner.account_id", "12345")
             .put("owner.name", "Glorious Copybara")
