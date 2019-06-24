@@ -1362,7 +1362,8 @@ public class GitRepository {
     COPIED('C'),
     UPDATED_BUT_UNMERGED('U'),
     UNTRACKED('?'),
-    IGNORED('!'),;
+    IGNORED('!'),
+    CHANGE_TYPE('T');
 
     private final char code;
 
