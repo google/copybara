@@ -23,7 +23,11 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Info;
 import com.google.copybara.Revision;
+import com.google.copybara.profiler.Task;
 import com.google.copybara.util.ExitCode;
+import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * A monitor that allows triggering actions when high-level actions take place during the execution.
@@ -89,18 +93,32 @@ public interface EventMonitor {
   class MigrationFinishedEvent {
 
     private final ExitCode exitCode;
+    private final Optional<List<Task>> profileData;
 
     public MigrationFinishedEvent(ExitCode exitCode) {
+      this(exitCode, null);
+    }
+
+    public MigrationFinishedEvent(
+        ExitCode exitCode, @Nullable List<Task> profileData) {
       this.exitCode = Preconditions.checkNotNull(exitCode);
+      this.profileData = Optional.ofNullable(
+          profileData == null ? null : ImmutableList.copyOf(profileData));
     }
 
     public ExitCode getExitCode() {
       return exitCode;
     }
+    public Optional<List<Task>> getProfileData() {
+      return profileData;
+    }
 
     @Override
     public String toString() {
-      return MoreObjects.toStringHelper(this).add("exitCode", exitCode).toString();
+      return MoreObjects.toStringHelper(this)
+          .add("exitCode", exitCode)
+          .add("profiler", profileData.orElse(null))
+          .toString();
     }
   }
 

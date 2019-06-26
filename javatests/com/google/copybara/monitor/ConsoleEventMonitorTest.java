@@ -83,7 +83,8 @@ public class ConsoleEventMonitorTest {
     console
         .assertThat()
         .equalsNext(VERBOSE, "onMigrationStarted(): MigrationStartedEvent")
-        .equalsNext(VERBOSE, "onMigrationFinished(): MigrationFinishedEvent{exitCode=SUCCESS}")
+        .equalsNext(VERBOSE, "onMigrationFinished(): "
+            + "MigrationFinishedEvent{exitCode=SUCCESS, profiler=null}")
         .equalsNext(VERBOSE, "onChangeMigrationStarted(): ChangeMigrationStartedEvent{}")
         .matchesNext(
             VERBOSE, "onChangeMigrationFinished[(][)]: ChangeMigrationFinishedEvent[{].*[}]")
