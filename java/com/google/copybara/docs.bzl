@@ -17,11 +17,12 @@
 def _doc_impl(ctx):
     jars = []
     for dep in ctx.attr.deps:
-        for jar in dep.java.transitive_source_jars:
+        for jar in dep.java.transitive_source_jars.to_list():
             jars.append(jar)
     tmp = ctx.actions.declare_file("tmp.md")
     ctx.actions.run(
-        inputs = [ctx.executable._doc_tool] + jars,
+        tools = [ctx.executable._doc_tool],
+        inputs = jars,
         outputs = [tmp],
         progress_message = "Generating reference documentation for %s" % ctx.label,
         use_default_shell_env = True,
