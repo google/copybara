@@ -37,9 +37,17 @@ public class LogProfilerListener implements Listener {
   @Override
   public void taskFinished(Task task) {
     List<StackTraceElement> stack = Throwables.lazyStackTrace(new Throwable());
-    if (stack != null && stack.size() > 3) {
-      // Call-site -> AutoClosable -> profiler -> this;
-      StackTraceElement caller = stack.get(3);
+    if (stack != null && stack.size() > 2) {
+      // Call-site -> profiler -> this
+      int depth = 2;
+      StackTraceElement caller = stack.get(depth);
+      // Depending on the JVM, we might have added entries
+      while ((caller.getClassName().equals("com.google.copybara.profiler.Profiler") 
+          || caller.getMethodName().startsWith("$")) 
+          && stack.size() > depth + 1) {
+        depth++;
+        caller = stack.get(depth);
+      }
       logger.atInfo()
           .withInjectedLogSite(
               caller.getClassName(),
