@@ -17,10 +17,19 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+import com.google.common.jimfs.PathType;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
+import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -38,17 +47,21 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class MainTest {
 
-  private String[] args = {"copy.bara.sky"};
+  private SkylarkTestExecutor skylark;
+  private final String[] args = {"copy.bara.sky"};
   private boolean called = false;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
+  private OptionsBuilder options;
 
   @Before
   public void setUp() throws Exception {
     called = false;
     Path userHomeDir = Files.createTempDirectory("MainTest");
     System.setProperty("user.home", userHomeDir.toString());
+    options = new OptionsBuilder();
+    skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
@@ -72,6 +85,33 @@ public class MainTest {
         };
     assertThat(main.run(args)).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
     assertThat(called).isTrue();
+  }
+
+  @Test
+  public void testRelativePath() throws IOException, ValidationException {
+
+    ImmutableMap<String, String> envWithHome = ImmutableMap.of("HOME",
+        Files.createTempDirectory("foo").toString());
+    Main main = new Main(envWithHome) {
+          @Override
+          protected void configureLog(FileSystem fs, String[] args) {
+            called = true;
+          }
+
+      @Override
+      protected ModuleSet newModuleSet(ImmutableMap<String, String> environment, FileSystem fs,
+          Console console) {
+        return skylark.createModuleSet();
+      }
+    };
+
+    Files.write(
+        options.general.getFileSystem().getPath("/work").resolve("copy.bara.sky"),
+        "".getBytes(UTF_8));
+    ConfigLoaderProvider clp = main.newConfigLoaderProvider(skylark.createModuleSet());
+
+    ConfigLoader loader = clp.newLoader("./copy.bara.sky", "test");
+    assertThat(loader.location()).isEqualTo("/work/copy.bara.sky");
   }
 
   @Test

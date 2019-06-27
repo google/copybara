@@ -330,7 +330,7 @@ public class Main {
    */
   protected Path validateLocalConfig(GeneralOptions generalOptions, String configLocation)
       throws ValidationException {
-    Path configPath = generalOptions.getFileSystem().getPath(configLocation);
+    Path configPath = generalOptions.getFileSystem().getPath(configLocation).normalize();
     String fileName = configPath.getFileName().toString();
     checkCondition(
         fileName.contentEquals(COPYBARA_SKYLARK_CONFIG_FILENAME),
