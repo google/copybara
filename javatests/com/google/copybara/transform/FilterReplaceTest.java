@@ -101,7 +101,7 @@ public class FilterReplaceTest {
   public void testWithVariablesInContent() throws Exception {
     String original = ""
         + "afoo\n"
-        + "a${foo}\n"
+        + "a${foo}\\${bar}\n"
         + "$\n";
     write("file1.txt", original);
 
@@ -117,7 +117,7 @@ public class FilterReplaceTest {
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", ""
             + "abar\n"
-            + "a${foo}\n"
+            + "a${foo}\\${bar}\n"
             + "$\n")
         .containsNoMoreFiles();
   }

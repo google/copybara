@@ -175,11 +175,11 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
       String res = mapping.apply(val);
       anyReplace |= !val.equals(res);
       if (group == 0) {
-        matcher.appendReplacement(result, res.replace("$", "\\$"));
+        matcher.appendReplacement(result, Matcher.quoteReplacement(res));
       } else {
         String prefix = originalContent.substring(matcher.start(), matcher.start(group));
         String suffix = originalContent.substring(matcher.end(group), matcher.end());
-        matcher.appendReplacement(result, (prefix + res + suffix).replace("$", "\\$"));
+        matcher.appendReplacement(result, Matcher.quoteReplacement((prefix + res + suffix)));
       }
     }
 
