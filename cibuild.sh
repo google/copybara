@@ -8,10 +8,11 @@ function log() {
 log "Running Copybara tests"
 
 log "Fetching dependencies"
+log "Running apt-get update --fix-missing"
+sudo apt-get update --fix-missing
 # Mercurial does not have an up-to-date .deb package
 # The official release needs to be installed with pip.
 sudo apt-get -y install python-pip
-sudo apt-get update
 sudo apt-get install locales
 sudo pip install --ignore-installed --upgrade mercurial
 
