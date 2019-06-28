@@ -17,6 +17,9 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import javax.annotation.Nullable;
 
 /**
@@ -24,7 +27,7 @@ import javax.annotation.Nullable;
  *
  * <p> NotifyInfo (notify_details) not included for now
  */
-public class AbandonInput {
+public class AbandonInput implements SkylarkValue {
 
   @Key String message;
   @Key String notify;
@@ -40,5 +43,18 @@ public class AbandonInput {
 
   public static AbandonInput createWithoutComment() {
     return new AbandonInput(/*message=*/null, /*notify=*/null);
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("message", message)
+        .add("notify", notify)
+        .toString();
   }
 }

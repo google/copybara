@@ -17,10 +17,13 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.util.Map;
 
@@ -30,7 +33,7 @@ import java.util.Map;
     name = "gerritapi.ReviewResult",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit review result.")
-public class ReviewResult {
+public class ReviewResult implements SkylarkValue {
   @Key private Map<String, Integer> labels;
   @Key private boolean ready;
 
@@ -64,5 +67,18 @@ public class ReviewResult {
   )
   public boolean isReady() {
     return ready;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("labels", labels)
+        .add("ready", ready)
+        .toString();
   }
 }

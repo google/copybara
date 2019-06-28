@@ -19,11 +19,13 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#fetch-info
  */
-public class FetchInfo {
+public class FetchInfo implements SkylarkValue {
 
   @Key private String url;
   @Key private String ref;
@@ -43,6 +45,11 @@ public class FetchInfo {
 
   public String getRef() {
     return ref;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override

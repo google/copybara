@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.util.List;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-accounts.html#account-info */
@@ -32,7 +34,7 @@ import java.util.List;
     name = "gerritapi.AccountInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit account information.")
-public class AccountInfo {
+public class AccountInfo implements SkylarkValue {
   @Key("_account_id") long accountId;
   @Key String name;
   @Key String email;
@@ -111,6 +113,11 @@ public class AccountInfo {
       allowReturnNones = true)
   public String getUsername() {
     return username;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override

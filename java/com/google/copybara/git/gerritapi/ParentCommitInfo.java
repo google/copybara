@@ -21,6 +21,8 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
 /** Restricted version of {@link CommitInfo} for describing parents */
 @SuppressWarnings("unused")
@@ -28,7 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
     name = "gerritapi.ParentCommitInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit parent commit information.")
-public class ParentCommitInfo {
+public class ParentCommitInfo implements SkylarkValue {
   @Key private String commit;
   @Key private String subject;
 
@@ -50,6 +52,11 @@ public class ParentCommitInfo {
       allowReturnNones = true)
   public String getSubject() {
     return subject;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override

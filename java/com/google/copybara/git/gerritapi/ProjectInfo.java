@@ -18,12 +18,14 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.util.Map;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-projects.html#project-info
  */
-public class ProjectInfo {
+public class ProjectInfo implements SkylarkValue {
   @Key String id;
   @Key String name;
   @Key String parent;
@@ -57,6 +59,11 @@ public class ProjectInfo {
 
   public Map<String, String> getBranches() {
     return branches;
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override

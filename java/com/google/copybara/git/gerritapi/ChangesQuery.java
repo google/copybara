@@ -22,6 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import javax.annotation.Nullable;
@@ -38,7 +40,7 @@ import javax.annotation.Nullable;
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
     category = SkylarkModuleCategory.BUILTIN
 )
-public class ChangesQuery {
+public class ChangesQuery implements SkylarkValue {
 
   private final String query;
   private final ImmutableSet<IncludeResult> include;
@@ -93,6 +95,11 @@ public class ChangesQuery {
     } catch (UnsupportedEncodingException e) {
       throw new RuntimeException("Shouldn't fail", e);
     }
+  }
+
+  @Override
+  public void repr(SkylarkPrinter printer) {
+    printer.append(toString());
   }
 
   @Override
