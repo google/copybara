@@ -372,6 +372,11 @@ public class GitRepository {
     return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false);
   }
 
+  @CheckReturnValue
+  public TagCmd tag(String tagName) {
+    return new TagCmd(this, tagName, /*tagMsg=*/null, false);
+  }
+
   /**
    * Runs a git ls-remote from the current directory for a repository url. Assumes the path to the
    * git binary is already set. You don't have to be in a git repository to run this command. Does
@@ -1803,5 +1808,53 @@ public class GitRepository {
   @SuppressWarnings("unused")
   public String gitCmd() {
     return "git --git-dir=" + gitDir + (workTree != null ? " --work-tree=" + workTree : "");
+  }
+
+  /**
+   * An object capable of performing a 'git tag' operation to a remote repository.
+   */
+  //TODO(huanhuanchen): support deleting tag
+  public static class TagCmd {
+
+    private final GitRepository repo;
+    private final String tagName;
+    @Nullable
+    private final String tagMessage;
+    private final boolean force;
+
+    TagCmd(GitRepository gitRepository, String tagName, String tagMessage, boolean force) {
+      this.repo = Preconditions.checkNotNull(gitRepository);
+      this.tagName = Preconditions.checkNotNull(tagName);
+      this.tagMessage = tagMessage;
+      this.force = force;
+    }
+
+    static TagCmd create(GitRepository gitRepository, String tagName) {
+      return new TagCmd(gitRepository, tagName, null, false);
+    }
+
+    public TagCmd withAnnotatedTag(String tagMessage) {
+      return new TagCmd(repo, tagName, tagMessage, force);
+    }
+
+    public TagCmd force(boolean force) {
+      return new TagCmd(repo, tagName, tagMessage, force);
+    }
+
+    public void run() throws RepoException, ValidationException {
+      List<String> cmd = Lists.newArrayList("tag");
+      if (tagMessage != null) {
+        cmd.add("-a");
+      }
+      cmd.add(tagName);
+      if (tagMessage != null) {
+        cmd.add("-m");
+        cmd.add(tagMessage);
+      }
+      if (force) {
+        cmd.add("--force");
+      }
+      repo.simpleCommand(cmd.toArray(new String[0]));
+    }
   }
 }

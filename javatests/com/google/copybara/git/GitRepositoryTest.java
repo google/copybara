@@ -40,6 +40,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,6 +65,7 @@ public class GitRepositoryTest {
 
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
   private static final int SOME_LARGE_INPUT_SIZE = 256_000;
+  private static final String TEST_TAG_NAME = "test_v1";
 
   private GitRepository repository;
   private Path workdir;
@@ -779,5 +781,53 @@ public class GitRepositoryTest {
 
     assertThat(remote.refExists("master")).isTrue();
     assertThat(remote.refExists("other")).isFalse();
+  }
+
+  @Test
+  public void testLightWeightTag() throws Exception {
+    setUpForTagTest(null);
+    CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*" + TEST_TAG_NAME + ".*message_1.*\\n");
+  }
+
+  @Test
+  public void testAnnotatedTag() throws Exception {
+    setUpForTagTest("message_2");
+    CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(
+        ".*" + TEST_TAG_NAME + ".*message_2.*\\n");
+  }
+
+  @Test
+  public void testTagWithExistingTag() throws Exception {
+    try {
+      setUpForTagTest("message_2");
+      repository.tag(TEST_TAG_NAME).run();
+      fail();
+    } catch (RepoException e) {
+      assertThat(e).hasMessageThat().contains("Stderr: fatal: tag 'test_v1' already exists");
+    }
+  }
+
+  @Test
+  public void testTagWithExistingTagAndForce() throws Exception {
+    setUpForTagTest("message_2");
+    repository.tag(TEST_TAG_NAME).withAnnotatedTag("message_3").force(true).run();
+    CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
+    String s = commandOutput.getStdout();
+    assertThat(commandOutput.getStdout()).matches(
+        ".*" + TEST_TAG_NAME + ".*message_3.*\\n");
+  }
+
+  private void setUpForTagTest(String tagMsg)
+      throws Exception {
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message_1");
+    if (tagMsg != null) {
+      repository.tag(TEST_TAG_NAME).withAnnotatedTag(tagMsg).run();
+    } else {
+      repository.tag(TEST_TAG_NAME).run();
+    }
   }
 }
