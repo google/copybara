@@ -145,7 +145,7 @@ public class GitRepository {
    * We cannot control the repo storage location, but we can limit the number of characters of the
    * repo folder name.
    */
-  private static final int  DEFAULT_MAX_LOG_LINES = 10_000;
+  private static final int  DEFAULT_MAX_LOG_LINES = 4_000;
   public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
   public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
 
