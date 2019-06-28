@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+# DISCLAIMER: This is not the Google Cloud Build script
+# that you are looking for.
+
+
 function log() {
   d=$(date +'%Y-%m-%d %H:%M:%S')
   echo $d" "$1

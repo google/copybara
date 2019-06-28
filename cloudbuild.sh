@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Build script for Google Cloud Build
+
 function log() {
   d=$(date +'%Y-%m-%d %H:%M:%S')
   echo $d" "$1
@@ -8,10 +10,11 @@ function log() {
 log "Running Copybara tests"
 
 log "Fetching dependencies"
+log "Running apt-get update --fix-missing"
+apt-get update --fix-missing
 # Mercurial does not have an up-to-date .deb package
 # The official release needs to be installed with pip.
 apt-get -y install python-pip
-apt-get update
 apt-get install locales
 pip install mercurial
 
