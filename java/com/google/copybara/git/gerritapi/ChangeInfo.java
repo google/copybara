@@ -283,6 +283,7 @@ public class ChangeInfo implements SkylarkValue {
         .add("created", created)
         .add("updated", updated)
         .add("submitted", submitted)
+        .add("submittable", submittable)
         .add("number", number)
         .add("owner", owner)
         .add("labels", labels)
