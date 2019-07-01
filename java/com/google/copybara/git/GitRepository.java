@@ -374,7 +374,7 @@ public class GitRepository {
 
   @CheckReturnValue
   public TagCmd tag(String tagName) {
-    return new TagCmd(this, tagName, /*tagMsg=*/null, false);
+    return new TagCmd(this, tagName, /*tagMessage=*/null, false);
   }
 
   /**
