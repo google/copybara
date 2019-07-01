@@ -24,6 +24,7 @@
     - [core.fail_with_noop](#core.fail_with_noop)
     - [core.feedback](#core.feedback)
     - [core.filter_replace](#core.filter_replace)
+    - [core.format](#core.format)
     - [core.move](#core.move)
     - [core.remove](#core.remove)
     - [core.replace](#core.replace)
@@ -640,6 +641,21 @@ core.filter_replace(
 
 ```
 
+
+<a id="core.format" aria-hidden="true"></a>
+### core.format
+
+Formats a String using Java format patterns.
+
+`string core.format(format, args)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+format | `string`<br><p>The format string</p>
+args | `sequence`<br><p>The arguments to format</p>
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move

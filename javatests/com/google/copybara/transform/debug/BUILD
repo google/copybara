@@ -17,8 +17,8 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])  # Apache 2.0
 
 all_tests(
-    tests = ["TransformDebugTest.java"],
     tags = ["local"],
+    tests = ["TransformDebugTest.java"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",

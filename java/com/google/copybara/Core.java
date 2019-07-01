@@ -67,6 +67,7 @@ import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
+import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -1174,6 +1175,27 @@ public class Core implements LabelsAwareModule {
                 actions,
                 generalOptions));
     return Runtime.NONE;
+  }
+
+  @SkylarkCallable(
+      name = "format",
+      doc = "Formats a String using Java format patterns.",
+      parameters = {
+          @Param(name = "format", type = String.class, named = true, doc = "The format string"),
+          @Param(
+              name = "args",
+              type = SkylarkList.class,
+              named = true,
+              doc = "The arguments to format"),
+      },
+      useLocation = true)
+  public String format(String format, SkylarkList<Object> args, Location location)
+      throws EvalException {
+    try {
+      return String.format(format, args.toArray(new Object[0]));
+    } catch (IllegalFormatException e) {
+      throw new EvalException(location, "Invalid format: " + format, e);
+    }
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
