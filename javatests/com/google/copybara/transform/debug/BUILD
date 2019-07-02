@@ -18,6 +18,7 @@ licenses(["notice"])  # Apache 2.0
 
 all_tests(
     tests = ["TransformDebugTest.java"],
+    tags = ["local"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
