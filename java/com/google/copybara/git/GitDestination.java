@@ -43,6 +43,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -84,6 +85,8 @@ public final class GitDestination implements Destination<GitRevision> {
   private final String repoUrl;
   private final String fetch;
   private final String push;
+  @Nullable private final String tagName;
+  @Nullable private final String tagMsg;
   private final GitDestinationOptions destinationOptions;
   private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
@@ -96,6 +99,8 @@ public final class GitDestination implements Destination<GitRevision> {
       String repoUrl,
       String fetch,
       String push,
+      @Nullable String tagName,
+      @Nullable String tagMsg,
       GitDestinationOptions destinationOptions,
       GitOptions gitOptions,
       GeneralOptions generalOptions,
@@ -104,10 +109,12 @@ public final class GitDestination implements Destination<GitRevision> {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
+    this.tagName = tagName;
+    this.tagMsg = tagMsg;
     this.destinationOptions = checkNotNull(destinationOptions);
-    this.gitOptions = Preconditions.checkNotNull(gitOptions);
-    this.generalOptions = Preconditions.checkNotNull(generalOptions);
-    this.integrates = Preconditions.checkNotNull(integrates);
+    this.gitOptions = checkNotNull(gitOptions);
+    this.generalOptions = checkNotNull(generalOptions);
+    this.integrates = checkNotNull(integrates);
     this.writerHook = checkNotNull(writerHook);
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
@@ -144,6 +151,8 @@ public final class GitDestination implements Destination<GitRevision> {
         repoUrl,
         fetch,
         push,
+        tagName,
+        tagMsg,
         generalOptions,
         writerHook,
         state,
@@ -185,6 +194,8 @@ public final class GitDestination implements Destination<GitRevision> {
     private final String repoUrl;
     private final String remoteFetch;
     private final String remotePush;
+    @Nullable private final String tagName;
+    @Nullable private final String tagMsg;
     private final boolean force;
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
@@ -206,7 +217,8 @@ public final class GitDestination implements Destination<GitRevision> {
      * Create a new git.destination writer
      */
     WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush, GeneralOptions generalOptions, WriteHook writeHook,
+        String remotePush,  String tagName, String tagMsg, GeneralOptions generalOptions,
+        WriteHook writeHook,
         S state, boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
         boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
         String committerName, String committerEmail, boolean rebase, int visitChangePageSize) {
@@ -214,6 +226,8 @@ public final class GitDestination implements Destination<GitRevision> {
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
+      this.tagName = tagName;
+      this.tagMsg = tagMsg;
       this.force = generalOptions.isForced();
       this.baseConsole = checkNotNull(generalOptions.console());
       this.generalOptions = generalOptions;
@@ -566,14 +580,59 @@ public final class GitDestination implements Destination<GitRevision> {
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
+      String newTagName = createTag(scratchClone, console, transformResult);
       String serverResponse = generalOptions.repoTask(
           "push",
           () -> scratchClone.push()
-              .withRefspecs(repoUrl, ImmutableList.of(scratchClone.createRefSpec(
+              .withRefspecs(repoUrl,
+                  newTagName != null
+                  ? ImmutableList.of(scratchClone.createRefSpec(
+                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
+                      scratchClone.createRefSpec((generalOptions.isForced() ? "+" : "")
+                          + newTagName))
+              : ImmutableList.of(scratchClone.createRefSpec(
                   (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
               .run()
       );
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
+    }
+
+    @Nullable
+    private String createTag(GitRepository gitRepository, Console console,
+        TransformResult transformResult) {
+      if (tagName == null) {
+        return null;
+      }
+
+      String newTagName = null;
+      String newTagMsg = null;
+      try {
+        newTagName = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagName);
+        if (newTagName == null) {
+          return null;
+        }
+        if (tagMsg != null) {
+          newTagMsg = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagMsg);
+        }
+      } catch (ValidationException e) {
+        console.warnFmt("Get label failed. Error: %s Cause: %s", e.getMessage(), e.getCause());
+      }
+      if (newTagName == null) {
+        return null;
+      }
+
+      try {
+        if (newTagMsg == null) {
+          gitRepository.tag(newTagName).force(force).run();
+        } else {
+          gitRepository.tag(newTagName).withAnnotatedTag(newTagMsg).force(force).run();
+        }
+        return newTagName;
+      } catch (RepoException | ValidationException e) {
+        console.warnFmt("Create tag failed. Cause: %s, Error: %s. Note that we don't want to "
+            + "fail because of this", e.getCause(), e.getMessage());
+      }
+      return newTagName;
     }
 
     /**
@@ -691,6 +750,12 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("fetch", fetch)
             .put("push", push);
     builder.putAll(writerHook.describe());
+    if (tagName != null) {
+      builder.put("tagName", tagName);
+    }
+    if(tagMsg != null) {
+      builder.put("tagMsg", tagMsg);
+    }
     return builder.build();
   }
 

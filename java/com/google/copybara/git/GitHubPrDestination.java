@@ -150,6 +150,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         url,
         destinationRef,
         prBranch,
+        /*tagName*/null,
+        /*tagMsg*/null,
         generalOptions,
         writeHook,
         state,

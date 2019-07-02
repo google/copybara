@@ -1549,7 +1549,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push='master', fetch=None, integrates=None)`
+`gitDestination git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, integrates=None)`
 
 
 #### Parameters:
@@ -1558,6 +1558,8 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
+tag_name | `string`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if force is true. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
+tag_msg | `string`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 

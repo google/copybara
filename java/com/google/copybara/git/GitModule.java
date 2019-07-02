@@ -605,6 +605,19 @@ public class GitModule implements LabelsAwareModule {
           @Param(name = "push", type = String.class, named = true,
               doc = "Reference to use for pushing the change, for example 'master'",
               defaultValue = "'master'"),
+          @Param(name = "tag_name", type = String.class, named = true,
+              doc = "A template string that refers to a tag name. If tag_name exists, overwrite "
+                  + "this tag only if force is true. Usage: Users can use a string or a string with"
+                  + " a label. For instance ${label}_tag_name. And the value of label must be "
+                  + "in changes' label list. Otherwise, tag won't be created.",
+              defaultValue = "None", noneable = true),
+          @Param(name = "tag_msg", type = String.class, named = true,
+              doc = "A template string that refers to the commit msg of a tag. If set, we will "
+                  + "create an annotated tag when tag_name is set. Usage: Users can use a string "
+                  + "or a string with a label. For instance ${label}_message. And the value of "
+                  + "label must be in changes' label list. Otherwise, tag will be created with "
+                  + "sha1's commit msg.",
+              defaultValue = "None", noneable = true),
           @Param(name = "fetch", type = String.class, named = true,
               doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
                   + " if None",
@@ -618,7 +631,8 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination destination(
-      String url, String push, Object fetch, Object integrates, Location location)
+      String url, String push, Object tagName, Object tagMsg, Object fetch, Object integrates,
+      Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
@@ -633,6 +647,8 @@ public class GitModule implements LabelsAwareModule {
                 resolvedPush),
             "fetch", location),
         resolvedPush,
+        convertFromNoneable(tagName, null),
+        convertFromNoneable(tagMsg, null),
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,
@@ -710,6 +726,8 @@ public class GitModule implements LabelsAwareModule {
                 resolvedPush),
             "fetch", location),
         resolvedPush,
+        /*tagName*/null,
+        /*tagMsg*/null,
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,

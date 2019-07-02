@@ -491,6 +491,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             url,
             fetch,
             push,
+            /*tagName=*/null,
+            /*tagMsg=*/null,
             destinationOptions,
             options.get(GitOptions.class),
             generalOptions,

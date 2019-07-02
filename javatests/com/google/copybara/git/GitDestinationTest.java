@@ -26,12 +26,16 @@ import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.truth.Truth;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.ChangeVisitable.VisitResult;
+import com.google.copybara.Changes;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
@@ -51,6 +55,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -59,6 +64,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +89,8 @@ public class GitDestinationTest {
   private TestingConsole console;
   private Glob destinationFiles;
   private SkylarkTestExecutor skylark;
+  private String tagName;
+  private String tagMsg;
 
   @Rule
   public final ExpectedException thrown = ExpectedException.none();
@@ -103,6 +111,8 @@ public class GitDestinationTest {
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options);
     force = false;
+    tagName = "test_v1";
+    tagMsg = "foo_tag";
   }
 
   public OptionsBuilder getOptionsBuilder(
@@ -151,6 +161,17 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testTagNameAndTagMsg() throws Exception {
+    GitDestination d = skylark.eval("r", "r = git.destination("
+        + "    url = 'http://github.com/foo', \n"
+        + "    tag_name = 'foo', \n"
+        + "    tag_msg = 'bar', \n"
+        + ")");
+    assertThat(d.describe(Glob.ALL_FILES).get("tagName")).contains("foo");
+    assertThat(d.describe(Glob.ALL_FILES).get("tagMsg")).contains("bar");
+  }
+
+  @Test
   public void defaultPushBranch() throws ValidationException {
     GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
     assertThat(d.getPush()).isEqualTo("master");
@@ -176,6 +197,26 @@ public class GitDestinationTest {
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
             + ")", url, fetch, push));
+  }
+
+  private GitDestination evalDestinationWithTag(String tagMsg)
+      throws ValidationException {
+    return tagMsg == null
+        ? skylark.eval("result",
+        String.format("result = git.destination(\n"
+            + "    url = '%s',\n"
+            + "    fetch = '%s',\n"
+            + "    push = '%s',\n"
+            + "    tag_name = '%s',\n"
+            + ")", url, fetch, push, tagName))
+        : skylark.eval("result",
+            String.format("result = git.destination(\n"
+                + "    url = '%s',\n"
+                + "    fetch = '%s',\n"
+                + "    push = '%s',\n"
+                + "    tag_name = '%s',\n"
+                + "    tag_msg = '%s',\n"
+                + ")", url, fetch, push, tagName, tagMsg));
   }
 
   private void assertFilesInDir(int expected, String ref, String path) throws Exception {
@@ -280,6 +321,156 @@ public class GitDestinationTest {
 
     assertThat(parseMessage(lastCommit("master").getBody())
         .labelsAsMultimap()).doesNotContainKey(DummyOrigin.LABEL_NAME);
+  }
+
+  @Test
+  public void testTag() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    options.setForce(false);
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(new DummyRevision("ref2"), new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345"))),
+        ImmutableList.of());
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+    evalDestinationWithTag(null).newWriter(writerContext).write(TransformResults.of(
+         workdir, new DummyRevision("ref2")).withChanges(changes).
+        withSummary("message_tag"), destinationFiles, console);
+     CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+     assertThat(commandOutput.getStdout()).matches(".*test_v1.*message_tag\n"
+         + ".*\n"
+         + ".*DummyOrigin-RevId: ref2\n");
+  }
+
+  @Test
+  public void testTagWithLabel() throws Exception {
+    fetch = "master";
+    push = "master";
+    tagName = "tag_${my_tag}";
+    tagMsg = "msg_${my_msg}";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    options.setForce(false);
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")).withLabelFinder(Functions.forMap(
+        ImmutableMap.of("my_tag", ImmutableList.of("12345"),
+            "my_msg", ImmutableList.of("2345")))), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*tag_12345.*msg_2345\n");
+  }
+
+  @Test
+  public void testTagWithLabelNotFound() throws Exception {
+    fetch = "master";
+    push = "master";
+    tagName = "tag_${my_tag}";
+    tagMsg = "msg_${my_msg}";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    options.setForce(false);
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")).withLabelFinder(Functions.forMap(
+        ImmutableMap.of(), null)), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).isEmpty();
+  }
+
+  @Test
+  public void testTagWithExisting() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+
+    // push tag
+    evalDestinationWithTag(null).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+
+    options.setForce(false);
+    Files.write(workdir.resolve("test.txt"), "some content 3".getBytes());
+    // push existing tag
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*" + tagName + ".*test summary\n"
+        + ".*\n"
+        + ".*DummyOrigin-RevId: ref2\n");
+  }
+
+  @Test
+  public void testTagWithExistingAndForce() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+
+    // push tag without tagMsg
+    evalDestinationWithTag(null).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+
+    Files.write(workdir.resolve("test.txt"), "some content 3".getBytes());
+    // push existing tag with tagMsg
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*" + tagName +".*" + tagMsg + "\n");
+  }
+
+  @Test
+  public void testTagWithMsg() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    options.setForce(false);
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(new DummyRevision("ref2"), new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345"))),
+        ImmutableList.of());
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")).withChanges(changes), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*test_v1.*" + tagMsg + "\n");
   }
 
   @Test

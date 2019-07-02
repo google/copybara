@@ -119,11 +119,17 @@ public final class SkylarkUtil {
     return result.build();
   }
 
-  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper, String template, String fieldName)
+  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
+      String template) throws ValidationException {
+    return mapLabels(labelsMapper, template, null);
+  }
+
+  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
+      String template, String fieldName)
       throws ValidationException {
     try {
       return new LabelTemplate(template).resolve(labelsMapper.andThen(
-          e -> Iterables.getFirst(e, null)));
+          e ->  e == null ? null : Iterables.getFirst(e, null)));
     } catch (LabelNotFoundException e) {
       throw new ValidationException(
           String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
