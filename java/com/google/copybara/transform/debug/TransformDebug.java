@@ -39,7 +39,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.events.Location;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -227,6 +226,13 @@ public final class TransformDebug implements Transformation {
       }
     }
     return result;
+  }
+
+  /**
+   * Returns the inner transformation
+   */
+  public Transformation getDelegate() {
+    return delegate;
   }
 
   @Override
