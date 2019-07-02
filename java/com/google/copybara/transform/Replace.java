@@ -80,13 +80,14 @@ public final class Replace implements Transformation {
   private final Glob paths;
   private final ImmutableList<Pattern> patternsToIgnore;
   private final WorkflowOptions workflowOptions;
+  private final Location location;
 
   private Replace(RegexTemplateTokens before, RegexTemplateTokens after,
       Map<String, Pattern> regexGroups, boolean firstOnly, boolean multiline,
       boolean repeatedGroups,
       Glob paths,
       List<Pattern> patternsToIgnore,
-      WorkflowOptions workflowOptions) {
+      WorkflowOptions workflowOptions, Location location) {
     this.before = checkNotNull(before);
     this.after = checkNotNull(after);
     this.regexGroups = ImmutableMap.copyOf(regexGroups);
@@ -96,6 +97,7 @@ public final class Replace implements Transformation {
     this.paths = checkNotNull(paths);
     this.patternsToIgnore = ImmutableList.copyOf(patternsToIgnore);
     this.workflowOptions = checkNotNull(workflowOptions);
+    this.location = checkNotNull(location);
   }
 
   @Override
@@ -153,7 +155,7 @@ public final class Replace implements Transformation {
     }
     //TODO remove repeatedGroups boolean?
     return new Replace(after, before, regexGroups, firstOnly, multiline, repeatedGroups,
-        paths, patternsToIgnore, workflowOptions);
+        paths, patternsToIgnore, workflowOptions, location);
   }
 
   public static Replace create(Location location, String before, String after,
@@ -187,7 +189,7 @@ public final class Replace implements Transformation {
 
     return new Replace(
         beforeTokens, afterTokens, parsedGroups, firstOnly, multiline, repeatedGroups, paths,
-        parsedIgnorePatterns, workflowOptions);
+        parsedIgnorePatterns, workflowOptions, location);
   }
 
   public static Map<String, Pattern> parsePatterns(Location location,
@@ -260,5 +262,10 @@ public final class Replace implements Transformation {
 
   public Glob getPaths() {
     return paths;
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

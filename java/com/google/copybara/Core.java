@@ -51,6 +51,7 @@ import com.google.copybara.transform.SkylarkTransformation;
 import com.google.copybara.transform.TodoReplace;
 import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
+import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
@@ -94,13 +95,16 @@ public class Core implements LabelsAwareModule {
   private static final String CHECK_LAST_REV_STATE = "check_last_rev_state";
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
+  private final DebugOptions debugOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private Supplier<Environment> dynamicEnvironment;
 
-  public Core(GeneralOptions generalOptions, WorkflowOptions workflowOptions) {
+  public Core(
+      GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
+    this.debugOptions = Preconditions.checkNotNull(debugOptions);
   }
 
   @SuppressWarnings("unused")
@@ -320,7 +324,8 @@ public class Core implements LabelsAwareModule {
 
     Sequence sequenceTransform = Sequence.fromConfig(generalOptions.profiler(),
         workflowOptions.joinTransformations(),
-        transformations, "transformations", dynamicEnvironment);
+        transformations, "transformations", dynamicEnvironment,
+        debugOptions::transformWrapper);
     Transformation reverseTransform = null;
     if (!generalOptions.isDisableReversibleCheck()
         && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -989,7 +994,8 @@ public class Core implements LabelsAwareModule {
         workflowOptions.joinTransformations(),
         transformations,
         "transformations",
-        dynamicEnvironment);
+        dynamicEnvironment,
+        debugOptions::transformWrapper);
     SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
     Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
@@ -1009,7 +1015,8 @@ public class Core implements LabelsAwareModule {
             workflowOptions.joinTransformations(),
             reverseList,
             "reversal",
-            dynamicEnvironment);
+            dynamicEnvironment,
+            debugOptions::transformWrapper);
     return new ExplicitReversal(
         forward, reverse, updatedIgnoreNoop);
   }

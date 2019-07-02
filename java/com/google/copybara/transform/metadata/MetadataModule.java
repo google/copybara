@@ -147,7 +147,7 @@ public class MetadataModule {
         Boolean oldestFirst, Boolean useMerge,
         Location location) throws EvalException {
       return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
-          max, compact, showRef, showAuthor, showDescription, oldestFirst, useMerge);
+          max, compact, showRef, showAuthor, showDescription, oldestFirst, useMerge, location);
     }
 
 

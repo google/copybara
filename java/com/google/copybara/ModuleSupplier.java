@@ -36,6 +36,7 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
@@ -77,7 +78,7 @@ public class ModuleSupplier {
   public ImmutableSet<Object> getModules(Options options) {
     GeneralOptions general = options.get(GeneralOptions.class);
     return ImmutableSet.of(
-        new Core(general, options.get(WorkflowOptions.class)),
+        new Core(general, options.get(WorkflowOptions.class), options.get(DebugOptions.class)),
         new GitModule(options), new HgModule(options),
         new FolderModule(
             options.get(FolderOriginOptions.class),
@@ -109,7 +110,8 @@ public class ModuleSupplier {
         new HgOptions(generalOptions),
         new HgOriginOptions(),
         new PatchingOptions(generalOptions),
-        new WorkflowOptions()));
+        new WorkflowOptions(),
+        new DebugOptions(generalOptions)));
   }
 
   /**

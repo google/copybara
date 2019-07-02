@@ -24,6 +24,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
+import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
@@ -70,6 +71,7 @@ public class OptionsBuilder {
   public GitHubPrOriginOptions githubPrOrigin = new GitHubPrOriginOptions();
   public GitDestinationOptions gitDestination = new GitDestinationOptions(general, git);
   public PatchingOptions patch = new PatchingOptions(general);
+  public DebugOptions debug = new DebugOptions(general);
 
   public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
@@ -142,7 +144,7 @@ public class OptionsBuilder {
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch);
+            workflowOptions, testingOptions, patch, debug);
   }
 
   public final Options build() {

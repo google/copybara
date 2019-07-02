@@ -271,4 +271,8 @@ public class CopyOrMove implements Transformation {
     }
   }
 
+  @Override
+  public Location location() {
+    return location;
+  }
 }

@@ -242,7 +242,11 @@ public class DiffUtil {
     StringBuilder sb = new StringBuilder();
     for (String line : Splitter.on("\n").split(diffText)) {
       sb.append("\n");
-      if (line.startsWith("+")) {
+      if (line.startsWith("diff ")) {
+        sb.append(console.colorize(AnsiColor.CYAN, line));
+      } else if (line.startsWith("rename ")) {
+        sb.append(console.colorize(AnsiColor.YELLOW, line));
+      } else if (line.startsWith("+")) {
         sb.append(console.colorize(AnsiColor.GREEN, line));
       } else if (line.startsWith("-")) {
         sb.append(console.colorize(AnsiColor.RED, line));

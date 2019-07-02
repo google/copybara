@@ -17,9 +17,11 @@
 package com.google.copybara;
 
 import com.google.copybara.exception.ValidationException;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
+import javax.annotation.Nullable;
 
 /**
  * Interface implemented by all source code transformations.
@@ -51,6 +53,13 @@ public interface Transformation {
    * {@link #toString()} method but something more user friendly.
    */
   String describe();
+
+  /**
+   * Starlark location of the transformation.
+   */
+  default Location location() {
+    return Location.BUILTIN;
+  }
 
   default boolean canJoin(Transformation transformation) {
     return false;

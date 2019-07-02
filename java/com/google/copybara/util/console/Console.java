@@ -17,7 +17,9 @@
 package com.google.copybara.util.console;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 /** Write user messages to the console */
 public interface Console extends AutoCloseable {
@@ -112,6 +114,11 @@ public interface Console extends AutoCloseable {
   @CheckReturnValue
   default boolean promptConfirmationFmt(String format, Object... args) throws IOException {
     return promptConfirmation(String.format(format, args));
+  }
+
+  default String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    throw new IllegalStateException("Interative prompt not allowed");
   }
 
   /**

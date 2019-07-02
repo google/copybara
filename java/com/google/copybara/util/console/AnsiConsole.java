@@ -24,8 +24,12 @@ import static com.google.copybara.util.console.AnsiColor.YELLOW;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Scanner;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 /**
  * A console that prints the the output using fancy ANSI capabilities.
@@ -86,6 +90,26 @@ public final class AnsiConsole implements Console {
       lastProgressLines = 0;
       output.println(GREEN.write("INFO: ") + message);
     }
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+
+    Scanner scanner = new Scanner(input);
+    output.print(BLUE.write("Question: ") + msg);
+    while (scanner.hasNextLine()) {
+      String answer = scanner.nextLine().trim();
+      if (Strings.isNullOrEmpty(answer) && defaultAnswer != null) {
+        return defaultAnswer;
+      }
+      if (validator.test(answer)) {
+        return answer;
+      }
+      error("Invalid answer: " + answer);
+      output.print(BLUE.write("Question: ") + msg);
+    }
+    throw new IOException("Cancelled by user");
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.ValidationException;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -91,4 +92,8 @@ public class SkylarkTransformation implements Transformation {
     return function.getName();
   }
 
+  @Override
+  public Location location() {
+    return function.getLocation();
+  }
 }

@@ -26,6 +26,7 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,9 +46,11 @@ public class MetadataSquashNotes implements Transformation {
   private final boolean showRef;
   private final boolean oldestFirst;
   private final boolean useMerge;
+  private final Location location;
 
   public MetadataSquashNotes(String prefix, int max, boolean compact, boolean showRef,
-      boolean showAuthor, boolean showDescription, boolean oldestFirst, boolean useMerge) {
+      boolean showAuthor, boolean showDescription, boolean oldestFirst, boolean useMerge,
+      Location location) {
     this.prefixTemplate = new LabelTemplate(prefix);
     this.max = max;
     this.compact = compact;
@@ -56,6 +59,7 @@ public class MetadataSquashNotes implements Transformation {
     this.showDescription = showDescription;
     this.oldestFirst = oldestFirst;
     this.useMerge = useMerge;
+    this.location = location;
   }
 
   @Override
@@ -142,5 +146,10 @@ public class MetadataSquashNotes implements Transformation {
   @Override
   public String describe() {
     return "squash_notes";
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

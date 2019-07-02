@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.authoring.Author;
@@ -77,5 +78,14 @@ public final class Metadata {
    */
   public ImmutableSetMultimap<String, String> getHiddenLabels() {
     return hiddenLabels;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("message", message)
+        .add("author", author)
+        .add("hiddenLabels", hiddenLabels)
+        .toString();
   }
 }
