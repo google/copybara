@@ -96,7 +96,13 @@ public class SkylarkConsole implements Console {
 
   @Override
   public String colorize(AnsiColor ansiColor, String message) {
-    throw new UnsupportedOperationException("Shouldn't be called from skylark");
+    return delegate.colorize(ansiColor, message);
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    return delegate.ask(msg, defaultAnswer, validator);
   }
 
   @Override
