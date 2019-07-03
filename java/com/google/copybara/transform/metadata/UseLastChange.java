@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
@@ -23,6 +24,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import javax.annotation.Nullable;
 
@@ -36,14 +38,17 @@ public class UseLastChange implements Transformation {
   private final boolean useAuthor;
   @Nullable
   private final String defaultMessage;
-  private boolean useMerge;
+  private final boolean useMerge;
+  private final Location location;
 
   UseLastChange(boolean useAuthor, boolean useMessage,
-      @Nullable String defaultMessage, boolean useMerge) {
+      @Nullable String defaultMessage, boolean useMerge,
+      Location location) {
     this.useAuthor = useAuthor;
     this.useMessage = useMessage;
     this.defaultMessage = defaultMessage;
     this.useMerge = useMerge;
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -82,5 +87,10 @@ public class UseLastChange implements Transformation {
   @Override
   public String describe() {
     return "Use last change metadata";
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

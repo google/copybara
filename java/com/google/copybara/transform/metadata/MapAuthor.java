@@ -162,6 +162,11 @@ public class MapAuthor implements Transformation {
   }
 
   @Override
+  public Location location() {
+    return location;
+  }
+
+  @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("authorToAuthor", authorToAuthor)

@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
@@ -34,11 +35,14 @@ import java.io.IOException;
 public class RestoreOriginalAuthor implements Transformation {
 
   private final String label;
-  private boolean searchAllChanges;
+  private final boolean searchAllChanges;
+  private final Location location;
 
-  RestoreOriginalAuthor(String label, boolean searchAllChanges) {
+  RestoreOriginalAuthor(String label, boolean searchAllChanges,
+      Location location) {
     this.label = label;
     this.searchAllChanges = searchAllChanges;
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -70,7 +74,7 @@ public class RestoreOriginalAuthor implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    return new SaveOriginalAuthor(label);
+    return new SaveOriginalAuthor(label, location);
   }
 
   @Override

@@ -161,7 +161,7 @@ public class MetadataModule {
               defaultValue = "'ORIGINAL_AUTHOR'"),
       }, useLocation = true)
   public Transformation saveAuthor(String label, Location location) {
-      return new SaveOriginalAuthor(label);
+    return new SaveOriginalAuthor(label, location);
     }
 
   static final String MAP_AUTHOR_EXAMPLE_SIMPLE = ""
@@ -246,7 +246,7 @@ public class MetadataModule {
 
       check(location, defaultMessage == null || useMsg,
           "default_message can only be used if message = True ");
-      return new UseLastChange(useAuthor, useMsg, defaultMessage, useMerge);
+    return new UseLastChange(useAuthor, useMsg, defaultMessage, useMerge, location);
     }
 
   @SuppressWarnings("unused")
@@ -299,7 +299,8 @@ public class MetadataModule {
       check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
           "'new_name': Invalid label name '%s'", newLabelName);
 
-      return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound, all);
+    return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound, all,
+        location);
     }
 
   @SuppressWarnings("unused")
@@ -316,7 +317,7 @@ public class MetadataModule {
       check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
           "'name': Invalid label name'%s'", label);
 
-      return new RemoveLabelInMessage(label);
+    return new RemoveLabelInMessage(label, location);
     }
 
 
@@ -335,7 +336,7 @@ public class MetadataModule {
       }, useLocation = true)
   public Transformation restoreAuthor(String label, Boolean searchAllChanges,
       Location location) {
-      return new RestoreOriginalAuthor(label, searchAllChanges);
+    return new RestoreOriginalAuthor(label, searchAllChanges, location);
     }
 
   @SuppressWarnings("unused")
@@ -358,7 +359,7 @@ public class MetadataModule {
               doc = "If a new line should be added between the header and the original message."
                   + " This allows to create messages like `HEADER: ORIGINAL_MESSAGE`",
               defaultValue = "True"),
-      })
+      }, useLocation = true)
   @Example(title = "Add a header always",
       before = "Adds a header to any message",
       code = "metadata.add_header(\"COPYBARA CHANGE\")",
@@ -413,8 +414,9 @@ public class MetadataModule {
           + "documentation\n"
           + "```\n\n")
   public Transformation addHeader(String header, Boolean ignoreIfLabelNotFound,
-      Boolean newLine) {
-      return new TemplateMessage(header, ignoreIfLabelNotFound, newLine, /*replaceMessage=*/ false);
+      Boolean newLine, Location location) {
+    return new TemplateMessage(header, ignoreIfLabelNotFound, newLine, /*replaceMessage=*/ false,
+        location);
     }
 
   @SuppressWarnings("unused")
@@ -433,7 +435,7 @@ public class MetadataModule {
               doc = "If a label used in the template is not found, ignore the error and"
                   + " don't add the header. By default it will stop the migration and fail.",
               defaultValue = "False"),
-      })
+      }, useLocation = true)
   @Example(title = "Replace the message",
       before = "Replace the original message with a text:",
       code = "metadata.replace_message(\"COPYBARA CHANGE: Import of ${GITHUB_PR_NUMBER}\\n"
@@ -447,9 +449,9 @@ public class MetadataModule {
           + "\n"
           + "```\n\n")
   public Transformation replaceMessage(String template,
-      Boolean ignoreIfLabelNotFound) {
+      Boolean ignoreIfLabelNotFound, Location location) {
       return new TemplateMessage(template, ignoreIfLabelNotFound, /*newLine=*/false,
-          /*replaceMessage=*/true);
+          /*replaceMessage=*/true, location);
     }
 
   @SuppressWarnings("unused")
@@ -544,7 +546,7 @@ public class MetadataModule {
       check(
           location, !failIfNoMatch || msgIfNoMatch == null,
           "If fail_if_no_match is true, msg_if_no_match should be None.");
-      return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement);
+      return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement, location);
     }
 
   @SuppressWarnings("unused")
@@ -572,7 +574,7 @@ public class MetadataModule {
       } catch (PatternSyntaxException e) {
         throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
       }
-      return new MetadataVerifyMatch(pattern, verifyNoMatch);
+      return new MetadataVerifyMatch(pattern, verifyNoMatch, location);
     }
 
   @SuppressWarnings("unused")

@@ -16,10 +16,12 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 
 /**
@@ -28,9 +30,11 @@ import java.io.IOException;
 public class SaveOriginalAuthor implements Transformation {
 
   private final String label;
+  private final Location location;
 
-  SaveOriginalAuthor(String label) {
-    this.label = label;
+  SaveOriginalAuthor(String label, Location location) {
+    this.label = Preconditions.checkNotNull(label);
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -41,11 +45,16 @@ public class SaveOriginalAuthor implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    return new RestoreOriginalAuthor(label, /*searchAllChanges=*/false);
+    return new RestoreOriginalAuthor(label, /*searchAllChanges=*/false, location);
   }
 
   @Override
   public String describe() {
     return "Saving original author";
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

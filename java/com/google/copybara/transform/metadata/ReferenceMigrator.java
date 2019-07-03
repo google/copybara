@@ -58,18 +58,21 @@ public class ReferenceMigrator implements Transformation {
   private final ImmutableList<String> additionalLabels;
 
   @Nullable private final Pattern reversePattern;
+  private final Location location;
 
   private final Map<String, String> knownChanges = new HashMap<>();
 
   ReferenceMigrator(
       RegexTemplateTokens before,
       RegexTemplateTokens after,
-      Pattern reversePattern,
-      ImmutableList<String> additionalLabels) {
+      @Nullable Pattern reversePattern,
+      ImmutableList<String> additionalLabels,
+      Location location) {
     this.before = checkNotNull(before, "before");
     this.after = checkNotNull(after, "after");
     this.additionalLabels = checkNotNull(additionalLabels, "additionalLabels");
     this.reversePattern = reversePattern;
+    this.location = checkNotNull(location);
   }
 
   public static ReferenceMigrator create(
@@ -85,7 +88,8 @@ public class ReferenceMigrator implements Transformation {
     check(
         location, after.lastIndexOf("$1") == -1,
         "Destination format '%s' uses the reserved token '$1'.", after);
-    return new ReferenceMigrator(beforeTokens, afterTokens, backward, additionalLabels);
+    return new ReferenceMigrator(beforeTokens, afterTokens, backward, additionalLabels,
+        location);
   }
 
   @Override
@@ -178,6 +182,11 @@ public class ReferenceMigrator implements Transformation {
         ((ReferenceMigrator) other).before)
         && Objects.equal(this.after,
         ((ReferenceMigrator) other).after);
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 
   @Override
