@@ -17,14 +17,20 @@
 package com.google.copybara.util.console;
 
 import static com.google.common.truth.Truth.assertThat;
+import static junit.framework.TestCase.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class DelegateConsoleTest {
@@ -65,5 +71,30 @@ public class DelegateConsoleTest {
         .matchesNext(MessageType.ERROR, "This is error")
         .matchesNext(MessageType.VERBOSE, "This is verbose")
         .matchesNext(MessageType.PROGRESS, "This is progress");
+  }
+
+  @Test
+  public void testDelegateAsk() throws IOException {
+    Console delegate = Mockito.mock(Console.class);
+
+    when(delegate.ask(Mockito.eq("fail"), anyString(), any()))
+        .thenThrow(new RuntimeException("should fail"));
+
+    when(delegate.ask(Mockito.eq("work"), anyString(), any())).thenReturn("good");
+
+    DelegateConsole console = new DelegateConsole(delegate) {
+      @Override
+      protected void handleMessage(MessageType info, String message) {
+      }
+    };
+
+    try {
+      console.ask("fail", "aaa", s -> true);
+      fail();
+    } catch (RuntimeException e) {
+      assertThat(e).hasMessageThat().contains("should fail");
+    }
+
+    assertThat(console.ask("work", "aaa", s-> true)).isEqualTo("good");
   }
 }

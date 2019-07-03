@@ -118,7 +118,7 @@ public interface Console extends AutoCloseable {
 
   default String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
       throws IOException {
-    throw new IllegalStateException("Interative prompt not allowed");
+    throw new IllegalStateException("Interactive prompt not allowed in " + this.getClass());
   }
 
   /**

@@ -16,12 +16,20 @@
 
 package com.google.copybara.util.console;
 
+import static com.google.common.truth.Truth.assertThat;
+import static junit.framework.TestCase.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
+
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public final class ConsolesTest {
@@ -88,5 +96,26 @@ public final class ConsolesTest {
         .equalsNext(MessageType.INFO, "fooprefix-")
         .equalsNext(MessageType.INFO, "fooprefix-y")
         .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testPrefixAsk() throws IOException {
+    Console delegate = Mockito.mock(Console.class);
+
+    when(delegate.ask(Mockito.eq("fail"), anyString(), any()))
+        .thenThrow(new RuntimeException("should fail"));
+
+    when(delegate.ask(Mockito.eq("work"), anyString(), any())).thenReturn("good");
+
+    PrefixConsole console = new PrefixConsole("aaa", delegate);
+
+    try {
+      console.ask("fail", "aaa", s -> true);
+      fail();
+    } catch (RuntimeException e) {
+      assertThat(e).hasMessageThat().contains("should fail");
+    }
+
+    assertThat(console.ask("work", "aaa", s-> true)).isEqualTo("good");
   }
 }

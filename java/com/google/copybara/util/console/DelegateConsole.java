@@ -18,6 +18,9 @@ package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
 import com.google.copybara.util.console.Message.MessageType;
+import java.io.IOException;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 /**
  * A simple console that can be extended to delegate automatically to another console.
@@ -74,6 +77,12 @@ public abstract class DelegateConsole implements Console {
   public void verbose(String message) {
     handleMessage(MessageType.VERBOSE, message);
     delegate.verbose(message);
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    return delegate.ask(msg, defaultAnswer, validator);
   }
 
   @Override

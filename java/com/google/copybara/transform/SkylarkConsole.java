@@ -23,6 +23,9 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import java.io.IOException;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 @SkylarkModule(name = "Console",
     category = SkylarkModuleCategory.BUILTIN,
@@ -94,6 +97,12 @@ public class SkylarkConsole implements Console {
   @Override
   public String colorize(AnsiColor ansiColor, String message) {
     throw new UnsupportedOperationException("Shouldn't be called from skylark");
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    return delegate.ask(msg, defaultAnswer, validator);
   }
 
   public int getErrorCount() {

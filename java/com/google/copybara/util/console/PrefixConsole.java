@@ -17,6 +17,9 @@
 package com.google.copybara.util.console;
 
 import com.google.common.base.Preconditions;
+import java.io.IOException;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 /**
  * A console that delegates to another console but adds a prefix to all its messages
@@ -64,6 +67,12 @@ public class PrefixConsole implements Console {
   @Override
   public boolean promptConfirmation(String message) {
     return delegate.promptConfirmation(prefix(message));
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    return delegate.ask(msg, defaultAnswer, validator);
   }
 
   private String prefix(String progress) {
