@@ -105,12 +105,6 @@ public class SkylarkConsole implements Console {
     return delegate.ask(msg, defaultAnswer, validator);
   }
 
-  @Override
-  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
-      throws IOException {
-    return delegate.ask(msg, defaultAnswer, validator);
-  }
-
   public int getErrorCount() {
     return errorCount;
   }
