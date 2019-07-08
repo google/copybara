@@ -608,9 +608,6 @@ public final class GitDestination implements Destination<GitRevision> {
       String newTagMsg = null;
       try {
         newTagName = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagName);
-        if (newTagName == null) {
-          return null;
-        }
         if (tagMsg != null) {
           newTagMsg = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagMsg);
         }
