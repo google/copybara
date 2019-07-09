@@ -1541,6 +1541,7 @@ Set of functions to define Git origins and destinations.
 Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--git-credential-helper-store-file`</nobr> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+<nobr>`--git-tag-overwrite`</nobr> | *boolean* | If set, copybara will force update existing git tag
 <nobr>`--nogit-credential-helper-store`</nobr> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
 <nobr>`--nogit-prompt`</nobr> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
 
@@ -1558,7 +1559,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
-tag_name | `string`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if force is true. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
+tag_name | `string`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>

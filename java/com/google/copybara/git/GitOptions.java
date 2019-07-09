@@ -67,6 +67,10 @@ public class GitOptions implements Option {
       validateWith = GreaterThanZeroValidator.class)
   int visitChangePageSize = 200;
 
+  @Parameter(names = "--git-tag-overwrite",
+      description = "If set, copybara will force update existing git tag")
+  boolean gitTagOverwrite = false;
+
   public GitOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }

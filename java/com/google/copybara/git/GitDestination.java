@@ -164,7 +164,8 @@ public final class GitDestination implements Destination<GitRevision> {
         destinationOptions.committerName,
         destinationOptions.committerEmail,
         destinationOptions.rebaseWhenBaseline(),
-        gitOptions.visitChangePageSize);
+        gitOptions.visitChangePageSize,
+        gitOptions.gitTagOverwrite);
   }
 
   /**
@@ -194,8 +195,8 @@ public final class GitDestination implements Destination<GitRevision> {
     private final String repoUrl;
     private final String remoteFetch;
     private final String remotePush;
-    @Nullable private final String tagName;
-    @Nullable private final String tagMsg;
+    @Nullable private final String tagNameTemplate;
+    @Nullable private final String tagMsgTemplate;
     private final boolean force;
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
@@ -212,22 +213,24 @@ public final class GitDestination implements Destination<GitRevision> {
     private final String committerEmail;
     private final boolean rebase;
     private final int visitChangePageSize;
+    private final boolean gitTagOverwrite;
 
     /**
      * Create a new git.destination writer
      */
     WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush,  String tagName, String tagMsg, GeneralOptions generalOptions,
-        WriteHook writeHook,
-        S state, boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
+        String remotePush,  String tagNameTemplate, String tagMsgTemplate,
+        GeneralOptions generalOptions, WriteHook writeHook, S state,
+        boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
         boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
-        String committerName, String committerEmail, boolean rebase, int visitChangePageSize) {
+        String committerName, String committerEmail, boolean rebase, int visitChangePageSize,
+        boolean gitTagOverwrite) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
-      this.tagName = tagName;
-      this.tagMsg = tagMsg;
+      this.tagNameTemplate = tagNameTemplate;
+      this.tagMsgTemplate = tagMsgTemplate;
       this.force = generalOptions.isForced();
       this.baseConsole = checkNotNull(generalOptions.console());
       this.generalOptions = generalOptions;
@@ -242,6 +245,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.committerEmail = committerEmail;
       this.rebase = rebase;
       this.visitChangePageSize = visitChangePageSize;
+      this.gitTagOverwrite = gitTagOverwrite;
     }
 
     @Override
@@ -581,16 +585,16 @@ public final class GitDestination implements Destination<GitRevision> {
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
-      String newTagName = createTag(scratchClone, console, transformResult);
+      String tagName = createTag(scratchClone, console, transformResult);
       String serverResponse = generalOptions.repoTask(
           "push",
           () -> scratchClone.push()
               .withRefspecs(repoUrl,
-                  newTagName != null
+                  tagName != null
                   ? ImmutableList.of(scratchClone.createRefSpec(
                   (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
-                      scratchClone.createRefSpec((generalOptions.isForced() ? "+" : "")
-                          + newTagName))
+                      scratchClone.createRefSpec((gitTagOverwrite ? "+" : "")
+                          + tagName))
               : ImmutableList.of(scratchClone.createRefSpec(
                   (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
               .run()
@@ -601,36 +605,41 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable
     private String createTag(GitRepository gitRepository, Console console,
         TransformResult transformResult) {
-      if (tagName == null) {
+      if (tagNameTemplate == null) {
         return null;
       }
 
-      String newTagName = null;
-      String newTagMsg = null;
+      String tagName = null;
+      String tagMsg = null;
       try {
-        newTagName = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagName);
-        if (tagMsg != null) {
-          newTagMsg = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagMsg);
+        tagName = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagNameTemplate);
+        if (tagMsgTemplate != null) {
+          tagMsg = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagMsgTemplate);
         }
       } catch (ValidationException e) {
         console.warnFmt("Get label failed. Error: %s Cause: %s", e.getMessage(), e.getCause());
       }
-      if (newTagName == null) {
+      if (tagName == null) {
         return null;
       }
 
       try {
-        if (newTagMsg == null) {
-          gitRepository.tag(newTagName).force(force).run();
+        if (tagMsg == null) {
+          gitRepository.tag(tagName).force(gitTagOverwrite).run();
         } else {
-          gitRepository.tag(newTagName).withAnnotatedTag(newTagMsg).force(force).run();
+          gitRepository.tag(tagName).withAnnotatedTag(tagMsg).force(gitTagOverwrite).run();
         }
-        return newTagName;
+        return tagName;
       } catch (RepoException | ValidationException e) {
-        console.warnFmt("Create tag failed. Cause: %s, Error: %s. Note that we don't want to "
-            + "fail because of this", e.getCause(), e.getMessage());
+        if (e.getMessage().contains("tag '" + tagName + "' already exists")) {
+          console.warnFmt("Tag %s exists. To overwrite it please use flag '--git-tag-overwrite'",
+              tagNameTemplate);
+        } else {
+          console.warnFmt("Create tag failed. Cause: %s, Error: %s. Note that we don't want to "
+              + "fail because of this", e.getCause(), e.getMessage());
+        }
+        return null;
       }
-      return newTagName;
     }
 
     /**

@@ -163,7 +163,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         destinationOptions.committerName,
         destinationOptions.committerEmail,
         destinationOptions.rebaseWhenBaseline(),
-        gitOptions.visitChangePageSize) {
+        gitOptions.visitChangePageSize,
+        gitOptions.gitTagOverwrite) {
       @Override
       public ImmutableList<DestinationEffect> write(
           TransformResult transformResult, Glob destinationFiles, Console console)

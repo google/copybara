@@ -425,28 +425,27 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithExistingAndForce() throws Exception {
-    fetch = "master";
-    push = "master";
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    options.setForce(true);
-
-    WriterContext writerContext =
-        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
-            Glob.ALL_FILES.roots());
-    evalDestination().newWriter(writerContext).write(TransformResults.of(
-        workdir, new DummyRevision("ref1")), destinationFiles, console);
-    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
-
-    // push tag without tagMsg
-    evalDestinationWithTag(null).newWriter(writerContext).write(TransformResults.of(
-        workdir, new DummyRevision("ref2")), destinationFiles, console);
-
-    Files.write(workdir.resolve("test.txt"), "some content 3".getBytes());
+    WriterContext writerContext = setUpForTestingExistingTag();
     // push existing tag with tagMsg
+    options.git.gitTagOverwrite = true;
     evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
         workdir, new DummyRevision("ref2")), destinationFiles, console);
     CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
     assertThat(commandOutput.getStdout()).matches(".*" + tagName +".*" + tagMsg + "\n");
+  }
+
+  @Test
+  public void testTagWithExistingAndWarningMsg() throws Exception {
+    WriterContext writerContext = setUpForTestingExistingTag();
+    // push existing tag with tagMsg
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    console.assertThat().onceInLog(MessageType.WARNING,
+        ".*Tag " + tagName + " exists. To overwrite it please use flag '--git-tag-overwrite'.*");
+    assertThat(commandOutput.getStdout()).matches(".*" + tagName + ".*test summary\n"
+        + ".*\n"
+        + ".*DummyOrigin-RevId: ref2\n");
   }
 
   @Test
@@ -1796,6 +1795,27 @@ public class GitDestinationTest {
         newWriter()
             .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo(revision.asString());
+  }
+
+  private WriterContext setUpForTestingExistingTag() throws Exception {
+    fetch = "master";
+    push = "master";
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    options.setForce(true);
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    evalDestination().newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref1")), destinationFiles, console);
+    Files.write(workdir.resolve("test.txt"), "some content 2".getBytes());
+
+    // push tag without tagMsg
+    evalDestinationWithTag(null).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+
+    Files.write(workdir.resolve("test.txt"), "some content 3".getBytes());
+    return writerContext;
   }
 
   @Test

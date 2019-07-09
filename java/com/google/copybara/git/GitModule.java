@@ -607,8 +607,10 @@ public class GitModule implements LabelsAwareModule {
               defaultValue = "'master'"),
           @Param(name = "tag_name", type = String.class, named = true,
               doc = "A template string that refers to a tag name. If tag_name exists, overwrite "
-                  + "this tag only if force is true. Usage: Users can use a string or a string with"
-                  + " a label. For instance ${label}_tag_name. And the value of label must be "
+                  + "this tag only if flag git-tag-overwrite is set. Note that tag creation is "
+                  + "best-effort and migration will succeed even if the tag cannot be created. "
+                  + "Usage: Users can use a string or a string with a label. "
+                  + "For instance ${label}_tag_name. And the value of label must be "
                   + "in changes' label list. Otherwise, tag won't be created.",
               defaultValue = "None", noneable = true),
           @Param(name = "tag_msg", type = String.class, named = true,
