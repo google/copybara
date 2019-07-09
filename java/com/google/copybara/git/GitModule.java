@@ -935,9 +935,8 @@ public class GitModule implements LabelsAwareModule {
               named = true,
               doc =
                   ""
-                      + "Type of Gerrit notify option "
-                      + "(https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). "
-                      + "Sends notifications by default.",
+                      + "Type of Gerrit notify option (https://gerrit-review.googlesource.com/Docum"
+                      + "entation/user-upload.html#notify). Sends notifications by default.",
               defaultValue = "None",
               noneable = true
           ),
@@ -983,6 +982,18 @@ public class GitModule implements LabelsAwareModule {
               doc = "Integrate changes from a url present in the migrated change"
                   + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                   + " present in the message", positional = false, noneable = true),
+          @Param(
+              name = "topic",
+              type = String.class,
+              defaultValue = "None",
+              noneable = true,
+              named = true,
+              positional = false,
+              doc =
+                  ""
+                      + "Sets the topic of the Gerrit change created.<br><br>"
+                      + "By default it sets no topic. This field accepts a template with labels. "
+                      + "For example: `\"topic_${CONTEXT_REFERENCE}\"`"),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -991,7 +1002,7 @@ public class GitModule implements LabelsAwareModule {
       String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
       String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
       SkylarkList<String> ccParam, SkylarkList<String> labelsParam,
-      Object checkerObj, Object integrates, Location location) throws EvalException {
+      Object checkerObj, Object integrates, Object topicObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
 
     List<String> newReviewers = Type.STRING_LIST.convert(reviewers, "reviewers");
@@ -1025,7 +1036,8 @@ public class GitModule implements LabelsAwareModule {
         labels,
         convertFromNoneable(checkerObj, null),
         SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
-            GitIntegrateChanges.class, "integrates"));
+            GitIntegrateChanges.class, "integrates"),
+        convertFromNoneable(topicObj, null));
   }
 
   @SuppressWarnings("unused")
@@ -1057,7 +1069,9 @@ public class GitModule implements LabelsAwareModule {
   @SkylarkCallable(
       name = GERRIT_API,
       doc =
-          "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.",
+          ""
+              + "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
+              + "operations.",
       parameters = {
         @Param(
             name = "url",

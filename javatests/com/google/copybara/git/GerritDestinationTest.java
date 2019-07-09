@@ -215,14 +215,20 @@ public class GerritDestinationTest {
 
   private void process(DummyRevision originRef)
       throws ValidationException, RepoException, IOException {
+    process(originRef, destination());
+  }
+
+  private void process(DummyRevision originRef, GerritDestination destination)
+      throws ValidationException, RepoException, IOException {
     WriterContext writerContext =
         new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
             Glob.ALL_FILES.roots());
     ImmutableList<DestinationEffect> result =
-        destination()
+        destination
             .newWriter(writerContext)
             .write(
-                TransformResults.of(workdir, originRef).withIdentity(originRef.asString()),
+                TransformResults.of(workdir, originRef)
+                    .withIdentity(originRef.asString()),
                 Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
                 console);
     assertThat(result).hasSize(1);
@@ -944,17 +950,42 @@ public class GerritDestinationTest {
   }
 
   @Test
-  public void specifyTopic() throws Exception {
+  public void testTopicFlag() throws Exception {
     fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+
+    verifyTopic(destination(), /*expectedRef*/ "refs/for/master%topic=testTopic");
+  }
+
+  @Test
+  public void testTopicField() throws Exception {
+    fetch = "master";
+
+    verifyTopic(
+        destination("topic = 'test_${CONTEXT_REFERENCE}'"),
+        /*expectedRef*/ "refs/for/master%topic=test_1234");
+  }
+
+  @Test
+  public void testTopicFlagTakesPrecedence() throws Exception {
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+
+    verifyTopic(
+        destination("topic = 'test_${CONTEXT_REFERENCE}'"),
+        /*expectedRef*/ "refs/for/master%topic=testTopic");
+  }
+
+  private void verifyTopic(GerritDestination destination, String expectedRef)
+      throws IOException, ValidationException, RepoException {
     options.setForce(true);
     writeFile(workdir, "file", "some content");
-    options.gerrit.gerritTopic = "testTopic";
-    process(new DummyRevision("origin_ref"));
+    process(
+        new DummyRevision("origin_ref").withContextReference("1234"),
+        destination);
     boolean correctMessage =
-        console
-            .getMessages()
-            .stream()
-            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic"));
+        console.getMessages().stream()
+            .anyMatch(message -> message.getText().contains(expectedRef));
     assertThat(correctMessage).isTrue();
   }
 
@@ -1049,7 +1080,8 @@ public class GerritDestinationTest {
             /*allowEmptyDiffPatchSet=*/ true,
             /*labels*/ ImmutableList.of(),
             /*endpointChecker=*/ null,
-            /*notifyOption*/ null);
+            /*notifyOption*/ null,
+            /*topicTemplate*/ null);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(

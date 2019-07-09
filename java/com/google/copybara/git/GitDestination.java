@@ -371,7 +371,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * Construct the reference to push based on the pushToRefsFor reference. Implementations of
        * this method can change the reference to a different reference.
        */
-      String getPushReference(String pushToRefsFor, TransformResult transformResult);
+      String getPushReference(String pushToRefsFor, TransformResult transformResult)
+          throws ValidationException;
 
       /**
        * Process the server response from the push command and compute the effects that happened

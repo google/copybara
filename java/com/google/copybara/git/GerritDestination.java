@@ -53,6 +53,8 @@ import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
@@ -62,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -109,6 +112,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final GeneralOptions generalOptions;
     private final List<String> ccTemplate;
     private final List<String> labelsTemplate;
+    @Nullable
+    private final String topicTemplate;
 
     GerritWriteHook(
         GeneralOptions generalOptions,
@@ -121,7 +126,8 @@ public final class GerritDestination implements Destination<GitRevision> {
         boolean allowEmptyDiffPatchSet,
         List<String> labelsTemplate,
         @Nullable Checker endpointChecker,
-        @Nullable NotifyOption notifyOption) {
+        @Nullable NotifyOption notifyOption,
+        @Nullable String topicTemplate) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -134,6 +140,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.endpointChecker = endpointChecker;
       this.notifyOption = notifyOption;
       this.labelsTemplate = labelsTemplate;
+      this.topicTemplate = topicTemplate;
     }
 
     /**
@@ -246,7 +253,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     }
 
     @Override
-    public String getPushReference(String pushToRefsFor, TransformResult transformResult) {
+    public String getPushReference(String pushToRefsFor, TransformResult transformResult)
+        throws ValidationException {
       ImmutableList<String> reviewers =
           SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate);
       ImmutableList<String> cc =
@@ -257,8 +265,28 @@ public final class GerritDestination implements Destination<GitRevision> {
       if (notifyOption != null) {
         options.add("notify=" + notifyOption);
       }
+
+      String topic = null;
+      if (topicTemplate != null) {
+        topic =
+            SkylarkUtil.mapLabels(
+                s ->
+                    s.equals("CONTEXT_REFERENCE")
+                        ? ImmutableList.of(
+                            Objects.requireNonNull(
+                                transformResult.getCurrentRevision().contextReference()))
+                        : ImmutableList.of(s),
+                topicTemplate,
+                "topic");
+      }
       if (!Strings.isNullOrEmpty(gerritOptions.gerritTopic)) {
-        options.add("topic=" + gerritOptions.gerritTopic);
+        if (topic != null) {
+          console.warnFmt("Overriding topic %s with %s", topic, gerritOptions.gerritTopic);
+        }
+        topic = gerritOptions.gerritTopic;
+      }
+      if (topic != null) {
+        options.add("topic=" + topic);
       }
       if (!reviewers.isEmpty()) {
         options.add(asGerritParam("r", reviewers));
@@ -481,7 +509,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       List<String> cc,
       List<String> labels,
       @Nullable Checker endpointChecker,
-      Iterable<GitIntegrateChanges> integrates) {
+      Iterable<GitIntegrateChanges> integrates,
+      @Nullable String topicTemplate) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push = submit ? pushToRefsFor : String.format("refs/for/%s", pushToRefsFor);
@@ -507,7 +536,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 allowEmptyPatchSet,
                 labels,
                 endpointChecker,
-                notifyOption),
+                notifyOption,
+                topicTemplate),
             integrates),
         submit);
   }
