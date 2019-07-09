@@ -88,10 +88,26 @@ maven_jar(
 )
 
 # LICENSE: The Apache Software License, Version 2.0
+# Required by mockito
+maven_jar(
+    name = "byte_buddy",
+    artifact = "net.bytebuddy:byte-buddy:1.9.10",
+    sha1 = "211a2b4d3df1eeef2a6cacf78d74a1f725e7a840",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+# Required by mockito
+maven_jar(
+    name = "byte_buddy_agent",
+    artifact = "net.bytebuddy:byte-buddy-agent:1.9.10",
+    sha1 = "9674aba5ee793e54b864952b001166848da0f26b",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
 maven_jar(
     name = "mockito",
-    artifact = "org.mockito:mockito-core:1.9.5",
-    sha1 = "c3264abeea62c4d2f367e21484fbb40c7e256393",
+    artifact = "org.mockito:mockito-core:2.28.2",
+    sha1 = "91110215a8cb9b77a46e045ee758f77d79167cc0",
 )
 
 # LICENSE: The Apache Software License, Version 2.0

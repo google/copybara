@@ -125,6 +125,8 @@ java_library(
         "@mockito//jar",
     ],
     runtime_deps = [
+        "@byte_buddy//jar",
+        "@byte_buddy_agent//jar",
         "@objenesis//jar",
     ],
 )
