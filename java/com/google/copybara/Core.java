@@ -29,6 +29,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.Migration;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -372,7 +373,7 @@ public class Core implements LabelsAwareModule {
     }
 
     WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
-    getGlobalMigrations(env).addMigration(location, workflowName, new Workflow<>(
+    Workflow<Revision, ?> workflow = new Workflow<>(
         workflowName,
         convertFromNoneable(description, null),
         origin,
@@ -399,7 +400,8 @@ public class Core implements LabelsAwareModule {
         smartPrune,
         workflowOptions.migrateNoopChanges || migrateNoopChanges,
         customRevId,
-        checkout));
+        checkout);
+    registerGlobalMigration(workflowName, workflow, location, env);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)
@@ -1162,19 +1164,25 @@ public class Core implements LabelsAwareModule {
       throws EvalException {
     ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location,
         dynamicEnvironment);
-    getGlobalMigrations(env)
-        .addMigration(
-            location,
+    Feedback migration =
+        new Feedback(
             workflowName,
-            new Feedback(
-                workflowName,
-                convertFromNoneable(description, null),
-                mainConfigFile,
-                trigger,
-                destination,
-                actions,
-                generalOptions));
+            convertFromNoneable(description, null),
+            mainConfigFile,
+            trigger,
+            destination,
+            actions,
+            generalOptions);
+    registerGlobalMigration(workflowName, migration, location, env);
     return Runtime.NONE;
+  }
+
+  /**
+   * Registers a {@link Migration} in the global registry.
+   */
+  protected void registerGlobalMigration(
+      String name, Migration migration, Location location, Environment env) throws EvalException {
+    getGlobalMigrations(env).addMigration(location, name, migration);
   }
 
   @SkylarkCallable(
