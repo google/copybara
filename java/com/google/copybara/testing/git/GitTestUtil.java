@@ -411,6 +411,12 @@ public class GitTestUtil {
     }
 
     @Override
+    public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
+        throws RepoException {
+      return super.lsRemote(mapUrl(url), refs, maxLogLines);
+    }
+
+    @Override
     public GitRepository withWorkTree(Path newWorkTree) {
       return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos,
           validator, mappingPrefixes, forcePushForRefspec);
