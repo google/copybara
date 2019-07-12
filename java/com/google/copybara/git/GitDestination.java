@@ -564,6 +564,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
       GitRevision head = scratchClone.resolveReference("HEAD");
       SkylarkList<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
+      String tagName = createTag(scratchClone, console, transformResult);
       // BeforePush will update existing PRs in github if skip push is not true
       writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);
       if (skipPush) {
@@ -585,7 +586,6 @@ public final class GitDestination implements Destination<GitRevision> {
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
-      String tagName = createTag(scratchClone, console, transformResult);
       String serverResponse = generalOptions.repoTask(
           "push",
           () -> scratchClone.push()

@@ -424,8 +424,19 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testTagWithDryRun() throws Exception {
+    options.general.dryRunMode = true;
+    WriterContext writerContext = setUpForTestingTag();
+    options.git.gitTagOverwrite = true;
+    evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
+        workdir, new DummyRevision("ref2")), destinationFiles, console);
+    CommandOutput commandOutput = repo().simpleCommand("tag", "-n9");
+    assertThat(commandOutput.getStdout()).matches(".*" + tagName +".*" + tagMsg + "\n");
+  }
+
+  @Test
   public void testTagWithExistingAndForce() throws Exception {
-    WriterContext writerContext = setUpForTestingExistingTag();
+    WriterContext writerContext = setUpForTestingTag();
     // push existing tag with tagMsg
     options.git.gitTagOverwrite = true;
     evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
@@ -436,7 +447,7 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithExistingAndWarningMsg() throws Exception {
-    WriterContext writerContext = setUpForTestingExistingTag();
+    WriterContext writerContext = setUpForTestingTag();
     // push existing tag with tagMsg
     evalDestinationWithTag(tagMsg).newWriter(writerContext).write(TransformResults.of(
         workdir, new DummyRevision("ref2")), destinationFiles, console);
@@ -1797,7 +1808,7 @@ public class GitDestinationTest {
         .isEqualTo(revision.asString());
   }
 
-  private WriterContext setUpForTestingExistingTag() throws Exception {
+  private WriterContext setUpForTestingTag() throws Exception {
     fetch = "master";
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
