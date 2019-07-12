@@ -718,6 +718,11 @@ public final class GitDestination implements Destination<GitRevision> {
     return push;
   }
 
+  @VisibleForTesting
+  public Iterable<GitIntegrateChanges> getIntegrates() {
+    return integrates;
+  }
+
   @Override
   public String getLabelNameWhenOrigin() {
     return GitRepository.GIT_ORIGIN_REV_ID;

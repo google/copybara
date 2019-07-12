@@ -40,6 +40,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -251,6 +252,25 @@ public class GitIntegrateChanges {
         throws ValidationException, RepoException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof GitIntegrateChanges)) {
+      return false;
+    }
+    GitIntegrateChanges that = (GitIntegrateChanges) o;
+    return ignoreErrors == that.ignoreErrors &&
+        Objects.equals(label, that.label) &&
+        strategy == that.strategy;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(label, strategy, ignoreErrors);
   }
 
   @Override

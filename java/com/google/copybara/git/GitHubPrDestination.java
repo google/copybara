@@ -284,7 +284,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @VisibleForTesting
-  Iterable<GitIntegrateChanges> getIntegrates() {
+  public Iterable<GitIntegrateChanges> getIntegrates() {
     return integrates;
   }
 
