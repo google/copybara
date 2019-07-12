@@ -436,6 +436,15 @@ public class GitRepository {
     return lsRemote(url, refs, gitEnv, /*maxlogLines*/ -1);
   }
 
+  /**
+   * Same as {@link #lsRemote(String, Collection)} allowing to set the maximum number of lines to
+   * log.
+   */
+  public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
+      throws RepoException {
+    return lsRemote(url, refs, gitEnv, maxLogLines);
+  }
+
   @CheckReturnValue
   static String validateUrl(String url) throws RepoException, ValidationException {
     RepositoryUtil.validateNotHttp(url);
