@@ -387,6 +387,7 @@ public class GitRepository {
    * @param gitEnv - determines where the Git binaries are
    * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
    * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
    */
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
@@ -430,15 +431,24 @@ public class GitRepository {
 
   /**
    * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
-   * environment
+   * environment and {@link #DEFAULT_MAX_LOG_LINES} as max number of log lines.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
-    return lsRemote(url, refs, gitEnv, /*maxlogLines*/ -1);
+    return lsRemote(url, refs, gitEnv, DEFAULT_MAX_LOG_LINES);
   }
 
   /**
-   * Same as {@link #lsRemote(String, Collection)} allowing to set the maximum number of lines to
-   * log.
+   * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
+   * environment and explicit max number of log lines.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
       throws RepoException {
