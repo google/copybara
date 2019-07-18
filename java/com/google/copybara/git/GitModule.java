@@ -1014,6 +1014,10 @@ public class GitModule implements LabelsAwareModule {
     String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
     check(location, !(submit && notifyOptionStr != null),
         "Cannot set 'notify' with 'submit = True' in git.gerrit_destination().");
+
+    String topicStr = convertFromNoneable(topicObj, null);
+    check(location, !(submit && topicStr != null),
+        "Cannot set 'topic' with 'submit = True' in git.gerrit_destination().");
     NotifyOption notifyOption =
         notifyOptionStr == null
             ? null
@@ -1039,7 +1043,7 @@ public class GitModule implements LabelsAwareModule {
         convertFromNoneable(checkerObj, null),
         SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
             GitIntegrateChanges.class, "integrates"),
-        convertFromNoneable(topicObj, null));
+        topicStr);
   }
 
   @SuppressWarnings("unused")

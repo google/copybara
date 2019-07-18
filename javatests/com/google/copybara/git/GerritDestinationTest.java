@@ -719,9 +719,19 @@ public class GerritDestinationTest {
     } catch (ValidationException expected) {
       assertThat(expected)
           .hasMessageThat()
-          .contains(
-              "Cannot set 'notify' with 'submit = True' in "
-                  + "git.gerrit_destination()");
+          .contains("Cannot set 'notify' with 'submit = True' in git.gerrit_destination()");
+    }
+  }
+
+  @Test
+  public void testSubmitAndTopic() {
+    try {
+      destination("submit = True", "topic = 'test_${CONTEXT_REFERENCE}'");
+      fail();
+    } catch (ValidationException expected) {
+      assertThat(expected)
+          .hasMessageThat()
+          .contains("Cannot set 'topic' with 'submit = True' in git.gerrit_destination()");
     }
   }
 
