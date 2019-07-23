@@ -56,7 +56,15 @@ public class LogSubjects {
      * @param regex a regex which must fully match the next message.
      */
     public LogSubject matchesNext(@Nullable MessageType type, String regex) {
-      return assertRegex(type, regex);
+      return assertRegex(/*skipAhead*/ false, type, regex);
+    }
+
+    /**
+     * Same as {@link #matchesNext(MessageType, String)} but skipping any messages that do not
+     * match until one that matches is found.
+     */
+    public LogSubject matchesNextSkipAhead(@Nullable MessageType type, String regex) {
+      return assertRegex(/*skipAhead*/ true, type, regex);
     }
 
     /**
@@ -65,7 +73,15 @@ public class LogSubjects {
      * <p>This is a convenience method to avoid having to escape special characters in the regex.
      */
     public LogSubject equalsNext(@Nullable MessageType type, String text) {
-      return assertRegex(type, Pattern.quote(text));
+      return assertRegex(/*skipAhead*/ false, type, Pattern.quote(text));
+    }
+
+    /**
+     * Same as {@link #equalsNext(MessageType, String)} but skipping any messages that do not
+     * match until one that matches is found.
+     */
+    public LogSubject equalsNextSkipAhead(@Nullable MessageType type, String text) {
+      return assertRegex(/*skipAhead*/ true, type, Pattern.quote(text));
     }
 
     /**
@@ -96,18 +112,25 @@ public class LogSubjects {
       return this;
     }
 
-    private LogSubject assertRegex(@Nullable MessageType type, String regex) {
+    private LogSubject assertRegex(boolean skipAhead, @Nullable MessageType type, String regex) {
       assertWithMessage("no more log messages")
           .that(messages)
           .isNotEmpty();
       Message next = messages.removeFirst();
-      assertWithMessage(regex + " does not match " + next.getText()
-          + ". Do you have [] or other unescaped chars in the regex?")
-          .that(next.getText()).matches(regex);
-      if (type != null) {
-        assertWithMessage("type of message with text: " + next.getText())
-            .that(next.getType())
-            .isEqualTo(type);
+      try {
+        assertWithMessage(regex + " does not match " + next.getText()
+            + ". Do you have [] or other unescaped chars in the regex?")
+            .that(next.getText()).matches(regex);
+        if (type != null) {
+          assertWithMessage("type of message with text: " + next.getText())
+              .that(next.getType())
+              .isEqualTo(type);
+        }
+      } catch (AssertionError e) {
+        if (!skipAhead || messages.isEmpty()) {
+          throw e;
+        }
+        assertRegex(skipAhead, type, regex);
       }
       return this;
     }

@@ -35,6 +35,7 @@ import com.google.copybara.util.TablePrinter;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 
 /**
  * Reads the last migrated revision in the origin and destination.
@@ -75,10 +76,14 @@ public class InfoCmd implements CopybaraCmd {
     return ExitCode.SUCCESS;
   }
 
-  protected void showAllMigrations(CommandEnv commandEnv, Config config) {
+  private void showAllMigrations(CommandEnv commandEnv, Config config) {
     TablePrinter table = new TablePrinter("Name", "Origin", "Destination", "Mode", "Description");
-    for (Migration m : config.getMigrations().values()) {
-      table.addRow(m.getName(),
+    for (Migration m :
+        config.getMigrations().values().stream()
+            .sorted(Comparator.comparing(Migration::getName))
+            .collect(ImmutableList.toImmutableList())) {
+      table.addRow(
+          m.getName(),
           prettyOriginDestination(m.getOriginDescription()),
           prettyOriginDestination(m.getDestinationDescription()),
           m.getModeString(),

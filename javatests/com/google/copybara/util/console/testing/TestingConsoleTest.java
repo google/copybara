@@ -48,7 +48,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertFailsForPartialMatch() {
+  public void testFailsForPartialMatch() {
     console.error("jjj_asdf_mmm");
     LogSubject logSubject = console.assertThat();
     expectAssertion(".*jjj_asdf_mmm.*",
@@ -56,7 +56,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertFailsWhenNoMoreMessagesRemain() {
+  public void testFailsWhenNoMoreMessagesRemain() {
     console.error("foo");
     LogSubject logSubject = console.assertThat().matchesNext(MessageType.ERROR, "foo");
     expectAssertion("no more log messages.*",
@@ -64,7 +64,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void allMethodsAddMessages() {
+  public void testMatchesNext() {
     console.error("error method 1234");
     console.warn("warn method 1234");
     console.info("info method 1234");
@@ -78,7 +78,19 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertNextEquals() {
+  public void testMatchesNextSkipAhead() {
+    console.error("error method 1234");
+    console.warn("warn method 1234");
+    console.info("info method 1234");
+    console.progress("progress method 1234");
+    console.assertThat()
+        .matchesNextSkipAhead(MessageType.WARNING, "warn method \\d{4}")
+        .matchesNextSkipAhead(MessageType.PROGRESS, "progress method \\d{4}")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testEqualsNext() {
     console.error("error method");
     console.warn("warn method");
     console.info("info method");
@@ -92,7 +104,19 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertMessageTypeCorrect() {
+  public void testEqualsNextSkipAhead() {
+    console.error("error method");
+    console.warn("warn method");
+    console.info("info method");
+    console.progress("progress method");
+    console.assertThat()
+        .equalsNextSkipAhead(MessageType.WARNING, "warn method")
+        .equalsNextSkipAhead(MessageType.PROGRESS, "progress method")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void testMessageTypeCorrect() {
     console.error("error method");
     console.warn("warn method");
     console.info("info method");
@@ -106,7 +130,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertMessageTypeWrong1() {
+  public void testMessageTypeWrong1() {
     console.error("foo");
     expectAssertion(".*foo.*",
         () -> console.assertThat()
@@ -114,7 +138,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void assertMessageTypeWrong2() {
+  public void testMessageTypeWrong2() {
     console.info("bar");
     LogSubject logSubject = console.assertThat();
     expectAssertion(".*bar.*",
@@ -122,7 +146,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void programmedResponses() throws Exception {
+  public void testProgrammedResponses() throws Exception {
     Console console = new TestingConsole()
         .respondYes()
         .respondNo();
@@ -131,7 +155,7 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void throwsExceptionIfNoMoreResponses() throws Exception {
+  public void testThrowsExceptionIfNoMoreResponses() throws Exception {
     Console console = new TestingConsole()
         .respondNo();
     assertThat(console.promptConfirmation("Proceed?")).isFalse();

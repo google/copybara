@@ -128,12 +128,13 @@ public class InfoTest {
 
     assertThat(code).isEqualTo(SUCCESS);
 
-    console.assertThat().onceInLog(MessageType.INFO,
+    console.assertThat()
+        .matchesNextSkipAhead(MessageType.INFO,
+            ".*example.*git\\.mirror \\(https://example.com/mirror1\\)"
+                + ".*git\\.mirror \\(https://example.com/mirror2\\).*MIRROR.*This is a description.*")
+        .matchesNext(MessageType.INFO,
         ".*workflow.*git\\.origin \\(https://example.com/orig\\)"
             + ".*git\\.destination \\(https://example.com/dest\\).*SQUASH.*");
-    console.assertThat().onceInLog(MessageType.INFO,
-        ".*example.*git\\.mirror \\(https://example.com/mirror1\\)"
-            + ".*git\\.mirror \\(https://example.com/mirror2\\).*MIRROR.*This is a description.*");
 
     console.assertThat().onceInLog(MessageType.INFO,
         "To get information about the state of any migration run:(.|\n)*"
