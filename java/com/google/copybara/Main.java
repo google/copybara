@@ -40,6 +40,8 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.DurationConverter;
+import com.google.copybara.profiler.ConsoleProfilerListener;
+import com.google.copybara.profiler.Listener;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.ExitCode;
@@ -433,7 +435,12 @@ public class Main {
       throws ValidationException, IOException, RepoException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     profiler = generalOptions.profiler();
-    profiler.init(ImmutableList.of(new LogProfilerListener()));
+    ImmutableList.Builder<Listener> profilerListeners = ImmutableList.builder();
+    profilerListeners.add(new LogProfilerListener());
+    if (generalOptions.isShowProfilerConsole()) {
+      profilerListeners.add(new ConsoleProfilerListener(generalOptions.console()));
+    }
+    profiler.init(profilerListeners.build());
     cleanupOutputDir(generalOptions);
   }
 

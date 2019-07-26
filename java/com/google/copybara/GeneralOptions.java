@@ -131,6 +131,10 @@ public final class GeneralOptions implements Option {
     return force;
   }
 
+  public boolean isShowProfilerConsole() {
+    return showProfilerConsole;
+  }
+
   /**
    * Returns current working directory
    */
@@ -325,6 +329,12 @@ public final class GeneralOptions implements Option {
               + " Keep in mind that running in this mode will lead to an ever increasing disk"
               + " usage.")
   boolean noCleanup = false;
+
+  @Parameter(
+      names = "--show-profiler-console",
+      description =
+          "If set to true, profiling stats will be printed in the console in verbose mode.")
+  boolean showProfilerConsole = false;
 
   static final String CONSOLE_FILE_PATH = "--console-file-path";
 

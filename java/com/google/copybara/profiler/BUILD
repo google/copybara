@@ -20,6 +20,7 @@ java_library(
     name = "profiler",
     srcs = glob(["**/*.java"]),
     deps = [
+        "//java/com/google/copybara/util/console",
         "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jsr305",
