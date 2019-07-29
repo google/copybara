@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
@@ -63,8 +63,9 @@ public class GerritApiTransportWithCheckerTest {
 
   @Test
   public void testGetThrowsException() throws Exception {
-    doThrow(new CheckerException("Error!")).when(checker)
-        .doCheck(Matchers.<ImmutableMap<String, String>> any(), eq(console));
+    doThrow(new CheckerException("Error!"))
+        .when(checker)
+        .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
     try {
       transport.get("path/foo", String.class);
       fail();
@@ -88,8 +89,9 @@ public class GerritApiTransportWithCheckerTest {
 
   @Test
   public void testPostThrowsException() throws Exception {
-    doThrow(new CheckerException("Error!")).when(checker)
-        .doCheck(Matchers.<ImmutableMap<String, String>> any(), eq(console));
+    doThrow(new CheckerException("Error!"))
+        .when(checker)
+        .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
     try {
       transport.post("path/foo", "request_content", String.class);
       fail();

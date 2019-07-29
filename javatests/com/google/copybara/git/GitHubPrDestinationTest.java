@@ -24,7 +24,7 @@ import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -109,8 +109,9 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d = skylark.eval(
         "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
     thrown.expect(ValidationException.class);
-    thrown.expectMessage("git.github_pr_destination is incompatible with the current origin. Origin has to be"
-        + " able to provide the contextReference or use '--github-destination-pr-branch' flag");
+    thrown.expectMessage("git.github_pr_destination is incompatible with the current origin."
+                             + " Origin has to be able to provide the contextReference or use"
+                             + " '--github-destination-pr-branch' flag");
     d.newWriter(writerContext);
   }
 

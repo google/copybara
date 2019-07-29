@@ -23,7 +23,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidat
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;

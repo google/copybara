@@ -23,7 +23,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Matchers.startsWith;
