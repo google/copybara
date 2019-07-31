@@ -326,15 +326,6 @@ public final class GeneralOptions implements Option {
               + " usage.")
   boolean noCleanup = false;
 
-  // TODO(danielromero): Remove
-  @Parameter(
-      names = "--show-profiler-console",
-      description =
-          "DEPRECATED. This is printed in verbose mode by default now.",
-      hidden = true
-  )
-  boolean showProfilerConsole = false;
-
   static final String CONSOLE_FILE_PATH = "--console-file-path";
 
   // This flag is read before we parse the arguments, because of the console lifecycle
