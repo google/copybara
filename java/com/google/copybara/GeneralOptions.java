@@ -131,10 +131,6 @@ public final class GeneralOptions implements Option {
     return force;
   }
 
-  public boolean isShowProfilerConsole() {
-    return showProfilerConsole;
-  }
-
   /**
    * Returns current working directory
    */
@@ -330,10 +326,13 @@ public final class GeneralOptions implements Option {
               + " usage.")
   boolean noCleanup = false;
 
+  // TODO(danielromero): Remove
   @Parameter(
       names = "--show-profiler-console",
       description =
-          "If set to true, profiling stats will be printed in the console in verbose mode.")
+          "DEPRECATED. This is printed in verbose mode by default now.",
+      hidden = true
+  )
   boolean showProfilerConsole = false;
 
   static final String CONSOLE_FILE_PATH = "--console-file-path";

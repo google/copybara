@@ -433,7 +433,6 @@ Name | Type | Description
 <nobr>`--nocleanup`</nobr> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
 <nobr>`--output-limit`</nobr> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <nobr>`--output-root`</nobr> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
-<nobr>`--show-profiler-console`</nobr> | *boolean* | If set to true, profiling stats will be printed in the console in verbose mode.
 <nobr>`--squash`</nobr> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
 <nobr>`-v, --verbose`</nobr> | *boolean* | Verbose output.
 

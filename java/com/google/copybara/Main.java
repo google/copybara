@@ -436,10 +436,8 @@ public class Main {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     profiler = generalOptions.profiler();
     ImmutableList.Builder<Listener> profilerListeners = ImmutableList.builder();
-    profilerListeners.add(new LogProfilerListener());
-    if (generalOptions.isShowProfilerConsole()) {
-      profilerListeners.add(new ConsoleProfilerListener(generalOptions.console()));
-    }
+    profilerListeners.add(
+        new LogProfilerListener(), new ConsoleProfilerListener(generalOptions.console()));
     profiler.init(profilerListeners.build());
     cleanupOutputDir(generalOptions);
   }
