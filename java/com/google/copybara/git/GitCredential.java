@@ -93,10 +93,12 @@ public final class GitCredential {
     try {
       // DON'T REPLACE THIS WITH CommandRunner.execute(). WE DON'T WANT TO ACCIDENTALLY LOG THE
       // PASSWORD!
-      CommandResult result = cmd.execute(
-          new ByteArrayInputStream(request.getBytes(UTF_8)),
-          new TimeoutKillableObserver(timeout.toMillis()), out,
-          err);
+      CommandResult result =
+          cmd.execute(
+              new ByteArrayInputStream(request.getBytes(UTF_8)),
+              new TimeoutKillableObserver(timeout),
+              out,
+              err);
       if (!result.getTerminationStatus().success()) {
         throw new RepoException("Error getting credentials:\n"
             + new String(err.toByteArray(), UTF_8));
