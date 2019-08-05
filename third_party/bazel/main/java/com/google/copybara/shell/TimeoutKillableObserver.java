@@ -14,6 +14,9 @@
 
 package com.google.copybara.shell;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -31,7 +34,7 @@ public final class TimeoutKillableObserver implements KillableObserver {
   private static final Logger log =
       Logger.getLogger(TimeoutKillableObserver.class.getCanonicalName());
 
-  private final long timeoutMS;
+  private final Duration timeout;
   private Killable killable;
   private SleeperThread sleeperThread;
   private boolean timedOut;
@@ -40,7 +43,11 @@ public final class TimeoutKillableObserver implements KillableObserver {
   // provide a way to interrupt a thread
 
   public TimeoutKillableObserver(final long timeoutMS) {
-    this.timeoutMS = timeoutMS;
+    this(Duration.ofMillis(timeoutMS));
+  }
+
+  public TimeoutKillableObserver(Duration timeout) {
+    this.timeout = checkNotNull(timeout, "timeout");
   }
 
   /**
@@ -74,9 +81,9 @@ public final class TimeoutKillableObserver implements KillableObserver {
     @Override public void run() {
       try {
         if (log.isLoggable(Level.FINE)) {
-          log.fine("Waiting for " + timeoutMS + "ms to kill process");
+          log.fine("Waiting for " + timeout.toMillis() + "ms to kill process");
         }
-        Thread.sleep(timeoutMS);
+        Thread.sleep(timeout.toMillis());
         // timeout expired; kill it
         synchronized (TimeoutKillableObserver.this) {
           if (killable != null) {
