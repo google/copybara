@@ -64,4 +64,12 @@ public enum ExitCode {
     return code;
   }
 
+  public static ExitCode forCode(int code) {
+    for (ExitCode value : ExitCode.values()) {
+      if (value.getCode() == code) {
+        return value;
+      }
+    }
+    throw new IllegalArgumentException("Invalid exit code: " + code);
+  }
 }
