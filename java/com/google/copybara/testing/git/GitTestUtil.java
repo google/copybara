@@ -107,11 +107,19 @@ public class GitTestUtil {
   }
 
   public static LowLevelHttpRequest mockGitHubNotFound() {
-    return mockNotFoundResponse(
+    return mockResponseWithStatus(
         "{\n"
             + "\"message\" : \"Not Found\",\n"
             + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-            + "}");
+            + "}", 404, r -> true);
+  }
+
+  public static LowLevelHttpRequest mockGitHubUnprocessable() {
+    return mockResponseWithStatus(
+        "{\n"
+            + "\"message\" : \"Not Found\",\n"
+            + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+            + "}", 422, r -> true);
   }
 
   public void mockRemoteGitRepos() throws IOException {

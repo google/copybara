@@ -318,6 +318,21 @@ public class GitHubDestinationTest {
     gitUtil.mockApi("GET",
         "https://api.github.com/repos/foo/git/refs/heads/other_6789",
         GitTestUtil.mockGitHubNotFound());
+    checkRefNotFound();
+  }
+
+  @Test
+  public void testWithRefsNotFoundUnprocessable() throws Exception {
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        GitTestUtil.mockGitHubUnprocessable());
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/git/refs/heads/other_6789",
+        GitTestUtil.mockGitHubUnprocessable());
+    checkRefNotFound();
+  }
+
+  private void checkRefNotFound() throws IOException, RepoException, ValidationException {
     addFiles(
         remote,
         "master",

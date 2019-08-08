@@ -102,7 +102,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
                             scratchClone.createRefSpec("+HEAD:" + completeRef)))
                     .run());
       } catch (GitHubApiException e) {
-        if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
+        if (e.getResponseCode() == ResponseCode.NOT_FOUND
+            || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
           console.infoFmt("Branch %s does not exist", updatedPrBranchName);
           logger.atInfo().log("Branch %s does not exist", updatedPrBranchName);
           continue;
@@ -140,7 +141,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
             new DestinationRef(completeRef, "ref_deleted",
                 "https://github.com/" + projectId + "/tree/" + updatedPrBranchName)));
       } catch (GitHubApiException e) {
-        if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
+        if (e.getResponseCode() == ResponseCode.NOT_FOUND
+            || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
           console.infoFmt("Branch %s does not exist", updatedPrBranchName);
           logger.atInfo().log("Branch %s does not exist", updatedPrBranchName);
           continue;
