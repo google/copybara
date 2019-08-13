@@ -21,15 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
-import com.google.common.jimfs.PathType;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -85,6 +81,29 @@ public class MainTest {
         };
     assertThat(main.run(args)).isEqualTo(ExitCode.COMMAND_LINE_ERROR);
     assertThat(called).isTrue();
+  }
+
+  @Test
+  public void testTemporaryFeatures() throws IOException {
+
+    ImmutableMap<String, String> envWithHome = ImmutableMap.of("HOME",
+        Files.createTempDirectory("foo").toString());
+
+    Main main = new Main(envWithHome) {
+      @Override
+      protected ModuleSet newModuleSet(ImmutableMap<String, String> environment, FileSystem fs,
+          Console console) {
+        return skylark.createModuleSet();
+      }
+    };
+
+    main.run(new String[]{"--temporary-features", "foo:true,bar:false"});
+    assertThat(options.general.isTemporaryFeature("foo", true)).isTrue();
+    assertThat(options.general.isTemporaryFeature("foo", false)).isTrue();
+    assertThat(options.general.isTemporaryFeature("bar", true)).isFalse();
+    assertThat(options.general.isTemporaryFeature("bar", false)).isFalse();
+    assertThat(options.general.isTemporaryFeature("baz", true)).isTrue();
+    assertThat(options.general.isTemporaryFeature("baz", false)).isFalse();
   }
 
   @Test

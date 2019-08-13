@@ -22,13 +22,18 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.flogger.FluentLogger;
+import com.google.common.flogger.StackSize;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.DurationConverter;
+import com.google.copybara.jcommander.MapConverter;
 import com.google.copybara.monitor.ConsoleEventMonitor;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
@@ -50,6 +55,8 @@ import javax.annotation.Nullable;
  */
 @Parameters(separators = "=")
 public final class GeneralOptions implements Option {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   public static final String NOANSI = "--noansi";
   public static final String FORCE = "--force";
@@ -325,6 +332,41 @@ public final class GeneralOptions implements Option {
               + " Keep in mind that running in this mode will lead to an ever increasing disk"
               + " usage.")
   boolean noCleanup = false;
+
+  @Parameter(
+      names = "--temporary-features",
+      description = "Change guarded features. If set it means that it will return true.",
+      converter = MapConverter.class,
+      hidden = true)
+  private ImmutableMap<String, String> temporaryFeatures = ImmutableMap.of();
+
+
+  /**
+   * Temporary features is mean to be used by Copybara team for guarding new codepaths. Should
+   * never be used for user facing flags or longer term experiments. Any caller of this function
+   * should have a todo saying when to remove the call.
+   *
+   * <p>If the flag doesn't have a value it will use defaultVal. If the flag is incorrect (different
+   * from true/false) it will use defaultVal (And log at severe).
+   */
+  public boolean isTemporaryFeature(String name, boolean defaultVal) {
+    Preconditions.checkNotNull(name);
+    String v = temporaryFeatures.get(name);
+    if (v == null) {
+      return defaultVal;
+    }
+    if (Ascii.equalsIgnoreCase(v, "true")) {
+      return true;
+    }
+    if (Ascii.equalsIgnoreCase(v, "false")) {
+      return false;
+    }
+    logger.atSevere()
+        .withStackTrace(StackSize.SMALL)
+        .log("Invalid boolean value for '%s' in '%s'. Needs to be true or false. Using default: %s",
+            name, temporaryFeatures, defaultVal);
+    return defaultVal;
+  }
 
   static final String CONSOLE_FILE_PATH = "--console-file-path";
 
