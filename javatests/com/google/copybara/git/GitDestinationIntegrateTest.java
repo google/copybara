@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE;
+import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE_AND_INCLUDE_FILES;
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
@@ -48,6 +49,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -320,6 +322,47 @@ public class GitDestinationIntegrateTest {
   }
 
   @Test
+  public void testIncludeFilesOutdatedBranch() throws Exception {
+    Path repoPath = Files.createTempDirectory("test");
+    GitRepository repo = repo().withWorkTree(repoPath);
+    singleChange(repoPath, repo, "ignore_base.txt", "original", "base change");
+    repo.simpleCommand("branch", "feature");
+    singleChange(repoPath, repo, "ignore_base.txt", "modified", "more changes");
+    repo.forceCheckout("feature");
+    singleChange(repoPath, repo, "ignore_but_changed.txt", "feature", "external change");
+    singleChange(repoPath, repo, "feature_file.txt", "feature", "internal change");
+    GitRevision prHead = repo.resolveReference("HEAD");
+
+    GitDestination destination = destination(FAKE_MERGE_AND_INCLUDE_FILES);
+    migrateOriginChange(destination, "Base change\n", "test.txt", "not important", "test");
+    GitLogEntry previous = getLastMigratedChange("master");
+
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getGitDir().toString()
+        + " feature\n", "feature_file.txt", "feature modified", "test");
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    assertThat(showResult).contains("Merge of ");
+
+    GitTesting.assertThatCheckout(repo, "master")
+        .containsFile("test.txt", "not important")
+        .containsFile("ignore_base.txt", "modified")
+        .containsFile("ignore_but_changed.txt", "feature")
+        .containsFile("feature_file.txt", "feature modified")
+        .containsNoMoreFiles();
+
+    GitLogEntry afterChange = getLastMigratedChange("master");
+    assertThat(afterChange.getBody()).isEqualTo("Merge of " + prHead.getSha1() + "\n"
+        + "\n"
+        + DummyOrigin.LABEL_NAME + ": test\n");
+
+    assertThat(Lists.transform(afterChange.getParents(), GitRevision::getSha1))
+        .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), prHead.getSha1()));
+  }
+
+  @Test
   public void testGitHubSemiFakeMerge() throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
     GitRepository repo =
@@ -507,9 +550,16 @@ public class GitDestinationIntegrateTest {
 
   private GitRevision singleChange(Path workTree, GitRepository repo, String file, String msg)
       throws IOException, RepoException, CannotResolveRevisionException {
+    String fileContent = "";
+    return singleChange(workTree, repo, file, fileContent, msg);
+  }
+
+  private GitRevision singleChange(Path workTree, GitRepository repo, String file,
+      String fileContent, String msg)
+      throws IOException, RepoException, CannotResolveRevisionException {
     Path path = workTree.resolve(file);
     Files.createDirectories(path.getParent());
-    Files.write(path, new byte[0]);
+    Files.write(path, fileContent.getBytes(StandardCharsets.UTF_8));
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", msg);
     return repo.resolveReference("HEAD");

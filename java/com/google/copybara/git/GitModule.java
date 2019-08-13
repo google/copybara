@@ -99,11 +99,7 @@ import javax.annotation.Nullable;
 public class GitModule implements LabelsAwareModule {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
-  static final SkylarkList<GitIntegrateChanges> DEFAULT_GIT_INTEGRATES =
-      SkylarkList.createImmutable(ImmutableList.of(
-          new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
-              Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-              /*ignoreErrors=*/true)));
+  final SkylarkList<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";
   private static final String GITHUB_TRIGGER = "github_trigger";
@@ -126,6 +122,16 @@ public class GitModule implements LabelsAwareModule {
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
+    this.defaultGitIntegrate = SkylarkList.createImmutable(ImmutableList.of(
+        new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
+            Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
+            /*ignoreErrors=*/true, useNewIntegrate())));
+
+  }
+
+  private boolean useNewIntegrate() {
+    // TODO(malcon): Remove after 2019/09/20 when new integrate is proven to work
+    return options.get(GeneralOptions.class).isTemporaryFeature("NEW_GIT_INTEGRATE", true);
   }
 
   @SuppressWarnings("unused")
@@ -251,7 +257,7 @@ public class GitModule implements LabelsAwareModule {
     return new GitIntegrateChanges(
         label,
         stringToEnum(location, "strategy", strategy, Strategy.class),
-        ignoreErrors);
+        ignoreErrors, useNewIntegrate());
   }
 
 
@@ -655,7 +661,7 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         generalOptions,
         new DefaultWriteHook(),
-        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
             GitIntegrateChanges.class, "integrates"));
   }
 
@@ -747,7 +753,7 @@ public class GitModule implements LabelsAwareModule {
                     : false,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
-        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
             GitIntegrateChanges.class, "integrates"));
   }
 
@@ -890,7 +896,7 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOptions.class),
         new DefaultWriteHook(),
         SkylarkList.castList(
-            convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+            convertFromNoneable(integrates, defaultGitIntegrate),
             GitIntegrateChanges.class,
             "integrates"),
         convertFromNoneable(title, null),
@@ -1041,7 +1047,7 @@ public class GitModule implements LabelsAwareModule {
         cc,
         labels,
         convertFromNoneable(checkerObj, null),
-        SkylarkList.castList(convertFromNoneable(integrates, DEFAULT_GIT_INTEGRATES),
+        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
             GitIntegrateChanges.class, "integrates"),
         topicStr);
   }

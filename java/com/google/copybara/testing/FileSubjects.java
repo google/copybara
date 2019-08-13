@@ -20,6 +20,7 @@ import static com.google.common.truth.Fact.fact;
 import static com.google.common.truth.Fact.simpleFact;
 import static com.google.common.truth.Truth.assertAbout;
 
+import com.google.common.base.Joiner;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.truth.FailureMetadata;
@@ -33,6 +34,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Truth subjects for file assertions.
@@ -205,10 +207,35 @@ public class FileSubjects {
     private Path checkFile(String filename) {
       Path filePath = actual.resolve(filename);
       if (!Files.exists(filePath)) {
-        failWithActual("expected to have file", filePath);
+        failWithActual("missing file", filename);
       }
       whitelistedPaths.add(actual.relativize(filePath));
       return filePath;
+    }
+
+    @Override
+    protected String actualCustomStringRepresentation() {
+      try {
+        StringBuilder sb = new StringBuilder(actual + ":\n");
+        for (Path path : Files.walk(actual).collect(Collectors.toList())) {
+          if (Files.isRegularFile(path)) {
+            sb.append("  ");
+            sb.append(actual.relativize(path));
+            sb.append(": <");
+            sb.append(Joiner.on("\\n").join(Files.readAllLines(path)));
+            sb.append(">\n");
+          } else if (Files.isSymbolicLink(path)) {
+            sb.append("  ");
+            sb.append(actual.relativize(path));
+            sb.append(" -> ");
+            sb.append(Files.readSymbolicLink(path));
+          }
+        }
+        return sb.toString();
+      } catch (IOException e) {
+        return e.toString();
+        //return super.actualCustomStringRepresentation();
+      }
     }
   }
 }
