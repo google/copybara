@@ -68,10 +68,10 @@ import java.util.logging.LogManager;
 import javax.annotation.Nullable;
 
 /**
- * Main class that invokes {@link Copybara} from command-line.
+ * Main class that invokes Copybara from command-line.
  *
- * <p>This class should only know about how to validate and parse command-line arguments in order
- * to invoke {@link Copybara}.
+ * <p>This class should only know about how to validate and parse command-line arguments in order to
+ * invoke Copybara.
  */
 public class Main {
 
@@ -132,6 +132,11 @@ public class Main {
   /** Helper to find out about verbose output before JCommander has been initialized .*/
   protected static boolean isVerbose(String[] args) {
     return Arrays.stream(args).anyMatch(s -> s.equals("-v") || s.equals("--verbose"));
+  }
+
+  /** Helper to find out if logging is enabled before JCommander has been initialized . */
+  protected static boolean isEnableLogging(String[] args) {
+    return !Arrays.asList(args).contains("--nologging");
   }
 
   /**
@@ -415,10 +420,11 @@ public class Main {
     Files.createDirectories(fs.getPath(baseDir));
     if (System.getProperty("java.util.logging.config.file") == null) {
       logger.atInfo().log("Setting up LogManager");
+      String level = isEnableLogging(args) ? "INFO" : "OFF";
       LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
           "handlers=java.util.logging.FileHandler\n"
               + ".level=INFO\n"
-              + "java.util.logging.FileHandler.level=INFO\n"
+              + "java.util.logging.FileHandler.level=" + level +"\n"
               + "java.util.logging.FileHandler.pattern="
               + baseDir + "/copybara-%g.log\n"
               + "java.util.logging.FileHandler.count=10\n"

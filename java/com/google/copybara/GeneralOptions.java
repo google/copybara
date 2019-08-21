@@ -24,7 +24,6 @@ import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableMap;
@@ -288,10 +287,9 @@ public final class GeneralOptions implements Option {
   @Parameter(
       names = FORCE,
       description =
-          "Force the migration even if Copybara cannot find in"
-              + " the destination a change that is an ancestor of the one(s) being migrated. This should"
-              + " be used with care, as it could lose changes when migrating a previous/conflicting"
-              + " change.")
+          "Force the migration even if Copybara cannot find in the destination a change that is an"
+              + " ancestor of the one(s) being migrated. This should be used with care, as it"
+              + " could lose changes when migrating a previous/conflicting change.")
   boolean force = false;
 
   @Parameter(
@@ -332,6 +330,13 @@ public final class GeneralOptions implements Option {
               + " Keep in mind that running in this mode will lead to an ever increasing disk"
               + " usage.")
   boolean noCleanup = false;
+
+  @Parameter(
+      names = "--nologging",
+      description =
+          "Disable logging of this binary. Note that commands executed by Copybara "
+              + "might still log to their own file.", hidden = true)
+  boolean noLogging = false;
 
   @Parameter(
       names = "--temporary-features",
