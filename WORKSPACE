@@ -189,6 +189,8 @@ http_archive(
     strip_prefix = "bazel-" + bazel_version,
 )
 
+# Stuff used by Bazel Starlark syntax package transitively:
+
 http_archive(
     name = "com_google_protobuf",
     url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
@@ -200,6 +202,34 @@ http_archive(
     name = "rules_pkg",
     url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.0/rules_pkg-0.2.0.tar.gz",
     sha256 = "5bdc04987af79bd27bc5b00fe30f59a858f77ffa0bd2d8143d5b31ad8b1bd71c",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "rules_java",
+    url = "https://github.com/bazelbuild/rules_java/releases/download/0.1.0/rules_java-0.1.0.tar.gz",
+    sha256 = "52423cb07384572ab60ef1132b0c7ded3a25c421036176c0273873ec82f5d2b2",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "rules_python",
+    url = "https://github.com/bazelbuild/rules_python/archive/9d68f24659e8ce8b736590ba1e4418af06ec2552.zip",
+    strip_prefix = "rules_python-9d68f24659e8ce8b736590ba1e4418af06ec2552"
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "rules_cc",
+    url = "https://github.com/bazelbuild/rules_cc/archive/ea5c5422a6b9e79e6432de3b2b29bbd84eb41081.zip",
+    strip_prefix = "rules_cc-ea5c5422a6b9e79e6432de3b2b29bbd84eb41081"
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "rules_proto",
+    url = "https://github.com/bazelbuild/rules_proto/archive/9cd4f8f1ede19d81c6d48910429fe96776e567b1.zip",
+    strip_prefix = "rules_proto-9cd4f8f1ede19d81c6d48910429fe96776e567b1"
 )
 
 # LICENSE: New BSD
