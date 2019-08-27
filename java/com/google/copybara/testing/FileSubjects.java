@@ -35,6 +35,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Truth subjects for file assertions.
@@ -215,9 +216,9 @@ public class FileSubjects {
 
     @Override
     protected String actualCustomStringRepresentation() {
-      try {
-        StringBuilder sb = new StringBuilder(actual + ":\n");
-        for (Path path : Files.walk(actual).collect(Collectors.toList())) {
+      StringBuilder sb = new StringBuilder(actual + ":\n");
+      try (Stream<Path> pathStream = Files.walk(actual))  {
+        for (Path path : pathStream.collect(Collectors.toList())) {
           if (Files.isRegularFile(path)) {
             sb.append("  ");
             sb.append(actual.relativize(path));
@@ -234,7 +235,6 @@ public class FileSubjects {
         return sb.toString();
       } catch (IOException e) {
         return e.toString();
-        //return super.actualCustomStringRepresentation();
       }
     }
   }
