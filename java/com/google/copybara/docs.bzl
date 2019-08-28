@@ -17,7 +17,7 @@
 def _doc_impl(ctx):
     jars = []
     for dep in ctx.attr.deps:
-        for jar in dep.java.transitive_source_jars.to_list():
+        for jar in dep[JavaInfo].transitive_source_jars.to_list():
             jars.append(jar)
     tmp = ctx.actions.declare_file("tmp.md")
     ctx.actions.run(
