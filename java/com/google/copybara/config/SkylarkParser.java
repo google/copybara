@@ -283,6 +283,7 @@ public class SkylarkParser {
         .incompatibleDisallowDictPlus(false)
         .incompatibleNoTransitiveLoads(false)
         .incompatibleStringJoinRequiresStrings(false)
+        .incompatibleRestrictNamedParams(false)
         .build();
   }
 
