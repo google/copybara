@@ -58,15 +58,17 @@ public class SkylarkParser {
   private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
+  private final boolean newStarlarkSemantics;
 
   private static final Object initializationLock = new Object();
 
   private static final Set<Class<?>> initializedModules = new HashSet<>();
 
-  public SkylarkParser(Set<Class<?>> staticModules) {
+  public SkylarkParser(Set<Class<?>> staticModules, boolean newStarlarkSemantics) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
         .addAll(staticModules).build();
+    this.newStarlarkSemantics = newStarlarkSemantics;
 
     // Skylark initialization is not thread safe and manipulates static fields. While calling
     // this concurrently doesn't happen in the tool, there can be other usages of this that
@@ -265,7 +267,7 @@ public class SkylarkParser {
    * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object
    * so that the module can construct objects that require options.
    */
-  private static Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
+  private Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
       Map<String, Extension> imports) {
     return Environment.builder(Mutability.create("CopybaraModules"))
         .setSemantics(createSemantics())
@@ -275,10 +277,18 @@ public class SkylarkParser {
         .build();
   }
 
-  private static StarlarkSemantics createSemantics() {
+  private StarlarkSemantics createSemantics() {
+    if (newStarlarkSemantics) {
+      return StarlarkSemantics.DEFAULT_SEMANTICS
+          .toBuilder()
+          // TODO(malcon): Remove this one too. Requires user migration.
+          .incompatibleRestrictNamedParams(false)
+          .build();
+    }
+
+    // TODO(malcon): To remove once we remove NEW_STARLARK_SEMANTICS
     return StarlarkSemantics.DEFAULT_SEMANTICS
         .toBuilder()
-        // TODO(malcon): Temporary until we fix internal usages
         .incompatibleBzlDisallowLoadAfterStatement(false)
         .incompatibleDisallowDictPlus(false)
         .incompatibleNoTransitiveLoads(false)
