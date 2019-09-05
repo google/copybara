@@ -40,11 +40,11 @@ import java.util.function.Supplier;
 public class SkylarkTransformation implements Transformation {
 
   private final BaseFunction function;
-  private final SkylarkDict params;
+  private final SkylarkDict<?, ?> params;
   private final Supplier<Environment> dynamicEnv;
 
-  public SkylarkTransformation(BaseFunction function, SkylarkDict params,
-      Supplier<Environment> dynamicEnv) {
+  public SkylarkTransformation(
+      BaseFunction function, SkylarkDict<?, ?> params, Supplier<Environment> dynamicEnv) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.dynamicEnv = Preconditions.checkNotNull(dynamicEnv);

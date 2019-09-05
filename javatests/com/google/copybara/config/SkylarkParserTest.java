@@ -45,8 +45,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -275,9 +275,9 @@ public class SkylarkParserTest {
       parser.loadConfig(configContent);
       fail();
     } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "(\n|.)*expected value of type 'string' for element 1 of list, but got True \\(bool\\)"
-              + "(\n|.)*");
+      console
+          .assertThat()
+          .onceInLog(MessageType.ERROR, "(\n|.)*list: at index #1, got bool, want string(\n|.)*");
     }
   }
 
@@ -421,27 +421,33 @@ public class SkylarkParserTest {
       }
     };
 
-    @SkylarkSignature(name = "transform", returnType = MockTransform.class,
-        doc = "A mock Transform", objectType = Mock.class,
+    @SkylarkSignature(
+        name = "transform",
+        returnType = MockTransform.class,
+        doc = "A mock Transform",
+        objectType = Mock.class,
         parameters = {
-            @Param(name = "self", type = Mock.class, doc = "self"),
-            @Param(name = "field1", type = String.class, defaultValue = "None", noneable = true),
-            @Param(name = "field2", type = String.class, defaultValue = "None", noneable = true),
-            @Param(name = "list", type = SkylarkList.class,
-                generic1 = String.class, defaultValue = "[]"),
+          @Param(name = "self", type = Mock.class, doc = "self"),
+          @Param(name = "field1", type = String.class, defaultValue = "None", noneable = true),
+          @Param(name = "field2", type = String.class, defaultValue = "None", noneable = true),
+          @Param(
+              name = "list",
+              type = SkylarkList.class,
+              generic1 = String.class,
+              defaultValue = "[]"),
         },
         documented = false)
-    public static final BuiltinFunction transform = new BuiltinFunction("transform") {
-      @SuppressWarnings("unused")
-      public MockTransform invoke(Mock self, Object field1, Object field2, SkylarkList list)
-          throws EvalException, InterruptedException {
-
-        return new MockTransform(
-            Type.STRING.convertOptional(field1, "field1"),
-            Type.STRING.convertOptional(field2, "field2"),
-            Type.STRING_LIST.convert(list, "list"));
-      }
-    };
+    public static final BuiltinFunction transform =
+        new BuiltinFunction("transform") {
+          @SuppressWarnings("unused")
+          public MockTransform invoke(Mock self, Object field1, Object field2, SkylarkList<?> list)
+              throws EvalException, InterruptedException {
+            return new MockTransform(
+                field1 == Runtime.NONE ? "" : (String) field1,
+                field2 == Runtime.NONE ? "" : (String) field2,
+                SkylarkUtil.convertStringList(list, "list"));
+          }
+        };
   }
 
   public static class MockOrigin implements Origin<Revision> {

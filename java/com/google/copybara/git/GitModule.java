@@ -45,6 +45,7 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -77,7 +78,6 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -135,52 +135,99 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "origin",
-      doc = "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
-          + "`gerrit_origin`.<br><br>"
-          + "All the origins in this module accept several string formats as reference (When"
-          + " copybara is called in the form of `copybara config workflow reference`):<br>"
-          + "<ul>"
-          + "<li>**Branch name:** For example `master`</li>"
-          + "<li>**An arbitrary reference:** `refs/changes/20/50820/1`</li>"
-          + "<li>**A SHA-1:** Note that it has to be reachable from the default refspec</li>"
-          + "<li>**A Git repository URL and reference:** `http://github.com/foo master`</li>"
-          + "<li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li>"
-          + "</ul><br>"
-          + "So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>"
-          + "`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>"
-          + "This will use the pull request as the origin URL and reference.",
+  @SkylarkCallable(
+      name = "origin",
+      doc =
+          "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
+              + "`gerrit_origin`.<br><br>All the origins in this module accept several string"
+              + " formats as reference (When copybara is called in the form of `copybara config"
+              + " workflow reference`):<br><ul><li>**Branch name:** For example"
+              + " `master`</li><li>**An arbitrary reference:**"
+              + " `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable"
+              + " from the default refspec</li><li>**A Git repository URL and reference:**"
+              + " `http://github.com/foo master`</li><li>**A GitHub pull request URL:**"
+              + " `https://github.com/some_project/pull/1784`</li></ul><br>So for example,"
+              + " Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara"
+              + " copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This"
+              + " will use the pull request as the origin URL and reference.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL of the git repository"),
-          @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
-              named = true,
-              doc = "Represents the default reference that will be used for reading the revision "
-                  + "from the git repository. For example: 'master'"),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
-              positional = false,
-              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "include_branch_commit_logs", type = Boolean.class, defaultValue = "False",
-              named = true, positional = false,
-              doc = "Whether to include raw logs of branch commits in the migrated change message."
-                  + "WARNING: This field is deprecated in favor of 'first_parent' one."
-                  + " This setting *only* affects merge commits."),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
-              positional = false,
-              doc = "If true, it only uses the first parent when looking for changes. Note that"
-                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch."),
-          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
-          @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
-              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true),
-          @Param(name = "version_selector", type = LatestVersionSelector.class, defaultValue = "None",
-              named = true, positional = false, doc = "Select a custom version (tag)to migrate"
-              + " instead of 'ref'", noneable = true),
-      }, useLocation = true)
-  public GitOrigin origin(String url, Object ref, String submodules,
-      Boolean includeBranchCommitLogs, Boolean firstParent, Object patch, Object describeVersion,
-      Object versionSelector, Location location)
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the git repository"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            noneable = true,
+            defaultValue = "None",
+            named = true,
+            doc =
+                "Represents the default reference that will be used for reading the revision "
+                    + "from the git repository. For example: 'master'"),
+        @Param(
+            name = "submodules",
+            type = String.class,
+            defaultValue = "'NO'",
+            named = true,
+            positional = false,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "include_branch_commit_logs",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "Whether to include raw logs of branch commits in the migrated change message."
+                    + "WARNING: This field is deprecated in favor of 'first_parent' one."
+                    + " This setting *only* affects merge commits."),
+        @Param(
+            name = "first_parent",
+            type = Boolean.class,
+            defaultValue = "True",
+            named = true,
+            positional = false,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch."),
+        @Param(
+            name = PATCH_FIELD,
+            type = Transformation.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc = PATCH_FIELD_DESC),
+        @Param(
+            name = "describe_version",
+            type = Boolean.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC,
+            noneable = true),
+        @Param(
+            name = "version_selector",
+            type = LatestVersionSelector.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'",
+            noneable = true),
+      },
+      useLocation = true)
+  public GitOrigin origin(
+      String url,
+      Object ref,
+      String submodules,
+      Boolean includeBranchCommitLogs,
+      Boolean firstParent,
+      Object patch,
+      Object describeVersion,
+      Object versionSelector,
+      Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
@@ -192,10 +239,14 @@ public class GitModule implements LabelsAwareModule {
     }
 
     return GitOrigin.newGitOrigin(
-        options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
-        GitRepoType.GIT, stringToEnum(location, "submodules",
-            submodules, GitOrigin.SubmoduleStrategy.class),
-        includeBranchCommitLogs, firstParent, patchTransformation,
+        options,
+        fixHttp(url, location),
+        ref == Runtime.NONE ? null : (String) ref,
+        GitRepoType.GIT,
+        stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        includeBranchCommitLogs,
+        firstParent,
+        patchTransformation,
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null));
   }
@@ -323,55 +374,123 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "gerrit_origin",
-      doc = "Defines a Git origin for Gerrit reviews.\n"
-          + "\n"
-          + "Implicit labels that can be used/exposed:\n"
-          + "\n"
-          + "  - " + GerritChange.GERRIT_CHANGE_NUMBER_LABEL + ": The change number for the Gerrit review.\n"
-          + "  - " + GerritChange.GERRIT_CHANGE_ID_LABEL + ": The change id for the Gerrit review.\n"
-          + "  - " + GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL + ": The description of the Gerrit review.\n"
-          + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
-          + " integrate automatically in the reverse workflow.\n"
-          + "  - " + GerritChange.GERRIT_CHANGE_BRANCH + ": The destination branch for thechange\n"
-          + "  - " + GerritChange.GERRIT_CHANGE_TOPIC + ": The change topic\n"
-          + "  - " + GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL
-          + ": Complete Change-Id with project, branch and Change-Id\n"
-          + "  - " + GerritChange.GERRIT_OWNER_EMAIL_LABEL + ": Owner email\n"
-          + "  - GERRIT_REVIEWER_EMAIL: Multiple value field with the email of the reviewers\n"
-          + "  - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc\n",
+  @SkylarkCallable(
+      name = "gerrit_origin",
+      doc =
+          "Defines a Git origin for Gerrit reviews.\n"
+              + "\n"
+              + "Implicit labels that can be used/exposed:\n"
+              + "\n"
+              + "  - "
+              + GerritChange.GERRIT_CHANGE_NUMBER_LABEL
+              + ": The change number for the Gerrit review.\n"
+              + "  - "
+              + GerritChange.GERRIT_CHANGE_ID_LABEL
+              + ": The change id for the Gerrit review.\n"
+              + "  - "
+              + GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL
+              + ": The description of the Gerrit review.\n"
+              + "  - "
+              + DEFAULT_INTEGRATE_LABEL
+              + ": A label that when exposed, can be used to"
+              + " integrate automatically in the reverse workflow.\n"
+              + "  - "
+              + GerritChange.GERRIT_CHANGE_BRANCH
+              + ": The destination branch for thechange\n"
+              + "  - "
+              + GerritChange.GERRIT_CHANGE_TOPIC
+              + ": The change topic\n"
+              + "  - "
+              + GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL
+              + ": Complete Change-Id with project, branch and Change-Id\n"
+              + "  - "
+              + GerritChange.GERRIT_OWNER_EMAIL_LABEL
+              + ": Owner email\n"
+              + "  - GERRIT_REVIEWER_EMAIL: Multiple value field with the email of the reviewers\n"
+              + "  - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in"
+              + " cc\n",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL of the git repository"),
-          @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
-              named = true,
-              doc = "DEPRECATED. Use git.origin for submitted branches."),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
-              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
-              doc = "If true, it only uses the first parent when looking for changes. Note that"
-                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch.", positional = false),
-          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
-                  + "This field is not required if the workflow hooks don't use the "
-                  + "origin/destination endpoints.",
-              named = true, positional = false,
-              noneable = true),
-          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
-          @Param(name = "branch", type = String.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = "Limit the import to"
-              + " changes that are for this branch. By default imports everything."),
-          @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
-              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true)},
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the git repository"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            noneable = true,
+            defaultValue = "None",
+            named = true,
+            doc = "DEPRECATED. Use git.origin for submitted branches."),
+        @Param(
+            name = "submodules",
+            type = String.class,
+            defaultValue = "'NO'",
+            named = true,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "first_parent",
+            type = Boolean.class,
+            defaultValue = "True",
+            named = true,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch.",
+            positional = false),
+        @Param(
+            name = "api_checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc =
+                "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                    + "This field is not required if the workflow hooks don't use the "
+                    + "origin/destination endpoints.",
+            named = true,
+            positional = false,
+            noneable = true),
+        @Param(
+            name = PATCH_FIELD,
+            type = Transformation.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc = PATCH_FIELD_DESC),
+        @Param(
+            name = "branch",
+            type = String.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc =
+                "Limit the import to"
+                    + " changes that are for this branch. By default imports everything."),
+        @Param(
+            name = "describe_version",
+            type = Boolean.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC,
+            noneable = true)
+      },
       useLocation = true)
-  public GitOrigin gerritOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object checkerObj, Object patch, Object branch, Object describeVersion,
-      Location location) throws EvalException {
+  public GitOrigin gerritOrigin(
+      String url,
+      Object ref,
+      String submodules,
+      Boolean firstParent,
+      Object checkerObj,
+      Object patch,
+      Object branch,
+      Object describeVersion,
+      Location location)
+      throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
-    String refField = Type.STRING.convertOptional(ref, "ref");
+    String refField = ref == Runtime.NONE ? null : (String) ref;
 
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
@@ -543,35 +662,80 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "github_origin",
-      doc = "Defines a Git origin for a Github repository. This origin should be used for public"
-          + " branches. Use " + GITHUB_PR_ORIGIN_NAME + " for importing Pull Requests.",
+  @SkylarkCallable(
+      name = "github_origin",
+      doc =
+          "Defines a Git origin for a Github repository. This origin should be used for public"
+              + " branches. Use "
+              + GITHUB_PR_ORIGIN_NAME
+              + " for importing Pull Requests.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL of the git repository"),
-          @Param(name = "ref", type = String.class, noneable = true, defaultValue = "None",
-              named = true,
-              doc = "Represents the default reference that will be used for reading the revision "
-                  + "from the git repository. For example: 'master'"),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
-              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
-              doc = "If true, it only uses the first parent when looking for changes. Note that"
-                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch.", positional = false),
-          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
-          @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
-              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true),
-          @Param(name = "version_selector", type = LatestVersionSelector.class, defaultValue = "None",
-              named = true, positional = false, doc = "Select a custom version (tag)to migrate"
-              + " instead of 'ref'", noneable = true),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the git repository"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            noneable = true,
+            defaultValue = "None",
+            named = true,
+            doc =
+                "Represents the default reference that will be used for reading the revision "
+                    + "from the git repository. For example: 'master'"),
+        @Param(
+            name = "submodules",
+            type = String.class,
+            defaultValue = "'NO'",
+            named = true,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "first_parent",
+            type = Boolean.class,
+            defaultValue = "True",
+            named = true,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch.",
+            positional = false),
+        @Param(
+            name = PATCH_FIELD,
+            type = Transformation.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc = PATCH_FIELD_DESC),
+        @Param(
+            name = "describe_version",
+            type = Boolean.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC,
+            noneable = true),
+        @Param(
+            name = "version_selector",
+            type = LatestVersionSelector.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'",
+            noneable = true),
       },
-
       useLocation = true)
-  public GitOrigin githubOrigin(String url, Object ref, String submodules,
-      Boolean firstParent, Object patch, Object describeVersion, Object versionSelector,
-      Location location) throws EvalException {
+  public GitOrigin githubOrigin(
+      String url,
+      Object ref,
+      String submodules,
+      Boolean firstParent,
+      Object patch,
+      Object describeVersion,
+      Object versionSelector,
+      Location location)
+      throws EvalException {
     check(
         location, GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location)),
         "Invalid Github URL: %s", url);
@@ -586,11 +750,16 @@ public class GitModule implements LabelsAwareModule {
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
-        options, fixHttp(url, location), Type.STRING.convertOptional(ref, "ref"),
-        GitRepoType.GITHUB, stringToEnum(location, "submodules",
-            submodules, GitOrigin.SubmoduleStrategy.class),
-        /*includeBranchCommitLogs=*/false, firstParent, patchTransformation,
-        convertDescribeVersion(describeVersion), convertFromNoneable(versionSelector, null));
+        options,
+        fixHttp(url, location),
+        ref == Runtime.NONE ? null : (String) ref,
+        GitRepoType.GITHUB,
+        stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        /*includeBranchCommitLogs=*/ false,
+        firstParent,
+        patchTransformation,
+        convertDescribeVersion(describeVersion),
+        convertFromNoneable(versionSelector, null));
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -1013,9 +1182,9 @@ public class GitModule implements LabelsAwareModule {
       Object checkerObj, Object integrates, Object topicObj, Location location) throws EvalException {
     checkNotEmpty(url, "url", location);
 
-    List<String> newReviewers = Type.STRING_LIST.convert(reviewers, "reviewers");
-    List<String> cc = Type.STRING_LIST.convert(ccParam, "cc");
-    List<String> labels = Type.STRING_LIST.convert(labelsParam, "labels");
+    List<String> newReviewers = SkylarkUtil.convertStringList(reviewers, "reviewers");
+    List<String> cc = SkylarkUtil.convertStringList(ccParam, "cc");
+    List<String> labels = SkylarkUtil.convertStringList(labelsParam, "labels");
 
     String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
     check(location, !(submit && notifyOptionStr != null),

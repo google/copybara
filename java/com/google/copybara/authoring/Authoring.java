@@ -27,7 +27,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -139,43 +138,61 @@ public final class Authoring {
             ImmutableSet.of());
       }
 
-    @SkylarkCallable(name = "whitelisted",
+    @SkylarkCallable(
+        name = "whitelisted",
         doc = "Create an individual or team that contributes code.",
         parameters = {
-            @Param(name = "default", type = String.class,  named = true,
-                doc = "The default author for commits in the destination. This is used"
-                    + " in squash mode workflows or when users are not whitelisted."),
-            @Param(name = "whitelist", type = SkylarkList.class,
-                generic1 = String.class,  named = true,
-                doc = "List of white listed authors in the origin. The authors must be unique"),
-        }, useLocation = true)
-    @Example(title = "Only pass thru whitelisted users",
+          @Param(
+              name = "default",
+              type = String.class,
+              named = true,
+              doc =
+                  "The default author for commits in the destination. This is used"
+                      + " in squash mode workflows or when users are not whitelisted."),
+          @Param(
+              name = "whitelist",
+              type = SkylarkList.class,
+              generic1 = String.class,
+              named = true,
+              doc = "List of white listed authors in the origin. The authors must be unique"),
+        },
+        useLocation = true)
+    @Example(
+        title = "Only pass thru whitelisted users",
         before = "",
-        code = "authoring.whitelisted(\n"
-            + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-            + "    whitelist = [\n"
-            + "       \"someuser@myorg.com\",\n"
-            + "       \"other@myorg.com\",\n"
-            + "       \"another@myorg.com\",\n"
-            + "    ],\n"
-            + ")")
-    @Example(title = "Only pass thru whitelisted LDAPs/usernames",
-        before = "Some repositories are not based on email but use LDAPs/usernames. This is also"
-            + " supported since it is up to the origin how to check whether two authors are the same.",
-        code = "authoring.whitelisted(\n"
-            + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-            + "    whitelist = [\n"
-            + "       \"someuser\",\n"
-            + "       \"other\",\n"
-            + "       \"another\",\n"
-            + "    ],\n"
-            + ")")
-    public Authoring whitelisted(String defaultAuthor, SkylarkList<String> whitelist,
-          Location location)
-          throws EvalException {
-        return new Authoring(Author.parse(location, defaultAuthor),
-            AuthoringMappingMode.WHITELISTED,
-            createWhitelist(location, Type.STRING_LIST.convert(whitelist, "whitelist")));
+        code =
+            "authoring.whitelisted(\n"
+                + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
+                + "    whitelist = [\n"
+                + "       \"someuser@myorg.com\",\n"
+                + "       \"other@myorg.com\",\n"
+                + "       \"another@myorg.com\",\n"
+                + "    ],\n"
+                + ")")
+    @Example(
+        title = "Only pass thru whitelisted LDAPs/usernames",
+        before =
+            "Some repositories are not based on email but use LDAPs/usernames. This is also"
+                + " supported since it is up to the origin how to check whether two authors are"
+                + " the same.",
+        code =
+            "authoring.whitelisted(\n"
+                + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
+                + "    whitelist = [\n"
+                + "       \"someuser\",\n"
+                + "       \"other\",\n"
+                + "       \"another\",\n"
+                + "    ],\n"
+                + ")")
+    public Authoring whitelisted(
+        String defaultAuthor, SkylarkList<String> whitelist, Location location)
+        throws EvalException {
+      return new Authoring(
+          Author.parse(location, defaultAuthor),
+          AuthoringMappingMode.WHITELISTED,
+          createWhitelist(
+              location,
+              whitelist.getContents(String.class, "whitelist"))); // can't import SkylarkUtil here
       }
 
     private static ImmutableSet<String> createWhitelist(Location location, List<String> whitelist)

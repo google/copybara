@@ -36,10 +36,10 @@ import java.util.function.Supplier;
 public class SkylarkAction implements Action {
 
   private final BaseFunction function;
-  private final SkylarkDict params;
+  private final SkylarkDict<?, ?> params;
   private final Supplier<Environment> env;
 
-  public SkylarkAction(BaseFunction function, SkylarkDict params, Supplier<Environment> env) {
+  public SkylarkAction(BaseFunction function, SkylarkDict<?, ?> params, Supplier<Environment> env) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.env = Preconditions.checkNotNull(env);

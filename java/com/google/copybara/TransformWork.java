@@ -99,8 +99,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   private final Revision lastRev;
   @Nullable private final Revision currentRev;
   private TransformWork skylarkTransformWork;
-  private final SkylarkDict skylarkTransformParams;
-
+  private final SkylarkDict<?, ?> skylarkTransformParams;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, boolean ignoreNoop) {
@@ -109,10 +108,19 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
         /*lastRev=*/null, /*currentRev=*/null, SkylarkDict.empty(), ignoreNoop);
   }
 
-  private TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
-      MigrationInfo migrationInfo, Revision resolvedReference, TreeState treeState,
-      boolean insideExplicitTransform, @Nullable Revision lastRev,
-      @Nullable Revision currentRev, SkylarkDict skylarkTransformParams, boolean ignoreNoop) {
+  private TransformWork(
+      Path checkoutDir,
+      Metadata metadata,
+      Changes changes,
+      Console console,
+      MigrationInfo migrationInfo,
+      Revision resolvedReference,
+      TreeState treeState,
+      boolean insideExplicitTransform,
+      @Nullable Revision lastRev,
+      @Nullable Revision currentRev,
+      SkylarkDict<?, ?> skylarkTransformParams,
+      boolean ignoreNoop) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
@@ -149,9 +157,11 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
     return metadata.getAuthor();
   }
 
-  @SkylarkCallable(name = "params", doc = "Parameters for the function if created with"
-      + " core.dynamic_transform", structField = true)
-  public SkylarkDict getParams() {
+  @SkylarkCallable(
+      name = "params",
+      doc = "Parameters for the function if created with" + " core.dynamic_transform",
+      structField = true)
+  public SkylarkDict<?, ?> getParams() {
     return skylarkTransformParams;
   }
 
@@ -520,7 +530,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   }
 
   @Override
-  public TransformWork withParams(SkylarkDict params) {
+  public TransformWork withParams(SkylarkDict<?, ?> params) {
     Preconditions.checkNotNull(params);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,
@@ -613,7 +623,7 @@ public final class TransformWork implements SkylarkContext<TransformWork> {
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
         result == null || result.equals(Runtime.NONE),
         "Transform work cannot return any result but returned: %s", result);

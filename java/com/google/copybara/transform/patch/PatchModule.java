@@ -22,6 +22,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.devtools.build.lib.events.Location;
@@ -30,8 +31,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import java.io.IOException;
 
 /**
@@ -60,49 +61,72 @@ public class PatchModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "apply",
-      doc = "A transformation that applies the given patch files. If a path does not exist in a"
-          + " patch, it will be ignored.",
+      doc =
+          "A transformation that applies the given patch files. If a path does not exist in a"
+              + " patch, it will be ignored.",
       parameters = {
-          @Param(name = "patches",
-              type = SkylarkList.class, named = true, generic1 = String.class, defaultValue = "[]",
-              doc = "The list of patchfiles to apply, relative to the current config file."
-                  + "The files will be applied relative to the checkout dir and the leading path"
-                  + "component will be stripped (-p1).<br><br>"
-                  + "This field can be combined with 'series'. Both 'patches' and 'series' will "
-                  + "be applied in order (patches first)."),
-          @Param(name = "excluded_patch_paths",
-              type = SkylarkList.class, named = true, generic1 = String.class, defaultValue = "[]",
-              doc = "The list of paths to exclude from each of the patches. Each of the paths will "
-                  + "be excluded from all the patches. Note that these are not workdir paths, but "
-                  + "paths relative to the patch itself. If not empty, the patch will be applied "
-                  + "using 'git apply' instead of GNU Patch."),
-          @Param(name = "series", named = true, noneable = true, positional = false,
-              type = String.class, defaultValue = "None",
-              doc = "The config file that contains a list of patches to apply. "
-                  + "The <i>series</i> file contains names of the patch files one per line. "
-                  + "The names of the patch files are relative to the <i>series</i> config file. "
-                  + "The files will be applied relative to the checkout dir and the leading path "
-                  + "component will be stripped (-p1).:<br>:<br>"
-                  + "This field can be combined with 'patches'. Both 'patches' and 'series' will "
-                  + "be applied in order (patches first)."),
-          @Param(name = "strip", named = true, positional = false,
-              type = Integer.class, defaultValue = "1",
-              doc = "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
-                  + "By default it uses -p1"),
+        @Param(
+            name = "patches",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc =
+                "The list of patchfiles to apply, relative to the current config file."
+                    + "The files will be applied relative to the checkout dir and the leading path"
+                    + "component will be stripped (-p1).<br><br>"
+                    + "This field can be combined with 'series'. Both 'patches' and 'series' will "
+                    + "be applied in order (patches first)."),
+        @Param(
+            name = "excluded_patch_paths",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc =
+                "The list of paths to exclude from each of the patches. Each of the paths will be"
+                    + " excluded from all the patches. Note that these are not workdir paths, but"
+                    + " paths relative to the patch itself. If not empty, the patch will be"
+                    + " applied using 'git apply' instead of GNU Patch."),
+        @Param(
+            name = "series",
+            named = true,
+            noneable = true,
+            positional = false,
+            type = String.class,
+            defaultValue = "None",
+            doc =
+                "The config file that contains a list of patches to apply. "
+                    + "The <i>series</i> file contains names of the patch files one per line. "
+                    + "The names of the patch files are relative to the <i>series</i> config file. "
+                    + "The files will be applied relative to the checkout dir and the leading path "
+                    + "component will be stripped (-p1).:<br>:<br>"
+                    + "This field can be combined with 'patches'. Both 'patches' and 'series' will "
+                    + "be applied in order (patches first)."),
+        @Param(
+            name = "strip",
+            named = true,
+            positional = false,
+            type = Integer.class,
+            defaultValue = "1",
+            doc =
+                "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
+                    + "By default it uses -p1"),
       },
       useLocation = true)
   @UsesFlags(PatchingOptions.class)
   public PatchTransformation apply(
-      SkylarkList patches,
-      SkylarkList excludedPaths,
+      SkylarkList<?> patches,
+      SkylarkList<?> excludedPaths,
       Object seriesOrNone,
       Integer strip,
-      Location location) throws EvalException {
+      Location location)
+      throws EvalException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
-    for (String patch : Type.STRING_LIST.convert(patches, "patches")) {
+    for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
       builder.add(resolve(patch, location));
     }
-    String series = Type.STRING.convertOptional(seriesOrNone, "series");
+    String series = seriesOrNone == Runtime.NONE ? null : (String) seriesOrNone;
     if (series != null && !series.trim().isEmpty()) {
       try {
         ConfigFile seriesFile = resolve(series.trim(), location);
@@ -125,8 +149,10 @@ public class PatchModule implements LabelsAwareModule {
     }
     return new PatchTransformation(
         builder.build(),
-        ImmutableList.copyOf(Type.STRING_LIST.convert(excludedPaths, "excludedPaths")),
-        patchingOptions, /*reverse=*/ false, strip);
+        ImmutableList.copyOf(SkylarkUtil.convertStringList(excludedPaths, "excludedPaths")),
+        patchingOptions,
+        /*reverse=*/ false,
+        strip);
   }
 
 

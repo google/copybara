@@ -27,8 +27,12 @@ import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.SkylarkDict;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -135,5 +139,74 @@ public final class SkylarkUtil {
           String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
               e.getLabel(), template, fieldName), e);
     }
+  }
+
+  /**
+   * convertStringList converts a Starlark sequence value (such as a list or tuple) to a Java list
+   * of strings. The result is a new, mutable copy. It throws EvalException if x is not a Starlark
+   * iterable or if any of its elements are not strings. The message argument is prefixed to any
+   * error message.
+   */
+  public static List<String> convertStringList(Object x, String message) throws EvalException {
+    // This function is similar to SkylarkList.getContents(String.class, message),
+    // but works for any iterable, and gives better errors.
+    Iterable<?> seq;
+    try {
+      seq = EvalUtils.toIterable(x, null, null);
+    } catch (
+        @SuppressWarnings("UnusedException")
+        EvalException ex) {
+      throw new EvalException(
+          null, String.format("%s: got %s, want sequence", message, EvalUtils.getDataTypeName(x)));
+    }
+    List<String> result = new ArrayList<>();
+    for (Object elem : seq) {
+      if (elem instanceof String) {
+        result.add((String) elem);
+      } else {
+        throw new EvalException(
+            null,
+            String.format(
+                "%s: at index #%d, got %s, want string",
+                message, result.size(), EvalUtils.getDataTypeName(elem)));
+      }
+    }
+    return result;
+  }
+
+  /**
+   * convertStringMap converts a Starlark dict value to a Java map of strings to strings. The result
+   * is a new, mutable copy. It throws EvalException if x is not a Starlark dict or if any of its
+   * keys or values are not strings. The message argument is prefixed to any error message.
+   */
+  public static Map<String, String> convertStringMap(Object x, String message)
+      throws EvalException {
+    // This function is similar to SkylarkList.getContents(String.class, message),
+    // but works for any iterable, and gives better errors.
+
+    // TODO(adonovan): support mappings other than dict.
+    if (!(x instanceof SkylarkDict)) {
+      throw new EvalException(
+          null, String.format("%s: got %s, want dict", message, EvalUtils.getDataTypeName(x)));
+    }
+    Map<String, String> result = new HashMap<>();
+    for (Map.Entry<?, ?> e : ((SkylarkDict<?, ?>) x).entrySet()) {
+      if (!(e.getKey() instanceof String)) {
+        throw new EvalException(
+            null,
+            String.format(
+                "%s: in dict key, got %s, want string",
+                message, EvalUtils.getDataTypeName(e.getKey())));
+      }
+      if (!(e.getValue() instanceof String)) {
+        throw new EvalException(
+            null,
+            String.format(
+                "%s: in value for dict key '%s', got %s, want string",
+                message, e.getKey(), EvalUtils.getDataTypeName(e.getValue())));
+      }
+      result.put((String) e.getKey(), (String) e.getValue());
+    }
+    return result;
   }
 }

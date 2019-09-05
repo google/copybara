@@ -126,8 +126,7 @@ public class FeedbackMigrationContext extends FeedbackContext {
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext actionContext)
-      throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
         result != null,
         "Feedback actions must return a result via built-in functions: success(), "

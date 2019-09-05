@@ -208,7 +208,7 @@ public class WorkflowTest {
     return (Workflow<?, ?>) loadConfig(config).getMigration(name);
   }
 
-  private Workflow iterativeWorkflow(String workflowName, @Nullable String previousRef)
+  private Workflow<?, ?> iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general.withEventMonitor(eventMonitor);
@@ -596,7 +596,7 @@ public class WorkflowTest {
     options.testingOptions.destination =
         new RecordsProcessCallDestination() {
           @Override
-          public Writer newWriter(WriterContext writerContext) {
+          public Writer<Revision> newWriter(WriterContext writerContext) {
             return new WriterImpl(writerContext.isDryRun()) {
               @Override
               public ImmutableList<DestinationEffect> write(
@@ -3149,8 +3149,12 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
         .init(
     );
-    GitRepository destinationBare = newBareRepo(Files.createTempDirectory("destination"), getGitEnv(),
-        /*verbose=*/true, DEFAULT_TIMEOUT);
+    GitRepository destinationBare =
+        newBareRepo(
+            Files.createTempDirectory("destination"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT);
     destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 

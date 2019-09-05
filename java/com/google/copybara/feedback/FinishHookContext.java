@@ -120,7 +120,7 @@ public class FinishHookContext extends FeedbackContext {
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
         result == null || result.equals(Runtime.NONE),
         "Finish hook '%s' cannot return any result but returned: %s",

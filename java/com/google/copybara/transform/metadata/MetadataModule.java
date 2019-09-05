@@ -33,7 +33,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 
@@ -215,9 +214,15 @@ public class MetadataModule {
       check(location, !noopReverse || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'noop_reverse' is not set");
 
-      return MapAuthor.create(location, Type.STRING_DICT.convert(authors, "authors"),
-          reversible, noopReverse, failIfNotFound, reverseFailIfNotFound, mapAll);
-    }
+    return MapAuthor.create(
+        location,
+        SkylarkUtil.convertStringMap(authors, "authors"),
+        reversible,
+        noopReverse,
+        failIfNotFound,
+        reverseFailIfNotFound,
+        mapAll);
+  }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(name = "use_last_change",
@@ -643,13 +648,12 @@ public class MetadataModule {
             String.format("Invalid after_ref regex '%s'.", groups.get("after_ref")));
       }
     }
-    return
-        ReferenceMigrator.create(
-            originPattern,
-            destinationFormat,
-            beforePattern,
-            afterPattern,
-            ImmutableList.copyOf(Type.STRING_LIST.convert(labels, "labels")),
-            location);
+    return ReferenceMigrator.create(
+        originPattern,
+        destinationFormat,
+        beforePattern,
+        afterPattern,
+        ImmutableList.copyOf(SkylarkUtil.convertStringList(labels, "labels")),
+        location);
     }
 }

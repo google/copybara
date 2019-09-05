@@ -180,7 +180,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workflow.getWorkflowOptions().squashSkipHistory;
   }
 
-  Destination getDestination() {
+  Destination<?> getDestination() {
     return workflow.getDestination();
   }
 

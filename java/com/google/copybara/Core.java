@@ -30,6 +30,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -66,7 +67,6 @@ import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -143,164 +143,275 @@ public class Core implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "workflow",
-      doc = "Defines a migration pipeline which can be invoked via the Copybara command.\n"
-          + "\n"
-          + "Implicit labels that can be used/exposed:\n"
-          + "\n"
-          + "  - " + TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL + ": Requested reference. For"
-          + " example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value"
-          + " would be `master`.\n"
-          + "  - " + TransformWork.COPYBARA_LAST_REV + ": Last reference that was migrated\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_REV
-          + ": The current reference being migrated\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE
-          + ": The current message at this point of the transformations\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE_TITLE
-          + ": The current message title (first line) at this point of the transformations\n"
-          + "  - " + TransformWork.COPYBARA_AUTHOR + ": The author of the change\n",
+  @SkylarkCallable(
+      name = "workflow",
+      doc =
+          "Defines a migration pipeline which can be invoked via the Copybara command.\n"
+              + "\n"
+              + "Implicit labels that can be used/exposed:\n"
+              + "\n"
+              + "  - "
+              + TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL
+              + ": Requested reference. For example if copybara is invoked as `copybara"
+              + " copy.bara.sky workflow master`, the value would be `master`.\n"
+              + "  - "
+              + TransformWork.COPYBARA_LAST_REV
+              + ": Last reference that was migrated\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_REV
+              + ": The current reference being migrated\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_MESSAGE
+              + ": The current message at this point of the transformations\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_MESSAGE_TITLE
+              + ": The current message title (first line) at this point of the transformations\n"
+              + "  - "
+              + TransformWork.COPYBARA_AUTHOR
+              + ": The author of the change\n",
       parameters = {
-          @Param(name = "name", named = true, type = String.class,
-              doc = "The name of the workflow.", positional = false),
-          @Param(name = "origin", named = true, type = Origin.class,
-              doc = "Where to read from the code to be migrated, before applying the "
-                  + "transformations. This is usually a VCS like Git, but can also be a local "
-                  + "folder or even a pending change in a code review system like Gerrit.",
-              positional = false),
-          @Param(name = "destination", named = true, type = Destination.class,
-              doc = "Where to write to the code being migrated, after applying the "
-                  + "transformations. This is usually a VCS like Git, but can also be a local "
-                  + "folder or even a pending change in a code review system like Gerrit.",
-              positional = false),
-          @Param(name = "authoring", named = true, type = Authoring.class,
-              doc = "The author mapping configuration from origin to destination.",
-              positional = false),
-          @Param(name = "transformations", named = true, type = SkylarkList.class,
-              doc = "The transformations to be run for this workflow. They will run in sequence.",
-              positional = false, defaultValue = "[]"),
-          @Param(name = "origin_files", named = true, type = Glob.class,
-              doc = "A glob relative to the workdir that will be read from the"
-                  + " origin during the import. For example glob([\"**.java\"]), all java files,"
-                  + " recursively, which excludes all other file types.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "destination_files", named = true, type = Glob.class,
-              doc = "A glob relative to the root of the destination repository that matches"
-                  + " files that are part of the migration. Files NOT matching this glob will never"
-                  + " be removed, even if the file does not exist in the source. For example"
-                  + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination"
-                  + " when the origin does not have any BUILD files. You can also use this to limit"
-                  + " the migration to a subdirectory of the destination,"
-                  + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
-                  + " files in java/src.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "mode", named = true, type = String.class, doc = ""
-              + "Workflow mode. Currently we support four modes:<br>"
-              + "<ul>"
-              + "<li><b>'SQUASH'</b>: Create a single commit in the destination with new tree"
-              + " state.</li>"
-              + "<li><b>'ITERATIVE'</b>: Import each origin change individually.</li>"
-              + "<li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth."
-              + " This could be a GH Pull Request, a Gerrit Change, etc. The final intention should"
-              + " be to submit the change in the SoT (destination in this case).</li>"
-              + "<li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the"
-              + " Source-of-Truth. This mode is useful when, despite the pending change being"
-              + " already in the SoT, the users want to review the code on a different system."
-              + " The final intention should never be to submit in the destination, but just"
-              + " review or test</li>"
-              + "</ul>",
-              defaultValue = "\"SQUASH\"", positional = false),
-          @Param(name = "reversible_check", named = true, type = Boolean.class,
-              doc = "Indicates if the tool should try to to reverse all the transformations"
-                  + " at the end to check that they are reversible.<br/>The default value is"
-                  + " True for 'CHANGE_REQUEST' mode. False otherwise",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = CHECK_LAST_REV_STATE, named = true, type = Boolean.class,
-              doc = "If set to true, Copybara will validate that the destination didn't change"
-                  + " since last-rev import for destination_files. Note that this"
-                  + " flag doesn't work for CHANGE_REQUEST mode.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "ask_for_confirmation", named = true, type = Boolean.class,
-              doc = "Indicates that the tool should show the diff and require user's"
-                  + " confirmation before making a change in the destination.",
-              defaultValue = "False", positional = false),
-          @Param(name = "dry_run", named = true, type = Boolean.class,
-              doc = "Run the migration in dry-run mode. Some destination implementations might"
-                  + " have some side effects (like creating a code review), but never submit to a"
-                  + " main branch.",
-              defaultValue = "False", positional = false),
-          @Param(name = "after_migration", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after one migration happens. This runs once per"
-                  + " change in `ITERATIVE` mode and only once for `SQUASH`.",
-              defaultValue = "[]", positional = false),
-          @Param(name = "after_workflow", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after all the changes for this workflow run are"
-                  + " migrated. Prefer `after_migration` as it is executed per change (in ITERATIVE"
-                  + " mode). Tasks in this hook shouldn't be critical to execute. These actions"
-                  + " shouldn't record effects (They'll be ignored).",
-              defaultValue = "[]", positional = false),
-          @Param(name = "change_identity", named = true, type = String.class,
-              doc = "By default, Copybara hashes several fields so that each change has an"
-                  + " unique identifier that at the same time reuses the generated destination"
-                  + " change. This allows to customize the identity hash generation so that"
-                  + " the same identity is used in several workflows. At least"
-                  + " ${copybara_config_path} has to be present. Current user is added to the"
-                  + " hash automatically.<br><br>"
-                  + "Available variables:"
-                  + "<ul>"
-                  + "  <li>${copybara_config_path}: Main config file path</li>"
-                  + "  <li>${copybara_workflow_name}: The name of the workflow being run</li>"
-                  + "  <li>${copybara_reference}: The requested reference. In general Copybara"
-                  + " tries its best to give a repetable reference. For example Gerrit"
-                  + " change number or change-id or GitHub Pull Request number. If it cannot"
-                  + " find a context reference it uses the resolved revision.</li>"
-                  + "  <li>${label:label_name}: A label present for the current change. Exposed in"
-                  + " the message or not.</li>"
-                  + "</ul>"
-                  + "If any of the labels cannot be found it defaults to the default identity"
-                  + " (The effect would be no reuse of destination change between workflows)",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "set_rev_id", named = true, type = Boolean.class,
-              doc = "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
-                  + " track what was the latest change imported. For certain workflows like"
-                  + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
-                  + " to disable it for that mode. Destinations might ignore the flag.",
-              defaultValue = "True", positional = false),
-          @Param(name = "smart_prune", named = true, type = Boolean.class,
-              doc = "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This"
-                  + " flag does a best-effort approach in restoring the non-affected snippets. For"
-                  + " now we only revert the non-affected files. This only works for CHANGE_REQUEST"
-                  + " mode.",
-              defaultValue = "False", positional = false),
-          @Param(name = "migrate_noop_changes", named = true, type = Boolean.class,
-              doc = "By default, Copybara tries to only migrate changes that affect origin_files"
-                  + " or config files. This flag allows to include all the changes. Note that it"
-                  + " might generate more empty changes errors. In `ITERATIVE` mode it might fail"
-                  + " if some transformation is validating the message (Like has to contain 'PUBLIC'"
-                  + " and the change doesn't contain it because it is internal).",
-              defaultValue = "False", positional = false),
-          @Param(name = "experimental_custom_rev_id", named = true, type = String.class,
-              doc = "Use this label name instead of the one provided by the origin. This is subject"
-                  + " to change and there is no guarantee.",
-              defaultValue = "None", positional = false, noneable = true),
-          @Param(name = "description", type = String.class, named = true, noneable = true,
-              positional = false,
-              doc = "A description of what this workflow achieves", defaultValue = "None"),
-          @Param(name = "checkout", type = Boolean.class, named = true,
-              positional = false,
-              doc = "Allows disabling the checkout. The usage of this feature is rare. This could"
-                  + " be used to update a file of your own repo when a dependant repo version"
-                  + " changes and you are not interested on the files of the dependant repo, just"
-                  + " the new version.", defaultValue = "True"),
+        @Param(
+            name = "name",
+            named = true,
+            type = String.class,
+            doc = "The name of the workflow.",
+            positional = false),
+        @Param(
+            name = "origin",
+            named = true,
+            type = Origin.class,
+            doc =
+                "Where to read from the code to be migrated, before applying the "
+                    + "transformations. This is usually a VCS like Git, but can also be a local "
+                    + "folder or even a pending change in a code review system like Gerrit.",
+            positional = false),
+        @Param(
+            name = "destination",
+            named = true,
+            type = Destination.class,
+            doc =
+                "Where to write to the code being migrated, after applying the "
+                    + "transformations. This is usually a VCS like Git, but can also be a local "
+                    + "folder or even a pending change in a code review system like Gerrit.",
+            positional = false),
+        @Param(
+            name = "authoring",
+            named = true,
+            type = Authoring.class,
+            doc = "The author mapping configuration from origin to destination.",
+            positional = false),
+        @Param(
+            name = "transformations",
+            named = true,
+            type = SkylarkList.class,
+            doc = "The transformations to be run for this workflow. They will run in sequence.",
+            positional = false,
+            defaultValue = "[]"),
+        @Param(
+            name = "origin_files",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob relative to the workdir that will be read from the"
+                    + " origin during the import. For example glob([\"**.java\"]), all java files,"
+                    + " recursively, which excludes all other file types.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "destination_files",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob relative to the root of the destination repository that matches files that"
+                    + " are part of the migration. Files NOT matching this glob will never be"
+                    + " removed, even if the file does not exist in the source. For example"
+                    + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination"
+                    + " when the origin does not have any BUILD files. You can also use this to"
+                    + " limit the migration to a subdirectory of the destination, e.g."
+                    + " glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
+                    + " files in java/src.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "mode",
+            named = true,
+            type = String.class,
+            doc =
+                "Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>:"
+                    + " Create a single commit in the destination with new tree"
+                    + " state.</li><li><b>'ITERATIVE'</b>: Import each origin change"
+                    + " individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to"
+                    + " the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change,"
+                    + " etc. The final intention should be to submit the change in the SoT"
+                    + " (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>:"
+                    + " Import a pending change **from** the Source-of-Truth. This mode is useful"
+                    + " when, despite the pending change being already in the SoT, the users want"
+                    + " to review the code on a different system. The final intention should never"
+                    + " be to submit in the destination, but just review or test</li></ul>",
+            defaultValue = "\"SQUASH\"",
+            positional = false),
+        @Param(
+            name = "reversible_check",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Indicates if the tool should try to to reverse all the transformations"
+                    + " at the end to check that they are reversible.<br/>The default value is"
+                    + " True for 'CHANGE_REQUEST' mode. False otherwise",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = CHECK_LAST_REV_STATE,
+            named = true,
+            type = Boolean.class,
+            doc =
+                "If set to true, Copybara will validate that the destination didn't change"
+                    + " since last-rev import for destination_files. Note that this"
+                    + " flag doesn't work for CHANGE_REQUEST mode.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "ask_for_confirmation",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Indicates that the tool should show the diff and require user's"
+                    + " confirmation before making a change in the destination.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "dry_run",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Run the migration in dry-run mode. Some destination implementations might"
+                    + " have some side effects (like creating a code review), but never submit to a"
+                    + " main branch.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "after_migration",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "Run a feedback workflow after one migration happens. This runs once per"
+                    + " change in `ITERATIVE` mode and only once for `SQUASH`.",
+            defaultValue = "[]",
+            positional = false),
+        @Param(
+            name = "after_workflow",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "Run a feedback workflow after all the changes for this workflow run are migrated."
+                    + " Prefer `after_migration` as it is executed per change (in ITERATIVE mode)."
+                    + " Tasks in this hook shouldn't be critical to execute. These actions"
+                    + " shouldn't record effects (They'll be ignored).",
+            defaultValue = "[]",
+            positional = false),
+        @Param(
+            name = "change_identity",
+            named = true,
+            type = String.class,
+            doc =
+                "By default, Copybara hashes several fields so that each change has an unique"
+                    + " identifier that at the same time reuses the generated destination change."
+                    + " This allows to customize the identity hash generation so that the same"
+                    + " identity is used in several workflows. At least ${copybara_config_path}"
+                    + " has to be present. Current user is added to the hash"
+                    + " automatically.<br><br>Available variables:<ul> "
+                    + " <li>${copybara_config_path}: Main config file path</li> "
+                    + " <li>${copybara_workflow_name}: The name of the workflow being run</li> "
+                    + " <li>${copybara_reference}: The requested reference. In general Copybara"
+                    + " tries its best to give a repetable reference. For example Gerrit change"
+                    + " number or change-id or GitHub Pull Request number. If it cannot find a"
+                    + " context reference it uses the resolved revision.</li> "
+                    + " <li>${label:label_name}: A label present for the current change. Exposed"
+                    + " in the message or not.</li></ul>If any of the labels cannot be found it"
+                    + " defaults to the default identity (The effect would be no reuse of"
+                    + " destination change between workflows)",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "set_rev_id",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
+                    + " track what was the latest change imported. For certain workflows like"
+                    + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
+                    + " to disable it for that mode. Destinations might ignore the flag.",
+            defaultValue = "True",
+            positional = false),
+        @Param(
+            name = "smart_prune",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does"
+                    + " a best-effort approach in restoring the non-affected snippets. For now we"
+                    + " only revert the non-affected files. This only works for CHANGE_REQUEST"
+                    + " mode.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "migrate_noop_changes",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "By default, Copybara tries to only migrate changes that affect origin_files or"
+                    + " config files. This flag allows to include all the changes. Note that it"
+                    + " might generate more empty changes errors. In `ITERATIVE` mode it might"
+                    + " fail if some transformation is validating the message (Like has to contain"
+                    + " 'PUBLIC' and the change doesn't contain it because it is internal).",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "experimental_custom_rev_id",
+            named = true,
+            type = String.class,
+            doc =
+                "Use this label name instead of the one provided by the origin. This is subject"
+                    + " to change and there is no guarantee.",
+            defaultValue = "None",
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            noneable = true,
+            positional = false,
+            doc = "A description of what this workflow achieves",
+            defaultValue = "None"),
+        @Param(
+            name = "checkout",
+            type = Boolean.class,
+            named = true,
+            positional = false,
+            doc =
+                "Allows disabling the checkout. The usage of this feature is rare. This could"
+                    + " be used to update a file of your own repo when a dependant repo version"
+                    + " changes and you are not interested on the files of the dependant repo, just"
+                    + " the new version.",
+            defaultValue = "True"),
       },
-      useLocation = true, useEnvironment = true)
+      useLocation = true,
+      useEnvironment = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
   @DocDefault(field = "destination_files", value = "glob([\"**\"])")
   @DocDefault(field = CHECK_LAST_REV_STATE, value = "True for CHANGE_REQUEST")
   @DocDefault(field = "reversible_check", value = "True for 'CHANGE_REQUEST' mode. False otherwise")
-
-  public void workflow(String workflowName,
-      Origin<Revision> origin, Destination<?> destination,
+  public void workflow(
+      String workflowName,
+      Origin<Revision> origin,
+      Destination<?> destination,
       Authoring authoring,
       SkylarkList<?> transformations,
       Object originFiles,
@@ -689,15 +800,16 @@ public class Core implements LabelsAwareModule {
       SkylarkDict<String, String> regexes, Object paths, Boolean firstOnly,
       Boolean multiline, Boolean repeatedGroups, SkylarkList<String> ignore,
       Location location) throws EvalException {
-    return Replace.create(location,
+    return Replace.create(
+        location,
         before,
         after,
-        Type.STRING_DICT.convert(regexes, "regex_groups"),
+        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
         convertFromNoneable(paths, Glob.ALL_FILES),
         firstOnly,
         multiline,
         repeatedGroups,
-        Type.STRING_LIST.convert(ignore, "patterns_to_ignore"),
+        SkylarkUtil.convertStringList(ignore, "patterns_to_ignore"),
         workflowOptions);
   }
 
@@ -755,9 +867,10 @@ public class Core implements LabelsAwareModule {
       SkylarkDict<String, String> skyMapping, String modeStr, Object paths, Object skyDefault,
       Location location) throws EvalException {
     Mode mode = stringToEnum(location, "mode", modeStr, Mode.class);
-    Map<String, String> mapping = Type.STRING_DICT.convert(skyMapping, "mapping");
+    Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
-    ImmutableList<String> tags = ImmutableList.copyOf(Type.STRING_LIST.convert(skyTags, "tags"));
+    ImmutableList<String> tags =
+        ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
 
     check(location, !tags.isEmpty(), "'tags' cannot be empty");
     if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {

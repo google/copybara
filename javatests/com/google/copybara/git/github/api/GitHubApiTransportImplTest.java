@@ -81,7 +81,7 @@ public class GitHubApiTransportImplTest {
     runTestThrowsHttpResponseException(() -> transport.post("foo/bar", String.class, Status.class));
   }
 
-  private void runTestThrowsHttpResponseException(Callable c) throws Exception {
+  private void runTestThrowsHttpResponseException(Callable<?> c) throws Exception {
     HttpResponseException ex =
         new HttpResponseException.Builder(STATUS_CODE, ERROR_MESSAGE, new HttpHeaders()).build();
     httpTransport = createMockHttpTransport(ex);
@@ -95,7 +95,7 @@ public class GitHubApiTransportImplTest {
     }
   }
 
-  private void runTestThrowsIOException(Callable c) throws Exception {
+  private void runTestThrowsIOException(Callable<?> c) throws Exception {
     IOException ioException = new IOException();
     httpTransport = createMockHttpTransport(ioException);
     transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());

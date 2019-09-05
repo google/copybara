@@ -318,8 +318,8 @@ public enum WorkflowMode {
         WorkflowRunHelper<O, D> runHelper, ImmutableList<O> originRevisions)
         throws RepoException, ValidationException {
 
-      @SuppressWarnings("unchecked")
-      Baseline<O>[] result = new Baseline[]{null};
+      @SuppressWarnings({"unchecked", "rawtypes"})
+      Baseline<O>[] result = new Baseline[] {null};
       runHelper
           .getDestinationWriter()
           .visitChangesWithAnyLabel(
