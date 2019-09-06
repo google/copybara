@@ -200,6 +200,11 @@ public class TodoReplace implements Transformation {
     return "Replacing " + todoTags;
   }
 
+  @Override
+  public Location location() {
+    return location;
+  }
+
   /**
    * How to transforms TODOs in code.
    */

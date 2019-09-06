@@ -16,10 +16,10 @@
 
 package com.google.copybara.transform;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.LocalParallelizer.TransformFunc;
@@ -48,13 +48,15 @@ public final class VerifyMatch implements Transformation {
   private final boolean verifyNoMatch;
   private final Glob fileMatcherBuilder;
   private final LocalParallelizer parallelizer;
+  private final Location location;
 
   private VerifyMatch(Pattern pattern, boolean verifyNoMatch, Glob fileMatcherBuilder,
-      LocalParallelizer parallelizer) {
-    this.pattern = Preconditions.checkNotNull(pattern);
+      LocalParallelizer parallelizer, Location location) {
+    this.pattern = checkNotNull(pattern);
     this.verifyNoMatch = verifyNoMatch;
-    this.fileMatcherBuilder = Preconditions.checkNotNull(fileMatcherBuilder);
+    this.fileMatcherBuilder = checkNotNull(fileMatcherBuilder);
     this.parallelizer = parallelizer;
+    this.location = checkNotNull(location);
   }
 
   @Override
@@ -94,7 +96,7 @@ public final class VerifyMatch implements Transformation {
     private final Path checkoutDir;
 
     private BatchRun(Path checkoutDir) {
-      this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
+      this.checkoutDir = checkNotNull(checkoutDir);
     }
 
     @Override
@@ -119,6 +121,11 @@ public final class VerifyMatch implements Transformation {
   }
 
   @Override
+  public Location location() {
+    return location;
+  }
+
+  @Override
   public Transformation reverse() {
     return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
   }
@@ -131,6 +138,6 @@ public final class VerifyMatch implements Transformation {
     } catch (PatternSyntaxException e) {
       throw new EvalException(location, String.format("Regex '%s' is invalid.", regEx), e);
     }
-    return new VerifyMatch(parsed, verifyNoMatch, paths, parallelizer);
+    return new VerifyMatch(parsed, verifyNoMatch, paths, parallelizer, location);
   }
 }

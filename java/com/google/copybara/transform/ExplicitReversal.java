@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 
 /**
@@ -83,6 +84,11 @@ public final class ExplicitReversal implements Transformation {
   @Override
   public String describe() {
     return forward.describe();
+  }
+
+  @Override
+  public Location location() {
+    return forward.location();
   }
 
   @Override

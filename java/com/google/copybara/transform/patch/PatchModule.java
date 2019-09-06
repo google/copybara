@@ -152,7 +152,8 @@ public class PatchModule implements LabelsAwareModule {
         ImmutableList.copyOf(SkylarkUtil.convertStringList(excludedPaths, "excludedPaths")),
         patchingOptions,
         /*reverse=*/ false,
-        strip);
+        strip,
+        location);
   }
 
 

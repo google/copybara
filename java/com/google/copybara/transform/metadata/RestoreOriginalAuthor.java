@@ -81,4 +81,9 @@ public class RestoreOriginalAuthor implements Transformation {
   public String describe() {
     return "Restoring original author";
   }
+
+  @Override
+  public Location location() {
+    return location;
+  }
 }

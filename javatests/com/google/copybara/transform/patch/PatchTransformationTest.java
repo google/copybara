@@ -32,6 +32,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,7 +105,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1);
+            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -120,7 +121,7 @@ public class PatchTransformationTest {
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1);
+            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
     transform.transform(TransformWorks.of(foo, "testmsg", console));
@@ -131,7 +132,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ true, /*strip=*/1);
+            /*reverse=*/ true, /*strip=*/1, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
@@ -199,7 +200,7 @@ public class PatchTransformationTest {
   public void testDescribe() {
     PatchTransformation transform = new PatchTransformation(
         ImmutableList.of(patchFile, patchFile), excludedFromPatch, patchingOptions,
-        /*reverse=*/ false, /*strip=*/1);
+        /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }
