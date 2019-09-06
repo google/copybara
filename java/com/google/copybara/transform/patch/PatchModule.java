@@ -17,6 +17,7 @@
 package com.google.copybara.transform.patch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.config.SkylarkUtil.check;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
+import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -67,16 +69,14 @@ public class PatchModule implements LabelsAwareModule {
       parameters = {
         @Param(
             name = "patches",
-            type = SkylarkList.class,
             named = true,
-            generic1 = String.class,
             defaultValue = "[]",
             doc =
                 "The list of patchfiles to apply, relative to the current config file."
                     + "The files will be applied relative to the checkout dir and the leading path"
                     + "component will be stripped (-p1).<br><br>"
                     + "This field can be combined with 'series'. Both 'patches' and 'series' will "
-                    + "be applied in order (patches first)."),
+                    + "be applied in order (patches first). **This field doesn't accept a glob**"),
         @Param(
             name = "excluded_patch_paths",
             type = SkylarkList.class,
@@ -116,13 +116,15 @@ public class PatchModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(PatchingOptions.class)
   public PatchTransformation apply(
-      SkylarkList<?> patches,
+      Object patches,
       SkylarkList<?> excludedPaths,
       Object seriesOrNone,
       Integer strip,
       Location location)
       throws EvalException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
+    check(location, !(patches instanceof Glob),
+        "'patches' cannot be a glob, only an explicit list of patches are accepted");
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
       builder.add(resolve(patch, location));
     }

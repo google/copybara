@@ -156,6 +156,12 @@ public class PatchTransformationTest {
   }
 
   @Test
+  public void testGlobInvalid() {
+    skylark.evalFails("patch.apply(patches = glob(['diff.patch']))",
+        "'patches' cannot be a glob, only an explicit list of patches");
+  }
+
+  @Test
   public void testPathStrip() throws Exception {
     patchingOptions.skipVersionCheck = true;
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
