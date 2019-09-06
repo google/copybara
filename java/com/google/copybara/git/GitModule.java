@@ -241,7 +241,7 @@ public class GitModule implements LabelsAwareModule {
     return GitOrigin.newGitOrigin(
         options,
         fixHttp(url, location),
-        ref == Runtime.NONE ? null : (String) ref,
+        SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GIT,
         stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs,
@@ -490,7 +490,7 @@ public class GitModule implements LabelsAwareModule {
       throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
-    String refField = ref == Runtime.NONE ? null : (String) ref;
+    String refField = SkylarkUtil.convertOptionalString(ref);
 
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
@@ -752,7 +752,7 @@ public class GitModule implements LabelsAwareModule {
     return GitOrigin.newGitOrigin(
         options,
         fixHttp(url, location),
-        ref == Runtime.NONE ? null : (String) ref,
+        SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GITHUB,
         stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/ false,

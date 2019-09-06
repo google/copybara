@@ -45,7 +45,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.util.HashMap;
@@ -443,8 +442,8 @@ public class SkylarkParserTest {
           public MockTransform invoke(Mock self, Object field1, Object field2, SkylarkList<?> list)
               throws EvalException, InterruptedException {
             return new MockTransform(
-                field1 == Runtime.NONE ? "" : (String) field1,
-                field2 == Runtime.NONE ? "" : (String) field2,
+                SkylarkUtil.convertOptionalString(field1),
+                SkylarkUtil.convertOptionalString(field2),
                 SkylarkUtil.convertStringList(list, "list"));
           }
         };

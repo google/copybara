@@ -33,7 +33,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 
@@ -128,7 +127,7 @@ public class PatchModule implements LabelsAwareModule {
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
       builder.add(resolve(patch, location));
     }
-    String series = seriesOrNone == Runtime.NONE ? null : (String) seriesOrNone;
+    String series = SkylarkUtil.convertOptionalString(seriesOrNone);
     if (series != null && !series.trim().isEmpty()) {
       try {
         ConfigFile seriesFile = resolve(series.trim(), location);

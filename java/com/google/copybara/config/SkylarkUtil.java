@@ -27,6 +27,7 @@ import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -208,5 +209,15 @@ public final class SkylarkUtil {
       result.put((String) e.getKey(), (String) e.getValue());
     }
     return result;
+  }
+
+  /**
+   * convertOptionalString converts a Starlark optional string value (string or None) to a Java
+   * String reference, which may be null. It throws ClassCastException if called with any other
+   * value.
+   */
+  @Nullable
+  public static String convertOptionalString(Object x) {
+    return x == Runtime.NONE ? null : (String) x;
   }
 }
