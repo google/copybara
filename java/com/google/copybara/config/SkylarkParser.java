@@ -33,11 +33,13 @@ import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.Environment.Extension;
 import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
+import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInputSource;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
+import com.google.devtools.build.lib.syntax.Statement;
 import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
@@ -231,9 +233,13 @@ public class SkylarkParser {
           new InputSourceForConfigFile(content.path(), content.readContent()), eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
-      for (StringLiteral anImport : buildFileAST.getRawImports()) {
-        imports.put(anImport.getValue(),
-            new Extension(eval(content.resolve(anImport.getValue() + BARA_SKY))));
+      for (Statement stmt : buildFileAST.getStatements()) {
+        if (stmt instanceof LoadStatement) {
+          StringLiteral module = ((LoadStatement) stmt).getImport();
+          imports.put(
+              module.getValue(),
+              new Extension(eval(content.resolve(module.getValue() + BARA_SKY))));
+        }
       }
       Environment env = createEnvironment(
           eventHandler,
