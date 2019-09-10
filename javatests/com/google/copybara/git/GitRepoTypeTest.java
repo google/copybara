@@ -76,7 +76,7 @@ public class GitRepoTypeTest {
   }
 
   private void prepareFileRepo() throws Exception {
-    fileRepo = GitRepository.newRepo(true, fileRepoDir, getGitEnv(), DEFAULT_TIMEOUT).init();
+    fileRepo = GitRepository.newRepo(/*verbose*/ true, fileRepoDir, getGitEnv()).init();
     Files.write(fileRepoDir.resolve("foo"), new byte[]{});
 
     fileRepo.add().files("foo").run();

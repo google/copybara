@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static junit.framework.TestCase.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -181,8 +180,8 @@ public class LatestVersionSelectorTest {
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
     repo =
-        GitRepository.newRepo(true, remote, new GitEnvironment(options.general.getEnvironment()),
-            DEFAULT_TIMEOUT)
+        GitRepository.newRepo(
+                /*verbose*/ true, remote, new GitEnvironment(options.general.getEnvironment()))
             .init();
   }
 

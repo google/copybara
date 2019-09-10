@@ -1632,9 +1632,7 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("origin_ref1"));
 
     //    Path localPath = Files.createTempDirectory("local_repo");
-    GitRepository localRepo = GitRepository.newRepo(true, localPath, getEnv(), DEFAULT_TIMEOUT)
-        .init(
-    );
+    GitRepository localRepo = GitRepository.newRepo(/*verbose*/ true, localPath, getEnv()).init();
 
     assertThatCheckout(localRepo, "master")
         .containsFile("test.txt", "some content")

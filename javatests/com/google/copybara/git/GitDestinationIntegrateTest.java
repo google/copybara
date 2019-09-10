@@ -126,9 +126,7 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testDefaultIntegration() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
-        DEFAULT_TIMEOUT)
-        .init();
+    GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
@@ -224,9 +222,7 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testFakeMerge() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
-        DEFAULT_TIMEOUT)
-        .init();
+    GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
@@ -283,9 +279,7 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testIncludeFiles() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
-    GitRepository repo = GitRepository.newRepo(/*verbose=*/true, repoPath, getGitEnv(),
-        DEFAULT_TIMEOUT)
-        .init();
+    GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
     singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
     singleChange(repoPath, repo, "ignore_me2", "Feature2 change");

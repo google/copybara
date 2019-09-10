@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
-import static com.google.copybara.git.GitRepository.newRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -322,8 +321,11 @@ public class GitMirrorTest {
         + ")";
     Path otherRepoPath = Files.createTempDirectory("other_repo");
     GitRepository other =
-        newRepo(true, otherRepoPath, new GitEnvironment(options.general.getEnvironment()),
-            DEFAULT_TIMEOUT).init();
+        GitRepository.newRepo(
+                /*verbose*/ true,
+                otherRepoPath,
+                new GitEnvironment(options.general.getEnvironment()))
+            .init();
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes());
     other.add().files("test2.txt").run();
     other.git(other.getWorkTree(), "commit", "-m", "another file");

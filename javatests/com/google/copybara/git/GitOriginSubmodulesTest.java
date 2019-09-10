@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
@@ -121,9 +120,8 @@ public class GitOriginSubmodulesTest {
   private GitRepository createRepoWithFoo(Path base, String name)
       throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
-    GitRepository r1 = GitRepository.newRepo(false, base.resolve(name), getGitEnv(),
-        DEFAULT_TIMEOUT).init(
-    );
+    GitRepository r1 =
+        GitRepository.newRepo(/*verbose*/ false, base.resolve(name), getGitEnv()).init();
     commitAdd(r1, ImmutableMap.of("foo", "1"));
     return r1;
   }

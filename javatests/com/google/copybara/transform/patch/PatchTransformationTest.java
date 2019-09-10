@@ -18,7 +18,6 @@ package com.google.copybara.transform.patch;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -114,8 +113,7 @@ public class PatchTransformationTest {
 
   @Test
   public void insideGitFolderTest() throws Exception {
-    GitRepository.newRepo(/*verbose=*/ false, checkoutDir, GitTestUtil.getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository.newRepo(/*verbose*/ false, checkoutDir, GitTestUtil.getGitEnv()).init();
 
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));

@@ -1552,8 +1552,7 @@ public class WorkflowTest {
   public void testDryRunWithLocalGitPath() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT).init();
 
@@ -1837,8 +1836,7 @@ public class WorkflowTest {
   @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow("
         + "    name = 'default',"
@@ -1876,8 +1874,7 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
@@ -1951,8 +1948,7 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
 
     String config = "core.workflow(\n"
@@ -2749,7 +2745,7 @@ public class WorkflowTest {
   public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
 
-    GitRepository.newRepo(/*verbose=*/true, workdir, getGitEnv(), DEFAULT_TIMEOUT).init();
+    GitRepository.newRepo(/*verbose*/ true, workdir, getGitEnv()).init();
     Path subdir = Files.createDirectory(workdir.resolve("subdir"));
     String config = ""
         + "core.workflow(\n"
@@ -2862,10 +2858,9 @@ public class WorkflowTest {
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
-    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv(),
-        DEFAULT_TIMEOUT).init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository destination =
+        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
@@ -3088,8 +3083,7 @@ public class WorkflowTest {
   @Test
   public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     options.setForce(false);
     options.workflowOptions.initHistory = true;
@@ -3146,9 +3140,7 @@ public class WorkflowTest {
       throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init(
-    );
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destinationBare =
         newBareRepo(
             Files.createTempDirectory("destination"),
