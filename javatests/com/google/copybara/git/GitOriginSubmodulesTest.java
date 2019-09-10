@@ -117,13 +117,50 @@ public class GitOriginSubmodulesTest {
         .containsNoMoreFiles();
   }
 
+  /**
+   * Test case where parent points to a submodule sha1 that is not reachable from master (branch
+   * only).
+   */
+  @Test
+  public void testSubmoduleRevNotInMaster() throws Exception {
+    Path base = Files.createTempDirectory("base");
+    // Create first repo with one commit that is not reachable from master
+    Files.createDirectories(base.resolve("r1"));
+    GitRepository r1 =
+        GitRepository.newRepo(/*verbose*/ false, base.resolve("r1"), getGitEnv()).init();
+    addFile(r1, "bar", "1");
+    commit(r1, "first commit");
+    r1.simpleCommand("checkout", "-b", "some_branch");
+    addFile(r1, "foo", "1");
+    commit(r1, "message");
+    // Create parent repo pointing to the current state of subrepo
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "--reference",
+        r2.getWorkTree().toString(), "../r1");
+    Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
+    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace("master", ".")
+        .getBytes());
+    commit(r2, "adding r1 submodule");
+
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
+    GitRevision master = origin.resolve("master");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("foo", "1")
+        .containsFile("r1/bar", "1")
+        .containsFile("r1/foo", "1")
+        .containsNoMoreFiles();
+  }
+
   private GitRepository createRepoWithFoo(Path base, String name)
       throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
-    GitRepository r1 =
+    GitRepository repo =
         GitRepository.newRepo(/*verbose*/ false, base.resolve(name), getGitEnv()).init();
-    commitAdd(r1, ImmutableMap.of("foo", "1"));
-    return r1;
+    commitAdd(repo, ImmutableMap.of("foo", "1"));
+    return repo;
   }
 
   /**

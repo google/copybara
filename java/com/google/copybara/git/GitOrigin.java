@@ -258,10 +258,17 @@ public class GitOrigin implements Origin<GitRevision> {
         TreeElement element = Iterables.getOnlyElement(elements);
         Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
+        generalOptions.console()
+            .verboseFmt(
+                "Checking out submodule '%s' with reference '%s'", submodule, element.getRef());
+
         GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submodule.getUrl());
-        subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
-        GitRevision submoduleRef = subRepo.resolveReferenceWithContext(element.getRef(),
-            submodule.getName(), submodule.getUrl());
+        subRepo.fetch(
+            submodule.getUrl(), /*prune*/ true, /*force*/ true,
+            ImmutableList.of("refs/heads/*:refs/heads/*"));
+        GitRevision submoduleRef =
+            subRepo.resolveReferenceWithContext(
+                element.getRef(), submodule.getName(), submodule.getUrl());
 
         Path subdir = workdir.resolve(submodule.getPath());
         try {
