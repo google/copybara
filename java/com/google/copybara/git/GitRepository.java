@@ -91,6 +91,8 @@ public class GitRepository {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
+  public static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofMinutes(15);
+
   // TODO(malcon): Make this generic (Using URIish.java)
   private static final Pattern FULL_URI = Pattern.compile(
       "([a-z][a-z0-9+-]+@[a-zA-Z0-9_.-]+(:.+)?|^[a-z][a-z0-9+-]+://.*)$");
@@ -187,7 +189,7 @@ public class GitRepository {
    * not bare.
    */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
-    return newRepo(verbose, path, gitEnv, DEFAULT_TIMEOUT);
+    return newRepo(verbose, path, gitEnv, DEFAULT_FETCH_TIMEOUT);
   }
 
   /** Create a new bare repository */
