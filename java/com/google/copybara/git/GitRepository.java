@@ -863,9 +863,7 @@ public class GitRepository {
         throw new RepoException("Url is required for submodule " + submoduleName);
       }
       String branch = getSubmoduleField(submoduleName, "branch");
-      if (branch == null) {
-        branch = "master";
-      } else if (branch.equals(".")) {
+      if (branch != null && branch.equals(".")) {
         branch = "HEAD";
       }
       FileUtil.checkNormalizedRelative(path);
