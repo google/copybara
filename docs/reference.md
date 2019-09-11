@@ -80,6 +80,7 @@
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.create_status](#github_api_obj.create_status)
     - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
+    - [github_api_obj.get_authenticated_user](#github_api_obj.get_authenticated_user)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
     - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
@@ -2092,6 +2093,13 @@ Delete a reference.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The name of the reference.</p>
+
+<a id="github_api_obj.get_authenticated_user" aria-hidden="true"></a>
+### github_api_obj.get_authenticated_user
+
+Get autenticated user info, return null if not found
+
+`github_api_user_obj github_api_obj.get_authenticated_user()`
 
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status

@@ -504,6 +504,18 @@ public class GitHubEndpointTest {
         .build());
   }
 
+  @Test
+  public void testGetAuthenticatedUser() throws Exception {
+    String var =
+        "git.github_api(url = 'https://github.com/google/example')"
+            + ".get_authenticated_user()";
+    gitUtil.mockApi(eq("GET"), contains("user"),
+        mockResponse(toJson(ImmutableMap.of("login", "tester"))));
+    skylark.verifyFields(var, ImmutableMap.<String, Object>builder()
+        .put("login", "tester")
+        .build());
+  }
+
   /**
    * A test that uses get_pull_requests.
    */

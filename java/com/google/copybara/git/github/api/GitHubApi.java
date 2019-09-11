@@ -206,6 +206,16 @@ public class GitHubApi {
   }
 
   /**
+   * Get authenticated User https://developer.github.com/v3/users/#get-the-authenticated-user
+   */
+  public User getAuthenticatedUser()
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_authenticated_user")) {
+      return transport.get("user", User.class);
+    }
+  }
+
+  /**
    * Get a specific issue for a project.
    *
    * <p>Use this method to get the Pull Request labels.

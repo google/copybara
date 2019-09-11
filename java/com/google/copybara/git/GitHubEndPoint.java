@@ -46,6 +46,7 @@ import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
+import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
@@ -332,6 +333,21 @@ public class GitHubEndPoint implements Endpoint {
       return returnNullOnNotFound(location, e);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling update_pull_request", e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_authenticated_user",
+      doc = "Get autenticated user info, return null if not found",
+      useLocation = true, allowReturnNones = true)
+  @Nullable
+  public User getAuthenticatedUser(Location location)
+      throws EvalException {
+    try {
+      return apiSupplier.load(console).getAuthenticatedUser();
+    } catch (GitHubApiException e) {
+      return returnNullOnNotFound(location, e);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_authenticated_user", e);
     }
   }
 

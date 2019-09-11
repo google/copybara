@@ -48,6 +48,7 @@ import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
+import com.google.copybara.git.github.api.User;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -176,6 +177,15 @@ public abstract class AbstractGitHubApiTest {
         new UpdatePullRequest("title", "body", UpdatePullRequest.State.CLOSED));
 
     assertThat(validator.wasCalled()).isTrue();
+  }
+
+  @Test
+  public void testAuthenticatedUser() throws Exception {
+    trainMockGet(
+        "/user", getResource("get_authenticated_user_response_testdata.json"));
+    User user =  api.getAuthenticatedUser();
+    assertThat(user.getLogin()).isEqualTo("googletestuser");
+
   }
 
   @Test
