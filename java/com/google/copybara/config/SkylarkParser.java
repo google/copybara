@@ -229,11 +229,12 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
-          new InputSourceForConfigFile(content.path(), content.readContent()), eventHandler);
+      ParserInputSource input =
+          ParserInputSource.create(content.readContent(), PathFragment.create(content.path()));
+      BuildFileAST file = BuildFileAST.parseSkylarkFileWithoutImports(input, eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
-      for (Statement stmt : buildFileAST.getStatements()) {
+      for (Statement stmt : file.getStatements()) {
         if (stmt instanceof LoadStatement) {
           StringLiteral module = ((LoadStatement) stmt).getImport();
           imports.put(
@@ -247,7 +248,7 @@ public class SkylarkParser {
               moduleSet),
           imports);
 
-      checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
+      checkCondition(file.exec(env, eventHandler), "Error loading config file");
       pending.remove(content.path());
       env.mutability().freeze();
       loaded.put(content.path(), env);
@@ -427,27 +428,6 @@ public class SkylarkParser {
           ? "<no location>"
           : event.getLocation().print();
       return location + ": " + event.getMessage();
-    }
-  }
-
-  private static class InputSourceForConfigFile extends ParserInputSource {
-
-    private final String content;
-    private final String path;
-
-    private InputSourceForConfigFile(String path, String content) {
-      this.path = Preconditions.checkNotNull(path);
-      this.content = Preconditions.checkNotNull(content);
-    }
-
-    @Override
-    public char[] getContent() {
-      return content.toCharArray();
-    }
-
-    @Override
-    public PathFragment getPath() {
-      return PathFragment.create(path);
     }
   }
 }
