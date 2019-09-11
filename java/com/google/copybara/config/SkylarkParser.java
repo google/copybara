@@ -231,7 +231,7 @@ public class SkylarkParser {
 
       ParserInputSource input =
           ParserInputSource.create(content.readContent(), PathFragment.create(content.path()));
-      BuildFileAST file = BuildFileAST.parseSkylarkFileWithoutImports(input, eventHandler);
+      BuildFileAST file = BuildFileAST.parseWithoutImports(input, eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
       for (Statement stmt : file.getStatements()) {
