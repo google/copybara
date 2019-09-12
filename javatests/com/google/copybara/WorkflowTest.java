@@ -1802,6 +1802,7 @@ public class WorkflowTest {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
+    writeFile(base1, "excluded/file.txt", "EXCLUDED FOO: Shouldn't be seen");
     writeFile(base1, "folder/deleted.txt", "");
     writeFile(base1, "folder/unmodified.txt", "");
     writeFile(base1, "folder/modified.txt", "foo");
@@ -1816,6 +1817,7 @@ public class WorkflowTest {
     Path base3 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
     FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
 
+    writeFile(base3, "excluded/file.txt", "EXCLUDED bAR: Shouldn't be seen");
     writeFile(base3, "folder/modified.txt", "bar");
     writeFile(base3, "folder/added.txt", "only_in_change");
     origin.addChange(2, base3, "change 2", /*matchesGlob=*/ true);
@@ -1825,7 +1827,8 @@ public class WorkflowTest {
         + "        core.replace(\n"
         + "             before = 'only_in_change',\n"
         + "             after = 'foo',\n"
-        + "        )");
+        + "        )",
+        "          core.verify_match('EXCLUDED', verify_no_match=True)");
     Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
     workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);

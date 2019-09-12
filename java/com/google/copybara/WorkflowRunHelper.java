@@ -499,23 +499,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       processConsole.progress("Checking out the change");
       boolean isShowDiffInOrigin = showDiffInOrigin(rev, lastRev, processConsole);
 
-      if (workflow.isCheckout() ) {
-        try (ProfilerTask ignored = profiler().start(
-            "origin.checkout", profiler().taskType(workflow.getOrigin().getType()))) {
-          reader.checkout(rev, checkoutDir);
-        }
-      }
-
-      // Remove excluded origin files.
-      PathMatcher originFiles = getOriginFiles().relativeTo(checkoutDir);
-      processConsole.progress("Removing excluded origin files");
-
-      int deleted = FileUtil.deleteFilesRecursively(
-          checkoutDir, FileUtil.notPathMatcher(originFiles));
-      if (deleted != 0) {
-        processConsole.infoFmt(
-            "Removed %d files from workdir that do not match origin_files", deleted);
-      }
+      checkout(rev, processConsole, checkoutDir, "origin.checkout");
 
       Path originCopy = null;
       if (getReverseTransformForCheck() != null) {
@@ -625,7 +609,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               "smart_prune is not compatible with %s flag for now",
               WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG);
           Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
-          reader.checkout(destinationBaseline.getOriginRevision(), baselineWorkdir);
+
+          PrefixConsole baselineConsole = new PrefixConsole("Migrating baseline for diff: ",
+              workflow.getConsole());
+          checkout(destinationBaseline.getOriginRevision(), baselineConsole, baselineWorkdir,
+              "origin.baseline.checkout");
+
           TransformWork baselineTransformWork =
               new TransformWork(
                   baselineWorkdir,
@@ -634,7 +623,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   metadata,
                   // We don't care about the changes that are imported.
                   changes,
-                  new PrefixConsole("Migrating baseline for diff: ", workflow.getConsole()),
+                  baselineConsole,
                   new MigrationInfo(workflow.getRevIdLabel(), writer),
                   resolvedRef,
                   // Doesn't guarantee that we will not run a ignore_noop = False core.transform but
@@ -671,6 +660,28 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Verify
           .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
       return result;
+    }
+
+    private void checkout(
+        O rev, Console processConsole, Path checkoutDir, String profileDescription)
+        throws RepoException, ValidationException, IOException {
+      if (workflow.isCheckout() ) {
+        try (ProfilerTask ignored = profiler().start(
+            profileDescription, profiler().taskType(workflow.getOrigin().getType()))) {
+          reader.checkout(rev, checkoutDir);
+        }
+      }
+
+      // Remove excluded origin files.
+      PathMatcher originFiles = getOriginFiles().relativeTo(checkoutDir);
+      processConsole.progress("Removing excluded origin files");
+
+      int deleted = FileUtil.deleteFilesRecursively(
+          checkoutDir, FileUtil.notPathMatcher(originFiles));
+      if (deleted != 0) {
+        processConsole.infoFmt(
+            "Removed %d files from workdir that do not match origin_files", deleted);
+      }
     }
   }
 
