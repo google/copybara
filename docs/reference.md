@@ -426,6 +426,9 @@ Name | Type | Description
 <nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <nobr>`--console-file-flush-interval`</nobr> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
 <nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
+<nobr>`--debug-file-break`</nobr> | *string* | Stop when file matching the glob changes
+<nobr>`--debug-metadata-break`</nobr> | *boolean* | Stop when message and/or author changes
+<nobr>`--debug-transform-break`</nobr> | *string* | Stop when transform description matches
 <nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <nobr>`--fetch-timeout`</nobr> | *duration* | Fetch timeout

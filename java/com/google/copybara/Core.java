@@ -89,7 +89,7 @@ import java.util.function.Supplier;
     name = "core",
     doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
-@UsesFlags(GeneralOptions.class)
+    @UsesFlags({GeneralOptions.class, DebugOptions.class})
 public class Core implements LabelsAwareModule {
 
   // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
