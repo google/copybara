@@ -281,21 +281,13 @@ public final class FileUtil {
         CopySymlinkStrategy symlinkStrategy,
         PathMatcher originPathMatcher,
         PathMatcher destPathMatcher,
-        Optional<CopyVisitorValidator> additonalValidator) {
+        Optional<CopyVisitorValidator> additionalValidator) {
       this.to = to;
       this.from = from;
       this.symlinkStrategy = symlinkStrategy;
       this.originPathMatcher = originPathMatcher;
       this.destPathMatcher = destPathMatcher;
-      this.additonalValidator = additonalValidator;
-    }
-
-    CopyVisitor(Path from,
-        Path to,
-        CopySymlinkStrategy symlinkStrategy,
-        PathMatcher originPathMatcher,
-        PathMatcher destPathMatcher) {
-      this(to, from, symlinkStrategy, originPathMatcher, destPathMatcher, Optional.empty());
+      this.additonalValidator = additionalValidator;
     }
 
     @Override
