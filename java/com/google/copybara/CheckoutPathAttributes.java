@@ -17,10 +17,11 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.FuncallExpression.FuncallException;
+import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -40,14 +41,16 @@ public class CheckoutPathAttributes {
     this.attributes = Preconditions.checkNotNull(attributes);
   }
 
-  @SkylarkCallable(name = "size",
-      doc = "The size of the file. Throws an error if file size > 2GB.", structField = true)
-  public int size() throws FuncallException {
+  @SkylarkCallable(
+      name = "size",
+      doc = "The size of the file. Throws an error if file size > 2GB.",
+      structField = true, useLocation = true)
+  public int size(Location location) throws Exception {
     long size = attributes.size();
     try {
       return Math.toIntExact(size);
     } catch (ArithmeticException e) {
-      throw new FuncallException(
+      throw new EvalException(location,
           String.format("File %s is too big to compute the size: %d bytes", path, size));
     }
   }
