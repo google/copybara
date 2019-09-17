@@ -815,7 +815,6 @@ public class GitRepositoryTest {
     setUpForTagTest("message_2");
     repository.tag(TEST_TAG_NAME).withAnnotatedTag("message_3").force(true).run();
     CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
-    String s = commandOutput.getStdout();
     assertThat(commandOutput.getStdout()).matches(
         ".*" + TEST_TAG_NAME + ".*message_3.*\\n");
   }
