@@ -35,7 +35,7 @@ import com.google.devtools.build.lib.syntax.Environment.Extension;
 import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
 import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Mutability;
-import com.google.devtools.build.lib.syntax.ParserInputSource;
+import com.google.devtools.build.lib.syntax.ParserInput;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
@@ -229,8 +229,8 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      ParserInputSource input =
-          ParserInputSource.create(content.readContent(), PathFragment.create(content.path()));
+      ParserInput input =
+          ParserInput.create(content.readContent(), PathFragment.create(content.path()));
       BuildFileAST file = BuildFileAST.parseWithoutImports(input, eventHandler);
 
       Map<String, Extension> imports = new HashMap<>();
