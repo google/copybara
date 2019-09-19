@@ -104,7 +104,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       } catch (GitHubApiException e) {
         if (e.getResponseCode() == ResponseCode.NOT_FOUND
             || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
-          console.infoFmt("Branch %s does not exist", updatedPrBranchName);
+          console.verboseFmt("Branch %s does not exist", updatedPrBranchName);
           logger.atInfo().log("Branch %s does not exist", updatedPrBranchName);
           continue;
         }

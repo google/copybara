@@ -27,6 +27,7 @@ import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -175,6 +176,45 @@ public class GitHubDestinationTest {
   public void testPrToUpdateWithRegularString_deleteRefEnabledByFlag() throws Exception {
     options.github.gitHubDeletePrBranch = true;
     checkPrToUpdateWithRegularString(/*deletePrBranch=*/"False", /*expectDeletePrBranch*/ true);
+  }
+
+  @Test
+  public void testPrToUpdateIngoredForInitHistory() throws Exception {
+    options.workflowOptions.initHistory = true;
+
+    addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    writeFile(this.workdir, "test.txt", "some content");
+    Writer<GitRevision> writer =
+        destinationWithExistingPrBranch("other", "True").newWriter(writerContext);
+    DummyRevision ref = new DummyRevision("origin_ref1");
+    TransformResult result = TransformResults.of(workdir, ref);
+
+    Changes changes = new Changes(
+        ImmutableList.of(
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345")),
+            new Change<>(ref, new Author("foo", "foo@foo.com"), "message",
+                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "6789"))),
+        ImmutableList.of());
+    result = result.withChanges(changes);
+    ImmutableList<DestinationEffect> destinationResult =
+        writer.write(result, destinationFiles, console);
+    assertThat(destinationResult).hasSize(1);
+    assertThat(destinationResult.get(0).getErrors()).isEmpty();
+    assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
+    assertThat(destinationResult.get(0).getDestinationRef().getType()).isEqualTo("commit");
+    assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
+
+    // This is a migration of two changes (use the same ref because mocks)
+    verifyZeroInteractions(gitUtil.httpTransport());
+    GitTesting.assertThatCheckout(remote, "master")
+        .containsFile("test.txt", "some content")
+        .containsNoMoreFiles();
+
+    assertThat(remote.simpleCommand("show-ref").getStdout()).doesNotContain("other");
   }
 
   private void checkPrToUpdateWithRegularString(String deletePrBranch, boolean expectDeletePrBranch)
@@ -351,8 +391,8 @@ public class GitHubDestinationTest {
     GitTesting.assertThatCheckout(remote, "master")
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
-    console.assertThat().onceInLog(MessageType.INFO, "Branch other_12345 does not exist");
-    console.assertThat().onceInLog(MessageType.INFO, "Branch other_6789 does not exist");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Branch other_12345 does not exist");
+    console.assertThat().onceInLog(MessageType.VERBOSE, "Branch other_6789 does not exist");
   }
 
   @Test
@@ -496,30 +536,4 @@ public class GitHubDestinationTest {
             + "    delete_pr_branch = %s,\n"
             + ")", url, fetch, push, prBranchToUpdate, deletePrBranch));
   }
-
-  private void processWithBaselineAndConfirmation(Writer<GitRevision> writer,
-      Glob destinationFiles, DummyRevision originRef, String baseline)
-      throws ValidationException, RepoException, IOException {
-    TransformResult result = TransformResults.of(workdir, originRef);
-    if (baseline != null) {
-      result = result.withBaseline(baseline);
-    }
-
-    Changes changes = new Changes(
-        ImmutableList.of(
-            new Change<>(originRef, new Author("foo", "foo@foo.com"), "message",
-                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "12345")),
-            new Change<>(originRef, new Author("foo", "foo@foo.com"), "message",
-                ZonedDateTime.now(ZoneOffset.UTC), ImmutableListMultimap.of("my_label", "6789"))),
-        ImmutableList.of());
-    result = result.withChanges(changes);
-    ImmutableList<DestinationEffect> destinationResult =
-        writer.write(result, destinationFiles, console);
-    assertThat(destinationResult).hasSize(1);
-    assertThat(destinationResult.get(0).getErrors()).isEmpty();
-    assertThat(destinationResult.get(0).getType()).isEqualTo(Type.CREATED);
-    assertThat(destinationResult.get(0).getDestinationRef().getType()).isEqualTo("commit");
-    assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
-  }
-
 }

@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Transformation;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
@@ -893,8 +894,23 @@ public class GitModule implements LabelsAwareModule {
     String branchToUpdate = convertFromNoneable(prBranchToUpdate, null);
     Boolean deletePrBranch = convertFromNoneable(deletePrBranchParam, null);
     check(location, branchToUpdate != null || deletePrBranch == null,
-        "'delete_pr_branch' can only be set if 'delete_pr_branch' is used");
+        "'delete_pr_branch' can only be set if 'pr_branch_to_update' is used");
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
+
+    String effectivePrBranchToUpdate = branchToUpdate;
+    if (options.get(WorkflowOptions.class).isInitHistory()) {
+      generalOptions
+          .console()
+          .infoFmt("Ignoring field 'pr_branch_to_update' as '--init-history' is set.");
+      effectivePrBranchToUpdate = null;
+    }
+    // First flag has priority, then field, and then (for now) we set it to false.
+    // TODO(malcon): Once this is stable the default will be 'branchToUpdate != null'
+    boolean effectiveDeletePrBranch =
+        gitHubOptions.gitHubDeletePrBranch != null
+            ? gitHubOptions.gitHubDeletePrBranch
+            : deletePrBranch != null ? deletePrBranch : false;
     return new GitDestination(
         repoUrl,
         checkNotEmpty(
@@ -912,14 +928,8 @@ public class GitModule implements LabelsAwareModule {
             generalOptions,
             repoUrl,
             gitHubOptions,
-            branchToUpdate,
-            // First flag has priority, then field, and then (for now) we set it to false.
-            // TODO(malcon): Once this is stable the default will be 'branchToUpdate != null'
-            gitHubOptions.gitHubDeletePrBranch != null
-                ? gitHubOptions.gitHubDeletePrBranch
-                : deletePrBranch != null
-                    ? deletePrBranch
-                    : false,
+            effectivePrBranchToUpdate,
+            effectiveDeletePrBranch,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
         SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
