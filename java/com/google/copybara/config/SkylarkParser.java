@@ -28,6 +28,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkInterfaceUtils;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.BuildFileAST;
 import com.google.devtools.build.lib.syntax.Environment;
@@ -362,7 +363,18 @@ public class SkylarkParser {
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // Create the module object and associate it with the functions
-      Runtime.setupModuleGlobals(env, module);
+      ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
+      try {
+        if (SkylarkInterfaceUtils.getSkylarkModule(module) != null
+            || SkylarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
+          Runtime.setupSkylarkLibrary(envBuilder, module.getConstructor().newInstance());
+        }
+      } catch (ReflectiveOperationException e) {
+        throw new AssertionError(e);
+      }
+      for (Map.Entry<String, Object> envEntry : envBuilder.build().entrySet()) {
+        env.setup(envEntry.getKey(), envEntry.getValue());
+      }
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
         ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(moduleSet.getOptions());
