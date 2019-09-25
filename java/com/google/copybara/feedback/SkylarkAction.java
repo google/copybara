@@ -26,7 +26,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalException.EvalExceptionWithJavaCause;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import java.util.function.Supplier;
 
@@ -57,9 +56,6 @@ public class SkylarkAction implements Action {
       throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
       Throwable cause = e.getCause();
-      if (cause instanceof EvalExceptionWithJavaCause) {
-        cause = cause.getCause();
-      }
       String error =
           String.format("Error while executing the skylark transformation %s: %s. Location: %s",
               function.getName(), e.getMessage(), e.getLocation());
