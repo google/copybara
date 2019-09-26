@@ -72,13 +72,13 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -312,34 +312,59 @@ public class GitModule implements LabelsAwareModule {
         ignoreErrors, useNewIntegrate());
   }
 
-
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "mirror",
+  @SkylarkCallable(
+      name = "mirror",
       doc = "Mirror git references between repositories",
       parameters = {
-          @Param(name = "name", type = String.class, named = true,
-              doc = "Migration name"),
-          @Param(name = "origin", type = String.class, named = true,
-              doc = "Indicates the URL of the origin git repository"),
-          @Param(name = "destination", type = String.class, named = true,
-              doc = "Indicates the URL of the destination git repository"),
-          @Param(name = "refspecs", type = SkylarkList.class, generic1 = String.class, named = true,
-              defaultValue = "['refs/heads/*']",
-              doc = "Represents a list of git refspecs to mirror between origin and destination."
-                  + " For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
-                  + " inside refs/heads to refs/remotes/origin."),
-          @Param(name = "prune", type = Boolean.class, named = true,
-              doc = "Remove remote refs that don't have a origin counterpart",
-              defaultValue = "False"),
-          @Param(name = "description", type = String.class, named = true, noneable = true,
-              positional = false,
-              doc = "A description of what this workflow achieves", defaultValue = "None"),
+        @Param(name = "name", type = String.class, named = true, doc = "Migration name"),
+        @Param(
+            name = "origin",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the origin git repository"),
+        @Param(
+            name = "destination",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the destination git repository"),
+        @Param(
+            name = "refspecs",
+            type = SkylarkList.class,
+            generic1 = String.class,
+            named = true,
+            defaultValue = "['refs/heads/*']",
+            doc =
+                "Represents a list of git refspecs to mirror between origin and destination."
+                    + " For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference"
+                    + " inside refs/heads to refs/remotes/origin."),
+        @Param(
+            name = "prune",
+            type = Boolean.class,
+            named = true,
+            doc = "Remove remote refs that don't have a origin counterpart",
+            defaultValue = "False"),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            noneable = true,
+            positional = false,
+            doc = "A description of what this workflow achieves",
+            defaultValue = "None"),
       },
-      useLocation = true, useEnvironment = true)
+      useLocation = true,
+      useStarlarkThread = true)
   @UsesFlags(GitMirrorOptions.class)
-  public NoneType mirror(String name, String origin, String destination,
-      SkylarkList<String> strRefSpecs, Boolean prune, Object description,
-      Location location, Environment env)
+  public NoneType mirror(
+      String name,
+      String origin,
+      String destination,
+      SkylarkList<String> strRefSpecs,
+      Boolean prune,
+      Object description,
+      Location location,
+      StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitOptions gitOptions = options.get(GitOptions.class);
@@ -356,7 +381,7 @@ public class GitModule implements LabelsAwareModule {
         throw new EvalException(location, e);
       }
     }
-    GlobalMigrations.getGlobalMigrations(env)
+    GlobalMigrations.getGlobalMigrations(thread)
         .addMigration(
             location,
             name,

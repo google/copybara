@@ -61,12 +61,12 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -100,7 +100,7 @@ public class Core implements LabelsAwareModule {
   private final DebugOptions debugOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
-  private Supplier<Environment> dynamicEnvironment;
+  private Supplier<StarlarkThread> dynamicStarlarkThread;
 
   public Core(
       GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions) {
@@ -126,7 +126,8 @@ public class Core implements LabelsAwareModule {
       try {
         if (t instanceof BaseFunction) {
           builder.add(
-              new SkylarkTransformation((BaseFunction) t, SkylarkDict.empty(), dynamicEnvironment)
+              new SkylarkTransformation(
+                      (BaseFunction) t, SkylarkDict.empty(), dynamicStarlarkThread)
                   .reverse());
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
@@ -402,7 +403,7 @@ public class Core implements LabelsAwareModule {
             defaultValue = "True"),
       },
       useLocation = true,
-      useEnvironment = true)
+      useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
   @DocDefault(field = "destination_files", value = "glob([\"**\"])")
@@ -431,14 +432,18 @@ public class Core implements LabelsAwareModule {
       Object description,
       Boolean checkout,
       Location location,
-      Environment env)
+      StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
 
-    Sequence sequenceTransform = Sequence.fromConfig(generalOptions.profiler(),
-        workflowOptions.joinTransformations(),
-        transformations, "transformations", dynamicEnvironment,
-        debugOptions::transformWrapper);
+    Sequence sequenceTransform =
+        Sequence.fromConfig(
+            generalOptions.profiler(),
+            workflowOptions.joinTransformations(),
+            transformations,
+            "transformations",
+            dynamicStarlarkThread,
+            debugOptions::transformWrapper);
     Transformation reverseTransform = null;
     if (!generalOptions.isDisableReversibleCheck()
         && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -484,35 +489,36 @@ public class Core implements LabelsAwareModule {
     }
 
     WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
-    Workflow<Revision, ?> workflow = new Workflow<>(
-        workflowName,
-        convertFromNoneable(description, null),
-        origin,
-        destination,
-        resolvedAuthoring,
-        sequenceTransform,
-        workflowOptions.getLastRevision(),
-        workflowOptions.isInitHistory(),
-        generalOptions,
-        convertFromNoneable(originFiles, Glob.ALL_FILES),
-        convertFromNoneable(destinationFiles, Glob.ALL_FILES),
-        effectiveMode,
-        workflowOptions,
-        reverseTransform,
-        askForConfirmation,
-        mainConfigFile,
-        allConfigFiles,
-        dryRunMode,
-        checkLastRevState || workflowOptions.checkLastRevState,
-        convertFeedbackActions(afterMigrations, location, dynamicEnvironment),
-        convertFeedbackActions(afterAllMigrations, location, dynamicEnvironment),
-        changeIdentity,
-        setRevId,
-        smartPrune,
-        workflowOptions.migrateNoopChanges || migrateNoopChanges,
-        customRevId,
-        checkout);
-    registerGlobalMigration(workflowName, workflow, location, env);
+    Workflow<Revision, ?> workflow =
+        new Workflow<>(
+            workflowName,
+            convertFromNoneable(description, null),
+            origin,
+            destination,
+            resolvedAuthoring,
+            sequenceTransform,
+            workflowOptions.getLastRevision(),
+            workflowOptions.isInitHistory(),
+            generalOptions,
+            convertFromNoneable(originFiles, Glob.ALL_FILES),
+            convertFromNoneable(destinationFiles, Glob.ALL_FILES),
+            effectiveMode,
+            workflowOptions,
+            reverseTransform,
+            askForConfirmation,
+            mainConfigFile,
+            allConfigFiles,
+            dryRunMode,
+            checkLastRevState || workflowOptions.checkLastRevState,
+            convertFeedbackActions(afterMigrations, location, dynamicStarlarkThread),
+            convertFeedbackActions(afterAllMigrations, location, dynamicStarlarkThread),
+            changeIdentity,
+            setRevId,
+            smartPrune,
+            workflowOptions.migrateNoopChanges || migrateNoopChanges,
+            customRevId,
+            checkout);
+    registerGlobalMigration(workflowName, workflow, location, thread);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)
@@ -1063,55 +1069,66 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "transform",
-      doc = "Groups some transformations in a transformation that can contain a particular,"
-          + " manually-specified, reversal, where the forward version and reversed version"
-          + " of the transform are represented as lists of transforms. The is useful if a"
-          + " transformation does not automatically reverse, or if the automatic reversal"
-          + " does not work for some reason."
-          + "<br>"
-          + "If reversal is not provided, the transform will try to compute the reverse of"
-          + " the transformations list.",
+      doc =
+          "Groups some transformations in a transformation that can contain a particular,"
+              + " manually-specified, reversal, where the forward version and reversed version"
+              + " of the transform are represented as lists of transforms. The is useful if a"
+              + " transformation does not automatically reverse, or if the automatic reversal"
+              + " does not work for some reason."
+              + "<br>"
+              + "If reversal is not provided, the transform will try to compute the reverse of"
+              + " the transformations list.",
       parameters = {
-          @Param(
-              name = "transformations",
-              type = SkylarkList.class,
-              generic1 = Transformation.class, named = true,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation."),
-          @Param(
-              name = "reversal",
-              type = SkylarkList.class,
-              generic1 = Transformation.class,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation in reverse.",
-              named = true,
-              positional = false,
-              noneable = true,
-              defaultValue = "None"),
-          @Param(
-              name = "ignore_noop",
-              type = Boolean.class,
-              doc = "In case a noop error happens in the group of transformations (Both forward and"
-                  + " reverse), it will be ignored, but the rest of the transformations in the"
-                  + " group will still be executed. If ignore_noop is not set,"
-                  + " we will apply the closest parent's ignore_noop.",
-              named = true,
-              positional = false,
-              noneable = true,
-              defaultValue = "None"),
+        @Param(
+            name = "transformations",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            named = true,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation."),
+        @Param(
+            name = "reversal",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation in reverse.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "None"),
+        @Param(
+            name = "ignore_noop",
+            type = Boolean.class,
+            doc =
+                "In case a noop error happens in the group of transformations (Both forward and"
+                    + " reverse), it will be ignored, but the rest of the transformations in the"
+                    + " group will still be executed. If ignore_noop is not set,"
+                    + " we will apply the closest parent's ignore_noop.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "None"),
       },
       useLocation = true,
-      useEnvironment = true)
+      useStarlarkThread = true)
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
-  public Transformation transform(SkylarkList<Transformation> transformations,
-      Object reversal, Object ignoreNoop, Location location, Environment env)
+  public Transformation transform(
+      SkylarkList<Transformation> transformations,
+      Object reversal,
+      Object ignoreNoop,
+      Location location,
+      StarlarkThread thread)
       throws EvalException {
-    Sequence forward = Sequence.fromConfig(generalOptions.profiler(),
-        workflowOptions.joinTransformations(),
-        transformations,
-        "transformations",
-        dynamicEnvironment,
-        debugOptions::transformWrapper);
+    Sequence forward =
+        Sequence.fromConfig(
+            generalOptions.profiler(),
+            workflowOptions.joinTransformations(),
+            transformations,
+            "transformations",
+            dynamicStarlarkThread,
+            debugOptions::transformWrapper);
     SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
     Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
@@ -1131,7 +1148,7 @@ public class Core implements LabelsAwareModule {
             workflowOptions.joinTransformations(),
             reverseList,
             "reversal",
-            dynamicEnvironment,
+            dynamicStarlarkThread,
             debugOptions::transformWrapper);
     return new ExplicitReversal(
         forward, reverse, updatedIgnoreNoop);
@@ -1140,58 +1157,75 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "dynamic_transform",
-
-      doc = "Create a dynamic Skylark transformation. This should only be used by libraries"
-          + " developers",
+      doc =
+          "Create a dynamic Skylark transformation. This should only be used by libraries"
+              + " developers",
       parameters = {
-          @Param(name = "impl", named = true, type = BaseFunction.class,
-              doc = "The Skylark function to call"),
-          @Param(name = "params", named = true, type = SkylarkDict.class,
-              doc = "The parameters to the function. Will be available under ctx.params",
-              defaultValue = "{}"),
+        @Param(
+            name = "impl",
+            named = true,
+            type = BaseFunction.class,
+            doc = "The Skylark function to call"),
+        @Param(
+            name = "params",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "The parameters to the function. Will be available under ctx.params",
+            defaultValue = "{}"),
       },
-      useEnvironment = true)
-  @Example(title = "Create a dynamic transformation with parameter",
-      before = "If you want to create a library that uses dynamic transformations, you probably"
-          + " want to make them customizable. In order to do that, in your library.bara.sky, you"
-          + " need to hide the dynamic transformation (prefix with '_' and instead expose a"
-          + " function that creates the dynamic transformation with the param:",
-      code = ""
-          + "def _test_impl(ctx):\n"
-          + "  ctx.set_message("
-          + "ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
-          + "\n"
-          + "def test(name, number = 2):\n"
-          + "  return core.dynamic_transform(impl = _test_impl,\n"
-          + "                           params = { 'name': name, 'number': number})\n"
-          + "\n"
-          + "  ",
+      useStarlarkThread = true)
+  @Example(
+      title = "Create a dynamic transformation with parameter",
+      before =
+          "If you want to create a library that uses dynamic transformations, you probably want to"
+              + " make them customizable. In order to do that, in your library.bara.sky, you need"
+              + " to hide the dynamic transformation (prefix with '_' and instead expose a"
+              + " function that creates the dynamic transformation with the param:",
+      code =
+          ""
+              + "def _test_impl(ctx):\n"
+              + "  ctx.set_message("
+              + "ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
+              + "\n"
+              + "def test(name, number = 2):\n"
+              + "  return core.dynamic_transform(impl = _test_impl,\n"
+              + "                           params = { 'name': name, 'number': number})\n"
+              + "\n"
+              + "  ",
       testExistingVariable = "test",
-      after = "After defining this function, you can use `test('example', 42)` as a transformation"
-          + " in `core.workflow`.")
-  public Transformation dynamic_transform(BaseFunction impl, SkylarkDict<?, ?> params,
-      Environment env) {
-    return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params),
-        dynamicEnvironment);
+      after =
+          "After defining this function, you can use `test('example', 42)` as a transformation"
+              + " in `core.workflow`.")
+  public Transformation dynamic_transform(
+      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+    return new SkylarkTransformation(
+        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "dynamic_feedback",
-
-      doc = "Create a dynamic Skylark feedback migration. This should only be used by libraries"
-          + " developers",
+      doc =
+          "Create a dynamic Skylark feedback migration. This should only be used by libraries"
+              + " developers",
       parameters = {
-          @Param(name = "impl", named = true,
-              type = BaseFunction.class,
-              doc = "The Skylark function to call"),
-          @Param(name = "params", named = true, type = SkylarkDict.class,
-              doc = "The parameters to the function. Will be available under ctx.params",
-              defaultValue = "{}"),
+        @Param(
+            name = "impl",
+            named = true,
+            type = BaseFunction.class,
+            doc = "The Skylark function to call"),
+        @Param(
+            name = "params",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "The parameters to the function. Will be available under ctx.params",
+            defaultValue = "{}"),
       },
-      useEnvironment = true)
-  public Action dynamicFeedback(BaseFunction impl, SkylarkDict<?, ?> params, Environment env) {
-    return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), dynamicEnvironment);
+      useStarlarkThread = true)
+  public Action dynamicFeedback(
+      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+    return new SkylarkAction(
+        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
@@ -1218,52 +1252,65 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "feedback",
-      doc = ""
-          + "Defines a migration of changes' metadata, that can be invoked via the Copybara "
-          + "command in the same way as a regular workflow migrates the change itself.\n"
-          + "\n"
-          + "It is considered change metadata any information associated with a change (pending "
-          + "or submitted) that is not core to the change itself. A few examples:\n"
-          + "<ul>\n"
-          + "  <li> Comments: Present in any code review system. Examples: Github PRs or Gerrit "
-          + "    code reviews.</li>\n"
-          + "  <li> Labels: Used in code review systems for approvals and/or CI results. "
-          + "    Examples: Github labels, Gerrit code review labels.</li>\n"
-          + "</ul>\n"
-          + "For the purpose of this workflow, it is not considered metadata the commit message "
-          + "in Git, or any of the contents of the file tree.\n"
-          + "\n",
+      doc =
+          "Defines a migration of changes' metadata, that can be invoked via the Copybara command"
+              + " in the same way as a regular workflow migrates the change itself.\n"
+              + "\n"
+              + "It is considered change metadata any information associated with a change"
+              + " (pending or submitted) that is not core to the change itself. A few examples:\n"
+              + "<ul>\n"
+              + "  <li> Comments: Present in any code review system. Examples: Github PRs or"
+              + " Gerrit     code reviews.</li>\n"
+              + "  <li> Labels: Used in code review systems for approvals and/or CI results.    "
+              + " Examples: Github labels, Gerrit code review labels.</li>\n"
+              + "</ul>\n"
+              + "For the purpose of this workflow, it is not considered metadata the commit"
+              + " message in Git, or any of the contents of the file tree.\n"
+              + "\n",
       parameters = {
-          @Param(
-              name = "name", type = String.class,
-              doc = "The name of the feedback workflow.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "origin", type = Trigger.class,
-              doc = "The trigger of a feedback migration.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "destination", type = Endpoint.class,
-              doc = "Where to write change metadata to. This is usually a code review system like "
-                  + "Gerrit or Github PR.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "actions", type = SkylarkList.class,
-              doc = ""
-                  + "A list of feedback actions to perform, with the following semantics:\n"
-                  + "  - There is no guarantee of the order of execution.\n"
-                  + "  - Actions need to be independent from each other.\n"
-                  + "  - Failure in one action might prevent other actions from executing.\n",
-              defaultValue = "[]", positional = false, named = true
-          ),
-          @Param(name = "description", type = String.class, named = true, noneable = true,
-              positional = false,
-              doc = "A description of what this workflow achieves", defaultValue = "None"),
-
-      }, useLocation = true, useEnvironment = true)
+        @Param(
+            name = "name",
+            type = String.class,
+            doc = "The name of the feedback workflow.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "origin",
+            type = Trigger.class,
+            doc = "The trigger of a feedback migration.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "destination",
+            type = Endpoint.class,
+            doc =
+                "Where to write change metadata to. This is usually a code review system like "
+                    + "Gerrit or Github PR.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "actions",
+            type = SkylarkList.class,
+            doc =
+                ""
+                    + "A list of feedback actions to perform, with the following semantics:\n"
+                    + "  - There is no guarantee of the order of execution.\n"
+                    + "  - Actions need to be independent from each other.\n"
+                    + "  - Failure in one action might prevent other actions from executing.\n",
+            defaultValue = "[]",
+            positional = false,
+            named = true),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            noneable = true,
+            positional = false,
+            doc = "A description of what this workflow achieves",
+            defaultValue = "None"),
+      },
+      useLocation = true,
+      useStarlarkThread = true)
   @UsesFlags({FeedbackOptions.class})
   /*TODO(danielromero): Add default values*/
   public NoneType feedback(
@@ -1273,10 +1320,10 @@ public class Core implements LabelsAwareModule {
       SkylarkList<?> feedbackActions,
       Object description,
       Location location,
-      Environment env)
+      StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location,
-        dynamicEnvironment);
+    ImmutableList<Action> actions =
+        convertFeedbackActions(feedbackActions, location, dynamicStarlarkThread);
     Feedback migration =
         new Feedback(
             workflowName,
@@ -1286,16 +1333,15 @@ public class Core implements LabelsAwareModule {
             destination,
             actions,
             generalOptions);
-    registerGlobalMigration(workflowName, migration, location, env);
+    registerGlobalMigration(workflowName, migration, location, thread);
     return Runtime.NONE;
   }
 
-  /**
-   * Registers a {@link Migration} in the global registry.
-   */
+  /** Registers a {@link Migration} in the global registry. */
   protected void registerGlobalMigration(
-      String name, Migration migration, Location location, Environment env) throws EvalException {
-    getGlobalMigrations(env).addMigration(location, name, migration);
+      String name, Migration migration, Location location, StarlarkThread thread)
+      throws EvalException {
+    getGlobalMigrations(thread).addMigration(location, name, migration);
   }
 
   @SkylarkCallable(
@@ -1320,12 +1366,12 @@ public class Core implements LabelsAwareModule {
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
-      SkylarkList<?> feedbackActions, Location location, Supplier<Environment> env)
+      SkylarkList<?> feedbackActions, Location location, Supplier<StarlarkThread> thread)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof BaseFunction) {
-        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), env));
+        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), thread));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
@@ -1349,7 +1395,7 @@ public class Core implements LabelsAwareModule {
   }
 
   @Override
-  public void setDynamicEnvironment(Supplier<Environment> dynamicEnvironment) {
-    this.dynamicEnvironment = dynamicEnvironment;
+  public void setDynamicEnvironment(Supplier<StarlarkThread> dynamicStarlarkThread) {
+    this.dynamicStarlarkThread = dynamicStarlarkThread;
   }
 }

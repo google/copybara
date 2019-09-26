@@ -21,8 +21,8 @@ import static com.google.copybara.config.SkylarkUtil.check;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -39,8 +39,8 @@ public class GlobalMigrations {
 
   private final Map<String, Migration> migrations = new HashMap<>();
 
-  public static GlobalMigrations getGlobalMigrations(Environment env) {
-    return (GlobalMigrations) Objects.requireNonNull(env.getGlobals().get(GLOBAL_MIGRATIONS));
+  public static GlobalMigrations getGlobalMigrations(StarlarkThread thread) {
+    return (GlobalMigrations) Objects.requireNonNull(thread.getGlobals().get(GLOBAL_MIGRATIONS));
   }
 
   public Map<String, Migration> getMigrations() {

@@ -33,7 +33,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -107,10 +107,10 @@ public class SkylarkTestExecutor {
   public <T> T evalWithConfigFilePath(String var, String config, String configPath)
       throws ValidationException {
     try {
-      Environment env =
+      StarlarkThread thread =
           skylarkParser.executeSkylark(
               createConfigFile(configPath, config), createModuleSet(), options.general.console());
-      T t = (T) env.getGlobals().get(var);
+      T t = (T) thread.getGlobals().get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {
