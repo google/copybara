@@ -1,0 +1,98 @@
+[
+  {
+    "url": "https://api.github.com/repos/example-org/my-project/pulls/12345/comments/296381461",
+    "pull_request_review_id": 253015315,
+    "id": 12345,
+    "node_id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDI5NjM4MTQ2MQ==",
+    "diff_hunk": "@@ -36,11 +35,16 @@ public GitEnvironment(Map<String, String> environment) {\n   }\n \n   public ImmutableMap<String, String> getEnvironment() {\n-    Map<String, String> env = Maps.newHashMap(environment);\n+    ImmutableMap.Builder<String, String> env = ImmutableMap.builder();",
+    "path": "java/com/google/copybara/git/GitEnvironment.java",
+    "position": 13,
+    "original_position": 13,
+    "commit_id": "228ed14f89c19caed87717a8a53392f58c3a24f9",
+    "original_commit_id": "7a8d55973a82b250e8c206673b2ae1e6bacb97d0",
+    "user": {
+      "login": "googletestuser",
+      "id": 123456,
+      "avatar_url": "https://avatars2.githubusercontent.com/u/123456?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/googletestuser",
+      "html_url": "https://github.com/googletestuser",
+      "followers_url": "https://api.github.com/users/googletestuser/followers",
+      "following_url": "https://api.github.com/users/googletestuser/following{/other_user}",
+      "gists_url": "https://api.github.com/users/googletestuser/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/googletestuser/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/googletestuser/subscriptions",
+      "organizations_url": "https://api.github.com/users/googletestuser/orgs",
+      "repos_url": "https://api.github.com/users/googletestuser/repos",
+      "events_url": "https://api.github.com/users/googletestuser/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/googletestuser/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "body": "This needs to be fixed.",
+    "created_at": "2019-06-21T20:20:20Z",
+    "updated_at": "2019-07-18T15:32:41Z",
+    "html_url": "https://github.com/example-org/my-project/pull/93#discussion_r296381461",
+    "pull_request_url": "https://api.github.com/repos/example-org/my-project/pulls/12345/93",
+    "author_association": "COLLABORATOR",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/example-org/my-project/pulls/12345/comments/296381461"
+      },
+      "html": {
+        "href": "https://github.com/example-org/my-project/pull/93#discussion_r296381461"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/example-org/my-project/pulls/12345/93"
+      }
+    }
+  },
+  {
+    "url": "https://api.github.com/repos/example-org/my-project/pulls/12345/comments/296381461",
+    "pull_request_review_id": 253015315,
+    "id": 12345,
+    "node_id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDI5NjM4MTQ2MQ==",
+    "diff_hunk": "@@ -36,11 +35,16 @@ public GitEnvironment(Map<String, String> environment) {\n   }\n \n   public ImmutableMap<String, String> getEnvironment() {\n-    Map<String, String> env = Maps.newHashMap(environment);\n+    ImmutableMap.Builder<String, String> env = ImmutableMap.builder();",
+    "path": "java/com/google/copybara/git/GitEnvironment.java",
+    "position": 13,
+    "original_position": 13,
+    "commit_id": "228ed14f89c19caed87717a8a53392f58c3a24f9",
+    "original_commit_id": "7a8d55973a82b250e8c206673b2ae1e6bacb97d0",
+    "user": {
+      "login": "googletestuser",
+      "id": 123456,
+      "avatar_url": "https://avatars2.githubusercontent.com/u/123456?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/googletestuser",
+      "html_url": "https://github.com/googletestuser",
+      "followers_url": "https://api.github.com/users/googletestuser/followers",
+      "following_url": "https://api.github.com/users/googletestuser/following{/other_user}",
+      "gists_url": "https://api.github.com/users/googletestuser/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/googletestuser/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/googletestuser/subscriptions",
+      "organizations_url": "https://api.github.com/users/googletestuser/orgs",
+      "repos_url": "https://api.github.com/users/googletestuser/repos",
+      "events_url": "https://api.github.com/users/googletestuser/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/googletestuser/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "body": "This needs to be fixed.",
+    "created_at": "2019-06-21T20:20:20Z",
+    "updated_at": "2019-07-18T15:32:41Z",
+    "html_url": "https://github.com/example-org/my-project/pull/93#discussion_r296381461",
+    "pull_request_url": "https://api.github.com/repos/example-org/my-project/pulls/12345/93",
+    "author_association": "COLLABORATOR",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/example-org/my-project/pulls/12345/comments/296381461"
+      },
+      "html": {
+        "href": "https://github.com/example-org/my-project/pull/93#discussion_r296381461"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/example-org/my-project/pulls/12345/93"
+      }
+    }
+  }
+]

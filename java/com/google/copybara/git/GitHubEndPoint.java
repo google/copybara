@@ -41,6 +41,7 @@ import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
@@ -167,22 +168,26 @@ public class GitHubEndPoint implements Endpoint {
     }
   }
 
-  @SkylarkCallable(name = "update_reference",
+  @SkylarkCallable(
+      name = "update_reference",
       doc = "Update a reference to point to a new commit. Returns the info of the reference.",
       parameters = {
-          @Param(name = "ref", type = String.class, named =  true,
-              doc = "The name of the reference."),
-          @Param(name = "sha", type = String.class, doc = "The id for the commit"
-              + " status.",
-              named =  true),
-          @Param(name = "force", type = Boolean.class, named =  true,
-              doc = "Indicates whether to force the update or to "
-                  + "make sure the update is a fast-forward update. Leaving this out or "
-                  + "setting it to false will make sure you're not overwriting work. Default: false")
-
+        @Param(name = "ref", type = String.class, named = true, doc = "The name of the reference."),
+        @Param(
+            name = "sha",
+            type = String.class,
+            doc = "The id for the commit" + " status.",
+            named = true),
+        @Param(
+            name = "force",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "Indicates whether to force the update or to make sure the update is a"
+                    + " fast-forward update. Leaving this out or setting it to false will make"
+                    + " sure you're not overwriting work. Default: false")
       },
-      useLocation = true
-  )
+      useLocation = true)
   public Ref updateReference(String sha, String ref, boolean force, Location location)
       throws EvalException {
     try {
@@ -370,6 +375,47 @@ public class GitHubEndPoint implements Endpoint {
       return SkylarkList.createImmutable(apiSupplier.load(console).getReferences(project));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_references", e);
+    }
+  }
+
+  @SkylarkCallable(
+      name = "get_pull_request_comment",
+      doc = "Get a pull request comment",
+      parameters = {
+        @Param(name = "comment_id", type = String.class, named = true, doc = "Comment identifier"),
+      },
+      useLocation = true)
+  public PullRequestComment getPullRequestComment(String commentId, Location location)
+      throws EvalException {
+    try {
+      long commentIdLong;
+      try {
+        commentIdLong = Long.parseLong(commentId);
+      } catch (NumberFormatException e) {
+        throw new EvalException(location, "Invalid comment id " + commentId, e);
+      }
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).getPullRequestComment(project, commentIdLong);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_pull_request_comment", e);
+    }
+  }
+
+  @SkylarkCallable(
+      name = "get_pull_request_comments",
+      doc = "Get all pull request comments",
+      parameters = {
+        @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
+      },
+      useLocation = true)
+  public SkylarkList<PullRequestComment> getPullRequestComments(Integer prNumber, Location location)
+      throws EvalException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return SkylarkList.createImmutable(
+          apiSupplier.load(console).getPullRequestComments(project, prNumber));
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling get_pull_request_comments", e);
     }
   }
 

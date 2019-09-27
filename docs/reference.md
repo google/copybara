@@ -83,6 +83,8 @@
     - [github_api_obj.get_authenticated_user](#github_api_obj.get_authenticated_user)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
+    - [github_api_obj.get_pull_request_comment](#github_api_obj.get_pull_request_comment)
+    - [github_api_obj.get_pull_request_comments](#github_api_obj.get_pull_request_comments)
     - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
     - [github_api_obj.get_references](#github_api_obj.get_references)
@@ -2131,6 +2133,34 @@ Get information for a commit in GitHub. Returns None if not found.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The SHA-1 for which we want to get the combined status</p>
+
+<a id="github_api_obj.get_pull_request_comment" aria-hidden="true"></a>
+### github_api_obj.get_pull_request_comment
+
+Get a pull request comment
+
+`github_api_pull_request_comment_obj github_api_obj.get_pull_request_comment(comment_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+comment_id | `string`<br><p>Comment identifier</p>
+
+<a id="github_api_obj.get_pull_request_comments" aria-hidden="true"></a>
+### github_api_obj.get_pull_request_comments
+
+Get all pull request comments
+
+`sequence of github_api_pull_request_comment_obj github_api_obj.get_pull_request_comments(number)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `integer`<br><p>Pull Request number</p>
 
 <a id="github_api_obj.get_pull_requests" aria-hidden="true"></a>
 ### github_api_obj.get_pull_requests

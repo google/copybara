@@ -46,6 +46,7 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Runtime;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -109,27 +110,35 @@ public class GitHubEndpointTest {
             + "    context : 'test'\n"
             + "}"));
 
-    gitUtil.mockApi(anyString(), contains("/git/refs/heads/test"),
-        mockResponse("{\n"
-            + "    ref : 'refs/heads/test',\n"
-            + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-            + "    object : { \n"
-            + "       type : 'commit',\n"
-            + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-            + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-            + "   } \n"
-            + "}"));
+    gitUtil.mockApi(
+        anyString(),
+        contains("/git/refs/heads/test"),
+        mockResponse(
+            "{\n"
+                + "    ref : 'refs/heads/test',\n"
+                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                + "    object : { \n"
+                + "       type : 'commit',\n"
+                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                + "       url :"
+                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "   } \n"
+                + "}"));
 
-    gitUtil.mockApi(eq("GET"), contains("git/refs?per_page=100"),
-        mockResponse("[{\n"
-            + "    ref : 'refs/heads/test',\n"
-            + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-            + "    object : { \n"
-            + "       type : 'commit',\n"
-            + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-            + "       url : 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
-            + "   } \n"
-            + "}]"));
+    gitUtil.mockApi(
+        eq("GET"),
+        contains("git/refs?per_page=100"),
+        mockResponse(
+            "[{\n"
+                + "    ref : 'refs/heads/test',\n"
+                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
+                + "    object : { \n"
+                + "       type : 'commit',\n"
+                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
+                + "       url :"
+                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "   } \n"
+                + "}]"));
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
@@ -294,6 +303,104 @@ public class GitHubEndpointTest {
   }
 
   @Test
+  public void testGetCombinedStatus_notFound() throws Exception {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_combined_status(ref = 'heads/not_found')";
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
+        mockGitHubNotFound());
+    skylark.verifyObject(var, Runtime.NONE);
+  }
+
+  @Test
+  public void testGetPullRequestComment() throws Exception {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_pull_request_comment(comment_id = '12345')";
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/pulls/comments/12345"),
+        mockResponse(toJson(jsonComment())));
+
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("id", "12345")
+            .put("path", "foo/Bar.java")
+            .put("body", "This needs to be fixed.")
+            .put("diff_hunk", "@@ -36,11 +35,16 @@ foo bar")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  private static ImmutableMap<String, ? extends Serializable> jsonComment() {
+    return ImmutableMap.of(
+        "id", 12345,
+        "path", "foo/Bar.java",
+        "body", "This needs to be fixed.",
+        "diff_hunk", "@@ -36,11 +35,16 @@ foo bar");
+  }
+
+  @Test
+  public void testGetPullRequestComment_notFound() {
+    String var =
+        "git.github_api(url ='https://github.com/google/example')"
+            + ".get_pull_request_comment(comment_id = '12345')";
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/pulls/comments/12345"),
+        mockGitHubNotFound());
+    skylark.evalFails(var, "Pull Request Comment not found");
+  }
+
+  @Test
+  public void testGetPullRequestComment_invalidId() {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_pull_request_comment(comment_id = 'foo')";
+    skylark.evalFails(var, "Invalid comment id foo");
+  }
+
+  @Test
+  public void testGetPullRequestComments() throws Exception {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_pull_request_comments(number = 12345)";
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/pulls/12345/comments?per_page=100"),
+        mockResponse(toJson(ImmutableList.of(jsonComment(), jsonComment()))));
+
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("id", "12345")
+            .put("path", "foo/Bar.java")
+            .put("body", "This needs to be fixed.")
+            .put("diff_hunk", "@@ -36,11 +35,16 @@ foo bar")
+            .build();
+    skylark.verifyFields(var + "[0]", expectedFieldValues);
+    skylark.verifyFields(var + "[1]", expectedFieldValues);
+  }
+
+  @Test
+  public void testGetPullRequestComments_notFound() {
+    String var =
+        ""
+            + "git.github_api(url = 'https://github.com/google/example')"
+            + "  .get_pull_request_comments(number = 12345)";
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/pulls/12345/comments?per_page=100"),
+        mockGitHubNotFound());
+    skylark.evalFails(var, "Pull Request Comments not found");
+  }
+
+  @Test
   public void testGetCommit() throws Exception {
     String var = ""
         + "git.github_api(url = 'https://github.com/google/example')"
@@ -331,18 +438,6 @@ public class GitHubEndpointTest {
         + "  .get_reference(ref = 'refs/heads/not_found')";
     gitUtil.mockApi(eq("GET"),
         eq("https://api.github.com/repos/google/example/git/refs/heads/not_found"),
-        mockGitHubNotFound());
-
-    skylark.verifyObject(var, Runtime.NONE);
-  }
-
-  @Test
-  public void test() throws Exception {
-    String var = ""
-        + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_combined_status(ref = 'heads/not_found')";
-    gitUtil.mockApi(eq("GET"),
-        eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
         mockGitHubNotFound());
 
     skylark.verifyObject(var, Runtime.NONE);

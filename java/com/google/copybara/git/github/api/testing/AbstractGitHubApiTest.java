@@ -42,6 +42,7 @@ import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.Label;
 import com.google.copybara.git.github.api.PullRequest;
+import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
@@ -468,6 +469,74 @@ public abstract class AbstractGitHubApiTest {
     assertThat(response.getStatuses().get(0).getDescription())
         .isEqualTo("Build has completed successfully");
     assertThat(response.getStatuses().get(0).getState()).isEqualTo(State.SUCCESS);
+  }
+
+  @Test
+  public void testGetPullRequestComment() throws Exception {
+    trainMockGet(
+        "/repos/example/project/pulls/comments/12345",
+        getResource("pulls_comment_12345_testdata.json"));
+    PullRequestComment pullRequestComment = api.getPullRequestComment("example/project", 12345);
+
+    assertThat(pullRequestComment.getId()).isEqualTo(12345);
+    assertThat(pullRequestComment.getPosition()).isEqualTo(13);
+    assertThat(pullRequestComment.getOriginalPosition()).isEqualTo(13);
+    assertThat(pullRequestComment.getPath())
+        .isEqualTo("java/com/google/copybara/git/GitEnvironment.java");
+    assertThat(pullRequestComment.getUser().getLogin()).isEqualTo("googletestuser");
+    assertThat(pullRequestComment.getCommitId())
+        .isEqualTo("228ed14f89c19caed87717a8a53392f58c3a24f9");
+    assertThat(pullRequestComment.getOriginalCommitId())
+        .isEqualTo("7a8d55973a82b250e8c206673b2ae1e6bacb97d0");
+    assertThat(pullRequestComment.getBody()).isEqualTo("This needs to be fixed.");
+    assertThat(pullRequestComment.getDiffHunk())
+        .isEqualTo(
+            "@@ -36,11 +35,16 @@ public GitEnvironment(Map<String, String> environment) {\n"
+                + "   }\n"
+                + " \n"
+                + "   public ImmutableMap<String, String> getEnvironment() {\n"
+                + "-    Map<String, String> env = Maps.newHashMap(environment);\n"
+                + "+    ImmutableMap.Builder<String, String> env = ImmutableMap.builder();");
+    assertThat(pullRequestComment.getCreatedAt())
+        .isEqualTo(ZonedDateTime.parse("2019-06-21T20:20:20Z"));
+    assertThat(pullRequestComment.getUpdatedAt())
+        .isEqualTo(ZonedDateTime.parse("2019-07-18T15:32:41Z"));
+  }
+
+  @Test
+  public void testGetPullRequestComment_notFound() throws RepoException {
+    try {
+      api.getPullRequestComment("example/project", 12345);
+      fail();
+    } catch (ValidationException expected) {
+      // expected
+    }
+  }
+
+  @Test
+  public void testGetPullRequestComments() throws Exception {
+    trainMockGet(
+        "/repos/example/project/pulls/12345/comments?per_page=100",
+        getResource("pulls_comments_12345_testdata.json"));
+    ImmutableList<PullRequestComment> comments =
+        api.getPullRequestComments("example/project", 12345);
+    assertThat(comments).hasSize(2);
+  }
+
+  @Test
+  public void testGetPullRequestComments_notFound() throws Exception {
+    try {
+      api.getPullRequestComments("example/project", 12345);
+      fail();
+    } catch (ValidationException expected) {
+      // expected
+    }
+  }
+
+  @Test
+  public void testGetPullRequestComments_empty() throws Exception {
+    trainMockGet("/repos/example/project/pulls/12345/comments?per_page=100", "[]".getBytes(UTF_8));
+    assertThat(api.getPullRequestComments("example/project", 12345)).isEmpty();
   }
 
   @Test
