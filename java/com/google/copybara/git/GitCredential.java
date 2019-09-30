@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.regex.Pattern.compile;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -84,7 +85,7 @@ public final class GitCredential {
         cwd.toFile());
     String request = format("protocol=%s\nhost=%s\n", protocol, host);
     if (!Strings.isNullOrEmpty(uri.getPath())) {
-      request += format("path=%s\n", uri.getPath());
+      request += format("path=%s\n", CharMatcher.is('/').trimLeadingFrom(uri.getPath()));
     }
     request += "\n";
 
