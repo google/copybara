@@ -30,6 +30,8 @@ import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkInterfaceUtils;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInput;
@@ -234,8 +236,8 @@ public class SkylarkParser {
 
       ParserInput input =
           ParserInput.create(content.readContent(), PathFragment.create(content.path()));
-      StarlarkFile file = StarlarkFile.parseWithoutImports(input, eventHandler);
-
+      StarlarkFile file = StarlarkFile.parse(input);
+      Event.replayEventsOn(eventHandler, file.errors());
       Map<String, Extension> imports = new HashMap<>();
       for (Statement stmt : file.getStatements()) {
         if (stmt instanceof LoadStatement) {
@@ -252,7 +254,19 @@ public class SkylarkParser {
                   eventHandler, content, mainConfigFile, moduleGlobals, moduleSet),
               imports);
 
-      checkCondition(file.exec(thread, eventHandler), "Error loading config file");
+      // TODO(adonovan): copybara really needs to be calling
+      // ValidationException.validateFile(file, thread, false)
+      // to catch various static errors prior to execution;
+      // this will soon become mandatory. But we can't unconditionally
+      // add this statement without risking breakage of users' configs.
+
+      try {
+        EvalUtils.exec(file, thread);
+      } catch (EvalException ex) {
+        eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
+        checkCondition(false, "Error loading config file");
+      }
+
       pending.remove(content.path());
       thread.mutability().freeze();
       loaded.put(content.path(), thread);
