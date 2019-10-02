@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-bazel_version = "51421724b6038844838a74886e894df16b1bcaf1"
+bazel_version = "867bada0117df8c57a91c6c0005206ba45ffbada"
