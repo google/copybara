@@ -39,16 +39,16 @@ import java.time.ZonedDateTime;
             + " https://developer.github.com/v3/pulls/comments/. This is a subset of the available"
             + " fields in GitHub")
 public class PullRequestComment {
-  @Key private long id;
+  @Key private Long id;
 
   @Key("diff_hunk")
   private String diffHunk;
 
   @Key private String path;
-  @Key private int position;
+  @Key private Integer position;
 
   @Key("original_position")
-  private int originalPosition;
+  private Integer originalPosition;
 
   @Key("commit_id")
   private String commitId;
