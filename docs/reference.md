@@ -78,6 +78,7 @@
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
+    - [git.github_trigger](#git.github_trigger)
     - [git.integrate](#git.integrate)
     - [git.latest_version](#git.latest_version)
     - [git.mirror](#git.mirror)
@@ -2019,6 +2020,30 @@ Name | Type | Description
 <nobr>`--github-required-label`</nobr> | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
 <nobr>`--github-retryable-label`</nobr> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 <nobr>`--github-skip-required-labels`</nobr> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+
+<a id="git.github_trigger" aria-hidden="true"></a>
+### git.github_trigger
+
+Defines a feedback trigger based on updates on a GitHub PR.
+
+`gitHubTrigger git.github_trigger(url, checker=None, events=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the GitHub repo URL.</p>
+checker | `checker`<br><p>A checker for the GitHub API transport provided by this trigger.</p>
+events | `sequence of string`<br><p>Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, </p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--github-destination-delete-pr-branch`</nobr> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate

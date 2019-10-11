@@ -1360,15 +1360,21 @@ public class GitModule implements LabelsAwareModule {
             doc = "A checker for the GitHub API transport provided by this trigger.",
             named = true,
             noneable = true),
-          @Param(name = "events", type = SkylarkList.class, generic1 = String.class, named = true,
-              defaultValue = "[]",
-              doc = "Type of events to subscribe. Valid values are:"
-                  + " `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`, `'PUSH'`, `'STATUS'`, "),
+        @Param(
+            name = "events",
+            type = SkylarkList.class,
+            generic1 = String.class,
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`,"
+                    + " `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`,"
+                    + " `'STATUS'`, "),
       },
-      useLocation = true, documented = false)
+      useLocation = true)
   @UsesFlags(GitHubOptions.class)
-  public GitHubTrigger gitHubTrigger(String url, Object checkerObj, SkylarkList<String> events,
-      Location location)
+  public GitHubTrigger gitHubTrigger(
+      String url, Object checkerObj, SkylarkList<String> events, Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
