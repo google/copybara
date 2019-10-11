@@ -34,8 +34,7 @@ import javax.annotation.Nullable;
 @SuppressWarnings("unused")
 @SkylarkModule(name = "feedback.action_result",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Gives access to the feedback migration information and utilities.",
-    documented = false)
+    doc = "Gives access to the feedback migration information and utilities.")
 public class ActionResult implements SkylarkValue {
 
   private final Result result;

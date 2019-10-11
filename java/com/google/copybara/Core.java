@@ -1285,7 +1285,7 @@ public class Core implements LabelsAwareModule {
             type = Endpoint.class,
             doc =
                 "Where to write change metadata to. This is usually a code review system like "
-                    + "Gerrit or Github PR.",
+                    + "Gerrit or GitHub PR.",
             positional = false,
             named = true),
         @Param(

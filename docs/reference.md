@@ -34,6 +34,12 @@
     - [core.transform](#core.transform)
     - [core.verify_match](#core.verify_match)
     - [core.workflow](#core.workflow)
+  - [destination_effect](#destination_effect)
+  - [destination_ref](#destination_ref)
+  - [endpoint](#endpoint)
+    - [endpoint.new_destination_ref](#endpoint.new_destination_ref)
+    - [endpoint.new_origin_ref](#endpoint.new_origin_ref)
+  - [feedback.action_result](#feedback.action_result)
   - [feedback.context](#feedback.context)
     - [feedback.context.error](#feedback.context.error)
     - [feedback.context.noop](#feedback.context.noop)
@@ -110,6 +116,7 @@
     - [metadata.squash_notes](#metadata.squash_notes)
     - [metadata.use_last_change](#metadata.use_last_change)
     - [metadata.verify_match](#metadata.verify_match)
+  - [origin_ref](#origin_ref)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
   - [Path](#path)
@@ -575,7 +582,7 @@ Parameter | Description
 --------- | -----------
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
-destination | `api`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or Github PR.</p>
+destination | `endpoint`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:
   - There is no guarantee of the order of execution.
   - Actions need to be independent from each other.
@@ -1076,6 +1083,88 @@ Name | Type | Description
 <nobr>`--threads`</nobr> | *int* | Number of threads to use when running transformations that change lot of files
 <nobr>`--threads-min-size`</nobr> | *int* | Minimum size of the lists to process to run them in parallel
 <nobr>`--workflow-identity-user`</nobr> | *string* | Use a custom string as a user for computing change identity
+
+
+
+## destination_effect
+
+Represents an effect that happened in the destination due to a single migration
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+destination_ref | Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).
+errors | List of errors that happened during the migration
+origin_refs | List of origin changes that were included in this migration
+summary | Textual summary of what happened. Users of this class should not try to parse this field.
+type | Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR
+
+
+
+## destination_ref
+
+Reference to the change/review created/updated on the destination.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+id | Destination reference id
+type | Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids
+url | Url, if any, of the destination change
+
+
+
+## endpoint
+
+An origin or destination API in a feedback migration.
+
+<a id="endpoint.new_destination_ref" aria-hidden="true"></a>
+### endpoint.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref endpoint.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string`<br><p>The url associated with this reference, if any.</p>
+
+<a id="endpoint.new_origin_ref" aria-hidden="true"></a>
+### endpoint.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref endpoint.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+
+
+
+## feedback.action_result
+
+Gives access to the feedback migration information and utilities.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+msg | The message associated with the result
+result | The result of this action
 
 
 
@@ -3051,6 +3140,19 @@ Check that the change message contains a text enclosed in <public></public>:
 metadata.verify_match("<public>(.|\n)*</public>")
 ```
 
+
+
+
+## origin_ref
+
+Reference to the change/review in the origin.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+ref | Origin reference ref
 
 
 

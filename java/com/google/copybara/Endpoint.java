@@ -29,7 +29,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 
 /**
- * A feedback API endpoint of an origin or destination.
+ * An origin or destination API in a feedback migration.
  *
  * <p>Endpoints are symmetric, that is, they need to be able to act both as an origin and
  * destination of a feedback migration, which means that they need to support both read and write
@@ -37,10 +37,9 @@ import com.google.devtools.build.lib.syntax.EvalUtils;
  */
 @SuppressWarnings("unused")
 @SkylarkModule(
-    name = "api",
-    doc = "A feedback API endpoint of an origin or destination.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
-    documented = false)
+    name = "endpoint",
+    doc = "An origin or destination API in a feedback migration.",
+    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public interface Endpoint extends SkylarkValue {
 
   /**
