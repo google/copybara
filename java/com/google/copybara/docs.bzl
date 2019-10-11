@@ -31,12 +31,12 @@ def _doc_impl(ctx):
     )
 
     # If suffix file exists, concat, copy otherwise
-    if ctx.attr.suffix_file != None:
+    if ctx.attr.template_file != None:
         ctx.actions.run_shell(
-            inputs = [ctx.files.suffix_file[0], tmp],
+            inputs = [ctx.files.template_file[0], tmp],
             outputs = [ctx.outputs.out],
-            progress_message = "Appending suffix from %s" % ctx.files.suffix_file,
-            command = "cat %s %s >> %s" % (tmp.path, ctx.files.suffix_file[0].path, ctx.outputs.out.path),
+            progress_message = "Appending suffix from %s" % ctx.files.template_file,
+            command = "sed -e '/<!-- Generated reference here -->/r./%s' %s >> %s" % (tmp.path, ctx.files.template_file[0].path, ctx.outputs.out.path),
         )
     else:
         ctx.actions.run(
@@ -59,7 +59,7 @@ doc_generator = rule(
             allow_files = True,
             default = Label("//java/com/google/copybara:doc_skylark.sh"),
         ),
-        "suffix_file": attr.label(mandatory = False, allow_single_file = True),
+        "template_file": attr.label(mandatory = False, allow_single_file = True),
     },
     outputs = {"out": "%{name}.md"},
     implementation = _doc_impl,
