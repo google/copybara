@@ -34,6 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.LoadStatement;
+import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInput;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -42,7 +43,6 @@ import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkThread.Extension;
-import com.google.devtools.build.lib.syntax.StarlarkThread.GlobalFrame;
 import com.google.devtools.build.lib.syntax.Statement;
 import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
@@ -298,7 +298,7 @@ public class SkylarkParser {
       EventHandler printHandler, Map<String, Object> environment, Map<String, Extension> imports) {
     return StarlarkThread.builder(Mutability.create("CopybaraModules"))
         .setSemantics(createSemantics())
-        .setGlobals(GlobalFrame.createForBuiltins(environment))
+        .setGlobals(Module.createForBuiltins(environment))
         .setImportedExtensions(imports)
         .setEventHandler(printHandler)
         .build();
