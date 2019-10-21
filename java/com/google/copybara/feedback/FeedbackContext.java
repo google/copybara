@@ -132,15 +132,20 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       })
   public void recordEffect(
       String summary,
-      List<OriginRef> originRefs,
+      SkylarkList<?> originRefs, // <OriginRef>
       DestinationRef destinationRef,
-      List<String> errors,
+      SkylarkList<?> errors, // <String>
       String typeStr)
       throws EvalException {
     DestinationEffect.Type type =
         SkylarkUtil.stringToEnum(null, "type", typeStr, DestinationEffect.Type.class);
     newDestinationEffects.add(
-        new DestinationEffect(type, summary, originRefs, destinationRef, errors));
+        new DestinationEffect(
+            type,
+            summary,
+            originRefs.getContents(OriginRef.class, "origin_refs"),
+            destinationRef,
+            errors.getContents(String.class, "errors")));
   }
 
   /**

@@ -35,6 +35,7 @@ import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
+import java.util.Map;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
@@ -171,43 +172,77 @@ public class MetadataModule {
       + "})";
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "map_author",
-      doc = "Map the author name and mail to another author. The mapping can be done by both name"
-          + " and mail or only using any of the two.",
+  @SkylarkCallable(
+      name = "map_author",
+      doc =
+          "Map the author name and mail to another author. The mapping can be done by both name"
+              + " and mail or only using any of the two.",
       parameters = {
-          @Param(name = "authors", type = SkylarkDict.class, named = true,
-              doc = "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
-                  + " 'Your Name <some@mail>'. The mapping applies heuristics to know which field"
-                  + " to use in the mapping. The value has to be always in the form of"
-                  + " 'Your Name <some@mail>'"),
-          @Param(name = "reversible", type = Boolean.class, named = true,
-              doc = "If the transform is automatically reversible. Workflows using the reverse of"
-                  + " this transform will be able to automatically map values to keys.",
-              defaultValue = "False"),
-          @Param(name = "noop_reverse", type = Boolean.class, named = true,
-              doc = "If true, the reversal of the transformation doesn't do anything. This is"
-                  + " useful to avoid having to write "
-                  + "`core.transformation(metadata.map_author(...), reversal = [])`.",
-              defaultValue = "False"),
-          @Param(name = "fail_if_not_found", type = Boolean.class, named = true,
-              doc = "Fail if a mapping cannot be found. Helps discovering early authors that should"
-                  + " be in the map",
-              defaultValue = "False"),
-          @Param(name = "reverse_fail_if_not_found", type = Boolean.class, named = true,
-              doc = "Same as fail_if_not_found but when the transform is used in a inverse"
-                  + " workflow.",
-              defaultValue = "False"),
-          @Param(name = "map_all_changes", type = Boolean.class, named = true,
-              doc = "If all changes being migrated should be mapped. Useful for getting a mapped"
-                  + " metadata.squash_notes. By default we only map the current author.",
-              defaultValue = "False")
-      }, useLocation = true)
-  @Example(title = "Map some names, emails and complete authors",
+        @Param(
+            name = "authors",
+            type = SkylarkDict.class,
+            named = true,
+            doc =
+                "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
+                    + " 'Your Name <some@mail>'. The mapping applies heuristics to know which field"
+                    + " to use in the mapping. The value has to be always in the form of"
+                    + " 'Your Name <some@mail>'"),
+        @Param(
+            name = "reversible",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "If the transform is automatically reversible. Workflows using the reverse of"
+                    + " this transform will be able to automatically map values to keys.",
+            defaultValue = "False"),
+        @Param(
+            name = "noop_reverse",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "If true, the reversal of the transformation doesn't do anything. This is"
+                    + " useful to avoid having to write "
+                    + "`core.transformation(metadata.map_author(...), reversal = [])`.",
+            defaultValue = "False"),
+        @Param(
+            name = "fail_if_not_found",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "Fail if a mapping cannot be found. Helps discovering early authors that should"
+                    + " be in the map",
+            defaultValue = "False"),
+        @Param(
+            name = "reverse_fail_if_not_found",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "Same as fail_if_not_found but when the transform is used in a inverse"
+                    + " workflow.",
+            defaultValue = "False"),
+        @Param(
+            name = "map_all_changes",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "If all changes being migrated should be mapped. Useful for getting a mapped"
+                    + " metadata.squash_notes. By default we only map the current author.",
+            defaultValue = "False")
+      },
+      useLocation = true)
+  @Example(
+      title = "Map some names, emails and complete authors",
       before = "Here we show how to map authors using different options:",
       code = MAP_AUTHOR_EXAMPLE_SIMPLE)
-  public Transformation mapAuthor(SkylarkDict<String, String> authors,
-        Boolean reversible, Boolean noopReverse, Boolean failIfNotFound,
-        Boolean reverseFailIfNotFound, Boolean mapAll, Location location) throws EvalException {
+  public Transformation mapAuthor(
+      SkylarkDict<?, ?> authors, // <String, String>
+      Boolean reversible,
+      Boolean noopReverse,
+      Boolean failIfNotFound,
+      Boolean reverseFailIfNotFound,
+      Boolean mapAll,
+      Location location)
+      throws EvalException {
       check(location, reversible || !reverseFailIfNotFound,
           "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
 
@@ -583,69 +618,103 @@ public class MetadataModule {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "map_references",
-      doc = "Allows updating links to references in commit messages to match the destination's "
-          + "format. Note that this will only consider the 5000 latest commits.",
+  @SkylarkCallable(
+      name = "map_references",
+      doc =
+          "Allows updating links to references in commit messages to match the destination's "
+              + "format. Note that this will only consider the 5000 latest commits.",
       parameters = {
-          @Param(name = "before", type = String.class, named = true,
-              doc = "Template for origin references in the change message. Use a '${reference}'"
-                  + " token to capture the actual references. E.g. if the origin uses links"
-                  + "like 'http://changes?1234', the template would be "
-                  + "'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'"),
-          @Param(name = "after", type = String.class, named = true,
-              doc = "Format for references in the destination, use the token '${reference}' "
-                  + "to represent the destination reference. E.g. 'http://changes(${reference})'."),
-          @Param(name = "regex_groups", type = SkylarkDict.class, defaultValue = "{}", named = true,
-              doc = "Regexes for the ${reference} token's content. Requires one 'before_ref' entry"
-                  + " matching the ${reference} token's content on the before side. Optionally"
-                  + " accepts one 'after_ref' used for validation."
-                  + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
-          @Param(name = "additional_import_labels", named = true,
-              type = SkylarkList.class, generic1 = String.class, defaultValue = "[]",
-              doc = "Meant to be used when migrating from another tool: Per default, copybara will "
-                  + "only recognize the labels defined in the workflow's endpoints. The tool will "
-                  + "use these additional labels to find labels created by other invocations and "
-                  + "tools."),
-      }, useLocation = true)
-  @Example(title = "Map references, origin source of truth",
-      before = "Finds links to commits in change messages, searches destination to find the "
-          + "equivalent reference in destination. Then replaces matches of 'before' with 'after', "
-          + "replacing the subgroup matched with the destination reference. Assume a message like"
-          + " 'Fixes bug introduced in origin/abcdef', where the origin change 'abcdef' was "
-          + "migrated as '123456' to the destination.",
-      code = "metadata.map_references(\n"
-          + "    before = \"origin/${reference}\",\n"
-          + "    after = \"destination/${reference}\",\n"
-          + "    regex_groups = {\n"
-          + "        \"before_ref\": \"[0-9a-f]+\",\n"
-          + "        \"after_ref\": \"[0-9]+\",\n"
-          + "    },\n"
-          + "),",
-      after = "This would be translated into 'Fixes bug introduced in destination/123456', provided"
-          + " that a change with the proper label was found - the message remains unchanged "
-          + "otherwise.")
-  public ReferenceMigrator mapReferences(String originPattern,
-        String destinationFormat, SkylarkDict<String, String> groups, SkylarkList<String> labels,
-        Location location)
-        throws EvalException {
-    check(location, groups.containsKey("before_ref")
-        && (groups.size() != 2 || groups.containsKey("after_ref"))
-        && groups.size() <= 2, "Invalid 'regex_groups' - Should only contain 'before_ref' and "
-        + "optionally 'after_ref'. Was: %s.", groups.keySet());
+        @Param(
+            name = "before",
+            type = String.class,
+            named = true,
+            doc =
+                "Template for origin references in the change message. Use a '${reference}'"
+                    + " token to capture the actual references. E.g. if the origin uses links"
+                    + "like 'http://changes?1234', the template would be "
+                    + "'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'"),
+        @Param(
+            name = "after",
+            type = String.class,
+            named = true,
+            doc =
+                "Format for references in the destination, use the token '${reference}' to"
+                    + " represent the destination reference. E.g."
+                    + " 'http://changes(${reference})'."),
+        @Param(
+            name = "regex_groups",
+            type = SkylarkDict.class,
+            defaultValue = "{}",
+            named = true,
+            doc =
+                "Regexes for the ${reference} token's content. Requires one 'before_ref' entry"
+                    + " matching the ${reference} token's content on the before side. Optionally"
+                    + " accepts one 'after_ref' used for validation."
+                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
+        @Param(
+            name = "additional_import_labels",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc =
+                "Meant to be used when migrating from another tool: Per default, copybara will"
+                    + " only recognize the labels defined in the workflow's endpoints. The tool"
+                    + " will use these additional labels to find labels created by other"
+                    + " invocations and tools."),
+      },
+      useLocation = true)
+  @Example(
+      title = "Map references, origin source of truth",
+      before =
+          "Finds links to commits in change messages, searches destination to find the equivalent"
+              + " reference in destination. Then replaces matches of 'before' with 'after',"
+              + " replacing the subgroup matched with the destination reference. Assume a message"
+              + " like 'Fixes bug introduced in origin/abcdef', where the origin change 'abcdef'"
+              + " was migrated as '123456' to the destination.",
+      code =
+          "metadata.map_references(\n"
+              + "    before = \"origin/${reference}\",\n"
+              + "    after = \"destination/${reference}\",\n"
+              + "    regex_groups = {\n"
+              + "        \"before_ref\": \"[0-9a-f]+\",\n"
+              + "        \"after_ref\": \"[0-9]+\",\n"
+              + "    },\n"
+              + "),",
+      after =
+          "This would be translated into 'Fixes bug introduced in destination/123456', provided"
+              + " that a change with the proper label was found - the message remains unchanged "
+              + "otherwise.")
+  public ReferenceMigrator mapReferences(
+      String originPattern,
+      String destinationFormat,
+      SkylarkDict<?, ?> groups, // <String, String>
+      SkylarkList<?> labels, // <String>
+      Location location)
+      throws EvalException {
+    Map<String, String> groupsMap = groups.getContents(String.class, String.class, "regex_groups");
+    check(
+        location,
+        groupsMap.containsKey("before_ref")
+            && (groupsMap.size() != 2 || groupsMap.containsKey("after_ref"))
+            && groupsMap.size() <= 2,
+        "Invalid 'regex_groups' - Should only contain 'before_ref' and "
+            + "optionally 'after_ref'. Was: %s.",
+        groupsMap.keySet());
     Pattern beforePattern;
     Pattern afterPattern = null;
     try {
-      beforePattern = Pattern.compile(groups.get("before_ref"));
+      beforePattern = Pattern.compile(groupsMap.get("before_ref"));
     } catch (java.util.regex.PatternSyntaxException exception) {
-      throw new EvalException(location,
-          String.format("Invalid before_ref regex '%s'.", groups.get("before_ref")));
+      throw new EvalException(
+          location, String.format("Invalid before_ref regex '%s'.", groupsMap.get("before_ref")));
     }
-    if (groups.containsKey("after_ref")) {
+    if (groupsMap.containsKey("after_ref")) {
       try {
-        afterPattern = Pattern.compile(groups.get("after_ref"));
+        afterPattern = Pattern.compile(groupsMap.get("after_ref"));
       } catch (java.util.regex.PatternSyntaxException exception) {
-        throw new EvalException(location,
-            String.format("Invalid after_ref regex '%s'.", groups.get("after_ref")));
+        throw new EvalException(
+            location, String.format("Invalid after_ref regex '%s'.", groupsMap.get("after_ref")));
       }
     }
     return ReferenceMigrator.create(

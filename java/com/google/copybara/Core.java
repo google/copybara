@@ -110,16 +110,24 @@ public class Core implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "reverse",
-      doc = "Given a list of transformations, returns the list of transformations equivalent to"
-          + " undoing all the transformations",
+  @SkylarkCallable(
+      name = "reverse",
+      doc =
+          "Given a list of transformations, returns the list of transformations equivalent to"
+              + " undoing all the transformations",
       parameters = {
-          @Param(name = "transformations", named = true, type = SkylarkList.class,
-              generic1 = Transformation.class, doc = "The transformations to reverse"),
+        @Param(
+            name = "transformations",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc = "The transformations to reverse"),
       },
       useLocation = true)
-  public SkylarkList<Transformation> reverse(SkylarkList<Transformation> transforms,
-      Location location) throws EvalException {
+  public SkylarkList<Transformation> reverse(
+      SkylarkList<?> transforms, // <Transformation> or <BaseFunction>
+      Location location)
+      throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
     for (Object t : transforms.getContents(Object.class, "transformations")) {
@@ -411,7 +419,7 @@ public class Core implements LabelsAwareModule {
   @DocDefault(field = "reversible_check", value = "True for 'CHANGE_REQUEST' mode. False otherwise")
   public void workflow(
       String workflowName,
-      Origin<Revision> origin,
+      Origin<?> origin, // <Revision>
       Destination<?> destination,
       Authoring authoring,
       SkylarkList<?> transformations,
@@ -493,7 +501,7 @@ public class Core implements LabelsAwareModule {
         new Workflow<>(
             workflowName,
             convertFromNoneable(description, null),
-            origin,
+            (Origin<Revision>) origin,
             destination,
             resolvedAuthoring,
             sequenceTransform,
@@ -681,131 +689,184 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "replace",
-
-      doc = "Replace a text with another text using optional regex groups. This tranformer can be"
-          + " automatically reversed.",
+      doc =
+          "Replace a text with another text using optional regex groups. This tranformer can be"
+              + " automatically reversed.",
       parameters = {
-          @Param(name = "before", named = true, type = String.class,
-              doc = "The text before the transformation. Can contain references to regex groups."
-                  + " For example \"foo${x}text\"."
-                  + "<p>`before` can only contain 1 reference to each unique `regex_group`."
-                  + " If you require multiple references to the same `regex_group`, add"
-                  + " `repeated_groups: True`."
-                  + "<p>If '$' literal character needs to be matched, "
-                  + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
-          @Param(name = "after", named = true, type = String.class,
-              doc = "The text after the transformation. It can also contain references to regex "
-                  + "groups, like 'before' field."),
-          @Param(name = "regex_groups", named = true, type = SkylarkDict.class,
-              doc = "A set of named regexes that can be used to match part of the replaced text."
-                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
-                  + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "first_only", named = true, type = Boolean.class,
-              doc = "If true, only replaces the first instance rather than all. In single line"
-                  + " mode, replaces the first instance on each line. In multiline mode, replaces "
-                  + "the first instance in each file.",
-              defaultValue = "False"),
-          @Param(name = "multiline", named = true, type = Boolean.class,
-              doc = "Whether to replace text that spans more than one line.",
-              defaultValue = "False"),
-          @Param(name = "repeated_groups", named = true, type = Boolean.class,
-              doc = "Allow to use a group multiple times. For example foo${repeated}/${repeated}."
-                  + " Note that this mechanism doesn't use backtracking. In other words, the group"
-                  + " instances are treated as different groups in regex construction and then a"
-                  + " validation is done after that.",
-              defaultValue = "False"),
-          @Param(name = "ignore", named = true, type = SkylarkList.class,
-              doc = "A set of regexes. Any text that matches any expression in this set, which"
-                  + " might otherwise be transformed, will be ignored.",
-              defaultValue = "[]"),
+        @Param(
+            name = "before",
+            named = true,
+            type = String.class,
+            doc =
+                "The text before the transformation. Can contain references to regex groups. For"
+                    + " example \"foo${x}text\".<p>`before` can only contain 1 reference to each"
+                    + " unique `regex_group`. If you require multiple references to the same"
+                    + " `regex_group`, add `repeated_groups: True`.<p>If '$' literal character"
+                    + " needs to be matched, '`$$`' should be used. For example '`$$FOO`' would"
+                    + " match the literal '$FOO'."),
+        @Param(
+            name = "after",
+            named = true,
+            type = String.class,
+            doc =
+                "The text after the transformation. It can also contain references to regex "
+                    + "groups, like 'before' field."),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            type = SkylarkDict.class,
+            doc =
+                "A set of named regexes that can be used to match part of the replaced text."
+                    + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}"),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "first_only",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "If true, only replaces the first instance rather than all. In single line mode,"
+                    + " replaces the first instance on each line. In multiline mode, replaces the"
+                    + " first instance in each file.",
+            defaultValue = "False"),
+        @Param(
+            name = "multiline",
+            named = true,
+            type = Boolean.class,
+            doc = "Whether to replace text that spans more than one line.",
+            defaultValue = "False"),
+        @Param(
+            name = "repeated_groups",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note"
+                    + " that this mechanism doesn't use backtracking. In other words, the group"
+                    + " instances are treated as different groups in regex construction and then a"
+                    + " validation is done after that.",
+            defaultValue = "False"),
+        @Param(
+            name = "ignore",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "A set of regexes. Any text that matches any expression in this set, which"
+                    + " might otherwise be transformed, will be ignored.",
+            defaultValue = "[]"),
       },
       useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Simple replacement",
+  @Example(
+      title = "Simple replacement",
       before = "Replaces the text \"internal\" with \"external\" in all java files",
-      code = "core.replace(\n"
-          + "    before = \"internal\",\n"
-          + "    after = \"external\",\n"
-          + "    paths = glob([\"**.java\"]),\n"
-          + ")")
-  @Example(title = "Append some text at the end of files",
+      code =
+          "core.replace(\n"
+              + "    before = \"internal\",\n"
+              + "    after = \"external\",\n"
+              + "    paths = glob([\"**.java\"]),\n"
+              + ")")
+  @Example(
+      title = "Append some text at the end of files",
       before = "",
-      code = "core.replace(\n"
-          + "   before = '${end}',\n"
-          + "   after  = 'Text to be added at the end',\n"
-          + "   multiline = True,\n"
-          + "   regex_groups = { 'end' : '\\z'},\n"
-          + ")")
-  @Example(title = "Append some text at the end of files reversible",
+      code =
+          "core.replace(\n"
+              + "   before = '${end}',\n"
+              + "   after  = 'Text to be added at the end',\n"
+              + "   multiline = True,\n"
+              + "   regex_groups = { 'end' : '\\z'},\n"
+              + ")")
+  @Example(
+      title = "Append some text at the end of files reversible",
       before = "Same as the above example but make the transformation reversible",
-      code = "core.transform([\n"
-          + "    core.replace(\n"
-          + "       before = '${end}',\n"
-          + "       after  = 'some append',\n"
-          + "       multiline = True,\n"
-          + "       regex_groups = { 'end' : '\\z'},\n"
-          + "    )\n"
-          + "],\n"
-          + "reversal = [\n"
-          + "    core.replace(\n"
-          + "       before = 'some append${end}',\n"
-          + "       after = '',\n"
-          + "       multiline = True,\n"
-          + "       regex_groups = { 'end' : '\\z'},\n"
-          + "    )"
-          + "])")
-  @Example(title = "Replace using regex groups",
-      before = "In this example we map some urls from the internal to the external version in"
-          + " all the files of the project.",
-      code = "core.replace(\n"
-          + "        before = \"https://some_internal/url/${pkg}.html\",\n"
-          + "        after = \"https://example.com/${pkg}.html\",\n"
-          + "        regex_groups = {\n"
-          + "            \"pkg\": \".*\",\n"
-          + "        },\n"
-          + "    )",
-      after = "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
-          + " `https://example.com/foo/bar.html`.")
-  @Example(title = "Remove confidential blocks",
-      before = "This example removes blocks of text/code that are confidential and thus shouldn't"
-          + "be exported to a public repository.",
-      code = "core.replace(\n"
-          + "        before = \"${x}\",\n"
-          + "        after = \"\",\n"
-          + "        multiline = True,\n"
-          + "        regex_groups = {\n"
-          + "            \"x\": \"(?m)^.*BEGIN-INTERNAL[\\\\w\\\\W]*?END-INTERNAL.*$\\\\n\",\n"
-          + "        },\n"
-          + "    )",
-      after = "This replace would transform a text file like:\n\n"
-          + "```\n"
-          + "This is\n"
-          + "public\n"
-          + " // BEGIN-INTERNAL\n"
-          + " confidential\n"
-          + " information\n"
-          + " // END-INTERNAL\n"
-          + "more public code\n"
-          + " // BEGIN-INTERNAL\n"
-          + " more confidential\n"
-          + " information\n"
-          + " // END-INTERNAL\n"
-          + "```\n\n"
-          + "Into:\n\n"
-          + "```\n"
-          + "This is\n"
-          + "public\n"
-          + "more public code\n"
-          + "```\n\n")
-  public Replace replace(String before, String after,
-      SkylarkDict<String, String> regexes, Object paths, Boolean firstOnly,
-      Boolean multiline, Boolean repeatedGroups, SkylarkList<String> ignore,
-      Location location) throws EvalException {
+      code =
+          "core.transform([\n"
+              + "    core.replace(\n"
+              + "       before = '${end}',\n"
+              + "       after  = 'some append',\n"
+              + "       multiline = True,\n"
+              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "    )\n"
+              + "],\n"
+              + "reversal = [\n"
+              + "    core.replace(\n"
+              + "       before = 'some append${end}',\n"
+              + "       after = '',\n"
+              + "       multiline = True,\n"
+              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "    )"
+              + "])")
+  @Example(
+      title = "Replace using regex groups",
+      before =
+          "In this example we map some urls from the internal to the external version in"
+              + " all the files of the project.",
+      code =
+          "core.replace(\n"
+              + "        before = \"https://some_internal/url/${pkg}.html\",\n"
+              + "        after = \"https://example.com/${pkg}.html\",\n"
+              + "        regex_groups = {\n"
+              + "            \"pkg\": \".*\",\n"
+              + "        },\n"
+              + "    )",
+      after =
+          "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
+              + " `https://example.com/foo/bar.html`.")
+  @Example(
+      title = "Remove confidential blocks",
+      before =
+          "This example removes blocks of text/code that are confidential and thus shouldn't"
+              + "be exported to a public repository.",
+      code =
+          "core.replace(\n"
+              + "        before = \"${x}\",\n"
+              + "        after = \"\",\n"
+              + "        multiline = True,\n"
+              + "        regex_groups = {\n"
+              + "            \"x\": \"(?m)^.*BEGIN-INTERNAL[\\\\w\\\\W]*?END-INTERNAL.*$\\\\n\",\n"
+              + "        },\n"
+              + "    )",
+      after =
+          "This replace would transform a text file like:\n\n"
+              + "```\n"
+              + "This is\n"
+              + "public\n"
+              + " // BEGIN-INTERNAL\n"
+              + " confidential\n"
+              + " information\n"
+              + " // END-INTERNAL\n"
+              + "more public code\n"
+              + " // BEGIN-INTERNAL\n"
+              + " more confidential\n"
+              + " information\n"
+              + " // END-INTERNAL\n"
+              + "```\n\n"
+              + "Into:\n\n"
+              + "```\n"
+              + "This is\n"
+              + "public\n"
+              + "more public code\n"
+              + "```\n\n")
+  public Replace replace(
+      String before,
+      String after,
+      SkylarkDict<?, ?> regexes, // <String, String>
+      Object paths,
+      Boolean firstOnly,
+      Boolean multiline,
+      Boolean repeatedGroups,
+      SkylarkList<?> ignore, // <String>
+      Location location)
+      throws EvalException {
     return Replace.create(
         location,
         before,
@@ -822,56 +883,83 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "todo_replace",
-
       doc = "Replace Google style TODOs. For example `TODO(username, othername)`.",
       parameters = {
-          @Param(name = "tags", named = true, type = SkylarkList.class, generic1 = String.class,
-              doc = "Prefix tag to look for", defaultValue = "['TODO', 'NOTE']"),
-          @Param(name = "mapping", named = true, type = SkylarkDict.class,
-              doc = "Mapping of users/strings", defaultValue = "{}"),
-          @Param(name = "mode", named = true, type = String.class,
-              doc = "Mode for the replace:"
-                  + "<ul>"
-                  + "<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>"
-                  + "<li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found."
-                  + "</li>"
-                  + "<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found."
-                  + "</li>"
-                  + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to "
-                  + "'TODO'"
-                  + "</li>"
-                  + "<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li>"
-                  + "</ul>", defaultValue = "'MAP_OR_IGNORE'"),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "default", named = true, type = String.class,
-              doc = "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
-                  + " 'USE_DEFAULT' modes", noneable = true, defaultValue = "None"),
-      }, useLocation = true)
+        @Param(
+            name = "tags",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = String.class,
+            doc = "Prefix tag to look for",
+            defaultValue = "['TODO', 'NOTE']"),
+        @Param(
+            name = "mapping",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "Mapping of users/strings",
+            defaultValue = "{}"),
+        @Param(
+            name = "mode",
+            named = true,
+            type = String.class,
+            doc =
+                "Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not"
+                    + " found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if"
+                    + " no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use"
+                    + " the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from"
+                    + " TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any"
+                    + " TODO(foo, bar) with TODO(default_string)</li></ul>",
+            defaultValue = "'MAP_OR_IGNORE'"),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "default",
+            named = true,
+            type = String.class,
+            doc =
+                "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
+                    + " 'USE_DEFAULT' modes",
+            noneable = true,
+            defaultValue = "None"),
+      },
+      useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Simple update",
+  @Example(
+      title = "Simple update",
       before = "Replace TODOs and NOTES for users in the mapping:",
-      code = "core.todo_replace(\n"
-          + "  mapping = {\n"
-          + "    'test1' : 'external1',\n"
-          + "    'test2' : 'external2'\n"
-          + "  }\n"
-          + ")",
-      after = "Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1)"
-          + " or NOTE(external1, external2)")
-  @Example(title = "Scrubbing",
+      code =
+          "core.todo_replace(\n"
+              + "  mapping = {\n"
+              + "    'test1' : 'external1',\n"
+              + "    'test2' : 'external2'\n"
+              + "  }\n"
+              + ")",
+      after =
+          "Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1)"
+              + " or NOTE(external1, external2)")
+  @Example(
+      title = "Scrubbing",
       before = "Remove text from inside TODOs",
-      code = "core.todo_replace(\n"
-          + "  mode = 'SCRUB_NAMES'\n"
-          + ")",
-      after = "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
-          + " and NOTE:foo")
-  public TodoReplace todoReplace(SkylarkList<String> skyTags,
-      SkylarkDict<String, String> skyMapping, String modeStr, Object paths, Object skyDefault,
-      Location location) throws EvalException {
+      code = "core.todo_replace(\n" + "  mode = 'SCRUB_NAMES'\n" + ")",
+      after =
+          "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
+              + " and NOTE:foo")
+  public TodoReplace todoReplace(
+      SkylarkList<?> skyTags, // <String>
+      SkylarkDict<?, ?> skyMapping, // <String, String>
+      String modeStr,
+      Object paths,
+      Object skyDefault,
+      Location location)
+      throws EvalException {
     Mode mode = stringToEnum(location, "mode", modeStr, Mode.class);
     Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
@@ -999,30 +1087,36 @@ public class Core implements LabelsAwareModule {
 
   @SkylarkCallable(
       name = "replace_mapper",
-      doc = "A mapping function that applies a list of replaces until one replaces the text"
-          + " (Unless `all = True` is used). This should be used with core.filter_replace or"
-          + " other transformations that accept text mapping as parameter.",
+      doc =
+          "A mapping function that applies a list of replaces until one replaces the text"
+              + " (Unless `all = True` is used). This should be used with core.filter_replace or"
+              + " other transformations that accept text mapping as parameter.",
       parameters = {
-          @Param(
-              name = "mapping",
-              type = SkylarkList.class, generic1 = Transformation.class, named = true,
-              noneable = true,
-              doc = "The list of core.replace transformations",
-              defaultValue = "None"
-          ),
-          @Param(
-              name = "all",
-              type = Boolean.class, named = true, positional = false,
-              doc = "Run all the mappings despite a replace happens.",
-              defaultValue = "False"
-          ),
+        @Param(
+            name = "mapping",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            named = true,
+            noneable = true,
+            doc = "The list of core.replace transformations",
+            defaultValue = "None"),
+        @Param(
+            name = "all",
+            type = Boolean.class,
+            named = true,
+            positional = false,
+            doc = "Run all the mappings despite a replace happens.",
+            defaultValue = "False"),
       },
       useLocation = true)
-  public ReplaceMapper mapImports(SkylarkList<Transformation> mapping,
-      Boolean all, Location location) throws EvalException {
+  public ReplaceMapper mapImports(
+      SkylarkList<?> mapping, // <Transformation>
+      Boolean all,
+      Location location)
+      throws EvalException {
     check(location, !mapping.isEmpty(), "Empty mapping is not allowed");
     ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
-    for (Transformation t : mapping) {
+    for (Transformation t : mapping.getContents(Transformation.class, "mapping")) {
       check(location, t instanceof Replace,
           "Only core.replace can be used as mapping, but got: " + t.describe());
       Replace replace = (Replace) t;
@@ -1115,7 +1209,7 @@ public class Core implements LabelsAwareModule {
       useStarlarkThread = true)
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
   public Transformation transform(
-      SkylarkList<Transformation> transformations,
+      SkylarkList<?> transformations, // <Transformation>
       Object reversal,
       Object ignoreNoop,
       Location location,
@@ -1348,16 +1442,15 @@ public class Core implements LabelsAwareModule {
       name = "format",
       doc = "Formats a String using Java format patterns.",
       parameters = {
-          @Param(name = "format", type = String.class, named = true, doc = "The format string"),
-          @Param(
-              name = "args",
-              type = SkylarkList.class,
-              named = true,
-              doc = "The arguments to format"),
+        @Param(name = "format", type = String.class, named = true, doc = "The format string"),
+        @Param(
+            name = "args",
+            type = SkylarkList.class,
+            named = true,
+            doc = "The arguments to format"),
       },
       useLocation = true)
-  public String format(String format, SkylarkList<Object> args, Location location)
-      throws EvalException {
+  public String format(String format, SkylarkList<?> args, Location location) throws EvalException {
     try {
       return String.format(format, args.toArray(new Object[0]));
     } catch (IllegalFormatException e) {

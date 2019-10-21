@@ -185,7 +185,9 @@ public final class Authoring {
                 + "    ],\n"
                 + ")")
     public Authoring whitelisted(
-        String defaultAuthor, SkylarkList<String> whitelist, Location location)
+        String defaultAuthor,
+        SkylarkList<?> whitelist, // <String>
+        Location location)
         throws EvalException {
       return new Authoring(
           Author.parse(location, defaultAuthor),

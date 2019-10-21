@@ -85,6 +85,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -360,7 +361,7 @@ public class GitModule implements LabelsAwareModule {
       String name,
       String origin,
       String destination,
-      SkylarkList<String> strRefSpecs,
+      SkylarkList<?> strRefSpecs, // <String>
       Boolean prune,
       Object description,
       Location location,
@@ -542,101 +543,218 @@ public class GitModule implements LabelsAwareModule {
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = GITHUB_PR_ORIGIN_NAME,
-      doc = "Defines a Git origin for Github pull requests.\n"
-          + "\n"
-          + "Implicit labels that can be used/exposed:\n"
-          + "\n"
-          + "  - " + GitHubPROrigin.GITHUB_PR_NUMBER_LABEL + ": The pull request number if the"
-          + " reference passed was in the form of `https://github.com/project/pull/123`, "
-          + " `refs/pull/123/head` or `refs/pull/123/master`.\n"
-          + "  - " + DEFAULT_INTEGRATE_LABEL + ": A label that when exposed, can be used to"
-          + " integrate automatically in the reverse workflow.\n"
-          + "  - " + GITHUB_BASE_BRANCH + ": The base branch name used for the Pull Request.\n"
-          + "  - " + GITHUB_BASE_BRANCH_SHA1 + ": The base branch SHA-1 used as baseline.\n"
-          + "  - " + GITHUB_PR_TITLE + ": Title of the Pull Request.\n"
-          + "  - " + GITHUB_PR_BODY + ": Body of the Pull Request.\n"
-          + "  - " + GITHUB_PR_URL + ": GitHub url of the Pull Request.\n"
-          + "  - " + GITHUB_PR_HEAD_SHA + ": The SHA-1 of the head commit of the pull request.\n"
-          + "  - " + GITHUB_PR_USER + ": The login of the author the pull request.\n"
-          + "  - " + GITHUB_PR_ASSIGNEE + ": A repeated label with the login of the assigned"
-          + " users.\n"
-          + "  - " + GITHUB_PR_REVIEWER_APPROVER + ": A repeated label with the login of users"
-          + " that have participated in the review and that can approve the import. Only"
-          + " populated if `review_state` field is set. Every reviewers type matching"
-          + " `review_approvers` will be added to this list.\n"
-          + "  - " + GITHUB_PR_REVIEWER_OTHER + ": A repeated label with the login of users"
-          + " that have participated in the review but cannot approve the import. Only"
-          + " populated if `review_state` field is set.\n",
+  @SkylarkCallable(
+      name = GITHUB_PR_ORIGIN_NAME,
+      doc =
+          "Defines a Git origin for Github pull requests.\n"
+              + "\n"
+              + "Implicit labels that can be used/exposed:\n"
+              + "\n"
+              + "  - "
+              + GitHubPROrigin.GITHUB_PR_NUMBER_LABEL
+              + ": The pull request number if the"
+              + " reference passed was in the form of `https://github.com/project/pull/123`, "
+              + " `refs/pull/123/head` or `refs/pull/123/master`.\n"
+              + "  - "
+              + DEFAULT_INTEGRATE_LABEL
+              + ": A label that when exposed, can be used to"
+              + " integrate automatically in the reverse workflow.\n"
+              + "  - "
+              + GITHUB_BASE_BRANCH
+              + ": The base branch name used for the Pull Request.\n"
+              + "  - "
+              + GITHUB_BASE_BRANCH_SHA1
+              + ": The base branch SHA-1 used as baseline.\n"
+              + "  - "
+              + GITHUB_PR_TITLE
+              + ": Title of the Pull Request.\n"
+              + "  - "
+              + GITHUB_PR_BODY
+              + ": Body of the Pull Request.\n"
+              + "  - "
+              + GITHUB_PR_URL
+              + ": GitHub url of the Pull Request.\n"
+              + "  - "
+              + GITHUB_PR_HEAD_SHA
+              + ": The SHA-1 of the head commit of the pull request.\n"
+              + "  - "
+              + GITHUB_PR_USER
+              + ": The login of the author the pull request.\n"
+              + "  - "
+              + GITHUB_PR_ASSIGNEE
+              + ": A repeated label with the login of the assigned"
+              + " users.\n"
+              + "  - "
+              + GITHUB_PR_REVIEWER_APPROVER
+              + ": A repeated label with the login of users"
+              + " that have participated in the review and that can approve the import. Only"
+              + " populated if `review_state` field is set. Every reviewers type matching"
+              + " `review_approvers` will be added to this list.\n"
+              + "  - "
+              + GITHUB_PR_REVIEWER_OTHER
+              + ": A repeated label with the login of users"
+              + " that have participated in the review but cannot approve the import. Only"
+              + " populated if `review_state` field is set.\n",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL of the GitHub repository"),
-          @Param(name = "use_merge", type = Boolean.class, defaultValue = "False", named = true,
-              positional = false,
-              doc = "If the content for refs/pull/<ID>/merge should be used instead of the PR"
-                  + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
-                  + " revision."),
-          @Param(name = "required_labels", type = SkylarkList.class, named = true,
-              generic1 = String.class, defaultValue = "[]",
-              doc = "Required labels to import the PR. All the labels need to be present in order"
-                  + " to migrate the Pull Request.", positional = false),
-          @Param(name = "retryable_labels", type = SkylarkList.class, named = true,
-              generic1 = String.class, defaultValue = "[]",
-              doc = "Required labels to import the PR that should be retried. This parameter must"
-                  + " be a subset of required_labels.", positional = false),
-          @Param(name = "submodules", type = String.class, defaultValue = "'NO'", named = true,
-              positional = false,
-              doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
-          @Param(name = "baseline_from_branch", type = Boolean.class, named = true,
-              doc = "WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>"
-                  + "When the field is set to true for CHANGE_REQUEST workflows it will find the"
-                  + " baseline comparing the Pull Request with the base branch instead of looking"
-                  + " for the *-RevId label in the commit message.", defaultValue = "False",
-              positional = false),
-          @Param(name = "first_parent", type = Boolean.class, defaultValue = "True", named = true,
-              doc = "If true, it only uses the first parent when looking for changes. Note that"
-                  + " when disabled in ITERATIVE mode, it will try to do a migration for each"
-                  + " change of the merged branch.", positional = false),
-          @Param(name = "state", type = String.class, defaultValue = "'OPEN'", named = true,
-              positional = false,
-              doc = "Only migrate Pull Request with that state."
-                  + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
-          @Param(name = "review_state", type = String.class, defaultValue = "None",
-              named = true, positional = false, noneable = true,
-              doc = "Required state of the reviews associated with the Pull Request"
-                  + " Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`,"
-                  + " `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if"
-                  + " the user wants `" + GITHUB_PR_REVIEWER_APPROVER + "` and `"
-                  + GITHUB_PR_REVIEWER_OTHER + "` labels populated"),
-          @Param(name = "review_approvers", type = SkylarkList.class, generic1 = String.class,
-              defaultValue = "None",
-              named = true, positional = false, noneable = true,
-              doc = "The set of reviewer types that are considered for approvals. In order to"
-                  + " have any effect, `review_state` needs to be set. "
-                  + GITHUB_PR_REVIEWER_APPROVER + "` will be populated for these types."
-                  + " See the valid types here:"
-                  + " https://developer.github.com/v4/enum/commentauthorassociation/"),
-          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the GitHub API endpoint provided for after_migration hooks. "
-                  + "This field is not required if the workflow hooks don't use the "
-                  + "origin/destination endpoints.",
-              named = true, positional = false,
-              noneable = true),
-          @Param(name = PATCH_FIELD, type = Transformation.class, defaultValue = "None",
-              named = true, positional = false, noneable = true, doc = PATCH_FIELD_DESC),
-          @Param(name = "branch", type = String.class, named = true, positional = false,
-              defaultValue = "None", noneable = true,
-              doc = "If set, it will only migrate pull requests for this base branch"),
-          @Param(name = "describe_version", type = Boolean.class, defaultValue = "None",
-              named = true, positional = false, doc = DESCRIBE_VERSION_FIELD_DOC, noneable = true)},
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the GitHub repository"),
+        @Param(
+            name = "use_merge",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If the content for refs/pull/<ID>/merge should be used instead of the PR"
+                    + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
+                    + " revision."),
+        @Param(
+            name = "required_labels",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc =
+                "Required labels to import the PR. All the labels need to be present in order"
+                    + " to migrate the Pull Request.",
+            positional = false),
+        @Param(
+            name = "retryable_labels",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = String.class,
+            defaultValue = "[]",
+            doc =
+                "Required labels to import the PR that should be retried. This parameter must"
+                    + " be a subset of required_labels.",
+            positional = false),
+        @Param(
+            name = "submodules",
+            type = String.class,
+            defaultValue = "'NO'",
+            named = true,
+            positional = false,
+            doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "baseline_from_branch",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>"
+                    + "When the field is set to true for CHANGE_REQUEST workflows it will find the"
+                    + " baseline comparing the Pull Request with the base branch instead of looking"
+                    + " for the *-RevId label in the commit message.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "first_parent",
+            type = Boolean.class,
+            defaultValue = "True",
+            named = true,
+            doc =
+                "If true, it only uses the first parent when looking for changes. Note that"
+                    + " when disabled in ITERATIVE mode, it will try to do a migration for each"
+                    + " change of the merged branch.",
+            positional = false),
+        @Param(
+            name = "state",
+            type = String.class,
+            defaultValue = "'OPEN'",
+            named = true,
+            positional = false,
+            doc =
+                "Only migrate Pull Request with that state."
+                    + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
+        @Param(
+            name = "review_state",
+            type = String.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc =
+                "Required state of the reviews associated with the Pull Request"
+                    + " Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`,"
+                    + " `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if"
+                    + " the user wants `"
+                    + GITHUB_PR_REVIEWER_APPROVER
+                    + "` and `"
+                    + GITHUB_PR_REVIEWER_OTHER
+                    + "` labels populated"),
+        @Param(
+            name = "review_approvers",
+            type = SkylarkList.class,
+            generic1 = String.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc =
+                "The set of reviewer types that are considered for approvals. In order to"
+                    + " have any effect, `review_state` needs to be set. "
+                    + GITHUB_PR_REVIEWER_APPROVER
+                    + "` will be populated for these types."
+                    + " See the valid types here:"
+                    + " https://developer.github.com/v4/enum/commentauthorassociation/"),
+        @Param(
+            name = "api_checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc =
+                "A checker for the GitHub API endpoint provided for after_migration hooks. "
+                    + "This field is not required if the workflow hooks don't use the "
+                    + "origin/destination endpoints.",
+            named = true,
+            positional = false,
+            noneable = true),
+        @Param(
+            name = PATCH_FIELD,
+            type = Transformation.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            noneable = true,
+            doc = PATCH_FIELD_DESC),
+        @Param(
+            name = "branch",
+            type = String.class,
+            named = true,
+            positional = false,
+            defaultValue = "None",
+            noneable = true,
+            doc = "If set, it will only migrate pull requests for this base branch"),
+        @Param(
+            name = "describe_version",
+            type = Boolean.class,
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = DESCRIBE_VERSION_FIELD_DOC,
+            noneable = true)
+      },
       useLocation = true)
   @UsesFlags(GitHubPrOriginOptions.class)
   @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
-  public GitHubPROrigin githubPrOrigin(String url, Boolean merge,
-      SkylarkList<String> requiredLabels, SkylarkList<String> retryableLabels, String submodules,
-      Boolean baselineFromBranch, Boolean firstParent, String state,
-      Object reviewStateParam, Object reviewApproversParam, Object checkerObj, Object patch,
-      Object branch, Object describeVersion, Location location) throws EvalException {
+  public GitHubPROrigin githubPrOrigin(
+      String url,
+      Boolean merge,
+      SkylarkList<?> requiredLabels, // <String>
+      SkylarkList<?> retryableLabels, // <String>
+      String submodules,
+      Boolean baselineFromBranch,
+      Boolean firstParent,
+      String state,
+      Object reviewStateParam,
+      Object reviewApproversParam,
+      Object checkerObj,
+      Object patch,
+      Object branch,
+      Object describeVersion,
+      Location location)
+      throws EvalException {
     checkNotEmpty(url, "url", location);
     check(location, url.contains("github.com"), "Invalid Github URL: %s", url);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
@@ -674,10 +792,11 @@ public class GitModule implements LabelsAwareModule {
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
         options.get(GitHubPrOriginOptions.class),
-        ImmutableSet.copyOf(requiredLabels),
-        ImmutableSet.copyOf(retryableLabels),
+        ImmutableSet.copyOf(requiredLabels.getContents(String.class, "required_labels")),
+        ImmutableSet.copyOf(retryableLabels.getContents(String.class, "retryable_labels")),
         stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
-        baselineFromBranch, firstParent,
+        baselineFromBranch,
+        firstParent,
         stringToEnum(location, "state", state, StateFilter.class),
         reviewState,
         reviewApprovers,
@@ -1120,101 +1239,158 @@ public class GitModule implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "gerrit_destination",
-      doc = "Creates a change in Gerrit using the transformed worktree. If this is used in "
-          + "iterative mode, then each commit pushed in a single Copybara invocation will have the "
-          + "correct commit parent. The reviews generated can then be easily done in the correct "
-          + "order without rebasing.",
+  @SkylarkCallable(
+      name = "gerrit_destination",
+      doc =
+          "Creates a change in Gerrit using the transformed worktree. If this is used in iterative"
+              + " mode, then each commit pushed in a single Copybara invocation will have the"
+              + " correct commit parent. The reviews generated can then be easily done in the"
+              + " correct order without rebasing.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
-                  + "commit"),
-          @Param(name = "fetch", type = String.class, named = true,
-              doc = "Indicates the ref from which to get the parent commit"),
-          @Param(
-              name = "push_to_refs_for", type = String.class, defaultValue = "None",
-              named = true, noneable = true,
-              doc = "Review branch to push the change to, for example setting this to 'feature_x'"
-                  + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
-                  + "'fetch' value."),
-          @Param(name = "submit", type = Boolean.class,
-              named = true,
-              doc =
-                  "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
-                      + " This is effectively a git.destination that sets a Change-Id",
-              defaultValue = "False"),
-          @Param(name = "notify", type = String.class,
-              named = true,
-              doc =
-                  ""
-                      + "Type of Gerrit notify option (https://gerrit-review.googlesource.com/Docum"
-                      + "entation/user-upload.html#notify). Sends notifications by default.",
-              defaultValue = "None",
-              noneable = true
-          ),
-          @Param(
-              name = "change_id_policy", type = String.class, defaultValue = "'FAIL_IF_PRESENT'",
-              named = true,
-              doc = "What to do in the presence or absent of Change-Id in message:"
-                  + "<ul>"
-                  + "  <li>`'REQUIRE'`: Require that the change_id is present in the message as a"
-                  + " valid label</li>"
-                  + "  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>"
-                  + "  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>"
-                  + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
-                  + "</ul>"),
-          @Param(name = "allow_empty_diff_patchset", type = Boolean.class,
-              named = true,
-              doc = "By default Copybara will upload a new PatchSet to Gerrit without checking the"
-                  + " previous one. If this set to false, Copybara will download current PatchSet"
-                  + " and check the diff against the new diff.",
-              defaultValue = "True"),
-          @Param(name = "reviewers", type = SkylarkList.class, named = true,
-              defaultValue = "[]",
-              doc = "The list of the reviewers will be added to gerrit change reviewer list"
-                  + "The element in the list is: an email, for example: \"foo@example.com\" or "
-                  + "label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of "
-                  + "assuming that users have registered to gerrit repos"),
-          @Param(name = "cc", type = SkylarkList.class, named = true,
-              defaultValue = "[]",
-              doc = "The list of the email addresses or users that will be CCed in the review. Can"
-                  + " use labels as the `reviewers` field."),
-          @Param(name = "labels", type = SkylarkList.class, named = true,
-              defaultValue = "[]",
-              doc = "The list of labels to be pushed with the change. The format is the label "
-                  + "along with the associated value. For example: Run-Presubmit+1"),
-          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
-                  + "This field is not required if the workflow hooks don't use the "
-                  + "origin/destination endpoints.",
-              named = true, positional = false,
-              noneable = true),
-          @Param(name = "integrates", type = SkylarkList.class, named = true,
-              generic1 = GitIntegrateChanges.class, defaultValue = "None",
-              doc = "Integrate changes from a url present in the migrated change"
-                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
-                  + " present in the message", positional = false, noneable = true),
-          @Param(
-              name = "topic",
-              type = String.class,
-              defaultValue = "None",
-              noneable = true,
-              named = true,
-              positional = false,
-              doc =
-                  ""
-                      + "Sets the topic of the Gerrit change created.<br><br>"
-                      + "By default it sets no topic. This field accepts a template with labels. "
-                      + "For example: `\"topic_${CONTEXT_REFERENCE}\"`"),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc =
+                "Indicates the URL to push to as well as the URL from which to get the parent "
+                    + "commit"),
+        @Param(
+            name = "fetch",
+            type = String.class,
+            named = true,
+            doc = "Indicates the ref from which to get the parent commit"),
+        @Param(
+            name = "push_to_refs_for",
+            type = String.class,
+            defaultValue = "None",
+            named = true,
+            noneable = true,
+            doc =
+                "Review branch to push the change to, for example setting this to 'feature_x'"
+                    + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
+                    + "'fetch' value."),
+        @Param(
+            name = "submit",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
+                    + " This is effectively a git.destination that sets a Change-Id",
+            defaultValue = "False"),
+        @Param(
+            name = "notify",
+            type = String.class,
+            named = true,
+            doc =
+                ""
+                    + "Type of Gerrit notify option (https://gerrit-review.googlesource.com/Docum"
+                    + "entation/user-upload.html#notify). Sends notifications by default.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "change_id_policy",
+            type = String.class,
+            defaultValue = "'FAIL_IF_PRESENT'",
+            named = true,
+            doc =
+                "What to do in the presence or absent of Change-Id in message:"
+                    + "<ul>"
+                    + "  <li>`'REQUIRE'`: Require that the change_id is present in the message as a"
+                    + " valid label</li>"
+                    + "  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>"
+                    + "  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>"
+                    + "  <li>`'REPLACE'`: Replace with a new one if found</li>"
+                    + "</ul>"),
+        @Param(
+            name = "allow_empty_diff_patchset",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "By default Copybara will upload a new PatchSet to Gerrit without checking the"
+                    + " previous one. If this set to false, Copybara will download current PatchSet"
+                    + " and check the diff against the new diff.",
+            defaultValue = "True"),
+        @Param(
+            name = "reviewers",
+            type = SkylarkList.class,
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "The list of the reviewers will be added to gerrit change reviewer listThe element"
+                    + " in the list is: an email, for example: \"foo@example.com\" or label for"
+                    + " example: ${SOME_GERRIT_REVIEWER}. These are under the condition of"
+                    + " assuming that users have registered to gerrit repos"),
+        @Param(
+            name = "cc",
+            type = SkylarkList.class,
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "The list of the email addresses or users that will be CCed in the review. Can"
+                    + " use labels as the `reviewers` field."),
+        @Param(
+            name = "labels",
+            type = SkylarkList.class,
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "The list of labels to be pushed with the change. The format is the label "
+                    + "along with the associated value. For example: Run-Presubmit+1"),
+        @Param(
+            name = "api_checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc =
+                "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                    + "This field is not required if the workflow hooks don't use the "
+                    + "origin/destination endpoints.",
+            named = true,
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "integrates",
+            type = SkylarkList.class,
+            named = true,
+            generic1 = GitIntegrateChanges.class,
+            defaultValue = "None",
+            doc =
+                "Integrate changes from a url present in the migrated change"
+                    + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                    + " present in the message",
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "topic",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                ""
+                    + "Sets the topic of the Gerrit change created.<br><br>"
+                    + "By default it sets no topic. This field accepts a template with labels. "
+                    + "For example: `\"topic_${CONTEXT_REFERENCE}\"`"),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
-      String url, String fetch, Object pushToRefsFor, Boolean submit, Object notifyOptionObj,
-      String changeIdPolicy, Boolean allowEmptyPatchSet, SkylarkList<String> reviewers,
-      SkylarkList<String> ccParam, SkylarkList<String> labelsParam,
-      Object checkerObj, Object integrates, Object topicObj, Location location) throws EvalException {
+      String url,
+      String fetch,
+      Object pushToRefsFor,
+      Boolean submit,
+      Object notifyOptionObj,
+      String changeIdPolicy,
+      Boolean allowEmptyPatchSet,
+      SkylarkList<?> reviewers, // <String>
+      SkylarkList<?> ccParam, // <String>
+      SkylarkList<?> labelsParam, // <String>
+      Object checkerObj,
+      Object integrates,
+      Object topicObj,
+      Location location)
+      throws EvalException {
     checkNotEmpty(url, "url", location);
 
     List<String> newReviewers = SkylarkUtil.convertStringList(reviewers, "reviewers");
@@ -1374,13 +1550,16 @@ public class GitModule implements LabelsAwareModule {
       useLocation = true)
   @UsesFlags(GitHubOptions.class)
   public GitHubTrigger gitHubTrigger(
-      String url, Object checkerObj, SkylarkList<String> events, Location location)
+      String url,
+      Object checkerObj,
+      SkylarkList<?> events, // <String>
+      Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
     LinkedHashSet<GitHubEventType> eventBuilder = new LinkedHashSet<>();
-    for (String e : events) {
+    for (String e : events.getContents(String.class, "events")) {
       GitHubEventType event = stringToEnum(location, "events", e, GitHubEventType.class);
       check(location, eventBuilder.add(event), "Repeated element %s", e);
       check(location, WATCHABLE_EVENTS.contains(event),
@@ -1406,17 +1585,21 @@ public class GitModule implements LabelsAwareModule {
             doc = "The labels to post.",
             named = true,
             defaultValue = "{}"),
-          @Param(
-              name = "message",
-              type = String.class,
-              doc = "The message to be added as review comment.",
-              named = true,
-              defaultValue = "None", noneable = true),
+        @Param(
+            name = "message",
+            type = String.class,
+            doc = "The message to be added as review comment.",
+            named = true,
+            defaultValue = "None",
+            noneable = true),
       },
       useLocation = true)
   @UsesFlags(GerritOptions.class)
-  public SetReviewInput reviewInput(SkylarkDict<String, Integer> labels, Object message,
-      Location location) throws EvalException {
+  public SetReviewInput reviewInput(
+      SkylarkDict<?, ?> labels, // <String, Integer>
+      Object message,
+      Location location)
+      throws EvalException {
     return SetReviewInput.create(convertFromNoneable(message, null),
         SkylarkDict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review labels"));
@@ -1425,36 +1608,47 @@ public class GitModule implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "latest_version",
-      doc = "Customize what version of the available branches and tags to pick."
-          + " By default it ignores the reference passed as parameter. Using `force:reference`"
-          + " in the CLI will force to use that reference instead.",
+      doc =
+          "Customize what version of the available branches and tags to pick."
+              + " By default it ignores the reference passed as parameter. Using `force:reference`"
+              + " in the CLI will force to use that reference instead.",
       parameters = {
-          @Param(
-              name = "refspec_format",
-              type = String.class,
-              doc = "The format of of the branch/tag",
-              named = true,
-              defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\"", noneable = true),
-          @Param(name = "refspec_groups", named = true, type = SkylarkDict.class,
-              doc = "A set of named regexes that can be used to match part of the versions."
-                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
-                  + " Use the following nomenclature n0, n1, n2 for the version part (will use"
-                  + " numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can"
-                  + " be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is"
-                  + " valid but not n0, s0, n1. n0 has more priority than n1. If there are fields"
-                  + " where order is not important, use s(N+1) where N ist he latest sorted field."
-                  + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
-              defaultValue = "{'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'}"),
+        @Param(
+            name = "refspec_format",
+            type = String.class,
+            doc = "The format of of the branch/tag",
+            named = true,
+            defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\"",
+            noneable = true),
+        @Param(
+            name = "refspec_groups",
+            named = true,
+            type = SkylarkDict.class,
+            doc =
+                "A set of named regexes that can be used to match part of the versions.Copybara"
+                    + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
+                    + " following nomenclature n0, n1, n2 for the version part (will use numeric"
+                    + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
+                    + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
+                    + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
+                    + " order is not important, use s(N+1) where N ist he latest sorted field."
+                    + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
+            defaultValue = "{'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'}"),
       },
       useLocation = true)
-  public LatestVersionSelector versionSelector(String refspec,SkylarkDict<String, String> groups,
-      Location location) throws EvalException {
+  public LatestVersionSelector versionSelector(
+      String refspec,
+      SkylarkDict<?, ?> groups, // <String, String>
+      Location location)
+      throws EvalException {
+    Map<String, String> groupsMap =
+        groups.getContents(String.class, String.class, "refspec_groups");
     check(location, refspec.startsWith("refs/"), "Wrong value '%s'. Refspec has to"
         + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'");
 
     TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
     Pattern regexKey = Pattern.compile("([sn])([0-9])");
-    for (String s : groups.keySet()) {
+    for (String s : groupsMap.keySet()) {
       Matcher matcher = regexKey.matcher(s);
       check(location, matcher.matches(), "Incorrect key for refspec_group. Should be in the "
           + "format of n0, n1, etc. or s0, s1, etc. Value: %s", s);
@@ -1472,7 +1666,7 @@ public class GitModule implements LabelsAwareModule {
     }
 
     return new LatestVersionSelector(
-        refspec, Replace.parsePatterns(location, groups), elements, location);
+        refspec, Replace.parsePatterns(location, groupsMap), elements, location);
   }
 
   @Override
