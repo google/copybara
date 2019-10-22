@@ -50,6 +50,8 @@ import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.api.User;
+import com.google.copybara.git.github.api.UserPermissionLevel;
+import com.google.copybara.git.github.api.UserPermissionLevel.GitHubUserPermission;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
 import java.io.IOException;
@@ -178,6 +180,15 @@ public abstract class AbstractGitHubApiTest {
         new UpdatePullRequest("title", "body", UpdatePullRequest.State.CLOSED));
 
     assertThat(validator.wasCalled()).isTrue();
+  }
+
+  @Test
+  public void testGetUserPermissionLevel() throws Exception {
+    trainMockGet("/repos/example/project/collaborators/foo/permission",
+        getResource("user_permission_level_testdata.json"));
+    UserPermissionLevel permissionLevel =
+        api.getUserPermissionLevel("example/project", "foo");
+    assertThat(permissionLevel.getPermission()).isEqualTo(GitHubUserPermission.ADMIN);
   }
 
   @Test

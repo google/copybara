@@ -239,6 +239,19 @@ public class GitHubApi {
   }
 
   /**
+   * Get a user's permission level
+   * https://developer.github.com/v3/repos/collaborators/#review-a-users-permission-level
+   */
+  public UserPermissionLevel getUserPermissionLevel(String projectId, String usrLogin)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
+      return transport.get(
+          String.format("repos/%s/collaborators/%s/permission", projectId, usrLogin),
+          UserPermissionLevel.class);
+    }
+  }
+
+  /**
    * Get authenticated User https://developer.github.com/v3/users/#get-the-authenticated-user
    */
   public User getAuthenticatedUser()
