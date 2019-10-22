@@ -17,6 +17,7 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.Ascii;
 import com.google.common.base.MoreObjects;
 
 /**
@@ -34,8 +35,16 @@ public class UserPermissionLevel {
   @Key private User user;
   @Key private String permission;
 
+  public UserPermissionLevel() {}
+  public UserPermissionLevel(User user, String permission) {
+    this.user = user;
+    this.permission = permission;
+  }
+
   public GitHubUserPermission getPermission() {
-    return GitHubUserPermission.valueOf(permission.toUpperCase());
+    return permission == null
+        ? GitHubUserPermission.NONE
+        : GitHubUserPermission.valueOf(Ascii.toUpperCase(permission));
   }
 
   public User getUser() {
