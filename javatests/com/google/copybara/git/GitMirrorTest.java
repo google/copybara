@@ -336,4 +336,20 @@ public class GitMirrorTest {
         .run();
     return loadMigration(cfg, "default");
   }
+
+  @Test
+  public void testInvalidMigrationName() {
+    skylark.evalFails(
+        ""
+            + "git.mirror(\n"
+            + "    name = 'foo| bad;name',\n"
+            + "    origin = 'file://"
+            + originRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    destination = 'file://"
+            + destRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + ")\n",
+        ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
+  }
 }

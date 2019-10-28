@@ -3233,4 +3233,17 @@ public class WorkflowTest {
             .collect(Collectors.toList());
     assertThat(commitMessages).containsExactly((Object[]) expectedChanges);
   }
+
+  @Test
+  public void testInvalidMigrationName() {
+    skylark.evalFails(
+        ""
+            + "core.workflow(\n"
+            + "    name = 'foo| bad;name',\n"
+            + "    origin = folder.origin(),\n"
+            + "    destination = folder.destination(),\n"
+            + "    authoring = authoring.overwrite('Foo <foo@example.com>'),\n"
+            + "),\n",
+        ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
+  }
 }
