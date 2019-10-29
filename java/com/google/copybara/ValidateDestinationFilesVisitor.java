@@ -75,9 +75,10 @@ class ValidateDestinationFilesVisitor extends SimpleFileVisitor<Path> {
 
     if (!invalidPaths.isEmpty()) {
       Collections.sort(invalidPaths);
-      throw new NotADestinationFileException(
+      throw new NotADestinationFileException(String.format(
           "Attempted to write these files in the destination, but they are not covered by "
-          + "destination_files: " + invalidPaths);
+          + "destination_files: %s.\nYour destination_files are %s.",
+          invalidPaths, destinationFiles));
     }
   }
 }
