@@ -1618,8 +1618,7 @@ public class GitModule implements LabelsAwareModule {
             type = String.class,
             doc = "The format of of the branch/tag",
             named = true,
-            defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\"",
-            noneable = true),
+            defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\""),
         @Param(
             name = "refspec_groups",
             named = true,

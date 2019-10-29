@@ -1097,9 +1097,7 @@ public class Core implements LabelsAwareModule {
             type = SkylarkList.class,
             generic1 = Transformation.class,
             named = true,
-            noneable = true,
-            doc = "The list of core.replace transformations",
-            defaultValue = "None"),
+            doc = "The list of core.replace transformations"),
         @Param(
             name = "all",
             type = Boolean.class,

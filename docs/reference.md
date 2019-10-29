@@ -907,7 +907,7 @@ more public code
 
 A mapping function that applies a list of replaces until one replaces the text (Unless `all = True` is used). This should be used with core.filter_replace or other transformations that accept text mapping as parameter.
 
-`replaceMapper core.replace_mapper(mapping=None, all=False)`
+`replaceMapper core.replace_mapper(mapping, all=False)`
 
 
 #### Parameters:
