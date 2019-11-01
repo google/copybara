@@ -74,4 +74,9 @@ public class Remove implements Transformation {
   public String describe() {
     return "Removing " + glob;
   }
+
+  @Override
+  public Location location() {
+    return location;
+  }
 }

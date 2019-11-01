@@ -241,7 +241,7 @@ public class GitOrigin implements Origin<GitRevision> {
             + " don't include merge commits by default");
       }
       GitRepository repo = checkout(repository, workdir, ref);
-      if(topLevelCheckout) {
+      if (topLevelCheckout) {
         maybeRebase(repo, ref, workdir);
       }
 
@@ -258,10 +258,29 @@ public class GitOrigin implements Origin<GitRevision> {
         TreeElement element = Iterables.getOnlyElement(elements);
         Preconditions.checkArgument(element.getPath().equals(submodule.getPath()));
 
+        generalOptions.console()
+            .verboseFmt(
+                "Checking out submodule '%s' with reference '%s'", submodule, element.getRef());
+
         GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submodule.getUrl());
-        subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
-        GitRevision submoduleRef = subRepo.resolveReferenceWithContext(element.getRef(),
-            submodule.getName(), submodule.getUrl());
+
+        // TODO(danielromero): Remove temporary feature after 2019-10-30
+        if (generalOptions.isTemporaryFeature("SUBMODULES_FETCH_ALL", true)) {
+          if (submodule.getBranch() != null) {
+            subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
+          } else {
+            subRepo.fetch(
+                submodule.getUrl(), /*prune*/
+                true, /*force*/
+                true,
+                ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"));
+          }
+        } else {
+          subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
+        }
+        GitRevision submoduleRef =
+            subRepo.resolveReferenceWithContext(
+                element.getRef(), submodule.getName(), submodule.getUrl());
 
         Path subdir = workdir.resolve(submodule.getPath());
         try {

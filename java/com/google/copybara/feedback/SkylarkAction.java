@@ -24,10 +24,9 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalException.EvalExceptionWithJavaCause;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
 
 /**
@@ -36,13 +35,14 @@ import java.util.function.Supplier;
 public class SkylarkAction implements Action {
 
   private final BaseFunction function;
-  private final SkylarkDict params;
-  private final Supplier<Environment> env;
+  private final SkylarkDict<?, ?> params;
+  private final Supplier<StarlarkThread> thread;
 
-  public SkylarkAction(BaseFunction function, SkylarkDict params, Supplier<Environment> env) {
+  public SkylarkAction(
+      BaseFunction function, SkylarkDict<?, ?> params, Supplier<StarlarkThread> thread) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
-    this.env = Preconditions.checkNotNull(env);
+    this.thread = Preconditions.checkNotNull(thread);
   }
 
   @Override
@@ -50,16 +50,13 @@ public class SkylarkAction implements Action {
     try {
       //noinspection unchecked
       SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
-      Object result = function.call(ImmutableList.of(actionContext), null,
-          /*ast*/null, env.get());
+      Object result =
+          function.call(ImmutableList.of(actionContext), null, /*ast*/ null, thread.get());
       context.onFinish(result, actionContext);
     } catch (IllegalArgumentException e) {
       throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
       Throwable cause = e.getCause();
-      if (cause instanceof EvalExceptionWithJavaCause) {
-        cause = cause.getCause();
-      }
       String error =
           String.format("Error while executing the skylark transformation %s: %s. Location: %s",
               function.getName(), e.getMessage(), e.getLocation());

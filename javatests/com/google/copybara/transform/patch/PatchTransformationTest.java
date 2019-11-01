@@ -18,7 +18,6 @@ package com.google.copybara.transform.patch;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
@@ -32,6 +31,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -104,7 +104,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1);
+            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -113,14 +113,13 @@ public class PatchTransformationTest {
 
   @Test
   public void insideGitFolderTest() throws Exception {
-    GitRepository.newRepo(/*verbose=*/ false, checkoutDir, GitTestUtil.getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository.newRepo(/*verbose*/ false, checkoutDir, GitTestUtil.getGitEnv()).init();
 
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1);
+            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     thrown.expect(ValidationException.class);
     thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
     transform.transform(TransformWorks.of(foo, "testmsg", console));
@@ -131,7 +130,7 @@ public class PatchTransformationTest {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ true, /*strip=*/1);
+            /*reverse=*/ true, /*strip=*/1, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
@@ -152,6 +151,12 @@ public class PatchTransformationTest {
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testGlobInvalid() {
+    skylark.evalFails("patch.apply(patches = glob(['diff.patch']))",
+        "'patches' cannot be a glob, only an explicit list of patches");
   }
 
   @Test
@@ -199,7 +204,7 @@ public class PatchTransformationTest {
   public void testDescribe() {
     PatchTransformation transform = new PatchTransformation(
         ImmutableList.of(patchFile, patchFile), excludedFromPatch, patchingOptions,
-        /*reverse=*/ false, /*strip=*/1);
+        /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }

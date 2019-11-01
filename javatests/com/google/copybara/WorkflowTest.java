@@ -208,7 +208,7 @@ public class WorkflowTest {
     return (Workflow<?, ?>) loadConfig(config).getMigration(name);
   }
 
-  private Workflow iterativeWorkflow(String workflowName, @Nullable String previousRef)
+  private Workflow<?, ?> iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
     options.general.withEventMonitor(eventMonitor);
@@ -596,7 +596,7 @@ public class WorkflowTest {
     options.testingOptions.destination =
         new RecordsProcessCallDestination() {
           @Override
-          public Writer newWriter(WriterContext writerContext) {
+          public Writer<Revision> newWriter(WriterContext writerContext) {
             return new WriterImpl(writerContext.isDryRun()) {
               @Override
               public ImmutableList<DestinationEffect> write(
@@ -1552,8 +1552,7 @@ public class WorkflowTest {
   public void testDryRunWithLocalGitPath() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT).init();
 
@@ -1803,6 +1802,7 @@ public class WorkflowTest {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
+    writeFile(base1, "excluded/file.txt", "EXCLUDED FOO: Shouldn't be seen");
     writeFile(base1, "folder/deleted.txt", "");
     writeFile(base1, "folder/unmodified.txt", "");
     writeFile(base1, "folder/modified.txt", "foo");
@@ -1817,6 +1817,7 @@ public class WorkflowTest {
     Path base3 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
     FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
 
+    writeFile(base3, "excluded/file.txt", "EXCLUDED bAR: Shouldn't be seen");
     writeFile(base3, "folder/modified.txt", "bar");
     writeFile(base3, "folder/added.txt", "only_in_change");
     origin.addChange(2, base3, "change 2", /*matchesGlob=*/ true);
@@ -1826,7 +1827,8 @@ public class WorkflowTest {
         + "        core.replace(\n"
         + "             before = 'only_in_change',\n"
         + "             after = 'foo',\n"
-        + "        )");
+        + "        )",
+        "          core.verify_match('EXCLUDED', verify_no_match=True)");
     Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
     workflow.run(workdir, ImmutableList.of("HEAD"));
     assertThat(destination.processed).hasSize(1);
@@ -1837,8 +1839,7 @@ public class WorkflowTest {
   @Test
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow("
         + "    name = 'default',"
@@ -1876,8 +1877,7 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
@@ -1951,8 +1951,7 @@ public class WorkflowTest {
     Path originPath = someRoot.resolve("origin");
     Files.createDirectories(originPath);
 
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
 
     String config = "core.workflow(\n"
@@ -2749,7 +2748,7 @@ public class WorkflowTest {
   public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
     origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
 
-    GitRepository.newRepo(/*verbose=*/true, workdir, getGitEnv(), DEFAULT_TIMEOUT).init();
+    GitRepository.newRepo(/*verbose*/ true, workdir, getGitEnv()).init();
     Path subdir = Files.createDirectory(workdir.resolve("subdir"));
     String config = ""
         + "core.workflow(\n"
@@ -2862,10 +2861,9 @@ public class WorkflowTest {
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
-    GitRepository destination = GitRepository.newRepo(true, destinationPath, getGitEnv(),
-        DEFAULT_TIMEOUT).init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository destination =
+        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
@@ -3088,8 +3086,7 @@ public class WorkflowTest {
   @Test
   public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init();
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
     options.setForce(false);
     options.workflowOptions.initHistory = true;
@@ -3146,11 +3143,13 @@ public class WorkflowTest {
       throws IOException, RepoException, ValidationException {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
-    GitRepository origin = GitRepository.newRepo(true, originPath, getGitEnv(), DEFAULT_TIMEOUT)
-        .init(
-    );
-    GitRepository destinationBare = newBareRepo(Files.createTempDirectory("destination"), getGitEnv(),
-        /*verbose=*/true, DEFAULT_TIMEOUT);
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository destinationBare =
+        newBareRepo(
+            Files.createTempDirectory("destination"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT);
     destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 
@@ -3233,5 +3232,18 @@ public class WorkflowTest {
             .map(Change::getMessage)
             .collect(Collectors.toList());
     assertThat(commitMessages).containsExactly((Object[]) expectedChanges);
+  }
+
+  @Test
+  public void testInvalidMigrationName() {
+    skylark.evalFails(
+        ""
+            + "core.workflow(\n"
+            + "    name = 'foo| bad;name',\n"
+            + "    origin = folder.origin(),\n"
+            + "    destination = folder.destination(),\n"
+            + "    authoring = authoring.overwrite('Foo <foo@example.com>'),\n"
+            + "),\n",
+        ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 }

@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.metadata;
 
+import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
@@ -23,6 +24,7 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 
 /**
@@ -37,13 +39,15 @@ public class TemplateMessage implements Transformation {
   private final boolean newLine;
   private final boolean replaceMessage;
   private final LabelTemplate labelTemplate;
+  private final Location location;
 
   TemplateMessage(String header, boolean ignoreIfLabelNotFound, boolean newLine,
-      boolean replaceMessage) {
+      boolean replaceMessage, Location location) {
     this.ignoreIfLabelNotFound = ignoreIfLabelNotFound;
     this.newLine = newLine;
     this.replaceMessage = replaceMessage;
     labelTemplate = new LabelTemplate(header);
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -75,5 +79,10 @@ public class TemplateMessage implements Transformation {
   @Override
   public String describe() {
     return "Adding header to the message";
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

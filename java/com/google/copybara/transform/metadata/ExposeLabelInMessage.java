@@ -24,6 +24,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 
@@ -38,14 +39,16 @@ public class ExposeLabelInMessage implements Transformation {
   private final String separator;
   private final boolean ignoreNotFound;
   private final boolean all;
+  private final Location location;
 
   ExposeLabelInMessage(String label, String newLabelName, String separator,
-      boolean ignoreNotFound, boolean all) {
+      boolean ignoreNotFound, boolean all, Location location) {
     this.label = Preconditions.checkNotNull(label);
     this.newLabelName = Preconditions.checkNotNull(newLabelName);
     this.separator = Preconditions.checkNotNull(separator);
     this.ignoreNotFound = ignoreNotFound;
     this.all = all;
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -92,5 +95,10 @@ public class ExposeLabelInMessage implements Transformation {
   @Override
   public String describe() {
     return String.format("Exposing label %s as %s", label, newLabelName);
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

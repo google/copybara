@@ -142,10 +142,13 @@ public final class TransformDebug implements Transformation {
       showDiff(console, difference);
     }
     while (true) {
-      String answer = console.ask("Debugger stopped after '" + delegate.describe()
+      String answer = console.ask(
+          "Debugger stopped after '" + delegate.describe()
               + "' "
               + console.colorize(AnsiColor.PURPLE, delegate.location().toString())
-              + ". Diff (d), Continue (c), Stop (s): ",
+              + ".\n"
+              + "      Current file state can be checked at " + work.getCheckoutDir() +"\n"
+              + "Diff (d), Continue (c), Stop (s): ",
           "d",
           input -> ImmutableSet.of("d", "c", "s").contains(input));
 

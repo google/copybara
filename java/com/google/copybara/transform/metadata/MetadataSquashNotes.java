@@ -23,9 +23,9 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,7 +88,7 @@ public class MetadataSquashNotes implements Transformation {
       changes = changes.stream().filter(e -> !e.isMerge()).collect(Collectors.toList());
     }
     for (int i = 0; i < changes.size(); i++) {
-      Change c = changes.get(i);
+      Change<?> c = changes.get(i);
       if (counter == max) {
         break;
       }

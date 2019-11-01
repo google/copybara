@@ -120,7 +120,7 @@ public class FinishHookContext extends FeedbackContext {
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
         result == null || result.equals(Runtime.NONE),
         "Finish hook '%s' cannot return any result but returned: %s",
@@ -147,10 +147,12 @@ public class FinishHookContext extends FeedbackContext {
     @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the"
         + " requested/resolved revision.", structField = true)
     public SkylarkDict<String, SkylarkList<String>> getLabels() {
-      return SkylarkDict.copyOf(/* env= */ null,
+      return SkylarkDict.copyOf(
+          /* thread= */ null,
           revision.associatedLabels().asMap().entrySet().stream()
-              .collect(Collectors.toMap(Map.Entry::getKey,
-                  e -> SkylarkList.createImmutable(e.getValue()))));
+              .collect(
+                  Collectors.toMap(
+                      Map.Entry::getKey, e -> SkylarkList.createImmutable(e.getValue()))));
     }
   }
 }

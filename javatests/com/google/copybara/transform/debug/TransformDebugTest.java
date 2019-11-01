@@ -96,8 +96,8 @@ public class TransformDebugTest {
     mockAnswer("Replace foo1", "c");
     mockAnswer("Replace foo2", "c");
     runWorkflow();
-    verify(console).ask(matches("Debugger stopped after 'Replace foo1'.*"), anyString(),any());
-    verify(console).ask(matches("Debugger stopped after 'Replace foo2'.*"), anyString(),any());
+    verify(console).ask(matches("Debugger stopped after 'Replace foo1'(.|\n)*"), anyString(),any());
+    verify(console).ask(matches("Debugger stopped after 'Replace foo2'(.|\n)*"), anyString(),any());
   }
 
   @Test
@@ -105,7 +105,7 @@ public class TransformDebugTest {
     options.debug.debugTransformBreak = "Replace foo1";
     mockAnswer("Replace foo1", "c");
     runWorkflow();
-    verify(console).ask(matches("Debugger stopped after 'Replace foo1'.*"), anyString(),any());
+    verify(console).ask(matches("Debugger stopped after 'Replace foo1'(.|\n)*"), anyString(),any());
   }
 
   @Test
@@ -114,7 +114,7 @@ public class TransformDebugTest {
     mockAnswer("Adding header to the message", "c");
     runWorkflow();
     verify(console).ask(
-        matches("Debugger stopped after 'Adding header to the message.*"), anyString(),any());
+        matches("Debugger stopped after 'Adding header to the message(.|\n)*"), anyString(),any());
   }
 
   @Test
@@ -132,7 +132,8 @@ public class TransformDebugTest {
   private void mockAnswer(String description,
       String answer, String... answers) throws IOException {
     when(
-        console.ask(matches("Debugger stopped after '" + description + "'.*"), anyString(), any()))
+        console.ask(matches("Debugger stopped after '" + description + "'(.|\n)*"),
+            anyString(), any()))
         .thenReturn(answer, answers);
   }
 

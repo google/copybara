@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -41,6 +42,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.WriterContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -52,6 +54,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -444,7 +447,11 @@ public class GitHubPrDestinationTest {
         + "    destination_ref = 'other',"
         + ")");
 
-    assertThat(ImmutableList.copyOf(d.getIntegrates())).isEqualTo(GitModule.DEFAULT_GIT_INTEGRATES);
+    assertThat(ImmutableList.copyOf(d.getIntegrates()))
+        .isEqualTo(SkylarkList.createImmutable(ImmutableList.of(
+        new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
+            Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
+            /*ignoreErrors=*/true, /*newGitIntegrate=*/true))));
 
     d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = '" + "https://github.com/foo" + "',"

@@ -114,6 +114,11 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
   }
 
   @Override
+  public Location location() {
+    return location;
+  }
+
+  @Override
   public String apply(String s) {
     return replaceString(s);
   }

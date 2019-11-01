@@ -30,6 +30,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
@@ -60,13 +61,12 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.Runtime.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
-import com.google.devtools.build.lib.syntax.Type;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -89,7 +89,7 @@ import java.util.function.Supplier;
     name = "core",
     doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
-@UsesFlags(GeneralOptions.class)
+    @UsesFlags({GeneralOptions.class, DebugOptions.class})
 public class Core implements LabelsAwareModule {
 
   // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
@@ -100,7 +100,7 @@ public class Core implements LabelsAwareModule {
   private final DebugOptions debugOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
-  private Supplier<Environment> dynamicEnvironment;
+  private Supplier<StarlarkThread> dynamicStarlarkThread;
 
   public Core(
       GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions) {
@@ -110,23 +110,32 @@ public class Core implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "reverse",
-      doc = "Given a list of transformations, returns the list of transformations equivalent to"
-          + " undoing all the transformations",
+  @SkylarkCallable(
+      name = "reverse",
+      doc =
+          "Given a list of transformations, returns the list of transformations equivalent to"
+              + " undoing all the transformations",
       parameters = {
-          @Param(name = "transformations", named = true, type = SkylarkList.class,
-              generic1 = Transformation.class, doc = "The transformations to reverse"),
+        @Param(
+            name = "transformations",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc = "The transformations to reverse"),
       },
       useLocation = true)
-  public SkylarkList<Transformation> reverse(SkylarkList<Transformation> transforms,
-      Location location) throws EvalException {
+  public SkylarkList<Transformation> reverse(
+      SkylarkList<?> transforms, // <Transformation> or <BaseFunction>
+      Location location)
+      throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
     for (Object t : transforms.getContents(Object.class, "transformations")) {
       try {
         if (t instanceof BaseFunction) {
           builder.add(
-              new SkylarkTransformation((BaseFunction) t, SkylarkDict.empty(), dynamicEnvironment)
+              new SkylarkTransformation(
+                      (BaseFunction) t, SkylarkDict.empty(), dynamicStarlarkThread)
                   .reverse());
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
@@ -143,164 +152,275 @@ public class Core implements LabelsAwareModule {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "workflow",
-      doc = "Defines a migration pipeline which can be invoked via the Copybara command.\n"
-          + "\n"
-          + "Implicit labels that can be used/exposed:\n"
-          + "\n"
-          + "  - " + TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL + ": Requested reference. For"
-          + " example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value"
-          + " would be `master`.\n"
-          + "  - " + TransformWork.COPYBARA_LAST_REV + ": Last reference that was migrated\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_REV
-          + ": The current reference being migrated\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE
-          + ": The current message at this point of the transformations\n"
-          + "  - " + TransformWork.COPYBARA_CURRENT_MESSAGE_TITLE
-          + ": The current message title (first line) at this point of the transformations\n"
-          + "  - " + TransformWork.COPYBARA_AUTHOR + ": The author of the change\n",
+  @SkylarkCallable(
+      name = "workflow",
+      doc =
+          "Defines a migration pipeline which can be invoked via the Copybara command.\n"
+              + "\n"
+              + "Implicit labels that can be used/exposed:\n"
+              + "\n"
+              + "  - "
+              + TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL
+              + ": Requested reference. For example if copybara is invoked as `copybara"
+              + " copy.bara.sky workflow master`, the value would be `master`.\n"
+              + "  - "
+              + TransformWork.COPYBARA_LAST_REV
+              + ": Last reference that was migrated\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_REV
+              + ": The current reference being migrated\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_MESSAGE
+              + ": The current message at this point of the transformations\n"
+              + "  - "
+              + TransformWork.COPYBARA_CURRENT_MESSAGE_TITLE
+              + ": The current message title (first line) at this point of the transformations\n"
+              + "  - "
+              + TransformWork.COPYBARA_AUTHOR
+              + ": The author of the change\n",
       parameters = {
-          @Param(name = "name", named = true, type = String.class,
-              doc = "The name of the workflow.", positional = false),
-          @Param(name = "origin", named = true, type = Origin.class,
-              doc = "Where to read from the code to be migrated, before applying the "
-                  + "transformations. This is usually a VCS like Git, but can also be a local "
-                  + "folder or even a pending change in a code review system like Gerrit.",
-              positional = false),
-          @Param(name = "destination", named = true, type = Destination.class,
-              doc = "Where to write to the code being migrated, after applying the "
-                  + "transformations. This is usually a VCS like Git, but can also be a local "
-                  + "folder or even a pending change in a code review system like Gerrit.",
-              positional = false),
-          @Param(name = "authoring", named = true, type = Authoring.class,
-              doc = "The author mapping configuration from origin to destination.",
-              positional = false),
-          @Param(name = "transformations", named = true, type = SkylarkList.class,
-              doc = "The transformations to be run for this workflow. They will run in sequence.",
-              positional = false, defaultValue = "[]"),
-          @Param(name = "origin_files", named = true, type = Glob.class,
-              doc = "A glob relative to the workdir that will be read from the"
-                  + " origin during the import. For example glob([\"**.java\"]), all java files,"
-                  + " recursively, which excludes all other file types.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "destination_files", named = true, type = Glob.class,
-              doc = "A glob relative to the root of the destination repository that matches"
-                  + " files that are part of the migration. Files NOT matching this glob will never"
-                  + " be removed, even if the file does not exist in the source. For example"
-                  + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination"
-                  + " when the origin does not have any BUILD files. You can also use this to limit"
-                  + " the migration to a subdirectory of the destination,"
-                  + " e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
-                  + " files in java/src.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "mode", named = true, type = String.class, doc = ""
-              + "Workflow mode. Currently we support four modes:<br>"
-              + "<ul>"
-              + "<li><b>'SQUASH'</b>: Create a single commit in the destination with new tree"
-              + " state.</li>"
-              + "<li><b>'ITERATIVE'</b>: Import each origin change individually.</li>"
-              + "<li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth."
-              + " This could be a GH Pull Request, a Gerrit Change, etc. The final intention should"
-              + " be to submit the change in the SoT (destination in this case).</li>"
-              + "<li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the"
-              + " Source-of-Truth. This mode is useful when, despite the pending change being"
-              + " already in the SoT, the users want to review the code on a different system."
-              + " The final intention should never be to submit in the destination, but just"
-              + " review or test</li>"
-              + "</ul>",
-              defaultValue = "\"SQUASH\"", positional = false),
-          @Param(name = "reversible_check", named = true, type = Boolean.class,
-              doc = "Indicates if the tool should try to to reverse all the transformations"
-                  + " at the end to check that they are reversible.<br/>The default value is"
-                  + " True for 'CHANGE_REQUEST' mode. False otherwise",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = CHECK_LAST_REV_STATE, named = true, type = Boolean.class,
-              doc = "If set to true, Copybara will validate that the destination didn't change"
-                  + " since last-rev import for destination_files. Note that this"
-                  + " flag doesn't work for CHANGE_REQUEST mode.",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "ask_for_confirmation", named = true, type = Boolean.class,
-              doc = "Indicates that the tool should show the diff and require user's"
-                  + " confirmation before making a change in the destination.",
-              defaultValue = "False", positional = false),
-          @Param(name = "dry_run", named = true, type = Boolean.class,
-              doc = "Run the migration in dry-run mode. Some destination implementations might"
-                  + " have some side effects (like creating a code review), but never submit to a"
-                  + " main branch.",
-              defaultValue = "False", positional = false),
-          @Param(name = "after_migration", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after one migration happens. This runs once per"
-                  + " change in `ITERATIVE` mode and only once for `SQUASH`.",
-              defaultValue = "[]", positional = false),
-          @Param(name = "after_workflow", named = true, type = SkylarkList.class,
-              doc = "Run a feedback workflow after all the changes for this workflow run are"
-                  + " migrated. Prefer `after_migration` as it is executed per change (in ITERATIVE"
-                  + " mode). Tasks in this hook shouldn't be critical to execute. These actions"
-                  + " shouldn't record effects (They'll be ignored).",
-              defaultValue = "[]", positional = false),
-          @Param(name = "change_identity", named = true, type = String.class,
-              doc = "By default, Copybara hashes several fields so that each change has an"
-                  + " unique identifier that at the same time reuses the generated destination"
-                  + " change. This allows to customize the identity hash generation so that"
-                  + " the same identity is used in several workflows. At least"
-                  + " ${copybara_config_path} has to be present. Current user is added to the"
-                  + " hash automatically.<br><br>"
-                  + "Available variables:"
-                  + "<ul>"
-                  + "  <li>${copybara_config_path}: Main config file path</li>"
-                  + "  <li>${copybara_workflow_name}: The name of the workflow being run</li>"
-                  + "  <li>${copybara_reference}: The requested reference. In general Copybara"
-                  + " tries its best to give a repetable reference. For example Gerrit"
-                  + " change number or change-id or GitHub Pull Request number. If it cannot"
-                  + " find a context reference it uses the resolved revision.</li>"
-                  + "  <li>${label:label_name}: A label present for the current change. Exposed in"
-                  + " the message or not.</li>"
-                  + "</ul>"
-                  + "If any of the labels cannot be found it defaults to the default identity"
-                  + " (The effect would be no reuse of destination change between workflows)",
-              defaultValue = "None", noneable = true, positional = false),
-          @Param(name = "set_rev_id", named = true, type = Boolean.class,
-              doc = "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
-                  + " track what was the latest change imported. For certain workflows like"
-                  + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
-                  + " to disable it for that mode. Destinations might ignore the flag.",
-              defaultValue = "True", positional = false),
-          @Param(name = "smart_prune", named = true, type = Boolean.class,
-              doc = "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This"
-                  + " flag does a best-effort approach in restoring the non-affected snippets. For"
-                  + " now we only revert the non-affected files. This only works for CHANGE_REQUEST"
-                  + " mode.",
-              defaultValue = "False", positional = false),
-          @Param(name = "migrate_noop_changes", named = true, type = Boolean.class,
-              doc = "By default, Copybara tries to only migrate changes that affect origin_files"
-                  + " or config files. This flag allows to include all the changes. Note that it"
-                  + " might generate more empty changes errors. In `ITERATIVE` mode it might fail"
-                  + " if some transformation is validating the message (Like has to contain 'PUBLIC'"
-                  + " and the change doesn't contain it because it is internal).",
-              defaultValue = "False", positional = false),
-          @Param(name = "experimental_custom_rev_id", named = true, type = String.class,
-              doc = "Use this label name instead of the one provided by the origin. This is subject"
-                  + " to change and there is no guarantee.",
-              defaultValue = "None", positional = false, noneable = true),
-          @Param(name = "description", type = String.class, named = true, noneable = true,
-              positional = false,
-              doc = "A description of what this workflow achieves", defaultValue = "None"),
-          @Param(name = "checkout", type = Boolean.class, named = true,
-              positional = false,
-              doc = "Allows disabling the checkout. The usage of this feature is rare. This could"
-                  + " be used to update a file of your own repo when a dependant repo version"
-                  + " changes and you are not interested on the files of the dependant repo, just"
-                  + " the new version.", defaultValue = "True"),
+        @Param(
+            name = "name",
+            named = true,
+            type = String.class,
+            doc = "The name of the workflow.",
+            positional = false),
+        @Param(
+            name = "origin",
+            named = true,
+            type = Origin.class,
+            doc =
+                "Where to read from the code to be migrated, before applying the "
+                    + "transformations. This is usually a VCS like Git, but can also be a local "
+                    + "folder or even a pending change in a code review system like Gerrit.",
+            positional = false),
+        @Param(
+            name = "destination",
+            named = true,
+            type = Destination.class,
+            doc =
+                "Where to write to the code being migrated, after applying the "
+                    + "transformations. This is usually a VCS like Git, but can also be a local "
+                    + "folder or even a pending change in a code review system like Gerrit.",
+            positional = false),
+        @Param(
+            name = "authoring",
+            named = true,
+            type = Authoring.class,
+            doc = "The author mapping configuration from origin to destination.",
+            positional = false),
+        @Param(
+            name = "transformations",
+            named = true,
+            type = SkylarkList.class,
+            doc = "The transformations to be run for this workflow. They will run in sequence.",
+            positional = false,
+            defaultValue = "[]"),
+        @Param(
+            name = "origin_files",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob relative to the workdir that will be read from the"
+                    + " origin during the import. For example glob([\"**.java\"]), all java files,"
+                    + " recursively, which excludes all other file types.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "destination_files",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob relative to the root of the destination repository that matches files that"
+                    + " are part of the migration. Files NOT matching this glob will never be"
+                    + " removed, even if the file does not exist in the source. For example"
+                    + " glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination"
+                    + " when the origin does not have any BUILD files. You can also use this to"
+                    + " limit the migration to a subdirectory of the destination, e.g."
+                    + " glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
+                    + " files in java/src.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "mode",
+            named = true,
+            type = String.class,
+            doc =
+                "Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>:"
+                    + " Create a single commit in the destination with new tree"
+                    + " state.</li><li><b>'ITERATIVE'</b>: Import each origin change"
+                    + " individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to"
+                    + " the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change,"
+                    + " etc. The final intention should be to submit the change in the SoT"
+                    + " (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>:"
+                    + " Import a pending change **from** the Source-of-Truth. This mode is useful"
+                    + " when, despite the pending change being already in the SoT, the users want"
+                    + " to review the code on a different system. The final intention should never"
+                    + " be to submit in the destination, but just review or test</li></ul>",
+            defaultValue = "\"SQUASH\"",
+            positional = false),
+        @Param(
+            name = "reversible_check",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Indicates if the tool should try to to reverse all the transformations"
+                    + " at the end to check that they are reversible.<br/>The default value is"
+                    + " True for 'CHANGE_REQUEST' mode. False otherwise",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = CHECK_LAST_REV_STATE,
+            named = true,
+            type = Boolean.class,
+            doc =
+                "If set to true, Copybara will validate that the destination didn't change"
+                    + " since last-rev import for destination_files. Note that this"
+                    + " flag doesn't work for CHANGE_REQUEST mode.",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "ask_for_confirmation",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Indicates that the tool should show the diff and require user's"
+                    + " confirmation before making a change in the destination.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "dry_run",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Run the migration in dry-run mode. Some destination implementations might"
+                    + " have some side effects (like creating a code review), but never submit to a"
+                    + " main branch.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "after_migration",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "Run a feedback workflow after one migration happens. This runs once per"
+                    + " change in `ITERATIVE` mode and only once for `SQUASH`.",
+            defaultValue = "[]",
+            positional = false),
+        @Param(
+            name = "after_workflow",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "Run a feedback workflow after all the changes for this workflow run are migrated."
+                    + " Prefer `after_migration` as it is executed per change (in ITERATIVE mode)."
+                    + " Tasks in this hook shouldn't be critical to execute. These actions"
+                    + " shouldn't record effects (They'll be ignored).",
+            defaultValue = "[]",
+            positional = false),
+        @Param(
+            name = "change_identity",
+            named = true,
+            type = String.class,
+            doc =
+                "By default, Copybara hashes several fields so that each change has an unique"
+                    + " identifier that at the same time reuses the generated destination change."
+                    + " This allows to customize the identity hash generation so that the same"
+                    + " identity is used in several workflows. At least ${copybara_config_path}"
+                    + " has to be present. Current user is added to the hash"
+                    + " automatically.<br><br>Available variables:<ul> "
+                    + " <li>${copybara_config_path}: Main config file path</li> "
+                    + " <li>${copybara_workflow_name}: The name of the workflow being run</li> "
+                    + " <li>${copybara_reference}: The requested reference. In general Copybara"
+                    + " tries its best to give a repetable reference. For example Gerrit change"
+                    + " number or change-id or GitHub Pull Request number. If it cannot find a"
+                    + " context reference it uses the resolved revision.</li> "
+                    + " <li>${label:label_name}: A label present for the current change. Exposed"
+                    + " in the message or not.</li></ul>If any of the labels cannot be found it"
+                    + " defaults to the default identity (The effect would be no reuse of"
+                    + " destination change between workflows)",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
+        @Param(
+            name = "set_rev_id",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
+                    + " track what was the latest change imported. For certain workflows like"
+                    + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
+                    + " to disable it for that mode. Destinations might ignore the flag.",
+            defaultValue = "True",
+            positional = false),
+        @Param(
+            name = "smart_prune",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does"
+                    + " a best-effort approach in restoring the non-affected snippets. For now we"
+                    + " only revert the non-affected files. This only works for CHANGE_REQUEST"
+                    + " mode.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "migrate_noop_changes",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "By default, Copybara tries to only migrate changes that affect origin_files or"
+                    + " config files. This flag allows to include all the changes. Note that it"
+                    + " might generate more empty changes errors. In `ITERATIVE` mode it might"
+                    + " fail if some transformation is validating the message (Like has to contain"
+                    + " 'PUBLIC' and the change doesn't contain it because it is internal).",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "experimental_custom_rev_id",
+            named = true,
+            type = String.class,
+            doc =
+                "Use this label name instead of the one provided by the origin. This is subject"
+                    + " to change and there is no guarantee.",
+            defaultValue = "None",
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            noneable = true,
+            positional = false,
+            doc = "A description of what this workflow achieves",
+            defaultValue = "None"),
+        @Param(
+            name = "checkout",
+            type = Boolean.class,
+            named = true,
+            positional = false,
+            doc =
+                "Allows disabling the checkout. The usage of this feature is rare. This could"
+                    + " be used to update a file of your own repo when a dependant repo version"
+                    + " changes and you are not interested on the files of the dependant repo, just"
+                    + " the new version.",
+            defaultValue = "True"),
       },
-      useLocation = true, useEnvironment = true)
+      useLocation = true,
+      useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
   @DocDefault(field = "destination_files", value = "glob([\"**\"])")
   @DocDefault(field = CHECK_LAST_REV_STATE, value = "True for CHANGE_REQUEST")
   @DocDefault(field = "reversible_check", value = "True for 'CHANGE_REQUEST' mode. False otherwise")
-
-  public void workflow(String workflowName,
-      Origin<Revision> origin, Destination<?> destination,
+  public void workflow(
+      String workflowName,
+      Origin<?> origin, // <Revision>
+      Destination<?> destination,
       Authoring authoring,
       SkylarkList<?> transformations,
       Object originFiles,
@@ -320,14 +440,18 @@ public class Core implements LabelsAwareModule {
       Object description,
       Boolean checkout,
       Location location,
-      Environment env)
+      StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
 
-    Sequence sequenceTransform = Sequence.fromConfig(generalOptions.profiler(),
-        workflowOptions.joinTransformations(),
-        transformations, "transformations", dynamicEnvironment,
-        debugOptions::transformWrapper);
+    Sequence sequenceTransform =
+        Sequence.fromConfig(
+            generalOptions.profiler(),
+            workflowOptions.joinTransformations(),
+            transformations,
+            "transformations",
+            dynamicStarlarkThread,
+            debugOptions::transformWrapper);
     Transformation reverseTransform = null;
     if (!generalOptions.isDisableReversibleCheck()
         && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -373,35 +497,36 @@ public class Core implements LabelsAwareModule {
     }
 
     WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
-    Workflow<Revision, ?> workflow = new Workflow<>(
-        workflowName,
-        convertFromNoneable(description, null),
-        origin,
-        destination,
-        resolvedAuthoring,
-        sequenceTransform,
-        workflowOptions.getLastRevision(),
-        workflowOptions.isInitHistory(),
-        generalOptions,
-        convertFromNoneable(originFiles, Glob.ALL_FILES),
-        convertFromNoneable(destinationFiles, Glob.ALL_FILES),
-        effectiveMode,
-        workflowOptions,
-        reverseTransform,
-        askForConfirmation,
-        mainConfigFile,
-        allConfigFiles,
-        dryRunMode,
-        checkLastRevState || workflowOptions.checkLastRevState,
-        convertFeedbackActions(afterMigrations, location, dynamicEnvironment),
-        convertFeedbackActions(afterAllMigrations, location, dynamicEnvironment),
-        changeIdentity,
-        setRevId,
-        smartPrune,
-        workflowOptions.migrateNoopChanges || migrateNoopChanges,
-        customRevId,
-        checkout);
-    registerGlobalMigration(workflowName, workflow, location, env);
+    Workflow<Revision, ?> workflow =
+        new Workflow<>(
+            workflowName,
+            convertFromNoneable(description, null),
+            (Origin<Revision>) origin,
+            destination,
+            resolvedAuthoring,
+            sequenceTransform,
+            workflowOptions.getLastRevision(),
+            workflowOptions.isInitHistory(),
+            generalOptions,
+            convertFromNoneable(originFiles, Glob.ALL_FILES),
+            convertFromNoneable(destinationFiles, Glob.ALL_FILES),
+            effectiveMode,
+            workflowOptions,
+            reverseTransform,
+            askForConfirmation,
+            mainConfigFile,
+            allConfigFiles,
+            dryRunMode,
+            checkLastRevState || workflowOptions.checkLastRevState,
+            convertFeedbackActions(afterMigrations, location, dynamicStarlarkThread),
+            convertFeedbackActions(afterAllMigrations, location, dynamicStarlarkThread),
+            changeIdentity,
+            setRevId,
+            smartPrune,
+            workflowOptions.migrateNoopChanges || migrateNoopChanges,
+            customRevId,
+            checkout);
+    registerGlobalMigration(workflowName, workflow, location, thread);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)
@@ -564,200 +689,282 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "replace",
-
-      doc = "Replace a text with another text using optional regex groups. This tranformer can be"
-          + " automatically reversed.",
+      doc =
+          "Replace a text with another text using optional regex groups. This tranformer can be"
+              + " automatically reversed.",
       parameters = {
-          @Param(name = "before", named = true, type = String.class,
-              doc = "The text before the transformation. Can contain references to regex groups."
-                  + " For example \"foo${x}text\"."
-                  + "<p>`before` can only contain 1 reference to each unique `regex_group`."
-                  + " If you require multiple references to the same `regex_group`, add"
-                  + " `repeated_groups: True`."
-                  + "<p>If '$' literal character needs to be matched, "
-                  + "'`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'."),
-          @Param(name = "after", named = true, type = String.class,
-              doc = "The text after the transformation. It can also contain references to regex "
-                  + "groups, like 'before' field."),
-          @Param(name = "regex_groups", named = true, type = SkylarkDict.class,
-              doc = "A set of named regexes that can be used to match part of the replaced text."
-                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
-                  + " For example {\"x\": \"[A-Za-z]+\"}", defaultValue = "{}"),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "first_only", named = true, type = Boolean.class,
-              doc = "If true, only replaces the first instance rather than all. In single line"
-                  + " mode, replaces the first instance on each line. In multiline mode, replaces "
-                  + "the first instance in each file.",
-              defaultValue = "False"),
-          @Param(name = "multiline", named = true, type = Boolean.class,
-              doc = "Whether to replace text that spans more than one line.",
-              defaultValue = "False"),
-          @Param(name = "repeated_groups", named = true, type = Boolean.class,
-              doc = "Allow to use a group multiple times. For example foo${repeated}/${repeated}."
-                  + " Note that this mechanism doesn't use backtracking. In other words, the group"
-                  + " instances are treated as different groups in regex construction and then a"
-                  + " validation is done after that.",
-              defaultValue = "False"),
-          @Param(name = "ignore", named = true, type = SkylarkList.class,
-              doc = "A set of regexes. Any text that matches any expression in this set, which"
-                  + " might otherwise be transformed, will be ignored.",
-              defaultValue = "[]"),
+        @Param(
+            name = "before",
+            named = true,
+            type = String.class,
+            doc =
+                "The text before the transformation. Can contain references to regex groups. For"
+                    + " example \"foo${x}text\".<p>`before` can only contain 1 reference to each"
+                    + " unique `regex_group`. If you require multiple references to the same"
+                    + " `regex_group`, add `repeated_groups: True`.<p>If '$' literal character"
+                    + " needs to be matched, '`$$`' should be used. For example '`$$FOO`' would"
+                    + " match the literal '$FOO'."),
+        @Param(
+            name = "after",
+            named = true,
+            type = String.class,
+            doc =
+                "The text after the transformation. It can also contain references to regex "
+                    + "groups, like 'before' field."),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            type = SkylarkDict.class,
+            doc =
+                "A set of named regexes that can be used to match part of the replaced text."
+                    + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}"),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "first_only",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "If true, only replaces the first instance rather than all. In single line mode,"
+                    + " replaces the first instance on each line. In multiline mode, replaces the"
+                    + " first instance in each file.",
+            defaultValue = "False"),
+        @Param(
+            name = "multiline",
+            named = true,
+            type = Boolean.class,
+            doc = "Whether to replace text that spans more than one line.",
+            defaultValue = "False"),
+        @Param(
+            name = "repeated_groups",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note"
+                    + " that this mechanism doesn't use backtracking. In other words, the group"
+                    + " instances are treated as different groups in regex construction and then a"
+                    + " validation is done after that.",
+            defaultValue = "False"),
+        @Param(
+            name = "ignore",
+            named = true,
+            type = SkylarkList.class,
+            doc =
+                "A set of regexes. Any text that matches any expression in this set, which"
+                    + " might otherwise be transformed, will be ignored.",
+            defaultValue = "[]"),
       },
       useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Simple replacement",
+  @Example(
+      title = "Simple replacement",
       before = "Replaces the text \"internal\" with \"external\" in all java files",
-      code = "core.replace(\n"
-          + "    before = \"internal\",\n"
-          + "    after = \"external\",\n"
-          + "    paths = glob([\"**.java\"]),\n"
-          + ")")
-  @Example(title = "Append some text at the end of files",
+      code =
+          "core.replace(\n"
+              + "    before = \"internal\",\n"
+              + "    after = \"external\",\n"
+              + "    paths = glob([\"**.java\"]),\n"
+              + ")")
+  @Example(
+      title = "Append some text at the end of files",
       before = "",
-      code = "core.replace(\n"
-          + "   before = '${end}',\n"
-          + "   after  = 'Text to be added at the end',\n"
-          + "   multiline = True,\n"
-          + "   regex_groups = { 'end' : '\\z'},\n"
-          + ")")
-  @Example(title = "Append some text at the end of files reversible",
+      code =
+          "core.replace(\n"
+              + "   before = '${end}',\n"
+              + "   after  = 'Text to be added at the end',\n"
+              + "   multiline = True,\n"
+              + "   regex_groups = { 'end' : '\\z'},\n"
+              + ")")
+  @Example(
+      title = "Append some text at the end of files reversible",
       before = "Same as the above example but make the transformation reversible",
-      code = "core.transform([\n"
-          + "    core.replace(\n"
-          + "       before = '${end}',\n"
-          + "       after  = 'some append',\n"
-          + "       multiline = True,\n"
-          + "       regex_groups = { 'end' : '\\z'},\n"
-          + "    )\n"
-          + "],\n"
-          + "reversal = [\n"
-          + "    core.replace(\n"
-          + "       before = 'some append${end}',\n"
-          + "       after = '',\n"
-          + "       multiline = True,\n"
-          + "       regex_groups = { 'end' : '\\z'},\n"
-          + "    )"
-          + "])")
-  @Example(title = "Replace using regex groups",
-      before = "In this example we map some urls from the internal to the external version in"
-          + " all the files of the project.",
-      code = "core.replace(\n"
-          + "        before = \"https://some_internal/url/${pkg}.html\",\n"
-          + "        after = \"https://example.com/${pkg}.html\",\n"
-          + "        regex_groups = {\n"
-          + "            \"pkg\": \".*\",\n"
-          + "        },\n"
-          + "    )",
-      after = "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
-          + " `https://example.com/foo/bar.html`.")
-  @Example(title = "Remove confidential blocks",
-      before = "This example removes blocks of text/code that are confidential and thus shouldn't"
-          + "be exported to a public repository.",
-      code = "core.replace(\n"
-          + "        before = \"${x}\",\n"
-          + "        after = \"\",\n"
-          + "        multiline = True,\n"
-          + "        regex_groups = {\n"
-          + "            \"x\": \"(?m)^.*BEGIN-INTERNAL[\\\\w\\\\W]*?END-INTERNAL.*$\\\\n\",\n"
-          + "        },\n"
-          + "    )",
-      after = "This replace would transform a text file like:\n\n"
-          + "```\n"
-          + "This is\n"
-          + "public\n"
-          + " // BEGIN-INTERNAL\n"
-          + " confidential\n"
-          + " information\n"
-          + " // END-INTERNAL\n"
-          + "more public code\n"
-          + " // BEGIN-INTERNAL\n"
-          + " more confidential\n"
-          + " information\n"
-          + " // END-INTERNAL\n"
-          + "```\n\n"
-          + "Into:\n\n"
-          + "```\n"
-          + "This is\n"
-          + "public\n"
-          + "more public code\n"
-          + "```\n\n")
-  public Replace replace(String before, String after,
-      SkylarkDict<String, String> regexes, Object paths, Boolean firstOnly,
-      Boolean multiline, Boolean repeatedGroups, SkylarkList<String> ignore,
-      Location location) throws EvalException {
-    return Replace.create(location,
+      code =
+          "core.transform([\n"
+              + "    core.replace(\n"
+              + "       before = '${end}',\n"
+              + "       after  = 'some append',\n"
+              + "       multiline = True,\n"
+              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "    )\n"
+              + "],\n"
+              + "reversal = [\n"
+              + "    core.replace(\n"
+              + "       before = 'some append${end}',\n"
+              + "       after = '',\n"
+              + "       multiline = True,\n"
+              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "    )"
+              + "])")
+  @Example(
+      title = "Replace using regex groups",
+      before =
+          "In this example we map some urls from the internal to the external version in"
+              + " all the files of the project.",
+      code =
+          "core.replace(\n"
+              + "        before = \"https://some_internal/url/${pkg}.html\",\n"
+              + "        after = \"https://example.com/${pkg}.html\",\n"
+              + "        regex_groups = {\n"
+              + "            \"pkg\": \".*\",\n"
+              + "        },\n"
+              + "    )",
+      after =
+          "So a url like `https://some_internal/url/foo/bar.html` will be transformed to"
+              + " `https://example.com/foo/bar.html`.")
+  @Example(
+      title = "Remove confidential blocks",
+      before =
+          "This example removes blocks of text/code that are confidential and thus shouldn't"
+              + "be exported to a public repository.",
+      code =
+          "core.replace(\n"
+              + "        before = \"${x}\",\n"
+              + "        after = \"\",\n"
+              + "        multiline = True,\n"
+              + "        regex_groups = {\n"
+              + "            \"x\": \"(?m)^.*BEGIN-INTERNAL[\\\\w\\\\W]*?END-INTERNAL.*$\\\\n\",\n"
+              + "        },\n"
+              + "    )",
+      after =
+          "This replace would transform a text file like:\n\n"
+              + "```\n"
+              + "This is\n"
+              + "public\n"
+              + " // BEGIN-INTERNAL\n"
+              + " confidential\n"
+              + " information\n"
+              + " // END-INTERNAL\n"
+              + "more public code\n"
+              + " // BEGIN-INTERNAL\n"
+              + " more confidential\n"
+              + " information\n"
+              + " // END-INTERNAL\n"
+              + "```\n\n"
+              + "Into:\n\n"
+              + "```\n"
+              + "This is\n"
+              + "public\n"
+              + "more public code\n"
+              + "```\n\n")
+  public Replace replace(
+      String before,
+      String after,
+      SkylarkDict<?, ?> regexes, // <String, String>
+      Object paths,
+      Boolean firstOnly,
+      Boolean multiline,
+      Boolean repeatedGroups,
+      SkylarkList<?> ignore, // <String>
+      Location location)
+      throws EvalException {
+    return Replace.create(
+        location,
         before,
         after,
-        Type.STRING_DICT.convert(regexes, "regex_groups"),
+        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
         convertFromNoneable(paths, Glob.ALL_FILES),
         firstOnly,
         multiline,
         repeatedGroups,
-        Type.STRING_LIST.convert(ignore, "patterns_to_ignore"),
+        SkylarkUtil.convertStringList(ignore, "patterns_to_ignore"),
         workflowOptions);
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "todo_replace",
-
       doc = "Replace Google style TODOs. For example `TODO(username, othername)`.",
       parameters = {
-          @Param(name = "tags", named = true, type = SkylarkList.class, generic1 = String.class,
-              doc = "Prefix tag to look for", defaultValue = "['TODO', 'NOTE']"),
-          @Param(name = "mapping", named = true, type = SkylarkDict.class,
-              doc = "Mapping of users/strings", defaultValue = "{}"),
-          @Param(name = "mode", named = true, type = String.class,
-              doc = "Mode for the replace:"
-                  + "<ul>"
-                  + "<li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li>"
-                  + "<li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found."
-                  + "</li>"
-                  + "<li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found."
-                  + "</li>"
-                  + "<li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to "
-                  + "'TODO'"
-                  + "</li>"
-                  + "<li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li>"
-                  + "</ul>", defaultValue = "'MAP_OR_IGNORE'"),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "default", named = true, type = String.class,
-              doc = "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
-                  + " 'USE_DEFAULT' modes", noneable = true, defaultValue = "None"),
-      }, useLocation = true)
+        @Param(
+            name = "tags",
+            named = true,
+            type = SkylarkList.class,
+            generic1 = String.class,
+            doc = "Prefix tag to look for",
+            defaultValue = "['TODO', 'NOTE']"),
+        @Param(
+            name = "mapping",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "Mapping of users/strings",
+            defaultValue = "{}"),
+        @Param(
+            name = "mode",
+            named = true,
+            type = String.class,
+            doc =
+                "Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not"
+                    + " found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if"
+                    + " no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use"
+                    + " the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from"
+                    + " TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any"
+                    + " TODO(foo, bar) with TODO(default_string)</li></ul>",
+            defaultValue = "'MAP_OR_IGNORE'"),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "default",
+            named = true,
+            type = String.class,
+            doc =
+                "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
+                    + " 'USE_DEFAULT' modes",
+            noneable = true,
+            defaultValue = "None"),
+      },
+      useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Simple update",
+  @Example(
+      title = "Simple update",
       before = "Replace TODOs and NOTES for users in the mapping:",
-      code = "core.todo_replace(\n"
-          + "  mapping = {\n"
-          + "    'test1' : 'external1',\n"
-          + "    'test2' : 'external2'\n"
-          + "  }\n"
-          + ")",
-      after = "Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1)"
-          + " or NOTE(external1, external2)")
-  @Example(title = "Scrubbing",
+      code =
+          "core.todo_replace(\n"
+              + "  mapping = {\n"
+              + "    'test1' : 'external1',\n"
+              + "    'test2' : 'external2'\n"
+              + "  }\n"
+              + ")",
+      after =
+          "Would replace texts like TODO(test1) or NOTE(test1, test2) with TODO(external1)"
+              + " or NOTE(external1, external2)")
+  @Example(
+      title = "Scrubbing",
       before = "Remove text from inside TODOs",
-      code = "core.todo_replace(\n"
-          + "  mode = 'SCRUB_NAMES'\n"
-          + ")",
-      after = "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
-          + " and NOTE:foo")
-  public TodoReplace todoReplace(SkylarkList<String> skyTags,
-      SkylarkDict<String, String> skyMapping, String modeStr, Object paths, Object skyDefault,
-      Location location) throws EvalException {
+      code = "core.todo_replace(\n" + "  mode = 'SCRUB_NAMES'\n" + ")",
+      after =
+          "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
+              + " and NOTE:foo")
+  public TodoReplace todoReplace(
+      SkylarkList<?> skyTags, // <String>
+      SkylarkDict<?, ?> skyMapping, // <String, String>
+      String modeStr,
+      Object paths,
+      Object skyDefault,
+      Location location)
+      throws EvalException {
     Mode mode = stringToEnum(location, "mode", modeStr, Mode.class);
-    Map<String, String> mapping = Type.STRING_DICT.convert(skyMapping, "mapping");
+    Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
-    ImmutableList<String> tags = ImmutableList.copyOf(Type.STRING_LIST.convert(skyTags, "tags"));
+    ImmutableList<String> tags =
+        ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
 
     check(location, !tags.isEmpty(), "'tags' cannot be empty");
     if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {
@@ -880,30 +1087,34 @@ public class Core implements LabelsAwareModule {
 
   @SkylarkCallable(
       name = "replace_mapper",
-      doc = "A mapping function that applies a list of replaces until one replaces the text"
-          + " (Unless `all = True` is used). This should be used with core.filter_replace or"
-          + " other transformations that accept text mapping as parameter.",
+      doc =
+          "A mapping function that applies a list of replaces until one replaces the text"
+              + " (Unless `all = True` is used). This should be used with core.filter_replace or"
+              + " other transformations that accept text mapping as parameter.",
       parameters = {
-          @Param(
-              name = "mapping",
-              type = SkylarkList.class, generic1 = Transformation.class, named = true,
-              noneable = true,
-              doc = "The list of core.replace transformations",
-              defaultValue = "None"
-          ),
-          @Param(
-              name = "all",
-              type = Boolean.class, named = true, positional = false,
-              doc = "Run all the mappings despite a replace happens.",
-              defaultValue = "False"
-          ),
+        @Param(
+            name = "mapping",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            named = true,
+            doc = "The list of core.replace transformations"),
+        @Param(
+            name = "all",
+            type = Boolean.class,
+            named = true,
+            positional = false,
+            doc = "Run all the mappings despite a replace happens.",
+            defaultValue = "False"),
       },
       useLocation = true)
-  public ReplaceMapper mapImports(SkylarkList<Transformation> mapping,
-      Boolean all, Location location) throws EvalException {
+  public ReplaceMapper mapImports(
+      SkylarkList<?> mapping, // <Transformation>
+      Boolean all,
+      Location location)
+      throws EvalException {
     check(location, !mapping.isEmpty(), "Empty mapping is not allowed");
     ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
-    for (Transformation t : mapping) {
+    for (Transformation t : mapping.getContents(Transformation.class, "mapping")) {
       check(location, t instanceof Replace,
           "Only core.replace can be used as mapping, but got: " + t.describe());
       Replace replace = (Replace) t;
@@ -950,55 +1161,66 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "transform",
-      doc = "Groups some transformations in a transformation that can contain a particular,"
-          + " manually-specified, reversal, where the forward version and reversed version"
-          + " of the transform are represented as lists of transforms. The is useful if a"
-          + " transformation does not automatically reverse, or if the automatic reversal"
-          + " does not work for some reason."
-          + "<br>"
-          + "If reversal is not provided, the transform will try to compute the reverse of"
-          + " the transformations list.",
+      doc =
+          "Groups some transformations in a transformation that can contain a particular,"
+              + " manually-specified, reversal, where the forward version and reversed version"
+              + " of the transform are represented as lists of transforms. The is useful if a"
+              + " transformation does not automatically reverse, or if the automatic reversal"
+              + " does not work for some reason."
+              + "<br>"
+              + "If reversal is not provided, the transform will try to compute the reverse of"
+              + " the transformations list.",
       parameters = {
-          @Param(
-              name = "transformations",
-              type = SkylarkList.class,
-              generic1 = Transformation.class, named = true,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation."),
-          @Param(
-              name = "reversal",
-              type = SkylarkList.class,
-              generic1 = Transformation.class,
-              doc = "The list of transformations to run as a result of running this"
-                  + " transformation in reverse.",
-              named = true,
-              positional = false,
-              noneable = true,
-              defaultValue = "None"),
-          @Param(
-              name = "ignore_noop",
-              type = Boolean.class,
-              doc = "In case a noop error happens in the group of transformations (Both forward and"
-                  + " reverse), it will be ignored, but the rest of the transformations in the"
-                  + " group will still be executed. If ignore_noop is not set,"
-                  + " we will apply the closest parent's ignore_noop.",
-              named = true,
-              positional = false,
-              noneable = true,
-              defaultValue = "None"),
+        @Param(
+            name = "transformations",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            named = true,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation."),
+        @Param(
+            name = "reversal",
+            type = SkylarkList.class,
+            generic1 = Transformation.class,
+            doc =
+                "The list of transformations to run as a result of running this"
+                    + " transformation in reverse.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "None"),
+        @Param(
+            name = "ignore_noop",
+            type = Boolean.class,
+            doc =
+                "In case a noop error happens in the group of transformations (Both forward and"
+                    + " reverse), it will be ignored, but the rest of the transformations in the"
+                    + " group will still be executed. If ignore_noop is not set,"
+                    + " we will apply the closest parent's ignore_noop.",
+            named = true,
+            positional = false,
+            noneable = true,
+            defaultValue = "None"),
       },
       useLocation = true,
-      useEnvironment = true)
+      useStarlarkThread = true)
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
-  public Transformation transform(SkylarkList<Transformation> transformations,
-      Object reversal, Object ignoreNoop, Location location, Environment env)
+  public Transformation transform(
+      SkylarkList<?> transformations, // <Transformation>
+      Object reversal,
+      Object ignoreNoop,
+      Location location,
+      StarlarkThread thread)
       throws EvalException {
-    Sequence forward = Sequence.fromConfig(generalOptions.profiler(),
-        workflowOptions.joinTransformations(),
-        transformations,
-        "transformations",
-        dynamicEnvironment,
-        debugOptions::transformWrapper);
+    Sequence forward =
+        Sequence.fromConfig(
+            generalOptions.profiler(),
+            workflowOptions.joinTransformations(),
+            transformations,
+            "transformations",
+            dynamicStarlarkThread,
+            debugOptions::transformWrapper);
     SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
     Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
@@ -1018,7 +1240,7 @@ public class Core implements LabelsAwareModule {
             workflowOptions.joinTransformations(),
             reverseList,
             "reversal",
-            dynamicEnvironment,
+            dynamicStarlarkThread,
             debugOptions::transformWrapper);
     return new ExplicitReversal(
         forward, reverse, updatedIgnoreNoop);
@@ -1027,58 +1249,75 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "dynamic_transform",
-
-      doc = "Create a dynamic Skylark transformation. This should only be used by libraries"
-          + " developers",
+      doc =
+          "Create a dynamic Skylark transformation. This should only be used by libraries"
+              + " developers",
       parameters = {
-          @Param(name = "impl", named = true, type = BaseFunction.class,
-              doc = "The Skylark function to call"),
-          @Param(name = "params", named = true, type = SkylarkDict.class,
-              doc = "The parameters to the function. Will be available under ctx.params",
-              defaultValue = "{}"),
+        @Param(
+            name = "impl",
+            named = true,
+            type = BaseFunction.class,
+            doc = "The Skylark function to call"),
+        @Param(
+            name = "params",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "The parameters to the function. Will be available under ctx.params",
+            defaultValue = "{}"),
       },
-      useEnvironment = true)
-  @Example(title = "Create a dynamic transformation with parameter",
-      before = "If you want to create a library that uses dynamic transformations, you probably"
-          + " want to make them customizable. In order to do that, in your library.bara.sky, you"
-          + " need to hide the dynamic transformation (prefix with '_' and instead expose a"
-          + " function that creates the dynamic transformation with the param:",
-      code = ""
-          + "def _test_impl(ctx):\n"
-          + "  ctx.set_message("
-          + "ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
-          + "\n"
-          + "def test(name, number = 2):\n"
-          + "  return core.dynamic_transform(impl = _test_impl,\n"
-          + "                           params = { 'name': name, 'number': number})\n"
-          + "\n"
-          + "  ",
+      useStarlarkThread = true)
+  @Example(
+      title = "Create a dynamic transformation with parameter",
+      before =
+          "If you want to create a library that uses dynamic transformations, you probably want to"
+              + " make them customizable. In order to do that, in your library.bara.sky, you need"
+              + " to hide the dynamic transformation (prefix with '_' and instead expose a"
+              + " function that creates the dynamic transformation with the param:",
+      code =
+          ""
+              + "def _test_impl(ctx):\n"
+              + "  ctx.set_message("
+              + "ctx.message + ctx.params['name'] + str(ctx.params['number']) + '\\n')\n"
+              + "\n"
+              + "def test(name, number = 2):\n"
+              + "  return core.dynamic_transform(impl = _test_impl,\n"
+              + "                           params = { 'name': name, 'number': number})\n"
+              + "\n"
+              + "  ",
       testExistingVariable = "test",
-      after = "After defining this function, you can use `test('example', 42)` as a transformation"
-          + " in `core.workflow`.")
-  public Transformation dynamic_transform(BaseFunction impl, SkylarkDict<?, ?> params,
-      Environment env) {
-    return new SkylarkTransformation(impl, SkylarkDict.<Object, Object>copyOf(env, params),
-        dynamicEnvironment);
+      after =
+          "After defining this function, you can use `test('example', 42)` as a transformation"
+              + " in `core.workflow`.")
+  public Transformation dynamic_transform(
+      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+    return new SkylarkTransformation(
+        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "dynamic_feedback",
-
-      doc = "Create a dynamic Skylark feedback migration. This should only be used by libraries"
-          + " developers",
+      doc =
+          "Create a dynamic Skylark feedback migration. This should only be used by libraries"
+              + " developers",
       parameters = {
-          @Param(name = "impl", named = true,
-              type = BaseFunction.class,
-              doc = "The Skylark function to call"),
-          @Param(name = "params", named = true, type = SkylarkDict.class,
-              doc = "The parameters to the function. Will be available under ctx.params",
-              defaultValue = "{}"),
+        @Param(
+            name = "impl",
+            named = true,
+            type = BaseFunction.class,
+            doc = "The Skylark function to call"),
+        @Param(
+            name = "params",
+            named = true,
+            type = SkylarkDict.class,
+            doc = "The parameters to the function. Will be available under ctx.params",
+            defaultValue = "{}"),
       },
-      useEnvironment = true)
-  public Action dynamicFeedback(BaseFunction impl, SkylarkDict<?, ?> params, Environment env) {
-    return new SkylarkAction(impl, SkylarkDict.<Object, Object>copyOf(env, params), dynamicEnvironment);
+      useStarlarkThread = true)
+  public Action dynamicFeedback(
+      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+    return new SkylarkAction(
+        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
@@ -1105,52 +1344,65 @@ public class Core implements LabelsAwareModule {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "feedback",
-      doc = ""
-          + "Defines a migration of changes' metadata, that can be invoked via the Copybara "
-          + "command in the same way as a regular workflow migrates the change itself.\n"
-          + "\n"
-          + "It is considered change metadata any information associated with a change (pending "
-          + "or submitted) that is not core to the change itself. A few examples:\n"
-          + "<ul>\n"
-          + "  <li> Comments: Present in any code review system. Examples: Github PRs or Gerrit "
-          + "    code reviews.</li>\n"
-          + "  <li> Labels: Used in code review systems for approvals and/or CI results. "
-          + "    Examples: Github labels, Gerrit code review labels.</li>\n"
-          + "</ul>\n"
-          + "For the purpose of this workflow, it is not considered metadata the commit message "
-          + "in Git, or any of the contents of the file tree.\n"
-          + "\n",
+      doc =
+          "Defines a migration of changes' metadata, that can be invoked via the Copybara command"
+              + " in the same way as a regular workflow migrates the change itself.\n"
+              + "\n"
+              + "It is considered change metadata any information associated with a change"
+              + " (pending or submitted) that is not core to the change itself. A few examples:\n"
+              + "<ul>\n"
+              + "  <li> Comments: Present in any code review system. Examples: Github PRs or"
+              + " Gerrit     code reviews.</li>\n"
+              + "  <li> Labels: Used in code review systems for approvals and/or CI results.    "
+              + " Examples: Github labels, Gerrit code review labels.</li>\n"
+              + "</ul>\n"
+              + "For the purpose of this workflow, it is not considered metadata the commit"
+              + " message in Git, or any of the contents of the file tree.\n"
+              + "\n",
       parameters = {
-          @Param(
-              name = "name", type = String.class,
-              doc = "The name of the feedback workflow.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "origin", type = Trigger.class,
-              doc = "The trigger of a feedback migration.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "destination", type = Endpoint.class,
-              doc = "Where to write change metadata to. This is usually a code review system like "
-                  + "Gerrit or Github PR.",
-              positional = false, named = true
-          ),
-          @Param(
-              name = "actions", type = SkylarkList.class,
-              doc = ""
-                  + "A list of feedback actions to perform, with the following semantics:\n"
-                  + "  - There is no guarantee of the order of execution.\n"
-                  + "  - Actions need to be independent from each other.\n"
-                  + "  - Failure in one action might prevent other actions from executing.\n",
-              defaultValue = "[]", positional = false, named = true
-          ),
-          @Param(name = "description", type = String.class, named = true, noneable = true,
-              positional = false,
-              doc = "A description of what this workflow achieves", defaultValue = "None"),
-
-      }, useLocation = true, useEnvironment = true)
+        @Param(
+            name = "name",
+            type = String.class,
+            doc = "The name of the feedback workflow.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "origin",
+            type = Trigger.class,
+            doc = "The trigger of a feedback migration.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "destination",
+            type = Endpoint.class,
+            doc =
+                "Where to write change metadata to. This is usually a code review system like "
+                    + "Gerrit or GitHub PR.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "actions",
+            type = SkylarkList.class,
+            doc =
+                ""
+                    + "A list of feedback actions to perform, with the following semantics:\n"
+                    + "  - There is no guarantee of the order of execution.\n"
+                    + "  - Actions need to be independent from each other.\n"
+                    + "  - Failure in one action might prevent other actions from executing.\n",
+            defaultValue = "[]",
+            positional = false,
+            named = true),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            noneable = true,
+            positional = false,
+            doc = "A description of what this workflow achieves",
+            defaultValue = "None"),
+      },
+      useLocation = true,
+      useStarlarkThread = true)
   @UsesFlags({FeedbackOptions.class})
   /*TODO(danielromero): Add default values*/
   public NoneType feedback(
@@ -1160,10 +1412,10 @@ public class Core implements LabelsAwareModule {
       SkylarkList<?> feedbackActions,
       Object description,
       Location location,
-      Environment env)
+      StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, location,
-        dynamicEnvironment);
+    ImmutableList<Action> actions =
+        convertFeedbackActions(feedbackActions, location, dynamicStarlarkThread);
     Feedback migration =
         new Feedback(
             workflowName,
@@ -1173,32 +1425,30 @@ public class Core implements LabelsAwareModule {
             destination,
             actions,
             generalOptions);
-    registerGlobalMigration(workflowName, migration, location, env);
+    registerGlobalMigration(workflowName, migration, location, thread);
     return Runtime.NONE;
   }
 
-  /**
-   * Registers a {@link Migration} in the global registry.
-   */
+  /** Registers a {@link Migration} in the global registry. */
   protected void registerGlobalMigration(
-      String name, Migration migration, Location location, Environment env) throws EvalException {
-    getGlobalMigrations(env).addMigration(location, name, migration);
+      String name, Migration migration, Location location, StarlarkThread thread)
+      throws EvalException {
+    getGlobalMigrations(thread).addMigration(location, name, migration);
   }
 
   @SkylarkCallable(
       name = "format",
       doc = "Formats a String using Java format patterns.",
       parameters = {
-          @Param(name = "format", type = String.class, named = true, doc = "The format string"),
-          @Param(
-              name = "args",
-              type = SkylarkList.class,
-              named = true,
-              doc = "The arguments to format"),
+        @Param(name = "format", type = String.class, named = true, doc = "The format string"),
+        @Param(
+            name = "args",
+            type = SkylarkList.class,
+            named = true,
+            doc = "The arguments to format"),
       },
       useLocation = true)
-  public String format(String format, SkylarkList<Object> args, Location location)
-      throws EvalException {
+  public String format(String format, SkylarkList<?> args, Location location) throws EvalException {
     try {
       return String.format(format, args.toArray(new Object[0]));
     } catch (IllegalFormatException e) {
@@ -1207,12 +1457,12 @@ public class Core implements LabelsAwareModule {
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
-      SkylarkList<?> feedbackActions, Location location, Supplier<Environment> env)
+      SkylarkList<?> feedbackActions, Location location, Supplier<StarlarkThread> thread)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof BaseFunction) {
-        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), env));
+        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), thread));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
@@ -1236,7 +1486,7 @@ public class Core implements LabelsAwareModule {
   }
 
   @Override
-  public void setDynamicEnvironment(Supplier<Environment> dynamicEnvironment) {
-    this.dynamicEnvironment = dynamicEnvironment;
+  public void setDynamicEnvironment(Supplier<StarlarkThread> dynamicStarlarkThread) {
+    this.dynamicStarlarkThread = dynamicStarlarkThread;
   }
 }

@@ -22,14 +22,17 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 
 public class RemoveLabelInMessage implements Transformation {
 
   private final String label;
+  private final Location location;
 
-  RemoveLabelInMessage(String label) {
+  RemoveLabelInMessage(String label, Location location) {
     this.label = Preconditions.checkNotNull(label);
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -50,5 +53,10 @@ public class RemoveLabelInMessage implements Transformation {
   @Override
   public String describe() {
     return "Removing label " + label;
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

@@ -60,7 +60,7 @@ java_library(
     srcs = ["GlobalMigrations.java"],
     deps = [
         ":base",
-        "//third_party:jsr305",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )

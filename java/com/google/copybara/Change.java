@@ -129,7 +129,7 @@ public final class Change<R extends Revision> extends OriginRef {
       structField = true)
   public SkylarkDict<String, String> getLabelsForSkylark() {
     return SkylarkDict.copyOf(
-        /* env= */ null,
+        /* thread= */ null,
         ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
   }
 
@@ -140,7 +140,7 @@ public final class Change<R extends Revision> extends OriginRef {
       structField = true)
   public SkylarkDict<String, SkylarkList<String>> getLabelsAllForSkylark() {
     return SkylarkDict.copyOf(
-        /* env= */ null, Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
+        /* thread= */ null, Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
   }
 
   /**

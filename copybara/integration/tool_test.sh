@@ -782,7 +782,7 @@ EOF
   expect_log "ioRepoTask.*PROFILE:.*[0-9]* //copybara/clean_outputdir"
   expect_log "repoTask.*PROFILE:.*[0-9]* //copybara/run/default/origin.resolve_source_ref"
   expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/prepare_workdir"
-  expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/origin.checkout"
+  expect_log "checkout.*PROFILE:.*[0-9]* //copybara/run/default/squash/origin.checkout"
   expect_log "transform.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.txt"
   expect_log "transform.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms/Moving test.moved"
   expect_log "doMigrate.*PROFILE:.*[0-9]* //copybara/run/default/squash/transforms"

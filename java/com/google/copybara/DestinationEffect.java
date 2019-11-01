@@ -33,8 +33,7 @@ import javax.annotation.Nullable;
 @SkylarkModule(
   name = "destination_effect",
   category = SkylarkModuleCategory.BUILTIN,
-  doc = "Represents an effect that happened in the destination due to a single migration",
-  documented = false
+  doc = "Represents an effect that happened in the destination due to a single migration"
 )
 @SuppressWarnings("unused")
 public class DestinationEffect implements SkylarkValue {
@@ -216,8 +215,7 @@ public class DestinationEffect implements SkylarkValue {
   @SkylarkModule(
       name = "origin_ref",
       category = SkylarkModuleCategory.BUILTIN,
-      doc = "Reference to the change/review in the origin.",
-      documented = false
+      doc = "Reference to the change/review in the origin."
   )
   public static class OriginRef implements SkylarkValue {
     private final String ref;
@@ -268,8 +266,7 @@ public class DestinationEffect implements SkylarkValue {
   @SkylarkModule(
     name = "destination_ref",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Reference to the change/review created/updated on the destination.",
-    documented = false
+    doc = "Reference to the change/review created/updated on the destination."
   )
   public static class DestinationRef implements SkylarkValue {
     @Nullable private final String url;

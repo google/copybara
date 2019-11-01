@@ -25,6 +25,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.devtools.build.lib.events.Location;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 
@@ -36,10 +37,13 @@ public class MetadataVerifyMatch implements Transformation {
 
   private final Pattern pattern;
   private final boolean verifyNoMatch;
+  private final Location location;
 
-  MetadataVerifyMatch(Pattern pattern, boolean verifyNoMatch) {
+  MetadataVerifyMatch(Pattern pattern, boolean verifyNoMatch,
+      Location location) {
     this.pattern = Preconditions.checkNotNull(pattern);
     this.verifyNoMatch = verifyNoMatch;
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -62,5 +66,10 @@ public class MetadataVerifyMatch implements Transformation {
     return String.format("Verify message %s '%s'",
         (verifyNoMatch ? "does not match" : "matches"),
         pattern);
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

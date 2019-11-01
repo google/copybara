@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
@@ -118,14 +117,48 @@ public class GitOriginSubmodulesTest {
         .containsNoMoreFiles();
   }
 
+  /**
+   * Test case where parent points to a submodule sha1 that is not reachable from master (branch
+   * only).
+   */
+  @Test
+  public void testSubmoduleRevNotInMaster() throws Exception {
+    Path base = Files.createTempDirectory("base");
+    // Create first child repo with one commit that is not reachable from master
+    Files.createDirectories(base.resolve("childRepo1"));
+    GitRepository childRepo1 =
+        GitRepository.newRepo(/*verbose*/ false, base.resolve("childRepo1"), getGitEnv()).init();
+    addFile(childRepo1, "bar", "1");
+    commit(childRepo1, "first commit");
+    childRepo1.simpleCommand("checkout", "-b", "some_branch");
+    addFile(childRepo1, "foo", "1");
+    commit(childRepo1, "message");
+
+    // Create parent repo pointing to the current state of subrepo
+    GitRepository rootRepo = createRepoWithFoo(base, "rootRepo");
+    rootRepo.simpleCommand("submodule", "add", "-f", "--name", "childRepo1", "--reference",
+        rootRepo.getWorkTree().toString(), "../childRepo1");
+    commit(rootRepo, "adding childRepo1 submodule");
+
+    GitOrigin origin = origin("file://" + rootRepo.getGitDir(), "master");
+    GitRevision master = origin.resolve("master");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("foo", "1")
+        .containsFile("childRepo1/bar", "1")
+        .containsFile("childRepo1/foo", "1")
+        .containsNoMoreFiles();
+  }
+
   private GitRepository createRepoWithFoo(Path base, String name)
       throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
-    GitRepository r1 = GitRepository.newRepo(false, base.resolve(name), getGitEnv(),
-        DEFAULT_TIMEOUT).init(
-    );
-    commitAdd(r1, ImmutableMap.of("foo", "1"));
-    return r1;
+    GitRepository repo =
+        GitRepository.newRepo(/*verbose*/ false, base.resolve(name), getGitEnv()).init();
+    commitAdd(repo, ImmutableMap.of("foo", "1"));
+    return repo;
   }
 
   /**

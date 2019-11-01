@@ -34,6 +34,12 @@
     - [core.transform](#core.transform)
     - [core.verify_match](#core.verify_match)
     - [core.workflow](#core.workflow)
+  - [destination_effect](#destination_effect)
+  - [destination_ref](#destination_ref)
+  - [endpoint](#endpoint)
+    - [endpoint.new_destination_ref](#endpoint.new_destination_ref)
+    - [endpoint.new_origin_ref](#endpoint.new_origin_ref)
+  - [feedback.action_result](#feedback.action_result)
   - [feedback.context](#feedback.context)
     - [feedback.context.error](#feedback.context.error)
     - [feedback.context.noop](#feedback.context.noop)
@@ -72,6 +78,7 @@
     - [git.github_origin](#git.github_origin)
     - [git.github_pr_destination](#git.github_pr_destination)
     - [git.github_pr_origin](#git.github_pr_origin)
+    - [git.github_trigger](#git.github_trigger)
     - [git.integrate](#git.integrate)
     - [git.latest_version](#git.latest_version)
     - [git.mirror](#git.mirror)
@@ -80,8 +87,11 @@
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.create_status](#github_api_obj.create_status)
     - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
+    - [github_api_obj.get_authenticated_user](#github_api_obj.get_authenticated_user)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
+    - [github_api_obj.get_pull_request_comment](#github_api_obj.get_pull_request_comment)
+    - [github_api_obj.get_pull_request_comments](#github_api_obj.get_pull_request_comments)
     - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
     - [github_api_obj.get_references](#github_api_obj.get_references)
@@ -107,6 +117,7 @@
     - [metadata.squash_notes](#metadata.squash_notes)
     - [metadata.use_last_change](#metadata.use_last_change)
     - [metadata.verify_match](#metadata.verify_match)
+  - [origin_ref](#origin_ref)
   - [patch](#patch)
     - [patch.apply](#patch.apply)
   - [Path](#path)
@@ -425,6 +436,9 @@ Name | Type | Description
 <nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <nobr>`--console-file-flush-interval`</nobr> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
 <nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
+<nobr>`--debug-file-break`</nobr> | *string* | Stop when file matching the glob changes
+<nobr>`--debug-metadata-break`</nobr> | *boolean* | Stop when message and/or author changes
+<nobr>`--debug-transform-break`</nobr> | *string* | Stop when transform description matches
 <nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <nobr>`--fetch-timeout`</nobr> | *duration* | Fetch timeout
@@ -569,7 +583,7 @@ Parameter | Description
 --------- | -----------
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
-destination | `api`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or Github PR.</p>
+destination | `endpoint`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:
   - There is no guarantee of the order of execution.
   - Actions need to be independent from each other.
@@ -893,7 +907,7 @@ more public code
 
 A mapping function that applies a list of replaces until one replaces the text (Unless `all = True` is used). This should be used with core.filter_replace or other transformations that accept text mapping as parameter.
 
-`replaceMapper core.replace_mapper(mapping=None, all=False)`
+`replaceMapper core.replace_mapper(mapping, all=False)`
 
 
 #### Parameters:
@@ -1070,6 +1084,88 @@ Name | Type | Description
 <nobr>`--threads`</nobr> | *int* | Number of threads to use when running transformations that change lot of files
 <nobr>`--threads-min-size`</nobr> | *int* | Minimum size of the lists to process to run them in parallel
 <nobr>`--workflow-identity-user`</nobr> | *string* | Use a custom string as a user for computing change identity
+
+
+
+## destination_effect
+
+Represents an effect that happened in the destination due to a single migration
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+destination_ref | Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).
+errors | List of errors that happened during the migration
+origin_refs | List of origin changes that were included in this migration
+summary | Textual summary of what happened. Users of this class should not try to parse this field.
+type | Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR
+
+
+
+## destination_ref
+
+Reference to the change/review created/updated on the destination.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+id | Destination reference id
+type | Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids
+url | Url, if any, of the destination change
+
+
+
+## endpoint
+
+An origin or destination API in a feedback migration.
+
+<a id="endpoint.new_destination_ref" aria-hidden="true"></a>
+### endpoint.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref endpoint.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string`<br><p>The url associated with this reference, if any.</p>
+
+<a id="endpoint.new_origin_ref" aria-hidden="true"></a>
+### endpoint.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref endpoint.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+
+
+
+## feedback.action_result
+
+Gives access to the feedback migration information and utilities.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+msg | The message associated with the result
+result | The result of this action
 
 
 
@@ -1925,6 +2021,30 @@ Name | Type | Description
 <nobr>`--github-retryable-label`</nobr> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 <nobr>`--github-skip-required-labels`</nobr> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
+<a id="git.github_trigger" aria-hidden="true"></a>
+### git.github_trigger
+
+Defines a feedback trigger based on updates on a GitHub PR.
+
+`gitHubTrigger git.github_trigger(url, checker=None, events=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+url | `string`<br><p>Indicates the GitHub repo URL.</p>
+checker | `checker`<br><p>A checker for the GitHub API transport provided by this trigger.</p>
+events | `sequence of string`<br><p>Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, </p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--github-destination-delete-pr-branch`</nobr> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate
 
@@ -2093,6 +2213,13 @@ Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The name of the reference.</p>
 
+<a id="github_api_obj.get_authenticated_user" aria-hidden="true"></a>
+### github_api_obj.get_authenticated_user
+
+Get autenticated user info, return null if not found
+
+`github_api_user_obj github_api_obj.get_authenticated_user()`
+
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status
 
@@ -2120,6 +2247,34 @@ Get information for a commit in GitHub. Returns None if not found.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The SHA-1 for which we want to get the combined status</p>
+
+<a id="github_api_obj.get_pull_request_comment" aria-hidden="true"></a>
+### github_api_obj.get_pull_request_comment
+
+Get a pull request comment
+
+`github_api_pull_request_comment_obj github_api_obj.get_pull_request_comment(comment_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+comment_id | `string`<br><p>Comment identifier</p>
+
+<a id="github_api_obj.get_pull_request_comments" aria-hidden="true"></a>
+### github_api_obj.get_pull_request_comments
+
+Get all pull request comments
+
+`sequence of github_api_pull_request_comment_obj github_api_obj.get_pull_request_comments(number)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `integer`<br><p>Pull Request number</p>
 
 <a id="github_api_obj.get_pull_requests" aria-hidden="true"></a>
 ### github_api_obj.get_pull_requests
@@ -3013,6 +3168,19 @@ metadata.verify_match("<public>(.|\n)*</public>")
 
 
 
+## origin_ref
+
+Reference to the change/review in the origin.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+ref | Origin reference ref
+
+
+
 ## patch
 
 Module for applying patches.
@@ -3029,7 +3197,7 @@ A transformation that applies the given patch files. If a path does not exist in
 
 Parameter | Description
 --------- | -----------
-patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first).</p>
+patches | `object`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
 strip | `integer`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>

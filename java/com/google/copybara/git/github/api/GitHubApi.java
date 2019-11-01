@@ -137,8 +137,9 @@ public class GitHubApi {
 
   /**
    * Get a specific pull request for a project
+   *
    * @param projectId a project in the form of "google/copybara"
-   * @param number the issue number
+   * @param number the PR number
    */
   public PullRequest getPullRequest(String projectId, long number)
       throws RepoException, ValidationException {
@@ -148,6 +149,38 @@ public class GitHubApi {
     } catch (GitHubApiException e) {
       throw treatGitHubException(e, "Pull Request");
     }
+  }
+
+  /**
+   * Get comments for a specific pull request
+   *
+   * @param projectId a project in the form of "google/copybara"
+   * @param commentId The comment id
+   */
+  public PullRequestComment getPullRequestComment(String projectId, long commentId)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_pull_comment")) {
+      return transport.get(
+          String.format("repos/%s/pulls/comments/%d", projectId, commentId),
+          PullRequestComment.class);
+    } catch (GitHubApiException e) {
+      throw treatGitHubException(e, "Pull Request Comment");
+    }
+  }
+
+  /**
+   * Get comments for a specific pull request
+   *
+   * @param projectId a project in the form of "google/copybara"
+   * @param prNumber the PR prNumber
+   */
+  public ImmutableList<PullRequestComment> getPullRequestComments(String projectId, long prNumber)
+      throws RepoException, ValidationException {
+    return paginatedGet(
+        String.format("repos/%s/pulls/%d/comments?per_page=%d", projectId, prNumber, MAX_PER_PAGE),
+        "github_api_get_reviews",
+        new TypeToken<PaginatedList<PullRequestComment>>() {}.getType(),
+        "Pull Request Comments");
   }
 
   /**
@@ -202,6 +235,29 @@ public class GitHubApi {
     try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
       return transport.post(
           String.format("repos/%s/pulls/%s", projectId, number), request, PullRequest.class);
+    }
+  }
+
+  /**
+   * Get a user's permission level
+   * https://developer.github.com/v3/repos/collaborators/#review-a-users-permission-level
+   */
+  public UserPermissionLevel getUserPermissionLevel(String projectId, String usrLogin)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
+      return transport.get(
+          String.format("repos/%s/collaborators/%s/permission", projectId, usrLogin),
+          UserPermissionLevel.class);
+    }
+  }
+
+  /**
+   * Get authenticated User https://developer.github.com/v3/users/#get-the-authenticated-user
+   */
+  public User getAuthenticatedUser()
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_authenticated_user")) {
+      return transport.get("user", User.class);
     }
   }
 

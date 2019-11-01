@@ -23,6 +23,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNTRACKED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -814,7 +815,6 @@ public class GitRepositoryTest {
     setUpForTagTest("message_2");
     repository.tag(TEST_TAG_NAME).withAnnotatedTag("message_3").force(true).run();
     CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
-    String s = commandOutput.getStdout();
     assertThat(commandOutput.getStdout()).matches(
         ".*" + TEST_TAG_NAME + ".*message_3.*\\n");
   }

@@ -21,7 +21,6 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import java.io.IOException;
-import javax.annotation.Nullable;
 
 /**
  * Interface implemented by all source code transformations.

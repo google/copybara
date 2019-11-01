@@ -16,6 +16,7 @@
 
 package com.google.copybara.transform.patch;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
+import com.google.devtools.build.lib.events.Location;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
@@ -40,15 +42,18 @@ public class PatchTransformation implements Transformation {
   private final boolean reverse;
   private final PatchingOptions options;
   private final int strip;
+  private final Location location;
 
   PatchTransformation(
       ImmutableList<ConfigFile> patches, ImmutableList<String> excludedPaths,
-      PatchingOptions options, boolean reverse, int strip) {
+      PatchingOptions options, boolean reverse, int strip,
+      Location location) {
     this.patches = patches;
     this.excludedPaths = excludedPaths;
     this.reverse = reverse;
     this.options = options;
     this.strip = strip;
+    this.location = checkNotNull(location);
   }
 
   @Override
@@ -81,12 +86,18 @@ public class PatchTransformation implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new PatchTransformation(patches.reverse(), excludedPaths, options, !reverse, strip);
+    return new PatchTransformation(patches.reverse(), excludedPaths, options, !reverse, strip,
+        location);
   }
 
   @Override
   public String describe() {
     return
         "Patch.apply: " + patches.stream().map(ConfigFile::path).collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

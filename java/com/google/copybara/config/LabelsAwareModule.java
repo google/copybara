@@ -18,7 +18,7 @@ package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.syntax.Environment;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
 
 /**
@@ -47,13 +47,11 @@ public interface LabelsAwareModule {
   }
 
   /**
-   * Dynamic environment to be used by Skylark code that is run during a migration
-   * (For example dynamic transformations, migration hooks or feedback mechanism).
+   * Dynamic environment to be used by Skylark code that is run during a migration (For example
+   * dynamic transformations, migration hooks or feedback mechanism).
    *
-   * <p>It provides an immutable access to the globals of its own file and dependencies
-   * imported but it is mutable for its own execution, allowing it to create local
-   * variables.
+   * <p>It provides an immutable access to the globals of its own file and dependencies imported but
+   * it is mutable for its own execution, allowing it to create local variables.
    */
-  default void setDynamicEnvironment(Supplier<Environment> dynamicEnvironment) {
-  }
+  default void setDynamicEnvironment(Supplier<StarlarkThread> dynamicStarlarkThread) {}
 }

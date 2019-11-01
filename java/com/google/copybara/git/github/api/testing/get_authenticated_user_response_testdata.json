@@ -1,0 +1,19 @@
+{
+  "login": "googletestuser",
+  "id": 123456,
+  "avatar_url": "https://avatars2.githubusercontent.com/u/123456?v=4",
+  "gravatar_id": "",
+  "url": "https://api.github.com/users/googletestuser",
+  "html_url": "https://github.com/googletestuser",
+  "followers_url": "https://api.github.com/users/googletestuser/followers",
+  "following_url": "https://api.github.com/users/googletestuser/following{/other_user}",
+  "gists_url": "https://api.github.com/users/googletestuser/gists{/gist_id}",
+  "starred_url": "https://api.github.com/users/googletestuser/starred{/owner}{/repo}",
+  "subscriptions_url": "https://api.github.com/users/googletestuser/subscriptions",
+  "organizations_url": "https://api.github.com/users/googletestuser/orgs",
+  "repos_url": "https://api.github.com/users/googletestuser/repos",
+  "events_url": "https://api.github.com/users/googletestuser/events{/privacy}",
+  "received_events_url": "https://api.github.com/users/googletestuser/received_events",
+  "type": "User",
+  "site_admin": false
+}

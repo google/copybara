@@ -23,6 +23,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
+import com.google.devtools.build.lib.events.Location;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import javax.annotation.Nullable;
@@ -34,16 +35,18 @@ public class Scrubber implements Transformation {
 
   private final Pattern pattern;
   private final String replacement;
+  private final Location location;
   @Nullable
   private final String defaultPublicMsg;
   private final boolean failIfNotMacth;
 
   Scrubber(Pattern pattern, @Nullable String defaultPublicMsg, boolean failIfNotMacth,
-      String replacement) {
+      String replacement, Location location) {
     this.pattern = Preconditions.checkNotNull(pattern);
     this.defaultPublicMsg = defaultPublicMsg;
     this.failIfNotMacth = failIfNotMacth;
     this.replacement = Preconditions.checkNotNull(replacement);
+    this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
@@ -78,5 +81,10 @@ public class Scrubber implements Transformation {
   @Override
   public String describe() {
     return "Description scrubber";
+  }
+
+  @Override
+  public Location location() {
+    return location;
   }
 }

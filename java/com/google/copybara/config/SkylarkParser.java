@@ -22,22 +22,28 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ModuleSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkInterfaceUtils;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.syntax.BuildFileAST;
-import com.google.devtools.build.lib.syntax.Environment;
-import com.google.devtools.build.lib.syntax.Environment.Extension;
-import com.google.devtools.build.lib.syntax.Environment.GlobalFrame;
+import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.LoadStatement;
+import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
-import com.google.devtools.build.lib.syntax.ParserInputSource;
+import com.google.devtools.build.lib.syntax.ParserInput;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
+import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
+import com.google.devtools.build.lib.syntax.StarlarkThread.Extension;
+import com.google.devtools.build.lib.syntax.Statement;
 import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
@@ -58,15 +64,17 @@ public class SkylarkParser {
   private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
+  private final boolean newStarlarkSemantics;
 
   private static final Object initializationLock = new Object();
 
   private static final Set<Class<?>> initializedModules = new HashSet<>();
 
-  public SkylarkParser(Set<Class<?>> staticModules) {
+  public SkylarkParser(Set<Class<?>> staticModules, boolean newStarlarkSemantics) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
         .addAll(staticModules).build();
+    this.newStarlarkSemantics = newStarlarkSemantics;
 
     // Skylark initialization is not thread safe and manipulates static fields. While calling
     // this concurrently doesn't happen in the tool, there can be other usages of this that
@@ -98,26 +106,28 @@ public class SkylarkParser {
       Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
     GlobalMigrations globalMigrations;
-    Environment env;
+    StarlarkThread thread;
     try {
-      env = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
-      globalMigrations = GlobalMigrations.getGlobalMigrations(env);
+      thread = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
+      globalMigrations = GlobalMigrations.getGlobalMigrations(thread);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
     return new Config(
-        globalMigrations.getMigrations(), content.path(), env.getGlobals().getTransitiveBindings());
+        globalMigrations.getMigrations(),
+        content.path(),
+        thread.getGlobals().getTransitiveBindings());
   }
 
   @VisibleForTesting
-  public  Environment executeSkylark(ConfigFile content, ModuleSet moduleSet, Console console)
+  public StarlarkThread executeSkylark(ConfigFile content, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException, InterruptedException {
     CapturingConfigFile capturingConfigFile = new CapturingConfigFile(content);
     ConfigFilesSupplier configFilesSupplier = new ConfigFilesSupplier();
 
-    Environment eval = new Evaluator(moduleSet, content, configFilesSupplier, console)
-        .eval(content);
+    StarlarkThread eval =
+        new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
 
     ImmutableMap<String, ConfigFile> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
     configFilesSupplier.setConfigFiles(allLoadedFiles);
@@ -197,12 +207,12 @@ public class SkylarkParser {
   private final class Evaluator {
 
     private final LinkedHashSet<String> pending = new LinkedHashSet<>();
-    private final Map<String, Environment> loaded = new HashMap<>();
+    private final Map<String, StarlarkThread> loaded = new HashMap<>();
     private final Console console;
     private final ConfigFile mainConfigFile;
     private final EventHandler eventHandler;
-    // Globals shared by all the files loaded
-    private final GlobalFrame moduleGlobals;
+    // Predeclared environment shared by all files (modules) loaded.
+    private final ImmutableMap<String, Object> environment;
     private final ModuleSet moduleSet;
 
     private Evaluator(ModuleSet moduleSet, ConfigFile mainConfigFile,
@@ -211,11 +221,11 @@ public class SkylarkParser {
       this.console = Preconditions.checkNotNull(console);
       this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
       this.moduleSet = Preconditions.checkNotNull(moduleSet);
-      eventHandler = new ConsoleEventHandler(this.console);
-      moduleGlobals = createModuleGlobals(eventHandler, this.moduleSet, configFilesSupplier);
+      this.eventHandler = new ConsoleEventHandler(this.console);
+      this.environment = createEnvironment(this.moduleSet, configFilesSupplier);
     }
 
-    private Environment eval(ConfigFile content)
+    private StarlarkThread eval(ConfigFile content)
         throws IOException, ValidationException, InterruptedException {
       if (pending.contains(content.path())) {
         throw throwCycleError(content.path());
@@ -225,25 +235,43 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      BuildFileAST buildFileAST = BuildFileAST.parseSkylarkFileWithoutImports(
-          new InputSourceForConfigFile(content.path(), content.readContent()), eventHandler);
-
+      ParserInput input =
+          ParserInput.create(content.readContent(), PathFragment.create(content.path()));
+      StarlarkFile file = StarlarkFile.parse(input);
+      Event.replayEventsOn(eventHandler, file.errors());
       Map<String, Extension> imports = new HashMap<>();
-      for (StringLiteral anImport : buildFileAST.getRawImports()) {
-        imports.put(anImport.getValue(),
-            new Extension(eval(content.resolve(anImport.getValue() + BARA_SKY))));
+      for (Statement stmt : file.getStatements()) {
+        if (stmt instanceof LoadStatement) {
+          StringLiteral module = ((LoadStatement) stmt).getImport();
+          imports.put(
+              module.getValue(),
+              new Extension(eval(content.resolve(module.getValue() + BARA_SKY))));
+        }
       }
-      Environment env = createEnvironment(
-          eventHandler,
-          createGlobalsForConfigFile(eventHandler, content, mainConfigFile, moduleGlobals,
-              moduleSet),
-          imports);
+      StarlarkThread thread =
+          createStarlarkThread(
+              eventHandler,
+              createEnvironmentForConfigFile(
+                  eventHandler, content, mainConfigFile, environment, moduleSet),
+              imports);
 
-      checkCondition(buildFileAST.exec(env, eventHandler), "Error loading config file");
+      // TODO(adonovan): copybara really needs to be calling
+      // ValidationException.validateFile(file, thread, false)
+      // to catch various static errors prior to execution;
+      // this will soon become mandatory. But we can't unconditionally
+      // add this statement without risking breakage of users' configs.
+
+      try {
+        EvalUtils.exec(file, thread);
+      } catch (EvalException ex) {
+        eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
+        checkCondition(false, "Error loading config file");
+      }
+
       pending.remove(content.path());
-      env.mutability().freeze();
-      loaded.put(content.path(), env);
-      return env;
+      thread.mutability().freeze();
+      loaded.put(content.path(), thread);
+      return thread;
     }
 
     private ValidationException throwCycleError(String cycleElement)
@@ -260,77 +288,91 @@ public class SkylarkParser {
   }
 
   /**
-   * Creates a Skylark environment making the {@code modules} available as global variables.
+   * Creates a Starlark thread making the {@code modules} available as global variables. {@code env}
+   * specifies the predeclared environment.
    *
-   * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object
-   * so that the module can construct objects that require options.
+   * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object so
+   * that the module can construct objects that require options.
    */
-  private static Environment createEnvironment(EventHandler eventHandler, GlobalFrame globals,
-      Map<String, Extension> imports) {
-    return Environment.builder(Mutability.create("CopybaraModules"))
+  private StarlarkThread createStarlarkThread(
+      EventHandler printHandler, Map<String, Object> environment, Map<String, Extension> imports) {
+    return StarlarkThread.builder(Mutability.create("CopybaraModules"))
         .setSemantics(createSemantics())
-        .setGlobals(globals)
+        .setGlobals(Module.createForBuiltins(environment))
         .setImportedExtensions(imports)
-        .setEventHandler(eventHandler)
+        .setEventHandler(printHandler)
         .build();
   }
 
-  private static StarlarkSemantics createSemantics() {
+  private StarlarkSemantics createSemantics() {
+    if (newStarlarkSemantics) {
+      return StarlarkSemantics.DEFAULT_SEMANTICS
+          .toBuilder()
+          // TODO(malcon): Remove this one too. Requires user migration.
+          .incompatibleRestrictNamedParams(false)
+          .build();
+    }
+
+    // TODO(malcon): To remove once we remove NEW_STARLARK_SEMANTICS
     return StarlarkSemantics.DEFAULT_SEMANTICS
         .toBuilder()
-        // TODO(malcon): Temporary until we fix internal usages
         .incompatibleBzlDisallowLoadAfterStatement(false)
         .incompatibleDisallowDictPlus(false)
         .incompatibleNoTransitiveLoads(false)
         .incompatibleStringJoinRequiresStrings(false)
+        .incompatibleRestrictNamedParams(false)
         .build();
   }
 
   /**
-   * Create a global environment to be used per file loaded. As a side effect it mutates the
+   * Create the environment to be used for loading the config file. As a side effect it mutates the
    * module globals with information about the current file loaded.
    */
-  private GlobalFrame createGlobalsForConfigFile(
-      EventHandler eventHandler, ConfigFile currentConfigFile, ConfigFile mainConfigFile,
-      GlobalFrame moduleGlobals, ModuleSet moduleSet) {
-    Environment env = createEnvironment(eventHandler, moduleGlobals, ImmutableMap.of());
+  private ImmutableMap<String, Object> createEnvironmentForConfigFile(
+      EventHandler printHandler,
+      ConfigFile currentConfigFile,
+      ConfigFile mainConfigFile,
+      Map<String, Object> environment,
+      ModuleSet moduleSet) {
+    Map<String, Object> env = Maps.newHashMap(environment);
 
     for (Object module : moduleSet.getModules().values()) {
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
       if (module instanceof LabelsAwareModule) {
-        ((LabelsAwareModule) module).setConfigFile(mainConfigFile, currentConfigFile);
-        ((LabelsAwareModule) module)
-            .setDynamicEnvironment(() -> Environment.builder(Mutability.create("dynamic_action"))
-                .setSemantics(createSemantics())
-                .setEventHandler(eventHandler)
-                .build());
+        LabelsAwareModule m = (LabelsAwareModule) module;
+        m.setConfigFile(mainConfigFile, currentConfigFile);
+        m.setDynamicEnvironment(
+            () ->
+                StarlarkThread.builder(Mutability.create("dynamic_action"))
+                    .setSemantics(createSemantics())
+                    .setEventHandler(printHandler)
+                    .build());
       }
     }
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        ((LabelsAwareModule) getModuleGlobal(env, module))
-            .setConfigFile(mainConfigFile, currentConfigFile);
-        ((LabelsAwareModule) getModuleGlobal(env, module))
-            .setDynamicEnvironment(() -> Environment.builder(Mutability.create("dynamic_action"))
+        LabelsAwareModule m = (LabelsAwareModule) env.get(getModuleName(module));
+        m.setConfigFile(mainConfigFile, currentConfigFile);
+        m.setDynamicEnvironment(
+            () ->
+                StarlarkThread.builder(Mutability.create("dynamic_action"))
                     .useDefaultSemantics()
-                    .setEventHandler(eventHandler)
+                    .setEventHandler(printHandler)
                     .build());
       }
     }
-    env.mutability().close();
-    return env.getGlobals();
+    return ImmutableMap.copyOf(env);
   }
 
   /**
-   * Create a global enviroment for one evaluation (will be shared between all the dependant
-   * files loaded).
+   * Create the environment for all evaluations (will be shared between all the dependent files
+   * loaded).
    */
-  private GlobalFrame createModuleGlobals(EventHandler eventHandler, ModuleSet moduleSet,
-      Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier) {
-    Environment env = createEnvironment(eventHandler, Environment.SKYLARK,
-        ImmutableMap.of());
+  private ImmutableMap<String, Object> createEnvironment(
+      ModuleSet moduleSet, Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier) {
+    Map<String, Object> env = Maps.newHashMap(StarlarkThread.SKYLARK.getBindings());
 
     for (Entry<String, Object> module : moduleSet.getModules().entrySet()) {
       logger.atInfo().log("Creating variable for %s", module.getKey());
@@ -338,31 +380,37 @@ public class SkylarkParser {
         ((LabelsAwareModule) module.getValue()).setAllConfigResources(configFilesSupplier);
       }
       // Modules shouldn't use the same name
-      env.setup(module.getKey(), module.getValue());
+      env.put(module.getKey(), module.getValue());
     }
 
     for (Class<?> module : modules) {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // Create the module object and associate it with the functions
-      Runtime.setupModuleGlobals(env, module);
+      ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
+      try {
+        if (SkylarkInterfaceUtils.getSkylarkModule(module) != null
+            || SkylarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
+          Runtime.setupSkylarkLibrary(envBuilder, module.getConstructor().newInstance());
+        }
+      } catch (ReflectiveOperationException e) {
+        throw new AssertionError(e);
+      }
+      env.putAll(envBuilder.build());
+
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {
-        ((OptionsAwareModule) getModuleGlobal(env, module)).setOptions(moduleSet.getOptions());
+        ((OptionsAwareModule) env.get(getModuleName(module))).setOptions(moduleSet.getOptions());
       }
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        ((LabelsAwareModule) getModuleGlobal(env, module))
+        ((LabelsAwareModule) env.get(getModuleName(module)))
             .setAllConfigResources(configFilesSupplier);
       }
     }
-    env.mutability().close();
-    return env.getGlobals();
+    return ImmutableMap.copyOf(env);
   }
 
-  /**
-   * Given an environment, find the corresponding global object representing the module.
-   */
-  private Object getModuleGlobal(Environment env, Class<?> module) {
-    return env.getGlobals().get(module.getAnnotation(SkylarkModule.class).name());
+  private static String getModuleName(Class<?> cls) {
+    return cls.getAnnotation(SkylarkModule.class).name();
   }
 
   /**
@@ -410,27 +458,6 @@ public class SkylarkParser {
           ? "<no location>"
           : event.getLocation().print();
       return location + ": " + event.getMessage();
-    }
-  }
-
-  private static class InputSourceForConfigFile extends ParserInputSource {
-
-    private final String content;
-    private final String path;
-
-    private InputSourceForConfigFile(String path, String content) {
-      this.path = Preconditions.checkNotNull(path);
-      this.content = Preconditions.checkNotNull(content);
-    }
-
-    @Override
-    public char[] getContent() {
-      return content.toCharArray();
-    }
-
-    @Override
-    public PathFragment getPath() {
-      return PathFragment.create(path);
     }
   }
 }

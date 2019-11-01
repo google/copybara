@@ -65,8 +65,8 @@ public class GitHubTriggerTest {
         "git.github_trigger("
             + "url = 'https://github.com/google/example',"
             + "events = ['LABEL'])",
-        "LABEL is not a valid value. Values:"
-            + " \\[ISSUES, ISSUE_COMMENT, PULL_REQUEST, PUSH, STATUS\\]");
+        "LABEL is not a valid value. Values: \\[ISSUES, ISSUE_COMMENT, PULL_REQUEST,"
+            + " PULL_REQUEST_REVIEW_COMMENT, PUSH, STATUS\\]");
   }
 
   @Test

@@ -389,7 +389,7 @@ private static class DefaultExecutor implements CommandExecutor {
     private final ImmutableList<KillableObserver> others;
 
     private CombinedKillableObserver(Duration timeout, KillableObserver... others) {
-      this.timed = new TimeoutKillableObserver(timeout.toMillis());
+      this.timed = new TimeoutKillableObserver(timeout);
       this.others = ImmutableList.copyOf(others);
     }
 

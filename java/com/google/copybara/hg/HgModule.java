@@ -17,6 +17,7 @@
 package com.google.copybara.hg;
 
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
+
 import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
@@ -27,7 +28,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Type;
 
 /**
  * Main module for Mercurial (Hg) origins and destinations
@@ -69,7 +69,6 @@ public class HgModule implements LabelsAwareModule{
                   + "</ul>")},
           useLocation = true)
   public HgOrigin origin(String url, String ref, Location location) throws EvalException {
-    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url", location),
-        Type.STRING.convertOptional(ref, "ref"));
+    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url", location), ref);
   }
 }

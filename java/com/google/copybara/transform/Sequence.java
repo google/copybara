@@ -26,11 +26,11 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.devtools.build.lib.syntax.BaseFunction;
-import com.google.devtools.build.lib.syntax.Environment;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkType;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -149,26 +149,30 @@ public class Sequence implements Transformation {
    * Create a sequence from a list of native and Skylark transforms.
    *
    * @param joinTransformations if compatible and consecutive transformations can be joined for
-   * efficiency
+   *     efficiency
    * @param description a description of the argument being converted, such as its name
-   * @param env skylark environment for user defined transformations
+   * @param thread skylark environment for user defined transformations
    */
-  public static Sequence fromConfig(Profiler profiler, boolean joinTransformations,
-      SkylarkList<?> elements, String description, Supplier<Environment> env,
+  public static Sequence fromConfig(
+      Profiler profiler,
+      boolean joinTransformations,
+      SkylarkList<?> elements,
+      String description,
+      Supplier<StarlarkThread> thread,
       Function<Transformation, Transformation> transformWrapper)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(
-          transformWrapper.apply(convertToTransformation(description, env, element)));
+          transformWrapper.apply(convertToTransformation(description, thread, element)));
     }
     return new Sequence(profiler, joinTransformations, transformations.build());
   }
 
-  private static Transformation convertToTransformation(String description,
-      Supplier<Environment> env, Object element) throws EvalException {
+  private static Transformation convertToTransformation(
+      String description, Supplier<StarlarkThread> thread, Object element) throws EvalException {
     if (element instanceof BaseFunction) {
-      return new SkylarkTransformation((BaseFunction) element, SkylarkDict.empty(), env);
+      return new SkylarkTransformation((BaseFunction) element, SkylarkDict.empty(), thread);
     }
     SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
     return (Transformation) element;

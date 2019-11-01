@@ -16,8 +16,11 @@
 
 package com.google.copybara.git;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -42,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 /**
  * Integrate changes from a url present in the migrated change label.
@@ -56,11 +60,14 @@ public class GitIntegrateChanges {
   private final String label;
   private final Strategy strategy;
   private final boolean ignoreErrors;
+  private final boolean newGitIntegrate;
 
-  GitIntegrateChanges(String label, Strategy strategy, boolean ignoreErrors) {
+  GitIntegrateChanges(String label, Strategy strategy, boolean ignoreErrors,
+      boolean newGitIntegrate) {
     this.label = Preconditions.checkNotNull(label);
     this.strategy = Preconditions.checkNotNull(strategy);
     this.ignoreErrors = ignoreErrors;
+    this.newGitIntegrate = newGitIntegrate;
   }
 
   /**
@@ -119,7 +126,7 @@ public class GitIntegrateChanges {
         }
 
         strategy.integrate(repository, integrateLabel, externalFiles, label,
-            messageInfo, generalOptions.console(), generalOptions.getDirFactory());
+            messageInfo, generalOptions.console(), generalOptions.getDirFactory(), newGitIntegrate);
       } catch (ValidationException e) {
         throw new CannotIntegrateException("Error resolving " + label.getValue(), e);
       }
@@ -137,7 +144,7 @@ public class GitIntegrateChanges {
       @Override
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue,
-          MessageInfo messageInfo, Console console, DirFactory dirFactory)
+          MessageInfo messageInfo, Console console, DirFactory dirFactory, boolean newGitIntegrate)
           throws ValidationException, RepoException {
         GitLogEntry head = getHeadCommit(repository);
 
@@ -162,14 +169,14 @@ public class GitIntegrateChanges {
       void integrate(GitRepository repository, IntegrateLabel gitRevision,
           Predicate<String> externalFiles,
           LabelFinder rawLabelValue, MessageInfo messageInfo, Console console,
-          DirFactory dirFactory)
+          DirFactory dirFactory, boolean newGitIntegrate)
           throws ValidationException, RepoException {
         // Fake merge first so that we have a commit and then amend that commit wit the external
         // files
         FAKE_MERGE.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory);
+            console, dirFactory, newGitIntegrate);
         INCLUDE_FILES.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory);
+            console, dirFactory, newGitIntegrate);
       }
     },
     /**
@@ -179,16 +186,21 @@ public class GitIntegrateChanges {
       @Override
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
-          Console console, DirFactory dirFactory)
+          Console console, DirFactory dirFactory, boolean newGitIntegrate)
           throws ValidationException, RepoException {
         // Save HEAD commit before starting messing with the repo
         GitLogEntry head = getHeadCommit(repository);
-
-        // Create a patch of the changes from main_branch..feature head.
-        byte[] diff = repository.simpleCommandNoRedirectOutput("diff",
-            head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
-            .getStdoutBytes();
-
+        byte[] diff;
+        if (newGitIntegrate) {
+          diff = computeExternalDiff(repository, integrateLabel, externalFiles, head);
+        } else {
+          diff = repository.simpleCommandNoRedirectOutput("diff",
+              head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
+              .getStdoutBytes();
+        }
+        if (diff == null) {
+          return;
+        }
         try {
           // Apply the patch to the current branch.
           repository.apply(diff, /*index=*/true);
@@ -233,6 +245,54 @@ public class GitIntegrateChanges {
         repository.forceClean();
       }
 
+      @Nullable
+      private byte[] computeExternalDiff(GitRepository repository, IntegrateLabel integrateLabel,
+          Predicate<String> externalFiles, GitLogEntry head)
+          throws ValidationException, RepoException {
+        String commonBaseline = findCommonBaseline(repository, integrateLabel, head);
+        // Create a patch of the changes from common baseline..feature head.
+        String diff = new String(repository.simpleCommandNoRedirectOutput("diff",
+            commonBaseline + ".." + integrateLabel.getRevision().getSha1())
+            .getStdoutBytes(), UTF_8);
+
+        boolean include = true;
+        // Filter the diff to the external files changed by the external change that weren't
+        // migrated to the internal repository.
+        StringBuilder filteredDiff = new StringBuilder();
+        for (String line : Splitter.on("\n").split(diff)) {
+          if (line.startsWith("diff ")) {
+            List<String> diffHeader = Splitter.on(" ").splitToList(line);
+            String path = diffHeader.get(3).substring(2);
+            include = externalFiles.test(path);
+          }
+          if (include) {
+            filteredDiff.append(line).append("\n");
+          }
+        }
+        // Nothing to add
+        if (filteredDiff.length() == 0) {
+          return null;
+        }
+        return filteredDiff.toString().getBytes(UTF_8);
+      }
+
+      private String findCommonBaseline(GitRepository repository, IntegrateLabel integrateLabel,
+          GitLogEntry head) throws ValidationException {
+        GitRevision previousHead = Iterables.getFirst(head.getParents(), null);
+        if (previousHead == null) {
+          return head.getCommit().getSha1();
+        }
+        try {
+          return repository.mergeBase(previousHead.getSha1(),
+              integrateLabel.getRevision().getSha1());
+        } catch (RepoException e) {
+          logger.atWarning().log(
+              "Cannot find common parent for previous head commit %s and integrate commit: %s.",
+              previousHead, integrateLabel);
+          return head.getCommit().getSha1();
+        }
+      }
+
       private void revertIfInternal(List<String> toRevert, Predicate<String> externalFiles,
           String file) {
         if (!externalFiles.test(file)) {
@@ -248,7 +308,7 @@ public class GitIntegrateChanges {
     void integrate(GitRepository repository, IntegrateLabel gitRevision,
         Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
         Console console,
-        DirFactory dirFactory)
+        DirFactory dirFactory, boolean newGitIntegrate)
         throws ValidationException, RepoException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }

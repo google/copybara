@@ -53,8 +53,6 @@ import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.templatetoken.LabelTemplate;
-import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;

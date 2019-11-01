@@ -144,7 +144,6 @@ public class InfoCmd implements CopybaraCmd {
           console.info(line);
         }
       }
-      // TODO(danielromero): Check flag usage on 2018-06 and decide if we keep it
       if (outputSize > 100) {
         console.infoFmt(
             "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);

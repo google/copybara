@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
-import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -131,8 +130,8 @@ public class GitOriginTest {
   private void createTestRepo(Path folder) throws Exception {
     remote = folder;
     repo =
-        GitRepository.newRepo(true, remote, new GitEnvironment(options.general.getEnvironment()),
-            DEFAULT_TIMEOUT)
+        GitRepository.newRepo(
+                /*verbose*/ true, remote, new GitEnvironment(options.general.getEnvironment()))
             .init();
   }
 
