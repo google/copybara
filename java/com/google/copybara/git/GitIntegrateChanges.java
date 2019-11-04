@@ -41,19 +41,20 @@ import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
-/**
- * Integrate changes from a url present in the migrated change label.
- */
-
-@SkylarkModule(name = "git_integrate",
-    category = SkylarkModuleCategory.BUILTIN, documented = false, doc = "")
-public class GitIntegrateChanges {
+/** Integrate changes from a url present in the migrated change label. */
+@SkylarkModule(
+    name = "git_integrate",
+    category = SkylarkModuleCategory.BUILTIN,
+    documented = false,
+    doc = "")
+public class GitIntegrateChanges implements SkylarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 

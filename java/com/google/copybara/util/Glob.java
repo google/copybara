@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Concatable;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Pattern;
@@ -44,10 +45,12 @@ import javax.annotation.Nullable;
  */
 @SkylarkModule(
     name = "glob",
-    doc = "Glob returns a list of every file in the workdir that matches at least one"
-        + " pattern in include and does not match any of the patterns in exclude.",
-    category = SkylarkModuleCategory.BUILTIN, documented = false)
-public abstract class Glob implements Concatable {
+    doc =
+        "Glob returns a list of every file in the workdir that matches at least one"
+            + " pattern in include and does not match any of the patterns in exclude.",
+    category = SkylarkModuleCategory.BUILTIN,
+    documented = false)
+public abstract class Glob implements Concatable, SkylarkValue {
 
   private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
 

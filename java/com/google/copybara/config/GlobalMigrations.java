@@ -21,6 +21,7 @@ import static com.google.copybara.config.SkylarkUtil.check;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Pattern;
@@ -29,12 +30,11 @@ import java.util.Map;
 import java.util.Objects;
 
 @SkylarkModule(
-  name = GlobalMigrations.GLOBAL_MIGRATIONS,
-  doc = "Global variable that holds the registered migrations in the config files",
-  category = SkylarkModuleCategory.BUILTIN,
-  documented = false
-)
-public class GlobalMigrations {
+    name = GlobalMigrations.GLOBAL_MIGRATIONS,
+    doc = "Global variable that holds the registered migrations in the config files",
+    category = SkylarkModuleCategory.BUILTIN,
+    documented = false)
+public class GlobalMigrations implements SkylarkValue {
 
   private static final Pattern MIGRATION_NAME_FORMAT = Pattern.compile("[a-zA-Z0-9_\\-\\./]+");
 
