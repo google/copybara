@@ -28,11 +28,10 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import javax.annotation.Nullable;
 
-/**
- * Represents the result returned by an {@link Action}.
- */
+/** Represents the result returned by an {@link Action}. */
 @SuppressWarnings("unused")
-@SkylarkModule(name = "feedback.action_result",
+@SkylarkModule(
+    name = "feedback.action_result",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gives access to the feedback migration information and utilities.")
 public class ActionResult implements SkylarkValue {

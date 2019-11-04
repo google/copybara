@@ -31,6 +31,7 @@ import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -38,9 +39,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Skylark context for 'after migration' hooks.
- */
+/** Skylark context for 'after migration' hooks. */
 @SuppressWarnings("unused")
 @SkylarkModule(
     name = "feedback.finish_hook_context",
@@ -48,7 +47,7 @@ import java.util.stream.Collectors;
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for 'after_migration' hooks.")
-public class FinishHookContext extends FeedbackContext {
+public class FinishHookContext extends FeedbackContext implements SkylarkValue {
 
   private final LazyResourceLoader<Endpoint> origin;
   private final LazyResourceLoader<Endpoint> destination;
@@ -133,10 +132,11 @@ public class FinishHookContext extends FeedbackContext {
         ((FinishHookContext) actionContext).getNewDestinationEffects());
   }
 
-  @SkylarkModule(name = "feedback.revision_context",
+  @SkylarkModule(
+      name = "feedback.revision_context",
       category = SkylarkModuleCategory.BUILTIN,
       doc = "Information about the revision request/resolved for the migration")
-  private static class SkylarkRevision {
+  private static class SkylarkRevision implements SkylarkValue {
 
     private final Revision revision;
 

@@ -30,6 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -40,6 +41,7 @@ import java.util.Map;
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the
  * users for example as:
+ *
  * <pre>
  *    metadata_transformations = [
  *      metadata.squash_notes(
@@ -52,7 +54,7 @@ import java.util.Map;
     name = "metadata",
     doc = "Core transformations for the change metadata",
     category = SkylarkModuleCategory.BUILTIN)
-public class MetadataModule {
+public class MetadataModule implements SkylarkValue {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(name = "squash_notes",

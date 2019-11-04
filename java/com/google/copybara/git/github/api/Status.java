@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.time.ZonedDateTime;
 import java.util.EnumSet;
 import javax.annotation.Nullable;
@@ -34,14 +35,13 @@ import javax.annotation.Nullable;
  * <p>https://developer.github.com/v3/repos/statuses
  */
 @SkylarkModule(
-  name = "github_api_status_obj",
-  category = SkylarkModuleCategory.BUILTIN,
-  doc =
-      "Information about a commit status as defined in"
-          + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
-          + " fields in GitHub"
-)
-public class Status {
+    name = "github_api_status_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc =
+        "Information about a commit status as defined in"
+            + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
+            + " fields in GitHub")
+public class Status implements SkylarkValue {
 
   @Nullable
   @Key("target_url")

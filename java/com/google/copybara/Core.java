@@ -60,6 +60,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -78,6 +79,7 @@ import java.util.function.Supplier;
  *
  * <p>This class is exposed in Skylark configuration as an instance variable called "core". So users
  * can use it as:
+ *
  * <pre>
  * core.workspace(
  *   name = "foo",
@@ -89,8 +91,8 @@ import java.util.function.Supplier;
     name = "core",
     doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
-    @UsesFlags({GeneralOptions.class, DebugOptions.class})
-public class Core implements LabelsAwareModule {
+@UsesFlags({GeneralOptions.class, DebugOptions.class})
+public class Core implements LabelsAwareModule, SkylarkValue {
 
   // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
   private static final Pattern CUSTOM_REVID_FORMAT = Pattern.compile("[A-Z][A-Z_0-9]{1,30}_REV_ID");

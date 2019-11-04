@@ -21,6 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
 /**
  * Represents a revision: information about the origin of a pull request like the ref (branch) or
@@ -29,9 +30,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 @SkylarkModule(
     name = "github_api_revision_obj",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Information about a GitHub revision (Used in Pull Request and other entities)"
-)
-public class Revision {
+    doc = "Information about a GitHub revision (Used in Pull Request and other entities)")
+public class Revision implements SkylarkValue {
 
   @Key private String label;
   @Key private String ref;

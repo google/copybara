@@ -41,6 +41,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
@@ -63,18 +64,20 @@ import javax.annotation.Nullable;
 /**
  * Contains information related to an on-going process of repository transformation.
  *
- * This object is passed to the user defined functions in Skylark so that they can personalize the
- * commit message, change the author or in the future run custom transformations.
+ * <p>This object is passed to the user defined functions in Skylark so that they can personalize
+ * the commit message, change the author or in the future run custom transformations.
  */
 @SuppressWarnings("unused")
-@SkylarkModule(name = "TransformWork",
+@SkylarkModule(
+    name = "TransformWork",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Data about the set of changes that are being migrated. "
-        + "It includes information about changes like: the author to be used for commit, "
-        + "change message, etc. You receive a TransformWork object as an argument to the <code>"
-        + "transformations</code> functions used in <code>core.workflow</code>")
+    doc =
+        "Data about the set of changes that are being migrated. "
+            + "It includes information about changes like: the author to be used for commit, "
+            + "change message, etc. You receive a TransformWork object as an argument to the <code>"
+            + "transformations</code> functions used in <code>core.workflow</code>")
 @DocSignaturePrefix("ctx")
-public final class TransformWork implements SkylarkContext<TransformWork> {
+public final class TransformWork implements SkylarkContext<TransformWork>, SkylarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 

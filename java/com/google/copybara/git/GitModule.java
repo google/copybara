@@ -72,6 +72,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
@@ -90,15 +91,13 @@ import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
-/**
- * Main module that groups all the functions that create Git origins and destinations.
- */
+/** Main module that groups all the functions that create Git origins and destinations. */
 @SkylarkModule(
     name = "git",
     doc = "Set of functions to define Git origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
-public class GitModule implements LabelsAwareModule {
+public class GitModule implements LabelsAwareModule, SkylarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
   final SkylarkList<GitIntegrateChanges> defaultGitIntegrate;

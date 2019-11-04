@@ -16,26 +16,22 @@
 
 package com.google.copybara.git.github.api;
 
-
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
-/**
- * Represents GitHub information for a commit
- */
-
+/** Represents GitHub information for a commit */
 @SkylarkModule(
     name = "github_api_github_commit_obj",
     category = SkylarkModuleCategory.BUILTIN,
     doc =
         "Information about a commit as defined in"
             + " https://developer.github.com/v3/git/commits/#get-a-commit."
-            + " This is a subset of the available fields in GitHub"
-)
-public class GitHubCommit {
+            + " This is a subset of the available fields in GitHub")
+public class GitHubCommit implements SkylarkValue {
 
   @Key private String sha;
   @Key private String url;

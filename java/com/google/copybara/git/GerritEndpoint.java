@@ -38,6 +38,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 
@@ -47,7 +48,7 @@ import com.google.devtools.build.lib.syntax.SkylarkList;
     name = "gerrit_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gerrit API endpoint implementation for feedback migrations and after migration hooks.")
-public class GerritEndpoint implements Endpoint {
+public class GerritEndpoint implements Endpoint, SkylarkValue {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;

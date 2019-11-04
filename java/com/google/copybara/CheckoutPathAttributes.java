@@ -21,17 +21,18 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
-/**
- * Represents file attributes exposed to Skylark.
- */
+/** Represents file attributes exposed to Skylark. */
 @SuppressWarnings("unused")
-@SkylarkModule(name = "PathAttributes", category = SkylarkModuleCategory.BUILTIN,
+@SkylarkModule(
+    name = "PathAttributes",
+    category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a path attributes like size.")
-public class CheckoutPathAttributes {
+public class CheckoutPathAttributes implements SkylarkValue {
 
   private final Path path;
   private final BasicFileAttributes attributes;

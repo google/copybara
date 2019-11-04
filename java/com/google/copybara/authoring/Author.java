@@ -22,19 +22,21 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.Objects;
 
 /**
- * Represents the contributor of a change in the destination repository. A contributor can be
- * either an individual or a team.
+ * Represents the contributor of a change in the destination repository. A contributor can be either
+ * an individual or a team.
  *
  * <p>Author is lenient in name or email validation.
  */
-@SkylarkModule(name = "author",
+@SkylarkModule(
+    name = "author",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents the author of a change")
-public final class Author {
+public final class Author implements SkylarkValue {
 
   private final String name;
   private final String email;

@@ -21,12 +21,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import java.util.List;
 
-/**
- * Represents a pull request returned by
- * https://api.github.com/repos/REPO_ID/pulls/NUMBER
- */
+/** Represents a pull request returned by https://api.github.com/repos/REPO_ID/pulls/NUMBER */
 @SkylarkModule(
     name = "github_api_pull_request_obj",
     category = SkylarkModuleCategory.BUILTIN,
@@ -34,7 +32,7 @@ import java.util.List;
         "Information about a pull request as defined in"
             + " https://developer.github.com/v3/repos/pulls. This is a subset of the available"
             + " fields in GitHub")
-public class PullRequest extends PullRequestOrIssue {
+public class PullRequest extends PullRequestOrIssue implements SkylarkValue {
 
   @Key private Revision head;
   @Key private Revision base;

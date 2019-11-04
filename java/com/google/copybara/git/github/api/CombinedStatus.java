@@ -21,6 +21,7 @@ import com.google.copybara.git.github.api.Status.State;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.List;
 
@@ -35,9 +36,8 @@ import java.util.List;
     doc =
         "Combined Information about a commit status as defined in"
             + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
-            + " fields in GitHub"
-)
-public class CombinedStatus {
+            + " fields in GitHub")
+public class CombinedStatus implements SkylarkValue {
 
   @Key private State state;
   @Key private String sha;

@@ -23,13 +23,14 @@ import com.google.copybara.Options;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
 /** A Skylark module used by tests */
 @SkylarkModule(
     name = "testing",
     doc = "Module to use mock endpoints in tests.",
     category = SkylarkModuleCategory.BUILTIN)
-public class TestingModule {
+public class TestingModule implements SkylarkValue {
 
   private final TestingOptions testingOptions;
 

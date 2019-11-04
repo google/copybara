@@ -20,18 +20,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 
-/**
- * Information about the changes being imported
- */
-@SkylarkModule(name = "Changes",
+/** Information about the changes being imported */
+@SkylarkModule(
+    name = "Changes",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "Data about the set of changes that are being migrated. "
-        + "Each change includes information like: original author, change message, "
-        + "labels, etc. You receive this as a field in TransformWork object for used defined "
-        + "transformations")
-public final class Changes {
+    doc =
+        "Data about the set of changes that are being migrated. "
+            + "Each change includes information like: original author, change message, "
+            + "labels, etc. You receive this as a field in TransformWork object for used defined "
+            + "transformations")
+public final class Changes implements SkylarkValue {
 
   public static final Changes EMPTY = new Changes(ImmutableList.of(), ImmutableList.of());
 

@@ -31,6 +31,7 @@ import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.time.ZonedDateTime;
@@ -38,13 +39,12 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 
-/**
- * Represents a change in a Repository
- */
-@SkylarkModule(name = "change",
+/** Represents a change in a Repository */
+@SkylarkModule(
+    name = "change",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
-public final class Change<R extends Revision> extends OriginRef {
+public final class Change<R extends Revision> extends OriginRef implements SkylarkValue {
 
   private final R revision;
   private final Author author;

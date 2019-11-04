@@ -23,19 +23,18 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * A dummy endpoint for feedback mechanism
- */
+/** A dummy endpoint for feedback mechanism */
 @SkylarkModule(
     name = "dummy_endpoint",
     doc = "A dummy endpoint for feedback mechanism",
     category = SkylarkModuleCategory.BUILTIN)
-public class DummyEndpoint implements Endpoint {
+public class DummyEndpoint implements Endpoint, SkylarkValue {
 
   public final List<String> messages = new ArrayList<>();
 

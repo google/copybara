@@ -32,18 +32,17 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 
-/**
- * Skylark module that provides a basic transform to apply patchfiles.
- */
+/** Skylark module that provides a basic transform to apply patchfiles. */
 @SkylarkModule(
     name = "patch",
     doc = "Module for applying patches.",
     category = SkylarkModuleCategory.BUILTIN)
-public class PatchModule implements LabelsAwareModule {
+public class PatchModule implements LabelsAwareModule, SkylarkValue {
   private static final Splitter LINES =
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();
 

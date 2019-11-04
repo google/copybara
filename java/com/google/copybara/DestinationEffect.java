@@ -31,10 +31,9 @@ import javax.annotation.Nullable;
 
 /** An effect happening in the destination as a consequence of the migration */
 @SkylarkModule(
-  name = "destination_effect",
-  category = SkylarkModuleCategory.BUILTIN,
-  doc = "Represents an effect that happened in the destination due to a single migration"
-)
+    name = "destination_effect",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Represents an effect that happened in the destination due to a single migration")
 @SuppressWarnings("unused")
 public class DestinationEffect implements SkylarkValue {
   private final Type type;

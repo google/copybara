@@ -28,17 +28,16 @@ import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Abstract context for feedback migrations.
- */
+/** Abstract context for feedback migrations. */
 @SuppressWarnings("unused")
-public abstract class FeedbackContext implements SkylarkContext<FeedbackContext> {
+public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>, SkylarkValue {
 
   final Action currentAction;
   final SkylarkConsole console;

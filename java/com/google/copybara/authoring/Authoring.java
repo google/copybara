@@ -25,6 +25,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.HashSet;
@@ -42,7 +43,7 @@ import java.util.Set;
     namespace = true,
     doc = "The authors mapping between an origin and a destination",
     category = SkylarkModuleCategory.BUILTIN)
-public final class Authoring {
+public final class Authoring implements SkylarkValue {
 
   private final Author defaultAuthor;
   private final AuthoringMappingMode mode;
@@ -101,7 +102,7 @@ public final class Authoring {
       namespace = true,
       doc = "The authors mapping between an origin and a destination",
       category = SkylarkModuleCategory.BUILTIN)
-  public static final class Module {
+  public static final class Module implements SkylarkValue {
 
     @SkylarkCallable(name = "overwrite",
         doc = "Use the default author for all the submits in the destination. Note that some"
