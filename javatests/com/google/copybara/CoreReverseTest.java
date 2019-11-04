@@ -30,6 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import java.util.List;
 import java.util.Objects;
@@ -124,7 +125,7 @@ public final class CoreReverseTest {
       doc = "Mock classes for testing reverse",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class Mock {
+  public static class Mock implements SkylarkValue {
 
     @SkylarkSignature(name = "transform", returnType = Transformation.class,
         doc = "A mock Transform", objectType = Mock.class,

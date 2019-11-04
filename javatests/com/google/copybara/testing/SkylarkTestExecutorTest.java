@@ -27,6 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import java.io.IOException;
 import org.junit.Before;
@@ -61,7 +62,7 @@ public final class SkylarkTestExecutorTest {
       doc = "For testing.",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class DummyModule implements LabelsAwareModule {
+  public static class DummyModule implements LabelsAwareModule, SkylarkValue {
     private ConfigFile configFile;
 
     @Override

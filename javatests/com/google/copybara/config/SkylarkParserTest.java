@@ -43,6 +43,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
@@ -354,7 +355,7 @@ public class SkylarkParserTest {
       doc = "LabelsAwareModule for testing purposes",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class MockLabelsAwareModule implements LabelsAwareModule {
+  public static class MockLabelsAwareModule implements LabelsAwareModule, SkylarkValue {
     private ConfigFile configFile;
 
     @Override
@@ -386,7 +387,7 @@ public class SkylarkParserTest {
       doc = "Mock classes for testing SkylarkParser",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class Mock {
+  public static class Mock implements SkylarkValue {
 
     @SkylarkSignature(name = "origin", returnType = MockOrigin.class,
         doc = "A mock Origin", objectType = Mock.class,
