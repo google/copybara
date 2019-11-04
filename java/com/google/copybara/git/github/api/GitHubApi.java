@@ -23,6 +23,7 @@ import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -372,6 +373,16 @@ public class GitHubApi {
     try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {
       return transport.get(String.format("repos/%s/commits/%s/status", projectId, ref),
           CombinedStatus.class);
+    }
+  }
+
+  /** https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref */
+  public CheckRuns getCheckRuns(String projectId, String ref)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
+      return transport.get(String.format("repos/%s/commits/%s/check-runs", projectId, ref),
+          CheckRuns.class, ImmutableListMultimap.of("Accept",
+              "application/vnd.github.antiope-preview+json"));
     }
   }
 

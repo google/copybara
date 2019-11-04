@@ -17,6 +17,7 @@
 package com.google.copybara.git.github.api;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
@@ -39,14 +40,15 @@ public class GitHubApiTransportWithChecker implements GitHubApiTransport {
   }
 
   @Override
-  public <T> T get(String path, Type responseType) throws RepoException, ValidationException {
+  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+      throws RepoException, ValidationException {
     try {
       checker.doCheck(
           ImmutableMap.of("path", path, "response_type", responseType.toString()), console);
     } catch (IOException e) {
       throw new RuntimeException("Error running checker", e);
     }
-    return delegate.get(path, responseType);
+    return delegate.get(path, responseType, headers);
   }
 
   @Override

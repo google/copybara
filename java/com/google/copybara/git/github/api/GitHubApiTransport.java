@@ -16,6 +16,7 @@
 
 package com.google.copybara.git.github.api;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.lang.reflect.Type;
@@ -25,19 +26,28 @@ import java.lang.reflect.Type;
  */
 public interface GitHubApiTransport {
 
-  /**
-   * Do a http GET call
+  /** Do a HTTP GET call with headers.
+   * The return type will be different.
+   * Therefore, using generics type here
    */
-  <T> T get(String path, Type responseType) throws RepoException, ValidationException;
-  /**
-   * Do a http POST call
+  <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+      throws RepoException, ValidationException;
+
+  /** Do a HTTP GET call
+   * The return type will be different.
+   * Therefore, using generics type here
+   */
+  default <T> T get(String path, Type responseType) throws RepoException, ValidationException {
+    return get(path, responseType, ImmutableListMultimap.of());
+  }
+
+  /** Do a HTTP POST call
+   * The return type will be different.
+   * Therefore, using generics type here
    */
   <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException;
 
-  /**
-   * Do a http DELETE call
-   */
+  /** Do a HTTP DELETE call */
   void delete(String path) throws RepoException, ValidationException;
-
 }

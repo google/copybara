@@ -17,11 +17,13 @@
 package com.google.copybara.git.github.api;
 
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
@@ -57,7 +59,7 @@ public class GitHubApiTransportWithCheckerTest {
     verify(checker).doCheck(
         ImmutableMap.of("path", "path/foo", "response_type", "class java.lang.String"),
         console);
-    verify(delegate).get(eq("path/foo"), eq(String.class));
+    verify(delegate).get(eq("path/foo"), eq(String.class), any(ImmutableListMultimap.class));
   }
 
   @Test

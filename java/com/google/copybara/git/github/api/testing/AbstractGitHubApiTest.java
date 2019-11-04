@@ -21,15 +21,21 @@ import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams
 import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter.CREATED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckRun.Conclusion;
+import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
@@ -63,6 +69,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 /**
  * Base test to run the same tests on various implementations of the GitHubApiTransport
@@ -70,10 +80,17 @@ import org.junit.Test;
 public abstract class AbstractGitHubApiTest {
 
   protected GitHubApi api;
+  @Mock
+  protected GitHubApiTransport transport;
+  @Captor
+  protected ArgumentCaptor<ImmutableListMultimap<String, String>> headerCaptor;
+  protected Profiler profiler;
 
   @Before
   public void setUpFamework() throws Exception {
-    Profiler profiler = new Profiler(Ticker.systemTicker());
+    MockitoAnnotations.initMocks(this);
+
+    profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
     api = new GitHubApi(getTransport(), profiler);
   }
@@ -542,6 +559,30 @@ public abstract class AbstractGitHubApiTest {
     } catch (ValidationException expected) {
       // expected
     }
+  }
+
+  @Test
+  public void test_GetCheckRuns_Sucess() throws Exception {
+    trainMockGet("/repos/example/project/commits/12345/check-runs",
+        getResource("get_check_runs_testdata.json"));
+    CheckRuns checkRuns =
+        api.getCheckRuns("example/project", "12345");
+    assertThat(checkRuns.getTotalCount()).isEqualTo(1);
+    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo(CheckRun.Status.COMPLETED);
+    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo(Conclusion.NEUTRAL);
+    assertThat(checkRuns.getCheckRuns().get(0).getDetailUrl()).isEqualTo("https://example.com");
+    assertThat(checkRuns.getCheckRuns().get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkRuns.getCheckRuns().get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkRuns.getCheckRuns().get(0).getApp().getSlug()).isEqualTo("octoapp");
+  }
+
+  @Test
+  public void testGetCheckRunsHeader_containGitHubHeader() throws Exception {
+    api = new GitHubApi(transport, profiler);
+    api.getCheckRuns("example/project", "12345");
+    verify(transport).get(any(), any(), headerCaptor.capture());
+    assertThat(headerCaptor.getValue())
+        .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
   }
 
   @Test

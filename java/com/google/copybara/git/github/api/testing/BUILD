@@ -26,13 +26,9 @@ java_library(
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/profiler",
         "//third_party:google_http_client",
-        "//third_party:google_http_client_test",
         "//third_party:guava",
-        "//third_party:guava_testlib",
-        "//third_party:jcommander",
         "//third_party:junit",
         "//third_party:mockito",
-        "//third_party:skylark-lang",
         "//third_party:truth",
     ],
 )

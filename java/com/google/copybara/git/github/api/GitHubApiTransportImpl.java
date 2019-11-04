@@ -28,6 +28,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.JsonObjectParser;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.exception.RepoException;
@@ -70,12 +71,14 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T> T get(String path, Type responseType) throws RepoException, ValidationException {
+  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+      throws RepoException, ValidationException {
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent());
-
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
+
     try {
-      HttpRequest httpRequest = requestFactory.buildGetRequest(url);
+      HttpRequest httpRequest =
+          requestFactory.buildGetRequest(url).setHeaders(generateHeaders(headers));
       HttpResponse response = httpRequest.execute();
 
       Object responseObj = response.parseAs(responseType);
@@ -94,7 +97,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   @SuppressWarnings("unchecked")
   @Nullable
-  private String maybeGetLinkHeader(HttpResponse response) {
+  private static String maybeGetLinkHeader(HttpResponse response) {
     HttpHeaders headers = response.getHeaders();
     List<String> link = (List<String>) headers.get("Link");
     if (link == null) {
@@ -103,7 +106,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     return Iterables.getOnlyElement(link);
   }
 
-  private ClientError parseErrorOrIgnore(HttpResponseException e) {
+  private static ClientError parseErrorOrIgnore(HttpResponseException e) {
     if (e.getContent() == null) {
       return null;
     }
@@ -113,6 +116,14 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       logger.atWarning().withCause(ignore).log("Invalid error response");
       return new ClientError();
     }
+  }
+
+  private static HttpHeaders generateHeaders(ImmutableListMultimap<String, String> headers) {
+    HttpHeaders httpHeaders = new HttpHeaders();
+    for(String key : headers.keys()) {
+      httpHeaders.set(key, headers.get(key));
+    }
+    return httpHeaders;
   }
 
   /**
