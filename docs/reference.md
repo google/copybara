@@ -88,6 +88,7 @@
     - [github_api_obj.create_status](#github_api_obj.create_status)
     - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
     - [github_api_obj.get_authenticated_user](#github_api_obj.get_authenticated_user)
+    - [github_api_obj.get_check_runs](#github_api_obj.get_check_runs)
     - [github_api_obj.get_combined_status](#github_api_obj.get_combined_status)
     - [github_api_obj.get_commit](#github_api_obj.get_commit)
     - [github_api_obj.get_pull_request_comment](#github_api_obj.get_pull_request_comment)
@@ -2219,6 +2220,20 @@ ref | `string`<br><p>The name of the reference.</p>
 Get autenticated user info, return null if not found
 
 `github_api_user_obj github_api_obj.get_authenticated_user()`
+
+<a id="github_api_obj.get_check_runs" aria-hidden="true"></a>
+### github_api_obj.get_check_runs
+
+Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
+
+`github_check_runs_obj github_api_obj.get_check_runs(sha)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+sha | `string`<br><p>The SHA-1 for which we want to get the check runs</p>
 
 <a id="github_api_obj.get_combined_status" aria-hidden="true"></a>
 ### github_api_obj.get_combined_status

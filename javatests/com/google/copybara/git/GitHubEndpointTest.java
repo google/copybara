@@ -140,6 +140,28 @@ public class GitHubEndpointTest {
                 + "   } \n"
                 + "}]"));
 
+    gitUtil.mockApi(
+        eq("GET"),
+        contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs"),
+        mockResponse(
+            "{\n"
+                + "  total_count: 1,\n"
+                + "  check_runs: [\n"
+                + "    {\n"
+                + "      id: 4,\n"
+                + "      details_url: 'https://example.com',\n"
+                + "      status: 'completed',\n"
+                + "      conclusion: 'neutral',\n"
+                + "      app: {\n"
+                + "        id: 1,\n"
+                + "        slug: 'octoapp',\n"
+                + "        name: 'Octocat App'\n"
+                + "      }\n"
+                + "    }\n"
+                + "  ]\n"
+                + "}"
+        ));
+
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
@@ -298,6 +320,24 @@ public class GitHubEndpointTest {
             .put("statuses[0].state", "failure")
             .put("statuses[1].context", "other/context")
             .put("statuses[1].state", "success")
+            .build();
+    skylark.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testGetCheckRuns() throws Exception {
+    String var = ""
+        + "git.github_api(url = 'https://github.com/google/example')"
+        + "  .get_check_runs(sha = 'e597746de9c1704e648ddc3ffa0d2096b146d610')";
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.<String, Object>builder()
+            .put("total_count", 1)
+            .put("check_runs[0].detail_url", "https://example.com")
+            .put("check_runs[0].status", "completed")
+            .put("check_runs[0].conclusion", "neutral")
+            .put("check_runs[0].app.id", 1)
+            .put("check_runs[0].app.slug", "octoapp")
+            .put("check_runs[0].app.name", "Octocat App")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
   }

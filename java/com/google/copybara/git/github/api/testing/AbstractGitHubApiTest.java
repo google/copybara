@@ -33,8 +33,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.api.CheckRun;
-import com.google.copybara.git.github.api.CheckRun.Conclusion;
 import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -568,8 +566,8 @@ public abstract class AbstractGitHubApiTest {
     CheckRuns checkRuns =
         api.getCheckRuns("example/project", "12345");
     assertThat(checkRuns.getTotalCount()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo(CheckRun.Status.COMPLETED);
-    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo(Conclusion.NEUTRAL);
+    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo("neutral");
     assertThat(checkRuns.getCheckRuns().get(0).getDetailUrl()).isEqualTo("https://example.com");
     assertThat(checkRuns.getCheckRuns().get(0).getApp().getId()).isEqualTo(1);
     assertThat(checkRuns.getCheckRuns().get(0).getApp().getName()).isEqualTo("Octocat App");

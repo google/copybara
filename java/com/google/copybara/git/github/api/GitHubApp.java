@@ -18,11 +18,20 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 
 /** Represents a GitHub App detail.
  * https://developer.github.com/v3/apps/#response
  */
-public class GitHubApp {
+
+@SkylarkModule(
+    name = "github_app_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc = "Detail about a GitHub App.")
+public class GitHubApp implements SkylarkValue {
 
   @Key private int id;
 
@@ -30,14 +39,31 @@ public class GitHubApp {
 
   @Key private String name;
 
+  @SkylarkCallable(
+      name = "id",
+      doc = "The GitHub App's Id",
+      structField = true,
+      allowReturnNones = true
+  )
   public int getId() {
     return id;
   }
 
+  @SkylarkCallable(
+      name = "slug",
+      doc = "The url-friendly name of the GitHub App.",
+      structField = true
+  )
   public String getSlug() {
     return slug;
   }
-
+  
+  @SkylarkCallable(
+      name = "name",
+      doc = "The GitHub App's name",
+      structField = true,
+      allowReturnNones = true
+  )
   public String getName() {
     return name;
   }

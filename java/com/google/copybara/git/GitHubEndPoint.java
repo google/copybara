@@ -30,6 +30,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -121,6 +122,26 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(location, "Error calling create_status", e);
+    }
+  }
+
+  @SkylarkCallable(name = "get_check_runs",
+      doc = "Get the list of check runs for a sha. "
+          + "https://developer.github.com/v3/checks/runs/#check-runs",
+      parameters = {
+          @Param(name = "sha", type = String.class, named =  true,
+              doc = "The SHA-1 for which we want to get the check runs"),
+      },
+      useLocation = true
+  )
+  public CheckRuns getCheckRuns(String sha, Location location) throws EvalException {
+    try {
+      checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
+          "Not a valid complete SHA-1: %s", sha);
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling create_status", e);
     }

@@ -19,6 +19,10 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import javax.annotation.Nullable;
 
 /**
@@ -26,7 +30,14 @@ import javax.annotation.Nullable;
  * https://developer.github.com/v3/checks/runs/#create-a-check-run
  * https://developer.github.com/v3/checks/runs/#response
  */
-public class CheckRun {
+
+@SkylarkModule(
+    name = "github_check_run_obj",
+    category = SkylarkModuleCategory.BUILTIN,
+    doc =
+        "Detail about a check run as defined in "
+            + "https://developer.github.com/v3/checks/runs/#create-a-check-run")
+public class CheckRun implements SkylarkValue {
 
   @Key("details_url")
   @Nullable
@@ -35,27 +46,50 @@ public class CheckRun {
   @Key("status")
   private Status status;
 
-  @Key("conclusion")
+  @Key
   @Nullable
   private Conclusion conclusion;
 
   @Key
   private GitHubApp app;
 
+  @SkylarkCallable(
+      name = "detail_url",
+      doc = "The URL of the integrator's site that has the full details of the check.",
+      structField = true,
+      allowReturnNones = true
+  )
   @Nullable
   public String getDetailUrl() {
     return detailUrl;
   }
 
-  public Status getStatus() {
-    return status;
+  @SkylarkCallable(
+      name = "status",
+      doc = "The current status of the check run. Can be one of queued, in_progress, or completed.",
+      structField = true
+  )
+  public String getStatus() {
+    return status.toString().toLowerCase();
   }
 
+  @SkylarkCallable(
+      name = "conclusion",
+      doc = "The final conclusion of the check. Can be one of success, failure, neutral, "
+          + "cancelled, timed_out, or action_required.",
+      structField = true,
+      allowReturnNones = true
+  )
   @Nullable
-  public Conclusion getConclusion() {
-    return conclusion;
+  public String getConclusion() {
+    return conclusion.toString().toLowerCase();
   }
 
+  @SkylarkCallable(
+      name = "app",
+      doc = "The detail of a GitHub App, such as id, slug, and name",
+      structField = true
+  )
   public GitHubApp getApp() {
     return app;
   }
