@@ -196,13 +196,14 @@ core.workflow(
     destination_files = glob(["third_party/copybara/**"], exclude = ["README_INTERNAL.txt"]),
 
     authoring = authoring.pass_thru("Default email <default@default.com>"),
-	transformations = [
-   	    core.replace(
-        	before = "//third_party/bazel/bashunit",
-	        after = "//another/path:bashunit",
-        	paths = glob(["**/BUILD"]),
-		),
-        core.move("", "third_party/copybara")
+
+    transformations = [
+        core.replace(
+            before = "//third_party/bazel/bashunit",
+	    after = "//another/path:bashunit",
+            paths = glob(["**/BUILD"]),
+	),
+        core.move("", "third_party/copybara"),
     ],
 )
 ```
