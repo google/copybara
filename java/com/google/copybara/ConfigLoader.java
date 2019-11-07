@@ -38,9 +38,7 @@ public class ConfigLoader {
 
   public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile) {
     this.moduleSet = moduleSet;
-    boolean newStarlarkSemantics = moduleSet.getOptions().get(GeneralOptions.class)
-        .isTemporaryFeature("NEW_STARLARK_SEMANTICS", true);
-    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules(), newStarlarkSemantics);
+    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules());
     this.configFile = Preconditions.checkNotNull(configFile);
   }
 

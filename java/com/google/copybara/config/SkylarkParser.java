@@ -64,17 +64,15 @@ public class SkylarkParser {
   private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
-  private final boolean newStarlarkSemantics;
 
   private static final Object initializationLock = new Object();
 
   private static final Set<Class<?>> initializedModules = new HashSet<>();
 
-  public SkylarkParser(Set<Class<?>> staticModules, boolean newStarlarkSemantics) {
+  public SkylarkParser(Set<Class<?>> staticModules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
         .addAll(staticModules).build();
-    this.newStarlarkSemantics = newStarlarkSemantics;
 
     // Skylark initialization is not thread safe and manipulates static fields. While calling
     // this concurrently doesn't happen in the tool, there can be other usages of this that
@@ -305,21 +303,9 @@ public class SkylarkParser {
   }
 
   private StarlarkSemantics createSemantics() {
-    if (newStarlarkSemantics) {
-      return StarlarkSemantics.DEFAULT_SEMANTICS
-          .toBuilder()
-          // TODO(malcon): Remove this one too. Requires user migration.
-          .incompatibleRestrictNamedParams(false)
-          .build();
-    }
-
-    // TODO(malcon): To remove once we remove NEW_STARLARK_SEMANTICS
     return StarlarkSemantics.DEFAULT_SEMANTICS
         .toBuilder()
-        .incompatibleBzlDisallowLoadAfterStatement(false)
-        .incompatibleDisallowDictPlus(false)
-        .incompatibleNoTransitiveLoads(false)
-        .incompatibleStringJoinRequiresStrings(false)
+        // TODO(malcon): Remove this one too. Requires user migration.
         .incompatibleRestrictNamedParams(false)
         .build();
   }
