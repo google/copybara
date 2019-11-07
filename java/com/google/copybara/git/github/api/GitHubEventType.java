@@ -45,10 +45,12 @@ public enum GitHubEventType {
   RELEASE,
   REPOSITORY_VULNERABILITY_ALERT,
   STATUS,
+  CHECK_RUNS,
   WATCH;
 
   /** Events that we can watch in triggers */
   public static final ImmutableSet<GitHubEventType> WATCHABLE_EVENTS =
       ImmutableSet.of(
-          ISSUES, ISSUE_COMMENT, PULL_REQUEST, PULL_REQUEST_REVIEW_COMMENT, PUSH, STATUS);
+          ISSUES, ISSUE_COMMENT, PULL_REQUEST, PULL_REQUEST_REVIEW_COMMENT, PUSH, STATUS,
+          CHECK_RUN);
 }

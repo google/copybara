@@ -50,6 +50,9 @@ public class CheckRun implements SkylarkValue {
   @Nullable
   private Conclusion conclusion;
 
+  @Key("head_sha")
+  private String sha;
+
   @Key
   private GitHubApp app;
 
@@ -83,6 +86,15 @@ public class CheckRun implements SkylarkValue {
   @Nullable
   public String getConclusion() {
     return conclusion.toString().toLowerCase();
+  }
+
+  @SkylarkCallable(
+      name = "sha",
+      doc = "The SHA-1 the check run is based on",
+      structField = true
+  )
+  public String getSha() {
+    return sha;
   }
 
   @SkylarkCallable(
@@ -121,6 +133,7 @@ public class CheckRun implements SkylarkValue {
         .add("details_url", detailUrl)
         .add("status", status)
         .add("conclusion", conclusion)
+        .add("sha", sha)
         .add("app", app)
         .toString();
   }
