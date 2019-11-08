@@ -81,9 +81,6 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     try {
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
-      System.err.println(httpRequest.getHeaders());
-
-      System.err.println(response.getHeaders());
       Object responseObj = response.parseAs(responseType);
       if (responseObj instanceof PaginatedList) {
         return (T) ((PaginatedList) responseObj).withPaginationInfo(API_PREFIX,
