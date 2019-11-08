@@ -27,11 +27,10 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import java.util.List;
 import java.util.Objects;
 import org.junit.Before;
@@ -127,20 +126,18 @@ public final class CoreReverseTest {
       documented = false)
   public static class Mock implements SkylarkValue {
 
-    @SkylarkSignature(name = "transform", returnType = Transformation.class,
-        doc = "A mock Transform", objectType = Mock.class,
+    @SkylarkCallable(
+        name = "transform",
+        doc = "A mock Transform",
         parameters = {
-            @Param(name = "field", type = String.class),
-            @Param(name = "reversable", type = Boolean.class, defaultValue = "True"),
+          @Param(name = "field", type = String.class),
+          @Param(name = "reversable", type = Boolean.class, defaultValue = "True"),
         },
         documented = false)
-    public static final BuiltinFunction transform = new BuiltinFunction("transform") {
-      @SuppressWarnings("unused")
-      public Transformation invoke(String field, Boolean reversable) {
-        return new SimpleReplace(field,
-            reversable ? new SimpleReplace("reverse " + field, null) : null);
-      }
-    };
+    public Transformation transform(String field, Boolean reversable) {
+      return new SimpleReplace(
+          field, reversable ? new SimpleReplace("reverse " + field, null) : null);
+    }
   }
 
   private static class SimpleReplace implements Transformation {

@@ -23,12 +23,10 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +60,7 @@ public final class SkylarkTestExecutorTest {
       doc = "For testing.",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class DummyModule implements LabelsAwareModule, SkylarkValue {
+  public static final class DummyModule implements LabelsAwareModule, SkylarkValue {
     private ConfigFile configFile;
 
     @Override
@@ -70,21 +68,13 @@ public final class SkylarkTestExecutorTest {
       this.configFile = currentConfigFile;
     }
 
-    @SkylarkSignature(name = "read_foo_extra", returnType = String.class,
-        doc = "Read foo_extra",
-        objectType = DummyModule.class,
-        parameters = {
-            @Param(name = "self", type = DummyModule.class, doc = "self"),
-        },
-        documented = false)
-    public static final BuiltinFunction READ_FOO_EXTRA = new BuiltinFunction("read_foo_extra") {
-      public String invoke(DummyModule self) {
-        try {
-          return self.configFile.resolve("foo_extra").readContent();
-        } catch (CannotResolveLabel | IOException inconceivable) {
-          throw new AssertionError(inconceivable);
-        }
+    @SkylarkCallable(name = "read_foo_extra", doc = "Read foo_extra", documented = false)
+    public String readFooExtra() {
+      try {
+        return configFile.resolve("foo_extra").readContent();
+      } catch (CannotResolveLabel | IOException inconceivable) {
+        throw new AssertionError(inconceivable);
       }
-    };
+    }
   }
 }

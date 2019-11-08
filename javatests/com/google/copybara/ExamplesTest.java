@@ -26,7 +26,6 @@ import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
@@ -63,23 +62,6 @@ public class ExamplesTest {
           samples = ImmutableList.copyOf(examples.value());
         }
         resBuilder.addAll(checkExamples(executor, module, samples, method.getName()));
-      }
-
-      // Legacy @SkylarkSignature uses declared field (cannot use parent class methods)
-      for (Field field : module.getDeclaredFields()) {
-        Examples examples = field.getAnnotation(Examples.class);
-        ImmutableList<Example> samples;
-        if (examples == null) {
-          Example singleSample = field.getAnnotation(Example.class);
-          if (singleSample != null) {
-            samples = ImmutableList.of(singleSample);
-          } else {
-            continue;
-          }
-        } else {
-          samples = ImmutableList.copyOf(examples.value());
-        }
-        resBuilder.addAll(checkExamples(executor, module, samples, field.getName()));
       }
     }
     ImmutableList<Result> result = resBuilder.build();

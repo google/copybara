@@ -40,11 +40,10 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
+import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.BuiltinFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
@@ -355,7 +354,7 @@ public class SkylarkParserTest {
       doc = "LabelsAwareModule for testing purposes",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static class MockLabelsAwareModule implements LabelsAwareModule, SkylarkValue {
+  public static final class MockLabelsAwareModule implements LabelsAwareModule, SkylarkValue {
     private ConfigFile configFile;
 
     @Override
@@ -364,22 +363,17 @@ public class SkylarkParserTest {
     }
 
     @SuppressWarnings("unused")
-    @SkylarkSignature(name = "read_foo", returnType = String.class,
+    @SkylarkCallable(
+        name = "read_foo",
         doc = "Read 'foo' label from config file",
-        objectType = MockLabelsAwareModule.class,
-        parameters = {
-            @Param(name = "self", type = MockLabelsAwareModule.class, doc = "self"),
-        },
         documented = false)
-    public static final BuiltinFunction READ_FOO = new BuiltinFunction("read_foo") {
-      public String invoke(MockLabelsAwareModule self) {
-        try {
-          return self.configFile.resolve("foo").readContent();
-        } catch (CannotResolveLabel | IOException inconceivable) {
-          throw new AssertionError(inconceivable);
-        }
+    public String readFoo() {
+      try {
+        return configFile.resolve("foo").readContent();
+      } catch (CannotResolveLabel | IOException inconceivable) {
+        throw new AssertionError(inconceivable);
       }
-    };
+    }
   }
 
   @SkylarkModule(
@@ -389,65 +383,65 @@ public class SkylarkParserTest {
       documented = false)
   public static class Mock implements SkylarkValue {
 
-    @SkylarkSignature(name = "origin", returnType = MockOrigin.class,
-        doc = "A mock Origin", objectType = Mock.class,
+    @SkylarkCallable(
+        name = "origin",
+        doc = "A mock Origin",
         parameters = {
-            @Param(name = "self", type = Mock.class, doc = "self"),
-            @Param(name = "url", type = String.class, doc = "The origin url"),
-            @Param(name = "branch", type = String.class, doc = "The origin branch",
-                defaultValue = "\"master\""),
+          @Param(name = "url", type = String.class, doc = "The origin url", named = true),
+          @Param(
+              name = "branch",
+              type = String.class,
+              doc = "The origin branch",
+              defaultValue = "\"master\"",
+              named = true),
         },
         documented = false)
-    public static final BuiltinFunction origin = new BuiltinFunction("origin") {
-      @SuppressWarnings("unused")
-      public MockOrigin invoke(Mock self, String url, String branch)
-          throws EvalException, InterruptedException {
-        return new MockOrigin(url, branch);
-      }
-    };
+    public MockOrigin origin(String url, String branch) {
+      return new MockOrigin(url, branch);
+    }
 
-    @SkylarkSignature(name = "destination", returnType = MockDestination.class,
-        doc = "A mock Destination", objectType = Mock.class,
+    @SkylarkCallable(
+        name = "destination",
+        doc = "A mock Destination",
         parameters = {
-            @Param(name = "self", type = Mock.class, doc = "self"),
-            @Param(name = "folder", type = String.class, doc = "The folder output"),
+          @Param(name = "folder", type = String.class, doc = "The folder output", named = true),
         },
         documented = false)
-    public static final BuiltinFunction destination = new BuiltinFunction("destination") {
-      @SuppressWarnings("unused")
-      public MockDestination invoke(Mock self, String folder)
-          throws EvalException, InterruptedException {
-        return new MockDestination(folder);
-      }
-    };
+    public MockDestination mock(String folder) {
+      return new MockDestination(folder);
+    }
 
-    @SkylarkSignature(
+    @SkylarkCallable(
         name = "transform",
-        returnType = MockTransform.class,
         doc = "A mock Transform",
-        objectType = Mock.class,
         parameters = {
-          @Param(name = "self", type = Mock.class, doc = "self"),
-          @Param(name = "field1", type = String.class, defaultValue = "None", noneable = true),
-          @Param(name = "field2", type = String.class, defaultValue = "None", noneable = true),
+          @Param(
+              name = "field1",
+              type = String.class,
+              defaultValue = "None",
+              noneable = true,
+              named = true),
+          @Param(
+              name = "field2",
+              type = String.class,
+              defaultValue = "None",
+              noneable = true,
+              named = true),
           @Param(
               name = "list",
               type = SkylarkList.class,
               generic1 = String.class,
-              defaultValue = "[]"),
+              defaultValue = "[]",
+              named = true),
         },
         documented = false)
-    public static final BuiltinFunction transform =
-        new BuiltinFunction("transform") {
-          @SuppressWarnings("unused")
-          public MockTransform invoke(Mock self, Object field1, Object field2, SkylarkList<?> list)
-              throws EvalException, InterruptedException {
-            return new MockTransform(
-                SkylarkUtil.convertOptionalString(field1),
-                SkylarkUtil.convertOptionalString(field2),
-                SkylarkUtil.convertStringList(list, "list"));
-          }
-        };
+    public MockTransform transform(Object field1, Object field2, SkylarkList<?> list)
+        throws EvalException {
+      return new MockTransform(
+          SkylarkUtil.convertOptionalString(field1),
+          SkylarkUtil.convertOptionalString(field2),
+          SkylarkUtil.convertStringList(list, "list"));
+    }
   }
 
   public static class MockOrigin implements Origin<Revision> {
@@ -494,7 +488,6 @@ public class SkylarkParserTest {
       throw new UnsupportedOperationException();
     }
   }
-
 
   public static class MockTransform implements Transformation {
 

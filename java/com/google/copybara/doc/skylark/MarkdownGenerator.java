@@ -38,7 +38,6 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkSignature;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
@@ -150,21 +149,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
               docSignaturePrefix != null ? docSignaturePrefix.value() : skyModule.name()));
         }
       }
-      // TODO(malcon): Remove this branch once we don't have more SkylarkSignatures.
-      for (Element member : filterSkylarkSignature(module.getEnclosedElements())) {
-        AnnotationHelper<SkylarkSignature> ann = annotationHelper(member, SkylarkSignature.class);
-        String functionName = ann.ann.name();
-        DeclaredType objectType = ann.getClassValue("objectType");
-
-        if (objectType.toString().equals(module.toString())) {
-          functionName = skyModule.name() + "." + functionName;
-        }
-        boolean skipFirstParam = firstParamIsSelf(module, objectType, skyModule.namespace());
-        docModule.functions.add(
-            documentSkylarkSignature(member, functionName, skipFirstParam, ann.ann.doc(),
-                ann.getValue("parameters"), ann.ann.parameters(),
-                skylarkTypeName(ann.getClassValue("returnType"))));
-      }
 
       docModule.flags.addAll(generateFlagsInfo(module));
     }
@@ -204,13 +188,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       return ann != null && member instanceof ExecutableElement && ann.ann.documented();
     }).collect(Collectors.toList()));
     return result.build();
-  }
-
-  private List<? extends Element> filterSkylarkSignature(List<? extends Element> enclosedElements) {
-    return enclosedElements.stream().filter(member -> {
-      AnnotationHelper<SkylarkSignature> ann = annotationHelper(member, SkylarkSignature.class);
-      return ann != null && member instanceof VariableElement && ann.ann.documented();
-    }).collect(Collectors.toList());
   }
 
   private void printExample(StringBuilder sb, int level, Example example) {
@@ -281,14 +258,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       return name;
     }
     return name + " of " + skylarkTypeName(generic);
-  }
-
-  /**
-   * Detect if the first parameter is 'self' object.
-   */
-  private boolean firstParamIsSelf(TypeElement classElement,
-      DeclaredType objectType, boolean isNamespace) {
-    return !isNamespace && objectType.toString().equals(classElement.toString());
   }
 
   @Nullable

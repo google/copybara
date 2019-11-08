@@ -573,7 +573,8 @@ public class MetadataModuleTest {
 
   @Test
   public void testsSaveAuthorOtherLabel() throws Exception {
-    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
+    Workflow<?, ?> wf =
+        createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL')");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
         .addSimpleChange(0, "A change");
     wf.run(workdir, ImmutableList.of());
@@ -626,7 +627,8 @@ public class MetadataModuleTest {
 
   @Test
   public void testRestoreAuthorOtherLabel() throws Exception {
-    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
+    Workflow<?, ?> wf =
+        createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL')");
     origin.setAuthor(new Author("remove me", "remove@me.com"))
         .addSimpleChange(0, "A change\n\n"
             + "OTHER_LABEL=restore me <restore@me.com>\n"
@@ -925,6 +927,7 @@ public class MetadataModuleTest {
               + "fail_if_no_match = True,"
               + "replacement = '$1')",
           /*not used*/ null);
+      fail();
     } catch (ValidationException e) {
       assertThat(e)
           .hasMessageThat()
@@ -949,8 +952,13 @@ public class MetadataModuleTest {
       assertThat(e)
           .hasMessageThat()
           .contains(
-              "Scrubber regex: '^(?:\n|.)*PUBLIC:((?:\n|.)*)(?:\n|.)*$' didn't match for "
-                  + "description: 'This\nis\nvery confidential\nbut this is public\nvery public\n'");
+              "Scrubber regex: '^(?:\n|.)*PUBLIC:((?:\n|.)*)(?:\n|.)*$' didn't match for " //
+                  + "description: 'This\n"
+                  + "is\n"
+                  + "very confidential\n"
+                  + "but this is public\n"
+                  + "very public\n"
+                  + "'");
     }
   }
 
@@ -993,9 +1001,7 @@ public class MetadataModuleTest {
         .isEqualTo("John Example <other.example@example.com>"); // No match
   }
 
-  /**
-   * Internally we have a couple of cases like this. This is due to an issue in @SkylarkSignature.
-   */
+  /** Internally we have a couple of cases like this. */
   @Test
   public void testMapAuthor_mapFieldsPositionalArgs() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());

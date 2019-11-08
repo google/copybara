@@ -38,7 +38,6 @@ import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInput;
 import com.google.devtools.build.lib.syntax.Runtime;
-import com.google.devtools.build.lib.syntax.SkylarkSignatureProcessor;
 import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
@@ -48,7 +47,6 @@ import com.google.devtools.build.lib.syntax.StringLiteral;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,36 +63,12 @@ public class SkylarkParser {
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
 
-  private static final Object initializationLock = new Object();
-
-  private static final Set<Class<?>> initializedModules = new HashSet<>();
-
   public SkylarkParser(Set<Class<?>> staticModules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
         .addAll(staticModules).build();
-
-    // Skylark initialization is not thread safe and manipulates static fields. While calling
-    // this concurrently doesn't happen in the tool, there can be other usages of this that
-    // tries to create two SkylarkParsers in parallel.
-    // DON'T REMOVE IT
-    synchronized (initializationLock) {
-      // Register module functions
-      for (Class<?> module : this.modules) {
-        // configureSkylarkFunctions() should be only called once for each module and java process.
-        if (!initializedModules.add(module)) {
-          continue;
-        }
-        try {
-          SkylarkSignatureProcessor.configureSkylarkFunctions(module);
-        } catch (Exception e) {
-          throw new RuntimeException("Cannot register module " + module.getName(), e);
-        }
-      }
-    }
   }
 
-  @SuppressWarnings("unchecked")
   public Config loadConfig(ConfigFile config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
     return getConfigWithTransitiveImports(config, moduleSet, console).config;
