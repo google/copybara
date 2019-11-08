@@ -40,7 +40,9 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
@@ -73,14 +75,15 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   @Override
   public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
       throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent());
+    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent(), headers);
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
 
     try {
-      HttpRequest httpRequest =
-          requestFactory.buildGetRequest(url).setHeaders(generateHeaders(headers));
+      HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
+      System.err.println(httpRequest.getHeaders());
 
+      System.err.println(response.getHeaders());
       Object responseObj = response.parseAs(responseType);
       if (responseObj instanceof PaginatedList) {
         return (T) ((PaginatedList) responseObj).withPaginationInfo(API_PREFIX,
@@ -118,17 +121,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
-  private static HttpHeaders generateHeaders(ImmutableListMultimap<String, String> headers) {
-    HttpHeaders httpHeaders = new HttpHeaders();
-    for(String key : headers.keys()) {
-      httpHeaders.set(key, headers.get(key));
-    }
-    return httpHeaders;
-  }
-
-  /**
-   * Credentials for API should be optional for any read operation (GET).
-   */
+  /** Credentials for API should be optional for any read operation (GET). */
   @Nullable
   private UserPassword getCredentialsIfPresent() throws RepoException {
     try {
@@ -147,7 +140,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   @Override
   public <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
+    HttpRequestFactory requestFactory =
+        getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
 
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
@@ -177,7 +171,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   @Override
   public void delete(String path) throws RepoException, ValidationException {
-    HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentials());
+    HttpRequestFactory requestFactory =
+        getHttpRequestFactory(getCredentials() ,ImmutableListMultimap.of());
 
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
@@ -190,8 +185,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
     }
   }
 
-  private HttpRequestFactory getHttpRequestFactory(@Nullable UserPassword userPassword)
-      throws RepoException, ValidationException {
+  private HttpRequestFactory getHttpRequestFactory(
+      @Nullable UserPassword userPassword, ImmutableListMultimap<String, String> headers) {
     return httpTransport.createRequestFactory(
         request -> {
           request.setConnectTimeout((int) Duration.ofMinutes(1).toMillis());
@@ -200,6 +195,9 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           if (userPassword != null) {
             httpHeaders.setBasicAuthentication(userPassword.getUsername(),
                 userPassword.getPassword_BeCareful());
+          }
+          for (Map.Entry<String, Collection<String>> header : headers.asMap().entrySet()) {
+            httpHeaders.put(header.getKey(), header.getValue());
           }
           request.setHeaders(httpHeaders);
           request.setParser(new JsonObjectParser(JSON_FACTORY));

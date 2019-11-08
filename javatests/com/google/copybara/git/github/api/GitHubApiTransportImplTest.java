@@ -28,12 +28,17 @@ import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
+import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,6 +84,28 @@ public class GitHubApiTransportImplTest {
   @Test
   public void testPostThrowsHttpResponseException() throws Exception {
     runTestThrowsHttpResponseException(() -> transport.post("foo/bar", String.class, Status.class));
+  }
+
+  @Test
+  public void testPasswordHeaderSet() throws Exception {
+    Map<String, List<String>> headers = new HashMap<>();
+    httpTransport = new MockHttpTransport() {
+      @Override
+      public LowLevelHttpRequest buildRequest(String method, String url) {
+        return new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() throws IOException {
+            headers.putAll(this.getHeaders());
+            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+            response.setContent("foo");
+            return response;
+          }
+        };
+      }
+    };
+    transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());
+    transport.get("foo/bar", String.class);
+    assertThat(headers).containsEntry("authorization", ImmutableList.of("Basic dXNlcjpTRUNSRVQ="));
   }
 
   private void runTestThrowsHttpResponseException(Callable<?> c) throws Exception {
