@@ -169,7 +169,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   @Override
   public void delete(String path) throws RepoException, ValidationException {
     HttpRequestFactory requestFactory =
-        getHttpRequestFactory(getCredentials() ,ImmutableListMultimap.of());
+        getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
 
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
