@@ -30,7 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -97,7 +97,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
       // foo.parent.resolve("bar"). While sibbling could be use for this, sometimes we'll need
       // to return the parent folder and another function resolve a path based on that.
       return path.toString().equals("")
-          ? Runtime.NONE
+          ? Starlark.NONE
           : create(path.getFileSystem().getPath(""), location);
     }
     return create(parent, location);

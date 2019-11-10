@@ -42,7 +42,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -346,9 +346,9 @@ public class GerritEndpointTest {
             .put("owner.email", "no-reply@glorious-copybara.com")
             .put("owner.secondary_emails[0]", "foo@bar.com")
             .put("owner.username", "glorious.copybara")
-            .put("labels['Code-Review'].approved", Runtime.NONE)
-            .put("labels['Code-Review'].recommended", Runtime.NONE)
-            .put("labels['Code-Review'].disliked", Runtime.NONE)
+            .put("labels['Code-Review'].approved", Starlark.NONE)
+            .put("labels['Code-Review'].recommended", Starlark.NONE)
+            .put("labels['Code-Review'].disliked", Starlark.NONE)
             .put("labels['Code-Review'].blocking", false)
             .put("labels['Code-Review'].value", 0)
             .put("labels['Code-Review'].default_value", 0)

@@ -75,10 +75,10 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
-import com.google.devtools.build.lib.syntax.Runtime;
-import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -233,8 +233,10 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     checkNotEmpty(url, "url", location);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
-    if (versionSelector != Runtime.NONE) {
-      check(location, ref == Runtime.NONE,
+    if (versionSelector != Starlark.NONE) {
+      check(
+          location,
+          ref == Starlark.NONE,
           "Cannot use ref field and version_selector. Version selector will decide the ref"
               + " to migrate");
     }
@@ -396,7 +398,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                 prune,
                 mainConfigFile,
                 convertFromNoneable(description, null)));
-    return Runtime.NONE;
+    return Starlark.NONE;
   }
 
   @SuppressWarnings("unused")
@@ -884,8 +886,10 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         location, GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location)),
         "Invalid Github URL: %s", url);
 
-    if (versionSelector != Runtime.NONE) {
-      check(location, ref == Runtime.NONE,
+    if (versionSelector != Starlark.NONE) {
+      check(
+          location,
+          ref == Starlark.NONE,
           "Cannot use ref field and version_selector. Version selector will decide the ref"
               + " to migrate");
     }

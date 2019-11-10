@@ -44,7 +44,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -352,7 +352,7 @@ public class GitHubEndpointTest {
         eq("GET"),
         eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
         mockGitHubNotFound());
-    skylark.verifyObject(var, Runtime.NONE);
+    skylark.verifyObject(var, Starlark.NONE);
   }
 
   @Test
@@ -468,7 +468,7 @@ public class GitHubEndpointTest {
             + "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
         mockGitHubNotFound());
 
-    skylark.verifyObject(var, Runtime.NONE);
+    skylark.verifyObject(var, Starlark.NONE);
   }
 
   @Test
@@ -480,7 +480,7 @@ public class GitHubEndpointTest {
         eq("https://api.github.com/repos/google/example/git/refs/heads/not_found"),
         mockGitHubNotFound());
 
-    skylark.verifyObject(var, Runtime.NONE);
+    skylark.verifyObject(var, Starlark.NONE);
   }
 
   /**

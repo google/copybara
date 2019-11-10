@@ -63,10 +63,10 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
-import com.google.devtools.build.lib.syntax.Runtime.NoneType;
+import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
@@ -1428,7 +1428,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
             actions,
             generalOptions);
     registerGlobalMigration(workflowName, migration, location, thread);
-    return Runtime.NONE;
+    return Starlark.NONE;
   }
 
   /** Registers a {@link Migration} in the global registry. */

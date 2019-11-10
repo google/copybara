@@ -33,9 +33,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -121,7 +121,7 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
   @Override
   public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
-        result == null || result.equals(Runtime.NONE),
+        result == null || result.equals(Starlark.NONE),
         "Finish hook '%s' cannot return any result but returned: %s",
         currentAction.getName(),
         result);

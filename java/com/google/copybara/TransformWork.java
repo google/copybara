@@ -43,9 +43,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -209,7 +209,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       skylarkTransformWork = skylarkTransformWork.withUpdatedTreeState();
       ((Transformation) runnable).transform(skylarkTransformWork);
       this.updateFrom(skylarkTransformWork);
-      return Runtime.NONE;
+      return Starlark.NONE;
     }
 
     throw new EvalException(location, String.format(
@@ -635,7 +635,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
   @Override
   public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
     checkCondition(
-        result == null || result.equals(Runtime.NONE),
-        "Transform work cannot return any result but returned: %s", result);
+        result == null || result.equals(Starlark.NONE),
+        "Transform work cannot return any result but returned: %s",
+        result);
   }
 }

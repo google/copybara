@@ -27,9 +27,9 @@ import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
-import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -207,6 +207,6 @@ public final class SkylarkUtil {
    */
   @Nullable
   public static String convertOptionalString(Object x) {
-    return x == Runtime.NONE ? null : (String) x;
+    return x == Starlark.NONE ? null : (String) x;
   }
 }
