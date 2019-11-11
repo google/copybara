@@ -37,7 +37,7 @@ import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInput;
-import com.google.devtools.build.lib.syntax.Runtime;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
@@ -348,9 +348,10 @@ public class SkylarkParser {
       // Create the module object and associate it with the functions
       ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
       try {
-        if (SkylarkInterfaceUtils.getSkylarkModule(module) != null
-            || SkylarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
-          Runtime.setupSkylarkLibrary(envBuilder, module.getConstructor().newInstance());
+        if (SkylarkInterfaceUtils.getSkylarkModule(module) != null) {
+          Starlark.addModule(envBuilder, module.getConstructor().newInstance());
+        } else if (SkylarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
+          Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {
         throw new AssertionError(e);
