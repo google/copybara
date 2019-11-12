@@ -62,8 +62,9 @@ public class GitHubApiException extends RepoException {
             .append(httpCode)
             .append(" The request was ")
             .append(httpMethod)
-            .append(" ")
-            .append(path);
+            .append(' ')
+            .append(path)
+            .append('\n');
     if (request != null) {
       sb.append("Request object:\n").append(request).append("\n");
     }

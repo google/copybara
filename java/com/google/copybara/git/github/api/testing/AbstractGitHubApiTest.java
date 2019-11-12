@@ -626,7 +626,7 @@ public abstract class AbstractGitHubApiTest {
   }
 
 
-  private byte[] getResource(String testfile) throws IOException {
+  protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
         Paths.get(System.getenv("TEST_SRCDIR"),
             "copybara/java/com/google/copybara/git/github/api/"
