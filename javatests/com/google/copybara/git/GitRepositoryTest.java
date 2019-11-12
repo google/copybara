@@ -41,6 +41,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -509,6 +510,28 @@ public class GitRepositoryTest {
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
     assertThat(result.getInserted()).isEmpty();
+  }
+
+  @Test
+  public void testForceCheckout() throws Exception {
+
+    Path localWorkdir = Files.createTempDirectory("workdir");
+    GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+    local.init();
+    GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
+    GitTestUtil.writeFile(workdir, "b/bar.txt", "b");
+    repository.add().files("a/foo.txt").run();
+    repository.add().files("b/bar.txt").run();
+    repository.simpleCommand("commit", "a/foo.txt", "b/bar.txt", "-m", "message");
+    String fetchUrl = "file://" + repository.getGitDir();
+
+    local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
+        ImmutableList.of("refs/*:refs/*"));
+    local.withWorkTree(localWorkdir).forceCheckout("master", ImmutableSet.of("a"));
+
+    assertThat(Files.exists(localWorkdir.resolve("a/foo.txt"))).isTrue();
+    assertThat(Files.exists(localWorkdir.resolve("b/bar.txt"))).isFalse();
   }
 
   @Test

@@ -742,6 +742,18 @@ public class GitRepository {
   }
 
   /**
+   * Checks out the given ref in the repo, quietly and throwing away local changes. If checkoutPath
+   * is empty, it will checkout all files. If not, it will only checkout checkoutPaths
+   */
+  public CommandOutput forceCheckout(String ref, ImmutableSet<String> checkoutPaths)
+      throws RepoException {
+    ImmutableList.Builder<String> argv = ImmutableList.builder();
+    argv.add("checkout", "-q", "-f", checkNotNull(ref));
+    argv.addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(Collectors.toList()));
+    return simpleCommand(argv.build());
+  }
+
+  /**
    * Checks out the given ref in the repo, quietly and throwing away local changes.
    */
   public CommandOutput forceCheckout(String ref) throws RepoException {
@@ -981,7 +993,11 @@ public class GitRepository {
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
   public CommandOutput simpleCommand(String... argv) throws RepoException {
-    return git(getCwd(), addGitDirAndWorkTreeParams(Arrays.asList(argv)));
+    return simpleCommand(Arrays.asList(argv));
+  }
+
+  public CommandOutput simpleCommand(List<String> argv) throws RepoException {
+    return git(getCwd(), addGitDirAndWorkTreeParams(argv));
   }
 
   CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {

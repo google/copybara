@@ -71,6 +71,11 @@ public class GitOptions implements Option {
       description = "If set, copybara will force update existing git tag")
   boolean gitTagOverwrite = false;
 
+  @Parameter(names = "--experiment-checkout-affected-files",
+      description = "If set, copybara will only checkout affected files at git origin. "
+          + "Note that this is experimental.")
+  boolean experimentCheckoutAffectedFiles = false;
+
   public GitOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }

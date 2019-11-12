@@ -222,7 +222,18 @@ public class GitOrigin implements Origin<GitRevision> {
         }
       }
     }
-    
+
+    private GitRepository checkout(
+        GitRepository repository, Path workdir, GitRevision ref)
+        throws RepoException {
+      GitRepository repo = repository.withWorkTree(workdir);
+      repo.forceCheckout(ref.getSha1(),
+          gitOptions.experimentCheckoutAffectedFiles
+          ? originFiles.roots()
+          : ImmutableSet.of());
+      return repo;
+    }
+
     /**
      * Checks out the repository, and rebases to a ref if necessary.
      *
@@ -295,13 +306,6 @@ public class GitOrigin implements Origin<GitRevision> {
                 ? SubmoduleStrategy.RECURSIVE
                 : SubmoduleStrategy.NO, submoduleRef, /*topLevelCheckout*/ false);
       }
-    }
-
-    private GitRepository checkout(GitRepository repository, Path workdir, GitRevision ref)
-        throws RepoException {
-      GitRepository repo = repository.withWorkTree(workdir);
-      repo.forceCheckout(ref.getSha1());
-      return repo;
     }
 
     protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)

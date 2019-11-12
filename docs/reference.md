@@ -1637,6 +1637,7 @@ Set of functions to define Git origins and destinations.
 
 Name | Type | Description
 ---- | ---- | -----------
+<nobr>`--experiment-checkout-affected-files`</nobr> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <nobr>`--git-credential-helper-store-file`</nobr> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <nobr>`--git-tag-overwrite`</nobr> | *boolean* | If set, copybara will force update existing git tag
 <nobr>`--nogit-credential-helper-store`</nobr> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
