@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;
@@ -48,7 +49,7 @@ public class GerritApiTransportWithCheckerTest {
     console = new TestingConsole();
     delegate = Mockito.mock(GerritApiTransport.class);
     checker = Mockito.mock(Checker.class);
-    transport = new GerritApiTransportWithChecker(delegate, checker, console);
+    transport = new GerritApiTransportWithChecker(delegate, new ApiChecker(checker, console));
   }
 
   @Test

@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
+import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -36,7 +37,6 @@ import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiTransport;
 import com.google.copybara.git.gerritapi.GerritApiTransportImpl;
 import com.google.copybara.git.gerritapi.GerritApiTransportWithChecker;
-import com.google.copybara.util.console.Console;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
@@ -91,7 +91,7 @@ public class GerritOptions implements Option {
    */
   LazyResourceLoader<GerritApi> newGerritApiSupplier(String url, @Nullable Checker checker) {
     return (console) ->
-        checker == null ? newGerritApi(url) : newGerritApi(url, checker, console);
+        checker == null ? newGerritApi(url) : newGerritApi(url, new ApiChecker(checker, console));
   }
 
   /**
@@ -105,10 +105,9 @@ public class GerritOptions implements Option {
   /**
    * Creates a new {@link GerritApi} enforcing the given {@link Checker}.
    */
-  private GerritApi newGerritApi(String url, Checker checker, Console console)
+  private GerritApi newGerritApi(String url, ApiChecker checker)
       throws ValidationException, RepoException {
-    return new GerritApi(newGerritApiTransport(hostUrl(url), checker, console),
-        generalOptions.profiler());
+    return new GerritApi(newGerritApiTransport(hostUrl(url), checker), generalOptions.profiler());
   }
 
   /**
@@ -164,9 +163,9 @@ public class GerritOptions implements Option {
   /**
    * Create a Gerrit http transport for a URI and {@link Checker}.
    */
-  private GerritApiTransport newGerritApiTransport(URI uri, Checker checker, Console console)
+  private GerritApiTransport newGerritApiTransport(URI uri, ApiChecker checker)
       throws RepoException, ValidationException {
-    return new GerritApiTransportWithChecker(newGerritApiTransport(uri), checker, console);
+    return new GerritApiTransportWithChecker(newGerritApiTransport(uri), checker);
   }
 
   @VisibleForTesting
