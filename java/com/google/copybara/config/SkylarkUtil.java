@@ -29,6 +29,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Runtime;
 import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -149,28 +150,19 @@ public final class SkylarkUtil {
    * error message.
    */
   public static List<String> convertStringList(Object x, String message) throws EvalException {
-    // This function is similar to SkylarkList.getContents(String.class, message),
-    // but works for any iterable, and gives better errors.
-    Iterable<?> seq;
-    try {
-      seq = EvalUtils.toIterable(x, null, null);
-    } catch (
-        @SuppressWarnings("UnusedException")
-        EvalException ex) {
+    if (!(x instanceof SkylarkList)) {
       throw new EvalException(
           null, String.format("%s: got %s, want sequence", message, EvalUtils.getDataTypeName(x)));
     }
-    List<String> result = new ArrayList<>();
-    for (Object elem : seq) {
-      if (elem instanceof String) {
-        result.add((String) elem);
-      } else {
+
+    ArrayList<String> result = new ArrayList<>();
+    for (Object elem : (SkylarkList<?>) x) {
+      if (!(elem instanceof String)) {
         throw new EvalException(
-            null,
-            String.format(
-                "%s: at index #%d, got %s, want string",
+            null, String.format("%s: at index #%d, got %s, want string",
                 message, result.size(), EvalUtils.getDataTypeName(elem)));
       }
+      result.add((String) elem);
     }
     return result;
   }
@@ -182,9 +174,6 @@ public final class SkylarkUtil {
    */
   public static Map<String, String> convertStringMap(Object x, String message)
       throws EvalException {
-    // This function is similar to SkylarkList.getContents(String.class, message),
-    // but works for any iterable, and gives better errors.
-
     // TODO(adonovan): support mappings other than dict.
     if (!(x instanceof SkylarkDict)) {
       throw new EvalException(
