@@ -24,7 +24,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.List;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info */
@@ -62,8 +62,8 @@ public class CommitInfo implements SkylarkValue {
           "The parent commits of this commit as a list of CommitInfo entities. "
               + "In each parent only the commit and subject fields are populated.",
       structField = true)
-  public SkylarkList<ParentCommitInfo> getMessagesForSkylark() {
-    return SkylarkList.createImmutable(getParents());
+  public Sequence<ParentCommitInfo> getMessagesForSkylark() {
+    return Sequence.createImmutable(getParents());
   }
 
   @SkylarkCallable(

@@ -25,10 +25,10 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -150,13 +150,13 @@ public final class SkylarkUtil {
    * error message.
    */
   public static List<String> convertStringList(Object x, String message) throws EvalException {
-    if (!(x instanceof SkylarkList)) {
+    if (!(x instanceof Sequence)) {
       throw new EvalException(
           null, String.format("%s: got %s, want sequence", message, EvalUtils.getDataTypeName(x)));
     }
 
     ArrayList<String> result = new ArrayList<>();
-    for (Object elem : (SkylarkList<?>) x) {
+    for (Object elem : (Sequence<?>) x) {
       if (!(elem instanceof String)) {
         throw new EvalException(
             null, String.format("%s: at index #%d, got %s, want string",
@@ -175,12 +175,12 @@ public final class SkylarkUtil {
   public static Map<String, String> convertStringMap(Object x, String message)
       throws EvalException {
     // TODO(adonovan): support mappings other than dict.
-    if (!(x instanceof SkylarkDict)) {
+    if (!(x instanceof Dict)) {
       throw new EvalException(
           null, String.format("%s: got %s, want dict", message, EvalUtils.getDataTypeName(x)));
     }
     Map<String, String> result = new HashMap<>();
-    for (Map.Entry<?, ?> e : ((SkylarkDict<?, ?>) x).entrySet()) {
+    for (Map.Entry<?, ?> e : ((Dict<?, ?>) x).entrySet()) {
       if (!(e.getKey() instanceof String)) {
         throw new EvalException(
             null,

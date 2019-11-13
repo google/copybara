@@ -54,7 +54,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -563,7 +563,7 @@ public final class GitDestination implements Destination<GitRevision> {
       }
 
       GitRevision head = scratchClone.resolveReference("HEAD");
-      SkylarkList<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
+      Sequence<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
       String tagName = createTag(scratchClone, console, transformResult);
       // BeforePush will update existing PRs in github if skip push is not true
       writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);

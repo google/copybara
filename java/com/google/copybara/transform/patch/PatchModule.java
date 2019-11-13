@@ -34,7 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.io.IOException;
 
 /** Skylark module that provides a basic transform to apply patchfiles. */
@@ -77,7 +77,7 @@ public class PatchModule implements LabelsAwareModule, SkylarkValue {
                     + "be applied in order (patches first). **This field doesn't accept a glob**"),
         @Param(
             name = "excluded_patch_paths",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = String.class,
             defaultValue = "[]",
@@ -115,7 +115,7 @@ public class PatchModule implements LabelsAwareModule, SkylarkValue {
   @UsesFlags(PatchingOptions.class)
   public PatchTransformation apply(
       Object patches,
-      SkylarkList<?> excludedPaths,
+      Sequence<?> excludedPaths,
       Object seriesOrNone,
       Integer strip,
       Location location)

@@ -32,9 +32,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -67,14 +67,18 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
         destination,
         destinationEffects,
         console,
-        SkylarkDict.empty(),
+        Dict.empty(),
         new SkylarkRevision(resolvedRevision));
   }
 
-  private FinishHookContext(Action currentAction, LazyResourceLoader<Endpoint> origin,
+  private FinishHookContext(
+      Action currentAction,
+      LazyResourceLoader<Endpoint> origin,
       LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
-      SkylarkConsole console, SkylarkDict<?, ?> params, SkylarkRevision resolvedRevision) {
+      SkylarkConsole console,
+      Dict<?, ?> params,
+      SkylarkRevision resolvedRevision) {
     super(currentAction, console, params);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
@@ -100,10 +104,12 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
     }
   }
 
-  @SkylarkCallable(name = "effects",
-      doc = "The list of effects that happened in the destination", structField = true)
-  public SkylarkList<DestinationEffect> getChanges() {
-    return SkylarkList.createImmutable(destinationEffects);
+  @SkylarkCallable(
+      name = "effects",
+      doc = "The list of effects that happened in the destination",
+      structField = true)
+  public Sequence<DestinationEffect> getChanges() {
+    return Sequence.createImmutable(destinationEffects);
   }
 
   @SkylarkCallable(name = "revision", doc = "Get the requested/resolved revision",
@@ -113,7 +119,7 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
   }
 
   @Override
-  public FinishHookContext withParams(SkylarkDict<?, ?> params) {
+  public FinishHookContext withParams(Dict<?, ?> params) {
     return new FinishHookContext(
         currentAction, origin, destination, destinationEffects, console, params, resolvedRevision);
   }
@@ -144,15 +150,17 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
       this.revision = Preconditions.checkNotNull(revision);
     }
 
-    @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the"
-        + " requested/resolved revision.", structField = true)
-    public SkylarkDict<String, SkylarkList<String>> getLabels() {
-      return SkylarkDict.copyOf(
+    @SkylarkCallable(
+        name = "labels",
+        doc = "A dictionary with the labels detected for the" + " requested/resolved revision.",
+        structField = true)
+    public Dict<String, Sequence<String>> getLabels() {
+      return Dict.copyOf(
           /* thread= */ null,
           revision.associatedLabels().asMap().entrySet().stream()
               .collect(
                   Collectors.toMap(
-                      Map.Entry::getKey, e -> SkylarkList.createImmutable(e.getValue()))));
+                      Map.Entry::getKey, e -> Sequence.createImmutable(e.getValue()))));
     }
   }
 }

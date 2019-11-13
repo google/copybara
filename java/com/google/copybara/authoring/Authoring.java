@@ -27,7 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -152,7 +152,7 @@ public final class Authoring implements SkylarkValue {
                       + " in squash mode workflows or when users are not whitelisted."),
           @Param(
               name = "whitelist",
-              type = SkylarkList.class,
+              type = Sequence.class,
               generic1 = String.class,
               named = true,
               doc = "List of white listed authors in the origin. The authors must be unique"),
@@ -187,7 +187,7 @@ public final class Authoring implements SkylarkValue {
                 + ")")
     public Authoring whitelisted(
         String defaultAuthor,
-        SkylarkList<?> whitelist, // <String>
+        Sequence<?> whitelist, // <String>
         Location location)
         throws EvalException {
       return new Authoring(
@@ -231,8 +231,8 @@ public final class Authoring implements SkylarkValue {
      */
     PASS_THRU,
     /**
-     * Corresponds with {@link Authoring.Module#whitelisted(String, SkylarkList, Location)}
-     * built-in function.
+     * Corresponds with {@link Authoring.Module#whitelisted(String, Sequence, Location)} built-in
+     * function.
      */
     WHITELISTED
   }

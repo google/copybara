@@ -26,9 +26,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.devtools.build.lib.syntax.BaseFunction;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.SkylarkType;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
@@ -156,7 +155,7 @@ public class Sequence implements Transformation {
   public static Sequence fromConfig(
       Profiler profiler,
       boolean joinTransformations,
-      SkylarkList<?> elements,
+      com.google.devtools.build.lib.syntax.Sequence<?> elements,
       String description,
       Supplier<StarlarkThread> thread,
       Function<Transformation, Transformation> transformWrapper)
@@ -172,7 +171,7 @@ public class Sequence implements Transformation {
   private static Transformation convertToTransformation(
       String description, Supplier<StarlarkThread> thread, Object element) throws EvalException {
     if (element instanceof BaseFunction) {
-      return new SkylarkTransformation((BaseFunction) element, SkylarkDict.empty(), thread);
+      return new SkylarkTransformation((BaseFunction) element, Dict.empty(), thread);
     }
     SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
     return (Transformation) element;

@@ -25,7 +25,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -69,12 +69,11 @@ public class DestinationEffect implements SkylarkValue {
   }
 
   @SkylarkCallable(
-    name = "origin_refs",
-    doc = "List of origin changes that were included in" + " this migration",
-    structField = true
-  )
-  public final SkylarkList<? extends OriginRef> getOriginRefsSkylark() {
-    return SkylarkList.createImmutable(originRefs);
+      name = "origin_refs",
+      doc = "List of origin changes that were included in" + " this migration",
+      structField = true)
+  public final Sequence<? extends OriginRef> getOriginRefsSkylark() {
+    return Sequence.createImmutable(originRefs);
   }
 
   /** Return the type of effect that happened: Create, updated, noop or error */
@@ -133,12 +132,11 @@ public class DestinationEffect implements SkylarkValue {
   }
 
   @SkylarkCallable(
-    name = "errors",
-    doc = "List of errors that happened during the migration",
-    structField = true
-  )
-  public final SkylarkList<String> getErrorsSkylark() {
-    return SkylarkList.createImmutable(errors);
+      name = "errors",
+      doc = "List of errors that happened during the migration",
+      structField = true)
+  public final Sequence<String> getErrorsSkylark() {
+    return Sequence.createImmutable(errors);
   }
 
   @Override

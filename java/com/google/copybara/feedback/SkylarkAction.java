@@ -24,8 +24,8 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
 
@@ -35,11 +35,10 @@ import java.util.function.Supplier;
 public class SkylarkAction implements Action {
 
   private final BaseFunction function;
-  private final SkylarkDict<?, ?> params;
+  private final Dict<?, ?> params;
   private final Supplier<StarlarkThread> thread;
 
-  public SkylarkAction(
-      BaseFunction function, SkylarkDict<?, ?> params, Supplier<StarlarkThread> thread) {
+  public SkylarkAction(BaseFunction function, Dict<?, ?> params, Supplier<StarlarkThread> thread) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.thread = Preconditions.checkNotNull(thread);

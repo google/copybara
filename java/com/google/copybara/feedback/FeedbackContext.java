@@ -29,9 +29,9 @@ import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,9 +43,9 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
   final SkylarkConsole console;
   final List<DestinationEffect> newDestinationEffects = new ArrayList<>();
 
-  private final SkylarkDict<?, ?> params;
+  private final Dict<?, ?> params;
 
-  FeedbackContext(Action currentAction, SkylarkConsole console, SkylarkDict<?, ?> params) {
+  FeedbackContext(Action currentAction, SkylarkConsole console, Dict<?, ?> params) {
     this.currentAction = Preconditions.checkNotNull(currentAction);
     this.console = Preconditions.checkNotNull(console);
     this.params = Preconditions.checkNotNull(params);
@@ -73,9 +73,11 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
     return console;
   }
 
-  @SkylarkCallable(name = "params", doc = "Parameters for the function if created with"
-      + " core.dynamic_feedback", structField = true)
-  public SkylarkDict<?, ?> getParams() {
+  @SkylarkCallable(
+      name = "params",
+      doc = "Parameters for the function if created with" + " core.dynamic_feedback",
+      structField = true)
+  public Dict<?, ?> getParams() {
     return params;
   }
 
@@ -90,7 +92,7 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
             named = true),
         @Param(
             name = "origin_refs",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = OriginRef.class,
             doc = "The origin refs",
             named = true),
@@ -101,7 +103,7 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
             named = true),
         @Param(
             name = "errors",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             defaultValue = "[]",
             doc = "An optional list of errors",
@@ -131,9 +133,9 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       })
   public void recordEffect(
       String summary,
-      SkylarkList<?> originRefs, // <OriginRef>
+      Sequence<?> originRefs, // <OriginRef>
       DestinationRef destinationRef,
-      SkylarkList<?> errors, // <String>
+      Sequence<?> errors, // <String>
       String typeStr)
       throws EvalException {
     DestinationEffect.Type type =

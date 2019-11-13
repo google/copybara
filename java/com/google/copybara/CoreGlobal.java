@@ -26,7 +26,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.List;
 
 /**
@@ -46,13 +46,13 @@ public class CoreGlobal implements SkylarkValue {
       parameters = {
         @Param(
             name = "include",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = String.class,
             doc = "The list of glob patterns to include"),
         @Param(
             name = "exclude",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             doc = "The list of glob patterns to exclude",
             defaultValue = "[]",
@@ -106,7 +106,7 @@ public class CoreGlobal implements SkylarkValue {
           "This matches all the files in `folder`, excludes all files in that folder that"
               + " ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>"
               + "`+` operator for globs is equivalent to `OR` operation.")
-  public Glob glob(SkylarkList<?> include, SkylarkList<?> exclude, Location location)
+  public Glob glob(Sequence<?> include, Sequence<?> exclude, Location location)
       throws EvalException {
     List<String> includeStrings = SkylarkUtil.convertStringList(include, "include");
     List<String> excludeStrings = SkylarkUtil.convertStringList(exclude, "exclude");

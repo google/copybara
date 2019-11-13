@@ -62,10 +62,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BaseFunction;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.NoneType;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Pattern;
@@ -121,13 +120,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "transformations",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = Transformation.class,
             doc = "The transformations to reverse"),
       },
       useLocation = true)
-  public SkylarkList<Transformation> reverse(
-      SkylarkList<?> transforms, // <Transformation> or <BaseFunction>
+  public com.google.devtools.build.lib.syntax.Sequence<Transformation> reverse(
+      com.google.devtools.build.lib.syntax.Sequence<?>
+          transforms, // <Transformation> or <BaseFunction>
       Location location)
       throws EvalException {
 
@@ -136,8 +136,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       try {
         if (t instanceof BaseFunction) {
           builder.add(
-              new SkylarkTransformation(
-                      (BaseFunction) t, SkylarkDict.empty(), dynamicStarlarkThread)
+              new SkylarkTransformation((BaseFunction) t, Dict.empty(), dynamicStarlarkThread)
                   .reverse());
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
@@ -150,7 +149,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       }
     }
 
-    return SkylarkList.createImmutable(builder.build().reverse());
+    return com.google.devtools.build.lib.syntax.Sequence.createImmutable(builder.build().reverse());
   }
 
   @SuppressWarnings("unused")
@@ -214,7 +213,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "transformations",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc = "The transformations to be run for this workflow. They will run in sequence.",
             positional = false,
             defaultValue = "[]"),
@@ -307,7 +306,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "after_migration",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc =
                 "Run a feedback workflow after one migration happens. This runs once per"
                     + " change in `ITERATIVE` mode and only once for `SQUASH`.",
@@ -316,7 +315,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "after_workflow",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc =
                 "Run a feedback workflow after all the changes for this workflow run are migrated."
                     + " Prefer `after_migration` as it is executed per change (in ITERATIVE mode)."
@@ -424,7 +423,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       Origin<?> origin, // <Revision>
       Destination<?> destination,
       Authoring authoring,
-      SkylarkList<?> transformations,
+      com.google.devtools.build.lib.syntax.Sequence<?> transformations,
       Object originFiles,
       Object destinationFiles,
       String modeStr,
@@ -432,8 +431,8 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       Object checkLastRevStateField,
       Boolean askForConfirmation,
       Boolean dryRunMode,
-      SkylarkList<?> afterMigrations,
-      SkylarkList<?> afterAllMigrations,
+      com.google.devtools.build.lib.syntax.Sequence<?> afterMigrations,
+      com.google.devtools.build.lib.syntax.Sequence<?> afterAllMigrations,
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
@@ -716,7 +715,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "regex_groups",
             named = true,
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc =
                 "A set of named regexes that can be used to match part of the replaced text."
                     + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
@@ -760,7 +759,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "ignore",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc =
                 "A set of regexes. Any text that matches any expression in this set, which"
                     + " might otherwise be transformed, will be ignored.",
@@ -861,12 +860,12 @@ public class Core implements LabelsAwareModule, SkylarkValue {
   public Replace replace(
       String before,
       String after,
-      SkylarkDict<?, ?> regexes, // <String, String>
+      Dict<?, ?> regexes, // <String, String>
       Object paths,
       Boolean firstOnly,
       Boolean multiline,
       Boolean repeatedGroups,
-      SkylarkList<?> ignore, // <String>
+      com.google.devtools.build.lib.syntax.Sequence<?> ignore, // <String>
       Location location)
       throws EvalException {
     return Replace.create(
@@ -890,14 +889,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "tags",
             named = true,
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = String.class,
             doc = "Prefix tag to look for",
             defaultValue = "['TODO', 'NOTE']"),
         @Param(
             name = "mapping",
             named = true,
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc = "Mapping of users/strings",
             defaultValue = "{}"),
         @Param(
@@ -955,8 +954,8 @@ public class Core implements LabelsAwareModule, SkylarkValue {
           "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
               + " and NOTE:foo")
   public TodoReplace todoReplace(
-      SkylarkList<?> skyTags, // <String>
-      SkylarkDict<?, ?> skyMapping, // <String, String>
+      com.google.devtools.build.lib.syntax.Sequence<?> skyTags, // <String>
+      Dict<?, ?> skyMapping, // <String, String>
       String modeStr,
       Object paths,
       Object skyDefault,
@@ -1075,9 +1074,10 @@ public class Core implements LabelsAwareModule, SkylarkValue {
   public static ReversibleFunction<String, String> getMappingFunction(Object mapping,
       Location location)
       throws EvalException {
-    if (mapping instanceof SkylarkDict) {
-      ImmutableMap<String, String> map = ImmutableMap.copyOf(
-          SkylarkDict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
+    if (mapping instanceof Dict) {
+      ImmutableMap<String, String> map =
+          ImmutableMap.copyOf(
+              Dict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
       check(location, !map.isEmpty(), "Empty mapping is not allowed."
           + " Remove the transformation instead");
       return new MapMapper(map, location);
@@ -1096,7 +1096,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       parameters = {
         @Param(
             name = "mapping",
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = Transformation.class,
             named = true,
             doc = "The list of core.replace transformations"),
@@ -1110,7 +1110,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       },
       useLocation = true)
   public ReplaceMapper mapImports(
-      SkylarkList<?> mapping, // <Transformation>
+      com.google.devtools.build.lib.syntax.Sequence<?> mapping, // <Transformation>
       Boolean all,
       Location location)
       throws EvalException {
@@ -1175,7 +1175,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       parameters = {
         @Param(
             name = "transformations",
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = Transformation.class,
             named = true,
             doc =
@@ -1183,7 +1183,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
                     + " transformation."),
         @Param(
             name = "reversal",
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = Transformation.class,
             doc =
                 "The list of transformations to run as a result of running this"
@@ -1209,7 +1209,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       useStarlarkThread = true)
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
   public Transformation transform(
-      SkylarkList<?> transformations, // <Transformation>
+      com.google.devtools.build.lib.syntax.Sequence<?> transformations, // <Transformation>
       Object reversal,
       Object ignoreNoop,
       Location location,
@@ -1223,11 +1223,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
             "transformations",
             dynamicStarlarkThread,
             debugOptions::transformWrapper);
-    SkylarkList<Transformation> reverseList = convertFromNoneable(reversal, null);
+    com.google.devtools.build.lib.syntax.Sequence<Transformation> reverseList =
+        convertFromNoneable(reversal, null);
     Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
       try {
-        reverseList = SkylarkList.createImmutable(ImmutableList.of(forward.reverse()));
+        reverseList =
+            com.google.devtools.build.lib.syntax.Sequence.createImmutable(
+                ImmutableList.of(forward.reverse()));
       } catch (NonReversibleValidationException e) {
         throw new EvalException(
             location,
@@ -1263,7 +1266,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "params",
             named = true,
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc = "The parameters to the function. Will be available under ctx.params",
             defaultValue = "{}"),
       },
@@ -1291,9 +1294,9 @@ public class Core implements LabelsAwareModule, SkylarkValue {
           "After defining this function, you can use `test('example', 42)` as a transformation"
               + " in `core.workflow`.")
   public Transformation dynamic_transform(
-      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+      BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkTransformation(
-        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
@@ -1311,15 +1314,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "params",
             named = true,
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc = "The parameters to the function. Will be available under ctx.params",
             defaultValue = "{}"),
       },
       useStarlarkThread = true)
-  public Action dynamicFeedback(
-      BaseFunction impl, SkylarkDict<?, ?> params, StarlarkThread thread) {
+  public Action dynamicFeedback(BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkAction(
-        impl, SkylarkDict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
@@ -1384,7 +1386,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
             named = true),
         @Param(
             name = "actions",
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc =
                 ""
                     + "A list of feedback actions to perform, with the following semantics:\n"
@@ -1411,7 +1413,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       String workflowName,
       Trigger trigger,
       Endpoint destination,
-      SkylarkList<?> feedbackActions,
+      com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
       Object description,
       Location location,
       StarlarkThread thread)
@@ -1445,12 +1447,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
         @Param(name = "format", type = String.class, named = true, doc = "The format string"),
         @Param(
             name = "args",
-            type = SkylarkList.class,
+            type = com.google.devtools.build.lib.syntax.Sequence.class,
             named = true,
             doc = "The arguments to format"),
       },
       useLocation = true)
-  public String format(String format, SkylarkList<?> args, Location location) throws EvalException {
+  public String format(
+      String format, com.google.devtools.build.lib.syntax.Sequence<?> args, Location location)
+      throws EvalException {
     try {
       return String.format(format, args.toArray(new Object[0]));
     } catch (IllegalFormatException e) {
@@ -1459,12 +1463,14 @@ public class Core implements LabelsAwareModule, SkylarkValue {
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
-      SkylarkList<?> feedbackActions, Location location, Supplier<StarlarkThread> thread)
+      com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
+      Location location,
+      Supplier<StarlarkThread> thread)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof BaseFunction) {
-        actions.add(new SkylarkAction((BaseFunction) action, SkylarkDict.empty(), thread));
+        actions.add(new SkylarkAction((BaseFunction) action, Dict.empty(), thread));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {

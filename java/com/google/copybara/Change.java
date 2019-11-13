@@ -32,8 +32,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Dict;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
@@ -123,24 +123,30 @@ public final class Change<R extends Revision> extends OriginRef implements Skyla
     return message;
   }
 
-  @SkylarkCallable(name = "labels", doc = "A dictionary with the labels detected for the change."
-      + " If the label is present multiple times it returns the last value. Note that this is a"
-      + " heuristic and it could include things that are not labels.",
+  @SkylarkCallable(
+      name = "labels",
+      doc =
+          "A dictionary with the labels detected for the change. If the label is present multiple"
+              + " times it returns the last value. Note that this is a heuristic and it could"
+              + " include things that are not labels.",
       structField = true)
-  public SkylarkDict<String, String> getLabelsForSkylark() {
-    return SkylarkDict.copyOf(
+  public Dict<String, String> getLabelsForSkylark() {
+    return Dict.copyOf(
         /* thread= */ null,
         ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
   }
 
-  @SkylarkCallable(name = "labels_all_values", doc = "A dictionary with the labels detected for the"
-      + " change. Note that the value is a collection of the values for each time the label was"
-      + " found. Use 'labels' instead if you are only interested in the last value. Note that this"
-      + " is a heuristic and it could include things that are not labels.",
+  @SkylarkCallable(
+      name = "labels_all_values",
+      doc =
+          "A dictionary with the labels detected for the change. Note that the value is a"
+              + " collection of the values for each time the label was found. Use 'labels' instead"
+              + " if you are only interested in the last value. Note that this is a heuristic and"
+              + " it could include things that are not labels.",
       structField = true)
-  public SkylarkDict<String, SkylarkList<String>> getLabelsAllForSkylark() {
-    return SkylarkDict.copyOf(
-        /* thread= */ null, Maps.transformValues(labels.asMap(), SkylarkList::createImmutable));
+  public Dict<String, Sequence<String>> getLabelsAllForSkylark() {
+    return Dict.copyOf(
+        /* thread= */ null, Maps.transformValues(labels.asMap(), Sequence::createImmutable));
   }
 
   /**

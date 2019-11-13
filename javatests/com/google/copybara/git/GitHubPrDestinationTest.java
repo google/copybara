@@ -54,7 +54,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -448,10 +448,14 @@ public class GitHubPrDestinationTest {
         + ")");
 
     assertThat(ImmutableList.copyOf(d.getIntegrates()))
-        .isEqualTo(SkylarkList.createImmutable(ImmutableList.of(
-        new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
-            Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-            /*ignoreErrors=*/true, /*newGitIntegrate=*/true))));
+        .isEqualTo(
+            Sequence.createImmutable(
+                ImmutableList.of(
+                    new GitIntegrateChanges(
+                        DEFAULT_INTEGRATE_LABEL,
+                        Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
+                        /*ignoreErrors=*/ true,
+                        /*newGitIntegrate=*/ true))));
 
     d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = '" + "https://github.com/foo" + "',"
@@ -540,7 +544,9 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void testBranchNameFromUserWithAbnormalCharacters() throws ValidationException, IOException, RepoException {
-    testBranchNameFromUser("test*my&special%characters^branch@name", "test_my_special_characters_branch_name", "feature");
+    testBranchNameFromUser(
+        "test*my&special%characters^branch@name",
+        "test_my_special_characters_branch_name", "feature");
   }
 
   private void testBranchNameFromUser(String branchNameFromUser, String expectedBranchName, String contextReference) throws ValidationException, IOException, RepoException {

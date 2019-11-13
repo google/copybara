@@ -73,11 +73,11 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.NoneType;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Matcher;
@@ -100,7 +100,7 @@ import javax.annotation.Nullable;
 public class GitModule implements LabelsAwareModule, SkylarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
-  final SkylarkList<GitIntegrateChanges> defaultGitIntegrate;
+  final Sequence<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";
   private static final String GITHUB_TRIGGER = "github_trigger";
@@ -123,11 +123,14 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
-    this.defaultGitIntegrate = SkylarkList.createImmutable(ImmutableList.of(
-        new GitIntegrateChanges(DEFAULT_INTEGRATE_LABEL,
-            Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-            /*ignoreErrors=*/true, useNewIntegrate())));
-
+    this.defaultGitIntegrate =
+        Sequence.createImmutable(
+            ImmutableList.of(
+                new GitIntegrateChanges(
+                    DEFAULT_INTEGRATE_LABEL,
+                    Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
+                    /*ignoreErrors=*/ true,
+                    useNewIntegrate())));
   }
 
   private boolean useNewIntegrate() {
@@ -332,7 +335,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             doc = "Indicates the URL of the destination git repository"),
         @Param(
             name = "refspecs",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             named = true,
             defaultValue = "['refs/heads/*']",
@@ -362,7 +365,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       String name,
       String origin,
       String destination,
-      SkylarkList<?> strRefSpecs, // <String>
+      Sequence<?> strRefSpecs, // <String>
       Boolean prune,
       Object description,
       Location location,
@@ -372,7 +375,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     GitOptions gitOptions = options.get(GitOptions.class);
     List<Refspec> refspecs = new ArrayList<>();
 
-    for (String refspec : SkylarkList.castList(strRefSpecs, String.class, "refspecs")) {
+    for (String refspec : Sequence.castList(strRefSpecs, String.class, "refspecs")) {
       try {
         refspecs.add(
             Refspec.create(
@@ -614,7 +617,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                     + " revision."),
         @Param(
             name = "required_labels",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = String.class,
             defaultValue = "[]",
@@ -624,7 +627,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             positional = false),
         @Param(
             name = "retryable_labels",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = String.class,
             defaultValue = "[]",
@@ -687,7 +690,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                     + "` labels populated"),
         @Param(
             name = "review_approvers",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             defaultValue = "None",
             named = true,
@@ -742,8 +745,8 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
   public GitHubPROrigin githubPrOrigin(
       String url,
       Boolean merge,
-      SkylarkList<?> requiredLabels, // <String>
-      SkylarkList<?> retryableLabels, // <String>
+      Sequence<?> requiredLabels, // <String>
+      Sequence<?> retryableLabels, // <String>
       String submodules,
       Boolean baselineFromBranch,
       Boolean firstParent,
@@ -761,8 +764,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
 
     String reviewStateString = convertFromNoneable(reviewStateParam, null);
-    SkylarkList<String> reviewApproversStrings =
-        convertFromNoneable(reviewApproversParam, null);
+    Sequence<String> reviewApproversStrings = convertFromNoneable(reviewApproversParam, null);
     ReviewState reviewState;
     ImmutableSet<AuthorAssociation> reviewApprovers;
     if (reviewStateString == null) {
@@ -773,8 +775,8 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     } else {
       reviewState = ReviewState.valueOf(reviewStateString);
       if (reviewApproversStrings == null) {
-        reviewApproversStrings = SkylarkList.createImmutable(
-            ImmutableList.of("COLLABORATOR", "MEMBER", "OWNER"));
+        reviewApproversStrings =
+            Sequence.createImmutable(ImmutableList.of("COLLABORATOR", "MEMBER", "OWNER"));
       }
       HashSet<AuthorAssociation> approvers = new HashSet<>();
       for (String r : reviewApproversStrings) {
@@ -916,47 +918,83 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "destination",
-      doc = "Creates a commit in a git repository using the transformed worktree."
-          + "<br><br>Given that Copybara doesn't ask for user/password in the console when"
-          + " doing the push to remote repos, you have to use ssh protocol, have the credentials"
-          + " cached or use a credential manager.",
+  @SkylarkCallable(
+      name = "destination",
+      doc =
+          "Creates a commit in a git repository using the transformed worktree.<br><br>Given that"
+              + " Copybara doesn't ask for user/password in the console when doing the push to"
+              + " remote repos, you have to use ssh protocol, have the credentials cached or use a"
+              + " credential manager.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
-                  + "commit"),
-          @Param(name = "push", type = String.class, named = true,
-              doc = "Reference to use for pushing the change, for example 'master'",
-              defaultValue = "'master'"),
-          @Param(name = "tag_name", type = String.class, named = true,
-              doc = "A template string that refers to a tag name. If tag_name exists, overwrite "
-                  + "this tag only if flag git-tag-overwrite is set. Note that tag creation is "
-                  + "best-effort and migration will succeed even if the tag cannot be created. "
-                  + "Usage: Users can use a string or a string with a label. "
-                  + "For instance ${label}_tag_name. And the value of label must be "
-                  + "in changes' label list. Otherwise, tag won't be created.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "tag_msg", type = String.class, named = true,
-              doc = "A template string that refers to the commit msg of a tag. If set, we will "
-                  + "create an annotated tag when tag_name is set. Usage: Users can use a string "
-                  + "or a string with a label. For instance ${label}_message. And the value of "
-                  + "label must be in changes' label list. Otherwise, tag will be created with "
-                  + "sha1's commit msg.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "fetch", type = String.class, named = true,
-              doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
-                  + " if None",
-              defaultValue = "None", noneable = true),
-          @Param(name = "integrates", type = SkylarkList.class, named = true,
-              generic1 = GitIntegrateChanges.class, defaultValue = "None",
-              doc = "Integrate changes from a url present in the migrated change"
-                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
-                  + " present in the message", positional = false, noneable = true),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc =
+                "Indicates the URL to push to as well as the URL from which to get the parent "
+                    + "commit"),
+        @Param(
+            name = "push",
+            type = String.class,
+            named = true,
+            doc = "Reference to use for pushing the change, for example 'master'",
+            defaultValue = "'master'"),
+        @Param(
+            name = "tag_name",
+            type = String.class,
+            named = true,
+            doc =
+                "A template string that refers to a tag name. If tag_name exists, overwrite "
+                    + "this tag only if flag git-tag-overwrite is set. Note that tag creation is "
+                    + "best-effort and migration will succeed even if the tag cannot be created. "
+                    + "Usage: Users can use a string or a string with a label. "
+                    + "For instance ${label}_tag_name. And the value of label must be "
+                    + "in changes' label list. Otherwise, tag won't be created.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "tag_msg",
+            type = String.class,
+            named = true,
+            doc =
+                "A template string that refers to the commit msg of a tag. If set, we will "
+                    + "create an annotated tag when tag_name is set. Usage: Users can use a string "
+                    + "or a string with a label. For instance ${label}_message. And the value of "
+                    + "label must be in changes' label list. Otherwise, tag will be created with "
+                    + "sha1's commit msg.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "fetch",
+            type = String.class,
+            named = true,
+            doc =
+                "Indicates the ref from which to get the parent commit. Defaults to push value"
+                    + " if None",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "integrates",
+            type = Sequence.class,
+            named = true,
+            generic1 = GitIntegrateChanges.class,
+            defaultValue = "None",
+            doc =
+                "Integrate changes from a url present in the migrated change"
+                    + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                    + " present in the message",
+            positional = false,
+            noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination destination(
-      String url, String push, Object tagName, Object tagMsg, Object fetch, Object integrates,
+      String url,
+      String push,
+      Object tagName,
+      Object tagMsg,
+      Object fetch,
+      Object integrates,
       Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -964,13 +1002,12 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         "push", location);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GitDestination(
-        fixHttp(checkNotEmpty(
-            firstNotNull(destinationOptions.url, url), "url", location), location),
+        fixHttp(
+            checkNotEmpty(firstNotNull(destinationOptions.url, url), "url", location), location),
         checkNotEmpty(
-            firstNotNull(destinationOptions.fetch,
-                convertFromNoneable(fetch, null),
-                resolvedPush),
-            "fetch", location),
+            firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
+            "fetch",
+            location),
         resolvedPush,
         convertFromNoneable(tagName, null),
         convertFromNoneable(tagMsg, null),
@@ -978,60 +1015,105 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         options.get(GitOptions.class),
         generalOptions,
         new DefaultWriteHook(),
-        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class, "integrates"));
+        Sequence.castList(
+            convertFromNoneable(integrates, defaultGitIntegrate),
+            GitIntegrateChanges.class,
+            "integrates"));
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "github_destination",
-      doc = "Creates a commit in a GitHub repository branch (for example master). For creating Pull"
-          + "Request use git.github_pr_destination.",
+  @SkylarkCallable(
+      name = "github_destination",
+      doc =
+          "Creates a commit in a GitHub repository branch (for example master). For creating Pull"
+              + "Request use git.github_pr_destination.",
       parameters = {
-          @Param(name = "url", type = String.class, named = true,
-              doc = "Indicates the URL to push to as well as the URL from which to get the parent "
-                  + "commit"),
-          @Param(name = "push", type = String.class, named = true,
-              doc = "Reference to use for pushing the change, for example 'master'",
-              defaultValue = "'master'"),
-          @Param(name = "fetch", type = String.class, named = true,
-              doc = "Indicates the ref from which to get the parent commit. Defaults to push value"
-                  + " if None",
-              defaultValue = "None", noneable = true),
-          @Param(name = "pr_branch_to_update", type = String.class, named = true,
-              doc = "A template string that refers to a pull request branch in the same repository "
-                  + "will be updated to current commit of this push branch only if "
-                  + "pr_branch_to_update exists. The reason behind this field is that presubmiting "
-                  + "changes creates and leaves a pull request open. By using this, we can "
-                  + "automerge/close this type of pull requests. As a result, users will see this "
-                  + "pr_branch_to_update as merged to this push branch. Usage: "
-                  + "Users can use a string or a string with a label. For instance "
-                  + "${label}_pr_branch_name. And the value of label must be in changes' label"
-                  + " list. Otherwise, nothing will happen.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "delete_pr_branch", type = Boolean.class, named = true,
-              doc = "When `pr_branch_to_update` is enabled, it will delete the branch reference"
-                  + " after the push to the branch and main branch (i.e master) happens. This"
-                  + " allows to cleanup temporary branches created for testing.",
-              noneable = true, defaultValue = "None"),
-          @Param(name = "integrates", type = SkylarkList.class, named = true,
-              generic1 = GitIntegrateChanges.class, defaultValue = "None",
-              doc = "Integrate changes from a url present in the migrated change"
-                  + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
-                  + " present in the message", positional = false, noneable = true),
-          @Param(name = "api_checker", type = Checker.class,  defaultValue = "None",
-              doc = "A checker for the Gerrit API endpoint provided for after_migration hooks. "
-                  + "This field is not required if the workflow hooks don't use the "
-                  + "origin/destination endpoints.",
-              named = true, positional = false,
-              noneable = true),
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc =
+                "Indicates the URL to push to as well as the URL from which to get the parent "
+                    + "commit"),
+        @Param(
+            name = "push",
+            type = String.class,
+            named = true,
+            doc = "Reference to use for pushing the change, for example 'master'",
+            defaultValue = "'master'"),
+        @Param(
+            name = "fetch",
+            type = String.class,
+            named = true,
+            doc =
+                "Indicates the ref from which to get the parent commit. Defaults to push value"
+                    + " if None",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "pr_branch_to_update",
+            type = String.class,
+            named = true,
+            doc =
+                "A template string that refers to a pull request branch in the same repository"
+                    + " will be updated to current commit of this push branch only if"
+                    + " pr_branch_to_update exists. The reason behind this field is that"
+                    + " presubmiting changes creates and leaves a pull request open. By using"
+                    + " this, we can automerge/close this type of pull requests. As a result,"
+                    + " users will see this pr_branch_to_update as merged to this push branch."
+                    + " Usage: Users can use a string or a string with a label. For instance"
+                    + " ${label}_pr_branch_name. And the value of label must be in changes' label"
+                    + " list. Otherwise, nothing will happen.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "delete_pr_branch",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "When `pr_branch_to_update` is enabled, it will delete the branch reference"
+                    + " after the push to the branch and main branch (i.e master) happens. This"
+                    + " allows to cleanup temporary branches created for testing.",
+            noneable = true,
+            defaultValue = "None"),
+        @Param(
+            name = "integrates",
+            type = Sequence.class,
+            named = true,
+            generic1 = GitIntegrateChanges.class,
+            defaultValue = "None",
+            doc =
+                "Integrate changes from a url present in the migrated change"
+                    + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                    + " present in the message",
+            positional = false,
+            noneable = true),
+        @Param(
+            name = "api_checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc =
+                "A checker for the Gerrit API endpoint provided for after_migration hooks. "
+                    + "This field is not required if the workflow hooks don't use the "
+                    + "origin/destination endpoints.",
+            named = true,
+            positional = false,
+            noneable = true),
       },
       useLocation = true)
   @UsesFlags(GitDestinationOptions.class)
   // Used to detect in the future users that don't set it and change the default
   @DocDefault(field = "delete_pr_branch", value = "False")
-  public GitDestination gitHubDestination(String url, String push, Object fetch,
-      Object prBranchToUpdate, Object deletePrBranchParam, Object integrates, Object checker,
-      Location location) throws EvalException {
+  public GitDestination gitHubDestination(
+      String url,
+      String push,
+      Object fetch,
+      Object prBranchToUpdate,
+      Object deletePrBranchParam,
+      Object integrates,
+      Object checker,
+      Location location)
+      throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
         "push", location);
@@ -1061,13 +1143,12 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     return new GitDestination(
         repoUrl,
         checkNotEmpty(
-            firstNotNull(destinationOptions.fetch,
-                convertFromNoneable(fetch, null),
-                resolvedPush),
-            "fetch", location),
+            firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
+            "fetch",
+            location),
         resolvedPush,
-        /*tagName*/null,
-        /*tagMsg*/null,
+        /*tagName*/ null,
+        /*tagMsg*/ null,
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,
@@ -1079,8 +1160,10 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             effectiveDeletePrBranch,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
-        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class, "integrates"));
+        Sequence.castList(
+            convertFromNoneable(integrates, defaultGitIntegrate),
+            GitIntegrateChanges.class,
+            "integrates"));
   }
 
   @SuppressWarnings("unused")
@@ -1136,7 +1219,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                     + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "integrates",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = GitIntegrateChanges.class,
             defaultValue = "None",
@@ -1157,15 +1240,16 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             named = true,
             positional = false,
             noneable = true),
-          @Param(
-              name = "update_description",
-              type = Boolean.class,
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc = "By default, Copybara only set the title and body of the PR when creating"
-                  + " the PR. If this field is set to true, it will update those fields for"
-                  + " every update."),
+        @Param(
+            name = "update_description",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "By default, Copybara only set the title and body of the PR when creating"
+                    + " the PR. If this field is set to true, it will update those fields for"
+                    + " every update."),
       },
       useLocation = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1221,7 +1305,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
         new DefaultWriteHook(),
-        SkylarkList.castList(
+        Sequence.castList(
             convertFromNoneable(integrates, defaultGitIntegrate),
             GitIntegrateChanges.class,
             "integrates"),
@@ -1315,7 +1399,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             defaultValue = "True"),
         @Param(
             name = "reviewers",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1325,7 +1409,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                     + " assuming that users have registered to gerrit repos"),
         @Param(
             name = "cc",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1333,7 +1417,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
                     + " use labels as the `reviewers` field."),
         @Param(
             name = "labels",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1352,7 +1436,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             noneable = true),
         @Param(
             name = "integrates",
-            type = SkylarkList.class,
+            type = Sequence.class,
             named = true,
             generic1 = GitIntegrateChanges.class,
             defaultValue = "None",
@@ -1386,9 +1470,9 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       Object notifyOptionObj,
       String changeIdPolicy,
       Boolean allowEmptyPatchSet,
-      SkylarkList<?> reviewers, // <String>
-      SkylarkList<?> ccParam, // <String>
-      SkylarkList<?> labelsParam, // <String>
+      Sequence<?> reviewers, // <String>
+      Sequence<?> ccParam, // <String>
+      Sequence<?> labelsParam, // <String>
       Object checkerObj,
       Object integrates,
       Object topicObj,
@@ -1414,14 +1498,15 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, location),
-        checkNotEmpty(firstNotNull(
-            options.get(GitDestinationOptions.class).fetch,
-            fetch), "fetch", location),
         checkNotEmpty(
-            firstNotNull(convertFromNoneable(pushToRefsFor, null),
+            firstNotNull(options.get(GitDestinationOptions.class).fetch, fetch), "fetch", location),
+        checkNotEmpty(
+            firstNotNull(
+                convertFromNoneable(pushToRefsFor, null),
                 options.get(GitDestinationOptions.class).fetch,
                 fetch),
-            "push_to_refs_for", location),
+            "push_to_refs_for",
+            location),
         submit,
         notifyOption,
         stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
@@ -1430,8 +1515,10 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         cc,
         labels,
         convertFromNoneable(checkerObj, null),
-        SkylarkList.castList(convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class, "integrates"),
+        Sequence.castList(
+            convertFromNoneable(integrates, defaultGitIntegrate),
+            GitIntegrateChanges.class,
+            "integrates"),
         topicStr);
   }
 
@@ -1541,7 +1628,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
             noneable = true),
         @Param(
             name = "events",
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             named = true,
             defaultValue = "[]",
@@ -1555,7 +1642,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
   public GitHubTrigger gitHubTrigger(
       String url,
       Object checkerObj,
-      SkylarkList<?> events, // <String>
+      Sequence<?> events, // <String>
       Location location)
       throws EvalException {
     checkNotEmpty(url, "url", location);
@@ -1584,7 +1671,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       parameters = {
         @Param(
             name = "labels",
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc = "The labels to post.",
             named = true,
             defaultValue = "{}"),
@@ -1599,12 +1686,13 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       useLocation = true)
   @UsesFlags(GerritOptions.class)
   public SetReviewInput reviewInput(
-      SkylarkDict<?, ?> labels, // <String, Integer>
+      Dict<?, ?> labels, // <String, Integer>
       Object message,
       Location location)
       throws EvalException {
-    return SetReviewInput.create(convertFromNoneable(message, null),
-        SkylarkDict.castSkylarkDictOrNoneToDict(
+    return SetReviewInput.create(
+        convertFromNoneable(message, null),
+        Dict.castSkylarkDictOrNoneToDict(
             labels, String.class, Integer.class, "Gerrit review labels"));
   }
 
@@ -1625,7 +1713,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "refspec_groups",
             named = true,
-            type = SkylarkDict.class,
+            type = Dict.class,
             doc =
                 "A set of named regexes that can be used to match part of the versions.Copybara"
                     + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
@@ -1640,7 +1728,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       useLocation = true)
   public LatestVersionSelector versionSelector(
       String refspec,
-      SkylarkDict<?, ?> groups, // <String, String>
+      Dict<?, ?> groups, // <String, String>
       Location location)
       throws EvalException {
     Map<String, String> groupsMap =

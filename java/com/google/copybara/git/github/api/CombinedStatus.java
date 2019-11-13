@@ -22,7 +22,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.List;
 
 /**
@@ -71,7 +71,7 @@ public class CombinedStatus implements SkylarkValue {
   }
 
   @SkylarkCallable(name = "statuses", doc = "List of statuses for the commit", structField = true)
-  public SkylarkList<Status> getStatuses() {
-    return SkylarkList.createImmutable(statuses);
+  public Sequence<Status> getStatuses() {
+    return Sequence.createImmutable(statuses);
   }
 }

@@ -27,8 +27,8 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.BaseFunction;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
@@ -40,11 +40,11 @@ import java.util.function.Supplier;
 public class SkylarkTransformation implements Transformation {
 
   private final BaseFunction function;
-  private final SkylarkDict<?, ?> params;
+  private final Dict<?, ?> params;
   private final Supplier<StarlarkThread> dynamicThread;
 
   public SkylarkTransformation(
-      BaseFunction function, SkylarkDict<?, ?> params, Supplier<StarlarkThread> dynamicThread) {
+      BaseFunction function, Dict<?, ?> params, Supplier<StarlarkThread> dynamicThread) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.dynamicThread = Preconditions.checkNotNull(dynamicThread);

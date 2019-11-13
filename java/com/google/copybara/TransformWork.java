@@ -42,9 +42,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -101,13 +101,23 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
   private final Revision lastRev;
   @Nullable private final Revision currentRev;
   private TransformWork skylarkTransformWork;
-  private final SkylarkDict<?, ?> skylarkTransformParams;
+  private final Dict<?, ?> skylarkTransformParams;
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
       MigrationInfo migrationInfo, Revision resolvedReference, boolean ignoreNoop) {
-    this(checkoutDir, metadata, changes, console, migrationInfo, resolvedReference,
-        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/ false,
-        /*lastRev=*/null, /*currentRev=*/null, SkylarkDict.empty(), ignoreNoop);
+    this(
+        checkoutDir,
+        metadata,
+        changes,
+        console,
+        migrationInfo,
+        resolvedReference,
+        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/
+        false,
+        /*lastRev=*/ null,
+        /*currentRev=*/ null,
+        Dict.empty(),
+        ignoreNoop);
   }
 
   private TransformWork(
@@ -121,7 +131,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       boolean insideExplicitTransform,
       @Nullable Revision lastRev,
       @Nullable Revision currentRev,
-      SkylarkDict<?, ?> skylarkTransformParams,
+      Dict<?, ?> skylarkTransformParams,
       boolean ignoreNoop) {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
@@ -163,7 +173,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       name = "params",
       doc = "Parameters for the function if created with" + " core.dynamic_transform",
       structField = true)
-  public SkylarkDict<?, ?> getParams() {
+  public Dict<?, ?> getParams() {
     return skylarkTransformParams;
   }
 
@@ -196,7 +206,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 
       try (Stream<Path> stream = Files.walk(checkoutDir)) {
-        return SkylarkList.createImmutable(
+        return Sequence.createImmutable(
             stream
                 .filter(Files::isRegularFile)
                 .filter(pathMatcher::matches)
@@ -421,33 +431,36 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
     return labelValues.isEmpty() ? null : Iterables.getLast(labelValues);
   }
 
-  @SkylarkCallable(name = "find_all_labels", doc = ""
-      + "Tries to find all the values for a label. First it looks at the generated message (IOW"
-      + " labels that might have been added by previous steps), then looks in all the commit"
-      + " messages being imported and finally in the resolved reference passed in the CLI.",
-      parameters = { @Param(name = "message", type = String.class) },
+  @SkylarkCallable(
+      name = "find_all_labels",
+      doc =
+          "Tries to find all the values for a label. First it looks at the generated message (IOW"
+              + " labels that might have been added by previous steps), then looks in all the"
+              + " commit messages being imported and finally in the resolved reference passed in"
+              + " the CLI.",
+      parameters = {@Param(name = "message", type = String.class)},
       allowReturnNones = true)
-  public SkylarkList<String> getAllLabels(String label) {
+  public Sequence<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
   }
 
-  private SkylarkList<String> findLabelValues(String label, boolean all) {
+  private Sequence<String> findLabelValues(String label, boolean all) {
     Map<String, ImmutableList<String>> coreLabels = getCoreLabels();
     if (coreLabels.containsKey(label)) {
-      return SkylarkList.createImmutable(coreLabels.get(label));
+      return Sequence.createImmutable(coreLabels.get(label));
     }
     ArrayList<String> result = new ArrayList<>();
     ImmutableList<LabelFinder> msgLabel = getLabelInMessage(label);
     if (!msgLabel.isEmpty()) {
       result.addAll(Lists.transform(msgLabel, LabelFinder::getValue));
       if (!all) {
-        return SkylarkList.createImmutable(result);
+        return Sequence.createImmutable(result);
       }
     }
     ImmutableSet<String> values = metadata.getHiddenLabels().get(label);
     if (!values.isEmpty()) {
       if (!all) {
-        return SkylarkList.createImmutable(ImmutableList.of(Iterables.getLast(values)));
+        return Sequence.createImmutable(ImmutableList.of(Iterables.getLast(values)));
       } else {
         result.addAll(values);
       }
@@ -457,18 +470,18 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
     for (Change<?> change : changes.getCurrent()) {
-      SkylarkList<String> val = change.getLabelsAllForSkylark().get(label);
+      Sequence<String> val = change.getLabelsAllForSkylark().get(label);
       if (val != null) {
         result.addAll(val);
         if (!all) {
-          return SkylarkList.createImmutable(result);
+          return Sequence.createImmutable(result);
         }
       }
       ImmutableList<String> revVal = change.getRevision().associatedLabel(label);
       if (!revVal.isEmpty()) {
         result.addAll(revVal);
         if (!all) {
-          return SkylarkList.createImmutable(result);
+          return Sequence.createImmutable(result);
         }
       }
     }
@@ -476,10 +489,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
     // Try to find the label in the resolved reference
     ImmutableList<String> resolvedRefLabel = resolvedReference.associatedLabels().get(label);
     if (result.addAll(resolvedRefLabel) && !all) {
-      return SkylarkList.createImmutable(result);
+      return Sequence.createImmutable(result);
     }
 
-    return SkylarkList.createImmutable(result);
+    return Sequence.createImmutable(result);
   }
 
   /**
@@ -540,7 +553,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
   }
 
   @Override
-  public TransformWork withParams(SkylarkDict<?, ?> params) {
+  public TransformWork withParams(Dict<?, ?> params) {
     Preconditions.checkNotNull(params);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
                              resolvedReference, treeState, insideExplicitTransform, lastRev,

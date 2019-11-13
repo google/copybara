@@ -27,7 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -138,14 +138,14 @@ public final class ChangeMessage implements SkylarkValue {
       name = "label_values",
       doc = "Returns a list of values associated with the label name.",
       parameters = {
-          @Param(name = "label_name", type = String.class, named = true, doc = "The label name."),
+        @Param(name = "label_name", type = String.class, named = true, doc = "The label name."),
       })
-  public SkylarkList<String> getLabelValues(String labelName) {
+  public Sequence<String> getLabelValues(String labelName) {
     ImmutableListMultimap<String, String> localLabels = labelsAsMultimap();
     if (localLabels.containsKey(labelName)) {
-      return SkylarkList.createImmutable(localLabels.get(labelName));
+      return Sequence.createImmutable(localLabels.get(labelName));
     }
-    return SkylarkList.createImmutable(ImmutableList.of());
+    return Sequence.createImmutable(ImmutableList.of());
   }
 
 

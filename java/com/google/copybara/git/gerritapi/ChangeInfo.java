@@ -27,8 +27,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Dict;
+import com.google.devtools.build.lib.syntax.Sequence;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -212,8 +212,8 @@ public class ChangeInfo implements SkylarkValue {
           "The labels of the change as a map that maps the label names to LabelInfo entries.\n"
               + "Only set if labels or detailed labels are requested.",
       structField = true)
-  public SkylarkDict<String, LabelInfo> getLabelsForSkylark() {
-    return SkylarkDict.copyOf(/*environment*/ null, getLabels());
+  public Dict<String, LabelInfo> getLabelsForSkylark() {
+    return Dict.copyOf(/*environment*/ null, getLabels());
   }
 
   public List<ChangeMessageInfo> getMessages() {
@@ -226,8 +226,8 @@ public class ChangeInfo implements SkylarkValue {
           "Messages associated with the change as a list of ChangeMessageInfo entities.\n"
               + "Only set if messages are requested.",
       structField = true)
-  public SkylarkList<ChangeMessageInfo> getMessagesForSkylark() {
-    return SkylarkList.createImmutable(getMessages());
+  public Sequence<ChangeMessageInfo> getMessagesForSkylark() {
+    return Sequence.createImmutable(getMessages());
   }
 
   @SkylarkCallable(
@@ -253,8 +253,8 @@ public class ChangeInfo implements SkylarkValue {
               + "Only set if the current revision is requested (in which case it will only contain "
               + "a key for the current revision) or if all revisions are requested.",
       structField = true)
-  public SkylarkDict<String, RevisionInfo> getAllRevisionsForSkylark() {
-    return SkylarkDict.copyOf(/*environment*/ null, getAllRevisions());
+  public Dict<String, RevisionInfo> getAllRevisionsForSkylark() {
+    return Dict.copyOf(/*environment*/ null, getAllRevisions());
   }
 
   public ImmutableMap<String, List<AccountInfo>> getReviewers() {

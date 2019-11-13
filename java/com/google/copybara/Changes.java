@@ -21,7 +21,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 
 /** Information about the changes being imported */
 @SkylarkModule(
@@ -36,24 +36,29 @@ public final class Changes implements SkylarkValue {
 
   public static final Changes EMPTY = new Changes(ImmutableList.of(), ImmutableList.of());
 
-  private final SkylarkList<? extends Change<?>> current;
-  private final SkylarkList<? extends Change<?>> migrated;
+  private final Sequence<? extends Change<?>> current;
+  private final Sequence<? extends Change<?>> migrated;
 
   public Changes(Iterable<? extends Change<?>> current, Iterable<? extends Change<?>> migrated) {
-    this.current = SkylarkList.createImmutable(current);
-    this.migrated = SkylarkList.createImmutable(migrated);
+    this.current = Sequence.createImmutable(current);
+    this.migrated = Sequence.createImmutable(migrated);
   }
 
-  @SkylarkCallable(name = "current", doc = "List of changes that will be migrated",
+  @SkylarkCallable(
+      name = "current",
+      doc = "List of changes that will be migrated",
       structField = true)
-  public final SkylarkList<? extends Change<?>> getCurrent() {
+  public final Sequence<? extends Change<?>> getCurrent() {
     return current;
   }
 
-  @SkylarkCallable(name = "migrated", doc =
-      "List of changes that where migrated in previous Copybara executions or if using ITERATIVE"
-          + " mode in previous iterations of this workflow.", structField = true)
-  public SkylarkList<? extends Change<?>> getMigrated() {
+  @SkylarkCallable(
+      name = "migrated",
+      doc =
+          "List of changes that where migrated in previous Copybara executions or if using"
+              + " ITERATIVE mode in previous iterations of this workflow.",
+      structField = true)
+  public Sequence<? extends Change<?>> getMigrated() {
     return migrated;
   }
 }

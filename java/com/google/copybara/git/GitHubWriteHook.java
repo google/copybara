@@ -39,7 +39,7 @@ import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.Dict;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -85,7 +85,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     GitHubApi api = gitHubOptions.newGitHubApi(configProjectName);
 
     for (Change<?> change : originChanges) {
-      SkylarkDict<String, String> labelDict = change.getLabelsForSkylark();
+      Dict<String, String> labelDict = change.getLabelsForSkylark();
       String updatedPrBranchName = getUpdatedPrBranch(labelDict);
       String completeRef = String.format("refs/heads/%s", updatedPrBranchName);
       try {
@@ -127,7 +127,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     GitHubApi api = gitHubOptions.newGitHubApi(projectId);
 
     for (Change<?> change : originChanges) {
-      SkylarkDict<String, String> labelDict = change.getLabelsForSkylark();
+      Dict<String, String> labelDict = change.getLabelsForSkylark();
       String updatedPrBranchName = getUpdatedPrBranch(labelDict);
       checkCondition(!Objects.equals(updatedPrBranchName, "master"),
           "Cannot delete 'master' branch from GitHub");
@@ -167,8 +167,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
         : ImmutableSetMultimap.of("pr_branch_to_update", prBranchToUpdate);
   }
 
-  private String getUpdatedPrBranch(SkylarkDict<String, String> labelDict)
-      throws ValidationException {
+  private String getUpdatedPrBranch(Dict<String, String> labelDict) throws ValidationException {
     try {
       return GitHubUtil.getValidBranchName(
           new LabelTemplate(prBranchToUpdate).resolve(labelDict::get));

@@ -58,7 +58,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 
@@ -386,14 +386,14 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
 
   @SkylarkCallable(
       name = "get_references",
-      doc = "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
-          + "number of 500.",
-      useLocation = true
-  )
-  public SkylarkList<Ref> getReferences(Location location) throws EvalException {
+      doc =
+          "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
+              + "number of 500.",
+      useLocation = true)
+  public Sequence<Ref> getReferences(Location location) throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return SkylarkList.createImmutable(apiSupplier.load(console).getReferences(project));
+      return Sequence.createImmutable(apiSupplier.load(console).getReferences(project));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_references", e);
     }
@@ -429,11 +429,11 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
         @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
       },
       useLocation = true)
-  public SkylarkList<PullRequestComment> getPullRequestComments(Integer prNumber, Location location)
+  public Sequence<PullRequestComment> getPullRequestComments(Integer prNumber, Location location)
       throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return SkylarkList.createImmutable(
+      return Sequence.createImmutable(
           apiSupplier.load(console).getPullRequestComments(project, prNumber));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_pull_request_comments", e);

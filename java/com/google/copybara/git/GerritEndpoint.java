@@ -40,7 +40,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -61,30 +61,29 @@ public class GerritEndpoint implements Endpoint, SkylarkValue {
   }
 
   @SkylarkCallable(
-    name = "get_change",
-    doc = "Retrieve a Gerrit change.",
-    parameters = {
-      @Param(
-          name = "id", type = String.class, named = true,
-          doc = "The change id or change number."
-      ),
-      @Param(
-        name = "include_results",
-        named = true,
-        type = SkylarkList.class,
-        generic1 = String.class,
-        doc =
-            ""
-                + "What to include in the response. See "
-                + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
-                + "#query-options",
-        positional = false,
-        defaultValue = "['LABELS']"
-      ),
-    },
-    useLocation = true
-  )
-  public ChangeInfo getChange(String id, SkylarkList<?> includeResults, Location location)
+      name = "get_change",
+      doc = "Retrieve a Gerrit change.",
+      parameters = {
+        @Param(
+            name = "id",
+            type = String.class,
+            named = true,
+            doc = "The change id or change number."),
+        @Param(
+            name = "include_results",
+            named = true,
+            type = Sequence.class,
+            generic1 = String.class,
+            doc =
+                ""
+                    + "What to include in the response. See "
+                    + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
+                    + "#query-options",
+            positional = false,
+            defaultValue = "['LABELS']"),
+      },
+      useLocation = true)
+  public ChangeInfo getChange(String id, Sequence<?> includeResults, Location location)
       throws EvalException {
     try {
       ChangeInfo changeInfo = doGetChange(id, getIncludeResults(includeResults));
@@ -96,7 +95,7 @@ public class GerritEndpoint implements Endpoint, SkylarkValue {
     }
   }
 
-  private ImmutableSet<IncludeResult> getIncludeResults(SkylarkList<?> includeResults)
+  private ImmutableSet<IncludeResult> getIncludeResults(Sequence<?> includeResults)
       throws EvalException {
     ImmutableSet.Builder<IncludeResult> enumResults = ImmutableSet.builder();
     for (Object result : includeResults) {
@@ -163,7 +162,7 @@ public class GerritEndpoint implements Endpoint, SkylarkValue {
         @Param(
             name = "include_results",
             named = true,
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             doc =
                 ""
@@ -174,14 +173,14 @@ public class GerritEndpoint implements Endpoint, SkylarkValue {
             defaultValue = "[]"),
       },
       useLocation = true)
-  public SkylarkList<ChangeInfo> listChangesByCommit(
-      String commit, SkylarkList<?> includeResults, Location location)
+  public Sequence<ChangeInfo> listChangesByCommit(
+      String commit, Sequence<?> includeResults, Location location)
       throws EvalException, RepoException, ValidationException {
       GerritApi gerritApi = apiSupplier.load(console);
-      return SkylarkList.createImmutable(
-          gerritApi.getChanges(
-              new ChangesQuery(String.format("commit:%s", commit))
-                  .withInclude(getIncludeResults(includeResults))));
+    return Sequence.createImmutable(
+        gerritApi.getChanges(
+            new ChangesQuery(String.format("commit:%s", commit))
+                .withInclude(getIncludeResults(includeResults))));
   }
 
   @SkylarkCallable(

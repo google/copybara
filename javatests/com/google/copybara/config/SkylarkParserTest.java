@@ -45,7 +45,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkList;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -429,13 +428,14 @@ public class SkylarkParserTest {
               named = true),
           @Param(
               name = "list",
-              type = SkylarkList.class,
+              type = com.google.devtools.build.lib.syntax.Sequence.class,
               generic1 = String.class,
               defaultValue = "[]",
               named = true),
         },
         documented = false)
-    public MockTransform transform(Object field1, Object field2, SkylarkList<?> list)
+    public MockTransform transform(
+        Object field1, Object field2, com.google.devtools.build.lib.syntax.Sequence<?> list)
         throws EvalException {
       return new MockTransform(
           SkylarkUtil.convertOptionalString(field1),

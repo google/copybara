@@ -30,8 +30,8 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Dict;
+import com.google.devtools.build.lib.syntax.Sequence;
 import javax.annotation.Nullable;
 
 /** Skylark context for feedback migrations. */
@@ -51,7 +51,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Skylark
 
   FeedbackMigrationContext(
       Feedback feedback, Action currentAction, ImmutableList<String> refs, SkylarkConsole console) {
-    this(feedback, currentAction, refs, console, SkylarkDict.empty());
+    this(feedback, currentAction, refs, console, Dict.empty());
   }
 
   private FeedbackMigrationContext(
@@ -59,7 +59,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Skylark
       Action currentAction,
       ImmutableList<String> refs,
       SkylarkConsole console,
-      SkylarkDict<?, ?> params) {
+      Dict<?, ?> params) {
     super(currentAction, console, params);
     this.feedback = Preconditions.checkNotNull(feedback);
     this.refs = ImmutableList.copyOf(refs);
@@ -83,10 +83,13 @@ public class FeedbackMigrationContext extends FeedbackContext implements Skylark
     return feedback.getName();
   }
 
-  @SkylarkCallable(name = "refs", doc = "A list containing string representations of the entities "
-      + "that triggered the event", structField = true)
-  public SkylarkList<String> getRefs() {
-    return SkylarkList.createImmutable(refs);
+  @SkylarkCallable(
+      name = "refs",
+      doc =
+          "A list containing string representations of the entities " + "that triggered the event",
+      structField = true)
+  public Sequence<String> getRefs() {
+    return Sequence.createImmutable(refs);
   }
 
   @SkylarkCallable(name = "success", doc = "Returns a successful action result.")
@@ -120,7 +123,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Skylark
   }
 
   @Override
-  public FeedbackContext withParams(SkylarkDict<?, ?> params) {
+  public FeedbackContext withParams(Dict<?, ?> params) {
     return new FeedbackMigrationContext(feedback, currentAction, refs, console, params);
   }
 

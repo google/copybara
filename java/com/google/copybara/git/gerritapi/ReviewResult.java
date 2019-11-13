@@ -24,7 +24,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
+import com.google.devtools.build.lib.syntax.Dict;
 import java.util.Map;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-result */
@@ -50,8 +50,8 @@ public class ReviewResult implements SkylarkValue {
       doc = "Map of labels to values after the review was posted.",
       structField = true,
       allowReturnNones = true)
-  public SkylarkDict<String, Integer> getLabelsForSkylark() {
-    return SkylarkDict.copyOf(/*environment*/ null, getLabels());
+  public Dict<String, Integer> getLabelsForSkylark() {
+    return Dict.copyOf(/*environment*/ null, getLabels());
   }
 
   public ImmutableMap<String, Integer> getLabels() {

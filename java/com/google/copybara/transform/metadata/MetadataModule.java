@@ -31,9 +31,9 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkDict;
-import com.google.devtools.build.lib.syntax.SkylarkList;
+import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
@@ -182,7 +182,7 @@ public class MetadataModule implements SkylarkValue {
       parameters = {
         @Param(
             name = "authors",
-            type = SkylarkDict.class,
+            type = Dict.class,
             named = true,
             doc =
                 "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
@@ -237,7 +237,7 @@ public class MetadataModule implements SkylarkValue {
       before = "Here we show how to map authors using different options:",
       code = MAP_AUTHOR_EXAMPLE_SIMPLE)
   public Transformation mapAuthor(
-      SkylarkDict<?, ?> authors, // <String, String>
+      Dict<?, ?> authors, // <String, String>
       Boolean reversible,
       Boolean noopReverse,
       Boolean failIfNotFound,
@@ -645,7 +645,7 @@ public class MetadataModule implements SkylarkValue {
                     + " 'http://changes(${reference})'."),
         @Param(
             name = "regex_groups",
-            type = SkylarkDict.class,
+            type = Dict.class,
             defaultValue = "{}",
             named = true,
             doc =
@@ -656,7 +656,7 @@ public class MetadataModule implements SkylarkValue {
         @Param(
             name = "additional_import_labels",
             named = true,
-            type = SkylarkList.class,
+            type = Sequence.class,
             generic1 = String.class,
             defaultValue = "[]",
             doc =
@@ -690,8 +690,8 @@ public class MetadataModule implements SkylarkValue {
   public ReferenceMigrator mapReferences(
       String originPattern,
       String destinationFormat,
-      SkylarkDict<?, ?> groups, // <String, String>
-      SkylarkList<?> labels, // <String>
+      Dict<?, ?> groups, // <String, String>
+      Sequence<?> labels, // <String>
       Location location)
       throws EvalException {
     Map<String, String> groupsMap = groups.getContents(String.class, String.class, "regex_groups");
