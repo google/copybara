@@ -28,7 +28,7 @@ import org.junit.runners.JUnit4;
 public class GitEnvironmentTest {
 
   private static final Map<String, String> environment =
-      ImmutableMap.<String, String>builder().put("FOO", "123").put("BAR", "456").build();
+      ImmutableMap.<String, String>builder().put("FOO", "123").put("BAR", "456").put("LANG", "en_US.UTF-8").build();
 
   @Test
   public void testEnvironmentReturned() {
