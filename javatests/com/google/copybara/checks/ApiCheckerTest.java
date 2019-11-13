@@ -23,6 +23,7 @@ import com.google.common.truth.Truth;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +46,7 @@ public class ApiCheckerTest {
   }
 
   @Test
-  public void testCheckError() throws CheckerException {
+  public void testCheckError() {
     ApiChecker checker = new ApiChecker(new FakeChecker() {
       @Override
       public void doCheck(ImmutableMap<String, String> fields, Console console)
@@ -71,6 +72,36 @@ public class ApiCheckerTest {
       fail();
     } catch (ValidationException e) {
       Truth.assertThat(e).hasMessageThat().isEqualTo("Check failed!");
+    }
+  }
+
+  @Test
+  public void testCheckInternalError() throws CheckerException {
+    ApiChecker checker = new ApiChecker(new FakeChecker() {
+      @Override
+      public void doCheck(ImmutableMap<String, String> fields, Console console)
+          throws IOException {
+        throw new IOException("Tool error!");
+      }
+    }, new TestingConsole());
+
+    try {
+      checker.check("foo", new Object());
+      fail();
+    } catch (RuntimeException e) {
+      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
+    }
+    try {
+      checker.check("foo", new Object(), "bar", new Object());
+      fail();
+    } catch (RuntimeException e) {
+      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
+    }
+    try {
+      checker.check("foo", new Object(), "bar", new Object(), "baz", new Object());
+      fail();
+    } catch (RuntimeException e) {
+      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
     }
   }
 

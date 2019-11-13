@@ -25,7 +25,7 @@ import java.io.IOException;
  * A checker for API clients that delegates on a {@link Checker} and provides convenience methods
  * for checking one or more pairs of field names and values, plus error handling.
  */
-public final class ApiChecker {
+public class ApiChecker {
 
   private final Checker checker;
   private final Console console;
