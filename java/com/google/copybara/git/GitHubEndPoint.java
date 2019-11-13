@@ -143,7 +143,7 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling create_status", e);
+      throw new EvalException(location, "Error calling get_check_runs", e);
     }
   }
 

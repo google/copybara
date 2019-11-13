@@ -152,6 +152,11 @@ public class GitHubEndpointTest {
                 + "      details_url: 'https://example.com',\n"
                 + "      status: 'completed',\n"
                 + "      conclusion: 'neutral',\n"
+                + "      output: {\n"
+                + "        title: 'Mighty Readme report',\n"
+                + "        summary: 'test_summary',\n"
+                + "        text: 'test_text'\n"
+                + "      },\n"
                 + "      app: {\n"
                 + "        id: 1,\n"
                 + "        slug: 'octoapp',\n"
@@ -338,6 +343,9 @@ public class GitHubEndpointTest {
             .put("check_runs[0].app.id", 1)
             .put("check_runs[0].app.slug", "octoapp")
             .put("check_runs[0].app.name", "Octocat App")
+            .put("check_runs[0].output.title", "Mighty Readme report")
+            .put("check_runs[0].output.summary", "test_summary")
+            .put("check_runs[0].output.text", "test_text")
             .build();
     skylark.verifyFields(var, expectedFieldValues);
   }

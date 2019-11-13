@@ -17,6 +17,7 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -53,8 +54,9 @@ public class CheckRun implements SkylarkValue {
   @Key("head_sha")
   private String sha;
 
-  @Key
-  private GitHubApp app;
+  @Key private GitHubApp app;
+
+  @Key private Output output;
 
   @SkylarkCallable(
       name = "detail_url",
@@ -106,6 +108,15 @@ public class CheckRun implements SkylarkValue {
     return app;
   }
 
+  @SkylarkCallable(
+      name = "output",
+      doc = "The description of a GitHub App's run, including title, summary, text.",
+      structField = true
+  )
+  public Output getOutput() {
+    return output;
+  }
+
   /**
    * Status of a check run
    */
@@ -119,6 +130,7 @@ public class CheckRun implements SkylarkValue {
    * Conclusion of a check run status
    */
   public enum Conclusion {
+    @NullValue NONE,
     @Value("success") SUCCESS,
     @Value("failure") FAILURE,
     @Value("neutral") NEUTRAL,
@@ -135,7 +147,7 @@ public class CheckRun implements SkylarkValue {
         .add("conclusion", conclusion)
         .add("sha", sha)
         .add("app", app)
+        .add("output", output)
         .toString();
   }
-
 }
