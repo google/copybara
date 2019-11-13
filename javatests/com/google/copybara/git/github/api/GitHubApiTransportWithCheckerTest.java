@@ -24,49 +24,40 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class GitHubApiTransportWithCheckerTest {
 
-  private TestingConsole console;
   private GitHubApiTransport delegate;
-  private Checker checker;
+  private ApiChecker checker;
 
   private GitHubApiTransport transport;
 
   @Before
   public void setup() throws Exception {
-    console = new TestingConsole();
     delegate = Mockito.mock(GitHubApiTransport.class);
-    checker = Mockito.mock(Checker.class);
-    transport = new GitHubApiTransportWithChecker(delegate, checker, console);
+    checker = Mockito.mock(ApiChecker.class);
+    transport = new GitHubApiTransportWithChecker(delegate, checker);
   }
 
   @Test
   public void testGet() throws Exception {
     transport.get("path/foo", String.class);
-    verify(checker).doCheck(
-        ImmutableMap.of("path", "path/foo", "response_type", "class java.lang.String"),
-        console);
+    verify(checker).check("path", "path/foo", "response_type", String.class);
     verify(delegate).get(eq("path/foo"), eq(String.class), any(ImmutableListMultimap.class));
   }
 
   @Test
   public void testGetThrowsException() throws Exception {
-    doThrow(new CheckerException("Error!"))
-        .when(checker)
-        .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
+    doThrow(new CheckerException("Error!")).when(checker).check(any(), any(), any(), any());
     try {
       transport.get("path/foo", String.class);
       fail();
@@ -78,12 +69,11 @@ public class GitHubApiTransportWithCheckerTest {
   @Test
   public void testPost() throws Exception {
     transport.post("path/foo", "request_content", String.class);
-    verify(checker).doCheck(
-            ImmutableMap.of(
-                "path", "path/foo",
-                "request", "request_content",
-                "response_type", "class java.lang.String"),
-        console);
+    verify(checker)
+        .check(
+            "path", "path/foo",
+            "request", "request_content",
+            "response_type", String.class);
     verify(delegate).post(eq("path/foo"), eq("request_content"), eq(String.class));
   }
 
@@ -91,7 +81,7 @@ public class GitHubApiTransportWithCheckerTest {
   public void testPostThrowsException() throws Exception {
     doThrow(new CheckerException("Error!"))
         .when(checker)
-        .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
+        .check(any(), any(), any(), any(), any(), any());
     try {
       transport.post("path/foo", "request_content", String.class);
       fail();

@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Option;
+import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -84,7 +85,7 @@ public class GitHubOptions implements Option {
     }
     GitHubApiTransport transport = newTransport(repo, storePath, console);
     if (checker != null) {
-      transport = new GitHubApiTransportWithChecker(transport, checker, console);
+      transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
     return new GitHubApi(transport, generalOptions.profiler());
   }

@@ -18,62 +18,38 @@ package com.google.copybara.git.github.api;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.console.Console;
-import java.io.IOException;
 import java.lang.reflect.Type;
 
 public class GitHubApiTransportWithChecker implements GitHubApiTransport {
 
   private final GitHubApiTransport delegate;
-  private final Checker checker;
-  private final Console console;
+  private final ApiChecker checker;
 
-  public GitHubApiTransportWithChecker(
-      GitHubApiTransport delegate, Checker checker, Console console) {
+  public GitHubApiTransportWithChecker(GitHubApiTransport delegate, ApiChecker checker) {
     this.delegate = Preconditions.checkNotNull(delegate);
     this.checker = Preconditions.checkNotNull(checker);
-    this.console = Preconditions.checkNotNull(console);
   }
 
   @Override
   public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
       throws RepoException, ValidationException {
-    try {
-      checker.doCheck(
-          ImmutableMap.of("path", path, "response_type", responseType.toString()), console);
-    } catch (IOException e) {
-      throw new RuntimeException("Error running checker", e);
-    }
+    checker.check("path", path, "response_type", responseType);
     return delegate.get(path, responseType, headers);
   }
 
   @Override
   public <T> T post(String path, Object request, Type responseType)
       throws RepoException, ValidationException {
-    try {
-      checker.doCheck(
-          ImmutableMap.of(
-              "path", path,
-              "request", request.toString(),
-              "response_type", responseType.toString()),
-          console);
-    } catch (IOException e) {
-      throw new RuntimeException("Error running checker", e);
-    }
+    checker.check("path", path, "request", request, "response_type", responseType);
     return delegate.post(path, request, responseType);
   }
 
   @Override
   public void delete(String path) throws RepoException, ValidationException {
-    try {
-      checker.doCheck(ImmutableMap.of("path", path), console);
-    } catch (IOException e) {
-      throw new RuntimeException("Error running checker", e);
-    }
+    checker.check("path", path);
     delegate.delete(path);
   }
 }
