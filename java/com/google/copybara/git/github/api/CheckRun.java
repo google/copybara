@@ -122,7 +122,7 @@ public class CheckRun implements SkylarkValue {
    */
   public enum Status {
     @Value("queued") QUEUED,
-    @Value("in_progress") INPROGRESS,
+    @Value("in_progress") IN_PROGRESS,
     @Value("completed") COMPLETED;
   }
 
