@@ -41,6 +41,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -177,7 +178,7 @@ public class GerritEndpoint implements Endpoint, SkylarkValue {
       String commit, Sequence<?> includeResults, Location location)
       throws EvalException, RepoException, ValidationException {
       GerritApi gerritApi = apiSupplier.load(console);
-    return Sequence.createImmutable(
+    return StarlarkList.immutableCopyOf(
         gerritApi.getChanges(
             new ChangesQuery(String.format("commit:%s", commit))
                 .withInclude(getIncludeResults(includeResults))));

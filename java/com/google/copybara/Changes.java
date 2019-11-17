@@ -22,6 +22,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 
 /** Information about the changes being imported */
 @SkylarkModule(
@@ -40,8 +41,8 @@ public final class Changes implements SkylarkValue {
   private final Sequence<? extends Change<?>> migrated;
 
   public Changes(Iterable<? extends Change<?>> current, Iterable<? extends Change<?>> migrated) {
-    this.current = Sequence.createImmutable(current);
-    this.migrated = Sequence.createImmutable(migrated);
+    this.current = StarlarkList.immutableCopyOf(current);
+    this.migrated = StarlarkList.immutableCopyOf(migrated);
   }
 
   @SkylarkCallable(

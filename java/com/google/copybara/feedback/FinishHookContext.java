@@ -36,6 +36,7 @@ import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -109,7 +110,7 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
       doc = "The list of effects that happened in the destination",
       structField = true)
   public Sequence<DestinationEffect> getChanges() {
-    return Sequence.createImmutable(destinationEffects);
+    return StarlarkList.immutableCopyOf(destinationEffects);
   }
 
   @SkylarkCallable(name = "revision", doc = "Get the requested/resolved revision",
@@ -160,7 +161,7 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
           revision.associatedLabels().asMap().entrySet().stream()
               .collect(
                   Collectors.toMap(
-                      Map.Entry::getKey, e -> Sequence.createImmutable(e.getValue()))));
+                      Map.Entry::getKey, e -> StarlarkList.immutableCopyOf(e.getValue()))));
     }
   }
 }

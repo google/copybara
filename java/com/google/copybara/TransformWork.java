@@ -46,6 +46,7 @@ import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -206,7 +207,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 
       try (Stream<Path> stream = Files.walk(checkoutDir)) {
-        return Sequence.createImmutable(
+        return StarlarkList.immutableCopyOf(
             stream
                 .filter(Files::isRegularFile)
                 .filter(pathMatcher::matches)
@@ -447,20 +448,20 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
   private Sequence<String> findLabelValues(String label, boolean all) {
     Map<String, ImmutableList<String>> coreLabels = getCoreLabels();
     if (coreLabels.containsKey(label)) {
-      return Sequence.createImmutable(coreLabels.get(label));
+      return StarlarkList.immutableCopyOf(coreLabels.get(label));
     }
     ArrayList<String> result = new ArrayList<>();
     ImmutableList<LabelFinder> msgLabel = getLabelInMessage(label);
     if (!msgLabel.isEmpty()) {
       result.addAll(Lists.transform(msgLabel, LabelFinder::getValue));
       if (!all) {
-        return Sequence.createImmutable(result);
+        return StarlarkList.immutableCopyOf(result);
       }
     }
     ImmutableSet<String> values = metadata.getHiddenLabels().get(label);
     if (!values.isEmpty()) {
       if (!all) {
-        return Sequence.createImmutable(ImmutableList.of(Iterables.getLast(values)));
+        return StarlarkList.immutableCopyOf(ImmutableList.of(Iterables.getLast(values)));
       } else {
         result.addAll(values);
       }
@@ -474,14 +475,14 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
       if (val != null) {
         result.addAll(val);
         if (!all) {
-          return Sequence.createImmutable(result);
+          return StarlarkList.immutableCopyOf(result);
         }
       }
       ImmutableList<String> revVal = change.getRevision().associatedLabel(label);
       if (!revVal.isEmpty()) {
         result.addAll(revVal);
         if (!all) {
-          return Sequence.createImmutable(result);
+          return StarlarkList.immutableCopyOf(result);
         }
       }
     }
@@ -489,10 +490,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Skyla
     // Try to find the label in the resolved reference
     ImmutableList<String> resolvedRefLabel = resolvedReference.associatedLabels().get(label);
     if (result.addAll(resolvedRefLabel) && !all) {
-      return Sequence.createImmutable(result);
+      return StarlarkList.immutableCopyOf(result);
     }
 
-    return Sequence.createImmutable(result);
+    return StarlarkList.immutableCopyOf(result);
   }
 
   /**

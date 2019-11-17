@@ -54,7 +54,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -449,7 +449,7 @@ public class GitHubPrDestinationTest {
 
     assertThat(ImmutableList.copyOf(d.getIntegrates()))
         .isEqualTo(
-            Sequence.createImmutable(
+            StarlarkList.immutableCopyOf(
                 ImmutableList.of(
                     new GitIntegrateChanges(
                         DEFAULT_INTEGRATE_LABEL,

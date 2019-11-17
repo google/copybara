@@ -149,7 +149,8 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       }
     }
 
-    return com.google.devtools.build.lib.syntax.Sequence.createImmutable(builder.build().reverse());
+    return com.google.devtools.build.lib.syntax.StarlarkList.immutableCopyOf(
+        builder.build().reverse());
   }
 
   @SuppressWarnings("unused")
@@ -1229,7 +1230,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
     if (reverseList == null) {
       try {
         reverseList =
-            com.google.devtools.build.lib.syntax.Sequence.createImmutable(
+            com.google.devtools.build.lib.syntax.StarlarkList.immutableCopyOf(
                 ImmutableList.of(forward.reverse()));
       } catch (NonReversibleValidationException e) {
         throw new EvalException(

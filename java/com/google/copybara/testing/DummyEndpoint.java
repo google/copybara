@@ -25,6 +25,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -62,6 +63,6 @@ public class DummyEndpoint implements Endpoint, SkylarkValue {
 
   @SkylarkCallable(name = "get_messages", doc = "Get the messages", structField = true)
   public Sequence<String> getMessages() {
-    return Sequence.createImmutable(messages);
+    return StarlarkList.immutableCopyOf(messages);
   }
 }

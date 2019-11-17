@@ -36,7 +36,6 @@ import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENT
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -79,6 +78,7 @@ import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -124,13 +124,13 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
     this.defaultGitIntegrate =
-        Sequence.createImmutable(
-            ImmutableList.of(
-                new GitIntegrateChanges(
-                    DEFAULT_INTEGRATE_LABEL,
-                    Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-                    /*ignoreErrors=*/ true,
-                    useNewIntegrate())));
+        StarlarkList.of(
+            /*mutability=*/ null,
+            new GitIntegrateChanges(
+                DEFAULT_INTEGRATE_LABEL,
+                Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
+                /*ignoreErrors=*/ true,
+                useNewIntegrate()));
   }
 
   private boolean useNewIntegrate() {
@@ -776,7 +776,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
       reviewState = ReviewState.valueOf(reviewStateString);
       if (reviewApproversStrings == null) {
         reviewApproversStrings =
-            Sequence.createImmutable(ImmutableList.of("COLLABORATOR", "MEMBER", "OWNER"));
+            StarlarkList.of(/*mutability=*/ null, "COLLABORATOR", "MEMBER", "OWNER");
       }
       HashSet<AuthorAssociation> approvers = new HashSet<>();
       for (String r : reviewApproversStrings) {

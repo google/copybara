@@ -34,6 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
@@ -146,7 +147,7 @@ public final class Change<R extends Revision> extends OriginRef implements Skyla
       structField = true)
   public Dict<String, Sequence<String>> getLabelsAllForSkylark() {
     return Dict.copyOf(
-        /* thread= */ null, Maps.transformValues(labels.asMap(), Sequence::createImmutable));
+        /* thread= */ null, Maps.transformValues(labels.asMap(), StarlarkList::immutableCopyOf));
   }
 
   /**

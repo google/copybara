@@ -26,6 +26,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -73,7 +74,7 @@ public class DestinationEffect implements SkylarkValue {
       doc = "List of origin changes that were included in" + " this migration",
       structField = true)
   public final Sequence<? extends OriginRef> getOriginRefsSkylark() {
-    return Sequence.createImmutable(originRefs);
+    return StarlarkList.immutableCopyOf(originRefs);
   }
 
   /** Return the type of effect that happened: Create, updated, noop or error */
@@ -136,7 +137,7 @@ public class DestinationEffect implements SkylarkValue {
       doc = "List of errors that happened during the migration",
       structField = true)
   public final Sequence<String> getErrorsSkylark() {
-    return Sequence.createImmutable(errors);
+    return StarlarkList.immutableCopyOf(errors);
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.util.List;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info */
@@ -63,7 +64,7 @@ public class CommitInfo implements SkylarkValue {
               + "In each parent only the commit and subject fields are populated.",
       structField = true)
   public Sequence<ParentCommitInfo> getMessagesForSkylark() {
-    return Sequence.createImmutable(getParents());
+    return StarlarkList.immutableCopyOf(getParents());
   }
 
   @SkylarkCallable(

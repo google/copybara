@@ -59,6 +59,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 
@@ -393,7 +394,7 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
   public Sequence<Ref> getReferences(Location location) throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return Sequence.createImmutable(apiSupplier.load(console).getReferences(project));
+      return StarlarkList.immutableCopyOf(apiSupplier.load(console).getReferences(project));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_references", e);
     }
@@ -433,7 +434,7 @@ public class GitHubEndPoint implements Endpoint, SkylarkValue {
       throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      return Sequence.createImmutable(
+      return StarlarkList.immutableCopyOf(
           apiSupplier.load(console).getPullRequestComments(project, prNumber));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_pull_request_comments", e);

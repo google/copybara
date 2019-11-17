@@ -32,6 +32,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import javax.annotation.Nullable;
 
 /** Skylark context for feedback migrations. */
@@ -89,7 +90,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Skylark
           "A list containing string representations of the entities " + "that triggered the event",
       structField = true)
   public Sequence<String> getRefs() {
-    return Sequence.createImmutable(refs);
+    return StarlarkList.immutableCopyOf(refs);
   }
 
   @SkylarkCallable(name = "success", doc = "Returns a successful action result.")

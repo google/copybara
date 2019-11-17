@@ -28,6 +28,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -143,9 +144,9 @@ public final class ChangeMessage implements SkylarkValue {
   public Sequence<String> getLabelValues(String labelName) {
     ImmutableListMultimap<String, String> localLabels = labelsAsMultimap();
     if (localLabels.containsKey(labelName)) {
-      return Sequence.createImmutable(localLabels.get(labelName));
+      return StarlarkList.immutableCopyOf(localLabels.get(labelName));
     }
-    return Sequence.createImmutable(ImmutableList.of());
+    return StarlarkList.empty();
   }
 
 

@@ -29,6 +29,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkList;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -227,7 +228,7 @@ public class ChangeInfo implements SkylarkValue {
               + "Only set if messages are requested.",
       structField = true)
   public Sequence<ChangeMessageInfo> getMessagesForSkylark() {
-    return Sequence.createImmutable(getMessages());
+    return StarlarkList.immutableCopyOf(getMessages());
   }
 
   @SkylarkCallable(
