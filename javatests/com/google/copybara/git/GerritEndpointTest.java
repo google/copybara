@@ -218,7 +218,6 @@ public class GerritEndpointTest {
                 + "  'updated': '2017-12-02 17:33:30.000000000',\n"
                 + "  'submitted': '2017-12-03 17:33:30.000000000',\n"
                 + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
-                + "  'mergeable': true,\n"
                 + "  'submittable': true,\n"
                 + "  'insertions': 2,\n"
                 + "  'deletions': 10,\n"
