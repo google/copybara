@@ -33,8 +33,10 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
@@ -54,7 +56,8 @@ public class FileConsole extends DelegateConsole {
       DateTimeFormatter.ofPattern("MMdd HH:mm:ss.SSS");
 
   protected final Path filePath;
-  private final ListeningScheduledExecutorService executor;
+  private final ListeningScheduledExecutorService flushingExecutor;
+  private final ExecutorService loggingExecutor;
 
   private boolean failed = false;
   @Nullable private Writer writer;
@@ -63,31 +66,31 @@ public class FileConsole extends DelegateConsole {
   /**
    * Creates a new {@link FileConsole}.
    *
-   *  @param delegate A delegate console
+   * @param delegate A delegate console
    * @param filePath A file path to write to. The parent directories must be created in advance.
    * @param consoleFlushRate How often (in number of messages) to flush this file console.
    */
   public FileConsole(Console delegate, Path filePath, Duration consoleFlushRate) {
     super(delegate);
     this.filePath = Preconditions.checkNotNull(filePath);
+    ThreadFactory threadFactory = new ThreadFactoryBuilder()
+        .setNameFormat("File logging thread %d")
+        .setDaemon(true)
+        .setUncaughtExceptionHandler(
+            (t, e) -> {
+              logger.atSevere().withCause(e).log(
+                  "Thread %s threw an unhandled exception: %s", t, e.getMessage());
+              System.exit(31 /*ExitCode.INTERNAL_ERROR*/);
+            })
+        .build();
+    loggingExecutor = Executors.newSingleThreadExecutor(threadFactory);
     if (consoleFlushRate.isNegative() || consoleFlushRate.isZero()) {
-      executor = null;
+      flushingExecutor = null;
     } else {
-      executor = MoreExecutors.listeningDecorator(
-          Executors.newSingleThreadScheduledExecutor(
-              new ThreadFactoryBuilder()
-                  .setNameFormat("Console flush thread %d")
-                  .setDaemon(true)
-                  .setUncaughtExceptionHandler(
-                      (t, e) -> {
-                        logger.atSevere().withCause(e).log(
-                            "Thread %s threw an unhandled exception: %s", t, e.getMessage());
-                        System.exit(31 /*ExitCode.INTERNAL_ERROR*/);
-                      })
-                  .build()));
-
+      flushingExecutor = MoreExecutors.listeningDecorator(
+          Executors.newSingleThreadScheduledExecutor(threadFactory));
       //noinspection unused : Ignored as this is best effort
-      Future<?> ignored = executor.scheduleAtFixedRate(() -> {
+      Future<?> ignored = flushingExecutor.scheduleAtFixedRate(() -> {
         logger.atInfo().log("Executing console flush");
         flush();
       }, consoleFlushRate.toMillis(), consoleFlushRate.toMillis(), TimeUnit.MILLISECONDS);
@@ -103,18 +106,23 @@ public class FileConsole extends DelegateConsole {
     if (writer == null) {
       return;
     }
+    //noinspection unused : Ignored as this is best effort
+    Future<?> ignored = loggingExecutor.submit(() -> doWrite(writer,
+          String.format("%s %s: %s\n",
+              ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message)));
+  }
+
+  private void doWrite(Writer writer, String s) {
     try {
-      writer.append(
-          String.format(
-              "%s %s: %s\n",
-              ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message));
+      writer.append(s);
     } catch (IOException e) {
       failed = true;
       logger.atSevere().withCause(e).log(
           "Could not write to file: %s. Redirecting will be disabled.", filePath);
     }
   }
-  private synchronized void flush() {
+
+  private void flush() {
     if (failed) {
       return;
     }
@@ -130,7 +138,7 @@ public class FileConsole extends DelegateConsole {
     }
   }
 
-  private Writer getWriter() {
+  private synchronized Writer getWriter() {
     if (writer == null) {
       writer = initWriter();
     }
@@ -154,10 +162,22 @@ public class FileConsole extends DelegateConsole {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     super.close();
     if (writer == null) {
       return;
+    }
+    loggingExecutor.shutdown();
+    if (flushingExecutor != null) {
+      flushingExecutor.shutdown();
+    }
+    try {
+      loggingExecutor.awaitTermination(10, TimeUnit.SECONDS);
+      if (flushingExecutor != null) {
+        flushingExecutor.awaitTermination(10, TimeUnit.SECONDS);
+      }
+    } catch (InterruptedException e) {
+      logger.atSevere().withCause(e).log("Exception while shutting down.");
     }
     try {
       writer.close();
@@ -167,9 +187,9 @@ public class FileConsole extends DelegateConsole {
       logger.atSevere().withCause(e).log(
           "Could not close file: %s. Redirecting will be disabled.", filePath);
     }
-
-    if (executor != null) {
-      executor.shutdownNow();
+    loggingExecutor.shutdownNow();
+    if (flushingExecutor != null) {
+      flushingExecutor.shutdownNow();
     }
   }
 }
