@@ -162,7 +162,7 @@ public class FileConsole extends DelegateConsole {
   }
 
   @Override
-  public synchronized void close() {
+  public void close() {
     super.close();
     if (writer == null) {
       return;
