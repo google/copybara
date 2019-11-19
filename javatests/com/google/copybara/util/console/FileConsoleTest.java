@@ -27,6 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -112,6 +115,27 @@ public class FileConsoleTest {
     assertThat(lines.get(4)).contains("VERBOSE: This is verbose");
     assertThat(lines.get(5)).contains("PROGRESS: This is progress");
   }
+
+  @Test
+  public void testShutDownCase() throws Exception {
+    TestingConsole delegate = new TestingConsole();
+    FileConsole fileConsole = new FileConsole(delegate, file, Duration.ofSeconds(2));
+    ExecutorService exec = Executors.newFixedThreadPool(2);
+    Future<?> f1 = exec.submit(() -> {
+      Thread.sleep(1000);
+      fileConsole.close();
+      return null;
+    });
+    Future<?> f2 = exec.submit(() -> {
+      fileConsole.info("This is info");
+      Thread.sleep(2000);
+      fileConsole.warn("This is warning");
+      return null;
+    });
+f1.get();
+f2.get();
+  }
+
 
   /**
    * We only flush when the file is closed

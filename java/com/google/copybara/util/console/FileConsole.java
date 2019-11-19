@@ -98,21 +98,28 @@ public class FileConsole extends DelegateConsole {
   }
 
   @Override
-  protected synchronized void handleMessage(MessageType type, String message) {
-    if (failed) {
-      return;
-    }
+  protected void handleMessage(MessageType type, String message) {
     Writer writer = getWriter();
     if (writer == null) {
       return;
     }
-    //noinspection unused : Ignored as this is best effort
-    Future<?> ignored = loggingExecutor.submit(() -> doWrite(writer,
-          String.format("%s %s: %s\n",
-              ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message)));
+    // Submitting to a shut-down executor throws, so this has to be synchronized to avoid shutting
+    // down in-between from another thread.
+    synchronized (loggingExecutor) {
+      if (loggingExecutor.isShutdown()) {
+         return;
+      }
+      //noinspection unused : Ignored as this is best effort
+      Future<?> ignored = loggingExecutor.submit(() -> doWrite(writer,
+            String.format("%s %s: %s\n",
+                ZonedDateTime.now(ZoneId.systemDefault()).format(DATE_PREFIX_FMT), type, message)));
+    }
   }
 
   private void doWrite(Writer writer, String s) {
+    if (failed) {
+      return;
+    }
     try {
       writer.append(s);
     } catch (IOException e) {
@@ -164,12 +171,11 @@ public class FileConsole extends DelegateConsole {
   @Override
   public void close() {
     super.close();
-    if (writer == null) {
-      return;
-    }
-    loggingExecutor.shutdown();
-    if (flushingExecutor != null) {
-      flushingExecutor.shutdown();
+    synchronized (loggingExecutor) {
+      loggingExecutor.shutdown();
+      if (flushingExecutor != null) {
+        flushingExecutor.shutdown();
+      }
     }
     try {
       loggingExecutor.awaitTermination(10, TimeUnit.SECONDS);
@@ -180,6 +186,9 @@ public class FileConsole extends DelegateConsole {
       logger.atSevere().withCause(e).log("Exception while shutting down.");
     }
     try {
+      if (writer == null) {
+        return;
+      }
       writer.close();
       logger.atInfo().log("Closed file %s", filePath);
     } catch (IOException e) {
