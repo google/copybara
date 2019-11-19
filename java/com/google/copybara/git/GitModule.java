@@ -1707,7 +1707,7 @@ public class GitModule implements LabelsAwareModule, SkylarkValue {
         @Param(
             name = "refspec_format",
             type = String.class,
-            doc = "The format of of the branch/tag",
+            doc = "The format of the branch/tag",
             named = true,
             defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\""),
         @Param(

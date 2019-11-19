@@ -585,11 +585,7 @@ Parameter | Description
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
 destination | `endpoint`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
-actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:
-  - There is no guarantee of the order of execution.
-  - Actions need to be independent from each other.
-  - Failure in one action might prevent other actions from executing.
-</p>
+actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
 description | `string`<br><p>A description of what this workflow achieves</p>
 
 <a id="core.filter_replace" aria-hidden="true"></a>
@@ -1231,9 +1227,7 @@ summary | `string`<br><p>The summary of this effect</p>
 origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
 destination_ref | `destination_ref`<br><p>The destination ref</p>
 errors | `sequence of string`<br><p>An optional list of errors</p>
-type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.
-An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.
-This effect would be created on the former one.</li></ul></p>
+type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
 
 <a id="feedback.context.success" aria-hidden="true"></a>
 ### feedback.context.success
@@ -1277,9 +1271,7 @@ summary | `string`<br><p>The summary of this effect</p>
 origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
 destination_ref | `destination_ref`<br><p>The destination ref</p>
 errors | `sequence of string`<br><p>An optional list of errors</p>
-type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.
-An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.
-This effect would be created on the former one.</li></ul></p>
+type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
 
 
 
@@ -1357,21 +1349,10 @@ Gerrit account information.
 Name | Description
 ---- | -----------
 account_id | The numeric ID of the account.
-email | The email address the user prefers to be contacted through.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and options DETAILS and ALL_EMAILS for account queries.
-name | The full name of the user.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and option DETAILS for account queries.
-secondary_emails | A list of the secondary email addresses of the user.
-Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.
-Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
-username | The username of the user.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and option DETAILS for account queries.
+email | The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.
+name | The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
+secondary_emails | A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
+username | The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
 
 
 
@@ -1386,21 +1367,10 @@ Name | Description
 ---- | -----------
 account_id | The numeric ID of the account.
 date | The time and date describing when the approval was made.
-email | The email address the user prefers to be contacted through.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and options DETAILS and ALL_EMAILS for account queries.
-name | The full name of the user.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and option DETAILS for account queries.
-secondary_emails | A list of the secondary email addresses of the user.
-Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.
-Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
-username | The username of the user.
-Only set if detailed account information is requested.
-See option DETAILED_ACCOUNTS for change queries
-and option DETAILS for account queries.
+email | The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.
+name | The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
+secondary_emails | A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
+username | The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
 value | The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.
 
 
@@ -1414,22 +1384,17 @@ Gerrit change information.
 
 Name | Description
 ---- | -----------
-branch | The name of the target branch.
-The refs/heads/ prefix is omitted.
+branch | The name of the target branch.<br>The refs/heads/ prefix is omitted.
 change_id | The Change-Id of the change.
 created | The timestamp of when the change was created.
-current_revision | The commit ID of the current patch set of this change.
-Only set if the current revision is requested or if all revisions are requested.
+current_revision | The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.
 id | The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.
-labels | The labels of the change as a map that maps the label names to LabelInfo entries.
-Only set if labels or detailed labels are requested.
-messages | Messages associated with the change as a list of ChangeMessageInfo entities.
-Only set if messages are requested.
+labels | The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.
+messages | Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.
 number | The legacy numeric ID of the change.
 owner | The owner of the change as an AccountInfo entity.
 project | The name of the project.
-revisions | All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.
-Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.
+revisions | All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.
 status | The status of the change (NEW, MERGED, ABANDONED).
 subject | The subject of the change (header line of the commit message).
 submittable | Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.
@@ -1448,13 +1413,11 @@ Gerrit change message information.
 
 Name | Description
 ---- | -----------
-author | Author of the message as an AccountInfo entity.
-Unset if written by the Gerrit system.
+author | Author of the message as an AccountInfo entity.<br>Unset if written by the Gerrit system.
 date | The timestamp of when this identity was constructed.
 id | The ID of the message.
 message | The text left by the user.
-real_author | Real author of the message as an AccountInfo entity.
-Set if the message was posted on behalf of another user.
+real_author | Real author of the message as an AccountInfo entity.<br>Set if the message was posted on behalf of another user.
 revision_number | Which patchset (if any) generated this message.
 tag | Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.
 
@@ -2094,7 +2057,7 @@ Customize what version of the available branches and tags to pick. By default it
 
 Parameter | Description
 --------- | -----------
-refspec_format | `string`<br><p>The format of of the branch/tag</p>
+refspec_format | `string`<br><p>The format of the branch/tag</p>
 refspec_groups | `dict`<br><p>A set of named regexes that can be used to match part of the versions.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
 
 <a id="git.mirror" aria-hidden="true"></a>

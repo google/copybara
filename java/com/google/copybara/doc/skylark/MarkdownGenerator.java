@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -411,7 +412,9 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   }
 
   private void tableRow(StringBuilder sb, String... fields) {
-    sb.append(Joiner.on(" | ").join(fields)).append("\n");
+    sb.append(Arrays.stream(fields).map(s -> s.replace("\n", "<br>"))
+        .collect(Collectors.joining(" | ")))
+        .append("\n");
   }
 
   private final class DocModule extends DocBase {
