@@ -1297,7 +1297,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
   public Transformation dynamic_transform(
       BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkTransformation(
-        impl, Dict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
@@ -1322,7 +1322,7 @@ public class Core implements LabelsAwareModule, SkylarkValue {
       useStarlarkThread = true)
   public Action dynamicFeedback(BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkAction(
-        impl, Dict.<Object, Object>copyOf(thread, params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
   }
 
   @SuppressWarnings("unused")
