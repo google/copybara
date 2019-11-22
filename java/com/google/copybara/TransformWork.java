@@ -41,12 +41,12 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -78,7 +78,7 @@ import javax.annotation.Nullable;
             + "change message, etc. You receive a TransformWork object as an argument to the <code>"
             + "transformations</code> functions used in <code>core.workflow</code>")
 @DocSignaturePrefix("ctx")
-public final class TransformWork implements SkylarkContext<TransformWork>, SkylarkValue {
+public final class TransformWork implements SkylarkContext<TransformWork>, StarlarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 

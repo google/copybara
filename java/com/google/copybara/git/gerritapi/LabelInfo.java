@@ -23,8 +23,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +34,7 @@ import java.util.Map;
     name = "gerritapi.LabelInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit label information.")
-public class LabelInfo implements SkylarkValue {
+public class LabelInfo implements StarlarkValue {
   @Key boolean optional;
   @Key AccountInfo approved;
   @Key AccountInfo rejected;
@@ -149,7 +149,7 @@ public class LabelInfo implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

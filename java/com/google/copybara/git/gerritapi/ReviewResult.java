@@ -22,9 +22,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Map;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-result */
@@ -33,7 +33,7 @@ import java.util.Map;
     name = "gerritapi.ReviewResult",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit review result.")
-public class ReviewResult implements SkylarkValue {
+public class ReviewResult implements StarlarkValue {
   @Key private Map<String, Integer> labels;
   @Key private boolean ready;
 
@@ -70,7 +70,7 @@ public class ReviewResult implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

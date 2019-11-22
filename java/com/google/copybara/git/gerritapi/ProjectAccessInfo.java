@@ -18,14 +18,14 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /**
  * Relevant field(s) of the ProjectAccessInfo message.
  * https://gerrit-review.googlesource.com/Documentation/rest-api-access.html#project-access-info
  */
-public class ProjectAccessInfo implements SkylarkValue {
+public class ProjectAccessInfo implements StarlarkValue {
   @Key("is_owner") boolean isOwner;
 
   public boolean isOwner() {
@@ -33,7 +33,7 @@ public class ProjectAccessInfo implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

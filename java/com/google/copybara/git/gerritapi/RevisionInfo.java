@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Map;
 
 /** See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#revision-info */
@@ -32,7 +32,7 @@ import java.util.Map;
     name = "gerritapi.RevisionInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit revision information.")
-public class RevisionInfo implements SkylarkValue {
+public class RevisionInfo implements StarlarkValue {
 
   @Key private String kind;
   @Key("_number") private int patchsetNumber;
@@ -107,7 +107,7 @@ public class RevisionInfo implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

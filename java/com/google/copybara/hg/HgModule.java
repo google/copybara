@@ -27,8 +27,8 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Main module for Mercurial (Hg) origins and destinations */
 @SkylarkModule(
@@ -36,7 +36,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
     doc = "Set of functions to define Mercurial (Hg) origins and destinations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags(HgOptions.class)
-public class HgModule implements LabelsAwareModule, SkylarkValue {
+public class HgModule implements LabelsAwareModule, StarlarkValue {
 
   protected final Options options;
 

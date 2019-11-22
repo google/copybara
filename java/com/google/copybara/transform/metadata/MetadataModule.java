@@ -30,10 +30,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
@@ -54,7 +54,7 @@ import java.util.Map;
     name = "metadata",
     doc = "Core transformations for the change metadata",
     category = SkylarkModuleCategory.BUILTIN)
-public class MetadataModule implements SkylarkValue {
+public class MetadataModule implements StarlarkValue {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(name = "squash_notes",

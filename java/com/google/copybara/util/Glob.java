@@ -24,9 +24,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Concatable;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -50,7 +50,7 @@ import javax.annotation.Nullable;
             + " pattern in include and does not match any of the patterns in exclude.",
     category = SkylarkModuleCategory.BUILTIN,
     documented = false)
-public abstract class Glob implements Concatable, SkylarkValue {
+public abstract class Glob implements Concatable, StarlarkValue {
 
   private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
 

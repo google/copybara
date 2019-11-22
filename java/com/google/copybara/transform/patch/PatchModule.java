@@ -32,9 +32,9 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
 /** Skylark module that provides a basic transform to apply patchfiles. */
@@ -42,7 +42,7 @@ import java.io.IOException;
     name = "patch",
     doc = "Module for applying patches.",
     category = SkylarkModuleCategory.BUILTIN)
-public class PatchModule implements LabelsAwareModule, SkylarkValue {
+public class PatchModule implements LabelsAwareModule, StarlarkValue {
   private static final Splitter LINES =
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();
 

@@ -22,23 +22,20 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input.
- */
+/** See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input. */
 @SkylarkModule(
     name = "SetReviewInput",
     doc =
         "Input for posting a review to Gerrit. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
-    category = SkylarkModuleCategory.BUILTIN
-)
-public class SetReviewInput implements SkylarkValue {
+    category = SkylarkModuleCategory.BUILTIN)
+public class SetReviewInput implements StarlarkValue {
 
   @Key String message;
   @VisibleForTesting
@@ -93,7 +90,7 @@ public class SetReviewInput implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 }

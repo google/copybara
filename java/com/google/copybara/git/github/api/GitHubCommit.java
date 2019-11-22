@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Represents GitHub information for a commit */
 @SkylarkModule(
@@ -31,7 +31,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
         "Information about a commit as defined in"
             + " https://developer.github.com/v3/git/commits/#get-a-commit."
             + " This is a subset of the available fields in GitHub")
-public class GitHubCommit implements SkylarkValue {
+public class GitHubCommit implements StarlarkValue {
 
   @Key private String sha;
   @Key private String url;

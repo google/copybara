@@ -24,9 +24,9 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /**
  * An origin or destination API in a feedback migration.
@@ -40,26 +40,27 @@ import com.google.devtools.build.lib.syntax.EvalUtils;
     name = "endpoint",
     doc = "An origin or destination API in a feedback migration.",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
-public interface Endpoint extends SkylarkValue {
+public interface Endpoint extends StarlarkValue {
 
   /**
-   * To be used for core.workflow origin/destinations that don't want to provide an api for
-   * giving feedback.
+   * To be used for core.workflow origin/destinations that don't want to provide an api for giving
+   * feedback.
    */
-  Endpoint NOOP_ENDPOINT = new Endpoint() {
-    @Override
-    public ImmutableSetMultimap<String, String> describe() {
-      throw new IllegalStateException("Instance shouldn't be used for core.feedback");
-    }
+  Endpoint NOOP_ENDPOINT =
+      new Endpoint() {
+        @Override
+        public ImmutableSetMultimap<String, String> describe() {
+          throw new IllegalStateException("Instance shouldn't be used for core.feedback");
+        }
 
-    @Override
-    public void repr(SkylarkPrinter printer) {
-      printer.append("noop_endpoint");
-    }
-  };
+        @Override
+        public void repr(Printer printer) {
+          printer.append("noop_endpoint");
+        }
+      };
 
   @Override
-  default void repr(SkylarkPrinter printer) {
+  default void repr(Printer printer) {
     printer.append(toString());
   }
 

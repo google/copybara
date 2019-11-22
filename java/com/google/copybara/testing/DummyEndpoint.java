@@ -22,10 +22,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +35,7 @@ import java.util.List;
     name = "dummy_endpoint",
     doc = "A dummy endpoint for feedback mechanism",
     category = SkylarkModuleCategory.BUILTIN)
-public class DummyEndpoint implements Endpoint, SkylarkValue {
+public class DummyEndpoint implements Endpoint, StarlarkValue {
 
   public final List<String> messages = new ArrayList<>();
 
@@ -57,7 +57,7 @@ public class DummyEndpoint implements Endpoint, SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append("dummy");
   }
 

@@ -23,7 +23,7 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
         "A console that can be used in skylark transformations to print info, warning or"
             + " error messages.")
 @DocSignaturePrefix("console")
-public class SkylarkConsole implements Console, SkylarkValue {
+public class SkylarkConsole implements Console, StarlarkValue {
 
   private int errorCount = 0;
   private final Console delegate;

@@ -18,16 +18,16 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
 /**
  * See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#abandon-input
  *
- * <p> NotifyInfo (notify_details) not included for now
+ * <p>NotifyInfo (notify_details) not included for now
  */
-public class AbandonInput implements SkylarkValue {
+public class AbandonInput implements StarlarkValue {
 
   @Key String message;
   @Key String notify;
@@ -46,7 +46,7 @@ public class AbandonInput implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Represents the current status of a ref, as returned by the git/refs API call */
 @SkylarkModule(
@@ -31,7 +31,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
         "Information about a commit status as defined in"
             + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"
             + " fields in GitHub")
-public class Ref implements SkylarkValue {
+public class Ref implements StarlarkValue {
 
   @Key private String ref;
   @Key private String url;

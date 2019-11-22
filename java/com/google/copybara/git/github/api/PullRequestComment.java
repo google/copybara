@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /**
@@ -39,7 +39,7 @@ import java.time.ZonedDateTime;
         "Information about a pull request comment as defined in"
             + " https://developer.github.com/v3/pulls/comments/. This is a subset of the available"
             + " fields in GitHub")
-public class PullRequestComment implements SkylarkValue {
+public class PullRequestComment implements StarlarkValue {
   @Key private Long id;
 
   @Key("diff_hunk")

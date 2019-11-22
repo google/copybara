@@ -26,9 +26,9 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,7 +46,7 @@ import javax.annotation.CheckReturnValue;
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a well formed parsed change message with its associated labels.")
 @DocSignaturePrefix("message")
-public final class ChangeMessage implements SkylarkValue {
+public final class ChangeMessage implements StarlarkValue {
 
   private static final String DOUBLE_NEWLINE = "\n\n";
   private static final String DASH_DASH_SEPARATOR = "\n--\n";

@@ -23,8 +23,8 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /**
@@ -35,7 +35,7 @@ import java.time.ZonedDateTime;
     name = "gerritapi.ChangeMessageInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit change message information.")
-public class ChangeMessageInfo implements SkylarkValue {
+public class ChangeMessageInfo implements StarlarkValue {
 
   @Key private String id;
   @Key private AccountInfo author;
@@ -119,7 +119,7 @@ public class ChangeMessageInfo implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

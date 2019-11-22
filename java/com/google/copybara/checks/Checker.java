@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -30,7 +30,7 @@ import java.nio.file.Path;
     doc = "A checker to be run on arbitrary data and files",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Checker extends SkylarkValue {
+public interface Checker extends StarlarkValue {
 
   /**
    * Performs a check on the given contents.

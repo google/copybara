@@ -28,8 +28,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.RegexTemplateTokens;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Printer;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ public class LatestVersionSelector implements VersionSelector {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

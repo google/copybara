@@ -19,14 +19,14 @@ package com.google.copybara.git;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
 /**
- * Select a version to migrate based on the reference passed as a parameter,
- * the state of the remote repository and a custom logic.
+ * Select a version to migrate based on the reference passed as a parameter, the state of the remote
+ * repository and a custom logic.
  */
-public interface VersionSelector extends SkylarkValue {
+public interface VersionSelector extends StarlarkValue {
 
   /** Compute the version to migrate */
   String selectVersion(

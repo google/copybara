@@ -60,13 +60,13 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -91,7 +91,7 @@ import java.util.function.Supplier;
     doc = "Core functionality for creating migrations, and basic transformations.",
     category = SkylarkModuleCategory.BUILTIN)
 @UsesFlags({GeneralOptions.class, DebugOptions.class})
-public class Core implements LabelsAwareModule, SkylarkValue {
+public class Core implements LabelsAwareModule, StarlarkValue {
 
   // Restrict for label ids like 'BAZEL_REV_ID'. More strict than our current revId.
   private static final Pattern CUSTOM_REVID_FORMAT = Pattern.compile("[A-Z][A-Z_0-9]{1,30}_REV_ID");

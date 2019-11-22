@@ -21,8 +21,8 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -32,7 +32,7 @@ import java.nio.file.attribute.BasicFileAttributes;
     name = "PathAttributes",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a path attributes like size.")
-public class CheckoutPathAttributes implements SkylarkValue {
+public class CheckoutPathAttributes implements StarlarkValue {
 
   private final Path path;
   private final BasicFileAttributes attributes;

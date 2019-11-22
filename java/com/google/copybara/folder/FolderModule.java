@@ -26,8 +26,8 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.FileSystem;
 
 /** Main module that groups all the functions related to folders. */
@@ -35,7 +35,7 @@ import java.nio.file.FileSystem;
     name = "folder",
     doc = "Module for dealing with local filesystem folders",
     category = SkylarkModuleCategory.BUILTIN)
-public class FolderModule implements SkylarkValue {
+public class FolderModule implements StarlarkValue {
 
   private static final String DESTINATION_VAR = "destination";
 

@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Information about the changes being imported */
 @SkylarkModule(
@@ -33,7 +33,7 @@ import com.google.devtools.build.lib.syntax.StarlarkList;
             + "Each change includes information like: original author, change message, "
             + "labels, etc. You receive this as a field in TransformWork object for used defined "
             + "transformations")
-public final class Changes implements SkylarkValue {
+public final class Changes implements StarlarkValue {
 
   public static final Changes EMPTY = new Changes(ImmutableList.of(), ImmutableList.of());
 

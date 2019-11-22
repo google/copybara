@@ -20,8 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -29,10 +29,10 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /**
- * A Glob implementation that supports having a list of include globs and that we can
- * then apply a list of excludes on that list.
+ * A Glob implementation that supports having a list of include globs and that we can then apply a
+ * list of excludes on that list.
  */
-final class SimpleGlob extends Glob implements SkylarkValue {
+final class SimpleGlob extends Glob implements StarlarkValue {
 
   private final ImmutableList<String> include;
   @Nullable
@@ -110,7 +110,7 @@ final class SimpleGlob extends Glob implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

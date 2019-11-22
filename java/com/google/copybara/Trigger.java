@@ -19,8 +19,8 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Starter of feedback migration executions. */
 @SkylarkModule(
@@ -28,12 +28,12 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
     doc = "Starter of feedback migration executions.",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Trigger extends SkylarkValue {
+public interface Trigger extends StarlarkValue {
 
   Endpoint getEndpoint();
 
   @Override
-  default void repr(SkylarkPrinter printer) {
+  default void repr(Printer printer) {
     printer.append(toString());
   }
 

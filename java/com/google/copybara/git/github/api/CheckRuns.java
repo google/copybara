@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
 /**
@@ -31,9 +31,10 @@ import java.util.List;
 @SkylarkModule(
     name = "github_check_runs_obj",
     category = SkylarkModuleCategory.BUILTIN,
-    doc = "List check runs for a specific ref "
-        + "https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref")
-public class CheckRuns implements SkylarkValue {
+    doc =
+        "List check runs for a specific ref "
+            + "https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref")
+public class CheckRuns implements StarlarkValue {
 
   @Key("total_count")
   private int totalCount;

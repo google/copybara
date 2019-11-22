@@ -26,7 +26,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +60,7 @@ public final class SkylarkTestExecutorTest {
       doc = "For testing.",
       category = SkylarkModuleCategory.BUILTIN,
       documented = false)
-  public static final class DummyModule implements LabelsAwareModule, SkylarkValue {
+  public static final class DummyModule implements LabelsAwareModule, StarlarkValue {
     private ConfigFile configFile;
 
     @Override

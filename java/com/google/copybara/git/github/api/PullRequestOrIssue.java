@@ -22,7 +22,7 @@ import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
  *
  * <p>There are more fields but they are ignored for now.
  */
-public class PullRequestOrIssue implements SkylarkValue {
+public class PullRequestOrIssue implements StarlarkValue {
   @Key private long number;
   @Key private String state;
   @Key private String title;

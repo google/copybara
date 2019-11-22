@@ -24,9 +24,9 @@ import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
 /**
@@ -35,7 +35,7 @@ import java.util.List;
  * <p>Don't add functions here and prefer "core" namespace unless it is something really general
  */
 @SkylarkGlobalLibrary
-public class CoreGlobal implements SkylarkValue {
+public class CoreGlobal implements StarlarkValue {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(

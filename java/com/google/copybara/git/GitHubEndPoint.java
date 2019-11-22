@@ -56,10 +56,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 
@@ -69,7 +69,7 @@ import javax.annotation.Nullable;
     name = "github_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "GitHub API endpoint implementation for feedback migrations and after migration hooks.")
-public class GitHubEndPoint implements Endpoint, SkylarkValue {
+public class GitHubEndPoint implements Endpoint, StarlarkValue {
 
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;

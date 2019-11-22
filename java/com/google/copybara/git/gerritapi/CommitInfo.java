@@ -22,10 +22,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info */
@@ -34,7 +34,7 @@ import java.util.List;
     name = "gerritapi.CommitInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit commit information.")
-public class CommitInfo implements SkylarkValue {
+public class CommitInfo implements StarlarkValue {
   @Key private String commit;
   @Key private List<ParentCommitInfo> parents;
   @Key private GitPersonInfo author;
@@ -104,7 +104,7 @@ public class CommitInfo implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

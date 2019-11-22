@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /** Represents the current status of a ref, as returned by the git/refs API call */
@@ -32,7 +32,7 @@ import java.time.ZonedDateTime;
         "Commit field for GitHub commit information"
             + " https://developer.github.com/v3/git/commits/#get-a-commit."
             + " This is a subset of the available fields in GitHub")
-public class Commit implements SkylarkValue {
+public class Commit implements StarlarkValue {
   @Key private String message;
   @Key private CommitAuthor author;
   @Key private CommitAuthor committer;
@@ -59,7 +59,7 @@ public class Commit implements SkylarkValue {
           "Author/Committer for commit field for GitHub commit information"
               + " https://developer.github.com/v3/git/commits/#get-a-commit."
               + " This is a subset of the available fields in GitHub")
-  public static class CommitAuthor implements SkylarkValue {
+  public static class CommitAuthor implements StarlarkValue {
     @Key String name;
     @Key String email;
     @Key String date;

@@ -31,12 +31,12 @@ import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for 'after_migration' hooks.")
-public class FinishHookContext extends FeedbackContext implements SkylarkValue {
+public class FinishHookContext extends FeedbackContext implements StarlarkValue {
 
   private final LazyResourceLoader<Endpoint> origin;
   private final LazyResourceLoader<Endpoint> destination;
@@ -143,7 +143,7 @@ public class FinishHookContext extends FeedbackContext implements SkylarkValue {
       name = "feedback.revision_context",
       category = SkylarkModuleCategory.BUILTIN,
       doc = "Information about the revision request/resolved for the migration")
-  private static class SkylarkRevision implements SkylarkValue {
+  private static class SkylarkRevision implements StarlarkValue {
 
     private final Revision revision;
 

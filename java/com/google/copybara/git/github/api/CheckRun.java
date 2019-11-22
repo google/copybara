@@ -23,7 +23,7 @@ import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
 /**
@@ -31,14 +31,13 @@ import javax.annotation.Nullable;
  * https://developer.github.com/v3/checks/runs/#create-a-check-run
  * https://developer.github.com/v3/checks/runs/#response
  */
-
 @SkylarkModule(
     name = "github_check_run_obj",
     category = SkylarkModuleCategory.BUILTIN,
     doc =
         "Detail about a check run as defined in "
             + "https://developer.github.com/v3/checks/runs/#create-a-check-run")
-public class CheckRun implements SkylarkValue {
+public class CheckRun implements StarlarkValue {
 
   @Key("details_url")
   @Nullable

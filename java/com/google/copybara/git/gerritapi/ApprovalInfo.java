@@ -21,7 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#approval-info */
@@ -30,7 +30,7 @@ import java.time.ZonedDateTime;
     name = "gerritapi.ApprovalInfo",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit approval information.")
-public class ApprovalInfo extends AccountInfo implements SkylarkValue {
+public class ApprovalInfo extends AccountInfo implements StarlarkValue {
   @Key int value;
   @Key String date;
 

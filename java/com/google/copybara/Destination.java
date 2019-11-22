@@ -25,7 +25,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
     doc = "A repository which a source of truth can be copied to",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Destination<R extends Revision> extends ConfigItemDescription, SkylarkValue {
+public interface Destination<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 
   /**
    * An object which is capable of writing multiple revisions to the destination. This object is

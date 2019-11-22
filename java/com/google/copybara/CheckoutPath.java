@@ -27,10 +27,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -43,11 +43,12 @@ import java.nio.file.attribute.BasicFileAttributes;
  * <p>Files are always relative to the checkout dir and normalized.
  */
 @SuppressWarnings("unused")
-@SkylarkModule(name = "Path",
+@SkylarkModule(
+    name = "Path",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents a path in the checkout directory")
 @DocSignaturePrefix("path")
-public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
+public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
@@ -219,7 +220,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, SkylarkValue{
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(path.toString());
   }
 }

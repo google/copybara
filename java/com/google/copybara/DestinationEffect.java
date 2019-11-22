@@ -23,10 +23,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Represents an effect that happened in the destination due to a single migration")
 @SuppressWarnings("unused")
-public class DestinationEffect implements SkylarkValue {
+public class DestinationEffect implements StarlarkValue {
   private final Type type;
   private final String summary;
   private final ImmutableList<OriginRef> originRefs;
@@ -157,7 +157,7 @@ public class DestinationEffect implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 
@@ -213,9 +213,8 @@ public class DestinationEffect implements SkylarkValue {
   @SkylarkModule(
       name = "origin_ref",
       category = SkylarkModuleCategory.BUILTIN,
-      doc = "Reference to the change/review in the origin."
-  )
-  public static class OriginRef implements SkylarkValue {
+      doc = "Reference to the change/review in the origin.")
+  public static class OriginRef implements StarlarkValue {
     private final String ref;
 
     @VisibleForTesting
@@ -247,7 +246,7 @@ public class DestinationEffect implements SkylarkValue {
     }
 
     @Override
-    public void repr(SkylarkPrinter printer) {
+    public void repr(Printer printer) {
       printer.append(toString());
     }
 
@@ -259,14 +258,12 @@ public class DestinationEffect implements SkylarkValue {
     }
   }
 
-
   /** Reference to the change/review created/updated on the destination. */
   @SkylarkModule(
-    name = "destination_ref",
-    category = SkylarkModuleCategory.BUILTIN,
-    doc = "Reference to the change/review created/updated on the destination."
-  )
-  public static class DestinationRef implements SkylarkValue {
+      name = "destination_ref",
+      category = SkylarkModuleCategory.BUILTIN,
+      doc = "Reference to the change/review created/updated on the destination.")
+  public static class DestinationRef implements StarlarkValue {
     @Nullable private final String url;
     private final String id;
     private final String type;
@@ -330,7 +327,7 @@ public class DestinationEffect implements SkylarkValue {
     }
 
     @Override
-    public void repr(SkylarkPrinter printer) {
+    public void repr(Printer printer) {
       printer.append(toString());
     }
 

@@ -32,7 +32,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +55,7 @@ import javax.annotation.Nullable;
     doc = "A Origin represents a source control repository from which source is copied.",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Origin<R extends Revision> extends ConfigItemDescription, SkylarkValue {
+public interface Origin<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 
   /**
    * Resolves a migration reference into a revision. For example for git it would resolve 'master'

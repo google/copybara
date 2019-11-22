@@ -38,10 +38,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -49,7 +49,7 @@ import com.google.devtools.build.lib.syntax.StarlarkList;
     name = "gerrit_api_obj",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "Gerrit API endpoint implementation for feedback migrations and after migration hooks.")
-public class GerritEndpoint implements Endpoint, SkylarkValue {
+public class GerritEndpoint implements Endpoint, StarlarkValue {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;

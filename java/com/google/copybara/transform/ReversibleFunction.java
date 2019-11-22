@@ -19,14 +19,14 @@ package com.google.copybara.transform;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.function.Function;
 
 @SkylarkModule(
     name = "mapping_function",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A function that given an object can map to another object")
-public interface ReversibleFunction<T, R> extends Function<T, R>, SkylarkValue {
+public interface ReversibleFunction<T, R> extends Function<T, R>, StarlarkValue {
 
   /**
    * Create a reverse of the function

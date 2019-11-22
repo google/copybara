@@ -20,7 +20,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
 /** Interface implemented by all source code transformations. */
@@ -29,7 +29,7 @@ import java.io.IOException;
     doc = "A transformation to the workdir",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Transformation extends SkylarkValue {
+public interface Transformation extends StarlarkValue {
 
   /**
    * Transforms the files inside the checkout dir specified by {@code work}.

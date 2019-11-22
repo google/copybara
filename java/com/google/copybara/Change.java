@@ -31,10 +31,10 @@ import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
     name = "change",
     category = SkylarkModuleCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
-public final class Change<R extends Revision> extends OriginRef implements SkylarkValue {
+public final class Change<R extends Revision> extends OriginRef implements StarlarkValue {
 
   private final R revision;
   private final Author author;

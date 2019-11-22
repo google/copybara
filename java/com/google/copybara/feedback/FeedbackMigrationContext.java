@@ -29,10 +29,10 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
 /** Skylark context for feedback migrations. */
@@ -43,7 +43,7 @@ import javax.annotation.Nullable;
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for feedback migrations.")
-public class FeedbackMigrationContext extends FeedbackContext implements SkylarkValue {
+public class FeedbackMigrationContext extends FeedbackContext implements StarlarkValue {
 
   private final Feedback feedback;
   private final ImmutableList<String> refs;

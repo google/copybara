@@ -22,8 +22,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkPrinter;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import javax.annotation.Nullable;
@@ -31,16 +31,15 @@ import javax.annotation.Nullable;
 /**
  * An object that represents the input parameters for a changes query:
  *
- * https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes
+ * <p>https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes
  */
 @SkylarkModule(
     name = "gerritapi.ChangesQuery",
     doc =
         "Input for listing Gerrit changes. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
-    category = SkylarkModuleCategory.BUILTIN
-)
-public class ChangesQuery implements SkylarkValue {
+    category = SkylarkModuleCategory.BUILTIN)
+public class ChangesQuery implements StarlarkValue {
 
   private final String query;
   private final ImmutableSet<IncludeResult> include;
@@ -98,7 +97,7 @@ public class ChangesQuery implements SkylarkValue {
   }
 
   @Override
-  public void repr(SkylarkPrinter printer) {
+  public void repr(Printer printer) {
     printer.append(toString());
   }
 

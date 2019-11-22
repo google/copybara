@@ -22,7 +22,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** An action that will be executed in a feedback workflow or on finish hook */
 @SkylarkModule(
@@ -30,7 +30,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
     doc = "An action that will be executed in a feedback workflow or on_finish hook",
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
     documented = false)
-public interface Action extends SkylarkValue {
+public interface Action extends StarlarkValue {
 
   void run(SkylarkContext<?> context) throws ValidationException, RepoException;
 

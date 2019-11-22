@@ -41,7 +41,7 @@ import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkValue;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +54,7 @@ import javax.annotation.Nullable;
     category = SkylarkModuleCategory.BUILTIN,
     documented = false,
     doc = "")
-public class GitIntegrateChanges implements SkylarkValue {
+public class GitIntegrateChanges implements StarlarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
