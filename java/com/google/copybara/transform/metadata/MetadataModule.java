@@ -429,13 +429,13 @@ public class MetadataModule implements StarlarkValue {
           + "```\n"
           + "A change\n\n"
           + "Example description for\n"
-          + "documentation\n\n"
+          + "documentation\n"
           + "```\n\n"
           + "Will be transformed into:\n\n"
           + "```\n"
           + "COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234\n"
           + "Example description for\n"
-          + "documentation\n\n"
+          + "documentation\n"
           + "```\n\n"
           + "Assuming the PR number is 1234. But any change without that label will not be"
           + " transformed.")
@@ -528,7 +528,7 @@ public class MetadataModule implements StarlarkValue {
       after = "Will remove the confidential part, leaving the message as:\n\n"
           + "```\n"
           + "Public change description\n\n"
-          + "This is a public description for a commit\n\n"
+          + "This is a public description for a commit\n"
           + "```\n\n")
   @Example(title = "Keep only message enclosed in tags",
       before = "The previous example is prone to leak confidential information since a developer"
@@ -548,7 +548,7 @@ public class MetadataModule implements StarlarkValue {
           + "but this is public\nvery public\n"
           + "```\n\n")
   @Example(title = "Use default msg when the scrubbing regex doesn't match",
-      before = "Assign msg_if_no_match a default msg. For example: \n",
+      before = "Assign msg_if_no_match a default msg. For example:\n",
       code = "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
           + "msg_if_no_match = 'Internal Change.', replacement = '$1')",
       after = "So a message like:\n\n"

@@ -540,8 +540,6 @@ def _test_impl(ctx):
 def test(name, number = 2):
   return core.dynamic_transform(impl = _test_impl,
                            params = { 'name': name, 'number': number})
-
-  
 ```
 
 After defining this function, you can use `test('example', 42)` as a transformation in `core.workflow`.
@@ -591,7 +589,7 @@ description | `string`<br><p>A description of what this workflow achieves</p>
 <a id="core.filter_replace" aria-hidden="true"></a>
 ### core.filter_replace
 
-Applies an initial filtering to find a substring to be replaced and then appliesa `mapping` of replaces for the matched text.
+Applies an initial filtering to find a substring to be replaced and then applies a `mapping` of replaces for the matched text.
 
 `filter_replace core.filter_replace(regex, mapping={}, group=Whole text, paths=glob(["**"]), reverse=`regex`)`
 
@@ -622,7 +620,6 @@ core.filter_replace(
         'abaz': 'abam'
     }
 )
-
 ```
 
 
@@ -649,7 +646,6 @@ core.filter_replace(
         all = True
     )
 )
-
 ```
 
 
@@ -2558,7 +2554,6 @@ A change
 
 Example description for
 documentation
-
 ```
 
 Will be transformed into:
@@ -2567,7 +2562,6 @@ Will be transformed into:
 COPYBARA CHANGE FOR https://github.com/myproject/foo/pull/1234
 Example description for
 documentation
-
 ```
 
 Assuming the PR number is 1234. But any change without that label will not be transformed.
@@ -2883,7 +2877,6 @@ Will remove the confidential part, leaving the message as:
 Public change description
 
 This is a public description for a commit
-
 ```
 
 
@@ -2921,7 +2914,7 @@ very public
 
 ##### Use default msg when the scrubbing regex doesn't match:
 
-Assign msg_if_no_match a default msg. For example: 
+Assign msg_if_no_match a default msg. For example:
 
 
 ```python

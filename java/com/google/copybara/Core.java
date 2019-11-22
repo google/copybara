@@ -999,7 +999,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       + "        ],\n"
       + "        all = True\n"
       + "    )\n"
-      + ")\n";
+      + ")";
 
   public static final String SIMPLE_FILTER_REPLACE_EXAMPLE = ""
       + "core.filter_replace(\n"
@@ -1008,14 +1008,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       + "        'afoo': 'abar',\n"
       + "        'abaz': 'abam'\n"
       + "    }\n"
-      + ")\n";
+      + ")";
 
   @SuppressWarnings({"unused", "unchecked"})
   @SkylarkCallable(
       name = "filter_replace",
 
       doc = "Applies an initial filtering to find a substring to be replaced and then applies"
-          + "a `mapping` of replaces for the matched text.",
+          + " a `mapping` of replaces for the matched text.",
       parameters = {
           @Param(name = "regex", named = true, type = String.class,
               doc = "A re2 regex to match a substring of the file"),
@@ -1287,9 +1287,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "\n"
               + "def test(name, number = 2):\n"
               + "  return core.dynamic_transform(impl = _test_impl,\n"
-              + "                           params = { 'name': name, 'number': number})\n"
-              + "\n"
-              + "  ",
+              + "                           params = { 'name': name, 'number': number})",
       testExistingVariable = "test",
       after =
           "After defining this function, you can use `test('example', 42)` as a transformation"
