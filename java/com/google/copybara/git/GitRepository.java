@@ -406,6 +406,13 @@ public class GitRepository {
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException {
+    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines);
+  }
+
+
+   private static Map<String, String> lsRemote(Path cwd,
+      String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
+      throws RepoException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     List<String> args;
@@ -418,7 +425,7 @@ public class GitRepository {
 
     CommandOutputWithStatus output;
     try {
-      output = executeGit(FileSystems.getDefault().getPath("."), args, gitEnv, false, maxLogLines);
+      output = executeGit(cwd, args, gitEnv, false, maxLogLines);
     } catch (BadExitStatusWithOutputException e) {
       throw new RepoException(
           String.format("Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
@@ -452,7 +459,7 @@ public class GitRepository {
    * @throws RepoException if the operation fails
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
-    return lsRemote(url, refs, gitEnv, DEFAULT_MAX_LOG_LINES);
+    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES);
   }
 
   /**
