@@ -45,6 +45,19 @@ public class ChangeMessageTest {
     assertThat(msg.getLabels().get(0).getName()).isEqualTo("GitOrigin-RevId");
   }
 
+  @Test
+  public void testMessageParser() {
+    ChangeMessage msg = ChangeMessage.parseMessage(""
+        + "Test parse title message\n"
+        + "\n"
+        + "Fixes https://github.com/test");
+    assertThat(msg.toString()).isEqualTo(""
+        + "Test parse title message\n"
+        + "\n"
+        + "Fixes https://github.com/test\n");
+    assertThat(msg.getLabels()).hasSize(1);
+  }
+
   private static final String CHANGE_MESSAGE_SKYLARK =
       ""
           + "First line\\n"

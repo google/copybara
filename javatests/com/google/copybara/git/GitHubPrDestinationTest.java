@@ -291,7 +291,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             req ->
                 req.equals(
-                    "{\"base\":\"master\",\"body\":\"Internal change.\",\"head\":\"feature\","
+                    "{\"base\":\"master\",\"body\":\"Internal change.\\n\",\"head\":\"feature\","
                         + "\"title\":\"Internal change.\"}")));
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
@@ -351,7 +351,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             req ->
                 req.equals(
-                    "{\"base\":\"master\",\"body\":\"test summary\",\"head\":\""
+                    "{\"base\":\"master\",\"body\":\"test summary\\n\",\"head\":\""
                         + "feature"
                         + "\",\"title\":\"test summary\"}")));
 
@@ -508,7 +508,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             req ->
                 req.equals(
-                    "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
+                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
                         + branchName
                         + "\",\"title\":\"test summary\"}")));
 
@@ -575,7 +575,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             req ->
                 req.equals(
-                    "{\"base\":\"other\",\"body\":\"test summary\",\"head\":\""
+                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
                         + expectedBranchName
                         + "\",\"title\":\"test summary\"}")));
 

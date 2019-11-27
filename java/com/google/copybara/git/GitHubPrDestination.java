@@ -201,7 +201,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
         String prBody =
             GitHubPrDestination.this.body == null
-                ? msg.getText()
+                ? msg.toString()
                 : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
                     GitHubPrDestination.this.body, "body");
 
