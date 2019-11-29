@@ -371,8 +371,8 @@ public class FeedbackTest {
     } catch (ValidationException expected) {
       assertThat(expected.getMessage())
           .contains(
-              "Error while executing the skylark transformation test_action: type "
-                  + "'feedback.context' has no method foo(). Location: copy.bara.sky:2:14");
+              "Error while executing the skylark transformation test_action: 'feedback.context'"
+                  + " value has no field or method 'foo'. Location: copy.bara.sky:2:14");
     }
   }
 
