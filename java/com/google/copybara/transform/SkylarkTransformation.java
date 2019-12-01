@@ -20,6 +20,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -58,8 +59,12 @@ public class SkylarkTransformation implements Transformation {
         .withParams(params);
     try {
       Object result =
-          function.call(
-              ImmutableList.of(skylarkWork), /*kwargs=*/ null, /*ast*/ null, dynamicThread.get());
+          Starlark.call(
+              dynamicThread.get(),
+              function,
+              /*call=*/ null,
+              ImmutableList.of(skylarkWork),
+              /*kwargs=*/ ImmutableMap.of());
       checkCondition(
           result == Starlark.NONE,
           "Message transformer functions should not return anything, but '%s' returned: %s",

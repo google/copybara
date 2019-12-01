@@ -19,6 +19,7 @@ package com.google.copybara.feedback;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
@@ -26,6 +27,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
 
@@ -50,7 +52,12 @@ public class SkylarkAction implements Action {
       //noinspection unchecked
       SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
       Object result =
-          function.call(ImmutableList.of(actionContext), null, /*ast*/ null, thread.get());
+          Starlark.call(
+              thread.get(),
+              function,
+              /*call=*/ null,
+              ImmutableList.of(actionContext),
+              /*kwargs=*/ ImmutableMap.of());
       context.onFinish(result, actionContext);
     } catch (IllegalArgumentException e) {
       throw new ValidationException("Error calling Skylark:", e);

@@ -157,7 +157,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
         structField = true)
     public Dict<String, Sequence<String>> getLabels() {
       return Dict.copyOf(
-          /* thread= */ null,
+          /*mu=*/ null,
           revision.associatedLabels().asMap().entrySet().stream()
               .collect(
                   Collectors.toMap(
