@@ -53,6 +53,9 @@ public class CheckRun implements StarlarkValue {
   @Key("head_sha")
   private String sha;
 
+  @Key("name")
+  private String name;
+
   @Key private GitHubApp app;
 
   @Key private Output output;
@@ -96,6 +99,15 @@ public class CheckRun implements StarlarkValue {
   )
   public String getSha() {
     return sha;
+  }
+
+  @SkylarkCallable(
+      name = "name",
+      doc = "The name of the check",
+      structField = true
+  )
+  public String getName() {
+    return name;
   }
 
   @SkylarkCallable(
@@ -145,6 +157,7 @@ public class CheckRun implements StarlarkValue {
         .add("status", status)
         .add("conclusion", conclusion)
         .add("sha", sha)
+        .add("name", name)
         .add("app", app)
         .add("output", output)
         .toString();
