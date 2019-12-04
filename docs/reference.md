@@ -996,7 +996,7 @@ ignore_noop | `boolean`<br><p>In case a noop error happens in the group of trans
 
 Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
 
-`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False)`
+`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False, also_on_reversal=False)`
 
 
 #### Parameters:
@@ -1006,6 +1006,7 @@ Parameter | Description
 regex | `string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 verify_no_match | `boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+also_on_reversal | `boolean`<br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
 
 <a id="core.workflow" aria-hidden="true"></a>
 ### core.workflow

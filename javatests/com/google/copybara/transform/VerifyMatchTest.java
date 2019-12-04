@@ -5,6 +5,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -39,7 +40,7 @@ public final class VerifyMatchTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(VerifyMatch verifyMatch) throws IOException, ValidationException {
+  private void transform(Transformation verifyMatch) throws IOException, ValidationException {
     verifyMatch.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
@@ -86,6 +87,26 @@ public final class VerifyMatchTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e.getMessage()).contains("1 file(s) failed the validation of Verify match 'foo'.");
+      console.assertThat().onceInLog(MessageType.ERROR,
+          "File 'file1.txt' failed validation 'Verify match 'foo''.");
+    }
+  }
+  
+  @Test
+  public void testSimpleReversalMatchFails() throws Exception {
+    VerifyMatch transformation = eval("core.verify_match(\n"
+        + "  regex = 'foo',\n"
+        + "  also_on_reversal = True,\n"
+        + ")");
+    Path file1 = checkoutDir.resolve("file1.txt");
+    writeFile(file1, "bar");
+    try {
+      transform(transformation.reverse());
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e)
+          .hasMessageThat()
+          .contains("1 file(s) failed the validation of Verify match 'foo'.");
       console.assertThat().onceInLog(MessageType.ERROR,
           "File 'file1.txt' failed validation 'Verify match 'foo''.");
     }

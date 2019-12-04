@@ -46,14 +46,16 @@ public final class VerifyMatch implements Transformation {
 
   private final Pattern pattern;
   private final boolean verifyNoMatch;
+  private final boolean alsoOnReversal;
   private final Glob fileMatcherBuilder;
   private final LocalParallelizer parallelizer;
   private final Location location;
 
-  private VerifyMatch(Pattern pattern, boolean verifyNoMatch, Glob fileMatcherBuilder,
-      LocalParallelizer parallelizer, Location location) {
+  private VerifyMatch(Pattern pattern, boolean verifyNoMatch, boolean alsoOnReversal,
+      Glob fileMatcherBuilder, LocalParallelizer parallelizer, Location location) {
     this.pattern = checkNotNull(pattern);
     this.verifyNoMatch = verifyNoMatch;
+    this.alsoOnReversal = alsoOnReversal;
     this.fileMatcherBuilder = checkNotNull(fileMatcherBuilder);
     this.parallelizer = parallelizer;
     this.location = checkNotNull(location);
@@ -64,6 +66,7 @@ public final class VerifyMatch implements Transformation {
     return MoreObjects.toStringHelper(this)
         .add("Pattern", pattern)
         .add("verifyNoMatch", verifyNoMatch)
+        .add("also_on_reversal", alsoOnReversal)
         .add("path", fileMatcherBuilder)
         .toString();
   }
@@ -127,17 +130,21 @@ public final class VerifyMatch implements Transformation {
 
   @Override
   public Transformation reverse() {
+    if (alsoOnReversal) {
+      return new ExplicitReversal(this, this);
+    }
     return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
   }
 
   public static VerifyMatch create(Location location, String regEx, Glob paths,
-      boolean verifyNoMatch, LocalParallelizer parallelizer) throws EvalException {
+      boolean verifyNoMatch, boolean alsoOnReversal, LocalParallelizer parallelizer)
+      throws EvalException {
     Pattern parsed;
     try {
       parsed = Pattern.compile(regEx, Pattern.MULTILINE);
     } catch (PatternSyntaxException e) {
       throw new EvalException(location, String.format("Regex '%s' is invalid.", regEx), e);
     }
-    return new VerifyMatch(parsed, verifyNoMatch, paths, parallelizer, location);
+    return new VerifyMatch(parsed, verifyNoMatch, alsoOnReversal, paths, parallelizer, location);
   }
 }

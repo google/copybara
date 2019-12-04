@@ -1149,15 +1149,20 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           @Param(name = "verify_no_match", named = true, type = Boolean.class,
               doc = "If true, the transformation will verify that the RegEx does not match.",
               defaultValue = "False"),
+          @Param(name = "also_on_reversal", named = true, type = Boolean.class,
+              doc = "If true, the check will also apply on the reversal. The default behavior is to"
+                  + " not verify the pattern on reversal.",
+              defaultValue = "False"),
       }, useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   public VerifyMatch verifyMatch(String regex, Object paths, Boolean verifyNoMatch,
-      Location location)
+      Boolean alsoOnReversal, Location location)
       throws EvalException {
     return VerifyMatch.create(location,
         regex,
         convertFromNoneable(paths, Glob.ALL_FILES),
         verifyNoMatch,
+        alsoOnReversal,
         workflowOptions.parallelizer());
   }
 
