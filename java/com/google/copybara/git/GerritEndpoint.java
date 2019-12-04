@@ -28,6 +28,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.GerritApi;
+import com.google.copybara.git.gerritapi.GerritApiException;
 import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.ReviewResult;
@@ -142,6 +143,14 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.setReview(changeId, revisionId, reviewInput);
+    } catch (GerritApiException re) {
+      if (re.getGerritResponseMsg().matches("Applying label \"\\w+\": .. is restricted")) {
+        throw new EvalException(location, "Error calling create_status",
+            new ValidationException(
+                "Gerrit returned a permission error while attempting to post a review:\n"
+                    + re.getMessage(), re));
+      }
+      throw new EvalException(location, "Error calling create_status", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling create_status", e);
     }

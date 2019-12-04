@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
@@ -415,6 +416,25 @@ public class GerritEndpointTest {
         ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
     skylark.verifyFields(config, expectedFieldValues);
   }
+
+  @Test
+  public void testPostLabel_errorCreatesVe() throws Exception {
+    mockForTest();
+    String config =
+        String.format(
+            "git.gerrit_api(url = '%s')."
+                + "post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))",
+            url);
+    ImmutableMap<String, Object> expectedFieldValues =
+        ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseWithStatus("Applying label \"Verified\": -1 is restricted", 403, x -> true));
+    skylark.evalFails(config,
+        " Gerrit returned a permission error while attempting to post a review:");
+  }
+
 
   @Test
   public void testListChangesByCommit() throws Exception {

@@ -107,7 +107,7 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     try {
       response = httpRequest.execute();
     } catch (HttpResponseException e) {
-      throw new GerritApiException(e.getStatusCode(), e.getContent());
+      throw new GerritApiException(e.getStatusCode(), e.getContent(), e.getContent());
     }
     return (T) response.parseAs(responseType);
   }

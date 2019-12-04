@@ -31,12 +31,18 @@ public class GerritApiException extends RepoException {
           Maps.uniqueIndex(EnumSet.allOf(ResponseCode.class), ResponseCode::getCode));
 
   private final ResponseCode responseCode;
+  private final String gerritResponseMsg;
   private final int exitCode;
 
-  public GerritApiException(int exitCode, String message) {
+  public GerritApiException(int exitCode, String message, String gerritResponseMsg) {
     super(message);
     this.exitCode = exitCode;
     this.responseCode = parseResponseCode(exitCode);
+    this.gerritResponseMsg = gerritResponseMsg;
+  }
+
+  public GerritApiException(int exitCode, String message) {
+    this(exitCode, message, "");
   }
 
   public ResponseCode getResponseCode() {
@@ -50,6 +56,10 @@ public class GerritApiException extends RepoException {
   private static ResponseCode parseResponseCode(int code) {
     ResponseCode responseCode = CODE_MAP.get(code);
     return responseCode == null ? ResponseCode.UNKNOWN : responseCode;
+  }
+
+  public String getGerritResponseMsg() {
+    return gerritResponseMsg;
   }
 
   /**
@@ -76,5 +86,7 @@ public class GerritApiException extends RepoException {
     public int getCode() {
       return code;
     }
+
+
   }
 }
