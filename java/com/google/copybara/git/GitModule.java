@@ -100,7 +100,7 @@ import javax.annotation.Nullable;
 public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
-  final Sequence<GitIntegrateChanges> defaultGitIntegrate;
+  private final Sequence<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";
   private static final String GITHUB_TRIGGER = "github_trigger";
@@ -1296,7 +1296,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GitHubPrDestination(
-        fixHttp(url, location),
+        fixHttp(
+            checkNotEmpty(firstNotNull(destinationOptions.url, url), "url", location), location),
         destinationRef,
         convertFromNoneable(prBranch, null),
         generalOptions,
