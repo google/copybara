@@ -430,7 +430,7 @@ public class GerritEndpointTest {
     gitUtil.mockApi(
         eq("POST"),
         matches(BASE_URL + "/changes/.*/revisions/.*/review"),
-        mockResponseWithStatus("Applying label \"Verified\": -1 is restricted", 403, x -> true));
+        mockResponseWithStatus("\n\nApplying label \"Verified\": -1 is restricted.", 403, x -> true));
     skylark.evalFails(config,
         " Gerrit returned a permission error while attempting to post a review:");
   }

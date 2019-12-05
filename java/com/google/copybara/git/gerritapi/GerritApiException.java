@@ -42,7 +42,7 @@ public class GerritApiException extends RepoException {
   }
 
   public GerritApiException(int exitCode, String message) {
-    this(exitCode, message, "");
+    this(exitCode, message, message);
   }
 
   public ResponseCode getResponseCode() {

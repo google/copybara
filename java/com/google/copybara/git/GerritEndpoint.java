@@ -144,15 +144,15 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.setReview(changeId, revisionId, reviewInput);
     } catch (GerritApiException re) {
-      if (re.getGerritResponseMsg().matches("Applying label \"\\w+\": .. is restricted")) {
-        throw new EvalException(location, "Error calling create_status",
+      if (re.getGerritResponseMsg().matches("(?s).*Applying label \"\\w+\":.*is restricted.*")) {
+        throw new EvalException(location, "Error calling post_review",
             new ValidationException(
                 "Gerrit returned a permission error while attempting to post a review:\n"
                     + re.getMessage(), re));
       }
-      throw new EvalException(location, "Error calling create_status", re);
+      throw new EvalException(location, "Error calling post_review", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling create_status", e);
+      throw new EvalException(location, "Error calling post_review", e);
     }
   }
 
