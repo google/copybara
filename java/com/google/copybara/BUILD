@@ -18,10 +18,13 @@ package(default_visibility = ["//visibility:public"])
 
 load(":docs.bzl", "doc_generator")
 
-export_files = [
-    "doc_skylark.sh",
-    "docs.bzl",
-]
+exports_files(
+    [
+        "doc_skylark.sh",
+        "docs.bzl",
+    ],
+    visibility = ["//visibility:public"],
+)
 
 JAVACOPTS = [
     "-Xlint:unchecked",
