@@ -354,9 +354,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             type = Boolean.class,
             doc =
                 "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
-                    + " track what was the latest change imported. For certain workflows like"
-                    + " `CHANGE_REQUEST` it not used and is purely informational. This field allows"
-                    + " to disable it for that mode. Destinations might ignore the flag.",
+                    + " track what was the latest change imported. For `CHANGE_REQUEST` "
+                    + "workflows it is not used and is purely informational. This field "
+                    + "allows to disable it for that mode. Destinations might ignore the flag.",
             defaultValue = "True",
             positional = false),
         @Param(
