@@ -220,12 +220,8 @@ public class SkylarkParser {
               new Extension(eval(content.resolve(module.getValue() + BARA_SKY))));
         }
       }
-      StarlarkThread thread =
-          createStarlarkThread(
-              eventHandler,
-              createEnvironmentForConfigFile(
-                  eventHandler, content, mainConfigFile, environment, moduleSet),
-              imports);
+      updateEnvironmentForConfigFile(eventHandler, content, mainConfigFile, environment, moduleSet);
+      StarlarkThread thread = createStarlarkThread(eventHandler, environment, imports);
 
       // TODO(adonovan): copybara really needs to be calling
       // ValidationException.validateFile(file, thread, false)
@@ -284,18 +280,15 @@ public class SkylarkParser {
         .build();
   }
 
-  /**
-   * Create the environment to be used for loading the config file. As a side effect it mutates the
-   * module globals with information about the current file loaded.
-   */
-  private ImmutableMap<String, Object> createEnvironmentForConfigFile(
+  /** Updates the module globals with information about the current loaded config file. */
+  // TODO(copybara-team): evaluate the cleaner approach of saving the varying parts in the
+  // StarlarkThread.setThreadLocal and leaving the modules alone as nature intended.
+  private void updateEnvironmentForConfigFile(
       EventHandler printHandler,
       ConfigFile currentConfigFile,
       ConfigFile mainConfigFile,
       Map<String, Object> environment,
       ModuleSet moduleSet) {
-    Map<String, Object> env = Maps.newHashMap(environment);
-
     for (Object module : moduleSet.getModules().values()) {
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
       if (module instanceof LabelsAwareModule) {
@@ -313,7 +306,7 @@ public class SkylarkParser {
       logger.atInfo().log("Creating variable for %s", module.getName());
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
-        LabelsAwareModule m = (LabelsAwareModule) env.get(getModuleName(module));
+        LabelsAwareModule m = (LabelsAwareModule) environment.get(getModuleName(module));
         m.setConfigFile(mainConfigFile, currentConfigFile);
         m.setDynamicEnvironment(
             () ->
@@ -323,7 +316,6 @@ public class SkylarkParser {
                     .build());
       }
     }
-    return ImmutableMap.copyOf(env);
   }
 
   /**
@@ -332,8 +324,8 @@ public class SkylarkParser {
    */
   private ImmutableMap<String, Object> createEnvironment(
       ModuleSet moduleSet, Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier) {
-    Map<String, Object> env = Maps.newHashMap(StarlarkThread.SKYLARK.getBindings());
-
+    Map<String, Object> env = Maps.newHashMap();
+    env.putAll(Starlark.UNIVERSE);
     for (Entry<String, Object> module : moduleSet.getModules().entrySet()) {
       logger.atInfo().log("Creating variable for %s", module.getKey());
       if (module.getValue() instanceof LabelsAwareModule) {
