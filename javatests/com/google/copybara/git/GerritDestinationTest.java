@@ -1018,19 +1018,15 @@ public class GerritDestinationTest {
   @Test
   public void validationErrorForMissingPullFromRef() {
     skylark.evalFails(
-        "git.gerrit_destination(\n"
-            + "    url = 'file:///foo',\n"
-            + ")",
-        "parameter 'fetch' has no default value");
+        "git.gerrit_destination(\n" + "    url = 'file:///foo',\n" + ")",
+        "missing 1 required positional argument: fetch");
   }
 
   @Test
   public void validationErrorForMissingUrl() {
     skylark.evalFails(
-        "git.gerrit_destination(\n"
-            + "    fetch = 'master',\n"
-            + ")",
-        "parameter 'url' has no default value");
+        "git.gerrit_destination(\n" + "    fetch = 'master',\n" + ")",
+        "missing 1 required positional argument: url");
   }
 
   @Test

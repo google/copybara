@@ -2112,7 +2112,7 @@ public class WorkflowTest {
                         + ")\n"));
     console()
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*parameter 'authoring' has no default value.*");
+        .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: authoring.*");
   }
 
   private Config loadConfig(String content) throws IOException, ValidationException {
@@ -2138,8 +2138,9 @@ public class WorkflowTest {
     for (Message message : console().getMessages()) {
       System.err.println(message);
       }
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*parameter 'origin' has no default value.*");
+    console()
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: origin.*");
   }
 
   @Test
@@ -2289,7 +2290,7 @@ public class WorkflowTest {
                         + ")\n"));
     console()
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*parameter 'destination' has no default value.*");
+        .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: destination.*");
   }
 
   @Test

@@ -97,20 +97,18 @@ public class GlobTest {
 
   @Test
   public void errorForMissingInclude() throws Exception {
-    skylark.evalFails("glob(exclude = ['foo'])", "parameter 'include' has no default value");
+    skylark.evalFails("glob(exclude = ['foo'])", "missing 1 required positional argument: include");
   }
 
   @Test
   public void errorForMissingParams() throws Exception {
-    skylark.evalFails("glob()", "parameter 'include' has no default value");
+    skylark.evalFails("glob()", "missing 1 required positional argument: include");
   }
 
   @Test
   public void errorForNotNamingExclude() throws Exception {
     skylark.evalFails(
-        "glob(['bar/*'], ['bar/foo'])",
-        "expected no more than 1 positional arguments, but got 2, "
-            + "((in call to)|(for call to function)) glob");
+        "glob(['bar/*'], ['bar/foo'])", "accepts no more than 1 positional argument but got 2");
   }
 
   @Test

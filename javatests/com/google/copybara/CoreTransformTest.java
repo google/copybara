@@ -274,8 +274,9 @@ public final class CoreTransformTest {
 
   @Test
   public void errorForMissingForwardArgument() {
-    skylark.evalFails("core.transform(reversal = [core.move('foo', 'bar')])",
-        "parameter 'transformations' has no default value");
+    skylark.evalFails(
+        "core.transform(reversal = [core.move('foo', 'bar')])",
+        "missing 1 required positional argument: transformations");
   }
 
   @Test

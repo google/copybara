@@ -79,10 +79,9 @@ public final class ReplaceTest {
 
   @Test
   public void missingReplacement() throws ValidationException {
-    skylark.evalFails("core.replace(\n"
-            + "  before = 'asdf',\n"
-            + ")",
-        "parameter 'after' has no default value");
+    skylark.evalFails(
+        "core.replace(\n" + "  before = 'asdf',\n" + ")",
+        "missing 1 required positional argument: after");
   }
 
   @Test

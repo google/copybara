@@ -141,12 +141,9 @@ public class GitDestinationTest {
 
   @Test
   public void errorIfUrlMissing() {
-    skylark.evalFails(""
-            + "git.destination(\n"
-            + "    fetch = 'master',\n"
-            + "    push = 'master',\n"
-            + ")",
-        "parameter 'url' has no default value");
+    skylark.evalFails(
+        "" + "git.destination(\n" + "    fetch = 'master',\n" + "    push = 'master',\n" + ")",
+        "missing 1 required positional argument: url");
   }
 
   @Test

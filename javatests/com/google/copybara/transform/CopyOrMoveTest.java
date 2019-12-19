@@ -672,7 +672,7 @@ public class CopyOrMoveTest {
         () -> skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n"));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
+        .onceInLog(MessageType.ERROR, ".*missing 1 required positional argument: before.*");
   }
 
   @Test
@@ -680,6 +680,8 @@ public class CopyOrMoveTest {
     assertThrows(
         ValidationException.class,
         () -> skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n"));
-    console.assertThat().onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*missing 1 required positional argument: after.*");
   }
 }

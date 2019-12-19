@@ -345,7 +345,7 @@ public class FeedbackTest {
         assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
-        .matches(".*parameter 'msg' has no default value, .*method.*error\\(.*\\).*");
+        .matches(".*missing 1 required positional argument: msg.*");
   }
 
   @Test
