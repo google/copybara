@@ -58,6 +58,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
@@ -148,23 +149,27 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "get_combined_status",
+  @SkylarkCallable(
+      name = "get_combined_status",
       doc = "Get the combined status for a commit. Returns None if not found.",
       parameters = {
-          @Param(name = "ref", type = String.class, named = true,
-              doc = "The SHA-1 or ref for which we want to get the combined status"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            named = true,
+            doc = "The SHA-1 or ref for which we want to get the combined status"),
       },
-      useLocation = true, allowReturnNones = true)
+      allowReturnNones = true)
   @Nullable
-  public CombinedStatus getCombinedStatus(String ref, Location location) throws EvalException {
+  public CombinedStatus getCombinedStatus(String ref) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCombinedStatus(project, ref);
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_combined_status", e);
+      throw Starlark.errorf("Error calling get_combined_status: %s", e);
     }
   }
 
@@ -184,9 +189,9 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCommit(project, ref);
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_commit", e);
+      throw Starlark.errorf("Error calling get_commit: %s", e);
     }
   }
 
@@ -268,9 +273,9 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getReference(project, ref);
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_reference", e);
+      throw Starlark.errorf("Error calling get_reference: %s", e.getMessage());
     }
   }
 
@@ -316,14 +321,18 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
         request = request.withHead(basePrefix);
       }
 
-      return apiSupplier.load(console).getPullRequests(project,
-          request.withState(stringToEnum(location, "state", state, StateFilter.class))
-              .withDirection(stringToEnum(location, "direction", direction, DirectionFilter.class))
-              .withSort(stringToEnum(location, "sort", sort, SortFilter.class)));
+      return apiSupplier
+          .load(console)
+          .getPullRequests(
+              project,
+              request
+                  .withState(stringToEnum("state", state, StateFilter.class))
+                  .withDirection(stringToEnum("direction", direction, DirectionFilter.class))
+                  .withSort(stringToEnum("sort", sort, SortFilter.class)));
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_pull_requests", e);
+      throw Starlark.errorf("Error calling get_pull_requests: %s", e.getMessage());
     }
   }
 
@@ -350,14 +359,18 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
 
-      return apiSupplier.load(console).updatePullRequest(project, number,
-          new UpdatePullRequest(
-              convertFromNoneable(title, null),
-              convertFromNoneable(body, null),
-              stringToEnum(location, "state",
-                  convertFromNoneable(state, null), UpdatePullRequest.State.class)));
+      return apiSupplier
+          .load(console)
+          .updatePullRequest(
+              project,
+              number,
+              new UpdatePullRequest(
+                  convertFromNoneable(title, null),
+                  convertFromNoneable(body, null),
+                  stringToEnum(
+                      "state", convertFromNoneable(state, null), UpdatePullRequest.State.class)));
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling update_pull_request", e);
     }
@@ -372,16 +385,15 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       return apiSupplier.load(console).getAuthenticatedUser();
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(location, e);
+      return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(location, "Error calling get_authenticated_user", e);
     }
   }
 
   @Nullable
-  private <T> T returnNullOnNotFound(Location location, GitHubApiException e)
-      throws EvalException {
-    SkylarkUtil.check(location, e.getResponseCode() == ResponseCode.NOT_FOUND, e.getMessage());
+  private <T> T returnNullOnNotFound(GitHubApiException e) throws EvalException {
+    SkylarkUtil.check(e.getResponseCode() == ResponseCode.NOT_FOUND, e.getMessage());
     return null;
   }
 
@@ -389,14 +401,13 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "get_references",
       doc =
           "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
-              + "number of 500.",
-      useLocation = true)
-  public Sequence<Ref> getReferences(Location location) throws EvalException {
+              + "number of 500.")
+  public Sequence<Ref> getReferences() throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(apiSupplier.load(console).getReferences(project));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_references", e);
+      throw Starlark.errorf("Error calling get_references: %s", e.getMessage());
     }
   }
 

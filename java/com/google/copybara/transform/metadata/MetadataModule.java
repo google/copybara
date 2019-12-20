@@ -33,6 +33,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
@@ -148,8 +149,16 @@ public class MetadataModule implements StarlarkValue {
         Boolean compact, Boolean showRef, Boolean showAuthor, Boolean showDescription,
         Boolean oldestFirst, Boolean useMerge,
         Location location) throws EvalException {
-      return new MetadataSquashNotes(SkylarkUtil.checkNotEmpty(prefix, "prefix", location),
-          max, compact, showRef, showAuthor, showDescription, oldestFirst, useMerge, location);
+    return new MetadataSquashNotes(
+        SkylarkUtil.checkNotEmpty(prefix, "prefix"),
+        max,
+        compact,
+        showRef,
+        showAuthor,
+        showDescription,
+        oldestFirst,
+        useMerge,
+        location);
     }
 
 
@@ -245,11 +254,13 @@ public class MetadataModule implements StarlarkValue {
       Boolean mapAll,
       Location location)
       throws EvalException {
-      check(location, reversible || !reverseFailIfNotFound,
-          "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
+    check(
+        reversible || !reverseFailIfNotFound,
+        "'reverse_fail_if_not_found' can only be true if 'reversible' is true");
 
-      check(location, !noopReverse || !reverseFailIfNotFound,
-          "'reverse_fail_if_not_found' can only be true if 'noop_reverse' is not set");
+    check(
+        !noopReverse || !reverseFailIfNotFound,
+        "'reverse_fail_if_not_found' can only be true if 'noop_reverse' is not set");
 
     return MapAuthor.create(
         location,
@@ -282,64 +293,91 @@ public class MetadataModule implements StarlarkValue {
       }, useLocation = true)
   public Transformation useLastChange(Boolean useAuthor, Boolean useMsg,
         Object defaultMsg, Boolean useMerge, Location location) throws EvalException {
-      check(location, useAuthor || useMsg, "author or message should"
-          + " be enabled");
+    check(useAuthor || useMsg, "author or message should" + " be enabled");
       String defaultMessage = convertFromNoneable(defaultMsg, null);
 
-      check(location, defaultMessage == null || useMsg,
-          "default_message can only be used if message = True ");
+    check(defaultMessage == null || useMsg, "default_message can only be used if message = True ");
     return new UseLastChange(useAuthor, useMsg, defaultMessage, useMerge, location);
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "expose_label",
-      doc = "Certain labels are present in the internal metadata but are not exposed in the message"
-          + " by default. This transformations find a label in the internal metadata and exposes it"
-          + " in the message. If the label is already present in the message it will update it to"
-          + " use the new name and separator.",
+  @SkylarkCallable(
+      name = "expose_label",
+      doc =
+          "Certain labels are present in the internal metadata but are not exposed in the message"
+              + " by default. This transformations find a label in the internal metadata and"
+              + " exposes it in the message. If the label is already present in the message it"
+              + " will update it to use the new name and separator.",
       parameters = {
-          @Param(name = "name", type = String.class, doc = "The label to search", named = true),
-          @Param(name = "new_name", type = String.class, doc = "The name to use in the message",
-              named = true,
-              defaultValue = "None", noneable = true),
-          @Param(name = "separator", type = String.class, named = true,
-              doc = "The separator to use when"
-              + " adding the label to the message",
-              defaultValue = "\"=\""),
-          @Param(name = "ignore_label_not_found", type = Boolean.class, named = true,
-              doc = "If a label is not found, ignore the error and continue.",
-              defaultValue = "True"),
-          @Param(name = "all", type = Boolean.class, named = true,
-              doc = "By default Copybara tries to find the most relevant instance of the label."
-                  + " First looking into the message and then looking into the changes in order."
-                  + " If this field is true it exposes all the matches instead.",
-              defaultValue = "False"),
-      }, useLocation = true)
-  @Example(title = "Simple usage", before = "Expose a hidden label called 'REVIEW_URL':",
+        @Param(name = "name", type = String.class, doc = "The label to search", named = true),
+        @Param(
+            name = "new_name",
+            type = String.class,
+            doc = "The name to use in the message",
+            named = true,
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "separator",
+            type = String.class,
+            named = true,
+            doc = "The separator to use when" + " adding the label to the message",
+            defaultValue = "\"=\""),
+        @Param(
+            name = "ignore_label_not_found",
+            type = Boolean.class,
+            named = true,
+            doc = "If a label is not found, ignore the error and continue.",
+            defaultValue = "True"),
+        @Param(
+            name = "all",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "By default Copybara tries to find the most relevant instance of the label."
+                    + " First looking into the message and then looking into the changes in order."
+                    + " If this field is true it exposes all the matches instead.",
+            defaultValue = "False"),
+      },
+      useLocation = true)
+  @Example(
+      title = "Simple usage",
+      before = "Expose a hidden label called 'REVIEW_URL':",
       code = "metadata.expose_label('REVIEW_URL')",
       after = "This would add it as `REVIEW_URL=the_value`.")
-  @Example(title = "New label name", before = "Expose a hidden label called 'REVIEW_URL' as"
-      + " GIT_REVIEW_URL:",
+  @Example(
+      title = "New label name",
+      before = "Expose a hidden label called 'REVIEW_URL' as" + " GIT_REVIEW_URL:",
       code = "metadata.expose_label('REVIEW_URL', 'GIT_REVIEW_URL')",
       after = "This would add it as `GIT_REVIEW_URL=the_value`.")
-  @Example(title = "Custom separator", before = "Expose the label with a custom separator",
+  @Example(
+      title = "Custom separator",
+      before = "Expose the label with a custom separator",
       code = "metadata.expose_label('REVIEW_URL', separator = ': ')",
       after = "This would add it as `REVIEW_URL: the_value`.")
-  @Example(title = "Expose multiple labels",
+  @Example(
+      title = "Expose multiple labels",
       before = "Expose all instances of a label in all the changes (SQUASH for example)",
       code = "metadata.expose_label('REVIEW_URL', all = True)",
       after = "This would add 0 or more `REVIEW_URL: the_value` labels to the message.")
   @DocDefault(field = "new_name", value = "label")
-  public Transformation exposeLabel(String label, Object newName,
-        String separator, Boolean ignoreIfLabelNotFound, Boolean all, Location location)
-        throws EvalException {
-      check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
-          "'name': Invalid label name'%s'", label);
+  public Transformation exposeLabel(
+      String label,
+      Object newName,
+      String separator,
+      Boolean ignoreIfLabelNotFound,
+      Boolean all,
+      Location location)
+      throws EvalException {
+    check(
+        LabelFinder.VALID_LABEL.matcher(label).matches(), "'name': Invalid label name'%s'", label);
 
       String newLabelName = convertFromNoneable(newName, label);
 
-      check(location, LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
-          "'new_name': Invalid label name '%s'", newLabelName);
+    check(
+        LabelFinder.VALID_LABEL.matcher(newLabelName).matches(),
+        "'new_name': Invalid label name '%s'",
+        newLabelName);
 
     return new ExposeLabelInMessage(label, newLabelName, separator, ignoreIfLabelNotFound, all,
         location);
@@ -356,8 +394,8 @@ public class MetadataModule implements StarlarkValue {
       code = "metadata.remove_label('Change-Id')")
   public Transformation removeLabel(String label, Location location)
         throws EvalException {
-      check(location, LabelFinder.VALID_LABEL.matcher(label).matches(),
-          "'name': Invalid label name'%s'", label);
+    check(
+        LabelFinder.VALID_LABEL.matcher(label).matches(), "'name': Invalid label name'%s'", label);
 
     return new RemoveLabelInMessage(label, location);
     }
@@ -582,12 +620,12 @@ public class MetadataModule implements StarlarkValue {
       try {
         pattern = Pattern.compile(regex, Pattern.MULTILINE);
       } catch (PatternSyntaxException e) {
-        throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
+      throw Starlark.errorf("Invalid regex expression: %s", e.getMessage());
       }
       String msgIfNoMatch = convertFromNoneable(msgIfNoMatchObj, null);
-      check(
-          location, !failIfNoMatch || msgIfNoMatch == null,
-          "If fail_if_no_match is true, msg_if_no_match should be None.");
+    check(
+        !failIfNoMatch || msgIfNoMatch == null,
+        "If fail_if_no_match is true, msg_if_no_match should be None.");
       return new Scrubber(pattern, msgIfNoMatch, failIfNoMatch, replacement, location);
     }
 
@@ -614,7 +652,7 @@ public class MetadataModule implements StarlarkValue {
       try {
         pattern = Pattern.compile(regex, Pattern.MULTILINE);
       } catch (PatternSyntaxException e) {
-        throw new EvalException(location, "Invalid regex expression: " + e.getMessage());
+      throw Starlark.errorf("Invalid regex expression: %s", e.getMessage());
       }
       return new MetadataVerifyMatch(pattern, verifyNoMatch, location);
     }
@@ -696,7 +734,6 @@ public class MetadataModule implements StarlarkValue {
       throws EvalException {
     Map<String, String> groupsMap = groups.getContents(String.class, String.class, "regex_groups");
     check(
-        location,
         groupsMap.containsKey("before_ref")
             && (groupsMap.size() != 2 || groupsMap.containsKey("after_ref"))
             && groupsMap.size() <= 2,
@@ -708,15 +745,13 @@ public class MetadataModule implements StarlarkValue {
     try {
       beforePattern = Pattern.compile(groupsMap.get("before_ref"));
     } catch (java.util.regex.PatternSyntaxException exception) {
-      throw new EvalException(
-          location, String.format("Invalid before_ref regex '%s'.", groupsMap.get("before_ref")));
+      throw Starlark.errorf("Invalid before_ref regex '%s'.", groupsMap.get("before_ref"));
     }
     if (groupsMap.containsKey("after_ref")) {
       try {
         afterPattern = Pattern.compile(groupsMap.get("after_ref"));
       } catch (java.util.regex.PatternSyntaxException exception) {
-        throw new EvalException(
-            location, String.format("Invalid after_ref regex '%s'.", groupsMap.get("after_ref")));
+        throw Starlark.errorf("Invalid after_ref regex '%s'.", groupsMap.get("after_ref"));
       }
     }
     return ReferenceMigrator.create(

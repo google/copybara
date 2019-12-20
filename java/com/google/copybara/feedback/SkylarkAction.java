@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -55,7 +56,7 @@ public class SkylarkAction implements Action {
           Starlark.call(
               thread.get(),
               function,
-              /*call=*/ null,
+              Location.BUILTIN,
               ImmutableList.of(actionContext),
               /*kwargs=*/ ImmutableMap.of());
       context.onFinish(result, actionContext);

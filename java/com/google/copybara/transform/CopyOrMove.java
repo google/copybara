@@ -30,6 +30,7 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
@@ -74,26 +75,26 @@ public class CopyOrMove implements Transformation {
       String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
       Location location) throws EvalException {
     return new CopyOrMove(
-        validatePath(location, before),
-        validatePath(location, after),
+        validatePath(before),
+        validatePath(after),
         paths,
         overwrite,
         location,
         workflowOptions,
-        /*isCopy=*/false);
+        /*isCopy=*/ false);
   }
 
   public static CopyOrMove createCopy(
       String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
       Location location) throws EvalException {
     return new CopyOrMove(
-        validatePath(location, before),
-        validatePath(location, after),
+        validatePath(before),
+        validatePath(after),
         paths,
         overwrite,
         location,
         workflowOptions,
-        /*isCopy=*/true);
+        /*isCopy=*/ true);
   }
 
   @Override
@@ -263,11 +264,11 @@ public class CopyOrMove implements Transformation {
     return (isCopy ? "Copying " : "Moving ") + before;
   }
 
-  private static String validatePath(Location location, String strPath) throws EvalException {
+  private static String validatePath(String strPath) throws EvalException {
     try {
       return FileUtil.checkNormalizedRelative(strPath);
     } catch (IllegalArgumentException e) {
-      throw new EvalException(location, "'" + strPath + "' is not a valid path", e);
+      throw Starlark.errorf("'%s' is not a valid path: %s", strPath, e.getMessage());
     }
   }
 

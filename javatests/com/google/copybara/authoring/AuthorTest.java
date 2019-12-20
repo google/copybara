@@ -34,7 +34,7 @@ public class AuthorTest {
 
   @Test
   public void testParse() throws Exception {
-    Author author = Author.parse(/*location*/ null, "Foo Bar <foo@bar.com>");
+    Author author = Author.parse("Foo Bar <foo@bar.com>");
     assertThat(author.getName()).isEqualTo("Foo Bar");
     assertThat(author.getEmail()).isEqualTo("foo@bar.com");
   }
@@ -43,16 +43,15 @@ public class AuthorTest {
   public void testParseEquals() throws Exception {
     new EqualsTester()
         .addEqualityGroup(
-            Author.parse(/*location*/ null, "Foo Bar <foo@bar.com>"),
-            Author.parse(/*location*/ null, "'Foo Bar <foo@bar.com>'"),
-            Author.parse(/*location*/ null, "\"Foo Bar <foo@bar.com>\"")
-        )
+            Author.parse("Foo Bar <foo@bar.com>"),
+            Author.parse("'Foo Bar <foo@bar.com>'"),
+            Author.parse("\"Foo Bar <foo@bar.com>\""))
         .testEquals();
   }
 
   @Test
   public void testParse_emptyEmail() throws Exception {
-    Author fooBar = Author.parse(/*location*/ null, "Foo Bar <>");
+    Author fooBar = Author.parse("Foo Bar <>");
     assertThat(fooBar.getEmail()).isEqualTo("");
     assertThat(fooBar.getName()).isEqualTo("Foo Bar");
   }
@@ -62,7 +61,7 @@ public class AuthorTest {
     thrown.expect(EvalException.class);
     thrown.expectMessage(
         "Author 'foo-bar' doesn't match the expected format 'name <mail@example.com>");
-    Author.parse(/*location*/ null, "foo-bar");
+    Author.parse("foo-bar");
   }
 
   @Test

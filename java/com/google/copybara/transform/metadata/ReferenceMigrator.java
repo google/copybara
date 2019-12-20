@@ -86,8 +86,9 @@ public class ReferenceMigrator implements Transformation {
         new RegexTemplateTokens(location, after, patterns, /* repeatedGroups= */ false);
     afterTokens.validateUnused();
     check(
-        location, after.lastIndexOf("$1") == -1,
-        "Destination format '%s' uses the reserved token '$1'.", after);
+        after.lastIndexOf("$1") == -1,
+        "Destination format '%s' uses the reserved token '$1'.",
+        after);
     return new ReferenceMigrator(beforeTokens, afterTokens, backward, additionalLabels,
         location);
   }

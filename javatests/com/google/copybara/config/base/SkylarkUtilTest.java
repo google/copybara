@@ -19,7 +19,6 @@ package com.google.copybara.config.base;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.copybara.config.SkylarkUtil;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,18 +36,18 @@ public class SkylarkUtilTest {
   public void testCheckNotEmpty_Null() throws Exception {
     thrown.expect(EvalException.class);
     thrown.expectMessage("Invalid empty field 'foo'");
-    SkylarkUtil.checkNotEmpty(null, "foo", Location.BUILTIN);
+    SkylarkUtil.checkNotEmpty(null, "foo");
   }
 
   @Test
   public void testCheckNotEmpty_Empty() throws Exception {
     thrown.expect(EvalException.class);
     thrown.expectMessage("Invalid empty field 'foo'");
-    SkylarkUtil.checkNotEmpty("", "foo", Location.BUILTIN);
+    SkylarkUtil.checkNotEmpty("", "foo");
   }
 
   @Test
   public void testCheckNotEmpty_NonEmpty() throws Exception {
-    assertThat(SkylarkUtil.checkNotEmpty("test", "foo", Location.BUILTIN)).isEqualTo("test");
+    assertThat(SkylarkUtil.checkNotEmpty("test", "foo")).isEqualTo("test");
   }
 }

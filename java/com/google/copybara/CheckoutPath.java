@@ -22,7 +22,6 @@ import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.ResolvedSymlink;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -60,14 +59,13 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
   }
 
-  private CheckoutPath create(Path path, Location location) throws EvalException {
-    return createWithCheckoutDir(path, checkoutDir, location);
+  private CheckoutPath create(Path path) throws EvalException {
+    return createWithCheckoutDir(path, checkoutDir);
   }
 
-  static CheckoutPath createWithCheckoutDir(Path relative, Path checkoutDir,
-      Location location) throws EvalException {
+  static CheckoutPath createWithCheckoutDir(Path relative, Path checkoutDir) throws EvalException {
     if (relative.isAbsolute()) {
-      throw new EvalException(location, "Absolute paths are not allowed: " + relative);
+      throw Starlark.errorf("Absolute paths are not allowed: %s", relative);
     }
     return new CheckoutPath(relative.normalize(), checkoutDir);
   }
@@ -89,19 +87,16 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       name = "parent",
       doc = "Get the parent path",
       structField = true,
-      allowReturnNones = true,
-      useLocation = true)
-  public Object parent(Location location) throws EvalException {
+      allowReturnNones = true)
+  public Object parent() throws EvalException {
     Path parent = path.getParent();
     if (parent == null) {
       // nio equivalent of new_path("foo").parent returns null, but we want to be able to do
       // foo.parent.resolve("bar"). While sibbling could be use for this, sometimes we'll need
       // to return the parent folder and another function resolve a path based on that.
-      return path.toString().equals("")
-          ? Starlark.NONE
-          : create(path.getFileSystem().getPath(""), location);
+      return path.toString().equals("") ? Starlark.NONE : create(path.getFileSystem().getPath(""));
     }
-    return create(parent, location);
+    return create(parent);
   }
 
   @SkylarkCallable(
@@ -115,9 +110,9 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
             name = "other",
             type = CheckoutPath.class,
             doc = "The path to relativize against this path"),
-      }, useLocation = true)
-  public CheckoutPath relativize(CheckoutPath other, Location location) throws EvalException {
-    return create(path.relativize(other.path), location);
+      })
+  public CheckoutPath relativize(CheckoutPath other) throws EvalException {
+    return create(path.relativize(other.path));
   }
 
   @SkylarkCallable(
@@ -130,15 +125,15 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
             doc =
                 "Resolve the given path against this path. The parameter"
                     + " can be a string or a Path.")
-      }, useLocation = true)
-  public CheckoutPath resolve(Object child, Location location) throws EvalException {
+      })
+  public CheckoutPath resolve(Object child) throws EvalException {
     if (child instanceof String) {
-      return create(path.resolve((String) child), location);
+      return create(path.resolve((String) child));
     } else if (child instanceof CheckoutPath) {
-      return create(path.resolve(((CheckoutPath) child).path), location);
+      return create(path.resolve(((CheckoutPath) child).path));
     }
-    throw new EvalException(location,
-        "Cannot resolve children for type " + child.getClass().getSimpleName() + ":" + child);
+    throw Starlark.errorf(
+        "Cannot resolve children for type %s: %s", child.getClass().getSimpleName(), child);
   }
 
   @SkylarkCallable(
@@ -151,23 +146,22 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
             doc =
                 "Resolve the given path against this path. The parameter can be a string or"
                     + " a Path."),
-      }, useLocation = true)
-  public CheckoutPath resolveSibling(Object other, Location location) throws EvalException {
+      })
+  public CheckoutPath resolveSibling(Object other) throws EvalException {
     if (other instanceof String) {
-      return create(path.resolveSibling((String) other), location);
+      return create(path.resolveSibling((String) other));
     } else if (other instanceof CheckoutPath) {
-      return create(path.resolveSibling(((CheckoutPath) other).path), location);
+      return create(path.resolveSibling(((CheckoutPath) other).path));
     }
-    throw new EvalException(location,
-        "Cannot resolve sibling for type " + other.getClass().getSimpleName() + ": " + other);
+    throw Starlark.errorf(
+        "Cannot resolve sibling for type %s: %s", other.getClass().getSimpleName(), other);
   }
 
   @SkylarkCallable(
       name = "attr",
       doc = "Get the file attributes, for example size.",
-      structField = true,
-      useLocation = true)
-  public CheckoutPathAttributes attr(Location location) throws EvalException {
+      structField = true)
+  public CheckoutPathAttributes attr() throws EvalException {
     try {
       return new CheckoutPathAttributes(path,
           Files.readAttributes(checkoutDir.resolve(path), BasicFileAttributes.class,
@@ -175,33 +169,31 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     } catch (IOException e) {
       String msg = "Error getting attributes for " + path + ":" + e;
       logger.atSevere().withCause(e).log(msg);
-      throw new EvalException(location, msg); // or IOException?
+      throw Starlark.errorf("%s", msg); // or IOException?
     }
   }
 
-  @SkylarkCallable(name = "read_symlink", doc = "Read the symlink", useLocation = true)
-  public CheckoutPath readSymbolicLink(Location location) throws EvalException {
+  @SkylarkCallable(name = "read_symlink", doc = "Read the symlink")
+  public CheckoutPath readSymbolicLink() throws EvalException {
     try {
       Path symlinkPath = checkoutDir.resolve(path);
       if (!Files.isSymbolicLink(symlinkPath)) {
-        throw new EvalException(location, String.format("%s is not a symlink", path));
+        throw Starlark.errorf("%s is not a symlink", path);
       }
 
       ResolvedSymlink resolvedSymlink =
           FileUtil.resolveSymlink(Glob.ALL_FILES.relativeTo(checkoutDir), symlinkPath);
       if (!resolvedSymlink.isAllUnderRoot()) {
-        throw new EvalException(
-            location,
-            String.format(
-                "Symlink %s points to a file outside the checkout dir: %s",
-                symlinkPath, resolvedSymlink.getRegularFile()));
+        throw Starlark.errorf(
+            "Symlink %s points to a file outside the checkout dir: %s",
+            symlinkPath, resolvedSymlink.getRegularFile());
       }
 
-      return create(checkoutDir.relativize(resolvedSymlink.getRegularFile()), location);
+      return create(checkoutDir.relativize(resolvedSymlink.getRegularFile()));
     } catch (IOException e) {
       String msg = String.format("Cannot resolve symlink %s: %s", path, e);
       logger.atSevere().withCause(e).log(msg);
-      throw new EvalException(null, msg, e);
+      throw Starlark.errorf("%s", msg);
     }
   }
 

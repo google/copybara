@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -42,32 +41,36 @@ public class HgModule implements LabelsAwareModule, StarlarkValue {
 
   public HgModule(Options options) { this.options = Preconditions.checkNotNull(options); }
 
-  //TODO(jlliu): look into adding parameter for bookmark
-  @SkylarkCallable(name = "origin",
+  // TODO(jlliu): look into adding parameter for bookmark
+  @SkylarkCallable(
+      name = "origin",
       doc = "<b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.",
       parameters = {
-          @Param(name = "url",
-              type = String.class,
-              named = true,
-              doc = "Indicates the URL of the Hg repository"),
-          @Param(name = "ref",
-              type = String.class,
-              named = true,
-              defaultValue = "\"default\"",
-              doc = "Represents the default reference that will be used to read a revision "
-                  + "from the repository. The reference defaults to `default`, the most recent "
-                  + "revision on the default branch. References can be in a variety of "
-                  + "formats:<br>"
-                  + "<ul> "
-                  + "<li> A global identifier for a revision."
-                  + " Example: f4e0e692208520203de05557244e573e981f6c72</li>"
-                  + "<li> A bookmark in the repository.</li>"
-                  + "<li> A branch in the repository, which returns the tip of that branch."
-                  + " Example: default</li>"
-                  + "<li> A tag in the repository. Example: tip</li>"
-                  + "</ul>")},
-          useLocation = true)
-  public HgOrigin origin(String url, String ref, Location location) throws EvalException {
-    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url", location), ref);
+        @Param(
+            name = "url",
+            type = String.class,
+            named = true,
+            doc = "Indicates the URL of the Hg repository"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            named = true,
+            defaultValue = "\"default\"",
+            doc =
+                "Represents the default reference that will be used to read a revision "
+                    + "from the repository. The reference defaults to `default`, the most recent "
+                    + "revision on the default branch. References can be in a variety of "
+                    + "formats:<br>"
+                    + "<ul> "
+                    + "<li> A global identifier for a revision."
+                    + " Example: f4e0e692208520203de05557244e573e981f6c72</li>"
+                    + "<li> A bookmark in the repository.</li>"
+                    + "<li> A branch in the repository, which returns the tip of that branch."
+                    + " Example: default</li>"
+                    + "<li> A tag in the repository. Example: tip</li>"
+                    + "</ul>")
+      })
+  public HgOrigin origin(String url, String ref) throws EvalException {
+    return HgOrigin.newHgOrigin(options, checkNotEmpty(url, "url"), ref);
   }
 }

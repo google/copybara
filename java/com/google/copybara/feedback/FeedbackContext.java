@@ -139,7 +139,7 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       String typeStr)
       throws EvalException {
     DestinationEffect.Type type =
-        SkylarkUtil.stringToEnum(null, "type", typeStr, DestinationEffect.Type.class);
+        SkylarkUtil.stringToEnum("type", typeStr, DestinationEffect.Type.class);
     newDestinationEffects.add(
         new DestinationEffect(
             type,

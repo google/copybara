@@ -20,12 +20,12 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
@@ -58,8 +58,7 @@ public class CoreGlobal implements StarlarkValue {
             defaultValue = "[]",
             named = true,
             positional = false),
-      },
-      useLocation = true)
+      })
   @Example(
       title = "Simple usage",
       before = "Include all the files under a folder except for `internal` folder files:",
@@ -106,16 +105,15 @@ public class CoreGlobal implements StarlarkValue {
           "This matches all the files in `folder`, excludes all files in that folder that"
               + " ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>"
               + "`+` operator for globs is equivalent to `OR` operation.")
-  public Glob glob(Sequence<?> include, Sequence<?> exclude, Location location)
-      throws EvalException {
+  public Glob glob(Sequence<?> include, Sequence<?> exclude) throws EvalException {
     List<String> includeStrings = SkylarkUtil.convertStringList(include, "include");
     List<String> excludeStrings = SkylarkUtil.convertStringList(exclude, "exclude");
     try {
       return Glob.createGlob(includeStrings, excludeStrings);
     } catch (IllegalArgumentException e) {
-      throw new EvalException(location, String.format(
+      throw Starlark.errorf(
           "Cannot create a glob from: include='%s' and exclude='%s': %s",
-          includeStrings, excludeStrings, e.getMessage()), e);
+          includeStrings, excludeStrings, e.getMessage());
     }
   }
 
@@ -124,28 +122,35 @@ public class CoreGlobal implements StarlarkValue {
       name = "parse_message",
       doc = "Returns a ChangeMessage parsed from a well formed string.",
       parameters = {
-          @Param(name = "message", named = true, type = String.class,
-              doc = "The contents of the change message"),
-      }, useLocation = true)
-  public ChangeMessage parseMessage(String changeMessage, Location location) throws EvalException {
+        @Param(
+            name = "message",
+            named = true,
+            type = String.class,
+            doc = "The contents of the change message"),
+      })
+  public ChangeMessage parseMessage(String changeMessage) throws EvalException {
     try {
       return ChangeMessage.parseMessage(changeMessage);
     } catch (RuntimeException e) {
-      throw new EvalException(location, String.format(
-          "Cannot parse change message '%s': %s", changeMessage, e.getMessage()), e);
+      throw Starlark.errorf("Cannot parse change message '%s': %s", changeMessage, e.getMessage());
     }
   }
 
-    @SkylarkCallable(name = "new_author",
-        doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
-        parameters = {
-            @Param(name = "author_string", type = String.class, named = true,
-                doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
-        }, useLocation = true)
-    @Example(title = "Create a new author", before = "",
-        code = "new_author('Foo Bar <foobar@myorg.com>')")
-    public Author newAuthor(String authorString, Location location)
-        throws EvalException {
-      return Author.parse(location, authorString);
+  @SkylarkCallable(
+      name = "new_author",
+      doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
+      parameters = {
+        @Param(
+            name = "author_string",
+            type = String.class,
+            named = true,
+            doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
+      })
+  @Example(
+      title = "Create a new author",
+      before = "",
+      code = "new_author('Foo Bar <foobar@myorg.com>')")
+  public Author newAuthor(String authorString) throws EvalException {
+    return Author.parse(authorString);
     }
 }

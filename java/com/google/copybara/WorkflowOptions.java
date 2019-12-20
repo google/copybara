@@ -27,7 +27,6 @@ import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.AuthorConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +42,8 @@ public class WorkflowOptions implements Option {
   static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
   static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
   static final FluentLogger logger = FluentLogger.forEnclosingClass();
-  protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG = "--change-request-from-sot-limit";
+  protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG =
+      "--change-request-from-sot-limit";
 
   @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
       description = "Commit revision to be used as parent when importing a commit using"
@@ -106,8 +106,10 @@ public class WorkflowOptions implements Option {
           + " flag doesn't work for CHANGE_REQUEST mode.")
   public boolean checkLastRevState = false;
 
-  @Parameter(names = "--threads",
-      description = "Number of threads to use when running transformations that change lot of files")
+  @Parameter(
+      names = "--threads",
+      description =
+          "Number of threads to use when running transformations that change lot of files")
   public int threads = Runtime.getRuntime().availableProcessors();
 
   @Parameter(names = CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG,
@@ -180,7 +182,7 @@ public class WorkflowOptions implements Option {
     if (defaultAuthor == null) {
       return null;
     }
-    return Author.parse(Location.BUILTIN, defaultAuthor);
+    return Author.parse(defaultAuthor);
   }
 
   public boolean isReadConfigFromChange() {

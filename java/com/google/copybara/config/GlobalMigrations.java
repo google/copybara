@@ -18,7 +18,6 @@ package com.google.copybara.config;
 
 import static com.google.copybara.config.SkylarkUtil.check;
 
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -50,11 +49,9 @@ public class GlobalMigrations implements StarlarkValue {
     return migrations;
   }
 
-  public void addMigration(Location location, String name, Migration migration)
-      throws EvalException {
-    checkMigrationName(location, name);
+  public void addMigration(String name, Migration migration) throws EvalException {
+    checkMigrationName(name);
     check(
-        location,
         migrations.put(name, migration) == null,
         "A migration with the name '%s' is already defined",
         name);
@@ -63,13 +60,11 @@ public class GlobalMigrations implements StarlarkValue {
   /**
    * Checks if a migration name conforms to the expected format.
    *
-   * @param location Location in the configuration
    * @param name Migration name
    * @throws EvalException If the name does not conform to the expected format
    */
-  public static void checkMigrationName(Location location, String name) throws EvalException {
+  public static void checkMigrationName(String name) throws EvalException {
     check(
-        location,
         MIGRATION_NAME_FORMAT.matches(name),
         "Migration name '%s' doesn't conform to expected pattern: %s",
         name,

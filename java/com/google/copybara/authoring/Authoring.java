@@ -27,6 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.HashSet;
 import java.util.List;
@@ -104,39 +105,49 @@ public final class Authoring implements StarlarkValue {
       category = SkylarkModuleCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
 
-    @SkylarkCallable(name = "overwrite",
-        doc = "Use the default author for all the submits in the destination. Note that some"
-            + " destinations might choose to ignore this author and use the current user running"
-            + " the tool (In other words they don't allow impersonation).",
+    @SkylarkCallable(
+        name = "overwrite",
+        doc =
+            "Use the default author for all the submits in the destination. Note that some"
+                + " destinations might choose to ignore this author and use the current user"
+                + " running the tool (In other words they don't allow impersonation).",
         parameters = {
-            @Param(name = "default", type = String.class, named = true,
-                doc = "The default author for commits in the destination"),
-        }, useLocation = true)
-    @Example(title = "Overwrite usage example",
-        before = "Create an authoring object that will overwrite any origin author with"
-            + " noreply@foobar.com mail.",
+          @Param(
+              name = "default",
+              type = String.class,
+              named = true,
+              doc = "The default author for commits in the destination"),
+        })
+    @Example(
+        title = "Overwrite usage example",
+        before =
+            "Create an authoring object that will overwrite any origin author with"
+                + " noreply@foobar.com mail.",
         code = "authoring.overwrite(\"Foo Bar <noreply@foobar.com>\")")
-    public Authoring overwrite(String defaultAuthor, Location location)
-        throws EvalException {
-      return new Authoring(Author.parse(location, defaultAuthor),
-          AuthoringMappingMode.OVERWRITE,
-          ImmutableSet.of());
+    public Authoring overwrite(String defaultAuthor) throws EvalException {
+      return new Authoring(
+          Author.parse(defaultAuthor), AuthoringMappingMode.OVERWRITE, ImmutableSet.of());
     }
 
-    @Example(title = "Pass thru usage example", before = "",
+    @Example(
+        title = "Pass thru usage example",
+        before = "",
         code = "authoring.pass_thru(default = \"Foo Bar <noreply@foobar.com>\")")
-    @SkylarkCallable(name = "pass_thru",
+    @SkylarkCallable(
+        name = "pass_thru",
         doc = "Use the origin author as the author in the destination, no whitelisting.",
         parameters = {
-            @Param(name = "default", type = String.class,  named = true,
-                doc = "The default author for commits in the destination. This is used"
-                    + " in squash mode workflows or if author cannot be determined."),
-        }, useLocation = true)
-    public Authoring passThru(String defaultAuthor, Location location)
-          throws EvalException {
-        return new Authoring(Author.parse(location, defaultAuthor),
-            AuthoringMappingMode.PASS_THRU,
-            ImmutableSet.of());
+          @Param(
+              name = "default",
+              type = String.class,
+              named = true,
+              doc =
+                  "The default author for commits in the destination. This is used"
+                      + " in squash mode workflows or if author cannot be determined."),
+        })
+    public Authoring passThru(String defaultAuthor) throws EvalException {
+      return new Authoring(
+          Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
       }
 
     @SkylarkCallable(
@@ -156,8 +167,7 @@ public final class Authoring implements StarlarkValue {
               generic1 = String.class,
               named = true,
               doc = "List of white listed authors in the origin. The authors must be unique"),
-        },
-        useLocation = true)
+        })
     @Example(
         title = "Only pass thru whitelisted users",
         before = "",
@@ -185,31 +195,26 @@ public final class Authoring implements StarlarkValue {
                 + "       \"another\",\n"
                 + "    ],\n"
                 + ")")
-    public Authoring whitelisted(
-        String defaultAuthor,
-        Sequence<?> whitelist, // <String>
-        Location location)
-        throws EvalException {
+    public Authoring whitelisted(String defaultAuthor, Sequence<?> whitelist // <String>
+        ) throws EvalException {
       return new Authoring(
-          Author.parse(location, defaultAuthor),
+          Author.parse(defaultAuthor),
           AuthoringMappingMode.WHITELISTED,
           createWhitelist(
-              location,
               whitelist.getContents(String.class, "whitelist"))); // can't import SkylarkUtil here
       }
 
-    private static ImmutableSet<String> createWhitelist(Location location, List<String> whitelist)
+    private static ImmutableSet<String> createWhitelist(List<String> whitelist)
         throws EvalException {
       if (whitelist.isEmpty()) {
-        throw new EvalException(location, "'whitelisted' function requires a non-empty 'whitelist'"
-            + " field. For default mapping, use 'overwrite(...)' mode instead.");
+        throw Starlark.errorf(
+            "'whitelisted' function requires a non-empty 'whitelist' field. For default mapping,"
+                + " use 'overwrite(...)' mode instead.");
       }
       Set<String> uniqueAuthors = new HashSet<>();
       for (String author : whitelist) {
         if (!uniqueAuthors.add(author)) {
-          // TODO(danielromero): Use SkylarkUtil.check (needs refactoring deps)
-          throw new EvalException(location,
-              String.format("Duplicated whitelist entry '%s'", author));
+          throw Starlark.errorf("Duplicated whitelist entry '%s'", author);
         }
       }
       return ImmutableSet.copyOf(whitelist);

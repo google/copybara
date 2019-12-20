@@ -123,13 +123,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             type = com.google.devtools.build.lib.syntax.Sequence.class,
             generic1 = Transformation.class,
             doc = "The transformations to reverse"),
-      },
-      useLocation = true)
+      })
   public com.google.devtools.build.lib.syntax.Sequence<Transformation> reverse(
       com.google.devtools.build.lib.syntax.Sequence<?>
-          transforms, // <Transformation> or <BaseFunction>
-      Location location)
-      throws EvalException {
+          transforms // <Transformation> or <BaseFunction>
+      ) throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
     for (Object t : transforms.getContents(Object.class, "transformations")) {
@@ -141,11 +139,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
         } else {
-          throw new EvalException(
-              location, "Expected type 'transformation' or function, but found: " + t);
+          throw Starlark.errorf("Expected type 'transformation' or function, but found: %s", t);
         }
       } catch (NonReversibleValidationException e) {
-        throw new EvalException(location, e.getMessage());
+        throw Starlark.errorf("%s", e.getMessage());
       }
     }
 
@@ -412,7 +409,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " the new version.",
             defaultValue = "True"),
       },
-      useLocation = true,
       useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
@@ -441,10 +437,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object customRevIdField,
       Object description,
       Boolean checkout,
-      Location location,
       StarlarkThread thread)
       throws EvalException {
-    WorkflowMode mode = stringToEnum(location, "mode", modeStr, WorkflowMode.class);
+    WorkflowMode mode = stringToEnum("mode", modeStr, WorkflowMode.class);
 
     Sequence sequenceTransform =
         Sequence.fromConfig(
@@ -460,35 +455,42 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       try {
         reverseTransform = sequenceTransform.reverse();
       } catch (NonReversibleValidationException e) {
-        throw new EvalException(location, e.getMessage());
+        throw Starlark.errorf("%s", e.getMessage());
       }
     }
 
-    ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj, location);
+    ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj);
 
     String customRevId = convertFromNoneable(customRevIdField, null);
-    check(location,
+    check(
         customRevId == null || CUSTOM_REVID_FORMAT.matches(customRevId),
-        "Invalid experimental_custom_rev_id format. Format: %s", CUSTOM_REVID_FORMAT.pattern());
+        "Invalid experimental_custom_rev_id format. Format: %s",
+        CUSTOM_REVID_FORMAT.pattern());
 
     if (setRevId) {
-      check(location, mode != WorkflowMode.CHANGE_REQUEST || customRevId == null,
+      check(
+          mode != WorkflowMode.CHANGE_REQUEST || customRevId == null,
           "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
               + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
-      check(location, mode == WorkflowMode.CHANGE_REQUEST, "'set_rev_id = False' is only supported"
-          + " for CHANGE_REQUEST mode.");
+      check(
+          mode == WorkflowMode.CHANGE_REQUEST,
+          "'set_rev_id = False' is only supported" + " for CHANGE_REQUEST mode.");
     }
     if (smartPrune) {
-      check(location, mode == WorkflowMode.CHANGE_REQUEST, "'smart_prune = True' is only supported"
-          + " for CHANGE_REQUEST mode.");
+      check(
+          mode == WorkflowMode.CHANGE_REQUEST,
+          "'smart_prune = True' is only supported" + " for CHANGE_REQUEST mode.");
     }
 
     boolean checkLastRevState = convertFromNoneable(checkLastRevStateField, false);
     if (checkLastRevState) {
-      check(location, mode != WorkflowMode.CHANGE_REQUEST,
-          "%s is not compatible with %s", CHECK_LAST_REV_STATE, WorkflowMode.CHANGE_REQUEST);
+      check(
+          mode != WorkflowMode.CHANGE_REQUEST,
+          "%s is not compatible with %s",
+          CHECK_LAST_REV_STATE,
+          WorkflowMode.CHANGE_REQUEST);
     }
 
     Authoring resolvedAuthoring = authoring;
@@ -520,25 +522,25 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             allConfigFiles,
             dryRunMode,
             checkLastRevState || workflowOptions.checkLastRevState,
-            convertFeedbackActions(afterMigrations, location, dynamicStarlarkThread),
-            convertFeedbackActions(afterAllMigrations, location, dynamicStarlarkThread),
+            convertFeedbackActions(afterMigrations, dynamicStarlarkThread),
+            convertFeedbackActions(afterAllMigrations, dynamicStarlarkThread),
             changeIdentity,
             setRevId,
             smartPrune,
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
-    registerGlobalMigration(workflowName, workflow, location, thread);
+    registerGlobalMigration(workflowName, workflow, thread);
   }
 
-  private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj, Location location)
+  private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj)
       throws EvalException {
     String changeIdentity = convertFromNoneable(changeIdentityObj, null);
 
     if (changeIdentity == null) {
       return ImmutableList.of();
     }
-    ImmutableList<Token> result = new Parser(location).parse(changeIdentity);
+    ImmutableList<Token> result = new Parser().parse(changeIdentity);
     boolean configVarFound = false;
     for (Token token : result) {
       if (token.getType() != TokenType.INTERPOLATION) {
@@ -553,58 +555,77 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           || token.getValue().startsWith(Workflow.COPYBARA_REFERENCE_LABEL_VAR)) {
         continue;
       }
-      throw new EvalException(location,
-          String.format("Unrecognized variable: %s", token.getValue()));
+      throw Starlark.errorf("Unrecognized variable: %s", token.getValue());
     }
-    check(
-        location, configVarFound, "${%s} variable is required", COPYBARA_CONFIG_PATH_IDENTITY_VAR);
+    check(configVarFound, "${%s} variable is required", COPYBARA_CONFIG_PATH_IDENTITY_VAR);
     return result;
   }
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "move",
-
       doc = "Moves files between directories and renames files",
       parameters = {
-          @Param(name = "before", named = true, type = String.class, doc = ""
-              + "The name of the file or directory before moving. If this is the empty"
-              + " string and 'after' is a directory, then all files in the workdir will be moved to"
-              + " the sub directory specified by 'after', maintaining the directory tree."),
-          @Param(name = "after", named = true, type = String.class, doc = ""
-              + "The name of the file or directory after moving. If this is the empty"
-              + " string and 'before' is a directory, then all files in 'before' will be moved to"
-              + " the repo root, maintaining the directory tree inside 'before'."),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to 'before' if it represents a directory."
-                  + " Only files matching the expression will be moved. For example,"
-                  + " glob([\"**.java\"]), matches all java files recursively inside"
-                  + " 'before' folder. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "overwrite", named = true,
-              doc = "Overwrite destination files if they already exist. Note that this makes the"
-                  + " transformation non-reversible, since there is no way to know if the file"
-                  + " was overwritten or not in the reverse workflow.",
-              type = Boolean.class, defaultValue = "False")
+        @Param(
+            name = "before",
+            named = true,
+            type = String.class,
+            doc =
+                "The name of the file or directory before moving. If this is the empty string and"
+                    + " 'after' is a directory, then all files in the workdir will be moved to the"
+                    + " sub directory specified by 'after', maintaining the directory tree."),
+        @Param(
+            name = "after",
+            named = true,
+            type = String.class,
+            doc =
+                "The name of the file or directory after moving. If this is the empty string and"
+                    + " 'before' is a directory, then all files in 'before' will be moved to the"
+                    + " repo root, maintaining the directory tree inside 'before'."),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to 'before' if it represents a directory."
+                    + " Only files matching the expression will be moved. For example,"
+                    + " glob([\"**.java\"]), matches all java files recursively inside"
+                    + " 'before' folder. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "overwrite",
+            named = true,
+            doc =
+                "Overwrite destination files if they already exist. Note that this makes the"
+                    + " transformation non-reversible, since there is no way to know if the file"
+                    + " was overwritten or not in the reverse workflow.",
+            type = Boolean.class,
+            defaultValue = "False")
       },
       useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Move a directory",
+  @Example(
+      title = "Move a directory",
       before = "Move all the files in a directory to another directory:",
       code = "core.move(\"foo/bar_internal\", \"bar\")",
       after = "In this example, `foo/bar_internal/one` will be moved to `bar/one`.")
-  @Example(title = "Move all the files to a subfolder",
+  @Example(
+      title = "Move all the files to a subfolder",
       before = "Move all the files in the checkout dir into a directory called foo:",
       code = "core.move(\"\", \"foo\")",
       after = "In this example, `one` and `two/bar` will be moved to `foo/one` and `foo/two/bar`.")
-  @Example(title = "Move a subfolder's content to the root",
+  @Example(
+      title = "Move a subfolder's content to the root",
       before = "Move the contents of a folder to the checkout root directory:",
       code = "core.move(\"foo\", \"\")",
       after = "In this example, `foo/bar` would be moved to `bar`.")
-  public Transformation move(String before, String after, Object paths, Boolean overwrite,
-      Location location) throws EvalException {
+  public Transformation move(
+      String before, String after, Object paths, Boolean overwrite, Location location)
+      throws EvalException {
 
-    check(location, !Objects.equals(before, after),
+    check(
+        !Objects.equals(before, after),
         "Moving from the same folder to the same folder is a noop. Remove the"
             + " transformation.");
 
@@ -615,45 +636,67 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "copy",
-
       doc = "Copy files between directories and renames files",
       parameters = {
-          @Param(name = "before", named = true, type = String.class, doc = ""
-              + "The name of the file or directory to copy. If this is the empty"
-              + " string and 'after' is a directory, then all files in the workdir will be copied"
-              + " to the sub directory specified by 'after', maintaining the directory tree."),
-          @Param(name = "after", named = true, type = String.class, doc = ""
-              + "The name of the file or directory destination. If this is the empty"
-              + " string and 'before' is a directory, then all files in 'before' will be copied to"
-              + " the repo root, maintaining the directory tree inside 'before'."),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to 'before' if it represents a directory."
-                  + " Only files matching the expression will be copied. For example,"
-                  + " glob([\"**.java\"]), matches all java files recursively inside"
-                  + " 'before' folder. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "overwrite", named = true,
-              doc = "Overwrite destination files if they already exist. Note that this makes the"
-                  + " transformation non-reversible, since there is no way to know if the file"
-                  + " was overwritten or not in the reverse workflow.",
-              type = Boolean.class, defaultValue = "False")
+        @Param(
+            name = "before",
+            named = true,
+            type = String.class,
+            doc =
+                "The name of the file or directory to copy. If this is the empty string and"
+                    + " 'after' is a directory, then all files in the workdir will be copied to"
+                    + " the sub directory specified by 'after', maintaining the directory tree."),
+        @Param(
+            name = "after",
+            named = true,
+            type = String.class,
+            doc =
+                "The name of the file or directory destination. If this is the empty string and"
+                    + " 'before' is a directory, then all files in 'before' will be copied to the"
+                    + " repo root, maintaining the directory tree inside 'before'."),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to 'before' if it represents a directory."
+                    + " Only files matching the expression will be copied. For example,"
+                    + " glob([\"**.java\"]), matches all java files recursively inside"
+                    + " 'before' folder. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "overwrite",
+            named = true,
+            doc =
+                "Overwrite destination files if they already exist. Note that this makes the"
+                    + " transformation non-reversible, since there is no way to know if the file"
+                    + " was overwritten or not in the reverse workflow.",
+            type = Boolean.class,
+            defaultValue = "False")
       },
       useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @Example(title = "Copy a directory",
+  @Example(
+      title = "Copy a directory",
       before = "Move all the files in a directory to another directory:",
       code = "core.copy(\"foo/bar_internal\", \"bar\")",
       after = "In this example, `foo/bar_internal/one` will be copied to `bar/one`.")
-  @Example(title = "Copy with reversal",
+  @Example(
+      title = "Copy with reversal",
       before = "Copy all static files to a 'static' folder and use remove for reverting the change",
-      code = ""
-          + "core.transform(\n"
-          + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\", ]))],\n"
-          + "    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]\n"
-          + ")")
-  public Transformation copy(String before, String after, Object paths, Boolean overwrite,
-      Location location) throws EvalException {
-    check(location, !Objects.equals(before, after),
+      code =
+          "core.transform(\n"
+              + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\","
+              + " ]))],\n"
+              + "    reversal = [core.remove(glob(['foo/static/**.css',"
+              + " 'foo/static/**.html']))]\n"
+              + ")")
+  public Transformation copy(
+      String before, String after, Object paths, Boolean overwrite, Location location)
+      throws EvalException {
+    check(
+        !Objects.equals(before, after),
         "Copying from the same folder to the same folder is a noop. Remove the"
             + " transformation.");
     return CopyOrMove.createCopy(before, after, workflowOptions,
@@ -663,27 +706,32 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "remove",
-
-      doc = "Remove files from the workdir. **This transformation is only meant to be used inside"
-          + " core.transform for reversing core.copy like transforms**. For regular file filtering"
-          + " use origin_files exclude mechanism.",
+      doc =
+          "Remove files from the workdir. **This transformation is only meant to be used inside"
+              + " core.transform for reversing core.copy like transforms**. For regular file"
+              + " filtering use origin_files exclude mechanism.",
       parameters = {
-          @Param(name = "paths", named = true, type = Glob.class, doc = "The files to be deleted"),
+        @Param(name = "paths", named = true, type = Glob.class, doc = "The files to be deleted"),
       },
       useLocation = true)
-  @Example(title = "Reverse a file copy",
+  @Example(
+      title = "Reverse a file copy",
       before = "Move all the files in a directory to another directory:",
-      code = "core.transform(\n"
-          + "    [core.copy(\"foo\", \"foo/public\")],\n"
-          + "    reversal = [core.remove(glob([\"foo/public/**\"]))])",
+      code =
+          "core.transform(\n"
+              + "    [core.copy(\"foo\", \"foo/public\")],\n"
+              + "    reversal = [core.remove(glob([\"foo/public/**\"]))])",
       after = "In this example, `foo/one` will be moved to `foo/public/one`.")
-  @Example(title = "Copy with reversal",
+  @Example(
+      title = "Copy with reversal",
       before = "Copy all static files to a 'static' folder and use remove for reverting the change",
-      code = ""
-          + "core.transform(\n"
-          + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\", ]))],\n"
-          + "    reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]\n"
-          + ")")
+      code =
+          "core.transform(\n"
+              + "    [core.copy(\"foo\", \"foo/static\", paths = glob([\"**.css\",\"**.html\","
+              + " ]))],\n"
+              + "    reversal = [core.remove(glob(['foo/static/**.css',"
+              + " 'foo/static/**.html']))]\n"
+              + ")")
   public Remove remove(Glob paths, Location location) {
     return new Remove(paths, workflowOptions, location);
   }
@@ -962,20 +1010,20 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object skyDefault,
       Location location)
       throws EvalException {
-    Mode mode = stringToEnum(location, "mode", modeStr, Mode.class);
+    Mode mode = stringToEnum("mode", modeStr, Mode.class);
     Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
     ImmutableList<String> tags =
         ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
 
-    check(location, !tags.isEmpty(), "'tags' cannot be empty");
+    check(!tags.isEmpty(), "'tags' cannot be empty");
     if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {
-      check(location, defaultString != null, "'default' needs to be set for mode '%s'", mode);
+      check(defaultString != null, "'default' needs to be set for mode '%s'", mode);
     } else {
-      check(location, defaultString == null, "'default' cannot be used for mode '%s'", mode);
+      check(defaultString == null, "'default' cannot be used for mode '%s'", mode);
     }
     if (mode == Mode.USE_DEFAULT || mode == Mode.SCRUB_NAMES) {
-      check(location, mapping.isEmpty(), "'mapping' cannot be used with mode %s", mode);
+      check(mapping.isEmpty(), "'mapping' cannot be used with mode %s", mode);
     }
     return new TodoReplace(location, convertFromNoneable(paths, Glob.ALL_FILES), tags, mode,
         mapping, defaultString, workflowOptions.parallelizer());
@@ -1013,54 +1061,79 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings({"unused", "unchecked"})
   @SkylarkCallable(
       name = "filter_replace",
-
-      doc = "Applies an initial filtering to find a substring to be replaced and then applies"
-          + " a `mapping` of replaces for the matched text.",
+      doc =
+          "Applies an initial filtering to find a substring to be replaced and then applies"
+              + " a `mapping` of replaces for the matched text.",
       parameters = {
-          @Param(name = "regex", named = true, type = String.class,
-              doc = "A re2 regex to match a substring of the file"),
-          @Param(name = "mapping", named = true,
-              doc = "A mapping function like core.replace_mapper or a dict with mapping values.",
-              defaultValue = "{}"),
-          @Param(name = "group", named = true, type = Integer.class,
-              doc = "Extract a regex group from the matching text and pass this as parameter to"
-                  + " the mapping instead of the whole matching text.",
-              noneable = true, defaultValue = "None"),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "reverse", named = true, type = String.class,
-              doc = "A re2 regex used as reverse transformation",
-              defaultValue = "None", noneable = true),
+        @Param(
+            name = "regex",
+            named = true,
+            type = String.class,
+            doc = "A re2 regex to match a substring of the file"),
+        @Param(
+            name = "mapping",
+            named = true,
+            doc = "A mapping function like core.replace_mapper or a dict with mapping values.",
+            defaultValue = "{}"),
+        @Param(
+            name = "group",
+            named = true,
+            type = Integer.class,
+            doc =
+                "Extract a regex group from the matching text and pass this as parameter to"
+                    + " the mapping instead of the whole matching text.",
+            noneable = true,
+            defaultValue = "None"),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "reverse",
+            named = true,
+            type = String.class,
+            doc = "A re2 regex used as reverse transformation",
+            defaultValue = "None",
+            noneable = true),
       },
       useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @DocDefault(field = "reverse", value = "`regex`")
   @DocDefault(field = "group", value = "Whole text")
-  @Example(title = "Simple replace with mapping",
+  @Example(
+      title = "Simple replace with mapping",
       before = "Simplest mapping",
       code = SIMPLE_FILTER_REPLACE_EXAMPLE)
-  @Example(title = "TODO replace",
+  @Example(
+      title = "TODO replace",
       before = "This replace is similar to what it can be achieved with core.todo_replace:",
       code = TODO_FILTER_REPLACE_EXAMPLE)
-  public FilterReplace filterReplace(String regex,
-      Object mapping, Object group, Object paths, Object reverse, Location location)
+  public FilterReplace filterReplace(
+      String regex, Object mapping, Object group, Object paths, Object reverse, Location location)
       throws EvalException {
     ReversibleFunction<String, String> func = getMappingFunction(mapping, location);
 
     String afterPattern = convertFromNoneable(reverse, regex);
     int numGroup = convertFromNoneable(group, 0);
     Pattern before = Pattern.compile(regex);
-    check(location, numGroup <= before.groupCount(),
+    check(
+        numGroup <= before.groupCount(),
         "group idx is greater than the number of groups defined in '%s'. Regex has %s groups",
-        before.pattern(), before.groupCount());
+        before.pattern(),
+        before.groupCount());
     Pattern after = Pattern.compile(afterPattern);
-    check(location, numGroup <= after.groupCount(),
+    check(
+        numGroup <= after.groupCount(),
         "reverse_group idx is greater than the number of groups defined in '%s'."
             + " Regex has %s groups",
-        after.pattern(), after.groupCount());
+        after.pattern(),
+        after.groupCount());
     return new FilterReplace(
         workflowOptions,
         before,
@@ -1079,13 +1152,13 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       ImmutableMap<String, String> map =
           ImmutableMap.copyOf(
               Dict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
-      check(location, !map.isEmpty(), "Empty mapping is not allowed."
-          + " Remove the transformation instead");
+      check(!map.isEmpty(), "Empty mapping is not allowed." + " Remove the transformation instead");
       return new MapMapper(map, location);
     }
-    check(location, mapping instanceof ReversibleFunction, "mapping has to be instance of"
-        + " map or a reversible function");
-    return  (ReversibleFunction<String, String>) mapping;
+    check(
+        mapping instanceof ReversibleFunction,
+        "mapping has to be instance of" + " map or a reversible function");
+    return (ReversibleFunction<String, String>) mapping;
   }
 
   @SkylarkCallable(
@@ -1108,21 +1181,21 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "Run all the mappings despite a replace happens.",
             defaultValue = "False"),
-      },
-      useLocation = true)
+      })
   public ReplaceMapper mapImports(
       com.google.devtools.build.lib.syntax.Sequence<?> mapping, // <Transformation>
-      Boolean all,
-      Location location)
+      Boolean all)
       throws EvalException {
-    check(location, !mapping.isEmpty(), "Empty mapping is not allowed");
+    check(!mapping.isEmpty(), "Empty mapping is not allowed");
     ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
     for (Transformation t : mapping.getContents(Transformation.class, "mapping")) {
-      check(location, t instanceof Replace,
+      check(
+          t instanceof Replace,
           "Only core.replace can be used as mapping, but got: " + t.describe());
       Replace replace = (Replace) t;
-      check(location, replace.getPaths().equals(Glob.ALL_FILES), "core.replace cannot use"
-          + " 'paths' inside core.replace_mapper");
+      check(
+          replace.getPaths().equals(Glob.ALL_FILES),
+          "core.replace cannot use" + " 'paths' inside core.replace_mapper");
       replaces.add(replace);
     }
     return new ReplaceMapper(replaces.build(), all);
@@ -1131,32 +1204,49 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "verify_match",
-
-      doc = "Verifies that a RegEx matches (or not matches) the specified files. Does not"
-          + " transform anything, but will stop the workflow if it fails.",
+      doc =
+          "Verifies that a RegEx matches (or not matches) the specified files. Does not"
+              + " transform anything, but will stop the workflow if it fails.",
       parameters = {
-          @Param(name = "regex", named = true, type = String.class,
-              doc = "The regex pattern to verify. To satisfy the validation, there has to be at"
-                  + "least one (or no matches if verify_no_match) match in each of the files "
-                  + "included in paths. The re2j pattern will be applied in multiline mode, i.e."
-                  + " '^' refers to the beginning of a file and '$' to its end. "
-                  + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
-          @Param(name = "paths", named = true, type = Glob.class,
-              doc = "A glob expression relative to the workdir representing the files to apply"
-                  + " the transformation. For example, glob([\"**.java\"]), matches all java files"
-                  + " recursively. Defaults to match all the files recursively.",
-              defaultValue = "None", noneable = true),
-          @Param(name = "verify_no_match", named = true, type = Boolean.class,
-              doc = "If true, the transformation will verify that the RegEx does not match.",
-              defaultValue = "False"),
-          @Param(name = "also_on_reversal", named = true, type = Boolean.class,
-              doc = "If true, the check will also apply on the reversal. The default behavior is to"
-                  + " not verify the pattern on reversal.",
-              defaultValue = "False"),
-      }, useLocation = true)
+        @Param(
+            name = "regex",
+            named = true,
+            type = String.class,
+            doc =
+                "The regex pattern to verify. To satisfy the validation, there has to be at"
+                    + "least one (or no matches if verify_no_match) match in each of the files "
+                    + "included in paths. The re2j pattern will be applied in multiline mode, i.e."
+                    + " '^' refers to the beginning of a file and '$' to its end. "
+                    + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."),
+        @Param(
+            name = "paths",
+            named = true,
+            type = Glob.class,
+            doc =
+                "A glob expression relative to the workdir representing the files to apply the"
+                    + " transformation. For example, glob([\"**.java\"]), matches all java files"
+                    + " recursively. Defaults to match all the files recursively.",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "verify_no_match",
+            named = true,
+            type = Boolean.class,
+            doc = "If true, the transformation will verify that the RegEx does not match.",
+            defaultValue = "False"),
+        @Param(
+            name = "also_on_reversal",
+            named = true,
+            type = Boolean.class,
+            doc =
+                "If true, the check will also apply on the reversal. The default behavior is to"
+                    + " not verify the pattern on reversal.",
+            defaultValue = "False"),
+      },
+      useLocation = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  public VerifyMatch verifyMatch(String regex, Object paths, Boolean verifyNoMatch,
-      Boolean alsoOnReversal, Location location)
+  public VerifyMatch verifyMatch(
+      String regex, Object paths, Boolean verifyNoMatch, Boolean alsoOnReversal, Location location)
       throws EvalException {
     return VerifyMatch.create(location,
         regex,
@@ -1209,16 +1299,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             noneable = true,
-            defaultValue = "None"),
+            defaultValue = "None")
       },
-      useLocation = true,
       useStarlarkThread = true)
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
   public Transformation transform(
       com.google.devtools.build.lib.syntax.Sequence<?> transformations, // <Transformation>
       Object reversal,
       Object ignoreNoop,
-      Location location,
       StarlarkThread thread)
       throws EvalException {
     Sequence forward =
@@ -1238,11 +1326,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             com.google.devtools.build.lib.syntax.StarlarkList.immutableCopyOf(
                 ImmutableList.of(forward.reverse()));
       } catch (NonReversibleValidationException e) {
-        throw new EvalException(
-            location,
+        throw Starlark.errorf(
             "transformations are not automatically reversible."
-                + " Use 'reversal' field to explicitly configure the reversal of the transform",
-            e);
+                + " Use 'reversal' field to explicitly configure the reversal of the transform");
       }
     }
     Sequence reverse =
@@ -1331,7 +1417,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "fail_with_noop",
-
       doc = "If invoked, it will fail the current migration as a noop",
       parameters = {
           @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
@@ -1409,7 +1494,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc = "A description of what this workflow achieves",
             defaultValue = "None"),
       },
-      useLocation = true,
       useStarlarkThread = true)
   @UsesFlags({FeedbackOptions.class})
   /*TODO(danielromero): Add default values*/
@@ -1419,11 +1503,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Endpoint destination,
       com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
       Object description,
-      Location location,
       StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions =
-        convertFeedbackActions(feedbackActions, location, dynamicStarlarkThread);
+    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, dynamicStarlarkThread);
     Feedback migration =
         new Feedback(
             workflowName,
@@ -1433,15 +1515,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             destination,
             actions,
             generalOptions);
-    registerGlobalMigration(workflowName, migration, location, thread);
+    registerGlobalMigration(workflowName, migration, thread);
     return Starlark.NONE;
   }
 
   /** Registers a {@link Migration} in the global registry. */
-  protected void registerGlobalMigration(
-      String name, Migration migration, Location location, StarlarkThread thread)
+  protected void registerGlobalMigration(String name, Migration migration, StarlarkThread thread)
       throws EvalException {
-    getGlobalMigrations(thread).addMigration(location, name, migration);
+    getGlobalMigrations(thread).addMigration(name, migration);
   }
 
   @SkylarkCallable(
@@ -1454,21 +1535,18 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             type = com.google.devtools.build.lib.syntax.Sequence.class,
             named = true,
             doc = "The arguments to format"),
-      },
-      useLocation = true)
-  public String format(
-      String format, com.google.devtools.build.lib.syntax.Sequence<?> args, Location location)
+      })
+  public String format(String format, com.google.devtools.build.lib.syntax.Sequence<?> args)
       throws EvalException {
     try {
       return String.format(format, args.toArray(new Object[0]));
     } catch (IllegalFormatException e) {
-      throw new EvalException(location, "Invalid format: " + format, e);
+      throw Starlark.errorf("Invalid format: %s: %s", format, e.getMessage());
     }
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
       com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
-      Location location,
       Supplier<StarlarkThread> thread)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
@@ -1478,9 +1556,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
-        throw new EvalException(
-            location,
-            String.format("Invalid feedback action '%s 'of type: %s", action, action.getClass()));
+        throw Starlark.errorf(
+            "Invalid feedback action '%s 'of type: %s", action, action.getClass());
       }
     }
     return actions.build();

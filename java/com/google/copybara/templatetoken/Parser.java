@@ -17,19 +17,14 @@
 package com.google.copybara.templatetoken;
 
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
-import javax.annotation.Nullable;
+import com.google.devtools.build.lib.syntax.Starlark;
 
 /**
  * Parse strings like "foo${bar}baz" in a series of literal and interpolation variables
  */
 public class Parser {
-  @Nullable private final Location location;
-
-  public Parser(@Nullable Location location) {
-    this.location = location;
-  }
+  public Parser() {}
 
   /**
    * Parses a template. In the raw string representation, interpolation is
@@ -49,7 +44,7 @@ public class Parser {
         continue;
       }
       if (c >= template.length()) {
-        throw new EvalException(location, "Expect $ or { after every $ in string: " + template);
+        throw Starlark.errorf("Expect $ or { after every $ in string: %s", template);
       }
       thisChar = template.charAt(c);
       c++;
@@ -62,18 +57,17 @@ public class Parser {
           currentLiteral = new StringBuilder();
           int terminating = template.indexOf('}', c);
           if (terminating == -1) {
-            throw new EvalException(location, "Unterminated '${'. Expected '}': " + template);
+            throw Starlark.errorf("Unterminated '${'. Expected '}': %s", template);
           }
           if (c == terminating) {
-            throw new EvalException(
-                location, "Expect non-empty interpolated value name: " + template);
+            throw Starlark.errorf("Expect non-empty interpolated value name: %s", template);
           }
           result.add(
               new Token(template.substring(c, terminating), Token.TokenType.INTERPOLATION));
           c = terminating + 1;
           break;
         default:
-          throw new EvalException(location, "Expect $ or { after every $ in string: " + template);
+          throw Starlark.errorf("Expect $ or { after every $ in string: %s", template);
       }
     }
     result.add(new Token(currentLiteral.toString(), Token.TokenType.LITERAL));

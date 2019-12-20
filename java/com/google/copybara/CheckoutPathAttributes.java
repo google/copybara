@@ -17,11 +17,10 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -45,14 +44,13 @@ public class CheckoutPathAttributes implements StarlarkValue {
   @SkylarkCallable(
       name = "size",
       doc = "The size of the file. Throws an error if file size > 2GB.",
-      structField = true, useLocation = true)
-  public int size(Location location) throws Exception {
+      structField = true)
+  public int size() throws Exception {
     long size = attributes.size();
     try {
       return Math.toIntExact(size);
     } catch (ArithmeticException e) {
-      throw new EvalException(location,
-          String.format("File %s is too big to compute the size: %d bytes", path, size));
+      throw Starlark.errorf("File %s is too big to compute the size: %d bytes", path, size);
     }
   }
 

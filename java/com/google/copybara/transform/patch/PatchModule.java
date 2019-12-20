@@ -34,6 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
@@ -121,15 +122,16 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       Location location)
       throws EvalException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
-    check(location, !(patches instanceof Glob),
+    check(
+        !(patches instanceof Glob),
         "'patches' cannot be a glob, only an explicit list of patches are accepted");
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
-      builder.add(resolve(patch, location));
+      builder.add(resolve(patch));
     }
     String series = SkylarkUtil.convertOptionalString(seriesOrNone);
     if (series != null && !series.trim().isEmpty()) {
       try {
-        ConfigFile seriesFile = resolve(series.trim(), location);
+        ConfigFile seriesFile = resolve(series.trim());
         for (String line : LINES.split(seriesFile.readContent())) {
           // Comment at the begining of the line or
           // a whitespace followed by the hash character.
@@ -144,7 +146,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
           }
         }
       } catch (CannotResolveLabel | IOException e) {
-        throw new EvalException(location, "Error reading patch series file: " + series, e);
+        throw Starlark.errorf("Error reading patch series file: %s", series);
       }
     }
     return new PatchTransformation(
@@ -156,12 +158,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         location);
   }
 
-
-  private ConfigFile resolve(String path, Location location) throws EvalException {
+  private ConfigFile resolve(String path) throws EvalException {
     try {
       return configFile.resolve(path);
     } catch (CannotResolveLabel e) {
-      throw new EvalException(location, "Failed to resolve patch: " + path, e);
+      throw Starlark.errorf("Failed to resolve patch: %s", path);
     }
   }
 }

@@ -102,8 +102,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     ImmutableSet.Builder<IncludeResult> enumResults = ImmutableSet.builder();
     for (Object result : includeResults) {
       enumResults.add(
-          SkylarkUtil.stringToEnum(
-              null, "include_results", (String) result, IncludeResult.class));
+          SkylarkUtil.stringToEnum("include_results", (String) result, IncludeResult.class));
     }
     return enumResults.build();
   }

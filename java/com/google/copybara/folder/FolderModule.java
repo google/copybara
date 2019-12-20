@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -73,24 +72,30 @@ public class FolderModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "origin",
-      doc = "A folder origin is a origin that uses a folder as input. The folder is specified via "
-          + "the source_ref argument.",
+  @SkylarkCallable(
+      name = "origin",
+      doc =
+          "A folder origin is a origin that uses a folder as input. The folder is specified via "
+              + "the source_ref argument.",
       parameters = {
-          @Param(name = "materialize_outside_symlinks", type = Boolean.class,
-              doc = "By default folder.origin will refuse any symlink in the migration folder"
-                  + " that is an absolute symlink or that refers to a file outside of the folder."
-                  + " If this flag is set, it will materialize those symlinks as regular files"
-                  + " in the checkout directory.", defaultValue = "False", named = true),
-      },
-      useLocation = true)
+        @Param(
+            name = "materialize_outside_symlinks",
+            type = Boolean.class,
+            doc =
+                "By default folder.origin will refuse any symlink in the migration folder"
+                    + " that is an absolute symlink or that refers to a file outside of the folder."
+                    + " If this flag is set, it will materialize those symlinks as regular files"
+                    + " in the checkout directory.",
+            defaultValue = "False",
+            named = true),
+      })
   @UsesFlags(FolderOriginOptions.class)
-  public FolderOrigin origin(Boolean materializeOutsideSymlinks, Location location)
-      throws EvalException {
+  public FolderOrigin origin(Boolean materializeOutsideSymlinks) throws EvalException {
      // Lets assume we are in the same filesystem for now...
     FileSystem fs = generalOptions.getFileSystem();
-    return new FolderOrigin(fs,
-        Author.parse(location, originOptions.author),
+    return new FolderOrigin(
+        fs,
+        Author.parse(originOptions.author),
         originOptions.message,
         generalOptions.getCwd(),
         materializeOutsideSymlinks,

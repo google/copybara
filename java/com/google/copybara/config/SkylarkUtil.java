@@ -24,7 +24,6 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -66,40 +65,36 @@ public final class SkylarkUtil {
   /**
    * Converts a string to the corresponding enum or fail if invalid value.
    *
-   * @param location location of the skylark element requesting the conversion
    * @param fieldName name of the field to convert
    * @param value value to convert
    * @param enumType the type class of the enum to use for conversion
    * @param <T> the enum class
    */
-  public static <T extends Enum<T>> T stringToEnum(Location location, String fieldName,
-      String value, Class<T> enumType) throws EvalException {
+  public static <T extends Enum<T>> T stringToEnum(
+      String fieldName, String value, Class<T> enumType) throws EvalException {
     try {
       return Enum.valueOf(enumType, value);
     } catch (IllegalArgumentException e) {
-      throw new EvalException(location,
-          String.format("Invalid value '%s' for field '%s'. Valid values are: %s", value, fieldName,
-              Joiner.on(", ").join(enumType.getEnumConstants())));
+      throw Starlark.errorf(
+          "Invalid value '%s' for field '%s'. Valid values are: %s",
+          value, fieldName, Joiner.on(", ").join(enumType.getEnumConstants()));
     }
   }
 
-  /**
-   * Checks that a mandatory string field is not empty.
-   */
-  public static String checkNotEmpty(@Nullable String value, String name, Location location)
-      throws EvalException {
-    check(location, !Strings.isNullOrEmpty(value), "Invalid empty field '%s'.", name);
+  /** Checks that a mandatory string field is not empty. */
+  public static String checkNotEmpty(@Nullable String value, String name) throws EvalException {
+    check(!Strings.isNullOrEmpty(value), "Invalid empty field '%s'.", name);
     return value;
   }
 
-  /**
-   * Checks a condition or throw {@link EvalException}.
-   */
-  public static void check(Location location, boolean condition, String errorFmt,
-      Object... params)
-      throws EvalException {
+  /** Checks a condition or throw {@link EvalException}. */
+  public static void check(boolean condition, String format, Object... args) throws EvalException {
     if (!condition) {
-      throw new EvalException(location, String.format(errorFmt, (Object[]) params));
+      // TODO(adonovan): consider adding @FormatMethod annotation
+      // to this method, so we can use simply:
+      //   throw Starlark.errorf(format, args);
+      // and get static checking for free.
+      throw Starlark.errorf("%s", String.format(format, args));
     }
   }
 

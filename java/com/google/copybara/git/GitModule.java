@@ -233,12 +233,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object versionSelector,
       Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
-    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+    checkNotEmpty(url, "url");
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     if (versionSelector != Starlark.NONE) {
       check(
-          location,
           ref == Starlark.NONE,
           "Cannot use ref field and version_selector. Version selector will decide the ref"
               + " to migrate");
@@ -249,7 +248,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         fixHttp(url, location),
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GIT,
-        stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs,
         firstParent,
         patchTransformation,
@@ -258,63 +257,74 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @Nullable
-  private PatchTransformation maybeGetPatchTransformation(Object patch, Location location)
-      throws EvalException {
+  private PatchTransformation maybeGetPatchTransformation(Object patch) throws EvalException {
     if (EvalUtils.isNullOrNone(patch)) {
       return null;
     }
-    check(location, patch instanceof PatchTransformation,
-        "'%s' is not a patch.apply(...) transformation", PATCH_FIELD);
+    check(
+        patch instanceof PatchTransformation,
+        "'%s' is not a patch.apply(...) transformation",
+        PATCH_FIELD);
     return  (PatchTransformation) patch;
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = "integrate",
+  @SkylarkCallable(
+      name = "integrate",
       doc = "Integrate changes from a url present in the migrated change label.",
       parameters = {
-          @Param(name = "label", type = String.class, named = true,
-              doc = "The migration label that will contain the url to the change to integrate.",
-              defaultValue = "\"" + DEFAULT_INTEGRATE_LABEL + "\""),
-          @Param(name = "strategy", type = String.class, named = true,
-              defaultValue = "\"FAKE_MERGE_AND_INCLUDE_FILES\"",
-              doc = "How to integrate the change:<br>"
-                  + "<ul>"
-                  + " <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the"
-                  + " migration change but ignore all the files from the url. The commit message"
-                  + " will be a standard merge one but will include the corresponding RevId label"
-                  + "</li>"
-                  + " <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any"
-                  + " change to files that doesn't match destination_files will be included as part"
-                  + " of the merge commit. So it will be a semi fake merge: Fake for"
-                  + " destination_files but merge for non destination files.</li>"
-                  + " <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it"
-                  + " it doesn't create a merge but only include changes not matching"
-                  + " destination_files</li>"
-                  + "</ul>"),
-          @Param(name = "ignore_errors", type = Boolean.class, named = true,
-              doc = "If we should ignore integrate errors and continue the migration without the"
-                  + " integrate", defaultValue = "True"),
-      },
-      useLocation = true)
-  @Example(title = "Integrate changes from a review url",
+        @Param(
+            name = "label",
+            type = String.class,
+            named = true,
+            doc = "The migration label that will contain the url to the change to integrate.",
+            defaultValue = "\"" + DEFAULT_INTEGRATE_LABEL + "\""),
+        @Param(
+            name = "strategy",
+            type = String.class,
+            named = true,
+            defaultValue = "\"FAKE_MERGE_AND_INCLUDE_FILES\"",
+            doc =
+                "How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url"
+                    + " revision/reference as parent of the migration change but ignore all the"
+                    + " files from the url. The commit message will be a standard merge one but"
+                    + " will include the corresponding RevId label</li>"
+                    + " <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any"
+                    + " change to files that doesn't match destination_files will be included as"
+                    + " part of the merge commit. So it will be a semi fake merge: Fake for"
+                    + " destination_files but merge for non destination files.</li>"
+                    + " <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it"
+                    + " it doesn't create a merge but only include changes not matching"
+                    + " destination_files</li></ul>"),
+        @Param(
+            name = "ignore_errors",
+            type = Boolean.class,
+            named = true,
+            doc =
+                "If we should ignore integrate errors and continue the migration without the"
+                    + " integrate",
+            defaultValue = "True"),
+      })
+  @Example(
+      title = "Integrate changes from a review url",
       before = "Assuming we have a git.destination defined like this:",
-      code = "git.destination(\n"
-          + "        url = \"https://example.com/some_git_repo\",\n"
-          + "        integrates = [git.integrate()],\n"
-          + "\n"
-          + ")",
+      code =
+          "git.destination(\n"
+              + "        url = \"https://example.com/some_git_repo\",\n"
+              + "        integrates = [git.integrate()],\n"
+              + "\n"
+              + ")",
       after =
-          "It will look for `" + DEFAULT_INTEGRATE_LABEL
+          "It will look for `"
+              + DEFAULT_INTEGRATE_LABEL
               + "` label during the worklow migration. If the label"
               + " is found, it will fetch the git url and add that change as an additional parent"
               + " to the migration commit (merge). It will fake-merge any change from the url that"
               + " matches destination_files but it will include changes not matching it.")
-  public GitIntegrateChanges integrate(String label, String strategy, Boolean ignoreErrors,
-      Location location) throws EvalException {
+  public GitIntegrateChanges integrate(String label, String strategy, Boolean ignoreErrors)
+      throws EvalException {
     return new GitIntegrateChanges(
-        label,
-        stringToEnum(location, "strategy", strategy, Strategy.class),
-        ignoreErrors, useNewIntegrate());
+        label, stringToEnum("strategy", strategy, Strategy.class), ignoreErrors, useNewIntegrate());
   }
 
   @SuppressWarnings("unused")
@@ -383,12 +393,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 generalOptions.getCwd(),
                 refspec));
       } catch (InvalidRefspecException e) {
-        throw new EvalException(location, e);
+        throw Starlark.errorf("%s", e.getMessage());
       }
     }
     GlobalMigrations.getGlobalMigrations(thread)
         .addMigration(
-            location,
             name,
             new Mirror(
                 generalOptions,
@@ -519,27 +528,35 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object describeVersion,
       Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
     url = fixHttp(url, location);
     String refField = SkylarkUtil.convertOptionalString(ref);
 
-    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     if (!Strings.isNullOrEmpty(refField)) {
       getGeneralConsole().warn(
           "'ref' field detected in configuration. git.gerrit_origin"
               + " is deprecating its usage for submitted changes. Use git.origin instead.");
       return GitOrigin.newGitOrigin(
-          options, url, refField, GitRepoType.GERRIT,
-          stringToEnum(location, "submodules",
-              submodules, GitOrigin.SubmoduleStrategy.class),
-          /*includeBranchCommitLogs=*/false, firstParent, patchTransformation,
-          convertDescribeVersion(describeVersion), /*versionSelector=*/null);
+          options,
+          url,
+          refField,
+          GitRepoType.GERRIT,
+          stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+          /*includeBranchCommitLogs=*/ false,
+          firstParent,
+          patchTransformation,
+          convertDescribeVersion(describeVersion),
+          /*versionSelector=*/ null);
     }
     return GerritOrigin.newGerritOrigin(
-        options, url, stringToEnum(location, "submodules",
-            submodules, GitOrigin.SubmoduleStrategy.class), firstParent,
-        convertFromNoneable(checkerObj, null), patchTransformation,
+        options,
+        url,
+        stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        firstParent,
+        convertFromNoneable(checkerObj, null),
+        patchTransformation,
         convertFromNoneable(branch, null),
         convertDescribeVersion(describeVersion));
   }
@@ -759,9 +776,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object describeVersion,
       Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
-    check(location, url.contains("github.com"), "Invalid Github URL: %s", url);
-    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+    checkNotEmpty(url, "url");
+    check(url.contains("github.com"), "Invalid Github URL: %s", url);
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     String reviewStateString = convertFromNoneable(reviewStateParam, null);
     Sequence<String> reviewApproversStrings = convertFromNoneable(reviewApproversParam, null);
@@ -769,7 +786,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableSet<AuthorAssociation> reviewApprovers;
     if (reviewStateString == null) {
       reviewState = null;
-      check(location, reviewApproversStrings == null,
+      check(
+          reviewApproversStrings == null,
           "'review_approvers' cannot be set if `review_state` is not set");
       reviewApprovers = ImmutableSet.of();
     } else {
@@ -780,9 +798,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       }
       HashSet<AuthorAssociation> approvers = new HashSet<>();
       for (String r : reviewApproversStrings) {
-        boolean added =
-            approvers.add(stringToEnum(location, "review_approvers", r, AuthorAssociation.class));
-        check(location, added, "Repeated element %s", r);
+        boolean added = approvers.add(stringToEnum("review_approvers", r, AuthorAssociation.class));
+        check(added, "Repeated element %s", r);
       }
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
@@ -797,10 +814,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitHubPrOriginOptions.class),
         ImmutableSet.copyOf(requiredLabels.getContents(String.class, "required_labels")),
         ImmutableSet.copyOf(retryableLabels.getContents(String.class, "retryable_labels")),
-        stringToEnum(location, "submodules", submodules, SubmoduleStrategy.class),
+        stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
         firstParent,
-        stringToEnum(location, "state", state, StateFilter.class),
+        stringToEnum("state", state, StateFilter.class),
         reviewState,
         reviewApprovers,
         convertFromNoneable(checkerObj, null),
@@ -884,19 +901,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object versionSelector,
       Location location)
       throws EvalException {
-    check(
-        location, GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url", location)),
-        "Invalid Github URL: %s", url);
+    check(GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
 
     if (versionSelector != Starlark.NONE) {
       check(
-          location,
           ref == Starlark.NONE,
           "Cannot use ref field and version_selector. Version selector will decide the ref"
               + " to migrate");
     }
 
-    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch, location);
+    PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
@@ -904,7 +918,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         fixHttp(url, location),
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GITHUB,
-        stringToEnum(location, "submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/ false,
         firstParent,
         patchTransformation,
@@ -998,16 +1012,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
-        "push", location);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GitDestination(
-        fixHttp(
-            checkNotEmpty(firstNotNull(destinationOptions.url, url), "url", location), location),
+        fixHttp(checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"), location),
         checkNotEmpty(
             firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
-            "fetch",
-            location),
+            "fetch"),
         resolvedPush,
         convertFromNoneable(tagName, null),
         convertFromNoneable(tagMsg, null),
@@ -1115,14 +1126,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Location location)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push),
-        "push", location);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
-    String repoUrl = fixHttp(checkNotEmpty(
-        firstNotNull(destinationOptions.url, url), "url", location), location);
+    String repoUrl =
+        fixHttp(checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"), location);
     String branchToUpdate = convertFromNoneable(prBranchToUpdate, null);
     Boolean deletePrBranch = convertFromNoneable(deletePrBranchParam, null);
-    check(location, branchToUpdate != null || deletePrBranch == null,
+    check(
+        branchToUpdate != null || deletePrBranch == null,
         "'delete_pr_branch' can only be set if 'pr_branch_to_update' is used");
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     WorkflowOptions workflowOptions = options.get(WorkflowOptions.class);
@@ -1144,8 +1155,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         repoUrl,
         checkNotEmpty(
             firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
-            "fetch",
-            location),
+            "fetch"),
         resolvedPush,
         /*tagName*/ null,
         /*tagMsg*/ null,
@@ -1293,11 +1303,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
-    check(location, GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    check(GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GitHubPrDestination(
-        fixHttp(
-            checkNotEmpty(firstNotNull(destinationOptions.url, url), "url", location), location),
+        fixHttp(checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"), location),
         destinationRef,
         convertFromNoneable(prBranch, null),
         generalOptions,
@@ -1479,38 +1488,38 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object topicObj,
       Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
 
     List<String> newReviewers = SkylarkUtil.convertStringList(reviewers, "reviewers");
     List<String> cc = SkylarkUtil.convertStringList(ccParam, "cc");
     List<String> labels = SkylarkUtil.convertStringList(labelsParam, "labels");
 
     String notifyOptionStr = convertFromNoneable(notifyOptionObj, null);
-    check(location, !(submit && notifyOptionStr != null),
+    check(
+        !(submit && notifyOptionStr != null),
         "Cannot set 'notify' with 'submit = True' in git.gerrit_destination().");
 
     String topicStr = convertFromNoneable(topicObj, null);
-    check(location, !(submit && topicStr != null),
+    check(
+        !(submit && topicStr != null),
         "Cannot set 'topic' with 'submit = True' in git.gerrit_destination().");
     NotifyOption notifyOption =
         notifyOptionStr == null
             ? null
-            : stringToEnum(location, "notify", notifyOptionStr, NotifyOption.class);
+            : stringToEnum("notify", notifyOptionStr, NotifyOption.class);
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, location),
-        checkNotEmpty(
-            firstNotNull(options.get(GitDestinationOptions.class).fetch, fetch), "fetch", location),
+        checkNotEmpty(firstNotNull(options.get(GitDestinationOptions.class).fetch, fetch), "fetch"),
         checkNotEmpty(
             firstNotNull(
                 convertFromNoneable(pushToRefsFor, null),
                 options.get(GitDestinationOptions.class).fetch,
                 fetch),
-            "push_to_refs_for",
-            location),
+            "push_to_refs_for"),
         submit,
         notifyOption,
-        stringToEnum(location, "change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
+        stringToEnum("change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,
         newReviewers,
         cc,
@@ -1525,24 +1534,32 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @SuppressWarnings("unused")
   @SkylarkCallable(
-    name = GITHUB_API,
-    doc =
-        "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.",
-    parameters = {
-        @Param(name = "url", type = String.class, doc = "Indicates the GitHub repo URL.",
+      name = GITHUB_API,
+      doc =
+          "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API"
+              + " operations.",
+      parameters = {
+        @Param(
+            name = "url",
+            type = String.class,
+            doc = "Indicates the GitHub repo URL.",
             named = true),
-        @Param(name = "checker", type = Checker.class,  defaultValue = "None",
-            doc = "A checker for the GitHub API transport.", named = true, noneable = true),
-    },
-    useLocation = true
-  )
+        @Param(
+            name = "checker",
+            type = Checker.class,
+            defaultValue = "None",
+            doc = "A checker for the GitHub API transport.",
+            named = true,
+            noneable = true),
+      },
+      useLocation = true)
   @UsesFlags(GitHubOptions.class)
   public GitHubEndPoint githubApi(String url, Object checkerObj, Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
-    validateEndpointChecker(location, checker, GITHUB_API);
+    validateEndpointChecker(checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url,
         getGeneralConsole());
@@ -1573,10 +1590,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @UsesFlags(GerritOptions.class)
   public GerritEndpoint gerritApi(String url, Object checkerObj, Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
-    validateEndpointChecker(location, checker, GERRIT_API);
+    validateEndpointChecker(checker, GERRIT_API);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url,
         getGeneralConsole());
@@ -1601,10 +1618,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(String url, Object checkerObj, Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
-    validateEndpointChecker(location, checker, GERRIT_TRIGGER);
+    validateEndpointChecker(checker, GERRIT_TRIGGER);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url,
         getGeneralConsole());
@@ -1646,20 +1663,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Sequence<?> events, // <String>
       Location location)
       throws EvalException {
-    checkNotEmpty(url, "url", location);
+    checkNotEmpty(url, "url");
     url = fixHttp(url, location);
     Checker checker = convertFromNoneable(checkerObj, null);
     LinkedHashSet<GitHubEventType> eventBuilder = new LinkedHashSet<>();
     for (String e : events.getContents(String.class, "events")) {
-      GitHubEventType event = stringToEnum(location, "events", e, GitHubEventType.class);
-      check(location, eventBuilder.add(event), "Repeated element %s", e);
-      check(location, WATCHABLE_EVENTS.contains(event),
-          "%s is not a valid value. Values: %s", event, WATCHABLE_EVENTS);
+      GitHubEventType event = stringToEnum("events", e, GitHubEventType.class);
+      check(eventBuilder.add(event), "Repeated element %s", e);
+      check(
+          WATCHABLE_EVENTS.contains(event),
+          "%s is not a valid value. Values: %s",
+          event,
+          WATCHABLE_EVENTS);
     }
-    check(location, !eventBuilder.isEmpty(), "events cannot be empty");
+    check(!eventBuilder.isEmpty(), "events cannot be empty");
 
     ImmutableSet<GitHubEventType> parsedEvents = ImmutableSet.copyOf(eventBuilder);
-    validateEndpointChecker(location, checker, GITHUB_TRIGGER);
+    validateEndpointChecker(checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url,
         parsedEvents, getGeneralConsole());
@@ -1683,13 +1703,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "None",
             noneable = true),
-      },
-      useLocation = true)
+      })
   @UsesFlags(GerritOptions.class)
   public SetReviewInput reviewInput(
       Dict<?, ?> labels, // <String, Integer>
-      Object message,
-      Location location)
+      Object message)
       throws EvalException {
     return SetReviewInput.create(
         convertFromNoneable(message, null),
@@ -1734,30 +1752,43 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     Map<String, String> groupsMap =
         groups.getContents(String.class, String.class, "refspec_groups");
-    check(location, refspec.startsWith("refs/"), "Wrong value '%s'. Refspec has to"
-        + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'");
+    check(
+        refspec.startsWith("refs/"),
+        "Wrong value '%s'. Refspec has to"
+            + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'");
 
     TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
     Pattern regexKey = Pattern.compile("([sn])([0-9])");
     for (String s : groupsMap.keySet()) {
       Matcher matcher = regexKey.matcher(s);
-      check(location, matcher.matches(), "Incorrect key for refspec_group. Should be in the "
-          + "format of n0, n1, etc. or s0, s1, etc. Value: %s", s);
+      check(
+          matcher.matches(),
+          "Incorrect key for refspec_group. Should be in the "
+              + "format of n0, n1, etc. or s0, s1, etc. Value: %s",
+          s);
       VersionElementType type = matcher.group(1).equals("s") ? ALPHABETIC : NUMERIC;
       int num = Integer.parseInt(matcher.group(2));
-      check(location, !elements.containsKey(num) || elements.get(num) == type,
-          "Cannot use same n in both s%s and n%s: %s", num, num, s);
+      check(
+          !elements.containsKey(num) || elements.get(num) == type,
+          "Cannot use same n in both s%s and n%s: %s",
+          num,
+          num,
+          s);
       elements.put(num, type);
     }
     for (Integer num : elements.keySet()) {
       if (num > 0 ) {
-        check(location, elements.containsKey(num -1), "Cannot have s%s or n%s if s%s or n%s"
-            + " doesn't exist", num, num, num -1 , num -1);
+        check(
+            elements.containsKey(num - 1),
+            "Cannot have s%s or n%s if s%s or n%s" + " doesn't exist",
+            num,
+            num,
+            num - 1,
+            num - 1);
       }
     }
 
-    return new LatestVersionSelector(
-        refspec, Replace.parsePatterns(location, groupsMap), elements, location);
+    return new LatestVersionSelector(refspec, Replace.parsePatterns(groupsMap), elements, location);
   }
 
   @Override
@@ -1779,10 +1810,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     return url;
   }
 
-  /**
-   * Validates the {@link Checker} provided to a feedback endpoint.
-   */
+  /** Validates the {@link Checker} provided to a feedback endpoint. */
   @SuppressWarnings({"unused", "RedundantThrows"})
-  protected void validateEndpointChecker(
-      Location location, Checker checker, String functionName) throws EvalException {}
+  protected void validateEndpointChecker(Checker checker, String functionName)
+      throws EvalException {}
 }

@@ -18,11 +18,11 @@ package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Objects;
 
@@ -84,12 +84,13 @@ public final class Author implements StarlarkValue {
   }
 
   /** Parse author from a String in the format of: "name <foo@bar.com>" */
-  public static Author parse(Location location, String authorStr) throws EvalException {
+  public static Author parse(String authorStr) throws EvalException {
     try {
       return AuthorParser.parse(authorStr);
     } catch (InvalidAuthorException e) {
-      throw new EvalException(location, "Author '" + authorStr
-          + "' doesn't match the expected format 'name <mail@example.com>", e);
+      throw Starlark.errorf(
+          "Author '%s' doesn't match the expected format 'name <mail@example.com>: %s",
+          authorStr, e.getMessage());
     }
   }
 

@@ -36,7 +36,6 @@ import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -194,15 +193,18 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   @SkylarkCallable(
-      name = "run", doc = "Run a glob or a transform. For example:<br>"
-      + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
-      + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
+      name = "run",
+      doc =
+          "Run a glob or a transform. For example:<br>"
+              + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
+              + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
-          @Param(name = "runnable", type = Object.class,
-              doc = "A glob or a transform (Transforms still not implemented)"),
-      }, useLocation = true)
-  public Object run(Object runnable, Location location)
-      throws EvalException, IOException, ValidationException {
+        @Param(
+            name = "runnable",
+            type = Object.class,
+            doc = "A glob or a transform (Transforms still not implemented)"),
+      })
+  public Object run(Object runnable) throws EvalException, IOException, ValidationException {
     if (runnable instanceof Glob) {
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 
@@ -223,9 +225,9 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       return Starlark.NONE;
     }
 
-    throw new EvalException(location, String.format(
+    throw Starlark.errorf(
         "Only globs or transforms can be run, but '%s' is of type %s",
-        runnable, runnable.getClass()));
+        runnable, runnable.getClass());
   }
 
   @SkylarkCallable(
@@ -233,10 +235,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       doc = "Create a new path",
       parameters = {
         @Param(name = "path", type = String.class, doc = "The string representing the path"),
-      }, useLocation = true)
-  public CheckoutPath newPath(String path, Location location) throws EvalException {
-    return CheckoutPath.createWithCheckoutDir(checkoutDir.getFileSystem().getPath(path),
-        checkoutDir, location);
+      })
+  public CheckoutPath newPath(String path) throws EvalException {
+    return CheckoutPath.createWithCheckoutDir(
+        checkoutDir.getFileSystem().getPath(path), checkoutDir);
   }
 
   @SkylarkCallable(
@@ -245,29 +247,25 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       parameters = {
         @Param(name = "link", type = CheckoutPath.class, doc = "The link path"),
         @Param(name = "target", type = CheckoutPath.class, doc = "The target path"),
-      },
-      useLocation = true)
-  public void createSymlink(CheckoutPath link, CheckoutPath target, Location location)
-      throws EvalException {
+      })
+  public void createSymlink(CheckoutPath link, CheckoutPath target) throws EvalException {
     try {
-      Path linkFullPath = asCheckoutPath(link, location);
+      Path linkFullPath = asCheckoutPath(link);
       // Verify target is inside checkout dir
-      asCheckoutPath(target, location);
+      asCheckoutPath(target);
 
       if (Files.exists(linkFullPath)) {
-        throw new EvalException(
-            location,
-            String.format(
-                "'%s' already exist%s",
-                link.getPath(),
-                Files.isDirectory(linkFullPath)
-                    ? " and is a directory"
-                    : Files.isSymbolicLink(linkFullPath)
-                        ? " and is a symlink"
-                        : Files.isRegularFile(linkFullPath)
-                            ? " and is a regular file"
-                            // Shouldn't happen:
-                            : " and we don't know what kind of file is"));
+        throw Starlark.errorf(
+            "'%s' already exist%s",
+            link.getPath(),
+            Files.isDirectory(linkFullPath)
+                ? " and is a directory"
+                : Files.isSymbolicLink(linkFullPath)
+                    ? " and is a symlink"
+                    : Files.isRegularFile(linkFullPath)
+                        ? " and is a regular file"
+                        // Shouldn't happen:
+                        : " and we don't know what kind of file is");
       }
 
       Path relativized = link.getPath().getParent() == null
@@ -283,7 +281,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     } catch (IOException e) {
       String msg = "Cannot create symlink: " + e.getMessage();
       logger.atSevere().withCause(e).log(msg);
-      throw new EvalException(location, msg, e);
+      throw Starlark.errorf("%s", msg);
     }
   }
 
@@ -293,11 +291,9 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       parameters = {
         @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
         @Param(name = "content", type = String.class, doc = "The content of the file"),
-      },
-      useLocation = true)
-  public void writePath(CheckoutPath path, String content, Location location)
-      throws IOException, EvalException {
-    Path fullPath = asCheckoutPath(path, location);
+      })
+  public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
+    Path fullPath = asCheckoutPath(path);
     if (fullPath.getParent() != null) {
       Files.createDirectories(fullPath.getParent());
     }
@@ -309,16 +305,15 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       doc = "Read the content of path as UTF-8",
       parameters = {
         @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
-      },
-      useLocation = true)
-  public String readPath(CheckoutPath path, Location location) throws IOException, EvalException {
-    return new String(Files.readAllBytes(asCheckoutPath(path, location)), UTF_8);
+      })
+  public String readPath(CheckoutPath path) throws IOException, EvalException {
+    return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
   }
 
-  private Path asCheckoutPath(CheckoutPath path, Location location) throws EvalException {
+  private Path asCheckoutPath(CheckoutPath path) throws EvalException {
     Path normalized = checkoutDir.resolve(path.getPath()).normalize();
     if (!normalized.startsWith(checkoutDir)) {
-      throw new EvalException(location, path + " is not inside the checkout directory");
+      throw Starlark.errorf("%s is not inside the checkout directory", path);
     }
     return normalized;
   }

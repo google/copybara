@@ -182,7 +182,11 @@ public class GitHubDestinationTest {
   public void testPrToUpdateIngoredForInitHistory() throws Exception {
     options.workflowOptions.initHistory = true;
 
-    addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
             Glob.ALL_FILES.roots());
@@ -224,17 +228,20 @@ public class GitHubDestinationTest {
           contains("repos/foo/git/refs/heads/other"))).thenReturn(
           mockResponseWithStatus("", 204, (req) -> true));
     }
-    gitUtil.mockApi("GET",
+    gitUtil.mockApi(
+        "GET",
         "https://api.github.com/repos/foo/git/refs/heads/other",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_pr\",\n"
                 + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
-                + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_pr\",\n"
+                + "\"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_pr\",\n"
                 + "\"object\" : {\n"
                 + "         \"type\" : \"commit\",\n"
                 + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
-                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "         \"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
                 + "       }\n"
                 + "}"));
     addFiles(
@@ -289,30 +296,36 @@ public class GitHubDestinationTest {
 
   @Test
   public void testPrToUpdateWithLabel() throws Exception {
-    gitUtil.mockApi("GET",
+    gitUtil.mockApi(
+        "GET",
         "https://api.github.com/repos/foo/git/refs/heads/other_12345",
         mockResponse(
             "{\n"
-              + "\"ref\" : \"refs/heads/test_existing_12345_pr\",\n"
-              + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
-              + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_12345_pr\",\n"
-              + "\"object\" : {\n"
+                + "\"ref\" : \"refs/heads/test_existing_12345_pr\",\n"
+                + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
+                + "\"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_12345_pr\",\n"
+                + "\"object\" : {\n"
                 + "         \"type\" : \"commit\",\n"
                 + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
-                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "         \"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
                 + "       }\n"
-            + "}"));
-    gitUtil.mockApi("GET",
+                + "}"));
+    gitUtil.mockApi(
+        "GET",
         "https://api.github.com/repos/foo/git/refs/heads/other_6789",
         mockResponse(
             "{\n"
                 + "\"ref\" : \"refs/heads/test_existing_6789_pr\",\n"
                 + "\"node_id\" : \"MDM6UmVmcmVmcy9oZWFkcy9mZWF0dXJlQQ==\",\n"
-                + "\"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_6789_pr\",\n"
+                + "\"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/refs/heads/test_existing_6789_pr\",\n"
                 + "\"object\" : {\n"
                 + "         \"type\" : \"commit\",\n"
                 + "         \"sha\" : \"aa218f56b14c9653891f9e74264a383fa43fefbd\",\n"
-                + "         \"url\" : \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
+                + "         \"url\" :"
+                + " \"https://api.github.com/repos/octocat/Hello-World/git/commits/aa218f56b14c9653891f9e74264a383fa43fefbd\"\n"
                 + "       }\n"
                 + "}"));
     addFiles(
@@ -407,7 +420,7 @@ public class GitHubDestinationTest {
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitHubEndPoint endpoint = (GitHubEndPoint) writer.getFeedbackEndPoint(console);
     try {
-      endpoint.getCombinedStatus("bad_word", null);
+      endpoint.getCombinedStatus("bad_word");
       fail();
     } catch (EvalException e) {
       assertThat(e).hasMessageThat().contains("Bad word 'bad_word' found: field 'path'");

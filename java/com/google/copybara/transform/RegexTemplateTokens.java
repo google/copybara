@@ -49,7 +49,6 @@ import javax.annotation.Nullable;
  */
 public final class RegexTemplateTokens {
 
-  private final Location location;
   private final String template;
   private final Pattern before;
   private final ArrayListMultimap<String, Integer> groupIndexes = ArrayListMultimap.create();
@@ -58,10 +57,9 @@ public final class RegexTemplateTokens {
 
   public RegexTemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
       boolean repeatedGroups) throws EvalException {
-    this.location = location;
     this.template = Preconditions.checkNotNull(template);
 
-    this.tokens = ImmutableList.copyOf(new Parser(location).parse(template));
+    this.tokens = ImmutableList.copyOf(new Parser().parse(template));
     this.before = buildBefore(regexGroups, repeatedGroups);
 
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
@@ -261,12 +259,12 @@ public final class RegexTemplateTokens {
       switch (token.getType()) {
         case INTERPOLATION:
           Pattern subPattern = regexesByInterpolationName.get(token.getValue());
-          check(
-              location, subPattern != null,
-              "Interpolation is used but not defined: %s", token.getValue());
+          check(subPattern != null, "Interpolation is used but not defined: %s", token.getValue());
           fullPattern.append(String.format("(%s)", subPattern.pattern()));
-          check(location, groupIndexes.get(token.getValue()).isEmpty() || repeatedGroups,
-              "Regex group is used in template multiple times: %s", token.getValue());
+          check(
+              groupIndexes.get(token.getValue()).isEmpty() || repeatedGroups,
+              "Regex group is used in template multiple times: %s",
+              token.getValue());
           groupIndexes.put(token.getValue(), groupCount);
           groupCount += subPattern.groupCount() + 1;
           break;
@@ -285,8 +283,9 @@ public final class RegexTemplateTokens {
    */
   public void validateUnused() throws EvalException {
     check(
-        location, unusedGroups.isEmpty(),
-        "Following interpolations are defined but not used: %s", unusedGroups);
+        unusedGroups.isEmpty(),
+        "Following interpolations are defined but not used: %s",
+        unusedGroups);
   }
 
   /**

@@ -35,6 +35,7 @@ import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
@@ -163,7 +164,7 @@ public final class Replace implements Transformation {
       boolean repeatedGroups, List<String> patternsToIgnore,
       WorkflowOptions workflowOptions)
       throws EvalException {
-    Map<String, Pattern> parsedGroups = parsePatterns(location, regexGroups);
+    Map<String, Pattern> parsedGroups = parsePatterns(regexGroups);
 
     RegexTemplateTokens beforeTokens =
         new RegexTemplateTokens(location, before, parsedGroups, repeatedGroups);
@@ -177,8 +178,7 @@ public final class Replace implements Transformation {
       try {
         parsedIgnorePatterns.add(Pattern.compile(toIgnore));
       } catch (PatternSyntaxException e) {
-        throw new EvalException(
-            location, "'patterns_to_ignore' includes invalid regex: " + toIgnore, e);
+        throw Starlark.errorf("'patterns_to_ignore' includes invalid regex: %s", toIgnore);
       }
     }
 
@@ -192,15 +192,16 @@ public final class Replace implements Transformation {
         parsedIgnorePatterns, workflowOptions, location);
   }
 
-  public static Map<String, Pattern> parsePatterns(Location location,
-      Map<String, String> regexGroups) throws EvalException {
+  public static Map<String, Pattern> parsePatterns(Map<String, String> regexGroups)
+      throws EvalException {
     Map<String, Pattern> parsedGroups = new HashMap<>();
     for (Entry<String, String> group : regexGroups.entrySet()) {
       try {
         parsedGroups.put(group.getKey(), Pattern.compile(group.getValue()));
       } catch (PatternSyntaxException e) {
-        throw new EvalException(location, "'regex_groups' includes invalid regex for key "
-            + group.getKey() + ": " + group.getValue(), e);
+        throw Starlark.errorf(
+            "'regex_groups' includes invalid regex for key %s: %s",
+            group.getKey(), group.getValue());
       }
     }
     return parsedGroups;

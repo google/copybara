@@ -26,10 +26,10 @@ import com.google.copybara.Change;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import com.google.devtools.build.lib.events.Location;
@@ -77,7 +77,7 @@ public class MapAuthor implements Transformation {
     ImmutableMap.Builder<String, Author> nameToAuthor = ImmutableMap.builder();
 
     for (Entry<String, String> e : authorMap.entrySet()) {
-      Author to = Author.parse(location, e.getValue());
+      Author to = Author.parse(e.getValue());
       try {
         authorToAuthor.put(AuthorParser.parse(e.getKey()).toString(),
             to.toString());
