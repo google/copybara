@@ -37,6 +37,7 @@ import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.transform.debug.DebugOptions;
+import com.google.copybara.transform.format.FormatModule;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
@@ -84,6 +85,7 @@ public class ModuleSupplier {
             options.get(FolderOriginOptions.class),
             options.get(FolderDestinationOptions.class),
             general),
+        new FormatModule(),
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
         new Authoring.Module());
