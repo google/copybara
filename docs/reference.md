@@ -52,6 +52,8 @@
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
+  - [format](#format)
+    - [format.buildifier](#format.buildifier)
   - [gerritapi.AccountInfo](#gerritapi.accountinfo)
   - [gerritapi.ApprovalInfo](#gerritapi.approvalinfo)
   - [gerritapi.ChangeInfo](#gerritapi.changeinfo)
@@ -1333,6 +1335,30 @@ Name | Type | Description
 <nobr>`--folder-origin-author`</nobr> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
 <nobr>`--folder-origin-ignore-invalid-symlinks`</nobr> | *boolean* | If an invalid symlink is found, ignore it instead of failing
 <nobr>`--folder-origin-message`</nobr> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
+
+
+
+## format
+
+Set of functions to format files
+
+<a id="format.buildifier" aria-hidden="true"></a>
+### format.buildifier
+
+Runs <a href="https://github.com/bazelbuild/buildtools/tree/master/buildifier">buildifier</a>, a tool for formatting bazel BUILD and .bzl files with a standard convention.
+
+`transformation format.buildifier(files, mode="fix", lint="off", warnings=None, type="auto")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+files | `glob`<br><p>A glob of files to format, relative to the workdir (for example `glob(["**/BUILD", "**/BUILD.bazel", "**/*.bzl"])`).</p>
+mode | `string`<br><p>The formatting mode to pass to buildifier. Valid values are `fix`.</p>
+lint | `string`<br><p>The lint mode to pass to buildifier. Valid values are `off` and `fix`.</p>
+warnings | `object`<br><p>A list of buildifier warnings to enable.</p>
+type | `string`<br><p>The lint mode to pass to buildifier. Valid values are `auto`.</p>
 
 
 
