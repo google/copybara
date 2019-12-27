@@ -469,22 +469,37 @@ public final class GitDestination implements Destination<GitRevision> {
       }
 
       PathMatcher pathMatcher = destinationFiles.relativeTo(scratchClone.getWorkTree());
-      // Get the submodules before we stage them for deletion with
-      // repo.simpleCommand(add --all)
-      AddExcludedFilesToIndex excludedAdder =
-          new AddExcludedFilesToIndex(scratchClone, pathMatcher);
-      excludedAdder.findSubmodules(console);
-
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());
 
-      console.progress("Git Destination: Adding all files");
-      try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
-        alternate.add().force().all().run();
-      }
+      ImmutableList<DiffUtil.DiffFile> affectedFilesForSmartPrune =
+          transformResult.getAffectedFilesForSmartPrune();
 
-      console.progress("Git Destination: Excluding files");
-      try (ProfilerTask ignored = generalOptions.profiler().start("exclude_files")) {
-        excludedAdder.add();
+      if (affectedFilesForSmartPrune == null) {
+        // Get the submodules before we stage them for deletion with
+        // repo.simpleCommand(add --all)
+        AddExcludedFilesToIndex excludedAdder =
+            new AddExcludedFilesToIndex(scratchClone, pathMatcher);
+        excludedAdder.findSubmodules(console);
+
+        console.progress("Git Destination: Adding all files");
+        try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
+          alternate.add().force().all().run();
+        }
+
+        console.progress("Git Destination: Excluding files");
+        try (ProfilerTask ignored = generalOptions.profiler().start("exclude_files")) {
+          excludedAdder.add();
+        }
+      } else {
+        console.progress("Git Destination: Adding affected files");
+        try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
+          Iterable<String> affectedFiles =
+              affectedFilesForSmartPrune.stream()
+                  .map(DiffUtil.DiffFile::getName)
+                  .filter(file -> pathMatcher.matches(scratchClone.getWorkTree().resolve(file)))
+                  .collect(ImmutableList.toImmutableList());
+          alternate.add().force().files(affectedFiles).run();
+        }
       }
 
       console.progress("Git Destination: Creating a local commit");
