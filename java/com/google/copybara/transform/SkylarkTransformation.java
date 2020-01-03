@@ -62,7 +62,6 @@ public class SkylarkTransformation implements Transformation {
           Starlark.call(
               dynamicThread.get(),
               function,
-              Location.BUILTIN,
               ImmutableList.of(skylarkWork),
               /*kwargs=*/ ImmutableMap.of());
       checkCondition(
