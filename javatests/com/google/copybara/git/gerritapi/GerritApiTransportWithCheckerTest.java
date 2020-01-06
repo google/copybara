@@ -16,7 +16,7 @@
 
 package com.google.copybara.git.gerritapi;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -67,11 +67,7 @@ public class GerritApiTransportWithCheckerTest {
     doThrow(new CheckerException("Error!"))
         .when(checker)
         .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
-    try {
-      transport.get("path/foo", String.class);
-      fail();
-    } catch (ValidationException expected) {
-    }
+    assertThrows(ValidationException.class, () -> transport.get("path/foo", String.class));
     verifyZeroInteractions(delegate);
   }
 
@@ -93,11 +89,9 @@ public class GerritApiTransportWithCheckerTest {
     doThrow(new CheckerException("Error!"))
         .when(checker)
         .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
-    try {
-      transport.post("path/foo", "request_content", String.class);
-      fail();
-    } catch (ValidationException expected) {
-    }
+    assertThrows(
+        ValidationException.class,
+        () -> transport.post("path/foo", "request_content", String.class));
     verifyZeroInteractions(delegate);
   }
 }

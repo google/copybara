@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GerritChange.GERRIT_OWNER_EMAIL_LABEL;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.when;
@@ -48,9 +48,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.stubbing.Answer;
@@ -75,9 +73,6 @@ public class GerritOriginTest {
   private OptionsBuilder options;
   private GitRepository repo;
   private GitTestUtil gitUtil;
-
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private GitRevision firstRevision;
   private GitRevision secondRevision;
   private GitRevision thirdRevision;
@@ -275,14 +270,9 @@ public class GerritOriginTest {
         + "  url = 'https://" + REPO_URL + "',"
         + "  branch = 'master')");
 
-    try {
-      origin.resolve("12345");
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Skipping import of change 12345 for branch my_branch");
-    }
-
+    EmptyChangeException e =
+        assertThrows(EmptyChangeException.class, () -> origin.resolve("12345"));
+    assertThat(e).hasMessageThat().contains("Skipping import of change 12345 for branch my_branch");
     // But this should work, as the last-rev needs to be resolved:
     origin.resolve(firstRevision.getSha1());
   }
@@ -313,16 +303,18 @@ public class GerritOriginTest {
 
   @Test
   public void testReferenceNotFound() throws RepoException, ValidationException {
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find change number 54321");
-    origin.resolve("54321");
+    CannotResolveRevisionException thrown =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("54321"));
+    assertThat(thrown).hasMessageThat().contains("Cannot find change number 54321");
   }
 
   @Test
   public void testReferencePatchSetNotFound() throws RepoException, ValidationException {
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find patch set 42");
-    origin.resolve("http://foo.com/#/c/12345/42");
+    CannotResolveRevisionException thrown =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () -> origin.resolve("http://foo.com/#/c/12345/42"));
+    assertThat(thrown).hasMessageThat().contains("Cannot find patch set 42");
   }
 
   @Test

@@ -24,7 +24,7 @@ import static java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableSet;
@@ -48,7 +48,6 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -58,10 +57,7 @@ public class FolderOriginTest {
 
   private OptionsBuilder options;
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-  @Rule
-  public TemporaryFolder tmpFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tmpFolder = new TemporaryFolder();
 
   private Path workdir;
   private SkylarkTestExecutor skylark;
@@ -227,10 +223,13 @@ public class FolderOriginTest {
 
   @Test
   public void testAbsolutePaths() throws Exception {
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Some symlinks refer to locations outside of the folder and"
-        + " 'materialize_outside_symlinks' config option was not used");
-    runAbsolutePaths("folder.origin()");
+    ValidationException thrown =
+        assertThrows(ValidationException.class, () -> runAbsolutePaths("folder.origin()"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Some symlinks refer to locations outside of the folder and"
+                + " 'materialize_outside_symlinks' config option was not used");
   }
 
   @Test
@@ -245,13 +244,9 @@ public class FolderOriginTest {
 
   @Test
   public void testInvalidSymlinks() throws Exception {
-    try {
-      checkInvalidSymlink();
-      fail();
-    } catch (RepoException e) {
-      assertThat(e).hasCauseThat().isInstanceOf(NoSuchFileException.class);
-      assertThat(e).hasCauseThat().hasMessageThat().contains("foo");
-    }
+    RepoException e = assertThrows(RepoException.class, () -> checkInvalidSymlink());
+    assertThat(e).hasCauseThat().isInstanceOf(NoSuchFileException.class);
+    assertThat(e).hasCauseThat().hasMessageThat().contains("foo");
   }
 
   @Test

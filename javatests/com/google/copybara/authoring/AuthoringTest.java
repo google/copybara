@@ -24,9 +24,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -34,9 +32,6 @@ import org.junit.runners.JUnit4;
 public class AuthoringTest {
 
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   private SkylarkTestExecutor skylark;
   private TestingConsole console;

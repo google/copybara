@@ -18,7 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -367,19 +367,21 @@ public class TransformWorkTest {
     Files.createDirectories(workdir.resolve("folder"));
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
-    try {
-      runWorkflow("test", ""
-          + "def test(ctx):\n"
-          + "   ctx.console.error('Error message')\n"
-          + "   ctx.console.error('Another error message')\n");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().isEqualTo("2 error(s) while executing test");
-      console
-          .assertThat()
-          .onceInLog(MessageType.ERROR, "Error message")
-          .onceInLog(MessageType.ERROR, "Another error message");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runWorkflow(
+                    "test",
+                    ""
+                        + "def test(ctx):\n"
+                        + "   ctx.console.error('Error message')\n"
+                        + "   ctx.console.error('Another error message')\n"));
+    assertThat(e).hasMessageThat().isEqualTo("2 error(s) while executing test");
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "Error message")
+        .onceInLog(MessageType.ERROR, "Another error message");
   }
 
   @Test
@@ -430,18 +432,12 @@ public class TransformWorkTest {
     checkCreateSymlink("f1", "f2");
     checkCreateSymlink("a/d1", "d2");
     checkCreateSymlink("d1", "b/d2");
-    try {
-      checkCreateSymlink("d1", "d1");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat()
-          .contains("'d1' already exist and is a regular file");
-    }
-    try {
-      checkCreateSymlink("d1", "../d1");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat()
-          .contains("../d1 is not inside the checkout directory");
-    }
+    ValidationException regularFile =
+        assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "d1"));
+    assertThat(regularFile).hasMessageThat().contains("'d1' already exist and is a regular file");
+    ValidationException escapedDir =
+        assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "../d1"));
+    assertThat(escapedDir).hasMessageThat().contains("../d1 is not inside the checkout directory");
   }
 
   @Test
@@ -697,12 +693,11 @@ public class TransformWorkTest {
         + "\n"
         + "transformation = core.transform([test])");
 
-    try {
-      transformation.transform(TransformWorks.of(workdir, "test", console));
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> transformation.transform(TransformWorks.of(workdir, "test", console)));
+    assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
   }
 
   private void touchFile(Path base, String path) throws IOException {

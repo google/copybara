@@ -17,7 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.exception.ValidationException;
 import org.junit.Test;
@@ -34,12 +34,11 @@ public class RepositoryUtilTest {
 
   @Test
   public void testBadUrl() {
-    try {
-      RepositoryUtil.validateNotHttp("http://copybara.com");
-      fail("Expected an exception.");
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("URL 'http://copybara.com' is not valid - should be using https");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> RepositoryUtil.validateNotHttp("http://copybara.com"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("URL 'http://copybara.com' is not valid - should be using https");
   }
 }

@@ -22,7 +22,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -419,58 +419,64 @@ public class GitHubDestinationTest {
             Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitHubEndPoint endpoint = (GitHubEndPoint) writer.getFeedbackEndPoint(console);
-    try {
-      endpoint.getCombinedStatus("bad_word");
-      fail();
-    } catch (EvalException e) {
-      assertThat(e).hasMessageThat().contains("Bad word 'bad_word' found: field 'path'");
-    }
+    EvalException e =
+        assertThrows(EvalException.class, () -> endpoint.getCombinedStatus("bad_word"));
+    assertThat(e).hasMessageThat().contains("Bad word 'bad_word' found: field 'path'");
   }
 
   @Test
   public void testWithGitHubApiError() throws Exception {
-    try {
-      gitUtil.mockApi("GET",
-          "https://api.github.com/repos/foo/git/refs/heads/other_12345",
-          mockResponseWithStatus("", 403, any -> true));
-      gitUtil.mockApi("GET",
-          "https://api.github.com/repos/foo/git/refs/other_6789",
-          mockResponseWithStatus("", 403, any -> true));
-      addFiles(
-          remote,
-          "master",
-          "first change",
-          ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
-      WriterContext writerContext =
-          new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
-              Glob.ALL_FILES.roots());
-      Writer<GitRevision> writer = destinationWithExistingPrBranch(
-          "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
-      process(writer, new DummyRevision("origin_ref1"));
-      fail();
-    } catch (GitHubApiException e) {
-      Assert.assertSame(e.getResponseCode(), FORBIDDEN);
-    }
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/git/refs/heads/other_12345",
+        mockResponseWithStatus("", 403, any -> true));
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/git/refs/other_6789",
+        mockResponseWithStatus("", 403, any -> true));
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            false,
+            new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer =
+        destinationWithExistingPrBranch("other_${my_label}", /*deletePrBranch=*/ "None")
+            .newWriter(writerContext);
+    GitHubApiException e =
+        assertThrows(
+            GitHubApiException.class,() -> process(writer, new DummyRevision("origin_ref1")));
+    Assert.assertSame(e.getResponseCode(), FORBIDDEN);
   }
 
   @Test
   public void testWithLabelNotFound() throws Exception {
-    try {
-      addFiles(
-          remote,
-          "master",
-          "first change",
-          ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
-      WriterContext writerContext =
-          new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
-              Glob.ALL_FILES.roots());
-      Writer<GitRevision> writer = destinationWithExistingPrBranch(
-          "other_${no_such_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
-      process(writer, new DummyRevision("origin_ref1"));
-      fail();
-    } catch (ValidationException e) {
-      Assert.assertTrue(e.getMessage().contains("Template 'other_${no_such_label}' has an error"));
-    }
+    addFiles(
+        remote,
+        "master",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            false,
+            new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer =
+        destinationWithExistingPrBranch(
+                "other_${no_such_label}", /*deletePrBranch=*/ "None")
+            .newWriter(writerContext);
+    ValidationException e =
+        assertThrows(ValidationException.class,
+            () -> process(writer, new DummyRevision("origin_ref1")));
+    Assert.assertTrue(e.getMessage().contains("Template 'other_${no_such_label}' has an error"));
   }
 
   private void addFiles(GitRepository remote, String branch, String msg, Map<String, String> files)

@@ -16,7 +16,9 @@
 
 package com.google.copybara.transform;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
@@ -30,9 +32,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -43,9 +43,6 @@ public class RemoveTest {
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -115,9 +112,10 @@ public class RemoveTest {
   @Test
   public void testBareRemoveNotAllowed() throws Exception {
     Remove t = skylark.eval("m", "m = core.remove(glob(['bar']))");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("core.remove() is only mean to be used inside core.transform");
-    transform(t);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(t));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("core.remove() is only mean to be used inside core.transform");
   }
 
   private void transform(Transformation t) throws IOException, ValidationException {

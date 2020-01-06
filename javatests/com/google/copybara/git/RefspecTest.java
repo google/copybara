@@ -18,23 +18,17 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Maps;
 import java.nio.file.FileSystems;
 import java.util.Map;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class RefspecTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void testRefspec() throws Exception {
     assertRefspec(refspec("refs/heads/master"),
@@ -95,32 +89,31 @@ public class RefspecTest {
 
   @Test
   public void testNonValid() throws Exception {
-    thrown.expect(InvalidRefspecException.class);
-    thrown.expectMessage("Invalid refspec: aa bb");
-    refspec("aa bb");
+    InvalidRefspecException thrown =
+        assertThrows(InvalidRefspecException.class, () -> refspec("aa bb"));
+    assertThat(thrown).hasMessageThat().contains("Invalid refspec: aa bb");
   }
 
   @Test
   public void testTwoWildcards() throws Exception {
-    thrown.expect(InvalidRefspecException.class);
-    thrown.expectMessage("Invalid refspec: refs/foo/*/bar/*");
-    refspec("refs/foo/*/bar/*");
+    InvalidRefspecException thrown =
+        assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo/*/bar/*"));
+    assertThat(thrown).hasMessageThat().contains("Invalid refspec: refs/foo/*/bar/*");
   }
 
   @Test
   public void testOnlyWildcardInOrigin() throws Exception {
-    thrown.expect(InvalidRefspecException.class);
-    thrown.expectMessage("Wildcard only used in one part of the refspec");
-    refspec("refs/*:refs/bar");
+    InvalidRefspecException thrown =
+        assertThrows(InvalidRefspecException.class, () -> refspec("refs/*:refs/bar"));
+    assertThat(thrown).hasMessageThat().contains("Wildcard only used in one part of the refspec");
   }
 
   @Test
   public void testMultipleSemicolons() throws Exception {
-    thrown.expect(InvalidRefspecException.class);
-    thrown.expectMessage("Multiple ':' found");
-    refspec("la:la:la");
+    InvalidRefspecException thrown =
+        assertThrows(InvalidRefspecException.class, () -> refspec("la:la:la"));
+    assertThat(thrown).hasMessageThat().contains("Multiple ':' found");
   }
-
 
   @Test
   public void convertTest() throws Exception {
@@ -139,12 +132,13 @@ public class RefspecTest {
   public void testGitBinaryNotFound() {
     Map<String, String> env = Maps.newHashMap(getGitEnv().getEnvironment());
     env.put("GIT_EXEC_PATH", "some_non_existent_path");
-    try {
-      Refspec.create(new GitEnvironment(env), FileSystems.getDefault().getPath("/"), "master");
-      fail();
-    } catch (InvalidRefspecException e) {
-      assertThat(e.getMessage()).contains("Cannot find git binary at 'some_non_existent_path/git'");
-    }
+    InvalidRefspecException e =
+        assertThrows(
+            InvalidRefspecException.class,
+            () ->
+                Refspec.create(
+                    new GitEnvironment(env), FileSystems.getDefault().getPath("/"), "master"));
+    assertThat(e.getMessage()).contains("Cannot find git binary at 'some_non_existent_path/git'");
   }
 
   private void checkConvert(String refspec, String ref, String expectedDest) throws Exception {

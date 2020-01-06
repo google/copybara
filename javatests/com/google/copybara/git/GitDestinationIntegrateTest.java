@@ -23,7 +23,7 @@ import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE_AN
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -55,9 +55,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -74,8 +72,6 @@ public class GitDestinationIntegrateTest {
   private Glob destinationFiles;
   private SkylarkTestExecutor skylark;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private GitTestUtil gitUtil;
 
@@ -572,13 +568,9 @@ public class GitDestinationIntegrateTest {
 
   @Test
   public void testBadLabel() throws ValidationException, IOException, RepoException {
-    try {
-      runBadLabel(/*ignoreErrors=*/false);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()
-      ).contains("Error resolving file:///non_existent_repository");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> runBadLabel(/*ignoreErrors=*/ false));
+    assertThat(e.getMessage()).contains("Error resolving file:///non_existent_repository");
   }
 
   @Test

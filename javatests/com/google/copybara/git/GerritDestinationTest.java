@@ -22,7 +22,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.matches;
 import static org.mockito.Matchers.startsWith;
@@ -68,9 +68,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.stubbing.Answer;
@@ -121,8 +119,6 @@ public class GerritDestinationTest {
   private ImmutableList<String> excludedDestinationPaths;
   private SkylarkTestExecutor skylark;
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
   private GitTestUtil gitUtil;
 
   @Before
@@ -382,12 +378,11 @@ public class GerritDestinationTest {
     String changeId = runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
         "change_id_policy = 'REQUIRE'");
     assertThat(changeId).isEqualTo(CONSTANT_CHANGE_ID);
-    try {
-      runChangeIdPolicy("Test message", "change_id_policy = 'REQUIRE'");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("label not found in message");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> runChangeIdPolicy("Test message", "change_id_policy = 'REQUIRE'"));
+    assertThat(e).hasMessageThat().contains("label not found in message");
   }
 
   @Test
@@ -396,13 +391,14 @@ public class GerritDestinationTest {
     options.gitDestination.nonFastForwardPush = true;
     String changeId = runChangeIdPolicy("Test message", "change_id_policy = 'FAIL_IF_PRESENT'");
     assertThat(changeId).isNotNull();
-    try {
-      runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
-          "change_id_policy = 'FAIL_IF_PRESENT'");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("label found in message");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runChangeIdPolicy(
+                    "Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n",
+                    "change_id_policy = 'FAIL_IF_PRESENT'"));
+    assertThat(e).hasMessageThat().contains("label found in message");
   }
 
   /**
@@ -414,12 +410,11 @@ public class GerritDestinationTest {
     options.gitDestination.nonFastForwardPush = true;
     String changeId = runChangeIdPolicy("Test message");
     assertThat(changeId).isNotNull();
-    try {
-      runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("label found in message");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> runChangeIdPolicy("Test message\n\nChange-Id: " + CONSTANT_CHANGE_ID + "\n"));
+    assertThat(e).hasMessageThat().contains("label found in message");
   }
 
   @Test
@@ -713,26 +708,23 @@ public class GerritDestinationTest {
 
   @Test
   public void testSubmitAndDisableNotifications() {
-    try {
-      destination("submit = True", "notify = 'OWNER'");
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected)
-          .hasMessageThat()
-          .contains("Cannot set 'notify' with 'submit = True' in git.gerrit_destination()");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> destination("submit = True", "notify = 'OWNER'"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Cannot set 'notify' with 'submit = True' in git.gerrit_destination()");
   }
 
   @Test
   public void testSubmitAndTopic() {
-    try {
-      destination("submit = True", "topic = 'test_${CONTEXT_REFERENCE}'");
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected)
-          .hasMessageThat()
-          .contains("Cannot set 'topic' with 'submit = True' in git.gerrit_destination()");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () -> destination("submit = True", "topic = 'test_${CONTEXT_REFERENCE}'"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Cannot set 'topic' with 'submit = True' in git.gerrit_destination()");
   }
 
   @Test
@@ -777,7 +769,8 @@ public class GerritDestinationTest {
     mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
         new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
@@ -815,7 +808,8 @@ public class GerritDestinationTest {
     mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
         new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
@@ -856,7 +850,8 @@ public class GerritDestinationTest {
     mockNoChangesFound();
 
     DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination = destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     WriterContext writerContext =
         new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
@@ -951,12 +946,9 @@ public class GerritDestinationTest {
           mockResponse(String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", changeId)));
     }
 
-    try {
-      process(new DummyRevision("origin_ref"));
-      fail("Should have thrown RepoException");
-    } catch (RepoException expected) {
-      assertThat(expected.getMessage()).contains("Unable to find unmerged change for ");
-    }
+    RepoException expected =
+        assertThrows(RepoException.class, () -> process(new DummyRevision("origin_ref")));
+    assertThat(expected.getMessage()).contains("Unable to find unmerged change for ");
   }
 
   @Test
@@ -1276,15 +1268,14 @@ public class GerritDestinationTest {
 
     mockChangeFound(currentRev, 12310);
 
-    try {
-      runAllowEmptyPatchSetFalse(newParent.getSha1());
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Skipping creating a new Gerrit PatchSet for change 12310 since the diff is the same from"
-              + " the previous PatchSet");
-    }
-
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> runAllowEmptyPatchSetFalse(newParent.getSha1()));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Skipping creating a new Gerrit PatchSet for change 12310 since the diff is the same"
+                + " from the previous PatchSet");
     // No push happened
     assertThat(repo().refExists("refs/for/master")).isFalse();
 

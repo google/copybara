@@ -21,7 +21,7 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.FakeTicker;
@@ -40,18 +40,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitMirrorTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   private OptionsBuilder options;
   private SkylarkTestExecutor skylark;
   private GitRepository originRepo;
@@ -297,12 +291,9 @@ public class GitMirrorTest {
   @Test
   public void testMirrorConflict() throws Exception {
     Migration mirror = prepareForConflict();
-    try {
-      mirror.run(workdir, ImmutableList.of());
-      fail();
-    } catch (RepoException e) {
-      assertThat(e.getMessage()).contains("[rejected]");
-    }
+    RepoException e =
+        assertThrows(RepoException.class, () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(e.getMessage()).contains("[rejected]");
   }
 
   @Test

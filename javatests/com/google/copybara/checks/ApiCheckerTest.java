@@ -16,10 +16,10 @@
 
 package com.google.copybara.checks;
 
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.truth.Truth;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -55,24 +55,19 @@ public class ApiCheckerTest {
       }
     }, new TestingConsole());
 
-    try {
-      checker.check("foo", new Object());
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Check failed!");
-    }
-    try {
-      checker.check("foo", new Object(), "bar", new Object());
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Check failed!");
-    }
-    try {
-      checker.check("foo", new Object(), "bar", new Object(), "baz", new Object());
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Check failed!");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> checker.check("foo", new Object()));
+    assertThat(e).hasMessageThat().isEqualTo("Check failed!");
+    ValidationException failedCheck =
+        assertThrows(
+            ValidationException.class,
+            () -> checker.check("foo", new Object(), "bar", new Object()));
+    assertThat(failedCheck).hasMessageThat().isEqualTo("Check failed!");
+    ValidationException failedCheckArgs =
+        assertThrows(
+            ValidationException.class,
+            () -> checker.check("foo", new Object(), "bar", new Object(), "baz", new Object()));
+    assertThat(failedCheckArgs).hasMessageThat().isEqualTo("Check failed!");
   }
 
   @Test
@@ -85,24 +80,18 @@ public class ApiCheckerTest {
       }
     }, new TestingConsole());
 
-    try {
-      checker.check("foo", new Object());
-      fail();
-    } catch (RuntimeException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
-    }
-    try {
-      checker.check("foo", new Object(), "bar", new Object());
-      fail();
-    } catch (RuntimeException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
-    }
-    try {
-      checker.check("foo", new Object(), "bar", new Object(), "baz", new Object());
-      fail();
-    } catch (RuntimeException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("Error running checker");
-    }
+    RuntimeException e1 =
+        assertThrows(RuntimeException.class, () -> checker.check("foo", new Object()));
+    assertThat(e1).hasMessageThat().isEqualTo("Error running checker");
+    RuntimeException e2 =
+        assertThrows(
+            RuntimeException.class, () -> checker.check("foo", new Object(), "bar", new Object()));
+    assertThat(e2).hasMessageThat().isEqualTo("Error running checker");
+    RuntimeException e3 =
+        assertThrows(
+            RuntimeException.class,
+            () -> checker.check("foo", new Object(), "bar", new Object(), "baz", new Object()));
+    assertThat(e3).hasMessageThat().isEqualTo("Error running checker");
   }
 
   private abstract static class FakeChecker implements Checker {

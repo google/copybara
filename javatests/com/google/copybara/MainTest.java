@@ -31,9 +31,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -47,8 +45,6 @@ public class MainTest {
   private final String[] args = {"copy.bara.sky"};
   private boolean called = false;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private OptionsBuilder options;
 
   @Before

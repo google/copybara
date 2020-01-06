@@ -23,22 +23,20 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class CapturingConfigFileTest {
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
-  private final MapConfigFile baseWrap = new MapConfigFile(ImmutableMap.of(
-      "/foo", "foo".getBytes(UTF_8),
-      "/bar", "bar".getBytes(UTF_8),
-      "/baz/foo", "bazfoo".getBytes(UTF_8),
-      "/baz/bar", "bazbar".getBytes(UTF_8)), "/foo");
+  private final MapConfigFile baseWrap =
+      new MapConfigFile(
+          ImmutableMap.of(
+              "/foo", "foo".getBytes(UTF_8),
+              "/bar", "bar".getBytes(UTF_8),
+              "/baz/foo", "bazfoo".getBytes(UTF_8),
+              "/baz/bar", "bazbar".getBytes(UTF_8)),
+          "/foo");
 
   @Test
   public void testResolve() throws Exception {

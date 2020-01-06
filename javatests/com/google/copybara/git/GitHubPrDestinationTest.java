@@ -24,7 +24,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidat
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -61,9 +61,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -76,8 +74,6 @@ public class GitHubPrDestinationTest {
   private SkylarkTestExecutor skylark;
   private GitTestUtil gitUtil;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
 
   @Before
@@ -111,11 +107,14 @@ public class GitHubPrDestinationTest {
             Glob.ALL_FILES.roots());
     GitHubPrDestination d = skylark.eval(
         "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("git.github_pr_destination is incompatible with the current origin."
-                             + " Origin has to be able to provide the contextReference or use"
-                             + " '--github-destination-pr-branch' flag");
-    d.newWriter(writerContext);
+    ValidationException thrown =
+        assertThrows(ValidationException.class, () -> d.newWriter(writerContext));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "git.github_pr_destination is incompatible with the current origin."
+                + " Origin has to be able to provide the contextReference or use"
+                + " '--github-destination-pr-branch' flag");
   }
 
   @Test
@@ -431,13 +430,12 @@ public class GitHubPrDestinationTest {
     checkFindProject("git+https://github.com/foo", "foo");
     checkFindProject("git@github.com/foo", "foo");
     checkFindProject("git@github.com:org/internal_repo_name.git", "org/internal_repo_name");
-    try {
-      checkFindProject("https://github.com", "foo");
-      fail();
-    } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          ".*'https://github.com' is not a valid GitHub url.*");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> checkFindProject("https://github.com", "foo"));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*'https://github.com' is not a valid GitHub url.*");
   }
 
   @Test

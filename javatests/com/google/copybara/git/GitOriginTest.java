@@ -22,7 +22,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -67,9 +67,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -89,9 +87,6 @@ public class GitOriginTest {
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
   private Glob originFiles;
   private String moreOriginArgs;
-
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
 
@@ -244,32 +239,36 @@ public class GitOriginTest {
 
   @Test
   public void testInvalidGithubUrl() throws Exception {
-    try {
-      skylark.eval("result",
-          "result = git.github_origin(\n"
-              + "    url = 'https://foo.com/copybara',\n"
-              + "    ref = 'master',\n"
-              + ")");
-      fail();
-    } catch (ValidationException expected) {
-      console.assertThat()
-          .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "result",
+                    "result = git.github_origin(\n"
+                        + "    url = 'https://foo.com/copybara',\n"
+                        + "    ref = 'master',\n"
+                        + ")"));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/copybara.*");
   }
 
   @Test
   public void testInvalidGithubUrlWithGithubString() throws Exception {
-    try {
-      skylark.eval("result",
-          "result = git.github_origin(\n"
-              + "    url = 'https://foo.com/github.com',\n"
-              + "    ref = 'master',\n"
-              + ")");
-      fail();
-    } catch (ValidationException expected) {
-      console.assertThat()
-          .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylark.eval(
+                    "result",
+                    "result = git.github_origin(\n"
+                        + "    url = 'https://foo.com/github.com',\n"
+                        + "    ref = 'master',\n"
+                        + ")"));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*Invalid Github URL: https://foo.com/github.com.*");
   }
 
   @Test
@@ -438,8 +437,9 @@ public class GitOriginTest {
     git("commit", "-m", "Branch commit");
 
     options.gitOrigin.originRebaseRef = "foo-bar";
-    thrown.expect(CannotResolveRevisionException.class);
-    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+    assertThrows(
+        CannotResolveRevisionException.class,
+        () -> newReader().checkout(origin.resolve("mybranch"), checkoutDir));
   }
 
   @Test
@@ -460,8 +460,9 @@ public class GitOriginTest {
     git("commit", "-m", "Branch commit");
 
     options.gitOrigin.originRebaseRef = "master";
-    thrown.expect(RebaseConflictException.class);
-    newReader().checkout(origin.resolve("mybranch"), checkoutDir);
+    assertThrows(
+        RebaseConflictException.class,
+        () -> newReader().checkout(origin.resolve("mybranch"), checkoutDir));
   }
 
   @Test
@@ -491,14 +492,13 @@ public class GitOriginTest {
 
   @Test
   public void testResolveNonExistentFullSha1() throws Exception {
-    thrown.expect(CannotResolveRevisionException.class);
-    origin.resolve(Strings.repeat("a", 40));
+    assertThrows(
+        CannotResolveRevisionException.class, () -> origin.resolve(Strings.repeat("a", 40)));
   }
 
   @Test
   public void testResolveNonExistentRef() throws Exception {
-    thrown.expect(CannotResolveRevisionException.class);
-    origin.resolve("refs/for/copy/bara");
+    assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("refs/for/copy/bara"));
   }
 
   @Test
@@ -653,10 +653,9 @@ public class GitOriginTest {
     // This is needed to initialize the local repo
     origin.resolve(firstCommitRef);
 
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find reference(s): [foo, refs/tags/*]");
-
-    origin.resolve("foo");
+    CannotResolveRevisionException thrown =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("foo"));
+    assertThat(thrown).hasMessageThat().contains("Cannot find reference(s): [foo, refs/tags/*]");
   }
 
   @Test
@@ -988,12 +987,13 @@ public class GitOriginTest {
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + ")\n";
 
-    try {
-      skylark.loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
-      fail();
-    } catch (EmptyChangeException expected) {
-      // should fail
-    }
+    assertThrows(
+        EmptyChangeException.class,
+        () ->
+            skylark
+                .loadConfig(config)
+                .getMigration("default")
+                .run(workdir, ImmutableList.of("HEAD")));
 
     // Now add a file in an included root and make sure we get that change from the Reader.
     Files.createDirectories(remote.resolve("--parents"));

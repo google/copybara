@@ -16,9 +16,9 @@
 
 package com.google.copybara.exception;
 
-import static org.junit.Assert.fail;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
-import com.google.common.truth.Truth;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -28,29 +28,24 @@ public class ValidationExceptionTest {
 
   @Test
   public void testCheckExceptionFormat(){
-    try {
-      ValidationException.checkCondition(false, "foo");
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("foo");
-    }
-    try {
-      ValidationException.checkCondition(false, "%F is foo");
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("%F is foo");
-    }
-    try {
-      ValidationException.checkCondition(false, "%s is foo");
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("%s is foo");
-    }
-    try {
-      ValidationException.checkCondition(false, "%s is foo", "bar");
-      fail();
-    } catch (ValidationException e) {
-      Truth.assertThat(e).hasMessageThat().isEqualTo("bar is foo");
-    }
+    ValidationException e1 =
+        assertThrows(
+            ValidationException.class, () -> ValidationException.checkCondition(false, "foo"));
+    assertThat(e1).hasMessageThat().isEqualTo("foo");
+    ValidationException e2 =
+        assertThrows(
+            ValidationException.class,
+            () -> ValidationException.checkCondition(false, "%F is foo"));
+    assertThat(e2).hasMessageThat().isEqualTo("%F is foo");
+    ValidationException e3 =
+        assertThrows(
+            ValidationException.class,
+            () -> ValidationException.checkCondition(false, "%s is foo"));
+    assertThat(e3).hasMessageThat().isEqualTo("%s is foo");
+    ValidationException e4 =
+        assertThrows(
+            ValidationException.class,
+            () -> ValidationException.checkCondition(false, "%s is foo", "bar"));
+    assertThat(e4).hasMessageThat().isEqualTo("bar is foo");
   }
 }

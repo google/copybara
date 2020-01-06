@@ -16,7 +16,7 @@
 
 package com.google.copybara.git.github.api;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -58,11 +58,7 @@ public class GitHubApiTransportWithCheckerTest {
   @Test
   public void testGetThrowsException() throws Exception {
     doThrow(new CheckerException("Error!")).when(checker).check(any(), any(), any(), any());
-    try {
-      transport.get("path/foo", String.class);
-      fail();
-    } catch (ValidationException expected) {
-    }
+    assertThrows(ValidationException.class, () -> transport.get("path/foo", String.class));
     verifyZeroInteractions(delegate);
   }
 
@@ -82,11 +78,9 @@ public class GitHubApiTransportWithCheckerTest {
     doThrow(new CheckerException("Error!"))
         .when(checker)
         .check(any(), any(), any(), any(), any(), any());
-    try {
-      transport.post("path/foo", "request_content", String.class);
-      fail();
-    } catch (ValidationException expected) {
-    }
+    assertThrows(
+        ValidationException.class,
+        () -> transport.post("path/foo", "request_content", String.class));
     verifyZeroInteractions(delegate);
   }
 }

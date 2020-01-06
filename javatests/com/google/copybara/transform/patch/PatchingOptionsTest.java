@@ -18,6 +18,7 @@ package com.google.copybara.transform.patch;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.StandardSystemProperty;
@@ -209,14 +210,12 @@ public class PatchingOptionsTest {
   @Test
   public void applyExcludedWithForcePatch() throws Exception {
     forceUseGnuPatch();
-    try {
-      checkApplyExcluded();
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains(
-          "--patch-skip-version-check is incompatible with patch transformations that uses excluded"
-              + " paths");
-    }
+    ValidationException e = assertThrows(ValidationException.class, () -> checkApplyExcluded());
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "--patch-skip-version-check is incompatible with patch transformations that uses"
+                + " excluded paths");
   }
 
   @Test

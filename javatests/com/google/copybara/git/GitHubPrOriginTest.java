@@ -31,7 +31,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.times;
@@ -73,9 +73,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -90,9 +88,6 @@ public class GitHubPrOriginTest {
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
 
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private GitTestUtil gitUtil;
 
@@ -132,12 +127,15 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testNoCommandLineReference() throws Exception {
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("A pull request reference is expected");
-    githubPrOrigin(
-        "url = 'https://github.com/google/example'",
-        "required_labels = ['foo: yes', 'bar: yes']")
-        .resolve(null);
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_labels = ['foo: yes', 'bar: yes']")
+                    .resolve(null));
+    assertThat(thrown).hasMessageThat().contains("A pull request reference is expected");
   }
 
   @Test
@@ -231,17 +229,22 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsNotFound() throws Exception {
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage(
-        "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
-            + " following labels: [foo: yes]");
     mockPullRequestAndIssue(125, "open", "bar: yes");
-    checkResolve(
-        githubPrOrigin(
-            "url = 'https://github.com/google/example'",
-            "required_labels = ['foo: yes', 'bar: yes']"),
-        "125",
-        125);
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+              checkResolve(
+                  githubPrOrigin(
+                      "url = 'https://github.com/google/example'",
+                      "required_labels = ['foo: yes', 'bar: yes']"),
+                  "125",
+                  125));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
+                + " following labels: [foo: yes]");
   }
 
   @Test
@@ -265,20 +268,20 @@ public class GitHubPrOriginTest {
         "125",
         125);
 
-    try {
-      mockPullRequestAndIssue(126, "open", "bar: yes");
-      checkResolve(
-          githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'other'"),
-          "126",
-          126);
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains(
-              "because its base branch is 'master', but the workflow is configured to only migrate"
-                  + " changes for branch 'other'");
-    }
+    mockPullRequestAndIssue(126, "open", "bar: yes");
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+              checkResolve(
+                  githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'other'"),
+                  "126",
+                  126));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "because its base branch is 'master', but the workflow is configured to only migrate"
+                + " changes for branch 'other'");
   }
 
   @Test
@@ -306,32 +309,47 @@ public class GitHubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
     mockPullRequestAndIssue(125, "open");
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage(
-        "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
-            + " following labels: [foo: yes]");
-    checkResolve(
-        githubPrOrigin(
-            "url = 'https://github.com/google/example'", "required_labels = ['foo: yes']"),
-        "125",
-        125);
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_labels = ['foo: yes']"),
+                    "125",
+                    125));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot migrate http://github.com/google/example/pull/125 because it is missing the"
+                + " following labels: [foo: yes]");
   }
 
   @Test
   public void testAlreadyClosed_default() throws Exception {
     mockPullRequestAndIssue(125, "closed", "foo: yes");
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("Pull Request 125 is not open");
-    checkResolve(githubPrOrigin("url = 'https://github.com/google/example'"), "125", 125);
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin("url = 'https://github.com/google/example'"), "125", 125));
+    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is not open");
   }
 
   @Test
   public void testAlreadyClosed_only_open() throws Exception {
     mockPullRequestAndIssue(125, "closed", "foo: yes");
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("Pull Request 125 is not open");
-    checkResolve(
-        githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"), "125", 125);
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"),
+                    "125",
+                    125));
+    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is not open");
   }
 
   @Test
@@ -345,10 +363,15 @@ public class GitHubPrOriginTest {
   @Test
   public void testAlreadyClosed_only_closed() throws Exception {
     mockPullRequestAndIssue(125, "open", "foo: yes");
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("Pull Request 125 is open");
-    checkResolve(
-        githubPrOrigin("url = 'https://github.com/google/example', state = 'CLOSED'"), "125", 125);
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin("url = 'https://github.com/google/example', state = 'CLOSED'"),
+                    "125",
+                    125));
+    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is open");
   }
 
   @Test
@@ -365,9 +388,15 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveInvalidReference() throws Exception {
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("'master' is not a valid reference for a GitHub Pull Request");
-    checkResolve(githubPrOrigin("url = 'https://github.com/google/example'"), "master", 125);
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin("url = 'https://github.com/google/example'"), "master", 125));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("'master' is not a valid reference for a GitHub Pull Request");
   }
 
   @Test
@@ -628,13 +657,14 @@ public class GitHubPrOriginTest {
     assertThat(any.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER");
 
-    try {
-      checkReviewApprovers("review_state = 'HEAD_COMMIT_APPROVED'",
-          "review_approvers = [\"MEMBER\", \"OWNER\"]");
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains("missing the required approvals");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkReviewApprovers(
+                    "review_state = 'HEAD_COMMIT_APPROVED'",
+                    "review_approvers = [\"MEMBER\", \"OWNER\"]"));
+    assertThat(e).hasMessageThat().contains("missing the required approvals");
 
     GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
         "review_approvers = [\"MEMBER\", \"OWNER\"]");
@@ -830,9 +860,16 @@ public class GitHubPrOriginTest {
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find a merge reference for Pull Request 123");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
+    CannotResolveRevisionException thrown =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () ->
+                origin
+                    .newReader(Glob.ALL_FILES, authoring)
+                    .checkout(origin.resolve("123"), workdir));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find a merge reference for Pull Request 123");
   }
 
   private void checkResolve(GitHubPROrigin origin, String reference, int prNumber)

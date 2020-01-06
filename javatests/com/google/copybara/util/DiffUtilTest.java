@@ -17,7 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -32,7 +32,6 @@ import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -44,9 +43,6 @@ public class DiffUtilTest {
 
   // Command requires the working dir as a File, and Jimfs does not support Path.toFile()
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
-
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private Path left;
   private Path right;
 
@@ -60,25 +56,21 @@ public class DiffUtilTest {
   @Test
   public void pathsAreNotSiblings_diff() throws Exception {
     Path foo = createDir(left, "foo");
-    try {
-      DiffUtil.diff(left, foo, VERBOSE, System.getenv());
-      fail();
-    } catch (IllegalArgumentException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Paths 'one' and 'other' must be sibling directories");
-    }
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DiffUtil.diff(left, foo, VERBOSE, System.getenv()));
+    assertThat(e).hasMessageThat().contains("Paths 'one' and 'other' must be sibling directories");
   }
 
   @Test
   public void pathsAreNotSiblings_diffFiles() throws Exception {
     Path foo = createDir(left, "foo");
-    try {
-      DiffUtil.diffFiles(left, foo, VERBOSE, System.getenv());
-      fail();
-    } catch (IllegalArgumentException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Paths 'one' and 'other' must be sibling directories");
-    }
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DiffUtil.diffFiles(left, foo, VERBOSE, System.getenv()));
+    assertThat(e).hasMessageThat().contains("Paths 'one' and 'other' must be sibling directories");
   }
 
   @Test

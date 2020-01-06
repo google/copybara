@@ -17,7 +17,7 @@
 package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -55,13 +55,12 @@ public class CoreTest {
 
   @Test
   public void testInvalidFormat() {
-    try {
-      skylark.eval("f", "f = core.format('%-10s %d', ['foo', '1234'])");
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected)
-          .hasMessageThat()
-          .contains("Invalid format: %-10s %d: d != java.lang.String");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () -> skylark.eval("f", "f = core.format('%-10s %d', ['foo', '1234'])"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Invalid format: %-10s %d: d != java.lang.String");
   }
 }

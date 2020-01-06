@@ -17,7 +17,7 @@
 package com.google.copybara.util.console.testing;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
@@ -159,11 +159,9 @@ public final class TestingConsoleTest {
     Console console = new TestingConsole()
         .respondNo();
     assertThat(console.promptConfirmation("Proceed?")).isFalse();
-    try {
-      boolean response = console.promptConfirmation("Proceed?");
-      fail("Expected an IllegalStateException, but got:" + response);
-    } catch (IllegalStateException expected) {
-      assertThat(expected).hasMessageThat().contains("No more programmed responses");
-    }
+    IllegalStateException expected = assertThrows(
+        IllegalStateException.class,
+        () -> console.promptConfirmation("Proceed?"));
+    assertThat(expected).hasMessageThat().contains("No more programmed responses");
   }
 }

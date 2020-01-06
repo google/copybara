@@ -19,7 +19,7 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -37,9 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -50,9 +48,6 @@ public class CopyOrMoveTest {
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -195,9 +190,7 @@ public class CopyOrMoveTest {
         .containsFiles("folder/bar/a.java")
         .containsFiles("folder/bar/other/b.java")
         .containsNoMoreFiles();
-
-    thrown.expect(NonReversibleValidationException.class);
-    transform(copier.reverse());
+    assertThrows(NonReversibleValidationException.class, () -> transform(copier.reverse()));
   }
 
   @Test
@@ -215,9 +208,7 @@ public class CopyOrMoveTest {
     assertThatPath(checkoutDir)
         .containsFile("bar", "foo")
         .containsNoMoreFiles();
-
-    thrown.expect(NonReversibleValidationException.class);
-    mover.reverse();
+    assertThrows(NonReversibleValidationException.class, () -> mover.reverse());
   }
 
   @Test
@@ -237,8 +228,7 @@ public class CopyOrMoveTest {
         .containsFile("bar", "foo")
         .containsNoMoreFiles();
 
-    thrown.expect(NonReversibleValidationException.class);
-    copier.reverse();
+    assertThrows(NonReversibleValidationException.class, () -> copier.reverse());
   }
 
   @Test
@@ -248,9 +238,8 @@ public class CopyOrMoveTest {
     Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("because it already exists");
-    transform(mover);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(thrown).hasMessageThat().contains("because it already exists");
   }
 
   @Test
@@ -277,27 +266,24 @@ public class CopyOrMoveTest {
     Files.write(checkoutDir.resolve("foo"), "foo".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("bar"), "bar".getBytes(UTF_8));
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("because it already exists");
-    transform(copier);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(copier));
+    assertThat(thrown).hasMessageThat().contains("because it already exists");
   }
 
   @Test
   public void testDoesntExistMover() throws Exception {
     CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
-    transform(mover);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(thrown).hasMessageThat().contains("Error moving 'blablabla'. It doesn't exist");
   }
 
   @Test
   public void testDoesntExistCopier() throws Exception {
     CopyOrMove copier = skylark.eval("m", ""
         + "m = core.copy(before = 'blablabla', after = 'other')\n");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Error moving 'blablabla'. It doesn't exist");
-    transform(copier);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(copier));
+    assertThat(thrown).hasMessageThat().contains("Error moving 'blablabla'. It doesn't exist");
   }
 
   @Test
@@ -349,9 +335,10 @@ public class CopyOrMoveTest {
     touch("one");
     touch("two");
     CopyOrMove mover = skylark.eval("m", "m = core.move(before = 'one', after = 'two')\n");
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot move file to '/test-checkoutDir/two' because it already exists");
-    transform(mover);
+    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot move file to '/test-checkoutDir/two' because it already exists");
   }
 
   @Test
@@ -524,19 +511,15 @@ public class CopyOrMoveTest {
     CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = 'third_party/java/one.java', after = '')\n");
     touch("third_party/java/one.java");
-    try {
-      transform(mover);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains(
-              "Can only move a path to the root when the path is a "
-                  + "folder. But 'third_party/java/one.java' is a file. Use instead "
-                  + "core.move('third_party/java/one.java', 'one.java')");
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Can only move a path to the root when the path is a "
+                + "folder. But 'third_party/java/one.java' is a file. Use instead "
+                + "core.move('third_party/java/one.java', 'one.java')");
       assertThatPath(checkoutDir).containsFiles("third_party/java/one.java")
           .containsNoMoreFiles();
-    }
   }
 
   @Test
@@ -544,19 +527,15 @@ public class CopyOrMoveTest {
     CopyOrMove mover = skylark.eval("m",
         "m = core.move(before = 'one.java', after = '')\n");
     touch("one.java");
-    try {
-      transform(mover);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains(
-              "Can only move a path to the root when the path is a "
-                  + "folder. But 'one.java' is a file. Use instead "
-                  + "core.move('one.java', 'one.java')");
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Can only move a path to the root when the path is a "
+                + "folder. But 'one.java' is a file. Use instead "
+                + "core.move('one.java', 'one.java')");
       assertThatPath(checkoutDir).containsFiles("one.java")
           .containsNoMoreFiles();
-    }
   }
 
   @Test
@@ -574,9 +553,7 @@ public class CopyOrMoveTest {
         "one.java",
         "org/two.java")
         .containsNoMoreFiles();
-
-    thrown.expect(NonReversibleValidationException.class);
-    transform(copier.reverse());
+    assertThrows(NonReversibleValidationException.class, () -> transform(copier.reverse()));
   }
 
   /**
@@ -624,13 +601,11 @@ public class CopyOrMoveTest {
     touch("third_party/java/bar.java");
     touch("third_party/java/foo.java");
 
-    try {
-      transform(mover);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains(
-              "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
-    }
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(mover));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Files already exist in " + checkoutDir + "/third_party/java: [bar.java, foo.java]");
   }
 
   @Test
@@ -684,35 +659,27 @@ public class CopyOrMoveTest {
     CopyOrMove t = skylark.eval("m", "m = core.move('foo', '' , paths = glob(['foo.txt']))");
     touch("foo/foo.txt");
     touch("foo.txt");
-    try {
-      transform(t);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat()
-          .contains("Cannot move file to '" + checkoutDir + "/foo.txt' because it already exists");
-    }
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(t));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Cannot move file to '" + checkoutDir + "/foo.txt' because it already exists");
   }
 
   @Test
   public void errorForMissingBefore() {
-    try {
-      skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n");
-      fail();
-    } catch (ValidationException expected) {
-      console.assertThat()
-          .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
-    }
-
+    assertThrows(
+        ValidationException.class,
+        () -> skylark.<CopyOrMove>eval("m", "m = core.move(after = 'third_party/java')\n"));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*parameter 'before' has no default value.*");
   }
 
   @Test
   public void errorForMissingAfter() {
-    try {
-      skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n");
-      fail();
-    } catch (ValidationException expected) {
-      console.assertThat()
-          .onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
-    }
+    assertThrows(
+        ValidationException.class,
+        () -> skylark.<CopyOrMove>eval("m", "m = core.move(before = 'third_party/java')\n"));
+    console.assertThat().onceInLog(MessageType.ERROR, ".*parameter 'after' has no default value.*");
   }
 }

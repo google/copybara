@@ -37,9 +37,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -57,8 +55,6 @@ public final class SubmodulesInDestinationTest {
   private SkylarkTestExecutor skylark;
   private GitRepository submodule;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
 
   @Before

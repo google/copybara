@@ -18,7 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
@@ -31,9 +31,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -45,9 +43,6 @@ public class LatestVersionSelectorTest {
   private Path remote;
   private OptionsBuilder options;
   private GitRepository repo;
-
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private SkylarkTestExecutor skylark;
   private String cliReference;
 
@@ -143,13 +138,10 @@ public class LatestVersionSelectorTest {
   @Test
   public void testVersionSelector_NoMatch() throws Exception {
     createTags("1.0", "1.1", "1.2");
-    try {
-      checkTags(null);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains(
-          "didn't match any version for 'refs/tags/([0-9]+)\\.([0-9]+)\\.([0-9]+)'");
-    }
+    ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("didn't match any version for 'refs/tags/([0-9]+)\\.([0-9]+)\\.([0-9]+)'");
   }
 
   private void checkTags(String expectedResult) throws Exception {

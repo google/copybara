@@ -21,24 +21,22 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.Iterables;
 import com.google.common.testing.TestLogHandler;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.testing.git.GitTestUtil;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitCredentialTest {
@@ -93,22 +91,20 @@ public class GitCredentialTest {
 
   @Test
   public void testNotFound() throws Exception  {
-    try {
-      credential.fill(repoGitDir, "https://somehost.com/foo/bar");
-      fail("Expected a ValidationException.");
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("Interactive prompting of passwords for git is disabled");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () -> credential.fill(repoGitDir, "https://somehost.com/foo/bar"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Interactive prompting of passwords for git is disabled");
   }
 
   @Test
   public void testNoProtocol() throws Exception  {
-    try {
-      credential.fill(repoGitDir, "somehost.com/foo/bar");
-      fail("Expected a ValidationException.");
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat().contains("Cannot find the protocol");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> credential.fill(repoGitDir, "somehost.com/foo/bar"));
+    assertThat(expected).hasMessageThat().contains("Cannot find the protocol");
   }
 }

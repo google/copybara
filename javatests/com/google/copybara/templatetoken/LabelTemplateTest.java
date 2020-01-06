@@ -17,7 +17,7 @@
 package com.google.copybara.templatetoken;
 
 import static com.google.common.truth.Truth.assertThat;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import org.junit.Test;
@@ -42,12 +42,12 @@ public class LabelTemplateTest {
 
   @Test
   public void testNotFound() {
-    try {
-      new LabelTemplate("Foo${LABEL}${OTHER}")
-          .resolve(e -> e.equals("LABEL") ? "VAL" : null);
-      fail();
-    } catch (LabelNotFoundException e) {
-      assertThat(e.getLabel()).isEqualTo("OTHER");
-    }
+    LabelNotFoundException exception =
+        assertThrows(
+            LabelNotFoundException.class,
+            () ->
+                new LabelTemplate("Foo${LABEL}${OTHER}")
+                    .resolve(e -> e.equals("LABEL") ? "VAL" : null));
+    assertThat(exception.getLabel()).isEqualTo("OTHER");
   }
 }

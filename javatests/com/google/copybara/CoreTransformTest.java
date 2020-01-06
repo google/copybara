@@ -19,7 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.ValidationException;
@@ -144,17 +144,14 @@ public final class CoreTransformTest {
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
-    try {
-      t.transform(TransformWorks.of(checkoutDir, "msg", console));
-      fail("Expected VoidOperationException");
-    } catch (VoidOperationException e) {
-      assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
-          + "change any of the matching files.*");
-    }
-
-    assertThatPath(checkoutDir)
-        .containsFile("file.txt", "foo")
-        .containsNoMoreFiles();
+    VoidOperationException e =
+        assertThrows(
+            VoidOperationException.class,
+            () -> t.transform(TransformWorks.of(checkoutDir, "msg", console)));
+    assertThat(e)
+        .hasMessageThat()
+        .containsMatch(".*was a no-op because it didn't " + "change any of the matching files.*");
+    assertThatPath(checkoutDir).containsFile("file.txt", "foo").containsNoMoreFiles();
   }
 
   @Test
@@ -266,13 +263,13 @@ public final class CoreTransformTest {
 
     Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
 
-    try {
-      t.transform(TransformWorks.of(checkoutDir, "msg", console));
-      fail("Expected VoidOperationException");
-    } catch (VoidOperationException e) {
-      assertThat(e.getMessage()).containsMatch(".*was a no-op because it didn't "
-          + "change any of the matching files.*");
-    }
+    VoidOperationException e =
+        assertThrows(
+            VoidOperationException.class,
+            () -> t.transform(TransformWorks.of(checkoutDir, "msg", console)));
+    assertThat(e)
+        .hasMessageThat()
+        .containsMatch(".*was a no-op because it didn't " + "change any of the matching files.*");
   }
 
   @Test

@@ -17,6 +17,7 @@
 package com.google.copybara.testing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -29,18 +30,12 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.Glob;
 import java.time.Instant;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class DummyOriginTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void testResolveNullReturnsHead() throws Exception {
     DummyOrigin origin = new DummyOrigin()
@@ -74,9 +69,8 @@ public class DummyOriginTest {
   public void exceptionWhenParsingNonNumericReference() throws Exception {
     DummyOrigin origin = new DummyOrigin();
 
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Not a well-formatted reference");
-    origin.resolve("foo");
+    RepoException thrown = assertThrows(RepoException.class, () -> origin.resolve("foo"));
+    assertThat(thrown).hasMessageThat().contains("Not a well-formatted reference");
   }
 
   @Test
@@ -85,9 +79,11 @@ public class DummyOriginTest {
         .addSimpleChange(/*timestamp*/ 9)
         .addSimpleChange(/*timestamp*/ 98);
 
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Cannot find any change for 42. Only 2 changes exist");
-    origin.resolve("42");
+    CannotResolveRevisionException thrown =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("42"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find any change for 42. Only 2 changes exist");
   }
 
   @Test

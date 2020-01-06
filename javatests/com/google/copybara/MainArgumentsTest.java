@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.testing.OptionsBuilder;
@@ -26,17 +27,12 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class MainArgumentsTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   private MainArguments mainArguments;
   private FileSystem fs;
@@ -61,8 +57,8 @@ public class MainArgumentsTest {
     Files.write(fs.getPath("file"), "hello".getBytes(UTF_8));
 
     mainArguments.baseWorkdir = "file";
-    thrown.expect(IOException.class);
-    thrown.expectMessage("'file' exists and is not a directory");
-    mainArguments.getBaseWorkdir(options.general, fs);
+    IOException thrown =
+        assertThrows(IOException.class, () -> mainArguments.getBaseWorkdir(options.general, fs));
+    assertThat(thrown).hasMessageThat().contains("'file' exists and is not a directory");
   }
 }

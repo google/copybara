@@ -39,9 +39,7 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -52,9 +50,6 @@ public class GitOriginSubmodulesTest {
   private Path checkoutDir;
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   private SkylarkTestExecutor skylark;
 

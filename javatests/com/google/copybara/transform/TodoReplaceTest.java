@@ -19,7 +19,7 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.jimfs.Jimfs;
@@ -76,13 +76,7 @@ public final class TodoReplaceTest {
   @Test
   public void testReversibleErrors() throws Exception {
     TodoReplace replace = todoReplace("mode = 'USE_DEFAULT', default = 'a'");
-    try{
-      replace.reverse();
-      fail();
-    } catch (NonReversibleValidationException expected) {
-      // Exoected
-    }
-
+    assertThrows(NonReversibleValidationException.class, () -> replace.reverse());
   }
 
   @Test
@@ -91,12 +85,9 @@ public final class TodoReplaceTest {
     todoReplace("mapping = { 'aaa': 'foo', 'bbb' : 'bar'}").reverse().reverse();
 
     // But fails if not:
-    try{
-      todoReplace("mapping = { 'aaa': 'bar', 'bbb' : 'bar'}").reverse();
-      fail();
-    } catch (NonReversibleValidationException expected) {
-      // Exoected
-    }
+    assertThrows(
+        NonReversibleValidationException.class,
+        () -> todoReplace("mapping = { 'aaa': 'bar', 'bbb' : 'bar'}").reverse());
   }
 
   @Test
@@ -106,7 +97,7 @@ public final class TodoReplaceTest {
         + "aaa\n"
         + "// TODO( aaa, bbb,other): Example\n");
     write("two", "// TODO(aaa): Other Example\n");
-    TransformWork work = run(replace);
+    run(replace);
 
     assertThatPath(checkoutDir)
         .containsFile("one", ""
@@ -152,24 +143,17 @@ public final class TodoReplaceTest {
 
     write("one.txt", "// TODO(bbb): Example\n");
 
-    try {
-      run(replace);
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .contains("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
-    }
-
+    ValidationException notFound = assertThrows(ValidationException.class, () -> run(replace));
+    assertThat(notFound)
+        .hasMessageThat()
+        .contains("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
     // Does not conform the pattern for users
     write("one.txt", "// TODO(aaa foo/1234): Example\n");
 
-    try {
-      run(replace);
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .contains("Unexpected 'aaa foo/1234' doesn't match expected format");
-    }
+    ValidationException noMatch = assertThrows(ValidationException.class, () -> run(replace));
+    assertThat(noMatch)
+        .hasMessageThat()
+        .contains("Unexpected 'aaa foo/1234' doesn't match expected format");
   }
 
   @Test

@@ -18,7 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.beust.jcommander.internal.Lists;
 import com.google.common.base.Strings;
@@ -79,16 +79,15 @@ public class CommandRunnerTest {
         + "echo stdout msg\n"
         + ">&2 echo stderr msg\n"
         + "sleep 10\n");
-    try {
-      runCommand(new CommandRunner(command, Duration.ofSeconds(1)));
-      fail();
-    } catch (CommandTimeoutException e) {
-      assertThat(e.getOutput().getStdout()).contains("stdout msg");
-      assertThat(e.getOutput().getStderr()).contains("stderr msg");
+    CommandTimeoutException e =
+        assertThrows(
+            CommandTimeoutException.class,
+            () -> runCommand(new CommandRunner(command, Duration.ofSeconds(1))));
+    assertThat(e.getOutput().getStdout()).contains("stdout msg");
+    assertThat(e.getOutput().getStderr()).contains("stderr msg");
       assertThat(e.getMessage())
           .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
       assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
-    }
   }
 
   @Test
@@ -112,14 +111,16 @@ public class CommandRunnerTest {
         + "echo stdout msg\n"
         + ">&2 echo stderr msg\n"
         + "sleep 10\n");
-    try {
-      runCommand(new CommandRunner(command, Duration.ofSeconds(90)).withObserver(tester));
-      fail();
-    } catch (AbnormalTerminationException e) {
-      assertThat(e.getMessage()).containsMatch("Process terminated by signal 15");
-      assertThat(e.getMessage())
-          .doesNotContainMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
-    }
+    AbnormalTerminationException e =
+        assertThrows(
+            AbnormalTerminationException.class,
+            () ->
+                runCommand(
+                    new CommandRunner(command, Duration.ofSeconds(90)).withObserver(tester)));
+    assertThat(e).hasMessageThat().containsMatch("Process terminated by signal 15");
+    assertThat(e)
+        .hasMessageThat()
+        .doesNotContainMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
   }
 
   @Test
@@ -129,16 +130,15 @@ public class CommandRunnerTest {
         + "echo stdout msg\n"
         + ">&2 echo stderr msg\n"
         + "sleep 10\n");
-    try {
-      runCommand(new CommandRunner(command, Duration.ofSeconds(1)));
-      fail();
-    } catch (CommandTimeoutException e) {
-      assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
-      assertThat(e.getOutput().getStderr()).contains("stderr msg");
+    CommandTimeoutException e =
+        assertThrows(
+            CommandTimeoutException.class,
+            () -> runCommand(new CommandRunner(command, Duration.ofSeconds(1))));
+    assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
+    assertThat(e.getOutput().getStderr()).contains("stderr msg");
       assertThat(e.getMessage())
           .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
       assertThat(e.getOutput().getStdout()).contains("stdout msg");
-    }
   }
 
   private Command bashCommand(String bashScript) throws IOException {
@@ -227,20 +227,26 @@ public class CommandRunnerTest {
   @Test
   public void testCommandWithCustomRunner() throws Exception {
     Command command = bashCommand("");
-    try {
-      runCommand(new CommandRunner(command)
-          .withCommandExecutor(new CommandExecutor() {
-            @Override
-            public TerminationStatus getCommandOutputWithStatus(Command cmd, byte[] input,
-                KillableObserver cmdMonitor, OutputStream stdoutStream,
-                OutputStream stderrStream) throws CommandException {
-              throw new CommandException(cmd, "OH NOES!");
-            }
-          }));
-      fail("expected exception");
-    } catch (CommandException e) {
-      assertThat(e).hasMessageThat().contains("OH NOES!");
-    }
+    CommandException e =
+        assertThrows(
+            CommandException.class,
+            () ->
+                runCommand(
+                    new CommandRunner(command)
+                        .withCommandExecutor(
+                            new CommandExecutor() {
+                              @Override
+                              public TerminationStatus getCommandOutputWithStatus(
+                                  Command cmd,
+                                  byte[] input,
+                                  KillableObserver cmdMonitor,
+                                  OutputStream stdoutStream,
+                                  OutputStream stderrStream)
+                                  throws CommandException {
+                                throw new CommandException(cmd, "OH NOES!");
+                              }
+                            })));
+    assertThat(e).hasMessageThat().contains("OH NOES!");
   }
 
   private CommandOutputWithStatus runCommand(CommandRunner commandRunner) throws CommandException {

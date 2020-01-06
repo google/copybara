@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -25,18 +26,12 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.util.console.LogConsole;
 import java.nio.file.FileSystems;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GerritOptionsTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   private GerritOptions options;
   private JCommander jcommander;
 
@@ -59,24 +54,32 @@ public class GerritOptionsTest {
 
   @Test
   public void invalidTooShort() {
-    thrown.expect(ParameterException.class);
-    thrown.expectMessage("'I1111' does not match Gerrit Change ID pattern");
-    jcommander.parse("--gerrit-change-id=I1111");
+    ParameterException thrown =
+        assertThrows(ParameterException.class, () -> jcommander.parse("--gerrit-change-id=I1111"));
+    assertThat(thrown).hasMessageThat().contains("'I1111' does not match Gerrit Change ID pattern");
   }
 
   @Test
   public void invalidMissingIPrefix() {
-    thrown.expect(ParameterException.class);
-    thrown.expectMessage(
-        "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' does not match Gerrit Change ID pattern");
-    jcommander.parse("--gerrit-change-id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    ParameterException thrown =
+        assertThrows(
+            ParameterException.class,
+            () -> jcommander.parse("--gerrit-change-id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' does not match Gerrit Change ID pattern");
   }
 
   @Test
   public void invalidUsesCapitalHex() {
-    thrown.expect(ParameterException.class);
-    thrown.expectMessage(
-        "'I0123456789DEADBEEFBC0123456789DEADBEEFBC' does not match Gerrit Change ID pattern");
-    jcommander.parse("--gerrit-change-id=I0123456789DEADBEEFBC0123456789DEADBEEFBC");
+    ParameterException thrown =
+        assertThrows(
+            ParameterException.class,
+            () -> jcommander.parse("--gerrit-change-id=I0123456789DEADBEEFBC0123456789DEADBEEFBC"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "'I0123456789DEADBEEFBC0123456789DEADBEEFBC' does not match Gerrit Change ID pattern");
   }
 }

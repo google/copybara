@@ -22,7 +22,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
@@ -226,13 +226,12 @@ public class GitHubEndpointTest {
             + ")\n"
             + "\n";
     Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
-    try {
-      feedback.run(workdir, ImmutableList.of("12345"));
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
   }
 
   @Test

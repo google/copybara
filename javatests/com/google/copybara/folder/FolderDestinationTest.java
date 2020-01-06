@@ -19,7 +19,7 @@ package com.google.copybara.folder;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
@@ -40,9 +40,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -52,8 +50,6 @@ public class FolderDestinationTest {
   private OptionsBuilder options;
   private ImmutableList<String> excludedPathsForDeletion;
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private SkylarkTestExecutor skylark;
 
@@ -171,11 +167,7 @@ public class FolderDestinationTest {
   @Test
   public void testAccessDenied() throws Exception {
     options.folderDestination.localFolder = "/foo-bar-123456789";
-    try {
-      write();
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).isEqualTo("Path is not accessible: /foo-bar-123456789");
-    }
+    ValidationException expected = assertThrows(ValidationException.class, () -> write());
+    assertThat(expected).hasMessageThat().isEqualTo("Path is not accessible: /foo-bar-123456789");
   }
 }

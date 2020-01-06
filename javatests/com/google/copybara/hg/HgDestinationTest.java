@@ -20,7 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.Writer;
@@ -136,13 +136,9 @@ public class HgDestinationTest {
     DummyRevision originRef = new DummyRevision("origin_ref");
     TransformResult result = TransformResults.of(workdir, originRef);
 
-    try {
-      writer.write(result, destinationFiles, console);
-      fail("Should have failed");
-    } catch (RepoException expected) {
-      assertThat(expected.getMessage()).contains("Error executing hg");
-      //TODO(jlliu): better exception for commits of empty changes
-    }
+    RepoException expected =
+        assertThrows(RepoException.class, () -> writer.write(result, destinationFiles, console));
+    assertThat(expected.getMessage()).contains("Error executing hg");
   }
 
   @Test

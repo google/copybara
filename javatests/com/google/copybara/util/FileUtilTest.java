@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -35,18 +35,13 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.Optional;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Matchers;
 
 @RunWith(JUnit4.class)
 public class FileUtilTest {
-
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private Path temp;
 
   @Before
@@ -64,50 +59,49 @@ public class FileUtilTest {
 
   @Test
   public void checkRelativism_string_absolute() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative("/foo");
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative("/foo"));
   }
 
   @Test
   public void checkRelativism_path_absolute() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative(Paths.get("/foo"));
+    assertThrows(
+        IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative(Paths.get("/foo")));
   }
 
   @Test
   public void checkRelativism_oneDot() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative("foo/./bar");
+    assertThrows(
+        IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative("foo/./bar"));
   }
 
   @Test
   public void checkRelativism_twoDots() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative("foo/../bar");
+    assertThrows(
+        IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative("foo/../bar"));
   }
 
   @Test
   public void checkRelativism_path_twoDotsAtStart() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative(Paths.get("../bar"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> FileUtil.checkNormalizedRelative(Paths.get("../bar")));
   }
 
   @Test
   public void checkRelativism_twoDotsAtEnd() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative(Paths.get("bar/.."));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> FileUtil.checkNormalizedRelative(Paths.get("bar/..")));
   }
 
   @Test
   public void checkRelativism_oneDotAtStart() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative("./foo");
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative("./foo"));
   }
 
   @Test
   public void checkRelativism_oneDotAtEnd() {
-    thrown.expect(IllegalArgumentException.class);
-    FileUtil.checkNormalizedRelative("foo/.");
+    assertThrows(IllegalArgumentException.class, () -> FileUtil.checkNormalizedRelative("foo/."));
   }
 
   @Test
@@ -232,15 +226,14 @@ public class FileUtilTest {
     Path absoluteTarget = folder.relativize(absolute);
     Files.createSymbolicLink(folder.resolve("absolute"), absoluteTarget);
 
-    try {
-      FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS);
-      fail("Should have thrown");
-    } catch (AbsoluteSymlinksNotAllowed expected) {
-      assertThat(expected.getMessage()).isNotNull();
-      assertThat(expected.toString()).contains("is absolute or escaped the root:");
+    AbsoluteSymlinksNotAllowed expected =
+        assertThrows(
+            AbsoluteSymlinksNotAllowed.class,
+            () -> FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS));
+    assertThat(expected).hasMessageThat().isNotNull();
+    assertThat(expected.toString()).contains("is absolute or escaped the root:");
       assertThat(expected.toString()).contains("folder/absolute");
       assertThat(expected.toString()).contains("absolute/absolute");
-    }
   }
 
   private Path touch(Path path) throws IOException {

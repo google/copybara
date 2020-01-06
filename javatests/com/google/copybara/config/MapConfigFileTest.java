@@ -18,21 +18,17 @@ package com.google.copybara.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class MapConfigFileTest {
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void testResolve() throws IOException, CannotResolveLabel {
     ImmutableMap<String, byte[]> map = ImmutableMap.of(
@@ -73,8 +69,8 @@ public class MapConfigFileTest {
   public void testResolveFailure() throws CannotResolveLabel {
     ImmutableMap<String, byte[]> map = ImmutableMap.of("/foo", "foo".getBytes(UTF_8));
     ConfigFile fooConfig =  new MapConfigFile(ImmutableMap.copyOf(map), "/foo");
-    thrown.expect(CannotResolveLabel.class);
-    thrown.expectMessage("Cannot resolve '/bar': does not exist.");
-    fooConfig.resolve("bar");
+    CannotResolveLabel thrown =
+        assertThrows(CannotResolveLabel.class, () -> fooConfig.resolve("bar"));
+    assertThat(thrown).hasMessageThat().contains("Cannot resolve '/bar': does not exist.");
   }
 }

@@ -17,6 +17,7 @@
 package com.google.copybara.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -53,9 +54,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -73,8 +72,6 @@ public class SkylarkParserTest {
       + "   ),\n"
       + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
       + ")\n";
-  @Rule public final ExpectedException thrown = ExpectedException.none();
-
   private SkylarkTestExecutor parser;
   private TestingConsole console;
 
@@ -269,14 +266,10 @@ public class SkylarkParserTest {
         + "   ],\n"
         + ")\n";
 
-    try {
-      parser.loadConfig(configContent);
-      fail();
-    } catch (ValidationException e) {
-      console
-          .assertThat()
-          .onceInLog(MessageType.ERROR, "(\n|.)*list: at index #1, got bool, want string(\n|.)*");
-    }
+    assertThrows(ValidationException.class, () -> parser.loadConfig(configContent));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "(\n|.)*list: at index #1, got bool, want string(\n|.)*");
   }
 
   private String prepareResolveLabelTest() {

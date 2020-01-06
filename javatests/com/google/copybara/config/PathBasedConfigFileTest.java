@@ -18,6 +18,7 @@ package com.google.copybara.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.exception.CannotResolveLabel;
@@ -26,9 +27,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -36,9 +35,6 @@ import org.junit.runners.JUnit4;
 public class PathBasedConfigFileTest {
 
   private FileSystem fs;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() {
@@ -99,18 +95,21 @@ public class PathBasedConfigFileTest {
     ConfigFile fooConfig = new PathBasedConfigFile(
         Files.write(fs.getPath("/foo"), "foo".getBytes(UTF_8)),
         /*rootPath=*/null, /*identifierPrefix=*/null);
-    thrown.expect(CannotResolveLabel.class);
-    thrown.expectMessage("Cannot find 'bar'. '/bar' does not exist.");
-    fooConfig.resolve("bar");
+    CannotResolveLabel thrown =
+        assertThrows(CannotResolveLabel.class, () -> fooConfig.resolve("bar"));
+    assertThat(thrown).hasMessageThat().contains("Cannot find 'bar'. '/bar' does not exist.");
   }
 
   @Test
   public void testAbsoluteResolveFailsIfNoRoot() throws IOException, CannotResolveLabel {
     ConfigFile fooConfig = new PathBasedConfigFile(Files.write(fs.getPath("/foo"),
         "foo".getBytes(UTF_8)),/*rootPath=*/null, /*identifierPrefix=*/null);
-    thrown.expect(CannotResolveLabel.class);
-    thrown.expectMessage("Absolute paths are not allowed because the root config path"
-        + " couldn't be automatically detected");
-    fooConfig.resolve("//bar");
+    CannotResolveLabel thrown =
+        assertThrows(CannotResolveLabel.class, () -> fooConfig.resolve("//bar"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Absolute paths are not allowed because the root config path"
+                + " couldn't be automatically detected");
   }
 }

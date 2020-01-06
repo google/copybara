@@ -30,6 +30,7 @@ import static com.google.copybara.util.DiffUtil.DiffFile.Operation.ADD;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.DELETE;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Joiner;
@@ -95,9 +96,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -121,8 +120,6 @@ public class WorkflowTest {
 
   private SkylarkTestExecutor skylark;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private ImmutableList<String> transformations;
   private Path workdir;
   private boolean includeReleaseNotes;
@@ -399,13 +396,11 @@ public class WorkflowTest {
                 + ")\n")
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
-    try {
-      workflow.run(workdir, ImmutableList.of("master"));
-      fail();
-    } catch(ChangeRejectedException e) {
-      assertThat(e.getMessage())
-          .contains("User aborted execution: did not confirm diff in origin changes.");
-    }
+    ChangeRejectedException e =
+        assertThrows(
+            ChangeRejectedException.class, () -> workflow.run(workdir, ImmutableList.of("master")));
+    assertThat(e.getMessage())
+        .contains("User aborted execution: did not confirm diff in origin changes.");
   }
 
   @Test
@@ -545,8 +540,9 @@ public class WorkflowTest {
     }
 
     // Check that we don't import anything else after we have migrated all pending changes.
-    thrown.expect(EmptyChangeException.class);
-    iterativeWorkflow(/*previousRef=*/null).run(workdir, ImmutableList.of());
+    assertThrows(
+        EmptyChangeException.class,
+        () -> iterativeWorkflow(/*previousRef=*/ null).run(workdir, ImmutableList.of()));
   }
 
   @Test
@@ -813,13 +809,11 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/"2");
 
-    try {
-      workflow.run(workdir, ImmutableList.of("9"));
-      fail("Should throw ChangeRejectedException");
-    } catch (ChangeRejectedException expected) {
-      assertThat(expected.getMessage())
-          .contains("Iterative workflow aborted by user after: Change 3 of 7 (5)");
-    }
+    ChangeRejectedException expected =
+        assertThrows(
+            ChangeRejectedException.class, () -> workflow.run(workdir, ImmutableList.of("9")));
+    assertThat(expected.getMessage())
+        .contains("Iterative workflow aborted by user after: Change 3 of 7 (5)");
     assertThat(programmableDestination.processed).hasSize(3);
   }
 
@@ -827,18 +821,23 @@ public class WorkflowTest {
   public void iterativeWorkflowNoPreviousRef() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/null);
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage("Previous revision label DummyOrigin-RevId could not be found");
-    workflow.run(workdir, ImmutableList.of("0"));
+    CannotResolveRevisionException thrown =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () -> workflow.run(workdir, ImmutableList.of("0")));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Previous revision label DummyOrigin-RevId could not be found");
   }
 
   @Test
   public void iterativeWorkflowEmptyChanges() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     Workflow<?, ?> workflow = iterativeWorkflow(/*previousRef=*/"0");
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("No new changes to import for resolved ref: 0");
-    workflow.run(workdir, ImmutableList.of("0"));
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("0")));
+    assertThat(thrown).hasMessageThat().contains("No new changes to import for resolved ref: 0");
   }
 
   @Test
@@ -1111,20 +1110,24 @@ public class WorkflowTest {
 
     options.setForce(true);
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("'0' has been already migrated");
     options.setForce(false); // Disable force so that we get an error
-    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(oldRef));
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(oldRef)));
+    assertThat(thrown).hasMessageThat().contains("'0' has been already migrated");
   }
 
   @Test
   public void testSquashAlreadyMigratedSameChange() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("'0' has been already migrated");
     options.setForce(false); // Disable force so that we get an error
-    skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD));
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of(HEAD)));
+    assertThat(thrown).hasMessageThat().contains("'0' has been already migrated");
   }
 
   @Test
@@ -1135,10 +1138,14 @@ public class WorkflowTest {
 
     Workflow<?, ?> workflow = workflow();
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find last imported revision."
-        + " Use --force if you really want to proceed with the migration");
-    workflow.run(workdir, ImmutableList.of(HEAD));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class, () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot find last imported revision."
+                + " Use --force if you really want to proceed with the migration");
   }
 
   @Test
@@ -1186,16 +1193,13 @@ public class WorkflowTest {
 
     originFiles = "glob(['" + outsideFolder + "'])";
 
-    try {
-      workflow().run(workdir, ImmutableList.of(HEAD));
-      fail("should have thrown");
-    } catch (ValidationException e) {
-      console().assertThat()
-          .onceInLog(MessageType.ERROR,
-              "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
-    }
-    assertThatPath(workdir)
-        .containsFiles(outsideFolder);
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
+    console()
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
+    assertThatPath(workdir).containsFiles(outsideFolder);
   }
 
   @Test
@@ -1203,14 +1207,13 @@ public class WorkflowTest {
     prepareOriginExcludes("a");
     originFiles = "glob(['{'])";
 
-    try {
-      workflow().run(workdir, ImmutableList.of(HEAD));
-      fail("should have thrown");
-    } catch (ValidationException e) {
-      console().assertThat()
-          .onceInLog(MessageType.ERROR,
-              "(\n|.)*Cannot create a glob from: include='\\[\\{\\]' (\n|.)*");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR, "(\n|.)*Cannot create a glob from: include='\\[\\{\\]' (\n|.)*");
   }
 
   @Test
@@ -1272,13 +1275,11 @@ public class WorkflowTest {
         + "            ],"
         + "        )"
     );
-    try {
-      workflow().run(workdir, ImmutableList.of(HEAD));
-      fail();
-    } catch (VoidOperationException e) {
-      assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error"))
-          .isTrue();
-    }
+    VoidOperationException e =
+        assertThrows(
+            VoidOperationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
+    assertThat(e.getMessage().contains("Use --ignore-noop if you want to ignore this error"))
+        .isTrue();
   }
 
   @Test
@@ -1422,10 +1423,15 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 42);
 
     Workflow<?, ?> workflow = iterativeWorkflow("deadbeef");
-    thrown.expect(CannotResolveRevisionException.class);
-    thrown.expectMessage(
-        "Could not resolve --last-rev flag. Please make sure it exists in the origin: deadbeef");
-    workflow.run(workdir, ImmutableList.of(HEAD));
+    CannotResolveRevisionException thrown =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Could not resolve --last-rev flag. Please make sure it exists in the origin:"
+                + " deadbeef");
   }
 
   @Test
@@ -1467,14 +1473,12 @@ public class WorkflowTest {
   public void changeRequest_customRevIdLabelWithSetRevId() throws Exception {
     extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
     setRevId = true;
-    try {
-      changeRequestWorkflow(null);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).containsMatch(
-          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
-              + "set_rev_id is set to true. experimental_custom_rev_id is used");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> changeRequestWorkflow(null));
+    assertThat(e.getMessage())
+        .containsMatch(
+            "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
+                + "set_rev_id is set to true. experimental_custom_rev_id is used");
   }
 
   @Test
@@ -1533,15 +1537,14 @@ public class WorkflowTest {
     originFiles = "glob(['I_dont_exist/**'])";
     Workflow<?, ?> w = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST_FROM_SOT);
 
-    try {
-      w.run(workdir, ImmutableList.of("3"));
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Couldn't find any parent change for 3"
-              + " and origin_files = glob(include = [\"I_dont_exist/**\"])");
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> w.run(workdir, ImmutableList.of("3")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Couldn't find any parent change for 3"
+                + " and origin_files = glob(include = [\"I_dont_exist/**\"])");
       assertThat(e.isRetryable()).isFalse();
-    }
   }
 
   /**
@@ -1592,14 +1595,16 @@ public class WorkflowTest {
     options.general.dryRunMode = true;
     options.setForce(true);
 
-    try {
-      loadConfig(config).getMigration("default")
-          .run(Files.createTempDirectory("workdir"), ImmutableList.of());
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains(
-          "Migration of the revision resulted in an empty change");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                loadConfig(config)
+                    .getMigration("default")
+                    .run(Files.createTempDirectory("workdir"), ImmutableList.of()));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Migration of the revision resulted in an empty change");
   }
 
   private void checkChangeRequest_sot_ahead_sot()
@@ -1772,13 +1777,14 @@ public class WorkflowTest {
   @Test
   public void smartPruneForDifferentWorkflowMode() throws Exception {
     smartPrune = true;
-    try {
-      skylarkWorkflow("default", WorkflowMode.SQUASH);
-      fail();
-    } catch (ValidationException e) {
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*'smart_prune = True' is only supported for CHANGE_REQUEST mode.*");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> skylarkWorkflow("default", WorkflowMode.SQUASH));
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
+            ".*'smart_prune = True' is only supported for CHANGE_REQUEST mode.*");
   }
 
   @Test
@@ -1788,13 +1794,11 @@ public class WorkflowTest {
     // baseline and for smart_prune we need the origin revision. We might revisit this if it
     // if requested by users
     options.workflowOptions.changeBaseline = "42";
-    try {
-      checkChangeRequestSmartPrune();
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains(
-          "smart_prune is not compatible with --change_request_parent");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> checkChangeRequestSmartPrune());
+    assertThat(e)
+        .hasMessageThat()
+        .contains("smart_prune is not compatible with --change_request_parent");
   }
 
   private ImmutableList<DiffFile> checkChangeRequestSmartPrune()
@@ -1865,10 +1869,12 @@ public class WorkflowTest {
     origin.add().files("excluded/foo.txt").run();
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "head change");
 
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage(
-        "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
-    workflow.run(workdir, ImmutableList.of());
+    EmptyChangeException thrown =
+        assertThrows(EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of()));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
   }
 
   @Test
@@ -1904,17 +1910,15 @@ public class WorkflowTest {
     origin.add().files("included/symlink").run();
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "A commit");
 
-    try {
-      workflow.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).matches(
-          ""
-              + "Failed to perform reversible check of transformations due to symlink '.*' that "
-              + "points outside the checkout dir. Consider removing this symlink from your "
-              + "origin_files or, alternatively, set reversible_check = False in your "
-              + "workflow.");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of()));
+    assertThat(expected.getMessage())
+        .matches(
+            ""
+                + "Failed to perform reversible check of transformations due to symlink '.*' that "
+                + "points outside the checkout dir. Consider removing this symlink from your "
+                + "origin_files or, alternatively, set reversible_check = False in your "
+                + "workflow.");
   }
 
   @Test
@@ -2095,18 +2099,20 @@ public class WorkflowTest {
 
   @Test
   public void testNullAuthoring() throws Exception {
-    try {
-      loadConfig(""
-          + "core.workflow(\n"
-          + "    name = 'foo',\n"
-          + "    origin = testing.origin(),\n"
-          + "    destination = testing.destination(),\n"
-          + ")\n");
-      fail();
-    } catch (ValidationException e) {
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*parameter 'authoring' has no default value.*");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + "    origin = testing.origin(),\n"
+                        + "    destination = testing.destination(),\n"
+                        + ")\n"));
+    console()
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*parameter 'authoring' has no default value.*");
   }
 
   private Config loadConfig(String content) throws IOException, ValidationException {
@@ -2116,21 +2122,24 @@ public class WorkflowTest {
 
   @Test
   public void testNullOrigin() throws Exception {
-    try {
-      loadConfig(""
-          + "core.workflow(\n"
-          + "    name = 'foo',\n"
-          + "    authoring = " + authoring + "\n,"
-          + "    destination = testing.destination(),\n"
-          + ")\n");
-      fail();
-    } catch (ValidationException e) {
-      for (Message message : console().getMessages()) {
-        System.err.println(message);
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + "    authoring = "
+                        + authoring
+                        + "\n,"
+                        + "    destination = testing.destination(),\n"
+                        + ")\n"));
+    for (Message message : console().getMessages()) {
+      System.err.println(message);
       }
       console().assertThat().onceInLog(MessageType.ERROR,
           ".*parameter 'origin' has no default value.*");
-    }
   }
 
   @Test
@@ -2265,18 +2274,22 @@ public class WorkflowTest {
 
   @Test
   public void testNullDestination() throws Exception {
-    try {
-      loadConfig(""
-          + "core.workflow(\n"
-          + "    name = 'foo',\n"
-          + "    authoring = " + authoring + "\n,"
-          + "    origin = testing.origin(),\n"
-          + ")\n");
-      fail();
-    } catch (ValidationException e) {
-      console().assertThat().onceInLog(MessageType.ERROR,
-          ".*parameter 'destination' has no default value.*");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + "    authoring = "
+                        + authoring
+                        + "\n,"
+                        + "    origin = testing.origin(),\n"
+                        + ")\n"));
+    console()
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*parameter 'destination' has no default value.*");
   }
 
   @Test
@@ -2325,12 +2338,11 @@ public class WorkflowTest {
         + "    transformations = [fail_test],"
         + ")\n").getMigration("default")).getTransformation();
 
-    try {
-      transformation.transform(TransformWorks.of(workdir, "message", console()));
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains("Hello, this is empty!");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> transformation.transform(TransformWorks.of(workdir, "message", console())));
+    assertThat(e).hasMessageThat().contains("Hello, this is empty!");
   }
 
   @Test
@@ -2391,13 +2403,11 @@ public class WorkflowTest {
         .singleFileChange(0, "one commit", "foo.txt", "1")
         .singleFileChange(1, "one commit", "test.txt", "1\nTRANSFORMED42");
     Workflow<?, ?> workflow = changeRequestWorkflow("0");
-    try {
-      workflow.run(workdir, ImmutableList.of("1"));
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().isEqualTo("Workflow 'default' is not reversible");
-    }
-    console().assertThat()
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("1")));
+    assertThat(e).hasMessageThat().isEqualTo("Workflow 'default' is not reversible");
+    console()
+        .assertThat()
         .onceInLog(MessageType.PROGRESS, "Checking that the transformations can be reverted");
   }
 
@@ -2687,12 +2697,11 @@ public class WorkflowTest {
         + "  authoring = " + authoring + ",\n"
         + "  after_migration = [test('example'), test('other', 42), other]"
         + ")\n";
-    try {
-      loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).contains("Error loading config file");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () -> loadConfig(config).getMigration("default").run(workdir, ImmutableList.of()));
+    assertThat(expected.getMessage()).contains("Error loading config file");
   }
 
   @Test
@@ -2704,13 +2713,11 @@ public class WorkflowTest {
   @Test
   public void testDryRun_false() throws Exception {
     options.general.dryRunMode = false;
-    try {
-      checkDryRun(ImmutableList.of());
-      fail();
-    } catch (ValidationException ignored) {
-      assertThat(ignored).hasMessageThat().contains(
-          "Error while executing the skylark transformation other");
-    }
+    ValidationException ignored =
+        assertThrows(ValidationException.class, () -> checkDryRun(ImmutableList.of()));
+    assertThat(ignored)
+        .hasMessageThat()
+        .contains("Error while executing the skylark transformation other");
   }
 
   @Test
@@ -2760,13 +2767,11 @@ public class WorkflowTest {
         + "    reversible_check = True,\n"
         + ")\n";
     Migration workflow = loadConfig(config).getMigration("default");
-    try {
-      workflow.run(subdir, ImmutableList.of());
-      fail("Should fail because the workflow is not reversible");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat()
-          .contains("Cannot use 'reversible_check = True' because Copybara temporary directory");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> workflow.run(subdir, ImmutableList.of()));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Cannot use 'reversible_check = True' because Copybara temporary directory");
   }
 
   @Test
@@ -2777,9 +2782,11 @@ public class WorkflowTest {
     origin.singleFileChange(/*timestamp=*/44, "one commit", "bar.txt", "1");
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
-    thrown.expect(NotADestinationFileException.class);
-    thrown.expectMessage("[bar.txt]");
-    workflow.run(workdir, ImmutableList.of(HEAD));
+    NotADestinationFileException thrown =
+        assertThrows(
+            NotADestinationFileException.class,
+            () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    assertThat(thrown).hasMessageThat().contains("[bar.txt]");
   }
 
   @Test
@@ -2797,9 +2804,11 @@ public class WorkflowTest {
     origin.addChange(/*timestamp=*/42, originDir, "change1", /*matchesGlob=*/true);
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
-    thrown.expect(NotADestinationFileException.class);
-    thrown.expectMessage("[bar, foo42]");
-    workflow.run(workdir, ImmutableList.of(HEAD));
+    NotADestinationFileException thrown =
+        assertThrows(
+            NotADestinationFileException.class,
+            () -> workflow.run(workdir, ImmutableList.of(HEAD)));
+    assertThat(thrown).hasMessageThat().contains("[bar, foo42]");
   }
 
   @Test
@@ -2820,19 +2829,26 @@ public class WorkflowTest {
       throws IOException, ValidationException, RepoException {
     origin.singleFileChange(/*timestamp=*/44, "commit 1", "bar.txt", "1");
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("'CHANGE_REQUEST' is incompatible with destinations that don't support"
-        + " history");
-
-    loadConfig("core.workflow(\n"
-        + "    name = 'foo',\n"
-        + "    origin = testing.origin(),\n"
-        + "    destination = folder.destination(),\n"
-        + "    authoring = " + authoring + ",\n"
-        + "    mode = 'CHANGE_REQUEST',\n"
-        + ")\n")
-        .getMigration("foo")
-        .run(workdir, ImmutableList.of());
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                loadConfig(
+                        "core.workflow(\n"
+                            + "    name = 'foo',\n"
+                            + "    origin = testing.origin(),\n"
+                            + "    destination = folder.destination(),\n"
+                            + "    authoring = "
+                            + authoring
+                            + ",\n"
+                            + "    mode = 'CHANGE_REQUEST',\n"
+                            + ")\n")
+                    .getMigration("foo")
+                    .run(workdir, ImmutableList.of()));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "'CHANGE_REQUEST' is incompatible with destinations that don't support" + " history");
   }
 
   @Test
@@ -2847,13 +2863,11 @@ public class WorkflowTest {
 
   @Test
   public void checkLastRevStatus_change_request() throws Exception {
-    try {
-      checkLastRevStatus(WorkflowMode.CHANGE_REQUEST);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage())
-          .isEqualTo("--check-last-rev-state is not compatible with CHANGE_REQUEST");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class, () -> checkLastRevStatus(WorkflowMode.CHANGE_REQUEST));
+    assertThat(e.getMessage())
+        .isEqualTo("--check-last-rev-state is not compatible with CHANGE_REQUEST");
   }
 
   @Test
@@ -3056,13 +3070,15 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     origin.singleFileChange(0, "change 1", "bar/file.txt", "a");
     options.setForce(false);
-    try{
-      skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0"));
-      fail();
-    } catch(EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains("No changes up to 0 match any origin_files. "
-          + "Use --force if you really want to run the migration anyway.");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> skylarkWorkflow("default", SQUASH).run(workdir, ImmutableList.of("0")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "No changes up to 0 match any origin_files. "
+                + "Use --force if you really want to run the migration anyway.");
   }
 
   @Test
@@ -3070,12 +3086,13 @@ public class WorkflowTest {
     options.workflowOptions.initHistory = true;
     options.general.withEventMonitor(eventMonitor);
     options.general.setConsoleForTest(console());
-    try {
-      skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST).run(workdir, ImmutableList.of(""));
-      fail("Should fail");
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST)
+                    .run(workdir, ImmutableList.of("")));
+    assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
   }
 
   /**
@@ -3117,13 +3134,11 @@ public class WorkflowTest {
     commit(origin, "excluded commit");
     origin.simpleCommand("checkout", "master");
     origin.simpleCommand("merge", "-s", "ours", "feature");
-    try {
-      workflow.run(workdir, ImmutableList.of());
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat()
-          .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
-    }
+    EmptyChangeException e =
+        assertThrows(EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of()));
+    assertThat(e)
+        .hasMessageThat()
+        .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
   }
 
   private GitRevision commit(GitRepository origin, String msg)
@@ -3193,10 +3208,16 @@ public class WorkflowTest {
 
     options.setForce(false);
     options.setLastRevision(null);
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("didn't result in an empty change. This means that the result change of"
-        + " that migration was modified ouside of Copybara");
-    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD"));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                loadConfig(config).getMigration("default").run(workdir, ImmutableList.of("HEAD")));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "didn't result in an empty change. This means that the result change of"
+                + " that migration was modified ouside of Copybara");
   }
 
   private void prepareOriginExcludes(String content) throws IOException {

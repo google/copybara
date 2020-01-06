@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason.NO_CHANGES;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -139,12 +139,9 @@ public class HgOriginTest {
   @Test
   public void testResolveNonExistentReference() throws Exception {
     String ref = "not_a_ref";
-    try {
-      origin.resolve(ref);
-      fail("Exception should have been thrown");
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).contains("unknown revision 'not_a_ref'");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> origin.resolve(ref));
+    assertThat(expected.getMessage()).contains("unknown revision 'not_a_ref'");
   }
 
   @Test
@@ -166,25 +163,18 @@ public class HgOriginTest {
         skylark.eval(
             "result",
             String.format("result = hg.origin(\n" + "    url = '%s', \n" + "    ref = '')", url));
-    try {
-      origin.resolve(null);
-      fail("Should have thrown exception");
-    } catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage())
-          .isEqualTo(
-              "No source reference was passed through the"
-                  + " command line and the default reference is empty");
-    }
-
-    try {
-      origin.resolve("");
-      fail("Should have thrown exception");
-    } catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage())
-          .isEqualTo(
-              "No source reference was passed through the"
-                  + " command line and the default reference is empty");
-    }
+    CannotResolveRevisionException expected1 =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve(null));
+    assertThat(expected1.getMessage())
+        .isEqualTo(
+            "No source reference was passed through the"
+                + " command line and the default reference is empty");
+    CannotResolveRevisionException expected2 =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve(""));
+    assertThat(expected2.getMessage())
+        .isEqualTo(
+            "No source reference was passed through the"
+                + " command line and the default reference is empty");
   }
 
   @Test
@@ -385,12 +375,9 @@ public class HgOriginTest {
 
   @Test
   public void testUnknownChange() throws Exception {
-    try {
-      newReader().change(origin.resolve("7"));
-      fail("Should have thrown exception");
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage()).contains("Unknown revision");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> newReader().change(origin.resolve("7")));
+    assertThat(expected.getMessage()).contains("Unknown revision");
   }
 
   @Test

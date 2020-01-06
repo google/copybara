@@ -2,7 +2,7 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
@@ -82,16 +82,16 @@ public final class VerifyMatchTest {
         + ")");
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar");
-    try {
-      transform(transformation);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("1 file(s) failed the validation of Verify match 'foo'.");
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'file1.txt' failed validation 'Verify match 'foo''.");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> transform(transformation));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("1 file(s) failed the validation of Verify match 'foo'.");
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
   }
-  
+
   @Test
   public void testSimpleReversalMatchFails() throws Exception {
     VerifyMatch transformation = eval("core.verify_match(\n"
@@ -100,16 +100,13 @@ public final class VerifyMatchTest {
         + ")");
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "bar");
-    try {
-      transform(transformation.reverse());
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains("1 file(s) failed the validation of Verify match 'foo'.");
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> transform(transformation.reverse()));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("1 file(s) failed the validation of Verify match 'foo'.");
       console.assertThat().onceInLog(MessageType.ERROR,
           "File 'file1.txt' failed validation 'Verify match 'foo''.");
-    }
   }
 
   @Test
@@ -120,13 +117,10 @@ public final class VerifyMatchTest {
         + ")");
     Path file1 = checkoutDir.resolve("file1.txt");
     writeFile(file1, "foo");
-    try {
-      transform(transformation);
-      fail();
-    } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'file1.txt' failed validation 'Verify match 'foo''.");
-    }
+    assertThrows(ValidationException.class, () -> transform(transformation));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
   }
 
   @Test
@@ -147,15 +141,12 @@ public final class VerifyMatchTest {
         + ")");
 
     prepareGlobTree();
-    try {
-      transform(transformation);
-      fail();
-    } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'file1.txt' failed validation 'Verify match 'foo''.");
+    assertThrows(ValidationException.class, () -> transform(transformation));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
       console.assertThat().onceInLog(MessageType.ERROR,
           "File 'folder/file1.txt' failed validation 'Verify match 'foo''.");
-    }
   }
 
   @Test

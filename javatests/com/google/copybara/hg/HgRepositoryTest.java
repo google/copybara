@@ -19,6 +19,7 @@ package com.google.copybara.hg;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Splitter;
@@ -141,37 +142,26 @@ public class HgRepositoryTest {
   @Test
   public void testPullInvalidPath() throws Exception {
     String invalidPath = "/not/a/path";
-    try {
-      repository.pullAll(invalidPath);
-      fail("Cannot pull from invalid path");
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("Repository not found");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> repository.pullAll(invalidPath));
+    assertThat(e).hasMessageThat().contains("Repository not found");
   }
 
   @Test
   public void testPullInvalidRepo() throws Exception {
     Path invalidRepo = Files.createTempDirectory("notRepo");
-    try {
-      repository.pullAll(invalidRepo.toString());
-      fail("Cannot pull from invalid repository");
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains("Repository not found");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> repository.pullAll(invalidRepo.toString()));
+    assertThat(e).hasMessageThat().contains("Repository not found");
   }
 
   @Test
   public void testPullHttp() throws Exception {
-    try {
-      repository.pullAll("http://copybara.com");
-      fail("Cannot pull from invalid repository");
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains("URL 'http://copybara.com' is not valid - should be using https.");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> repository.pullAll("http://copybara.com"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("URL 'http://copybara.com' is not valid - should be using https.");
   }
 
   @Test
@@ -308,12 +298,7 @@ public class HgRepositoryTest {
     ImmutableList<HgLogEntry> commits = repository.log().withLimit(1).run();
     assertThat(commits).hasSize(1);
 
-    try {
-      repository.log().withLimit(0).run();
-      fail("Cannot have limit of 0");
-    } catch (IllegalArgumentException expected) {
-      // ignored
-    }
+    assertThrows(IllegalArgumentException.class, () -> repository.log().withLimit(0).run());
   }
 
   @Test
@@ -389,12 +374,10 @@ public class HgRepositoryTest {
       assertThat(revision.contextReference()).isEqualTo(reference);
     }
 
-    try {
-      repository.identify("not_a_branch");
-      fail("Should have thrown exception");
-    } catch (CannotResolveRevisionException expected) {
-      assertThat(expected.getMessage()).contains("Unknown revision");
-    }
+    CannotResolveRevisionException expected =
+        assertThrows(
+            CannotResolveRevisionException.class, () -> repository.identify("not_a_branch"));
+    assertThat(expected.getMessage()).contains("Unknown revision");
   }
 
   @Test

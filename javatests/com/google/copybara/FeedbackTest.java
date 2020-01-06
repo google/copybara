@@ -18,7 +18,7 @@ package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -216,14 +216,13 @@ public class FeedbackTest {
             + "    ctx.console.info('Bad action')\n"
             + "\n",
         "test_action");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .contains("Feedback actions must return a result via built-in functions: success(), "
-              + "error(), noop() return, but 'test_action' returned: None");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Feedback actions must return a result via built-in functions: success(), "
+                + "error(), noop() return, but 'test_action' returned: None");
   }
 
   @Test
@@ -241,14 +240,12 @@ public class FeedbackTest {
   @Test
   public void testNoActionsThrowsEmptyChangeException() throws Exception {
     Feedback feedback = feedback("");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (EmptyChangeException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains(
-              "Feedback migration 'default' was noop. Detailed messages: actions field is empty");
-    }
+    EmptyChangeException expected =
+        assertThrows(EmptyChangeException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Feedback migration 'default' was noop. Detailed messages: actions field is empty");
   }
 
   @Test
@@ -262,15 +259,13 @@ public class FeedbackTest {
             + "    return ctx.noop('No effect 2')\n"
             + "\n",
         "test_action_1", "test_action_2");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (EmptyChangeException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains(
-              "Feedback migration 'default' was noop. "
-                  + "Detailed messages: [No effect 1, No effect 2]");
-    }
+    EmptyChangeException expected =
+        assertThrows(EmptyChangeException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Feedback migration 'default' was noop. "
+                + "Detailed messages: [No effect 1, No effect 2]");
     console
         .assertThat()
         .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect 1")
@@ -285,16 +280,15 @@ public class FeedbackTest {
             + "    return ctx.error('This is an error')\n"
             + "\n",
         "test_action");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains(
-              "Feedback migration 'default' action 'test_action' returned error: "
-                  + "This is an error. Aborting execution.");
-    }
-    console.assertThat()
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Feedback migration 'default' action 'test_action' returned error: "
+                + "This is an error. Aborting execution.");
+    console
+        .assertThat()
         .equalsNext(MessageType.ERROR, "Action 'test_action' returned error: This is an error");
   }
 
@@ -308,16 +302,15 @@ public class FeedbackTest {
             + "def test_action_2(ctx):\n"
             + "    return ctx.success()\n"
             + "\n", "test_action_1", "test_action_2");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains(
-              "Feedback migration 'default' action 'test_action_1' returned error: "
-                  + "This is an error. Aborting execution.");
-    }
-    console.assertThat()
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Feedback migration 'default' action 'test_action_1' returned error: "
+                + "This is an error. Aborting execution.");
+    console
+        .assertThat()
         .equalsNext(MessageType.ERROR, "Action 'test_action_1' returned error: This is an error")
         .containsNoMoreMessages();
   }
@@ -348,13 +341,11 @@ public class FeedbackTest {
             + "    result = ctx.error()\n"
             + "\n",
         "test_action");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .matches(".*parameter 'msg' has no default value, .*method.*error\\(.*\\).*");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .matches(".*parameter 'msg' has no default value, .*method.*error\\(.*\\).*");
   }
 
   @Test
@@ -365,15 +356,13 @@ public class FeedbackTest {
             + "    result = ctx.foo()\n"
             + "\n",
         "test_action");
-    try {
-      feedback.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected.getMessage())
-          .contains(
-              "Error while executing the skylark transformation test_action: 'feedback.context'"
-                  + " value has no field or method 'foo'. Location: copy.bara.sky:2:14");
-    }
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Error while executing the skylark transformation test_action: 'feedback.context'"
+                + " value has no field or method 'foo'. Location: copy.bara.sky:2:14");
   }
 
   @Test

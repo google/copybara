@@ -17,7 +17,7 @@
 package com.google.copybara.util.console;
 
 import static com.google.common.truth.Truth.assertThat;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -109,12 +109,9 @@ public final class ConsolesTest {
 
     PrefixConsole console = new PrefixConsole("aaa", delegate);
 
-    try {
-      console.ask("fail", "aaa", s -> true);
-      fail();
-    } catch (RuntimeException e) {
-      assertThat(e).hasMessageThat().contains("should fail");
-    }
+    RuntimeException e =
+        assertThrows(RuntimeException.class, () -> console.ask("fail", "aaa", s -> true));
+    assertThat(e).hasMessageThat().contains("should fail");
 
     assertThat(console.ask("work", "aaa", s-> true)).isEqualTo("good");
   }

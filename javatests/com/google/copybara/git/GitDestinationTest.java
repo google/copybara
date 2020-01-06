@@ -24,6 +24,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.base.Functions;
@@ -70,9 +71,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -92,8 +91,6 @@ public class GitDestinationTest {
   private String tagName;
   private String tagMsg;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
 
   @Before
@@ -490,13 +487,19 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("User aborted execution: did not confirm diff changes");
-    processWithBaselineAndConfirmation(
-        firstCommitWriter(),
-        destinationFiles, new DummyRevision("origin_ref"),
-        /*baseline=*/ null, /*askForConfirmation=*/
-        true);
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                processWithBaselineAndConfirmation(
+                    firstCommitWriter(),
+                    destinationFiles,
+                    new DummyRevision("origin_ref"),
+                    /*baseline=*/ null,
+                    /*askForConfirmation=*/ true));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("User aborted execution: did not confirm diff changes");
   }
 
   @Test
@@ -511,13 +514,16 @@ public class GitDestinationTest {
         /*baseline=*/ null, /*askForConfirmation=*/
         true);
 
-    thrown.expect(EmptyChangeException.class);
     // process empty change. Shouldn't ask anything.
-    processWithBaselineAndConfirmation(
-        newWriter(),
-        destinationFiles, new DummyRevision("origin_ref2"),
-        /*baseline=*/ null, /*askForConfirmation=*/
-        true);
+    assertThrows(
+        EmptyChangeException.class,
+        () ->
+            processWithBaselineAndConfirmation(
+                newWriter(),
+                destinationFiles,
+                new DummyRevision("origin_ref2"),
+                /*baseline=*/ null,
+                /*askForConfirmation=*/ true));
   }
 
   @Test
@@ -567,9 +573,9 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     DummyRevision ref = new DummyRevision("origin_ref");
     process(firstCommitWriter(), ref);
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("empty change");
-    process(newWriter(), ref);
+    EmptyChangeException thrown =
+        assertThrows(EmptyChangeException.class, () -> process(newWriter(), ref));
+    assertThat(thrown).hasMessageThat().contains("empty change");
   }
 
   /**
@@ -632,9 +638,11 @@ public class GitDestinationTest {
     Files.delete(workdir.resolve("excluded"));
 
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded"));
-    thrown.expect(EmptyChangeException.class);
-    thrown.expectMessage("empty change");
-    process(newWriter(), new DummyRevision("origin_ref"));
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> process(newWriter(), new DummyRevision("origin_ref")));
+    assertThat(thrown).hasMessageThat().contains("empty change");
   }
 
   @Test
@@ -643,9 +651,10 @@ public class GitDestinationTest {
     push = "testPushToRef";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("'refs/heads/testPullFromRef' doesn't exist");
-    process(newWriter(), new DummyRevision("origin_ref"));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class, () -> process(newWriter(), new DummyRevision("origin_ref")));
+    assertThat(thrown).hasMessageThat().contains("'refs/heads/testPullFromRef' doesn't exist");
   }
 
   @Test
@@ -715,13 +724,16 @@ public class GitDestinationTest {
     writeFile(workdir, "foo", "updated");
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
-    try {
-      processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
-          baseline.getSha1());
-      fail();
-    } catch (EmptyChangeException e) {
-      assertThat(e).hasMessageThat().contains("Empty change after rebase");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                processWithBaseline(
+                    newWriter(),
+                    destinationFiles,
+                    new DummyRevision("origin_ref"),
+                    baseline.getSha1()));
+    assertThat(e).hasMessageThat().contains("Empty change after rebase");
   }
 
   @Test
@@ -743,13 +755,14 @@ public class GitDestinationTest {
     writeFile(workdir, "foo", "updated");
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
-    try {
-      processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
-          baseline.getSha1());
-      fail();
-    } catch (RebaseConflictException ignore) {
-
-    }
+    assertThrows(
+        RebaseConflictException.class,
+        () ->
+            processWithBaseline(
+                newWriter(),
+                destinationFiles,
+                new DummyRevision("origin_ref"),
+                baseline.getSha1()));
 
     writeFile(workdir, "foo", "conflict");
     writeFile(workdir, "bar", "other file");
@@ -785,15 +798,14 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
     TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
         .withBaseline(baseline.getSha1()).withSummary("");
-    try {
-
-      ImmutableList<DestinationEffect> destinationResult =
-          newWriter().write(result, destinationFiles, console);
-      fail();
-    } catch (EmptyChangeException e) {
-      // Should throw empty change. Not complain about the message being empty
-      assertThat(e).hasMessageThat().contains("Empty change after rebase");
-    }
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () -> {
+              ImmutableList<DestinationEffect> destinationResult =
+                  newWriter().write(result, destinationFiles, console);
+            });
+    assertThat(e).hasMessageThat().contains("Empty change after rebase");
   }
 
   @Test
@@ -1208,9 +1220,13 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
-    process(firstCommitWriter(), new DummyRevision("first_commit"));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> process(firstCommitWriter(), new DummyRevision("first_commit")));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("'user.name' and/or 'user.email' are not configured.");
   }
 
   @Test
@@ -1220,9 +1236,13 @@ public class GitDestinationTest {
     fetch = "master";
     push = "master";
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("'user.name' and/or 'user.email' are not configured.");
-    process(firstCommitWriter(), new DummyRevision("first_commit"));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> process(firstCommitWriter(), new DummyRevision("first_commit")));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("'user.name' and/or 'user.email' are not configured.");
   }
 
   @Test
@@ -1383,9 +1403,11 @@ public class GitDestinationTest {
     process(newWriter(), ref);
 
     Files.write(workdir.resolve("test.txt"), "conflict content".getBytes());
-    thrown.expect(RebaseConflictException.class);
-    thrown.expectMessage("conflict in test.txt");
-    processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
+    RebaseConflictException thrown =
+        assertThrows(
+            RebaseConflictException.class,
+            () -> processWithBaseline(newWriter(), destinationFiles, ref, firstCommit));
+    assertThat(thrown).hasMessageThat().contains("conflict in test.txt");
   }
 
   @Test
@@ -1425,9 +1447,13 @@ public class GitDestinationTest {
     process(firstCommitWriter(), ref);
 
     Files.write(workdir.resolve("test.txt"), "more content".getBytes());
-    thrown.expect(RepoException.class);
-    thrown.expectMessage("Cannot find baseline 'I_dont_exist' from fetch reference 'master'");
-    processWithBaseline(newWriter(), destinationFiles, ref, "I_dont_exist");
+    RepoException thrown =
+        assertThrows(
+            RepoException.class,
+            () -> processWithBaseline(newWriter(), destinationFiles, ref, "I_dont_exist"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find baseline 'I_dont_exist' from fetch reference 'master'");
   }
 
   @Test
@@ -1436,11 +1462,18 @@ public class GitDestinationTest {
     push = "master";
 
     Files.write(workdir.resolve("test.txt"), "more content".getBytes());
-    thrown.expect(RepoException.class);
-    thrown.expectMessage(
-        "Cannot find baseline 'I_dont_exist' and fetch reference 'test_test_test'");
-    processWithBaseline(firstCommitWriter(), destinationFiles,
-        new DummyRevision("origin_ref"), "I_dont_exist");
+    RepoException thrown =
+        assertThrows(
+            RepoException.class,
+            () ->
+                processWithBaseline(
+                    firstCommitWriter(),
+                    destinationFiles,
+                    new DummyRevision("origin_ref"),
+                    "I_dont_exist"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find baseline 'I_dont_exist' and fetch reference 'test_test_test'");
   }
 
   @Test
@@ -1570,15 +1603,15 @@ public class GitDestinationTest {
         new WriterContext("GitDestinationTest", "test", true, new DummyRevision("origin_ref1"),
             Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = destination().newWriter(writerContext);
-    try {
-      writer.write(
-          TransformResults.of(workdir, originRef).withSummary(" "),
-          Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("test.txt")),
-          console);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).isEqualTo("Change description is empty.");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                writer.write(
+                    TransformResults.of(workdir, originRef).withSummary(" "),
+                    Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("test.txt")),
+                    console));
+    assertThat(e.getMessage()).isEqualTo("Change description is empty.");
   }
 
   @Test

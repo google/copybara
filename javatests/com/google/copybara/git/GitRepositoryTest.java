@@ -23,10 +23,9 @@ import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNTRACKED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
-import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -553,13 +552,11 @@ public class GitRepositoryTest {
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message 1");
 
-    try {
-      dest.fetchSingleRef("file://" + repository.getGitDir(),
-          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-      fail();
-    } catch (CannotResolveRevisionException ignore) {
-      // ignored
-    }
+    assertThrows(
+        CannotResolveRevisionException.class,
+        () ->
+            dest.fetchSingleRef(
+                "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
 
     // This is the important part of the test: We do two fetches, the first ones for the default
     // head and if it fails we do one for the ref
@@ -578,22 +575,18 @@ public class GitRepositoryTest {
     Path notAGitRepo = Files.createTempDirectory("not_a_git_repo");
     String fetchUrl = "file://" + notAGitRepo.toString();
 
-    try {
-      dest.fetch(fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"));
-      fail();
-    } catch (CannotResolveRevisionException expected) {
-      // Expected
-    }
+    assertThrows(
+        CannotResolveRevisionException.class,
+        () ->
+            dest.fetch(
+                fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*")));
   }
 
   @Test
   public void testCheckoutLocalBranch() throws Exception {
-    try {
-      repository.simpleCommand("checkout", "foo");
-      fail("Expected an exception");
-    } catch (RepoException expected) {
-      assertThat(expected).hasMessageThat().contains("Cannot find reference 'foo'");
-    }
+    RepoException expected =
+        assertThrows(RepoException.class, () -> repository.simpleCommand("checkout", "foo"));
+    assertThat(expected).hasMessageThat().contains("Cannot find reference 'foo'");
   }
 
   @Test
@@ -623,23 +616,20 @@ public class GitRepositoryTest {
 
   @Test
   public void invalidUrl() throws Exception {
-    try {
-      String result = GitRepository.validateUrl("lalala");
-      fail("Expected an exception, got: "  + result);
-    } catch (RepoException expected) {
-      assertThat(expected).hasMessageThat().contains("URL 'lalala' is not valid");
-    }
+    RepoException expected =
+        assertThrows(RepoException.class, () -> GitRepository.validateUrl("lalala"));
+    assertThat(expected).hasMessageThat().contains("URL 'lalala' is not valid");
   }
 
   @Test
   public void httpUrl() throws RepoException {
-    try {
-      String result = GitRepository.validateUrl("http://github.com/foo/foo");
-      fail("Expected an exception, got: "  + result);
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("URL 'http://github.com/foo/foo' is not valid - should be using https");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class,
+            () -> GitRepository.validateUrl("http://github.com/foo/foo"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("URL 'http://github.com/foo/foo' is not valid - should be using https");
   }
 
   private void doValidateUrl(String url) throws Exception {
@@ -753,14 +743,16 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "-m", "message3");
 
     // We replaced the last commit. Should fail because we don't force
-    try {
-      repository.push()
-          .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
-          .run();
-      fail("Should fail because non-fastforward");
-    } catch (RepoException e) {
-      assertThat(e.getMessage()).contains("[rejected]");
-    }
+    RepoException e =
+        assertThrows(
+            RepoException.class,
+            () ->
+                repository
+                    .push()
+                    .withRefspecs(
+                        remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
+                    .run());
+    assertThat(e.getMessage()).contains("[rejected]");
 
     // Now it works because we force the push
     repository.push()
@@ -824,13 +816,9 @@ public class GitRepositoryTest {
 
   @Test
   public void testTagWithExistingTag() throws Exception {
-    try {
-      setUpForTagTest("message_2");
-      repository.tag(TEST_TAG_NAME).run();
-      fail();
-    } catch (RepoException e) {
-      assertThat(e).hasMessageThat().contains("Stderr: fatal: tag 'test_v1' already exists");
-    }
+    setUpForTagTest("message_2");
+    RepoException e = assertThrows(RepoException.class, () -> repository.tag(TEST_TAG_NAME).run());
+    assertThat(e).hasMessageThat().contains("Stderr: fatal: tag 'test_v1' already exists");
   }
 
   @Test

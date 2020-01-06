@@ -17,7 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Splitter;
 import org.junit.Test;
@@ -43,12 +43,11 @@ public class TablePrinterTest {
   @Test
   public void testMissingCol() {
     TablePrinter underTest = new TablePrinter("One", "Two", "Three", "Four");
-    try {
-      underTest.addRow(15, true, "Just a Test");
-      fail("Excected an Exception");
-    } catch (IllegalArgumentException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("Wrong number of values in row; expected 4. Got: 3");
-    }
+    IllegalArgumentException expected =
+        assertThrows(
+            IllegalArgumentException.class, () -> underTest.addRow(15, true, "Just a Test"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Wrong number of values in row; expected 4. Got: 3");
   }
 }

@@ -23,7 +23,7 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.matches;
@@ -142,13 +142,12 @@ public class GerritEndpointTest {
             + ")\n"
             + "\n";
     Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
-    try {
-      feedback.run(workdir, ImmutableList.of("12345"));
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
-    }
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
   }
 
   @Test
@@ -185,15 +184,14 @@ public class GerritEndpointTest {
   public void testFeedbackGetChange_malformedJson() throws Exception {
     gitUtil.mockApi(anyString(), anyString(), mockResponse("foo   bar"));
     Feedback feedback = notifyChangeToOriginFeedback();
-    try {
-      feedback.run(workdir, ImmutableList.of("12345"));
-      fail();
-    } catch (ValidationException expected) {
-      assertThat(expected).hasMessageThat()
-          .contains("Error while executing the skylark transformation test_action");
+    ValidationException expected =
+        assertThrows(
+            ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Error while executing the skylark transformation test_action");
       Throwable cause = expected.getCause();
       assertThat(cause).isInstanceOf(IllegalArgumentException.class);
-    }
     assertThat(dummyTrigger.messages).isEmpty();
   }
 
@@ -430,7 +428,8 @@ public class GerritEndpointTest {
     gitUtil.mockApi(
         eq("POST"),
         matches(BASE_URL + "/changes/.*/revisions/.*/review"),
-        mockResponseWithStatus("\n\nApplying label \"Verified\": -1 is restricted.", 403, x -> true));
+        mockResponseWithStatus(
+            "\n\nApplying label \"Verified\": -1 is restricted.", 403, x -> true));
     skylark.evalFails(config,
         " Gerrit returned a permission error while attempting to post a review:");
   }

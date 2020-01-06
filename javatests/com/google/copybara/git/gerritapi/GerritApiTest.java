@@ -28,7 +28,7 @@ import static com.google.copybara.git.gerritapi.IncludeResult.SUBMITTABLE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
@@ -60,7 +60,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -164,12 +163,10 @@ public class GerritApiTest {
   @Test
   public void testChanges404NotFound() throws Exception {
     mockResponse(s -> false, "");
-    try {
-      gerritApi.getChanges(new ChangesQuery("status:open"));
-      Assert.fail();
-    } catch (GerritApiException e) {
-      assertThat(e.getExitCode()).isEqualTo(404);
-    }
+    GerritApiException e =
+        assertThrows(
+            GerritApiException.class, () -> gerritApi.getChanges(new ChangesQuery("status:open")));
+    assertThat(e.getExitCode()).isEqualTo(404);
   }
 
   @Test
@@ -230,12 +227,11 @@ public class GerritApiTest {
 
   @Test
   public void testAddReviewerFail() throws Exception {
-    try {
-      gerritApi.addReviewer(CHANGE_ID, new ReviewerInput("test@google.com"));
-      fail();
-    } catch (GerritApiException e) {
-      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
-    }
+    GerritApiException e =
+        assertThrows(
+            GerritApiException.class,
+            () -> gerritApi.addReviewer(CHANGE_ID, new ReviewerInput("test@google.com")));
+    assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
   }
 
   private void validateChangeInfoCommon(ChangeInfo change) {
@@ -267,14 +263,11 @@ public class GerritApiTest {
   @Test
   public void testGetChange404NotFound() throws Exception {
     mockResponse(s -> false, "");
-    try {
-      gerritApi.getChange(CHANGE_ID, new GetChangeInput());
-      fail();
-    } catch (GerritApiException e) {
-      assertThat(e.getExitCode()).isEqualTo(404);
-    }
+    GerritApiException e =
+        assertThrows(
+            GerritApiException.class, () -> gerritApi.getChange(CHANGE_ID, new GetChangeInput()));
+    assertThat(e.getExitCode()).isEqualTo(404);
   }
-
 
   @Test
   public void testAbandonRestore() throws Exception {
@@ -339,12 +332,9 @@ public class GerritApiTest {
 
   @Test
   public void testCreateProject_invalid() throws Exception {
-    try {
-      gerritApi.createProject("some project");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("has spaces");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> gerritApi.createProject("some project"));
+    assertThat(e).hasMessageThat().contains("has spaces");
   }
 
   @Test

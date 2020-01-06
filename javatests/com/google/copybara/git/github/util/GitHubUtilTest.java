@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.getValidBranchName;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.exception.ValidationException;
 import org.junit.Test;
@@ -41,24 +41,16 @@ public class GitHubUtilTest {
     assertThat(getProjectNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo/bar");
     assertThat(getProjectNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo/bar");
     assertThat(getProjectNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo/bar");
-    try {
-      getProjectNameFromUrl("foo@bar:baz");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Cannot find project name");
-    }
-    try {
-      getProjectNameFromUrl("file://some/local/dir");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Not a github url");
-    }
-    try {
-      getProjectNameFromUrl("");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Empty url");
-    }
+    ValidationException noProject =
+        assertThrows(ValidationException.class, () -> getProjectNameFromUrl("foo@bar:baz"));
+    assertThat(noProject).hasMessageThat().contains("Cannot find project name");
+    ValidationException notGitHub =
+        assertThrows(
+            ValidationException.class, () -> getProjectNameFromUrl("file://some/local/dir"));
+    assertThat(notGitHub).hasMessageThat().contains("Not a github url");
+    ValidationException noUrl =
+        assertThrows(ValidationException.class, () -> getProjectNameFromUrl(""));
+    assertThat(noUrl).hasMessageThat().contains("Empty url");
   }
 
   @Test
@@ -68,33 +60,22 @@ public class GitHubUtilTest {
     assertThat(getUserNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("foo");
     assertThat(getUserNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo");
     assertThat(getUserNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo");
-    try {
-      getUserNameFromUrl("foo@bar:baz");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Cannot find project name");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> getUserNameFromUrl("foo@bar:baz"));
+    assertThat(e).hasMessageThat().contains("Cannot find project name");
   }
 
   @Test
   public void testGetValidBranchName() throws ValidationException {
     assertThat(getValidBranchName("test/cl_1234")).isEqualTo("test/cl_1234");
     assertThat(getValidBranchName("test/cl*1234")).isEqualTo("test/cl_1234");
-    try {
-      getValidBranchName("/test/cl*1234");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
-    }
-    try {
-      getValidBranchName("refs/cl_1234");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
-    }
+    ValidationException slash =
+        assertThrows(ValidationException.class, () -> getValidBranchName("/test/cl*1234"));
+    assertThat(slash).hasMessageThat()
+        .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
+    ValidationException refs =
+        assertThrows(ValidationException.class, () -> getValidBranchName("refs/cl_1234"));
+    assertThat(refs).hasMessageThat()
+        .isEqualTo("Branch name has invalid prefix: \"/\" or \"refs/\"");
   }
 }

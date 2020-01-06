@@ -19,6 +19,7 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
@@ -36,9 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -50,9 +49,6 @@ public final class ReplaceTest {
   private Path checkoutDir;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -317,8 +313,7 @@ public final class ReplaceTest {
 
     writeFile(checkoutDir.resolve("before_and_after"), "foo/barbar\n");
     // Because we don't use backtracking this repeated group is expected to fail.
-    thrown.expect(VoidOperationException.class);
-    transform(transformation);
+    assertThrows(VoidOperationException.class, () -> transform(transformation));
   }
 
   @Test
@@ -492,8 +487,7 @@ public final class ReplaceTest {
         + "  before = \"this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
         + ")");
-    thrown.expect(VoidOperationException.class);
-    transform(replace);
+    assertThrows(VoidOperationException.class, () -> transform(replace));
   }
 
   @Test
@@ -502,9 +496,9 @@ public final class ReplaceTest {
         + "  before = \"hello\\n\\r\\tbye!\",\n"
         + "  after = 'lulz',\n"
         + ")");
-    thrown.expect(VoidOperationException.class);
-    thrown.expectMessage("hello\\n\\r\\tbye!");
-    transform(replace);
+    VoidOperationException thrown =
+        assertThrows(VoidOperationException.class, () -> transform(replace));
+    assertThat(thrown).hasMessageThat().contains("hello\\n\\r\\tbye!");
   }
 
   @Test

@@ -17,18 +17,14 @@
 package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class AuthorParserTest {
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void testParseComplete() throws Exception {
@@ -42,10 +38,11 @@ public class AuthorParserTest {
 
   @Test
   public void testParseWrongFormat() throws Exception {
-    expectedException.expect(InvalidAuthorException.class);
-    expectedException.expectMessage(
-        "Invalid author 'Foo Bar'. Must be in the form of 'Name <email>'");
-    AuthorParser.parse("Foo Bar");
+    InvalidAuthorException thrown =
+        assertThrows(InvalidAuthorException.class, () -> AuthorParser.parse("Foo Bar"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Invalid author 'Foo Bar'. Must be in the form of 'Name <email>'");
   }
 
   private void checkAuthorFormat(String gitAuthor, String expectedName, String expectedEmail)

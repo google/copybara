@@ -18,6 +18,7 @@ package com.google.copybara.util.console;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -26,17 +27,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class ConsoleTest {
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void ansiConsolePromptReturnsTrue() throws Exception {
     checkAnsiConsoleExpectedPrompt("y", true);
@@ -98,9 +94,13 @@ public class ConsoleTest {
   public void logConsolePromtFailsOnMissingSystemConsole() {
     Console console = LogConsole.writeOnlyConsole(
         new PrintStream(new ByteArrayOutputStream()), /*verbose=*/ false);
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("LogConsole cannot read user input if system console is not present");
-    console.promptConfirmation("Do you want to proceed?");
+    IllegalStateException thrown =
+        assertThrows(
+            IllegalStateException.class,
+            () -> console.promptConfirmation("Do you want to proceed?"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("LogConsole cannot read user input if system console is not present");
   }
 
   @Test

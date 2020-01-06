@@ -17,20 +17,16 @@
 package com.google.copybara.authoring;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
 import com.google.devtools.build.lib.syntax.EvalException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class AuthorTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void testParse() throws Exception {
@@ -58,10 +54,10 @@ public class AuthorTest {
 
   @Test
   public void testWrongEmailFormat() throws Exception {
-    thrown.expect(EvalException.class);
-    thrown.expectMessage(
-        "Author 'foo-bar' doesn't match the expected format 'name <mail@example.com>");
-    Author.parse("foo-bar");
+    EvalException thrown = assertThrows(EvalException.class, () -> Author.parse("foo-bar"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Author 'foo-bar' doesn't match the expected format 'name <mail@example.com>");
   }
 
   @Test

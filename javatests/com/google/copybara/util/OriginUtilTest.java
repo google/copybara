@@ -19,8 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
@@ -58,14 +57,11 @@ public class OriginUtilTest {
 
     CheckoutHook checkoutHook =
         new CheckoutHook(script.toString(), options.general, "some.origin");
-    try {
-      checkoutHook.run(workDir);
-      fail("Should have thrown exception");
-    } catch (RepoException expected) {
-      assertThat(expected.getMessage()).contains("Error executing the checkout hook");
-      assertEquals("Process exited with status 42",
-          Throwables.getRootCause(expected).getMessage());
-    }
+    RepoException expected = assertThrows(RepoException.class, () -> checkoutHook.run(workDir));
+    assertThat(expected).hasMessageThat().contains("Error executing the checkout hook");
+    assertThat(Throwables.getRootCause(expected))
+        .hasMessageThat()
+        .isEqualTo("Process exited with status 42");
   }
 
   @Test

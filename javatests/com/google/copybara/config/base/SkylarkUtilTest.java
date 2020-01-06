@@ -17,33 +17,28 @@
 package com.google.copybara.config.base;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.config.SkylarkUtil;
 import com.google.devtools.build.lib.syntax.EvalException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class SkylarkUtilTest {
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
-
   @Test
   public void testCheckNotEmpty_Null() throws Exception {
-    thrown.expect(EvalException.class);
-    thrown.expectMessage("Invalid empty field 'foo'");
-    SkylarkUtil.checkNotEmpty(null, "foo");
+    EvalException thrown =
+        assertThrows(EvalException.class, () -> SkylarkUtil.checkNotEmpty(null, "foo"));
+    assertThat(thrown).hasMessageThat().contains("Invalid empty field 'foo'");
   }
 
   @Test
   public void testCheckNotEmpty_Empty() throws Exception {
-    thrown.expect(EvalException.class);
-    thrown.expectMessage("Invalid empty field 'foo'");
-    SkylarkUtil.checkNotEmpty("", "foo");
+    EvalException thrown =
+        assertThrows(EvalException.class, () -> SkylarkUtil.checkNotEmpty("", "foo"));
+    assertThat(thrown).hasMessageThat().contains("Invalid empty field 'foo'");
   }
 
   @Test

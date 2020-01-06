@@ -17,7 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
@@ -96,26 +96,27 @@ public final class CoreReverseTest {
 
   @Test
   public void reverseTypeError() {
-    try {
-      skylark.<List<Transformation>>eval("foo", "foo = core.reverse([42])");
-      fail();
-    } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR,
-          ".*Expected type '?transformation'? or function, but found: 42.*");
-    }
+    assertThrows(
+        ValidationException.class,
+        () -> skylark.<List<Transformation>>eval("foo", "foo = core.reverse([42])"));
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR, ".*Expected type '?transformation'? or function, but found: 42.*");
   }
 
   @Test
   public void requiresReversibleTransform() {
-    try {
-      skylark.eval("foo", "foo = core.reverse([\n"
-          + "   mock.transform('foo', False),\n"
-          + "   mock.transform('bar'),\n"
-          + "])");
-      fail();
-    } catch (ValidationException e) {
-      console.assertThat().onceInLog(MessageType.ERROR, ".*foo is not reversible.*");
-    }
+    assertThrows(
+        ValidationException.class,
+        () ->
+            skylark.eval(
+                "foo",
+                "foo = core.reverse([\n"
+                    + "   mock.transform('foo', False),\n"
+                    + "   mock.transform('bar'),\n"
+                    + "])"));
+    console.assertThat().onceInLog(MessageType.ERROR, ".*foo is not reversible.*");
   }
 
   @SkylarkModule(
@@ -173,7 +174,7 @@ public final class CoreReverseTest {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof SimpleReplace)) {
         return false;
       }
       SimpleReplace that = (SimpleReplace) o;

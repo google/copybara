@@ -19,7 +19,7 @@ package com.google.copybara.transform.metadata;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.TransformWorks.toChange;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -53,9 +53,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -74,8 +72,6 @@ public class MetadataModuleTest {
 
   private SkylarkTestExecutor skylark;
 
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
   private Path workdir;
   private TestingConsole testingConsole;
 
@@ -158,19 +154,21 @@ public class MetadataModuleTest {
 
   @Test
   public void testSquashNotesWithTemplatePrefix_notFound() throws Exception {
-    try {
-      runWorkflow(WorkflowMode.SQUASH, ""
-          + "metadata.map_author({"
-          + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
-          + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
-          + "}),"
-          + "metadata.squash_notes("
-          + "  prefix = 'Importing foo version ${NOTFOUND}:\\n\\n'"
-          + ")");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("NOTFOUND");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runWorkflow(
+                    WorkflowMode.SQUASH,
+                    ""
+                        + "metadata.map_author({"
+                        + "    'Foo Bar': 'Public Foo Bar <public@foobar.com>',"
+                        + "    'Foo Baz': 'Public Foo Baz <public@foobaz.com>',"
+                        + "}),"
+                        + "metadata.squash_notes("
+                        + "  prefix = 'Importing foo version ${NOTFOUND}:\\n\\n'"
+                        + ")"));
+    assertThat(e).hasMessageThat().contains("NOTFOUND");
   }
 
   @Test
@@ -434,8 +432,11 @@ public class MetadataModuleTest {
 
   @Test
   public void testUseLastChange_nothingSet() throws Exception {
-    thrown.expect(ValidationException.class);
-    runWorkflow(WorkflowMode.SQUASH, "metadata.use_last_change(author=False, message=False)");
+    assertThrows(
+        ValidationException.class,
+        () ->
+            runWorkflow(
+                WorkflowMode.SQUASH, "metadata.use_last_change(author=False, message=False)"));
   }
 
   @Test
@@ -538,11 +539,15 @@ public class MetadataModuleTest {
 
   @Test
   public void testExposeLabel_no_ignore_if_not_found() throws Exception {
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find label NOT_FOUND");
-    checkLabelChange("some message\n",
-        "metadata.expose_label('NOT_FOUND', ignore_label_not_found = False)",
-        "DOES NOT MATTER");
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                checkLabelChange(
+                    "some message\n",
+                    "metadata.expose_label('NOT_FOUND', ignore_label_not_found = False)",
+                    "DOES NOT MATTER"));
+    assertThat(thrown).hasMessageThat().contains("Cannot find label NOT_FOUND");
   }
 
   private void checkLabelChange(String msg, String transform, String expectedOutput)
@@ -712,13 +717,14 @@ public class MetadataModuleTest {
     options.setForce(true);
     options.setLastRevision(null);
 
-    try {
-      createWorkflow(WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
-          .run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat().contains("Cannot find label 'COPYBARA_LAST_REV' in message");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                createWorkflow(
+                        WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
+                    .run(workdir, ImmutableList.of()));
+    assertThat(e).hasMessageThat().contains("Cannot find label 'COPYBARA_LAST_REV' in message");
   }
 
   @Test
@@ -795,10 +801,9 @@ public class MetadataModuleTest {
         "metadata.add_header('[HEADER with ${LABEL}]')");
     origin.addSimpleChange(0, "foo");
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find label 'LABEL'");
-
-    wf.run(workdir, ImmutableList.of());
+    ValidationException thrown =
+        assertThrows(ValidationException.class, () -> wf.run(workdir, ImmutableList.of()));
+    assertThat(thrown).hasMessageThat().contains("Cannot find label 'LABEL'");
   }
 
   @Test
@@ -831,12 +836,9 @@ public class MetadataModuleTest {
   public void testMetadataVerifyMatchFails() throws Exception {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.verify_match(\"foobar\")");
-    try {
-      wf.run(workdir, ImmutableList.of("HEAD"));
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("Could not find 'foobar' in the change message");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> wf.run(workdir, ImmutableList.of("HEAD")));
+    assertThat(e).hasMessageThat().contains("Could not find 'foobar' in the change message");
   }
 
   @Test
@@ -854,12 +856,9 @@ public class MetadataModuleTest {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
         "metadata.verify_match(\"bar\", verify_no_match = True)");
     origin.addSimpleChange(0, "bar");
-    try {
-      wf.run(workdir, ImmutableList.of("HEAD"));
-      fail("Should fail");
-    } catch (ValidationException e) {
-      assertThat(e.getMessage()).contains("'bar' found in the change message");
-    }
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> wf.run(workdir, ImmutableList.of("HEAD")));
+    assertThat(e).hasMessageThat().contains("'bar' found in the change message");
   }
 
   @Test
@@ -869,32 +868,35 @@ public class MetadataModuleTest {
 
   @Test
   public void testScrubberFail() throws Exception {
-    try {
-      checkScrubber("not important", "metadata.scrubber('(')", "not important");
-      fail();
-    } catch (ValidationException e) {
-      testingConsole.assertThat().onceInLog(MessageType.ERROR,
-          "(.|\n)*error parsing regexp: missing closing \\)(.|\n)*");
-    }
+    assertThrows(
+        ValidationException.class,
+        () -> checkScrubber("not important", "metadata.scrubber('(')", "not important"));
+    testingConsole
+        .assertThat()
+        .onceInLog(MessageType.ERROR, "(.|\n)*error parsing regexp: missing closing \\)(.|\n)*");
   }
 
   @Test
   public void testScrubberMissingGroups() throws Exception {
-    try {
-      checkScrubber("Automated g4 rollback of changelist",
-          "metadata.scrubber(\n"
-              + "    '^Automated g4 rollback of changelist*$',\n"
-              + "    replacement =\n"
-              + "        'BEGIN_PUBLIC\\nAutomated rollback of changelist $1\\nEND_PUBLIC',\n"
-              + ")",
-          "not important");
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e.getMessage())
-          .contains(
-              "Could not find matching group. Are you missing a group in your regex "
-                  + "'^Automated g4 rollback of changelist*$'?");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                checkScrubber(
+                    "Automated g4 rollback of changelist",
+                    "metadata.scrubber(\n"
+                        + "    '^Automated g4 rollback of changelist*$',\n"
+                        + "    replacement =\n"
+                        + "        'BEGIN_PUBLIC\\n"
+                        + "Automated rollback of changelist $1\\n"
+                        + "END_PUBLIC',\n"
+                        + ")",
+                    "not important"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Could not find matching group. Are you missing a group in your regex "
+                + "'^Automated g4 rollback of changelist*$'?");
   }
 
   @Test
@@ -919,47 +921,48 @@ public class MetadataModuleTest {
 
   @Test
   public void testScrubberWithPreconditionFailForCustomizeMsg() throws Exception {
-    try {
-      checkScrubber(
-          "this\nis\nvery confidential\nbut this is not public\nnot for public\n",
-          "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
-              + "msg_if_no_match = 'This is not confidential.',"
-              + "fail_if_no_match = True,"
-              + "replacement = '$1')",
-          /*not used*/ null);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains("If fail_if_no_match is true, msg_if_no_match should be None.");
-    }
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                checkScrubber(
+                    "this\nis\nvery confidential\nbut this is not public\nnot for public\n",
+                    "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+                        + "msg_if_no_match = 'This is not confidential.',"
+                        + "fail_if_no_match = True,"
+                        + "replacement = '$1')",
+                    /*not used*/ null));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("If fail_if_no_match is true, msg_if_no_match should be None.");
   }
 
   @Test
   public void testScrubberFailWithNoPublicMsg() throws Exception {
-    try {
-      origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
-      origin.addSimpleChange(0, "Confidential 1\nPUBLIC: It is a public msg\n Confidential\n");
-      options.testingOptions.origin = origin;
-      checkScrubber(
-          "This\nis\nvery confidential\nbut this is public\nvery public\n",
-          "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
-              + "fail_if_no_match = True,"
-              + "replacement = '$1')",
-          /*not used*/ null);
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e)
-          .hasMessageThat()
-          .contains(
-              "Scrubber regex: '^(?:\n|.)*PUBLIC:((?:\n|.)*)(?:\n|.)*$' didn't match for " //
-                  + "description: 'This\n"
-                  + "is\n"
-                  + "very confidential\n"
-                  + "but this is public\n"
-                  + "very public\n"
-                  + "'");
-    }
+    origin = new DummyOrigin().setAuthor(ORIGINAL_AUTHOR);
+    origin.addSimpleChange(
+        0, "Confidential 1\nPUBLIC: It is a public msg\n Confidential\n");
+    options.testingOptions.origin = origin;
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+              checkScrubber(
+                  "This\nis\nvery confidential\nbut this is public\nvery public\n",
+                  "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+                      + "fail_if_no_match = True,"
+                      + "replacement = '$1')",
+                  /*not used*/ null));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Scrubber regex: '^(?:\n|.)*PUBLIC:((?:\n|.)*)(?:\n|.)*$' didn't match for " //
+                + "description: 'This\n"
+                + "is\n"
+                + "very confidential\n"
+                + "but this is public\n"
+                + "very public\n"
+                + "'");
   }
 
   @Test
@@ -1035,16 +1038,12 @@ public class MetadataModuleTest {
 
     destination.processed.clear();
 
-    try {
-      wf.run(workdir, ImmutableList.of());
-      fail();
-    } catch (ValidationException e) {
-      assertThat(e).hasMessageThat()
-          .contains("Cannot find a mapping for author 'Not found <d@example.com>'");
-    }
-
-    assertThat(destination.processed.get(0).getAuthor().toString())
-        .isEqualTo("x <x@example.com>");
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> wf.run(workdir, ImmutableList.of()));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Cannot find a mapping for author 'Not found <d@example.com>'");
+    assertThat(destination.processed.get(0).getAuthor().toString()).isEqualTo("x <x@example.com>");
     assertThat(destination.processed.get(1).getAuthor().toString())
         .isEqualTo("y <y@example.com>");
     assertThat(destination.processed.get(2).getAuthor().toString())
@@ -1077,8 +1076,7 @@ public class MetadataModuleTest {
         + "    'a' : 'b <b@example.com>',\n"
         + "},"
         + "reversible = True)");
-    thrown.expect(NonReversibleValidationException.class);
-    m.reverse();
+    assertThrows(NonReversibleValidationException.class, () -> m.reverse());
   }
 
   @Test
@@ -1110,9 +1108,11 @@ public class MetadataModuleTest {
     // normal workflow works:
     m.transform(work);
 
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot find a mapping for author 'x <x@example.com>'");
-    m.reverse().transform(work);
+    ValidationException thrown =
+        assertThrows(ValidationException.class, () -> m.reverse().transform(work));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find a mapping for author 'x <x@example.com>'");
   }
 
   private void checkScrubber(String commitMsg, String scrubber, String expectedMsg)

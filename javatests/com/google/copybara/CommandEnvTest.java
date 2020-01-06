@@ -17,7 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -74,12 +74,11 @@ public class CommandEnvTest {
   public void testConfigParsingNoSourceRefButPassed() {
     CommandEnv env = new CommandEnv(workdir, options,
         ImmutableList.of("foo/copy.bara.sky", "wf", "foo"));
-    try {
-      env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/false);
-      fail();
-    } catch (CommandLineException e) {
-      assertThat(e).hasMessageThat().contains("Too many arguments for subcommand");
-    }
+    CommandLineException e =
+        assertThrows(
+            CommandLineException.class,
+            () -> env.parseConfigFileArgs(mock(CopybaraCmd.class), /*usesSourceRef=*/ false));
+    assertThat(e).hasMessageThat().contains("Too many arguments for subcommand");
   }
 
   @Test

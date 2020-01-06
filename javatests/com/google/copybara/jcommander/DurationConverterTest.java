@@ -17,7 +17,7 @@
 package com.google.copybara.jcommander;
 
 import static com.google.common.truth.Truth.assertThat;
-import static junit.framework.TestCase.fail;
+import static org.junit.Assert.assertThrows;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
@@ -44,13 +44,12 @@ public class DurationConverterTest {
     checkFetchTimeout("20m", Duration.ofMinutes(20));
     checkFetchTimeout("20h", Duration.ofHours(20));
     checkFetchTimeout("20d", Duration.ofDays(20));
-    try {
-      checkFetchTimeout("20a", Duration.ZERO);
-      fail();
-    } catch (ParameterException e) {
-      assertThat(e).hasMessageThat().contains("Invalid value for duration '20a', "
-          + "valid value examples: 10s, 10m, 10h or 10d");
-    }
+    ParameterException e =
+        assertThrows(ParameterException.class, () -> checkFetchTimeout("20a", Duration.ZERO));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Invalid value for duration '20a', " + "valid value examples: 10s, 10m, 10h or 10d");
   }
 
   private void checkFetchTimeout(String flagValue, Duration expected) throws IOException {

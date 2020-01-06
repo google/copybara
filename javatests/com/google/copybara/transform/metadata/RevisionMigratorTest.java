@@ -17,6 +17,7 @@
 package com.google.copybara.transform.metadata;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -44,9 +45,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -60,9 +59,6 @@ public class RevisionMigratorTest {
   private TestingConsole console;
   private Path checkoutDir;
   private Location location;
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setUp() throws Exception {
@@ -165,9 +161,9 @@ public class RevisionMigratorTest {
         ImmutableList.of(),
         location);
     TransformWork work = getTransformWork(desc);
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Reference 7b does not match regex '[xyz]+'");
-    referenceMigrator.transform(work);
+    ValidationException thrown =
+        assertThrows(ValidationException.class, () -> referenceMigrator.transform(work));
+    assertThat(thrown).hasMessageThat().contains("Reference 7b does not match regex '[xyz]+'");
   }
 
   @Test

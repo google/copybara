@@ -19,6 +19,7 @@ package com.google.copybara.transform.patch;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -36,9 +37,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -75,9 +74,6 @@ public class PatchTransformationTest {
   private ConfigFile patchFile;
   private ConfigFile seriesFile;
   private final ImmutableList<String> excludedFromPatch = ImmutableList.of("excluded/*");
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   @Before
   public void setup() throws IOException {
@@ -120,9 +116,13 @@ public class PatchTransformationTest {
     PatchTransformation transform =
         new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
             /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
-    thrown.expect(ValidationException.class);
-    thrown.expectMessage("Cannot use patch.apply because Copybara temporary directory");
-    transform.transform(TransformWorks.of(foo, "testmsg", console));
+    ValidationException thrown =
+        assertThrows(
+            ValidationException.class,
+            () -> transform.transform(TransformWorks.of(foo, "testmsg", console)));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot use patch.apply because Copybara temporary directory");
   }
 
   @Test
