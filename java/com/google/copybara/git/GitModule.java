@@ -1802,9 +1802,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       RepositoryUtil.validateNotHttp(url);
     } catch (ValidationException e) {
       String fixed = "https" + url.substring("http".length());
-      getGeneralConsole().warnFmt(
-          "%s: Url '%s' does not use https - please change the URL. Proceeding with '%s'.",
-          location.print(), url, fixed);
+      getGeneralConsole()
+          .warnFmt(
+              "%s: Url '%s' does not use https - please change the URL. Proceeding with '%s'.",
+              location, url, fixed);
       return fixed;
     }
     return url;

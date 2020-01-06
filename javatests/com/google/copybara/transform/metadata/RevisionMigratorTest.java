@@ -38,7 +38,6 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.events.Location;
-import com.google.devtools.build.lib.vfs.PathFragment;
 import com.google.re2j.Pattern;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
@@ -66,12 +65,7 @@ public class RevisionMigratorTest {
     checkoutDir = fs.getPath("/test-checkoutDir");
     origin = new DummyOrigin();
     destinationReader = new MockReader();
-    location = new Location(1, 2) {
-      @Override
-      public PathFragment getPath() {
-        return null;
-      }
-    };
+    location = Location.fromFileLineColumn("file", 1, 2);
     referenceMigrator = ReferenceMigrator.create(
         "http://internalReviews.com/${reference}",
         "http://externalreviews.com/view?${reference}",

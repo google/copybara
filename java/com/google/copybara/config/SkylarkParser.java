@@ -44,7 +44,6 @@ import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkThread.Extension;
 import com.google.devtools.build.lib.syntax.Statement;
 import com.google.devtools.build.lib.syntax.StringLiteral;
-import com.google.devtools.build.lib.vfs.PathFragment;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -207,8 +206,7 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      ParserInput input =
-          ParserInput.create(content.readContent(), PathFragment.create(content.path()));
+      ParserInput input = ParserInput.create(content.readContent(), content.path());
       StarlarkFile file = StarlarkFile.parse(input);
       Event.replayEventsOn(eventHandler, file.errors());
       Map<String, Extension> imports = new HashMap<>();
@@ -407,9 +405,8 @@ public class SkylarkParser {
     }
 
     private String messageWithLocation(Event event) {
-      String location = event.getLocation() == null
-          ? "<no location>"
-          : event.getLocation().print();
+      String location =
+          event.getLocation() == null ? "<no location>" : event.getLocation().toString();
       return location + ": " + event.getMessage();
     }
   }
