@@ -178,8 +178,8 @@ maven_jar(
 # LICENSE: Common Public License 1.0
 maven_jar(
     name = "junit",
-    artifact = "junit:junit:4.11",
-    sha1 = "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
+    artifact = "junit:junit:4.13",
+    sha1 = "e49ccba652b735c93bd6e6f59760d8254cf597dd",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
