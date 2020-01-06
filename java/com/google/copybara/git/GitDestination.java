@@ -519,10 +519,14 @@ public final class GitDestination implements Destination<GitRevision> {
 
       GitRevision afterRebaseRev = null;
       if (baseline != null && rebase) {
-        Path rebaseLock = alternate.getGitDir().resolve("rebase-apply");
-        if (Files.exists(rebaseLock)){
-          console.warn("Removing previous rebase failure lock: "+ rebaseLock);
-          deleteRecursively(rebaseLock);
+        ImmutableList<Path> rebaseLocks = ImmutableList.of(
+            alternate.getGitDir().resolve("rebase-apply"),
+            alternate.getGitDir().resolve("rebase-merge"));
+        for (Path rebaseLock : rebaseLocks) {
+          if (Files.exists(rebaseLock)) {
+            console.warn("Removing previous rebase failure lock: " + rebaseLock);
+            deleteRecursively(rebaseLock);
+          }
         }
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
@@ -645,7 +649,7 @@ public final class GitDestination implements Destination<GitRevision> {
     /**
      * Get the local {@link GitRepository} associated with the writer.
      *
-     * Note that this is not a public interface and is subjec to change.
+     * Note that this is not a public interface and is subject to change.
      */
     public GitRepository getRepository(Console console) throws RepoException, ValidationException {
       return state.localRepo.load(console);

@@ -104,7 +104,7 @@ public class GitRepository {
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
-  private static final Pattern FAILED_REBASE = Pattern.compile("Failed to merge in the changes");
+  private static final Pattern FAILED_REBASE = Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
