@@ -61,7 +61,7 @@ public class GitMirrorOptions implements Option {
     }
 
     if (generalOptions.dryRunMode) {
-      generalOptions.console().progressFmt("Skipping push to to %s. You can check the"
+      generalOptions.console().progressFmt("Skipping push to %s. You can check the"
           + " commits to push in: %s", destination, repo.getGitDir());
       return;
     }

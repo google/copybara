@@ -218,8 +218,9 @@ public class SkylarkParser {
               new Extension(eval(content.resolve(module.getValue() + BARA_SKY))));
         }
       }
-      updateEnvironmentForConfigFile(eventHandler, content, mainConfigFile, environment, moduleSet);
-      StarlarkThread thread = createStarlarkThread(eventHandler, environment, imports);
+      StarlarkThread.PrintHandler printHandler = StarlarkThread.makeDebugPrintHandler(eventHandler);
+      updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
+      StarlarkThread thread = createStarlarkThread(printHandler, environment, imports);
 
       // TODO(adonovan): copybara really needs to be calling
       // ValidationException.validateFile(file, thread, false)
@@ -261,13 +262,17 @@ public class SkylarkParser {
    * that the module can construct objects that require options.
    */
   private StarlarkThread createStarlarkThread(
-      EventHandler printHandler, Map<String, Object> environment, Map<String, Extension> imports) {
-    return StarlarkThread.builder(Mutability.create("CopybaraModules"))
-        .setSemantics(createSemantics())
-        .setGlobals(Module.createForBuiltins(environment))
-        .setImportedExtensions(imports)
-        .setEventHandler(printHandler)
-        .build();
+      StarlarkThread.PrintHandler handler,
+      Map<String, Object> environment,
+      Map<String, Extension> imports) {
+    StarlarkThread thread =
+        StarlarkThread.builder(Mutability.create("CopybaraModules"))
+            .setSemantics(createSemantics())
+            .setGlobals(Module.createForBuiltins(environment))
+            .setImportedExtensions(imports)
+            .build();
+    thread.setPrintHandler(handler);
+    return thread;
   }
 
   private StarlarkSemantics createSemantics() {
@@ -282,7 +287,7 @@ public class SkylarkParser {
   // TODO(copybara-team): evaluate the cleaner approach of saving the varying parts in the
   // StarlarkThread.setThreadLocal and leaving the modules alone as nature intended.
   private void updateEnvironmentForConfigFile(
-      EventHandler printHandler,
+      StarlarkThread.PrintHandler printHandler,
       ConfigFile currentConfigFile,
       ConfigFile mainConfigFile,
       Map<String, Object> environment,
@@ -293,11 +298,14 @@ public class SkylarkParser {
         LabelsAwareModule m = (LabelsAwareModule) module;
         m.setConfigFile(mainConfigFile, currentConfigFile);
         m.setDynamicEnvironment(
-            () ->
-                StarlarkThread.builder(Mutability.create("dynamic_action"))
-                    .setSemantics(createSemantics())
-                    .setEventHandler(printHandler)
-                    .build());
+            () -> {
+              StarlarkThread thread =
+                  StarlarkThread.builder(Mutability.create("dynamic_action"))
+                      .setSemantics(createSemantics())
+                      .build();
+              thread.setPrintHandler(printHandler);
+              return thread;
+            });
       }
     }
     for (Class<?> module : modules) {
@@ -307,11 +315,14 @@ public class SkylarkParser {
         LabelsAwareModule m = (LabelsAwareModule) environment.get(getModuleName(module));
         m.setConfigFile(mainConfigFile, currentConfigFile);
         m.setDynamicEnvironment(
-            () ->
-                StarlarkThread.builder(Mutability.create("dynamic_action"))
-                    .useDefaultSemantics()
-                    .setEventHandler(printHandler)
-                    .build());
+            () -> {
+              StarlarkThread thread =
+                  StarlarkThread.builder(Mutability.create("dynamic_action"))
+                      .useDefaultSemantics()
+                      .build();
+              thread.setPrintHandler(printHandler);
+              return thread;
+            });
       }
     }
   }
