@@ -27,7 +27,6 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -35,6 +34,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
@@ -112,14 +112,14 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                 "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
                     + "By default it uses -p1"),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @UsesFlags(PatchingOptions.class)
   public PatchTransformation apply(
       Object patches,
       Sequence<?> excludedPaths,
       Object seriesOrNone,
       Integer strip,
-      Location location)
+      StarlarkThread thread)
       throws EvalException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     check(
@@ -155,7 +155,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         patchingOptions,
         /*reverse=*/ false,
         strip,
-        location);
+        thread.getCallerLocation());
   }
 
   private ConfigFile resolve(String path) throws EvalException {

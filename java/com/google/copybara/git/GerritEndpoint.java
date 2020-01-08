@@ -34,7 +34,6 @@ import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -83,17 +82,15 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
                     + "#query-options",
             positional = false,
             defaultValue = "['LABELS']"),
-      },
-      useLocation = true)
-  public ChangeInfo getChange(String id, Sequence<?> includeResults, Location location)
-      throws EvalException {
+      })
+  public ChangeInfo getChange(String id, Sequence<?> includeResults) throws EvalException {
     try {
       ChangeInfo changeInfo = doGetChange(id, getIncludeResults(includeResults));
       ValidationException.checkCondition(
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error getting change", e);
+      throw new EvalException(null, "Error getting change", e);
     }
   }
 
@@ -134,24 +131,25 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
             type = SetReviewInput.class,
             doc = "The review to post to Gerrit.",
             named = true),
-      },
-      useLocation = true)
-  public ReviewResult postReview(
-      String changeId, String revisionId, SetReviewInput reviewInput, Location location)
+      })
+  public ReviewResult postReview(String changeId, String revisionId, SetReviewInput reviewInput)
       throws EvalException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.setReview(changeId, revisionId, reviewInput);
     } catch (GerritApiException re) {
       if (re.getGerritResponseMsg().matches("(?s).*Applying label \"\\w+\":.*is restricted.*")) {
-        throw new EvalException(location, "Error calling post_review",
+        throw new EvalException(
+            null,
+            "Error calling post_review",
             new ValidationException(
                 "Gerrit returned a permission error while attempting to post a review:\n"
-                    + re.getMessage(), re));
+                    + re.getMessage(),
+                re));
       }
-      throw new EvalException(location, "Error calling post_review", re);
+      throw new EvalException(null, "Error calling post_review", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling post_review", e);
+      throw new EvalException(null, "Error calling post_review", e);
     }
   }
 
@@ -180,10 +178,8 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
                     + "#query-options",
             positional = false,
             defaultValue = "[]"),
-      },
-      useLocation = true)
-  public Sequence<ChangeInfo> listChangesByCommit(
-      String commit, Sequence<?> includeResults, Location location)
+      })
+  public Sequence<ChangeInfo> listChangesByCommit(String commit, Sequence<?> includeResults)
       throws EvalException, RepoException, ValidationException {
       GerritApi gerritApi = apiSupplier.load(console);
     return StarlarkList.immutableCopyOf(

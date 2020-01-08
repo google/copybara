@@ -51,7 +51,6 @@ import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
@@ -86,31 +85,43 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     this.console = Preconditions.checkNotNull(console);
   }
 
-  @SkylarkCallable(name = "create_status",
+  @SkylarkCallable(
+      name = "create_status",
       doc = "Create or update a status for a commit. Returns the status created.",
       parameters = {
-          @Param(name = "sha", type = String.class, named =  true,
-              doc = "The SHA-1 for which we want to create or update the status"),
-          @Param(name = "state", type = String.class, named =  true,
-              doc = "The state of the commit status: 'success', 'error', 'pending' or 'failure'"),
-          @Param(name = "context", type = String.class, doc = "The context for the commit"
-              + " status. Use a value like 'copybara/import_successful' or similar",
-              named =  true),
-          @Param(name = "description", type = String.class, named = true,
-              doc = "Description about what happened"),
-          @Param(name = "target_url", type = String.class, named =  true,
-              doc = "Url with expanded information about the event", noneable = true,
-          defaultValue = "None"),
-      },
-      useLocation = true
-  )
+        @Param(
+            name = "sha",
+            type = String.class,
+            named = true,
+            doc = "The SHA-1 for which we want to create or update the status"),
+        @Param(
+            name = "state",
+            type = String.class,
+            named = true,
+            doc = "The state of the commit status: 'success', 'error', 'pending' or 'failure'"),
+        @Param(
+            name = "context",
+            type = String.class,
+            doc =
+                "The context for the commit"
+                    + " status. Use a value like 'copybara/import_successful' or similar",
+            named = true),
+        @Param(
+            name = "description",
+            type = String.class,
+            named = true,
+            doc = "Description about what happened"),
+        @Param(
+            name = "target_url",
+            type = String.class,
+            named = true,
+            doc = "Url with expanded information about the event",
+            noneable = true,
+            defaultValue = "None"),
+      })
   public Status createStatus(
-      String sha,
-      String state,
-      String context,
-      String description,
-      Object targetUrl,
-      Location location) throws EvalException {
+      String sha, String state, String context, String description, Object targetUrl)
+      throws EvalException {
     try {
       checkCondition(State.VALID_VALUES.contains(state),
                      "Invalid value for state. Valid values: %s", State.VALID_VALUES);
@@ -125,27 +136,30 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling create_status", e);
+      throw Starlark.errorf("Error calling create_status: %s", e.getMessage());
     }
   }
 
-  @SkylarkCallable(name = "get_check_runs",
-      doc = "Get the list of check runs for a sha. "
-          + "https://developer.github.com/v3/checks/runs/#check-runs",
+  @SkylarkCallable(
+      name = "get_check_runs",
+      doc =
+          "Get the list of check runs for a sha. "
+              + "https://developer.github.com/v3/checks/runs/#check-runs",
       parameters = {
-          @Param(name = "sha", type = String.class, named =  true,
-              doc = "The SHA-1 for which we want to get the check runs"),
-      },
-      useLocation = true
-  )
-  public CheckRuns getCheckRuns(String sha, Location location) throws EvalException {
+        @Param(
+            name = "sha",
+            type = String.class,
+            named = true,
+            doc = "The SHA-1 for which we want to get the check runs"),
+      })
+  public CheckRuns getCheckRuns(String sha) throws EvalException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_check_runs", e);
+      throw Starlark.errorf("Error calling get_check_runs: %s", e.getMessage());
     }
   }
 
@@ -173,17 +187,20 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "get_commit",
+  @SkylarkCallable(
+      name = "get_commit",
       doc = "Get information for a commit in GitHub. Returns None if not found.",
       parameters = {
-          @Param(name = "ref", type = String.class, named = true,
-              // Works for refs too but we don't want to publicize since GH API docs refers to sha
-              doc = "The SHA-1 for which we want to get the combined status"),
+        @Param(
+            name = "ref",
+            type = String.class,
+            named = true,
+            // Works for refs too but we don't want to publicize since GH API docs refers to sha
+            doc = "The SHA-1 for which we want to get the combined status"),
       },
-      useLocation = true, allowReturnNones = true
-  )
+      allowReturnNones = true)
   @Nullable
-  public GitHubCommit getCommit(String ref, Location location) throws EvalException {
+  public GitHubCommit getCommit(String ref) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
@@ -213,10 +230,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                 "Indicates whether to force the update or to make sure the update is a"
                     + " fast-forward update. Leaving this out or setting it to false will make"
                     + " sure you're not overwriting work. Default: false")
-      },
-      useLocation = true)
-  public Ref updateReference(String sha, String ref, boolean force, Location location)
-      throws EvalException {
+      })
+  public Ref updateReference(String sha, String ref, boolean force) throws EvalException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
@@ -232,20 +247,17 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling update_reference", e);
+      throw Starlark.errorf("Error calling update_reference: %s", e.getMessage());
     }
   }
 
-  @SkylarkCallable(name = "delete_reference",
+  @SkylarkCallable(
+      name = "delete_reference",
       doc = "Delete a reference.",
       parameters = {
-          @Param(name = "ref", type = String.class, named = true,
-              doc = "The name of the reference."),
-      },
-      useLocation = true
-  )
-  public void deleteReference(String ref, Location location)
-      throws EvalException {
+        @Param(name = "ref", type = String.class, named = true, doc = "The name of the reference."),
+      })
+  public void deleteReference(String ref) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
       checkCondition(ref.startsWith("refs/"), "ref needs to be a complete reference."
@@ -254,19 +266,23 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       apiSupplier.load(console).deleteReference(project, ref);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling delete_reference", e);
+      throw Starlark.errorf("Error calling delete_reference: %s", e.getMessage());
     }
   }
 
-  @SkylarkCallable(name = "get_reference",
+  @SkylarkCallable(
+      name = "get_reference",
       doc = "Get a reference SHA-1 from GitHub. Returns None if not found.",
       parameters = {
-          @Param(name = "ref", type = String.class, named =  true,
-              doc = "The name of the reference. For example: \"refs/heads/branchName\".")
+        @Param(
+            name = "ref",
+            type = String.class,
+            named = true,
+            doc = "The name of the reference. For example: \"refs/heads/branchName\".")
       },
-      useLocation = true, allowReturnNones = true)
+      allowReturnNones = true)
   @Nullable
-  public Ref getReference(String ref, Location location) throws EvalException {
+  public Ref getReference(String ref) throws EvalException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Ref cannot be empty");
 
@@ -279,30 +295,50 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "get_pull_requests",
+  @SkylarkCallable(
+      name = "get_pull_requests",
       doc = "Get Pull Requests for a repo",
       parameters = {
-          @Param(name = "head_prefix", type = String.class, named = true,
-              doc = "Only return PRs wher the branch name has head_prefix",
-              defaultValue = "None", noneable = true),
-          @Param(name = "base_prefix", type = String.class, named = true,
-              doc = "Only return PRs where the destination branch name has base_prefix",
-              defaultValue = "None", noneable = true),
-          @Param(name = "state", type = String.class,
-              doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"` or `\"ALL\"`",
-              defaultValue = "\"OPEN\"", named = true),
-          @Param(name = "sort", type = String.class,
-              doc = "Sort filter for retrieving the Pull Requests. Can be `\"CREATED\"`,"
-                  + " `\"UPDATED\"` or `\"POPULARITY\"`", named = true,
-              defaultValue = "\"CREATED\""),
-          @Param(name = "direction", type = String.class,
-              doc = "Direction of the filter. Can be `\"ASC\"` or `\"DESC\"`",
-              defaultValue = "\"ASC\"", named = true)
+        @Param(
+            name = "head_prefix",
+            type = String.class,
+            named = true,
+            doc = "Only return PRs wher the branch name has head_prefix",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "base_prefix",
+            type = String.class,
+            named = true,
+            doc = "Only return PRs where the destination branch name has base_prefix",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "state",
+            type = String.class,
+            doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"` or `\"ALL\"`",
+            defaultValue = "\"OPEN\"",
+            named = true),
+        @Param(
+            name = "sort",
+            type = String.class,
+            doc =
+                "Sort filter for retrieving the Pull Requests. Can be `\"CREATED\"`,"
+                    + " `\"UPDATED\"` or `\"POPULARITY\"`",
+            named = true,
+            defaultValue = "\"CREATED\""),
+        @Param(
+            name = "direction",
+            type = String.class,
+            doc = "Direction of the filter. Can be `\"ASC\"` or `\"DESC\"`",
+            defaultValue = "\"ASC\"",
+            named = true)
       },
-      useLocation = true, allowReturnNones = true)
+      allowReturnNones = true)
   @Nullable
-  public ImmutableList<PullRequest> getPullRequests(Object headPrefixParam, Object basePrefixParam,
-      String state, String sort, String direction, Location location) throws EvalException {
+  public ImmutableList<PullRequest> getPullRequests(
+      Object headPrefixParam, Object basePrefixParam, String state, String sort, String direction)
+      throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       PullRequestListParams request = PullRequestListParams.DEFAULT;
@@ -336,25 +372,36 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "update_pull_request",
+  @SkylarkCallable(
+      name = "update_pull_request",
       doc = "Update Pull Requests for a repo. Returns None if not found",
       parameters = {
-          @Param(name = "number", type = Integer.class, named = true,
-              doc = "Pull Request number"),
-          @Param(name = "title", type = String.class, named = true,
-              doc = "New Pull Request title",
-              defaultValue = "None", noneable = true),
-          @Param(name = "body", type = String.class, named = true,
-              doc = "New Pull Request body",
-              defaultValue = "None", noneable = true),
-          @Param(name = "state", type = String.class,
-              doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"`", named = true,
-              noneable = true, defaultValue = "None"),
+        @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
+        @Param(
+            name = "title",
+            type = String.class,
+            named = true,
+            doc = "New Pull Request title",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "body",
+            type = String.class,
+            named = true,
+            doc = "New Pull Request body",
+            defaultValue = "None",
+            noneable = true),
+        @Param(
+            name = "state",
+            type = String.class,
+            doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"`",
+            named = true,
+            noneable = true,
+            defaultValue = "None"),
       },
-      useLocation = true, allowReturnNones = true)
+      allowReturnNones = true)
   @Nullable
-  public PullRequest updatePullRequest(
-      Integer number, Object title, Object body, Object state, Location location)
+  public PullRequest updatePullRequest(Integer number, Object title, Object body, Object state)
       throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
@@ -372,22 +419,22 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling update_pull_request", e);
+      throw Starlark.errorf("Error calling update_pull_request: %s", e.getMessage());
     }
   }
 
-  @SkylarkCallable(name = "get_authenticated_user",
+  @SkylarkCallable(
+      name = "get_authenticated_user",
       doc = "Get autenticated user info, return null if not found",
-      useLocation = true, allowReturnNones = true)
+      allowReturnNones = true)
   @Nullable
-  public User getAuthenticatedUser(Location location)
-      throws EvalException {
+  public User getAuthenticatedUser() throws EvalException {
     try {
       return apiSupplier.load(console).getAuthenticatedUser();
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_authenticated_user", e);
+      throw Starlark.errorf("Error calling get_authenticated_user: %s", e.getMessage());
     }
   }
 
@@ -416,21 +463,19 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       doc = "Get a pull request comment",
       parameters = {
         @Param(name = "comment_id", type = String.class, named = true, doc = "Comment identifier"),
-      },
-      useLocation = true)
-  public PullRequestComment getPullRequestComment(String commentId, Location location)
-      throws EvalException {
+      })
+  public PullRequestComment getPullRequestComment(String commentId) throws EvalException {
     try {
       long commentIdLong;
       try {
         commentIdLong = Long.parseLong(commentId);
       } catch (NumberFormatException e) {
-        throw new EvalException(location, "Invalid comment id " + commentId, e);
+        throw Starlark.errorf("Invalid comment id %s: %s", commentId, e.getMessage());
       }
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getPullRequestComment(project, commentIdLong);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_pull_request_comment", e);
+      throw Starlark.errorf("Error calling get_pull_request_comment: %s", e.getMessage());
     }
   }
 
@@ -439,16 +484,15 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       doc = "Get all pull request comments",
       parameters = {
         @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
-      },
-      useLocation = true)
-  public Sequence<PullRequestComment> getPullRequestComments(Integer prNumber, Location location)
+      })
+  public Sequence<PullRequestComment> getPullRequestComments(Integer prNumber)
       throws EvalException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(
           apiSupplier.load(console).getPullRequestComments(project, prNumber));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(location, "Error calling get_pull_request_comments", e);
+      throw Starlark.errorf("Error calling get_pull_request_comments: %s", e.getMessage());
     }
   }
 

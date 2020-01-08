@@ -603,7 +603,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             type = Boolean.class,
             defaultValue = "False")
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @Example(
       title = "Move a directory",
@@ -621,7 +621,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       code = "core.move(\"foo\", \"\")",
       after = "In this example, `foo/bar` would be moved to `bar`.")
   public Transformation move(
-      String before, String after, Object paths, Boolean overwrite, Location location)
+      String before, String after, Object paths, Boolean overwrite, StarlarkThread thread)
       throws EvalException {
 
     check(
@@ -629,8 +629,13 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         "Moving from the same folder to the same folder is a noop. Remove the"
             + " transformation.");
 
-    return CopyOrMove.createMove(before, after, workflowOptions,
-        convertFromNoneable(paths, Glob.ALL_FILES), overwrite, location);
+    return CopyOrMove.createMove(
+        before,
+        after,
+        workflowOptions,
+        convertFromNoneable(paths, Glob.ALL_FILES),
+        overwrite,
+        thread.getCallerLocation());
   }
 
   @SuppressWarnings("unused")
@@ -675,7 +680,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             type = Boolean.class,
             defaultValue = "False")
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @Example(
       title = "Copy a directory",
@@ -693,14 +698,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + " 'foo/static/**.html']))]\n"
               + ")")
   public Transformation copy(
-      String before, String after, Object paths, Boolean overwrite, Location location)
+      String before, String after, Object paths, Boolean overwrite, StarlarkThread thread)
       throws EvalException {
     check(
         !Objects.equals(before, after),
         "Copying from the same folder to the same folder is a noop. Remove the"
             + " transformation.");
-    return CopyOrMove.createCopy(before, after, workflowOptions,
-        convertFromNoneable(paths, Glob.ALL_FILES), overwrite, location);
+    return CopyOrMove.createCopy(
+        before,
+        after,
+        workflowOptions,
+        convertFromNoneable(paths, Glob.ALL_FILES),
+        overwrite,
+        thread.getCallerLocation());
   }
 
   @SuppressWarnings("unused")
@@ -713,7 +723,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(name = "paths", named = true, type = Glob.class, doc = "The files to be deleted"),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @Example(
       title = "Reverse a file copy",
       before = "Move all the files in a directory to another directory:",
@@ -732,8 +742,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "    reversal = [core.remove(glob(['foo/static/**.css',"
               + " 'foo/static/**.html']))]\n"
               + ")")
-  public Remove remove(Glob paths, Location location) {
-    return new Remove(paths, workflowOptions, location);
+  public Remove remove(Glob paths, StarlarkThread thread) {
+    return new Remove(paths, workflowOptions, thread.getCallerLocation());
   }
 
   @SuppressWarnings("unused")
@@ -814,7 +824,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " might otherwise be transformed, will be ignored.",
             defaultValue = "[]"),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @Example(
       title = "Simple replacement",
@@ -915,10 +925,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean multiline,
       Boolean repeatedGroups,
       com.google.devtools.build.lib.syntax.Sequence<?> ignore, // <String>
-      Location location)
+      StarlarkThread thread)
       throws EvalException {
     return Replace.create(
-        location,
+        thread.getCallerLocation(),
         before,
         after,
         SkylarkUtil.convertStringMap(regexes, "regex_groups"),
@@ -980,7 +990,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             noneable = true,
             defaultValue = "None"),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @Example(
       title = "Simple update",
@@ -1008,7 +1018,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       String modeStr,
       Object paths,
       Object skyDefault,
-      Location location)
+      StarlarkThread thread)
       throws EvalException {
     Mode mode = stringToEnum("mode", modeStr, Mode.class);
     Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
@@ -1025,8 +1035,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     if (mode == Mode.USE_DEFAULT || mode == Mode.SCRUB_NAMES) {
       check(mapping.isEmpty(), "'mapping' cannot be used with mode %s", mode);
     }
-    return new TodoReplace(location, convertFromNoneable(paths, Glob.ALL_FILES), tags, mode,
-        mapping, defaultString, workflowOptions.parallelizer());
+    return new TodoReplace(
+        thread.getCallerLocation(),
+        convertFromNoneable(paths, Glob.ALL_FILES),
+        tags,
+        mode,
+        mapping,
+        defaultString,
+        workflowOptions.parallelizer());
   }
 
   public static final String TODO_FILTER_REPLACE_EXAMPLE = ""
@@ -1102,7 +1118,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             noneable = true),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @DocDefault(field = "reverse", value = "`regex`")
   @DocDefault(field = "group", value = "Whole text")
@@ -1115,9 +1131,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       before = "This replace is similar to what it can be achieved with core.todo_replace:",
       code = TODO_FILTER_REPLACE_EXAMPLE)
   public FilterReplace filterReplace(
-      String regex, Object mapping, Object group, Object paths, Object reverse, Location location)
+      String regex,
+      Object mapping,
+      Object group,
+      Object paths,
+      Object reverse,
+      StarlarkThread thread)
       throws EvalException {
-    ReversibleFunction<String, String> func = getMappingFunction(mapping, location);
+    ReversibleFunction<String, String> func =
+        getMappingFunction(mapping, thread.getCallerLocation());
 
     String afterPattern = convertFromNoneable(reverse, regex);
     int numGroup = convertFromNoneable(group, 0);
@@ -1141,7 +1163,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         numGroup,
         numGroup,
         func,
-        convertFromNoneable(paths, Glob.ALL_FILES), location);
+        convertFromNoneable(paths, Glob.ALL_FILES),
+        thread.getCallerLocation());
   }
 
   @SuppressWarnings("unchecked")
@@ -1243,12 +1266,17 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " not verify the pattern on reversal.",
             defaultValue = "False"),
       },
-      useLocation = true)
+      useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   public VerifyMatch verifyMatch(
-      String regex, Object paths, Boolean verifyNoMatch, Boolean alsoOnReversal, Location location)
+      String regex,
+      Object paths,
+      Boolean verifyNoMatch,
+      Boolean alsoOnReversal,
+      StarlarkThread thread)
       throws EvalException {
-    return VerifyMatch.create(location,
+    return VerifyMatch.create(
+        thread.getCallerLocation(),
         regex,
         convertFromNoneable(paths, Glob.ALL_FILES),
         verifyNoMatch,
@@ -1419,12 +1447,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       name = "fail_with_noop",
       doc = "If invoked, it will fail the current migration as a noop",
       parameters = {
-          @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
+        @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
       },
-      useLocation = true)
-  public Action failWithNoop(String msg, Location location) throws EmptyChangeException {
+      useStarlarkThread = true)
+  public Action failWithNoop(String msg, StarlarkThread thread) throws EmptyChangeException {
     // Add an internal EvalException to know the location of the error.
-    throw new EmptyChangeException(new EvalException(location, msg), msg);
+    throw new EmptyChangeException(new EvalException(thread.getCallerLocation(), msg), msg);
   }
 
   @SkylarkCallable(name = "main_config_path",
