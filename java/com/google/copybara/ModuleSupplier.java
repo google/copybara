@@ -40,6 +40,8 @@ import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
+import com.google.copybara.remotefile.RemoteFileModule;
+import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import java.nio.file.FileSystem;
@@ -86,7 +88,8 @@ public class ModuleSupplier {
             general),
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
-        new Authoring.Module());
+        new Authoring.Module(),
+        new RemoteFileModule(options));
   }
 
   /** Returns a new list of {@link Option}s. */
@@ -111,6 +114,7 @@ public class ModuleSupplier {
         new HgOriginOptions(),
         new PatchingOptions(generalOptions),
         new WorkflowOptions(),
+        new RemoteFileOptions(),
         new DebugOptions(generalOptions)));
   }
 

@@ -40,6 +40,7 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
+import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.FileSystems;
@@ -72,6 +73,7 @@ public class OptionsBuilder {
   public GitDestinationOptions gitDestination = new GitDestinationOptions(general, git);
   public PatchingOptions patch = new PatchingOptions(general);
   public DebugOptions debug = new DebugOptions(general);
+  public RemoteFileOptions remoteFile = new RemoteFileOptions();
 
   public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
@@ -144,7 +146,7 @@ public class OptionsBuilder {
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch, debug);
+            workflowOptions, testingOptions, patch, debug, remoteFile);
   }
 
   public final Options build() {
