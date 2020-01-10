@@ -43,7 +43,7 @@ public class RemoteFileOptions implements Option {
 
   Supplier<HttpTransport> transport = Suppliers.memoize(() -> new NetHttpTransport());
 
-  HttpTransport getTransport() throws ValidationException {
+  protected HttpTransport getTransport() throws ValidationException {
     return transport.get();
   }
 }
