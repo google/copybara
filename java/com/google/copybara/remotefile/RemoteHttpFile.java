@@ -35,7 +35,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -94,7 +93,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
       console.progressFmt("Fetching %s", remote);
       ByteSink sink = MoreFiles.asByteSink(newFile);
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      try(ProfilerTask task = profiler.start("remote_file_" + remote)) {
+      try (ProfilerTask task = profiler.start("remote_file_" + remote)) {
         try (DigestInputStream is = new DigestInputStream(req.execute().getContent(), digest)) {
           MoreFiles.createParentDirectories(newFile);
           sink.writeFrom(is);
