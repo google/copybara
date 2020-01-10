@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
@@ -39,8 +40,13 @@ public class GithubTarball extends RemoteHttpFile implements StarlarkValue {
   private final String project;
 
   public GithubTarball(
-      String project, String reference, Path storageDir, HttpTransport transport, Console console) {
-    super(storageDir, reference, "tar.gz", transport, console);
+      String project,
+      String reference,
+      Path storageDir,
+      HttpTransport transport,
+      Profiler profiler,
+      Console console) {
+    super(storageDir, reference, "tar.gz", transport, console, profiler);
     this.project = checkNotNull(project);
   }
 

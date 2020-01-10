@@ -77,6 +77,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
           revision,
           remoteFileOptions.getStorageDir(),
           remoteFileOptions.getTransport(),
+          generalOptions.profiler(),
           generalOptions.console());
     } catch (IOException | ValidationException e) {
       throw new EvalException("Error setting up remote http file:" + e.getMessage());

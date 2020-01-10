@@ -23,26 +23,28 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpTransport;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
+import com.google.common.io.ByteSink;
 import com.google.common.io.MoreFiles;
+import com.google.common.primitives.Bytes;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandRunner;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
+
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A starlark construct to download remote files via Http.
@@ -58,17 +60,21 @@ public abstract class RemoteHttpFile implements StarlarkValue {
   private final HttpTransport transport;
   private final Path storageDir;
   private final Console console;
+  protected final Profiler profiler;
 
   Optional<Path> file = Optional.empty();
+  Optional<String> sha256 = Optional.empty();
+  boolean downloaded = false;
 
   protected RemoteHttpFile(
       Path storageDir, String reference, String extension, HttpTransport transport,
-      Console console) {
+      Console console, Profiler profiler) {
     this.storageDir = checkNotNull(storageDir);
     this.reference = checkNotNull(reference);
     this.extension = checkNotNull(extension);
     this.transport = checkNotNull(transport);
     this.console = checkNotNull(console);
+    this.profiler = checkNotNull(profiler);
   }
 
   /**
@@ -77,7 +83,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
   protected abstract URL getRemote() throws ValidationException;
 
   protected synchronized void download() throws RepoException, ValidationException {
-    if (file.isPresent()) {
+    if (downloaded) {
       return;
     }
     URL remote = getRemote();
@@ -86,12 +92,19 @@ public abstract class RemoteHttpFile implements StarlarkValue {
       Path newFile = storageDir.resolve(String.format("%s.%s", CharMatcher.anyOf("/\\\n\t ")
           .replaceFrom(reference, '_'), extension));
       console.progressFmt("Fetching %s", remote);
-      try (InputStream is = req.execute().getContent()) {
-        MoreFiles.createParentDirectories(newFile);
-        MoreFiles.asByteSink(newFile).writeFrom(is);
+      ByteSink sink = MoreFiles.asByteSink(newFile);
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      try(ProfilerTask task = profiler.start("remote_file_" + remote)) {
+        try (DigestInputStream is = new DigestInputStream(req.execute().getContent(), digest)) {
+          MoreFiles.createParentDirectories(newFile);
+          sink.writeFrom(is);
+          sha256 = Optional.of(Bytes.asList(is.getMessageDigest().digest()).stream()
+              .map(b -> String.format("%02X", b)).collect(Collectors.joining()).toLowerCase());
+        }
+        file = Optional.of(newFile);
+        downloaded = true;
       }
-      file = Optional.of(newFile);
-    } catch (IOException e) {
+    } catch (IOException | NoSuchAlgorithmException e) {
       throw new RepoException(String.format("Error downloading %s", remote), e);
     }
   }
@@ -102,14 +115,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
       doc = "Sha256 of the file.")
   public String getSha256() throws RepoException, ValidationException {
     download();
-    try {
-      CommandOutputWithStatus result = new CommandRunner(new Command(
-          new String[] {"sha256sum", file.get().toAbsolutePath().toString()}))
-          .execute();
-      return Iterables.getFirst(Splitter.on(' ').limit(2).split(result.getStdout()), "");
-    } catch (CommandException e) {
-      throw new RepoException(String.format("Error computing sha256 of %s", file.get()), e);
-    }
+    return sha256.get();
   }
 
   @SkylarkCallable(
