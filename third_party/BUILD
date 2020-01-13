@@ -15,22 +15,22 @@ package(
 java_library(
     name = "guava",
     exports = [
-	"@failureaccess//jar",
-        "@guava//jar",
+	"@maven//:com_google_guava_failureaccess",
+        "@maven//:com_google_guava_guava",
     ],
 )
 
 java_library(
     name = "guava_testlib",
     exports = [
-        "@guava_testlib//jar",
+        "@maven//:com_google_guava_guava_testlib",
     ],
 )
 
 java_library(
     name = "autocommon",
     exports = [
-        "@autocommon//jar",
+        "@maven//:com_google_auto_auto_common",
     ],
 )
 
@@ -38,8 +38,8 @@ java_plugin(
     name = "autovalue_plugin",
     processor_class = "com.google.auto.value.processor.AutoValueProcessor",
     deps = [
-        "@autovalue//jar",
-        "@autovalueannotations//jar",
+        "@maven//:com_google_auto_value_auto_value",
+        "@maven//:com_google_auto_value_auto_value_annotations",
     ],
 )
 
@@ -51,36 +51,36 @@ java_library(
     # TODO(matvore): What to export to give access to @AutoValue annotation
     # without depending on the processor at runtime?
     exports = [
-        "@autovalue//jar",
-        "@autovalueannotations//jar",
+        "@maven//:com_google_auto_value_auto_value",
+        "@maven//:com_google_auto_value_auto_value_annotations",
     ],
 )
 
 java_library(
     name = "jcommander",
     exports = [
-        "@jcommander//jar",
+        "@maven//:com_beust_jcommander",
     ],
 )
 
 java_library(
     name = "jimfs",
     exports = [
-        "@jimfs//jar",
+        "@maven//:com_google_jimfs_jimfs",
     ],
 )
 
 java_library(
     name = "junit",
     exports = [
-        "@junit//jar",
+        "@maven//:junit_junit",
     ],
 )
 
 java_library(
     name = "re2j",
     exports = [
-        "@re2j//jar",
+        "@maven//:com_google_re2j_re2j",
     ],
 )
 
@@ -95,18 +95,18 @@ java_library(
     name = "truth",
     testonly = 1,
     exports = [
-        "@diffutils//jar",
-        "@truth//jar",
+        "@maven//:com_googlecode_java_diff_utils_diffutils",
+        "@maven//:com_google_truth_truth",
     ],
 )
 
 java_library(
     name = "google_http_client",
     exports = [
-        "@google_http_client//jar",
-        "@google_http_client_gson//jar",
-        "@gson//jar",
-	"@commonscodec//jar",
+        "@maven//:com_google_http_client_google_http_client",
+        "@maven//:com_google_http_client_google_http_client_gson",
+        "@maven//:com_google_code_gson_gson",
+	"@maven//:commons_codec_commons_codec",
     ],
 )
 
@@ -114,7 +114,7 @@ java_library(
     name = "google_http_client_test",
     testonly = 1,
     exports = [
-        "@google_http_client_test//jar",
+        "@maven//:com_google_http_client_google_http_client_test",
     ],
 )
 
@@ -122,19 +122,19 @@ java_library(
     name = "mockito",
     testonly = 1,
     exports = [
-        "@mockito//jar",
+        "@maven//:org_mockito_mockito_core",
     ],
     runtime_deps = [
-        "@byte_buddy//jar",
-        "@byte_buddy_agent//jar",
-        "@objenesis//jar",
+        "@maven//:net_bytebuddy_byte_buddy",
+        "@maven//:net_bytebuddy_byte_buddy_agent",
+        "@maven//:org_objenesis_objenesis",
     ],
 )
 
 java_library(
     name = "jsr305",
     exports = [
-        "@jsr305//jar",
+        "@maven//:com_google_code_findbugs_jsr305",
     ],
 )
 
@@ -149,10 +149,10 @@ java_library(
 java_library(
     name = "flogger",
     exports = [
-        "@flogger//jar",
+        "@maven//:com_google_flogger_flogger",
     ],
     runtime_deps = [
-        "@flogger_system_backend//jar"
+        "@maven//:com_google_flogger_flogger_system_backend"
     ]
 )
 
