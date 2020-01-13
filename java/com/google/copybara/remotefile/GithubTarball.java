@@ -18,7 +18,6 @@ package com.google.copybara.remotefile;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.api.client.http.HttpTransport;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
@@ -43,7 +42,7 @@ public class GithubTarball extends RemoteHttpFile implements StarlarkValue {
       String project,
       String reference,
       Path storageDir,
-      HttpTransport transport,
+      HttpStreamFactory transport,
       Profiler profiler,
       Console console) {
     super(storageDir, reference, "tar.gz", transport, console, profiler);

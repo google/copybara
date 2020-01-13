@@ -19,9 +19,6 @@ package com.google.copybara.remotefile;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpTransport;
 import com.google.common.base.CharMatcher;
 import com.google.common.io.ByteSink;
 import com.google.common.io.MoreFiles;
@@ -56,7 +53,7 @@ import java.util.stream.Collectors;
 public abstract class RemoteHttpFile implements StarlarkValue {
   protected final String reference;
   protected final String extension;
-  private final HttpTransport transport;
+  private final HttpStreamFactory transport;
   private final Path storageDir;
   private final Console console;
   protected final Profiler profiler;
@@ -66,7 +63,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
   boolean downloaded = false;
 
   protected RemoteHttpFile(
-      Path storageDir, String reference, String extension, HttpTransport transport,
+      Path storageDir, String reference, String extension, HttpStreamFactory transport,
       Console console, Profiler profiler) {
     this.storageDir = checkNotNull(storageDir);
     this.reference = checkNotNull(reference);
@@ -87,14 +84,13 @@ public abstract class RemoteHttpFile implements StarlarkValue {
     }
     URL remote = getRemote();
     try {
-      HttpRequest req = transport.createRequestFactory().buildGetRequest(new GenericUrl(remote));
       Path newFile = storageDir.resolve(String.format("%s.%s", CharMatcher.anyOf("/\\\n\t ")
           .replaceFrom(reference, '_'), extension));
       console.progressFmt("Fetching %s", remote);
       ByteSink sink = MoreFiles.asByteSink(newFile);
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       try (ProfilerTask task = profiler.start("remote_file_" + remote)) {
-        try (DigestInputStream is = new DigestInputStream(req.execute().getContent(), digest)) {
+        try (DigestInputStream is = new DigestInputStream(transport.open(remote), digest)) {
           MoreFiles.createParentDirectories(newFile);
           sink.writeFrom(is);
           sha256 = Optional.of(Bytes.asList(is.getMessageDigest().digest()).stream()

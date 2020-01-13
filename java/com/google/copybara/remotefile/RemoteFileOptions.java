@@ -16,8 +16,6 @@
 
 package com.google.copybara.remotefile;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
@@ -25,7 +23,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Supplier;
-
 
 /**
  * Options for loading files from a source other than the origin. Use with caution.
@@ -41,9 +38,9 @@ public class RemoteFileOptions implements Option {
     return storageDir;
   }
 
-  Supplier<HttpTransport> transport = Suppliers.memoize(() -> new NetHttpTransport());
+  Supplier<HttpStreamFactory> transport = Suppliers.memoize(() -> new GclientHttpStreamFactory());
 
-  protected HttpTransport getTransport() throws ValidationException {
+  protected HttpStreamFactory getTransport() throws ValidationException {
     return transport.get();
   }
 }

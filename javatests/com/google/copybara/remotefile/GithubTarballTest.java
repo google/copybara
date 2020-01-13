@@ -63,7 +63,7 @@ public class GithubTarballTest {
           }
         };
     RemoteFileOptions options = new RemoteFileOptions();
-    options.transport = () -> httpTransport;
+    options.transport = () -> new GclientHttpStreamFactory(httpTransport);
     Console console = new TestingConsole();
     OptionsBuilder optionsBuilder = new OptionsBuilder().setConsole(console);
     optionsBuilder.remoteFile = options;
