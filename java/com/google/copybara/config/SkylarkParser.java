@@ -36,6 +36,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkInterfaceUtils;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.FileOptions;
 import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
@@ -207,7 +208,7 @@ public class SkylarkParser {
       pending.add(content.path());
 
       ParserInput input = ParserInput.create(content.readContent(), content.path());
-      StarlarkFile file = StarlarkFile.parse(input);
+      StarlarkFile file = StarlarkFile.parse(input, STARLARK_FILE_OPTIONS);
       Map<String, Extension> imports = new HashMap<>();
       for (Statement stmt :  file.getStatements()) {
         if (stmt instanceof LoadStatement) {
@@ -233,7 +234,7 @@ public class SkylarkParser {
       module = thread.getGlobals();
 
       // validate
-      file = handleStarlarkFileValidation(input, file, module, thread.getSemantics());
+      file = handleStarlarkFileValidation(input, file, module);
 
       // execute
       try (Mutability mu = module.mutability()) { // finally freeze module
@@ -249,13 +250,12 @@ public class SkylarkParser {
     }
 
     private StarlarkFile handleStarlarkFileValidation(
-        ParserInput input, StarlarkFile file, Module module, StarlarkSemantics semantics)
-        throws ValidationException {
+        ParserInput input, StarlarkFile file, Module module) throws ValidationException {
       if (validation == StarlarkMode.NO_VALIDATION) {
         Event.replayEventsOn(eventHandler, file.errors());
         return file;
       }
-      StarlarkFile validatedFile = EvalUtils.parseAndValidate(input, module, semantics);
+      StarlarkFile validatedFile = EvalUtils.parseAndValidate(input, STARLARK_FILE_OPTIONS, module);
       if (!validatedFile.errors().isEmpty()) {
         if (validation == StarlarkMode.STRICT) {
           file = validatedFile;
@@ -273,6 +273,19 @@ public class SkylarkParser {
       }
       return file;
     }
+
+    private final FileOptions STARLARK_FILE_OPTIONS =
+        FileOptions.DEFAULT.toBuilder()
+
+            // TODO(adonovan): eliminate StarlarkMode and do strict validation always,
+            // but with this option to allow top-level rebinding:
+            // .allowToplevelRebinding(true)
+
+            // TODO(malcon): stop allowing invalid escapes such as "[\s\S]",
+            // which appears in devtools/blaze/bazel/admin/copybara/docs.bara.sky.
+            // This is a breaking change but trivially fixed.
+            .restrictStringEscapes(false)
+            .build();
 
     private ValidationException throwCycleError(String cycleElement)
         throws ValidationException {
