@@ -36,7 +36,7 @@ import java.net.URL;
     name = "remote_http_file.GitHubArchive",
     category = SkylarkModuleCategory.BUILTIN,
     documented = false,
-    doc = "A GitHub tarball that can be downloaded at the given revision. Only exposes the SHA256 "
+    doc = "A GitHub archive that can be downloaded at the given revision. Only exposes the SHA256 "
         + "hash of the archive.")
 public class GithubArchive extends RemoteHttpFile implements StarlarkValue {
 
