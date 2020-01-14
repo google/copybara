@@ -17,11 +17,8 @@
 package com.google.copybara.remotefile;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.base.CharMatcher;
 import com.google.common.io.ByteSink;
-import com.google.common.io.MoreFiles;
 import com.google.common.primitives.Bytes;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -34,8 +31,6 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -52,22 +47,16 @@ import java.util.stream.Collectors;
     category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
 public abstract class RemoteHttpFile implements StarlarkValue {
   protected final String reference;
-  protected final String extension;
-  private final HttpStreamFactory transport;
-  private final Path storageDir;
+   private final HttpStreamFactory transport;
   private final Console console;
   protected final Profiler profiler;
 
-  Optional<Path> file = Optional.empty();
   Optional<String> sha256 = Optional.empty();
   boolean downloaded = false;
 
   protected RemoteHttpFile(
-      Path storageDir, String reference, String extension, HttpStreamFactory transport,
-      Console console, Profiler profiler) {
-    this.storageDir = checkNotNull(storageDir);
+      String reference, HttpStreamFactory transport, Console console, Profiler profiler) {
     this.reference = checkNotNull(reference);
-    this.extension = checkNotNull(extension);
     this.transport = checkNotNull(transport);
     this.console = checkNotNull(console);
     this.profiler = checkNotNull(profiler);
@@ -78,25 +67,27 @@ public abstract class RemoteHttpFile implements StarlarkValue {
    */
   protected abstract URL getRemote() throws ValidationException;
 
+  /**
+   * Sink that receives the downloaded files.
+   */
+  protected abstract ByteSink getSink() throws ValidationException;
+
+
   protected synchronized void download() throws RepoException, ValidationException {
     if (downloaded) {
       return;
     }
     URL remote = getRemote();
     try {
-      Path newFile = storageDir.resolve(String.format("%s.%s", CharMatcher.anyOf("/\\\n\t ")
-          .replaceFrom(reference, '_'), extension));
       console.progressFmt("Fetching %s", remote);
-      ByteSink sink = MoreFiles.asByteSink(newFile);
+      ByteSink sink = getSink();
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       try (ProfilerTask task = profiler.start("remote_file_" + remote)) {
         try (DigestInputStream is = new DigestInputStream(transport.open(remote), digest)) {
-          MoreFiles.createParentDirectories(newFile);
           sink.writeFrom(is);
           sha256 = Optional.of(Bytes.asList(is.getMessageDigest().digest()).stream()
               .map(b -> String.format("%02X", b)).collect(Collectors.joining()).toLowerCase());
         }
-        file = Optional.of(newFile);
         downloaded = true;
       }
     } catch (IOException | NoSuchAlgorithmException e) {
@@ -104,6 +95,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
     }
   }
 
+  @SuppressWarnings("unused")
   @SkylarkCallable(
       name = "sha256",
       documented = false,
@@ -113,16 +105,4 @@ public abstract class RemoteHttpFile implements StarlarkValue {
     return sha256.get();
   }
 
-  @SkylarkCallable(
-      name = "contents",
-      documented = false,
-      doc = "Contents of the file.")
-  public String getContents() throws RepoException, ValidationException {
-    download();
-    try {
-      return new String(Files.readAllBytes(file.get()), UTF_8);
-    } catch (IOException e) {
-      throw new RepoException(String.format("Error reading %s", file.get()), e);
-    }
-  }
 }

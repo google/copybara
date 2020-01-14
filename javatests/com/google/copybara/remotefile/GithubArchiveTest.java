@@ -33,7 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class GithubTarballTest {
+public class GithubArchiveTest {
   private OptionsBuilder options;
 
   private MockHttpTransport httpTransport;
@@ -76,22 +76,32 @@ public class GithubTarballTest {
         + "674ac754f91e64a0efb8087e59a176484bd534d1.tar.gz";
     responseContent = "Let's pretend this is a tarball.";
     String sha = skylark.eval("sha256",
-        "sha256 = remotefiles.github_tarball("
+        "sha256 = remotefiles.github_archive("
             + "project = 'google/copybara',"
             + "revision='674ac754f91e64a0efb8087e59a176484bd534d1').sha256()");
     assertThat(sha).isEqualTo("0bcd56de6e8c48b84cc1584b6ec169f122f0d9df088b1f47476ac2e11a4f9a4d");
   }
 
   @Test
-  public void downloadTarballAndGetContent() throws Exception {
+  public void downloadZipAndGetSha256() throws Exception {
     expectedRequest = "https://github.com/google/copybara/archive/"
-        + "674ac754f91e64a0efb8087e59a176484bd534d1.tar.gz";
-    responseContent = "Let's pretend this is a tarball.";
-
-    String content = skylark.eval("contents",
-        "contents = remotefiles.github_tarball("
+        + "674ac754f91e64a0efb8087e59a176484bd534d1.zip";
+    responseContent = "Let's pretend this is a zip.";
+    String sha = skylark.eval("sha256",
+        "sha256 = remotefiles.github_archive("
             + "project = 'google/copybara',"
-            + "revision='674ac754f91e64a0efb8087e59a176484bd534d1').contents()");
-    assertThat(content).isEqualTo("Let's pretend this is a tarball.");
+            + "revision='674ac754f91e64a0efb8087e59a176484bd534d1',"
+            + "type='ZIP').sha256()");
+    assertThat(sha).isEqualTo("047bbcf6e39c5a8fda2ae70238e74d0b0b81f94a7d907b27ebd32a6e61d6ea09");
+  }
+
+  @Test
+  public void badFileType() throws Exception {
+    skylark.evalFails(
+        "remotefiles.github_archive("
+            + "project = 'google/copybara',"
+            + "revision='674ac754f91e64a0efb8087e59a176484bd534d1',"
+            + "type='FOO')",
+        "Unsupported archive type: 'FOO'. Supported values: \\[TARBALL, ZIP\\]");
   }
 }

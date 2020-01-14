@@ -18,35 +18,41 @@ package com.google.copybara.remotefile;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.io.ByteSink;
+import com.google.common.io.ByteStreams;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Path;
 
 /** A tarball for a given ref, downloaded from GitHub */
 @SkylarkModule(
-    name = "remote_http_file.GitHubTarball",
+    name = "remote_http_file.GitHubArchive",
     category = SkylarkModuleCategory.BUILTIN,
     documented = false,
-    doc = "A GitHub tarball that can be downloaded at the given revision.")
-public class GithubTarball extends RemoteHttpFile implements StarlarkValue {
+    doc = "A GitHub tarball that can be downloaded at the given revision. Only exposes the SHA256 "
+        + "hash of the archive.")
+public class GithubArchive extends RemoteHttpFile implements StarlarkValue {
 
   private final String project;
+  private final Type fileType;
 
-  public GithubTarball(
+  public GithubArchive(
       String project,
       String reference,
-      Path storageDir,
+      Type fileType,
       HttpStreamFactory transport,
       Profiler profiler,
       Console console) {
-    super(storageDir, reference, "tar.gz", transport, console, profiler);
+    super(reference, transport, console, profiler);
     this.project = checkNotNull(project);
+    this.fileType = fileType;
   }
 
   @Override
@@ -55,10 +61,40 @@ public class GithubTarball extends RemoteHttpFile implements StarlarkValue {
       // This is somewhat limited and does not support private repos. We can use
       // https://developer.github.com/v3/repos/contents/#get-archive-link if a use case for private
       // repos comes up.
-      return new URL(String.format("https://github.com/%s/archive/%s.tar.gz", project, reference));
+      return new URL(String.format("https://github.com/%s/archive/%s.%s",
+          project, reference, fileType.extension));
     } catch (MalformedURLException e) {
       throw new ValidationException(
-          String.format("Error assembling URL for tarball of %s at %s", project, reference), e);
+          String.format("Error assembling URL for archive of %s at %s", project, reference), e);
     }
   }
+
+  @Override
+  protected ByteSink getSink() throws ValidationException {
+    return NullByteSink.INSTANCE;
+  }
+
+  enum Type {
+    TARBALL("tar.gz"),
+    ZIP("zip");
+
+    final String extension;
+
+    Type(String extension) {
+      this.extension = checkNotNull(extension);
+    }
+  }
+
+  /**
+   * We only need the hash of archives as we do not allow introspecting them.
+   */
+  private static final class NullByteSink extends ByteSink implements Serializable {
+    private static final NullByteSink INSTANCE = new NullByteSink();
+
+    @Override
+    public OutputStream openStream() {
+      return ByteStreams.nullOutputStream();
+    }
+  }
+
 }
