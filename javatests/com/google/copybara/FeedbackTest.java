@@ -496,8 +496,8 @@ public class FeedbackTest {
             + "core.feedback(\n"
             + "    name = 'foo| bad;name',\n"
             + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = testing.dummy_endpoint(),\n"
-            + "),\n",
+            + "    destination = testing.dummy_endpoint()\n"
+            + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 }

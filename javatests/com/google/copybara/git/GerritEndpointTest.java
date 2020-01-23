@@ -152,7 +152,7 @@ public class GerritEndpointTest {
 
   @Test
   public void testParsingEmptyUrl() {
-    skylark.evalFails("git.gerrit_api(url = '')))", "Invalid empty field 'url'");
+    skylark.evalFails("git.gerrit_api(url = '')", "Invalid empty field 'url'");
     }
 
   @Test

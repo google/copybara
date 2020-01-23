@@ -279,8 +279,8 @@ public class FilterReplaceTest {
         + "       after = '${content}\\n',\n"
         + "       regex_groups = {'content' : '.*'},\n"
         + "       multiline = True,"
-        + "      ),\n"
-        + "   ])),\n"
+        + "      )\n"
+        + "   ]),\n"
         + ")"
     );
     transform(t);

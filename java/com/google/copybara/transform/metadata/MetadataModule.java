@@ -910,9 +910,9 @@ public class MetadataModule implements StarlarkValue {
               + "    after = \"destination/${reference}\",\n"
               + "    regex_groups = {\n"
               + "        \"before_ref\": \"[0-9a-f]+\",\n"
-              + "        \"after_ref\": \"[0-9]+\",\n"
+              + "        \"after_ref\": \"[0-9]+\"\n"
               + "    },\n"
-              + "),",
+              + ")",
       after =
           "This would be translated into 'Fixes bug introduced in destination/123456', provided"
               + " that a change with the proper label was found - the message remains unchanged "

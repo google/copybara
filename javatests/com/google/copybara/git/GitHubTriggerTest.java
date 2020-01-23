@@ -101,6 +101,6 @@ public class GitHubTriggerTest {
 
   @Test
   public void testParsingEmptyUrl() {
-    skylarkTestExecutor.evalFails("git.github_trigger(url = '')))", "Invalid empty field 'url'");
+    skylarkTestExecutor.evalFails("git.github_trigger(url = '')", "Invalid empty field 'url'");
   }
 }

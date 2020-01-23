@@ -133,7 +133,7 @@ public class GlobTest {
   @Test
   public void testSpecialChars()
       throws IOException, ValidationException, RepoException {
-    createPathMatcher("glob(['\\n','\\\"', \"\\t\\r\\f\\b\\000\"])");
+    createPathMatcher("glob(['\\n','\\\"', \"\\t\\r\\000\"])");
   }
 
   @Test

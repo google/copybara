@@ -47,7 +47,7 @@ public class GerritTriggerTest {
   public void testParsing() throws Exception {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
-            "e", "e = git.gerrit_trigger(url = 'https://test.googlesource.com/example'))");
+            "e", "e = git.gerrit_trigger(url = 'https://test.googlesource.com/example')");
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger", "url", "https://test.googlesource.com/example");
     assertThat(gerritTrigger.getEndpoint().describe())
@@ -72,6 +72,6 @@ public class GerritTriggerTest {
 
   @Test
   public void testParsingEmptyUrl() {
-    skylarkTestExecutor.evalFails("git.gerrit_trigger(url = '')))", "Invalid empty field 'url'");
+    skylarkTestExecutor.evalFails("git.gerrit_trigger(url = '')", "Invalid empty field 'url'");
   }
 }

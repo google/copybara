@@ -73,7 +73,8 @@ public class SkylarkTestExecutor {
 
   private void initParser() {
     moduleSupplierForTest = new ModuleSupplierForTest(options, moduleSupplier);
-    skylarkParser = new SkylarkParser(moduleSupplierForTest.create().getStaticModules());
+    skylarkParser = new SkylarkParser(moduleSupplierForTest.create().getStaticModules(),
+        options.general.validateStarlarkSyntax);
   }
 
   public SkylarkTestExecutor addConfigFile(String key, String content) {

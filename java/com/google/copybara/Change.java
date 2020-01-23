@@ -133,7 +133,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
       structField = true)
   public Dict<String, String> getLabelsForSkylark() {
     return Dict.copyOf(
-        /* thread= */ null,
+        /* mu= */ null,
         ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
   }
 
@@ -147,7 +147,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
       structField = true)
   public Dict<String, Sequence<String>> getLabelsAllForSkylark() {
     return Dict.copyOf(
-        /* thread= */ null, Maps.transformValues(labels.asMap(), StarlarkList::immutableCopyOf));
+        /* mu= */ null, Maps.transformValues(labels.asMap(), StarlarkList::immutableCopyOf));
   }
 
   /**

@@ -3264,8 +3264,8 @@ public class WorkflowTest {
             + "    name = 'foo| bad;name',\n"
             + "    origin = folder.origin(),\n"
             + "    destination = folder.destination(),\n"
-            + "    authoring = authoring.overwrite('Foo <foo@example.com>'),\n"
-            + "),\n",
+            + "    authoring = authoring.overwrite('Foo <foo@example.com>')\n"
+            + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }
 }
