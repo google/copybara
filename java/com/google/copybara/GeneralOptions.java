@@ -40,6 +40,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.StarlarkMode;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -415,4 +416,12 @@ public final class GeneralOptions implements Option {
       + "export with 'SQUASH', maybe to fix an issue. Always use " + DRY_RUN_FLAG + " before, to "
       + "test your changes locally.")
   public boolean squash = false;
+
+  @Parameter(names = "--validate-starlark", description = "Starlark should be validated prior to"
+      + "execution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT")
+  public String starlarkMode = StarlarkMode.NO_VALIDATION.name();
+
+  public StarlarkMode getStarlarkMode() {
+    return StarlarkMode.valueOf(starlarkMode);
+  }
 }

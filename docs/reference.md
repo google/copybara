@@ -449,6 +449,7 @@ Name | Type | Description
 <nobr>`--output-limit`</nobr> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <nobr>`--output-root`</nobr> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
 <nobr>`--squash`</nobr> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
+<nobr>`--validate-starlark`</nobr> | *string* | Starlark should be validated prior toexecution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT
 <nobr>`-v, --verbose`</nobr> | *boolean* | Verbose output.
 
 <a id="core.copy" aria-hidden="true"></a>

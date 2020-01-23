@@ -28,6 +28,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.StarlarkMode;
 import java.io.IOException;
 import java.nio.file.Files;
 import org.junit.Before;
@@ -50,6 +51,7 @@ public class ReadConfigFromChangeWorkflowTest {
     destination = new RecordsProcessCallDestination();
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
+    options.general.starlarkMode = StarlarkMode.STRICT.name();
     skylark = new SkylarkTestExecutor(options);
   }
 
@@ -65,7 +67,8 @@ public class ReadConfigFromChangeWorkflowTest {
     ConfigLoader constantConfigLoader =
         new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configCode)) {
+            skylark.createConfigFile("copy.bara.sky", configCode),
+            options.general.getStarlarkMode()) {
           @Override
           protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {

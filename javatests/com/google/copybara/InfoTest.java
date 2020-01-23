@@ -36,6 +36,7 @@ import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.StarlarkMode;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -77,6 +78,7 @@ public class InfoTest {
     skylark = new SkylarkTestExecutor(optionsBuilder);
     eventMonitor = new TestingEventMonitor();
     optionsBuilder.general.withEventMonitor(eventMonitor);
+    optionsBuilder.general.starlarkMode = StarlarkMode.STRICT.name();
     migration = mock(Migration.class);
     config = new Config(ImmutableMap.of("workflow", migration),
         temp.resolve("copy.bara.sky").toString(),
@@ -93,7 +95,8 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo)) {
+            skylark.createConfigFile("copy.bara.sky", configInfo),
+            optionsBuilder.general.getStarlarkMode()) {
           @Override
           protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
@@ -146,7 +149,8 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo)) {
+            skylark.createConfigFile("copy.bara.sky", configInfo),
+            optionsBuilder.general.getStarlarkMode()) {
           @Override
           public Config load(Console console) {
             return config;
@@ -174,7 +178,8 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo)) {
+            skylark.createConfigFile("copy.bara.sky", configInfo),
+            optionsBuilder.general.getStarlarkMode()) {
           @Override
           public Config load(Console console) {
             return config;

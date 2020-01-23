@@ -39,6 +39,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.transform.Sequence;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.StarlarkMode;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -72,14 +73,17 @@ public class SkylarkParserTest {
       + "   ),\n"
       + "   authoring = authoring.overwrite('Copybara <not_used@google.com>'),\n"
       + ")\n";
+
   private SkylarkTestExecutor parser;
   private TestingConsole console;
+  private OptionsBuilder options;
 
   @Before
   public void setup() {
-    OptionsBuilder options = new OptionsBuilder();
+    options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
+    options.general.starlarkMode = StarlarkMode.STRICT.name();
     parser = new SkylarkTestExecutor(options)
         .withStaticModules(ImmutableSet.of(Mock.class, MockLabelsAwareModule.class));
   }
@@ -96,8 +100,8 @@ public class SkylarkParserTest {
     parser.addConfigFile(
         "foo/bar.bara.sky",
         ""
-            + "bar=42\n"
             + "load('bar/foo', 'foobar')\n"
+            + "bar=42\n"
             + "def copy_author():\n"
             + "  return authoring.overwrite('Copybara <no-reply@google.com>')");
     parser.addConfigFile("foo/bar/foo.bara.sky", "foobar=42\n");
@@ -152,7 +156,18 @@ public class SkylarkParserTest {
     MockTransform transformation2 = (MockTransform) transformations.get(1);
     assertThat(transformation2.field1).isEqualTo("baz");
     assertThat(transformation2.field2).isEqualTo("bee");
+  }
 
+  @Test
+  public void testStrictStarlarkParsingCatchesError() throws IOException, ValidationException {
+    options.general.starlarkMode = StarlarkMode.NO_VALIDATION.name();
+    parser = new SkylarkTestExecutor(options);
+    parser.loadConfig("foo = 42,");
+    options.general.starlarkMode = StarlarkMode.STRICT.name();
+    parser = new SkylarkTestExecutor(options);
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> parser.loadConfig("foo = 42,"));
+    assertThat(expected).hasMessageThat().contains("Trailing comma");
   }
 
   /** This test checks that we can load the transitive includes of a config file. */
@@ -338,7 +353,7 @@ public class SkylarkParserTest {
         + "\n"
         + NON_IMPORTANT_WORKFLOW
         + "";
-    parser.evalProgramFails(content, ".*trying to mutate a frozen object.*");
+    parser.evalProgramFails(content, ".*cannot reassign global 'other'.*");
   }
 
   @SkylarkModule(

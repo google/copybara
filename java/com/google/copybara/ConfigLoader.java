@@ -25,6 +25,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.StarlarkMode;
 import java.io.IOException;
 
 /**
@@ -36,9 +37,9 @@ public class ConfigLoader {
   private final ConfigFile configFile;
   private final ModuleSet moduleSet;
 
-  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile) {
+  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile, StarlarkMode validateStarlark) {
     this.moduleSet = moduleSet;
-    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules());
+    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules(), validateStarlark);
     this.configFile = Preconditions.checkNotNull(configFile);
   }
 
