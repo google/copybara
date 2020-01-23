@@ -327,7 +327,7 @@ public class Main {
     GeneralOptions generalOptions = moduleSet.getOptions().get(GeneralOptions.class);
     return (configPath, sourceRef) -> new ConfigLoader(moduleSet,
         createConfigFileWithHeuristic(validateLocalConfig(generalOptions, configPath),
-            generalOptions.getConfigRoot()), generalOptions.validateStarlarkSyntax);
+            generalOptions.getConfigRoot()));
   }
 
   protected ContextProvider newInfoContextProvider() {

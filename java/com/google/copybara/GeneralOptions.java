@@ -413,10 +413,6 @@ public final class GeneralOptions implements Option {
   @Parameter(names = SQUASH_FLAG, description = "Override workflow's mode with 'SQUASH'. This is "
       + "useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single "
       + "export with 'SQUASH', maybe to fix an issue. Always use " + DRY_RUN_FLAG + " before, to "
-      + "test your changes locally.", arity = 1)
+      + "test your changes locally.")
   public boolean squash = false;
-
-  @Parameter(names = "--validate-starlark", description = "Starlark should be validated prior to"
-      + "execution, but this might break legacy configs.")
-  public boolean validateStarlarkSyntax = false;
 }

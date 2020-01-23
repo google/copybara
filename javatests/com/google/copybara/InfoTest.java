@@ -93,8 +93,7 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo),
-            true) {
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
           @Override
           protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
@@ -147,8 +146,7 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo),
-            /*validateStarlark=*/true) {
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
           @Override
           public Config load(Console console) {
             return config;
@@ -176,8 +174,7 @@ public class InfoTest {
     info = new InfoCmd(
         (configPath, sourceRef) -> new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configInfo),
-            /*validateStarlark=*/true) {
+            skylark.createConfigFile("copy.bara.sky", configInfo)) {
           @Override
           public Config load(Console console) {
             return config;

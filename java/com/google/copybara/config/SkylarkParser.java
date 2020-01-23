@@ -61,13 +61,11 @@ public class SkylarkParser {
   private static final String BARA_SKY = ".bara.sky";
   // For now all the modules are namespaces. We don't use variables except for 'core'.
   private final Iterable<Class<?>> modules;
-  private final boolean validateStarlark;
 
-  public SkylarkParser(Set<Class<?>> staticModules, boolean validateStarlark) {
+  public SkylarkParser(Set<Class<?>> staticModules) {
     this.modules = ImmutableSet.<Class<?>>builder()
         .add(GlobalMigrations.class)
         .addAll(staticModules).build();
-    this.validateStarlark = validateStarlark;
   }
 
   public Config loadConfig(ConfigFile config, ModuleSet moduleSet, Console console)
@@ -117,7 +115,7 @@ public class SkylarkParser {
    * @throws ValidationException If config is invalid, references an invalid file or contains
    *     dependency cycles.
    */
-  public ConfigWithDependencies getConfigWithTransitiveImports(
+  public  ConfigWithDependencies getConfigWithTransitiveImports(
       ConfigFile config, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException {
     CapturingConfigFile capturingConfigFile = new CapturingConfigFile(config);
@@ -210,8 +208,9 @@ public class SkylarkParser {
 
       ParserInput input = ParserInput.create(content.readContent(), content.path());
       StarlarkFile file = StarlarkFile.parse(input);
+      Event.replayEventsOn(eventHandler, file.errors());
       Map<String, Extension> imports = new HashMap<>();
-      for (Statement stmt :  file.getStatements()) {
+      for (Statement stmt : file.getStatements()) {
         if (stmt instanceof LoadStatement) {
           StringLiteral module = ((LoadStatement) stmt).getImport();
           imports.put(
@@ -223,16 +222,12 @@ public class SkylarkParser {
       updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
       StarlarkThread thread = createStarlarkThread(printHandler, environment, imports);
 
-      StarlarkFile validatedFile = EvalUtils.parseAndValidateSkylark(input, thread);
-      if (!validatedFile.errors().isEmpty()) {
-        Event.replayEventsOn(eventHandler, validatedFile.errors());
-        if (validateStarlark) {
-          file = validatedFile;
-        }
-        checkCondition(!validateStarlark, "Error loading config file.");
-        // TODO(hsudhof): Update to prompt, then fail always.
-        console.warn("There were errors during parsing. Your workflow might stop working soon.");
-      }
+      // TODO(adonovan): copybara really needs to be calling
+      // ValidationException.validateFile(file, thread, false)
+      // to catch various static errors prior to execution;
+      // this will soon become mandatory. But we can't unconditionally
+      // add this statement without risking breakage of users' configs.
+
       try {
         EvalUtils.exec(file, thread);
       } catch (EvalException ex) {

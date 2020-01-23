@@ -36,9 +36,9 @@ public class ConfigLoader {
   private final ConfigFile configFile;
   private final ModuleSet moduleSet;
 
-  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile, boolean validateStarlark) {
+  public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile) {
     this.moduleSet = moduleSet;
-    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules(), validateStarlark);
+    this.skylarkParser = new SkylarkParser(this.moduleSet.getStaticModules());
     this.configFile = Preconditions.checkNotNull(configFile);
   }
 

@@ -65,8 +65,7 @@ public class ReadConfigFromChangeWorkflowTest {
     ConfigLoader constantConfigLoader =
         new ConfigLoader(
             skylark.createModuleSet(),
-            skylark.createConfigFile("copy.bara.sky", configCode),
-            /*validateStarlark=*/true) {
+            skylark.createConfigFile("copy.bara.sky", configCode)) {
           @Override
           protected Config doLoadForRevision(Console console, Revision revision)
               throws ValidationException {
