@@ -24,9 +24,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.Concatable;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.HasBinary;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+import com.google.devtools.build.lib.syntax.TokenKind;
 import com.google.re2j.Pattern;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -35,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.
@@ -50,23 +51,22 @@ import javax.annotation.Nullable;
             + " pattern in include and does not match any of the patterns in exclude.",
     category = SkylarkModuleCategory.BUILTIN,
     documented = false)
-public abstract class Glob implements Concatable, StarlarkValue {
+public abstract class Glob implements StarlarkValue, HasBinary {
 
   private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
 
   public static final Glob ALL_FILES = createGlob(ImmutableList.of("**"));
 
-  /**
-   * An implementation of {@link Concatter} for Globs so that we can create glob1 + glob2 as a
-   * union glob.
-   */
-  private final static Concatter CONCATTER = (lval, rval, loc) -> {
-    if (lval instanceof Glob && rval instanceof Glob) {
-      return new UnionGlob(((Glob) lval), ((Glob) rval));
+  @Override
+  public final UnionGlob binaryOp(TokenKind op, Object that, boolean thisLeft)
+      throws EvalException {
+    if (op == TokenKind.PLUS && that instanceof Glob) {
+      return new UnionGlob(this, (Glob) that);
     }
-    throw new EvalException(loc, "Cannot concatenate " + lval + " with " + rval + ". Only a glob"
-        + " can be concatenated to a glob");
+    throw Starlark.errorf(
+        "Cannot concatenate %s with %s. Only a glob can be concatenated to a glob", this, that);
   };
+
   /**
    * Checks if the given {@code changedFiles} are or are descendants of the {@code roots}.
    */
@@ -151,12 +151,6 @@ public abstract class Glob implements Concatable, StarlarkValue {
    */
   public static boolean isEmptyRoot(Iterable<String> roots) {
     return Iterables.isEmpty(roots) || Objects.equals(roots.iterator().next(), "");
-  }
-
-  @Nullable
-  @Override
-  public Concatter getConcatter() {
-    return CONCATTER;
   }
 
   protected abstract Iterable<String> getIncludes();
