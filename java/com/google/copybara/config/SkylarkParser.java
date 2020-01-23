@@ -226,12 +226,15 @@ public class SkylarkParser {
       StarlarkFile validatedFile = EvalUtils.parseAndValidateSkylark(input, thread);
       if (!validatedFile.errors().isEmpty()) {
         Event.replayEventsOn(eventHandler, validatedFile.errors());
+        if (validateStarlark) {
+          file = validatedFile;
+        }
         checkCondition(!validateStarlark, "Error loading config file.");
         // TODO(hsudhof): Update to prompt, then fail always.
         console.warn("There were errors during parsing. Your workflow might stop working soon.");
       }
       try {
-        EvalUtils.exec(validatedFile, thread);
+        EvalUtils.exec(file, thread);
       } catch (EvalException ex) {
         eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
         checkCondition(false, "Error loading config file");
