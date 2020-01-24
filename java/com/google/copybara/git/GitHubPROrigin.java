@@ -52,7 +52,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Issue;
-import com.google.copybara.git.github.api.Issue.Label;
+import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.User;

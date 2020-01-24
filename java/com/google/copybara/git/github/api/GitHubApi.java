@@ -394,6 +394,18 @@ public class GitHubApi {
     }
   }
 
+  /** https://developer.github.com/v3/issues/labels/#add-labels-to-an-issue */
+  public ImmutableList<Label> addLabels(String project, long prNumber, List<String> labels)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_add_labels")) {
+      return ImmutableList.copyOf(transport.<List<Label>>post(
+          String.format("repos/%s/issues/%s/labels", project, prNumber),
+          new AddLabels(labels),
+          new TypeToken<List<Label>>() {
+          }.getType()));
+    }
+  }
+
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

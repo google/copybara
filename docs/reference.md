@@ -86,6 +86,7 @@
     - [git.origin](#git.origin)
     - [git.review_input](#git.review_input)
   - [github_api_obj](#github_api_obj)
+    - [github_api_obj.add_label](#github_api_obj.add_label)
     - [github_api_obj.create_status](#github_api_obj.create_status)
     - [github_api_obj.delete_reference](#github_api_obj.delete_reference)
     - [github_api_obj.get_authenticated_user](#github_api_obj.get_authenticated_user)
@@ -2166,6 +2167,21 @@ GitHub API endpoint implementation for feedback migrations and after migration h
 Name | Description
 ---- | -----------
 url | Return the URL of this endpoint.
+
+<a id="github_api_obj.add_label" aria-hidden="true"></a>
+### github_api_obj.add_label
+
+Add labels to a PR/issue
+
+`github_api_obj.add_label(number, labels)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `integer`<br><p>Pull Request number</p>
+labels | `sequence of string`<br><p>List of labels to add.</p>
 
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
 ### github_api_obj.create_status

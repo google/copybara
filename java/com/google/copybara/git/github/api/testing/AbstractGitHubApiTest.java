@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.api.AddLabels;
 import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -44,7 +45,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
-import com.google.copybara.git.github.api.Issue.Label;
+import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
@@ -625,6 +626,15 @@ public abstract class AbstractGitHubApiTest {
         .isEqualTo(ZonedDateTime.parse("2018-11-07T23:36:45Z"));
   }
 
+  @Test
+  public void testAddLabel() throws Exception {
+    ImmutableList<String> labels = ImmutableList.of("my_label1", "my_label2");
+    trainMockPost("/repos/example/project/issues/12345/labels", createValidator(
+        AddLabels.class,
+        (a) ->
+            a.getLabels().equals(labels)), getResource("labels_response_testdata.json"));
+    assertThat(api.addLabels("example/project", 12345, labels)).hasSize(2);
+  }
 
   protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
@@ -647,7 +657,6 @@ public abstract class AbstractGitHubApiTest {
 
   // We don't want CreateStatusRequest to be instantiable, this subclass sidesteps the issue.
   public static class TestCreateStatusRequest extends CreateStatusRequest {
-
     public TestCreateStatusRequest() {
       super(State.ERROR, "invalid", "invalid", "invalid");
     }
@@ -655,7 +664,6 @@ public abstract class AbstractGitHubApiTest {
 
   // We don't want UpdateReferenceRequest to be instantiable, this subclass sidesteps the issue.
   public static class TestUpdateReferenceRequest extends UpdateReferenceRequest {
-
     public TestUpdateReferenceRequest() {
       super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);
     }

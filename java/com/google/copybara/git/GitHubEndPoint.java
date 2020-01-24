@@ -504,6 +504,26 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     return url;
   }
 
+  @SkylarkCallable(
+      name = "add_label",
+      doc = "Add labels to a PR/issue",
+      parameters = {
+          @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
+          @Param(name = "labels", type = Sequence.class, generic1 = String.class, named = true,
+              doc = "List of labels to add."),
+      })
+  public void addLabels(Integer prNumber, Sequence<?> labels) throws EvalException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      // Swallow response, until a use-case for returning it surfaces.
+      apiSupplier.load(console).addLabels(project, prNumber,
+          SkylarkUtil.convertStringList(labels, "Expected list of GitHub label names."));
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling add_label: %s", e.getMessage());
+    }
+  }
+
+
   @Override
   public GitHubEndPoint withConsole(Console console) {
     return new GitHubEndPoint(this.apiSupplier, this.url, console);

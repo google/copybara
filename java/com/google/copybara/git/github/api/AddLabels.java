@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2020 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,30 +16,26 @@
 
 package com.google.copybara.git.github.api;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.api.client.util.Key;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 /**
- * Represents an issue returned by https://api.github.com/repos/REPO_ID/issues/NUMBER
+ * Request type for adding a label to an issue
+ * https://developer.github.com/v3/issues/labels/#add-labels-to-an-issue
  */
-public class Issue extends PullRequestOrIssue {
+public class AddLabels {
+  @Key List<String> labels;
 
-  @Key
-  private List<Label> labels;
-
-  public List<Label> getLabels() {
-    return labels;
+  public AddLabels(List<String> labels) {
+    this.labels = checkNotNull(ImmutableList.copyOf(labels));
   }
 
-  public void setLabels(List<Label> labels) {
-    this.labels = labels;
-  }
+  public AddLabels() { }
 
-  @Override
-  public String toString() {
-    return getToStringHelper()
-        .add("labels", labels)
-        .toString();
+  public ImmutableList<String> getLabels() {
+    return ImmutableList.copyOf(labels);
   }
-
 }

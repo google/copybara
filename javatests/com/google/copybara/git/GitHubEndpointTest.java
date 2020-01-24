@@ -594,6 +594,31 @@ public class GitHubEndpointTest {
     assertThat(expected).hasMessageThat().contains("'bad@*' is not a valid head_prefix");
   }
 
+  @Test
+  public void testAddlabel() throws Exception {
+    gitUtil.mockApi(
+        eq("POST"),
+        contains("12345/labels"),
+        mockResponse(
+        "[\n"
+            + "  {\n"
+            + "    \"id\": 123456,\n"
+            + "    \"node_id\": \"BASE64=\",\n"
+            + "    \"url\": \"https://api.github.com/repos/google/example/labels/run_kokoro\",\n"
+            + "    \"name\": \"run_kokoro\",\n"
+            + "    \"description\": \"Run me!\",\n"
+            + "    \"color\": \"ffffff\",\n"
+            + "    \"default\": true\n"
+            + "  }"
+            + "]"
+        ));
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.add_label(number = 12345, labels = ['run_kokoro'])")
+        .build());
+    verify(gitUtil.httpTransport())
+        .buildRequest(eq("POST"), contains("google/example/issues/12345/labels"));
+  }
+
   private String toJson(Object obj) throws IOException {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }
