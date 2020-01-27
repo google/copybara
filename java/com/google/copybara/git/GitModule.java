@@ -74,6 +74,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
+import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -394,7 +395,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         throw Starlark.errorf("%s", e.getMessage());
       }
     }
-    GlobalMigrations.getGlobalMigrations(thread)
+    Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
+    GlobalMigrations.getGlobalMigrations(module)
         .addMigration(
             name,
             new Mirror(

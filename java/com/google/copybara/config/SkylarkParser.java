@@ -85,7 +85,8 @@ public class SkylarkParser {
     StarlarkThread thread;
     try {
       thread = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
-      globalMigrations = GlobalMigrations.getGlobalMigrations(thread);
+      Module module = thread.getGlobals();
+      globalMigrations = GlobalMigrations.getGlobalMigrations(module);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);

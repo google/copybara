@@ -63,6 +63,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
@@ -530,7 +531,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
-    registerGlobalMigration(workflowName, workflow, thread);
+    Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
+    registerGlobalMigration(workflowName, workflow, module);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj)
@@ -1543,14 +1545,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             destination,
             actions,
             generalOptions);
-    registerGlobalMigration(workflowName, migration, thread);
+    Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
+    registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;
   }
 
   /** Registers a {@link Migration} in the global registry. */
-  protected void registerGlobalMigration(String name, Migration migration, StarlarkThread thread)
+  protected void registerGlobalMigration(String name, Migration migration, Module module)
       throws EvalException {
-    getGlobalMigrations(thread).addMigration(name, migration);
+    getGlobalMigrations(module).addMigration(name, migration);
   }
 
   @SkylarkCallable(
