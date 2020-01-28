@@ -277,8 +277,7 @@ public class FeedbackTest {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    return ctx.error('This is an error')\n"
-            + "\n",
+            + "    return ctx.error('This is an error')\n",
         "test_action");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
