@@ -100,6 +100,15 @@ public interface Endpoint extends StarlarkValue {
     return new DestinationRef(ref, type, url);
   }
 
+  @SkylarkCallable(
+      name = "url",
+      doc = "Return the URL of this endpoint.",
+      structField = true,
+      allowReturnNones = true)
+  default String getUrl() {
+    return null;
+  }
+
   /**
    * Returns an instance of this endpoint with the given console.
    */

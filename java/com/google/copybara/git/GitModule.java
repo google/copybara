@@ -37,6 +37,7 @@ import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENT
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Transformation;
@@ -1560,15 +1561,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubOptions.class)
-  public GitHubEndPoint githubApi(String url, Object checkerObj, StarlarkThread thread)
+  public EndpointProvider<GitHubEndPoint>
+  githubApi(String url, Object checkerObj, StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
-    url = fixHttp(url, thread.getCallerLocation());
+    String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, checker), url,
-        getGeneralConsole());
+    return EndpointProvider.wrap(
+        new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(cleanedUrl, checker), cleanedUrl,
+            getGeneralConsole()));
   }
 
   @SuppressWarnings("unused")
@@ -1594,15 +1597,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
-  public GerritEndpoint gerritApi(String url, Object checkerObj, StarlarkThread thread)
-      throws EvalException {
+  public EndpointProvider<GerritEndpoint> gerritApi(
+      String url, Object checkerObj, StarlarkThread thread) throws EvalException {
     checkNotEmpty(url, "url");
-    url = fixHttp(url, thread.getCallerLocation());
+    String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GERRIT_API);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritEndpoint(gerritOptions.newGerritApiSupplier(url, checker), url,
-        getGeneralConsole());
+    return EndpointProvider.wrap(
+        new GerritEndpoint(gerritOptions.newGerritApiSupplier(cleanedUrl, checker),
+            cleanedUrl, getGeneralConsole()));
   }
 
   private Console getGeneralConsole() {

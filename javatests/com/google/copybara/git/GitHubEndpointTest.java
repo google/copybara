@@ -44,13 +44,13 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -177,33 +177,19 @@ public class GitHubEndpointTest {
 
   @Test
   public void testParsing() throws Exception {
-    GitHubEndPoint gitHubEndPoint =
-        skylark.eval(
-            "e",
-            "e = git.github_api(url = 'https://github.com/google/example')");
-    assertThat(gitHubEndPoint.describe())
-        .containsExactly("type", "github_api", "url", "https://github.com/google/example");
-
-    skylark.verifyField(
-        "git.github_api(url = 'https://github.com/google/example')",
-        "url", "https://github.com/google/example");
+    skylark.eval(
+        "e",
+        "e = git.github_api(url = 'https://github.com/google/example')");
   }
 
   @Test
   public void testParsingWithChecker() throws Exception {
-    GitHubEndPoint gitHubEndpoint =
-        skylark.eval(
-            "e",
-            "e = git.github_api(\n"
-                + "url = 'https://github.com/google/example', \n"
-                + "checker = testing.dummy_checker(),\n"
-                + ")\n");
-    assertThat(gitHubEndpoint.describe())
-        .containsExactly("type", "github_api", "url", "https://github.com/google/example");
-
-    skylark.verifyField(
-        "git.github_api(url = 'https://github.com/google/example')",
-        "url", "https://github.com/google/example");
+    skylark.eval(
+        "e",
+        "e = git.github_api(\n"
+            + "url = 'https://github.com/google/example', \n"
+            + "checker = testing.dummy_checker(),\n"
+            + ")\n");
   }
 
   @Test
@@ -226,6 +212,8 @@ public class GitHubEndpointTest {
             + ")\n"
             + "\n";
     Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
+    assertThat(feedback.getDestinationDescription().get("url"))
+        .containsExactly("https://github.com/google/example");
     ValidationException expected =
         assertThrows(
             ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
@@ -240,14 +228,11 @@ public class GitHubEndpointTest {
   }
 
   @Test
-  public void testOriginRef() throws ValidationException {
-    String var =
-        "git.github_api(url = 'https://github.com/google/example').new_origin_ref('12345')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "12345")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+  public void testOriginRef() throws Exception {
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.new_origin_ref('12345')")
+        .addAll(checkFieldStarLark("res", "ref", "'12345'"))
+        .build());
   }
 
   /**
@@ -293,96 +278,73 @@ public class GitHubEndpointTest {
 
   @Test
   public void testCreateStatusExhaustive() throws Exception {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .create_status("
-            + "    sha = 'e597746de9c1704e648ddc3ffa0d2096b146d600', "
-            + "    state = 'success', "
-            + "    context = 'test', "
-            + "    description = 'Observed foo'"
-            + "  )";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("state", "success")
-            .put("target_url", "https://github.com/google/example")
-            .put("description", "Observed foo")
-            .put("context", "test")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.create_status(sha = 'e597746de9c1704e648ddc3ffa0d2096b146d600',"
+            + " state = 'success', context = 'test', description = 'Observed foo')")
+        .addAll(checkFieldStarLark("res", "state", "'success'"))
+        .addAll(checkFieldStarLark("res", "target_url", "'https://github.com/google/example'"))
+        .addAll(checkFieldStarLark("res", "description", "'Observed foo'"))
+        .addAll(checkFieldStarLark("res", "context", "'test'"))
+        .build());
   }
 
   @Test
   public void testGetCombinedStatus() throws Exception {
-    String var = ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_combined_status(ref = 'master')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("state", "failure")
-            .put("total_count", 2)
-            .put("statuses[0].context", "some/context")
-            .put("statuses[0].state", "failure")
-            .put("statuses[1].context", "other/context")
-            .put("statuses[1].state", "success")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_combined_status(ref = 'master')")
+        .addAll(checkFieldStarLark("res", "state", "'failure'"))
+        .addAll(checkFieldStarLark("res", "total_count", "2"))
+        .addAll(checkFieldStarLark("res", "statuses[0].context", "'some/context'"))
+        .addAll(checkFieldStarLark("res", "statuses[0].state", "'failure'"))
+        .addAll(checkFieldStarLark("res", "statuses[1].context", "'other/context'"))
+        .addAll(checkFieldStarLark("res", "statuses[1].state", "'success'"))
+        .build());
   }
 
   @Test
   public void testGetCheckRuns() throws Exception {
-    String var = ""
-        + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_check_runs(sha = 'e597746de9c1704e648ddc3ffa0d2096b146d610')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("total_count", 1)
-            .put("check_runs[0].detail_url", "https://example.com")
-            .put("check_runs[0].status", "completed")
-            .put("check_runs[0].conclusion", "neutral")
-            .put("check_runs[0].name", "mighty_readme")
-            .put("check_runs[0].app.id", 1)
-            .put("check_runs[0].app.slug", "octoapp")
-            .put("check_runs[0].app.name", "Octocat App")
-            .put("check_runs[0].output.title", "Mighty Readme report")
-            .put("check_runs[0].output.summary", "test_summary")
-            .put("check_runs[0].output.text", "test_text")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')")
+        .addAll(checkFieldStarLark("res", "total_count", "1"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].detail_url", "'https://example.com'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].status", "'completed'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].conclusion", "'neutral'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].name", "'mighty_readme'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.id", "1"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.slug", "'octoapp'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.name", "'Octocat App'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.title", "'Mighty Readme report'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.summary", "'test_summary'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.text", "'test_text'"))
+        .build());
   }
 
   @Test
   public void testGetCombinedStatus_notFound() throws Exception {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_combined_status(ref = 'heads/not_found')";
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
         mockGitHubNotFound());
-    skylark.verifyObject(var, Starlark.NONE);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = {}")
+        .add("res['foo'] = ctx.destination.get_combined_status(ref = 'heads/not_found')")
+        .addAll(checkFieldStarLark("res", "get('foo')", "None"))
+        .build());
   }
 
   @Test
   public void testGetPullRequestComment() throws Exception {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_pull_request_comment(comment_id = '12345')";
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/comments/12345"),
         mockResponse(toJson(jsonComment())));
-
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("id", "12345")
-            .put("path", "foo/Bar.java")
-            .put("body", "This needs to be fixed.")
-            .put("diff_hunk", "@@ -36,11 +35,16 @@ foo bar")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_pull_request_comment(comment_id = '12345')")
+        .addAll(checkFieldStarLark("res", "id", "'12345'"))
+        .addAll(checkFieldStarLark("res", "path", "'foo/Bar.java'"))
+        .addAll(checkFieldStarLark("res", "body", "'This needs to be fixed.'"))
+        .addAll(checkFieldStarLark("res", "diff_hunk", "'@@ -36,11 +35,16 @@ foo bar'"))
+        .build());
   }
 
   private static ImmutableMap<String, ? extends Serializable> jsonComment() {
@@ -395,101 +357,88 @@ public class GitHubEndpointTest {
 
   @Test
   public void testGetPullRequestComment_notFound() {
-    String var =
-        "git.github_api(url ='https://github.com/google/example')"
-            + ".get_pull_request_comment(comment_id = '12345')";
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/comments/12345"),
         mockGitHubNotFound());
-    skylark.evalFails(var, "Pull Request Comment not found");
+    ValidationException expected = assertThrows(ValidationException.class, () -> runFeedback(
+        ImmutableList.of("ctx.destination.get_pull_request_comment(comment_id = '12345')")));
+    assertThat(expected).hasMessageThat().contains("Pull Request Comment not found");
   }
 
   @Test
   public void testGetPullRequestComment_invalidId() {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_pull_request_comment(comment_id = 'foo')";
-    skylark.evalFails(var, "Invalid comment id foo");
+    ValidationException expected = assertThrows(ValidationException.class, () -> runFeedback(
+        ImmutableList.of("ctx.destination.get_pull_request_comment(comment_id = 'foo')")));
+    assertThat(expected).hasMessageThat().contains("Invalid comment id foo");
   }
 
   @Test
   public void testGetPullRequestComments() throws Exception {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_pull_request_comments(number = 12345)";
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/12345/comments?per_page=100"),
         mockResponse(toJson(ImmutableList.of(jsonComment(), jsonComment()))));
-
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("id", "12345")
-            .put("path", "foo/Bar.java")
-            .put("body", "This needs to be fixed.")
-            .put("diff_hunk", "@@ -36,11 +35,16 @@ foo bar")
-            .build();
-    skylark.verifyFields(var + "[0]", expectedFieldValues);
-    skylark.verifyFields(var + "[1]", expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_pull_request_comments(number = 12345)")
+        .addAll(checkFieldStarLark("res[0]", "id", "'12345'"))
+        .addAll(checkFieldStarLark("res[0]", "path", "'foo/Bar.java'"))
+        .addAll(checkFieldStarLark("res[0]", "body", "'This needs to be fixed.'"))
+        .addAll(checkFieldStarLark("res[0]", "diff_hunk", "'@@ -36,11 +35,16 @@ foo bar'"))
+        .addAll(checkFieldStarLark("res[1]", "id", "'12345'"))
+        .build());
   }
 
   @Test
   public void testGetPullRequestComments_notFound() {
-    String var =
-        ""
-            + "git.github_api(url = 'https://github.com/google/example')"
-            + "  .get_pull_request_comments(number = 12345)";
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/12345/comments?per_page=100"),
         mockGitHubNotFound());
-    skylark.evalFails(var, "Pull Request Comments not found");
+    ValidationException expected = assertThrows(ValidationException.class, () ->
+        runFeedback(ImmutableList.of("ctx.destination.get_pull_request_comments(number = 12345)")));
+    assertThat(expected).hasMessageThat().contains("Pull Request Comments not found");
   }
 
   @Test
   public void testGetCommit() throws Exception {
-    String var = ""
-        + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_commit(ref = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("sha", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            .put("commit.author.name", "theauthor")
-            .put("commit.author.email", "author@example.com")
-            .put("commit.committer.name", "thecommitter")
-            .put("commit.committer.email", "committer@example.com")
-            .put("commit.message", "This is a message\n\nWith body\n")
-            .put("author.login", "github_author")
-            .put("committer.login", "github_committer")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_commit(ref = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')")
+        .addAll(checkFieldStarLark("res", "sha", "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'"))
+        .addAll(checkFieldStarLark("res", "commit.author.name", "'theauthor'"))
+        .addAll(checkFieldStarLark("res", "commit.author.email", "'author@example.com'"))
+        .addAll(checkFieldStarLark("res", "commit.committer.name", "'thecommitter'"))
+        .addAll(checkFieldStarLark("res", "commit.committer.email", "'committer@example.com'"))
+        .addAll(checkFieldStarLark("res", "commit.message",
+            "'This is a message\\n\\nWith body\\n'"))
+        .addAll(checkFieldStarLark("res", "author.login", "'github_author'"))
+        .addAll(checkFieldStarLark("res", "committer.login", "'github_committer'"))
+        .build());
   }
 
   @Test
   public void testGetCommitNotFound() throws Exception {
-    String var = ""
-        + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_commit(ref = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')";
     gitUtil.mockApi(eq("GET"), eq("https://api.github.com/repos/google/example/commits/"
             + "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
         mockGitHubNotFound());
-
-    skylark.verifyObject(var, Starlark.NONE);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = {}")
+        .add("res['foo'] = ctx.destination.get_commit("
+            + "ref = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb')")
+        .addAll(checkFieldStarLark("res", "get('foo')", "None"))
+        .build());
   }
 
   @Test
   public void testGetReferenceNotFound() throws Exception {
-    String var = ""
-        + "git.github_api(url = 'https://github.com/google/example')"
-        + "  .get_reference(ref = 'refs/heads/not_found')";
     gitUtil.mockApi(eq("GET"),
         eq("https://api.github.com/repos/google/example/git/refs/heads/not_found"),
         mockGitHubNotFound());
-
-    skylark.verifyObject(var, Starlark.NONE);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = {}")
+        .add("res['foo'] = ctx.destination.get_reference(ref = 'refs/heads/not_found')")
+        .addAll(checkFieldStarLark("res", "get('foo')", "None"))
+        .build());
   }
 
   /**
@@ -498,32 +447,26 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testFeedbackUpdateReference() throws Exception{
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', "
-            + "'refs/heads/test', True)";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "refs/heads/test")
-            .put("url", "https://github.com/google/example/git/refs/heads/test")
-            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600',"
+            + "'refs/heads/test', True)")
+        .addAll(checkFieldStarLark("res", "ref", "'refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "url",
+            "'https://github.com/google/example/git/refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "sha", "'e597746de9c1704e648ddc3ffa0d2096b146d600'"))
+        .build());
   }
 
   @Test
   public void testFeedbackUpdateReferenceShortRef() throws Exception{
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600', "
-            + "'test', True)";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "refs/heads/test")
-            .put("url", "https://github.com/google/example/git/refs/heads/test")
-            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.update_reference('e597746de9c1704e648ddc3ffa0d2096b146d600',"
+            + " 'test', True)")
+        .addAll(checkFieldStarLark("res", "ref", "'refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "url",
+            "'https://github.com/google/example/git/refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "sha", "'e597746de9c1704e648ddc3ffa0d2096b146d600'"))
+        .build());
   }
 
   @Test
@@ -534,10 +477,7 @@ public class GitHubEndpointTest {
           called.set(true);
           return true;
         }));
-
-    skylark.eval("not_used", "not_used = git.github_api(url = 'https://github.com/google/example')"
-        + ".delete_reference('refs/heads/test')");
-
+    runFeedback(ImmutableList.of("ctx.destination.delete_reference('refs/heads/test')"));
     assertThat(called.get()).isTrue();
   }
 
@@ -549,11 +489,9 @@ public class GitHubEndpointTest {
           called.set(true);
           return true;
         }));
-
-    skylark.evalFails("git.github_api(url = 'https://github.com/google/example')"
-        + ".delete_reference('refs/heads/master')",
-        "Copybara doesn't allow to delete master branch for security reasons");
-
+    ValidationException expected = assertThrows(ValidationException.class, () ->
+        runFeedback(ImmutableList.of("ctx.destination.delete_reference('refs/heads/master')")));
+    assertThat(expected).hasMessageThat().contains("Copybara doesn't allow to delete master");
     assertThat(called.get()).isFalse();
   }
 
@@ -563,16 +501,13 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testGetReference() throws Exception{
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".get_reference('refs/heads/test')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "refs/heads/test")
-            .put("url", "https://github.com/google/example/git/refs/heads/test")
-            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_reference('refs/heads/test')")
+        .addAll(checkFieldStarLark("res", "ref", "'refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "url",
+            "'https://github.com/google/example/git/refs/heads/test'"))
+        .addAll(checkFieldStarLark("res", "sha", "'e597746de9c1704e648ddc3ffa0d2096b146d600'"))
+        .build());
   }
 
   /**
@@ -581,16 +516,13 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testGetReferences() throws Exception{
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".get_references()";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "refs/heads/test")
-            .put("url", "https://github.com/google/example/git/refs/heads/test")
-            .put("sha", "e597746de9c1704e648ddc3ffa0d2096b146d600")
-            .build();
-    skylark.verifyFields(var + "[0]", expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_references()")
+        .addAll(checkFieldStarLark("res[0]", "ref", "'refs/heads/test'"))
+        .addAll(checkFieldStarLark("res[0]", "url",
+            "'https://github.com/google/example/git/refs/heads/test'"))
+        .addAll(checkFieldStarLark("res[0]", "sha", "'e597746de9c1704e648ddc3ffa0d2096b146d600'"))
+        .build());
   }
 
   /**
@@ -598,9 +530,6 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testPullRequests() throws Exception {
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".get_pull_requests(state='OPEN')";
     gitUtil.mockApi(anyString(), contains(
         "repos/google/example/pulls?per_page=100&state=open&sort=created&direction=asc"),
         mockResponse(toJson(
@@ -613,21 +542,18 @@ public class GitHubEndpointTest {
                         "sha", Strings.repeat("a", 40),
                         "ref", "somebranch"
                     ))))));
-
-    skylark.verifyFields(var + "[0]", ImmutableMap.<String, Object>builder()
-        .put("number", 12345)
-        .put("state", "OPEN")
-        .put("head.label", "someuser:somebranch")
-        .put("head.sha", Strings.repeat("a", 40))
-        .put("head.ref", "somebranch")
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_pull_requests(state='OPEN')")
+        .addAll(checkFieldStarLark("res[0]", "number", "12345"))
+        .addAll(checkFieldStarLark("res[0]", "state", "'OPEN'"))
+        .addAll(checkFieldStarLark("res[0]", "head.label", "'someuser:somebranch'"))
+        .addAll(checkFieldStarLark("res[0]", "head.sha", "'" + Strings.repeat("a", 40) + "'"))
+        .addAll(checkFieldStarLark("res[0]", "head.ref", "'somebranch'"))
         .build());
   }
 
   @Test
   public void testUpdatePullRequest() throws Exception {
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".update_pull_request(12345, state='CLOSED')";
     gitUtil.mockApi(eq("POST"), contains("repos/google/example/pulls/12345"),
         mockResponseAndValidateRequest(toJson(
             ImmutableMap.of(
@@ -638,25 +564,23 @@ public class GitHubEndpointTest {
                     "sha", Strings.repeat("a", 40),
                     "ref", "somebranch"
                 ))), s -> s.contains("{\"state\":\"closed\"}")));
-
-    skylark.verifyFields(var, ImmutableMap.<String, Object>builder()
-        .put("number", 12345)
-        .put("state", "CLOSED")
-        .put("head.label", "someuser:somebranch")
-        .put("head.sha", Strings.repeat("a", 40))
-        .put("head.ref", "somebranch")
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.update_pull_request(12345, state='CLOSED')")
+            .addAll(checkFieldStarLark("res", "number", "12345"))
+            .addAll(checkFieldStarLark("res", "state", "'CLOSED'"))
+            .addAll(checkFieldStarLark("res", "head.label", "'someuser:somebranch'"))
+            .addAll(checkFieldStarLark("res", "head.sha", "'" + Strings.repeat("a", 40) + "'"))
+            .addAll(checkFieldStarLark("res", "head.ref", "'somebranch'"))
         .build());
   }
 
   @Test
   public void testGetAuthenticatedUser() throws Exception {
-    String var =
-        "git.github_api(url = 'https://github.com/google/example')"
-            + ".get_authenticated_user()";
     gitUtil.mockApi(eq("GET"), contains("user"),
         mockResponse(toJson(ImmutableMap.of("login", "tester"))));
-    skylark.verifyFields(var, ImmutableMap.<String, Object>builder()
-        .put("login", "tester")
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_authenticated_user()")
+        .addAll(checkFieldStarLark("res", "login", "'tester'"))
         .build());
   }
 
@@ -665,13 +589,27 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testPullRequests_badPrefix() throws Exception {
-    skylark.evalFails("git.github_api(url = 'https://github.com/google/example')"
-        + ".get_pull_requests(head_prefix = 'bad@*')",
-        "'bad@\\*' is not a valid head_prefix");
+    ValidationException expected = assertThrows(ValidationException.class, () ->
+        runFeedback(ImmutableList.of("ctx.destination.get_pull_requests(head_prefix = 'bad@*')")));
+    assertThat(expected).hasMessageThat().contains("'bad@*' is not a valid head_prefix");
   }
 
   private String toJson(Object obj) throws IOException {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
+  }
+
+  private static ImmutableList<String> checkFieldStarLark(String var, String field, String value) {
+    return ImmutableList.of(
+        String.format("if %s.%s != %s:", var, field, value),
+        String.format("  fail('unexpected value for %1$s.%2$s (expected %3$s): ' + %1$s.%2$s)",
+            var, field, value));
+  }
+
+  private void runFeedback(ImmutableList<String> funBody) throws Exception {
+    Feedback test = feedback("def test_action(ctx):\n"
+        + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
+        + "\n  return ctx.success()\n");
+    test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 
   private Feedback feedback(String actionFunction) throws IOException, ValidationException {

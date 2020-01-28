@@ -43,12 +43,12 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,8 +70,7 @@ public class GerritEndpointTest {
     workdir = Jimfs.newFileSystem().getPath("/");
     TestingConsole console = new TestingConsole();
     OptionsBuilder options = new OptionsBuilder();
-    options.setConsole(console)
-        .setOutputRootToTmpDir();
+    options.setConsole(console).setOutputRootToTmpDir();
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     options.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
@@ -85,6 +84,7 @@ public class GerritEndpointTest {
     gitUtil.mockRemoteGitRepos(new Validator(), repo);
 
     url = BASE_URL + "/foo/bar";
+    options.general.starlarkMode = "STRICT";
     skylark = new SkylarkTestExecutor(options);
   }
 
@@ -94,33 +94,20 @@ public class GerritEndpointTest {
 
   @Test
   public void testParsing() throws Exception {
-    GerritEndpoint gerritEndpoint =
-        skylark.eval(
-            "e",
-            "e = git.gerrit_api(url = 'https://test.googlesource.com/example')");
-    assertThat(gerritEndpoint.describe())
-        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
-
-    skylark.verifyField(
-        "git.gerrit_api(url = 'https://test.googlesource.com/example')",
-        "url", "https://test.googlesource.com/example");
+    skylark.eval(
+        "e",
+        "e = git.gerrit_api(url = 'https://test.googlesource.com/example')");
   }
 
   @Test
   public void testParsingWithChecker() throws Exception {
-    GerritEndpoint gerritEndpoint =
-        skylark.eval(
-            "e",
-            "e = git.gerrit_api(\n"
-                + "url = 'https://test.googlesource.com/example', \n"
-                + "checker = testing.dummy_checker(),\n"
-                + ")\n");
-    assertThat(gerritEndpoint.describe())
-        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+    skylark.eval(
+        "e",
+        "e = git.gerrit_api(\n"
+            + "url = 'https://test.googlesource.com/example', \n"
+            + "checker = testing.dummy_checker(),\n"
+            + ")\n");
 
-    skylark.verifyField(
-        "git.gerrit_api(url = 'https://test.googlesource.com/example')",
-        "url", "https://test.googlesource.com/example");
   }
 
   @Test
@@ -153,17 +140,14 @@ public class GerritEndpointTest {
   @Test
   public void testParsingEmptyUrl() {
     skylark.evalFails("git.gerrit_api(url = '')", "Invalid empty field 'url'");
-    }
+  }
 
   @Test
-  public void testOriginRef() throws ValidationException {
-    String var =
-        "git.gerrit_api(url = 'https://test.googlesource.com/example').new_origin_ref('12345')";
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("ref", "12345")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+  public void testOriginRef() throws Exception {
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.new_origin_ref('12345')")
+        .addAll(checkFieldStarLark("res", "ref", "'12345'"))
+        .build());
   }
 
   /**
@@ -321,72 +305,83 @@ public class GerritEndpointTest {
                 + "      }\n"
                 + "  ]\n"
                 + "}\n"));
-    String var =
-        String.format(
-            "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
-
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.<String, Object>builder()
-            .put("id", "copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd")
-            .put("project", "copybara-project")
-            .put("branch", "master")
-            .put("topic", "test_topic")
-            .put("change_id", "Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd")
-            .put("subject", "JUST A TEST")
-            .put("status", "NEW")
-            .put("created", "2017-12-01 17:33:30.000000000")
-            .put("updated", "2017-12-02 17:33:30.000000000")
-            .put("submitted", "2017-12-03 17:33:30.000000000")
-            .put("submittable", true)
-            .put("current_revision", "foo")
-            .put("owner.account_id", "12345")
-            .put("owner.name", "Glorious Copybara")
-            .put("owner.email", "no-reply@glorious-copybara.com")
-            .put("owner.secondary_emails[0]", "foo@bar.com")
-            .put("owner.username", "glorious.copybara")
-            .put("labels['Code-Review'].approved", Starlark.NONE)
-            .put("labels['Code-Review'].recommended", Starlark.NONE)
-            .put("labels['Code-Review'].disliked", Starlark.NONE)
-            .put("labels['Code-Review'].blocking", false)
-            .put("labels['Code-Review'].value", 0)
-            .put("labels['Code-Review'].default_value", 0)
-            .put("labels['Code-Review'].values['-2']", "Do not submit")
-            .put("labels['Code-Review'].values['-1']", "I would prefer that you didn't submit this")
-            .put("labels['Code-Review'].values[' 0']", "No score")
-            .put(
-                "labels['Code-Review'].values['+1']",
-                "Looks good to me, but someone else must approve")
-            .put("labels['Code-Review'].values['+2']", "Looks good to me, approved")
-            .put("labels['Code-Review'].all[0].value", 2)
-            .put("labels['Code-Review'].all[0].date", "2017-01-01 12:00:00.000000000")
-            .put("labels['Code-Review'].all[0].account_id", "123456")
-            .put("labels['Code-Review'].all[1].value", 0)
-            .put("labels['Code-Review'].all[1].account_id", "123456")
-            .put("labels['Code-Review'].all[2].value", 0)
-            .put("labels['Code-Review'].all[2].account_id", "123456")
-            .put("messages[0].id", "e6aa8a323fd948cc9986dd4d8b4c253487bab253")
-            .put("messages[0].tag", "autogenerated:gerrit:newPatchSet")
-            .put("messages[0].author.account_id", "12345")
-            .put("messages[0].author.name", "Glorious Copybara")
-            .put("messages[0].author.email", "no-reply@glorious-copybara.com")
-            .put("messages[0].date", "2017-12-01 00:00:00.000000000")
-            .put("messages[0].message", "Uploaded patch set 1.")
-            .put("messages[0].revision_number", 1)
-            .put("revisions['foo'].kind", "REWORK")
-            .put("revisions['foo'].patchset_number", 1)
-            .put("revisions['foo'].created", "2017-12-07 19:11:59.000000000")
-            .put("revisions['foo'].uploader.account_id", "12345")
-            .put("revisions['foo'].ref", "refs/changes/11/11111/1")
-            .put("revisions['foo'].commit.author.name", "Glorious Copybara")
-            .put("revisions['foo'].commit.author.email", "no-reply@glorious-copybara.com")
-            .put("revisions['foo'].commit.author.date", "2017-12-01 00:00:00.000000000")
-            .put("revisions['foo'].commit.committer.name", "Glorious Copybara")
-            .put("revisions['foo'].commit.committer.email", "no-reply@glorious-copybara.com")
-            .put("revisions['foo'].commit.committer.date", "2017-12-01 00:00:00.000000000")
-            .put("revisions['foo'].commit.subject", "JUST A TEST")
-            .put("revisions['foo'].commit.message", "JUST A TEST\n\nSecond line of description.\n")
-            .build();
-    skylark.verifyFields(var, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_change('12345', include_results = ['LABELS'])")
+        .addAll(checkFieldStarLark("res", "id",
+            "'copybara-project~Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd'"))
+        .addAll(checkFieldStarLark("res", "project", "'copybara-project'"))
+        .addAll(checkFieldStarLark("res", "branch", "'master'"))
+        .addAll(checkFieldStarLark("res", "topic", "'test_topic'"))
+        .addAll(checkFieldStarLark("res", "change_id",
+            "'Ie39b6e2c0c6e5ef8839013360bba38238c6ecfcd'"))
+        .addAll(checkFieldStarLark("res", "subject", "'JUST A TEST'"))
+        .addAll(checkFieldStarLark("res", "status", "'NEW'"))
+        .addAll(checkFieldStarLark("res", "created", "'2017-12-01 17:33:30.000000000'"))
+        .addAll(checkFieldStarLark("res", "updated", "'2017-12-02 17:33:30.000000000'"))
+        .addAll(checkFieldStarLark("res", "submitted", "'2017-12-03 17:33:30.000000000'"))
+        .addAll(checkFieldStarLark("res", "submittable", "True"))
+        .addAll(checkFieldStarLark("res", "current_revision", "'foo'"))
+        .addAll(checkFieldStarLark("res", "owner.account_id", "'12345'"))
+        .addAll(checkFieldStarLark("res", "owner.name", "'Glorious Copybara'"))
+        .addAll(checkFieldStarLark("res", "owner.email", "'no-reply@glorious-copybara.com'"))
+        .addAll(checkFieldStarLark("res", "owner.secondary_emails[0]", "'foo@bar.com'"))
+        .addAll(checkFieldStarLark("res", "owner.username", "'glorious.copybara'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].approved", "None"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].recommended", "None"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].disliked", "None"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].blocking", "False"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].value", "0"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].default_value", "0"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].values['-2']", "'Do not submit'"))
+        .addAll(checkFieldStarLark("res",
+            "labels['Code-Review'].values['-1']", "'I would prefer that you didn\\'t submit this'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].values[' 0']", "'No score'"))
+        .addAll(checkFieldStarLark("res",
+            "labels['Code-Review'].values['+1']",
+            "'Looks good to me, but someone else must approve'"))
+        .addAll(checkFieldStarLark("res",
+            "labels['Code-Review'].values['+2']", "'Looks good to me, approved'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[0].value", "2"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[0].date",
+            "'2017-01-01 12:00:00.000000000'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[0].account_id", "'123456'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[1].value", "0"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[1].account_id", "'123456'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[2].value", "0"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].all[2].account_id", "'123456'"))
+        .addAll(checkFieldStarLark("res", "messages[0].id",
+            "'e6aa8a323fd948cc9986dd4d8b4c253487bab253'"))
+        .addAll(checkFieldStarLark("res", "messages[0].tag", "'autogenerated:gerrit:newPatchSet'"))
+        .addAll(checkFieldStarLark("res", "messages[0].author.account_id", "'12345'"))
+        .addAll(checkFieldStarLark("res", "messages[0].author.name", "'Glorious Copybara'"))
+        .addAll(checkFieldStarLark("res", "messages[0].author.email",
+            "'no-reply@glorious-copybara.com'"))
+        .addAll(checkFieldStarLark("res", "messages[0].date", "'2017-12-01 00:00:00.000000000'"))
+        .addAll(checkFieldStarLark("res", "messages[0].message", "'Uploaded patch set 1.'"))
+        .addAll(checkFieldStarLark("res", "messages[0].revision_number", "1"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].kind", "'REWORK'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].patchset_number", "1"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].created",
+            "'2017-12-07 19:11:59.000000000'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].uploader.account_id", "'12345'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].ref", "'refs/changes/11/11111/1'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.author.name",
+            "'Glorious Copybara'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.author.email",
+            "'no-reply@glorious-copybara.com'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.author.date",
+            "'2017-12-01 00:00:00.000000000'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.committer.name",
+            "'Glorious Copybara'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.committer.email",
+            "'no-reply@glorious-copybara.com'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.committer.date",
+            "'2017-12-01 00:00:00.000000000'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.subject", "'JUST A TEST'"))
+        .addAll(checkFieldStarLark("res", "revisions['foo'].commit.message",
+            "'JUST A TEST\\n\\nSecond line of description.\\n'"))
+        .addAll(checkFieldStarLark("res", "labels['Code-Review'].value", "0"))
+        .build());
   }
 
   @Test
@@ -395,73 +390,56 @@ public class GerritEndpointTest {
         eq("GET"),
         startsWith(BASE_URL + "/changes/"),
         mockResponse("{" + "  id : '12345'," + "  _more_changes : true" + "}"));
-
-    String config =
-        String.format(
-            "git.gerrit_api(url = '%s').get_change('12345', include_results = ['LABELS'])", url);
-    skylark.evalFails(config, "Pagination is not supported yet.");
+    ValidationException expected = assertThrows(ValidationException.class, () -> runFeedback(
+        ImmutableList.of("ctx.destination.get_change('12345', include_results = ['LABELS'])")));
+    assertThat(expected).hasMessageThat().contains("Pagination is not supported yet.");
   }
 
   @Test
   public void testPostLabel() throws Exception {
     mockForTest();
-    String config =
-        String.format(
-            "git.gerrit_api(url = '%s')."
-                + "post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))",
-            url);
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
-    skylark.verifyFields(config, expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")
+        .addAll(checkFieldStarLark("res", "labels", "{'Code-Review': 1}"))
+        .build());
   }
 
   @Test
   public void testPostLabel_errorCreatesVe() throws Exception {
     mockForTest();
-    String config =
-        String.format(
-            "git.gerrit_api(url = '%s')."
-                + "post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))",
-            url);
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.of("labels", ImmutableMap.of("Code-Review", 1));
     gitUtil.mockApi(
         eq("POST"),
         matches(BASE_URL + "/changes/.*/revisions/.*/review"),
         mockResponseWithStatus(
             "\n\nApplying label \"Verified\": -1 is restricted.", 403, x -> true));
-    skylark.evalFails(config,
-        " Gerrit returned a permission error while attempting to post a review:");
+    ValidationException expected = assertThrows(ValidationException.class, () ->
+        runFeedback(ImmutableList.of("ctx.destination.post_review("
+            + "'12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")));
+    assertThat(expected).hasMessageThat().contains("Gerrit returned a permission error");
   }
-
 
   @Test
   public void testListChangesByCommit() throws Exception {
     mockForTest();
-    String config =
-        String.format(
-            "git.gerrit_api(url = '%s')."
-                + "list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425')",
-            url);
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.of(
-            "id", "copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61");
-    skylark.verifyFields(config + "[0]", expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425')")
+        .addAll(checkFieldStarLark("res[0]", "id",
+            "'copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61'"))
+        .build());
   }
 
   @Test
   public void testListChangesByCommit_withIncludeResults() throws Exception {
     mockForTest();
-    String config =
-        String.format(
-            "git.gerrit_api(url = '%s')."
-                + "list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425',"
-                + " include_results = ['LABELS', 'MESSAGES'])",
-            url);
-    ImmutableMap<String, Object> expectedFieldValues =
-        ImmutableMap.of(
-            "id", "copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58");
-    skylark.verifyFields(config + "[0]", expectedFieldValues);
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425',"
+            + " include_results = ['LABELS', 'MESSAGES'])")
+        .addAll(checkFieldStarLark("res[0]", "id",
+            "'copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58'"))
+        .build());
   }
 
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {
@@ -519,6 +497,20 @@ public class GerritEndpointTest {
         eq("POST"),
         matches(BASE_URL + "/changes/.*/revisions/.*/review"),
         mockResponse(postLabel()));
+  }
+
+  private static ImmutableList<String> checkFieldStarLark(String var, String field, String value) {
+    return ImmutableList.of(
+        String.format("if %s.%s != %s:", var, field, value),
+        String.format("  fail('unexpected value for %1$s.%3$s: ' + str(%1$s.%2$s))",
+            var, field, field.replace("'", "\\'")));
+  }
+
+  private void runFeedback(ImmutableList<String> funBody) throws Exception {
+    Feedback test = feedback("def test_action(ctx):\n"
+        + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
+        + "\n  return ctx.success()\n");
+    test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 
   private String postLabel() {

@@ -39,6 +39,7 @@
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpoint.new_destination_ref)
     - [endpoint.new_origin_ref](#endpoint.new_origin_ref)
+  - [endpoint_provider](#endpoint_provider)
   - [feedback.action_result](#feedback.action_result)
   - [feedback.context](#feedback.context)
     - [feedback.context.error](#feedback.context.error)
@@ -133,10 +134,12 @@
     - [ctx.add_or_replace_label](#ctx.add_or_replace_label)
     - [ctx.add_text_before_labels](#ctx.add_text_before_labels)
     - [ctx.create_symlink](#ctx.create_symlink)
+    - [ctx.destination_api](#ctx.destination_api)
     - [ctx.find_all_labels](#ctx.find_all_labels)
     - [ctx.find_label](#ctx.find_label)
     - [ctx.new_path](#ctx.new_path)
     - [ctx.now_as_string](#ctx.now_as_string)
+    - [ctx.origin_api](#ctx.origin_api)
     - [ctx.read_path](#ctx.read_path)
     - [ctx.remove_label](#ctx.remove_label)
     - [ctx.replace_label](#ctx.replace_label)
@@ -583,7 +586,7 @@ Parameter | Description
 --------- | -----------
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
-destination | `endpoint`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
+destination | `endpoint_provider`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
 description | `string`<br><p>A description of what this workflow achieves</p>
 
@@ -1118,6 +1121,13 @@ url | Url, if any, of the destination change
 
 An origin or destination API in a feedback migration.
 
+
+#### Fields:
+
+Name | Description
+---- | -----------
+url | Return the URL of this endpoint.
+
 <a id="endpoint.new_destination_ref" aria-hidden="true"></a>
 ### endpoint.new_destination_ref
 
@@ -1147,6 +1157,19 @@ Creates a new origin reference out of this endpoint.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The reference.</p>
+
+
+
+## endpoint_provider
+
+An handle for an origin or destination API in a feedback migration.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+url | Return the URL of this endpoint, if any.
 
 
 
@@ -1645,7 +1668,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-`gerrit_api_obj git.gerrit_api(url, checker=None)`
+`endpoint_provider of gerrit_api_obj git.gerrit_api(url, checker=None)`
 
 
 #### Parameters:
@@ -1773,7 +1796,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-`github_api_obj git.github_api(url, checker=None)`
+`endpoint_provider of github_api_obj git.github_api(url, checker=None)`
 
 
 #### Parameters:
@@ -3350,6 +3373,13 @@ Parameter | Description
 link | `Path`<br><p>The link path</p>
 target | `Path`<br><p>The target path</p>
 
+<a id="ctx.destination_api" aria-hidden="true"></a>
+### ctx.destination_api
+
+Returns an api handle for the destination repository. Methods available depend on the destination type. Use with extreme caution, as external calls can make workflow non-deterministic and possibly irreversible. Can have side effects in dry-runmode.
+
+`endpoint ctx.destination_api()`
+
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels
 
@@ -3406,6 +3436,13 @@ Parameter | Description
 --------- | -----------
 format | `string`<br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
 zone | `object`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+
+<a id="ctx.origin_api" aria-hidden="true"></a>
+### ctx.origin_api
+
+Returns an api handle for the origin repository. Methods available depend on the origin type. Use with extreme caution, as external calls can make workflow non-deterministic and possibly irreversible. Can have side effects in dry-runmode.
+
+`endpoint ctx.origin_api()`
 
 <a id="ctx.read_path" aria-hidden="true"></a>
 ### ctx.read_path

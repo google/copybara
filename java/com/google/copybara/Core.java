@@ -1497,7 +1497,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true),
         @Param(
             name = "destination",
-            type = Endpoint.class,
+            type = EndpointProvider.class,
             doc =
                 "Where to write change metadata to. This is usually a code review system like "
                     + "Gerrit or GitHub PR.",
@@ -1530,7 +1530,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   public NoneType feedback(
       String workflowName,
       Trigger trigger,
-      Endpoint destination,
+      EndpointProvider<?> destination,
       com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
       Object description,
       StarlarkThread thread)
@@ -1542,7 +1542,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             convertFromNoneable(description, null),
             mainConfigFile,
             trigger,
-            destination,
+            destination.getEndpoint(),
             actions,
             generalOptions);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);

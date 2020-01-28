@@ -259,7 +259,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       console.progress("Getting last revision: "
           + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
       O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
-          () ->origin.resolve(sourceRef));
+          () -> origin.resolve(sourceRef));
 
       logger.log(Level.INFO, String.format(
               "Running Copybara for workflow '%s' and ref '%s': %s",

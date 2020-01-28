@@ -18,6 +18,7 @@ package com.google.copybara.testing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.copybara.EndpointProvider;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
@@ -50,8 +51,8 @@ public class TestingModule implements StarlarkValue {
   }
 
   @SkylarkCallable(name = "dummy_endpoint", doc = "A dummy feedback endpoint")
-  public DummyEndpoint dummyEndpoint() {
-    return testingOptions.feedbackTrigger;
+  public EndpointProvider<DummyEndpoint> dummyEndpoint() {
+    return EndpointProvider.wrap(testingOptions.feedbackTrigger);
   }
 
   @SkylarkCallable(name = "dummy_trigger", doc = "A dummy feedback trigger")

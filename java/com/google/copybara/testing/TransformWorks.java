@@ -18,6 +18,8 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
+import com.google.copybara.Endpoint;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
@@ -48,8 +50,24 @@ public class TransformWorks {
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
         new DummyRevision("1234567890"),
-        /*ignoreNoop=*/ false);
+        /*ignoreNoop=*/ false, c -> new DummyEndpoint(), c -> new DummyEndpoint());
   }
+
+  /**
+   * Creates an instance with reasonable defaults for testing.
+   */
+  public static TransformWork of(Path checkoutDir, String msg, Console console,
+      LazyResourceLoader<Endpoint> originApi,  LazyResourceLoader<Endpoint> destinationApi) {
+    return new TransformWork(
+        checkoutDir,
+        new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
+        Changes.EMPTY,
+        console,
+        new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
+        new DummyRevision("1234567890"),
+        /*ignoreNoop=*/ false, originApi, destinationApi);
+  }
+
 
   public static Change<DummyRevision> toChange(DummyRevision dummyRevision, Author author) {
     return new Change<>(

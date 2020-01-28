@@ -32,6 +32,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.testing.DummyEndpoint;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -84,7 +85,8 @@ public class RevisionMigratorTest {
     return new TransformWork(checkoutDir, new Metadata(msg, new Author("foo", "foo@foo.com"),
         ImmutableSetMultimap.of()),
         Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
-        new DummyRevision("1234567890"), false);
+        new DummyRevision("1234567890"), false, c -> origin.getEndpoint(),
+        c -> new DummyEndpoint());
   }
 
   @Test
