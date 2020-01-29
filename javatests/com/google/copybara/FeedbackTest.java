@@ -230,8 +230,7 @@ public class FeedbackTest {
     Feedback feedback = feedback(
         ""
             + "def test_action(ctx):\n"
-            + "    return ctx.success()\n"
-            + "\n",
+            + "    return ctx.success()\n",
         "test_action");
     feedback.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
