@@ -31,6 +31,7 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.TransformWork.ResourceSupplier;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -518,6 +519,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // Lazy loading to avoid running afoul of checks unless the instance is actually used.
       LazyResourceLoader<Endpoint> originApi = c -> reader.getFeedbackEndPoint(c);
       LazyResourceLoader<Endpoint> destinationApi = c-> writer.getFeedbackEndPoint(c);
+      ResourceSupplier<DestinationReader> destinationReader = () ->
+          writer.getDestinationReader(workflow.getConsole(), destinationBaseline, workdir);
 
       TransformWork transformWork =
           new TransformWork(
@@ -529,7 +532,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               resolvedRef,
               /*ignoreNoop=*/ false,
               originApi,
-              destinationApi)
+              destinationApi,
+              destinationReader)
               .withLastRev(lastRev)
               .withCurrentRev(rev);
       try (ProfilerTask ignored = profiler().start("transforms")) {
@@ -565,7 +569,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                       resolvedRef,
                       /*ignoreNoop=*/ false,
                       destinationApi,
-                      originApi));
+                      originApi,
+                      () -> DestinationReader.NOT_IMPLEMENTED));
         }
         String diff;
         try {
@@ -634,7 +639,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   // reduces the chances.
                   /*ignoreNoop=*/true,
                   originApi,
-                  destinationApi)
+                  destinationApi,
+                  destinationReader)
                   // Again, we don't care about this
                   .withLastRev(lastRev)
                   .withCurrentRev(destinationBaseline.getOriginRevision());

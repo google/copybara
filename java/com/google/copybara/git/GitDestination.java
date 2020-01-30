@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.DestinationReader.NOOP_DESTINATION_READER;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
@@ -35,11 +36,13 @@ import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationEffect;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.DestinationStatusVisitor;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
+import com.google.copybara.Origin;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
@@ -709,6 +712,26 @@ public final class GitDestination implements Destination<GitRevision> {
       }
       verifyUserInfoConfigured(repo);
 
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(
+        Console console, Origin.Baseline<?> baseline, Path workdir)
+        throws ValidationException, RepoException {
+      GitRepository repo = getRepository(console);
+      fetchIfNeeded(repo, console);
+      GitRevision rev;
+      if (baseline != null && baseline.getBaseline() != null) {
+        rev = repo.resolveReference(baseline.getBaseline());
+      } else {
+        rev = getLocalBranchRevision(repo);
+      }
+      // In case of --force, the destination might be empty and have no revisions. Do not fail.
+      if (rev == null) {
+        console.info("Destination reader requested, but destination is empty. Using noop reader");
+        return NOOP_DESTINATION_READER;
+      }
+      return new GitDestinationReader(repo, rev, workdir);
     }
   }
 

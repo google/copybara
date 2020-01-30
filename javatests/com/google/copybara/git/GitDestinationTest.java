@@ -41,6 +41,7 @@ import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
@@ -97,7 +98,6 @@ public class GitDestinationTest {
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("GitDestinationTest-repoGitDir");
     workdir = Files.createTempDirectory("workdir");
-
     console = new TestingConsole();
     options = getOptionsBuilder(console);
     git("init", "--bare", repoGitDir.toString());
@@ -1875,4 +1875,21 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("test.txt"), "four".getBytes());
     process(writer, new DummyRevision("4"));
   }
+
+  @Test
+  public void testDestinationReader() throws Exception {
+    fetch = "master";
+    push = "master";
+    Path file = workdir.resolve("test.txt");
+    Files.write(file, "some content".getBytes());
+    Writer<GitRevision> writer = firstCommitWriter();
+    process(writer, new DummyRevision("first_commit"));
+    assertThat(
+        writer.getDestinationReader(
+            console,
+            new Baseline<>(repo().resolveReference("HEAD").getSha1(), null),
+            workdir)
+            .readFile("test.txt")).contains("some content");
+  }
+
 }

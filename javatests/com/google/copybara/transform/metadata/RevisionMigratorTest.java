@@ -26,6 +26,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.Changes;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
@@ -86,7 +87,7 @@ public class RevisionMigratorTest {
         ImmutableSetMultimap.of()),
         Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
         new DummyRevision("1234567890"), false, c -> origin.getEndpoint(),
-        c -> new DummyEndpoint());
+        c -> new DummyEndpoint(), () -> DestinationReader.NOT_IMPLEMENTED);
   }
 
   @Test

@@ -79,6 +79,7 @@ BASE_SRCS = [
     "ConfigItemDescription.java",
     "Destination.java",
     "DestinationEffect.java",
+    "DestinationReader.java",
     "DestinationStatusVisitor.java",
     "Endpoint.java",
     "EndpointProvider.java",

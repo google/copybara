@@ -52,6 +52,7 @@ import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -62,6 +63,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -901,10 +903,23 @@ public class GitRepository {
     return result.build();
   }
 
-  ImmutableList<TreeElement> lsTree(GitRevision reference, String treeish)
+  // TODO(malcon): Create a builder like LogCmd, etc.
+  ImmutableList<TreeElement> lsTree(GitRevision reference, @Nullable String treeish,
+      boolean recursive, boolean fullName)
       throws RepoException {
     ImmutableList.Builder<TreeElement> result = ImmutableList.builder();
-    String stdout = simpleCommand("ls-tree", reference.getSha1(), "--", treeish).getStdout();
+    List<String> args = Lists.newArrayList("ls-tree", reference.getSha1());
+    if (recursive) {
+      args.add("-r");
+    }
+    if (fullName){
+      args.add("--full-name");
+    }
+    if (treeish != null) {
+      args.add("--");
+      args.add(treeish);
+    }
+    String stdout = simpleCommand(args).getStdout();
     for (String line : Splitter.on('\n').split(stdout)) {
       if (line.isEmpty()) {
         continue;
@@ -1227,6 +1242,37 @@ public class GitRepository {
       return false;
     }
     throw throwUnknownGitError(output, params);
+  }
+
+  /**
+   * Resolves a git reference to the SHA-1 reference
+   */
+  public String readFile(String revision, String path) throws RepoException {
+   CommandOutputWithStatus result = gitAllowNonZeroExit(NO_INPUT,
+       ImmutableList.of("--no-pager", "show", String.format("%s:%s", revision, path)),
+       DEFAULT_TIMEOUT);
+    if (!result.getTerminationStatus().success()) {
+      throw new RepoException(String.format("Cannot read file '%s' in '%s'", path, revision));
+    }
+    return result.getStdout();
+  }
+
+  public void checkout(Glob glob, Path destRoot, GitRevision rev) throws  RepoException {
+    ImmutableList<TreeElement> treeElements = lsTree(rev, null, true, true);
+    PathMatcher pathMatcher = glob.relativeTo(destRoot);
+    for (TreeElement file : treeElements) {
+      Path path = destRoot.resolve(file.getPath());
+      if (pathMatcher.matches(path)) {
+        try {
+          Files.write(
+              path, readFile(rev.getSha1(), file.getPath()).getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+          throw new RepoException(String
+              .format("Cannot write '%s' from reference '%s' into '%s'", file.getPath(), rev,
+                  path), e);
+        }
+      }
+    }
   }
 
   GitRevision commitTree(String message, String tree, List<GitRevision> parents)

@@ -27,6 +27,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 import javax.annotation.Nullable;
 
@@ -47,7 +48,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
    * <p>A single instance of this class is used to import either a single change, or a sequence of
    * changes where each change is the following change's parent.
    */
-  interface Writer<R extends Revision> extends ChangeVisitable<R>{
+  interface Writer<R extends Revision> extends ChangeVisitable<R> {
 
     /**
      * Returns the status of the import at the destination.
@@ -90,6 +91,12 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
      */
     default Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       return Endpoint.NOOP_ENDPOINT;
+    }
+
+    default DestinationReader getDestinationReader(
+        Console console, @Nullable Origin.Baseline<?> baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return DestinationReader.NOT_IMPLEMENTED;
     }
   }
 
@@ -174,4 +181,5 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
           .toString();
     }
   }
+
 }

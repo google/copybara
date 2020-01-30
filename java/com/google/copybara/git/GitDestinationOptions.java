@@ -157,4 +157,5 @@ public final class GitDestinationOptions implements Option {
             ? customLocalBranch
             : "copybara/resolvedPush-" + UUID.randomUUID() + (dryRun ? "-dryrun" : "");
   }
+
 }

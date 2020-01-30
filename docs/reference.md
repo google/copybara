@@ -35,6 +35,9 @@
     - [core.verify_match](#core.verify_match)
     - [core.workflow](#core.workflow)
   - [destination_effect](#destination_effect)
+  - [destination_reader](#destination_reader)
+    - [destination_reader.copy_destination_files](#destination_reader.copy_destination_files)
+    - [destination_reader.read_file](#destination_reader.read_file)
   - [destination_ref](#destination_ref)
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpoint.new_destination_ref)
@@ -136,6 +139,7 @@
     - [ctx.add_text_before_labels](#ctx.add_text_before_labels)
     - [ctx.create_symlink](#ctx.create_symlink)
     - [ctx.destination_api](#ctx.destination_api)
+    - [ctx.destination_reader](#ctx.destination_reader)
     - [ctx.find_all_labels](#ctx.find_all_labels)
     - [ctx.find_label](#ctx.find_label)
     - [ctx.new_path](#ctx.new_path)
@@ -1100,6 +1104,79 @@ errors | List of errors that happened during the migration
 origin_refs | List of origin changes that were included in this migration
 summary | Textual summary of what happened. Users of this class should not try to parse this field.
 type | Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR
+
+
+
+## destination_reader
+
+Handle to read from the destination
+
+<a id="destination_reader.copy_destination_files" aria-hidden="true"></a>
+### destination_reader.copy_destination_files
+
+Copy files from the destination into the workdir.
+
+`destination_reader.copy_destination_files(glob)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+glob | `glob`<br><p>Files to copy to the workdir, potentially overwriting files checked out from the origin.</p>
+
+
+#### Example:
+
+
+##### Copy files from the destination's baseline:
+
+This can be added to the transformations of your core.workflow:
+
+```python
+def _copy_destination_file(ctx):
+    content = ctx.destination_reader().copy_destination_files(path = path/to/**')
+
+    transforms = [core.dynamic_transform(_copy_destination_file)]
+
+```
+
+Would copy all files in path/to/ from the destination baseline to the copybara workdir. The files do not have to be covered by origin_files nor destination_files, but will cause errors if they are not covered by destination_files and not moved or deleted.
+
+
+<a id="destination_reader.read_file" aria-hidden="true"></a>
+### destination_reader.read_file
+
+Read a file from the destination.
+
+`string destination_reader.read_file(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `string`<br><p>Path to the file.</p>
+
+
+#### Example:
+
+
+##### Read a file from the destination's baseline:
+
+This can be added to the transformations of your core.workflow:
+
+```python
+def _read_destination_file(ctx):
+    content = ctx.destination_reader().read_file(path = path/to/my_file.txt')
+    ctx.console.info(content)
+
+    transforms = [core.dynamic_transform(_read_destination_file)]
+
+```
+
+Would print out the content of path/to/my_file.txt in the destination. The file does not have to be covered by origin_files nor destination_files.
+
 
 
 
@@ -3395,6 +3472,13 @@ target | `Path`<br><p>The target path</p>
 Returns an api handle for the destination repository. Methods available depend on the destination type. Use with extreme caution, as external calls can make workflow non-deterministic and possibly irreversible. Can have side effects in dry-runmode.
 
 `endpoint ctx.destination_api()`
+
+<a id="ctx.destination_reader" aria-hidden="true"></a>
+### ctx.destination_reader
+
+Returns a handle to read files from the destination, if supported by the destination.
+
+`destination_reader ctx.destination_reader()`
 
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels

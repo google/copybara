@@ -675,7 +675,7 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
     GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
         "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
-    ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/");
+    ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
     assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
@@ -828,6 +828,13 @@ public class GitRepositoryTest {
     CommandOutput commandOutput = repository.simpleCommand("tag", "-n9");
     assertThat(commandOutput.getStdout()).matches(
         ".*" + TEST_TAG_NAME + ".*message_3.*\\n");
+  }
+
+  @Test
+  public void testReadFile() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    singleFileCommit("test", "foo.txt", "Hello");
+    assertThat(repository.readFile("refs/heads/master", "foo.txt")).isEqualTo("Hello");
   }
 
   private void setUpForTagTest(String tagMsg)

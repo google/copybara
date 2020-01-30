@@ -18,6 +18,7 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Change;
 import com.google.copybara.Changes;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Metadata;
@@ -50,7 +51,8 @@ public class TransformWorks {
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
         new DummyRevision("1234567890"),
-        /*ignoreNoop=*/ false, c -> new DummyEndpoint(), c -> new DummyEndpoint());
+        /*ignoreNoop=*/ false, c -> new DummyEndpoint(), c -> new DummyEndpoint(),
+        () -> DestinationReader.NOT_IMPLEMENTED);
   }
 
   /**
@@ -65,7 +67,8 @@ public class TransformWorks {
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
         new DummyRevision("1234567890"),
-        /*ignoreNoop=*/ false, originApi, destinationApi);
+        /*ignoreNoop=*/ false, originApi, destinationApi,
+        () -> DestinationReader.NOT_IMPLEMENTED);
   }
 
 

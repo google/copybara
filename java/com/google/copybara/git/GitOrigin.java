@@ -260,7 +260,7 @@ public class GitOrigin implements Origin<GitRevision> {
         return;
       }
       for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
-        ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.getPath());
+        ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.getPath(), false, false);
         if (elements.size() != 1) {
           throw new RepoException(String
               .format("Cannot find one tree element for submodule %s."

@@ -78,6 +78,8 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
                 new MockLowLevelHttpRequest() {
                   @Override
                   public LowLevelHttpResponse execute() throws IOException {
+                    System.err.println(getContentAsString());
+
                     Predicate<String> validator = requestValidators.get(method + " " + url);
                     if (validator != null) {
                       assertWithMessage("Request content did not match expected values.")
