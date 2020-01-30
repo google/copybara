@@ -299,7 +299,7 @@ public class FeedbackTest {
             + "\n"
             + "def test_action_2(ctx):\n"
             + "    return ctx.success()\n"
-            + "\n", "test_action_1", "test_action_2");
+        , "test_action_1", "test_action_2");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
     assertThat(expected)
