@@ -21,8 +21,8 @@ import static com.google.copybara.git.GerritChange.GERRIT_OWNER_EMAIL_LABEL;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.LowLevelHttpRequest;

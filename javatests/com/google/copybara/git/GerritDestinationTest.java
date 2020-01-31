@@ -23,9 +23,9 @@ import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.matches;
-import static org.mockito.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.matches;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.LowLevelHttpRequest;
