@@ -26,7 +26,7 @@ import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
-/** A repository which a source of truth can be copied to. */
+/** An api handle to read files from the destination, rather than just the origin. */
 @SkylarkModule(
     name = "destination_reader",
     doc = "Handle to read from the destination",
