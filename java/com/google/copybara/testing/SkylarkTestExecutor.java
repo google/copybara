@@ -33,7 +33,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
+import com.google.devtools.build.lib.syntax.Module;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -103,14 +103,15 @@ public class SkylarkTestExecutor {
     return evalWithConfigFilePath(var, config, DEFAULT_FILE);
   }
 
-  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  @SuppressWarnings("TypeParameterUnusedInFormals")
   public <T> T evalWithConfigFilePath(String var, String config, String configPath)
       throws ValidationException {
     try {
-      StarlarkThread thread =
+      Module module =
           skylarkParser.executeSkylark(
               createConfigFile(configPath, config), createModuleSet(), options.general.console());
-      T t = (T) thread.getGlobals().get(var);
+      @SuppressWarnings("unchecked") // the cast below is wildly unsound
+      T t = (T) module.get(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {

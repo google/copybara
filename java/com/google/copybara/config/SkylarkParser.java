@@ -46,7 +46,6 @@ import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkThread.Extension;
 import com.google.devtools.build.lib.syntax.Statement;
-import com.google.devtools.build.lib.syntax.StringLiteral;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -82,33 +81,27 @@ public class SkylarkParser {
       Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier, Console console)
       throws IOException, ValidationException {
     GlobalMigrations globalMigrations;
-    StarlarkThread thread;
+    Module module;
     try {
-      thread = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
-      Module module = thread.getGlobals();
+      module = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
       globalMigrations = GlobalMigrations.getGlobalMigrations(module);
     } catch (InterruptedException e) {
       // This should not happen since we shouldn't have anything interruptable during loading.
       throw new RuntimeException("Internal error", e);
     }
     return new Config(
-        globalMigrations.getMigrations(),
-        content.path(),
-        thread.getGlobals().getTransitiveBindings());
+        globalMigrations.getMigrations(), content.path(), module.getTransitiveBindings());
   }
 
   @VisibleForTesting
-  public StarlarkThread executeSkylark(ConfigFile content, ModuleSet moduleSet, Console console)
+  public Module executeSkylark(ConfigFile content, ModuleSet moduleSet, Console console)
       throws IOException, ValidationException, InterruptedException {
     CapturingConfigFile capturingConfigFile = new CapturingConfigFile(content);
     ConfigFilesSupplier configFilesSupplier = new ConfigFilesSupplier();
 
-    StarlarkThread eval =
-        new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
-
-    ImmutableMap<String, ConfigFile> allLoadedFiles = capturingConfigFile.getAllLoadedFiles();
-    configFilesSupplier.setConfigFiles(allLoadedFiles);
-    return eval;
+    Module module = new Evaluator(moduleSet, content, configFilesSupplier, console).eval(content);
+    configFilesSupplier.setConfigFiles(capturingConfigFile.getAllLoadedFiles());
+    return module;
   }
 
   /**
@@ -184,7 +177,7 @@ public class SkylarkParser {
   private final class Evaluator {
 
     private final LinkedHashSet<String> pending = new LinkedHashSet<>();
-    private final Map<String, StarlarkThread> loaded = new HashMap<>();
+    private final Map<String, Module> loaded = new HashMap<>();
     private final Console console;
     private final ConfigFile mainConfigFile;
     private final EventHandler eventHandler;
@@ -202,13 +195,14 @@ public class SkylarkParser {
       this.environment = createEnvironment(this.moduleSet, configFilesSupplier);
     }
 
-    private StarlarkThread eval(ConfigFile content)
+    private Module eval(ConfigFile content)
         throws IOException, ValidationException, InterruptedException {
       if (pending.contains(content.path())) {
         throw throwCycleError(content.path());
       }
-      if (loaded.containsKey(content.path())) {
-        return loaded.get(content.path());
+      Module module = loaded.get(content.path());
+      if (module != null) {
+        return module;
       }
       pending.add(content.path());
 
@@ -217,18 +211,32 @@ public class SkylarkParser {
       Map<String, Extension> imports = new HashMap<>();
       for (Statement stmt :  file.getStatements()) {
         if (stmt instanceof LoadStatement) {
-          StringLiteral module = ((LoadStatement) stmt).getImport();
+          String moduleName = ((LoadStatement) stmt).getImport().getValue();
+          Module imp = eval(content.resolve(moduleName + BARA_SKY));
           imports.put(
-              module.getValue(),
-              new Extension(eval(content.resolve(module.getValue() + BARA_SKY))));
+              moduleName, new Extension(ImmutableMap.copyOf(imp.getExportedBindings()), ""));
         }
       }
       StarlarkThread.PrintHandler printHandler = StarlarkThread.makeDebugPrintHandler(eventHandler);
       updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
-      StarlarkThread thread = createStarlarkThread(printHandler, environment, imports);
 
+      // Create a Starlark thread making the modules available as predeclared bindings.
+      // For modules that implement OptionsAwareModule, options are set in the object so
+      // that the module can construct objects that require options.
+      StarlarkThread thread =
+          StarlarkThread.builder(Mutability.create("CopybaraModules"))
+              .setSemantics(createSemantics())
+              .setGlobals(Module.createForBuiltins(environment))
+              .setImportedExtensions(imports)
+              .build();
+      thread.setPrintHandler(printHandler);
+      module = thread.getGlobals();
+
+      // validate
       file = handleStarlarkFileValidation(input, file, thread);
-      try {
+
+      // execute
+      try (Mutability mu = module.mutability()) { // finally freeze module
         EvalUtils.exec(file, thread);
       } catch (EvalException ex) {
         eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
@@ -236,9 +244,8 @@ public class SkylarkParser {
       }
 
       pending.remove(content.path());
-      thread.mutability().freeze();
-      loaded.put(content.path(), thread);
-      return thread;
+      loaded.put(content.path(), module);
+      return module;
     }
 
     private StarlarkFile handleStarlarkFileValidation(ParserInput input, StarlarkFile file,
@@ -277,27 +284,6 @@ public class SkylarkParser {
       console.error("Cycle was detected in the configuration: \n" + sb);
       throw new ValidationException("Cycle was detected");
     }
-  }
-
-  /**
-   * Creates a Starlark thread making the {@code modules} available as global variables. {@code env}
-   * specifies the predeclared environment.
-   *
-   * <p>For the modules that implement {@link OptionsAwareModule}, options are set in the object so
-   * that the module can construct objects that require options.
-   */
-  private StarlarkThread createStarlarkThread(
-      StarlarkThread.PrintHandler handler,
-      Map<String, Object> environment,
-      Map<String, Extension> imports) {
-    StarlarkThread thread =
-        StarlarkThread.builder(Mutability.create("CopybaraModules"))
-            .setSemantics(createSemantics())
-            .setGlobals(Module.createForBuiltins(environment))
-            .setImportedExtensions(imports)
-            .build();
-    thread.setPrintHandler(handler);
-    return thread;
   }
 
   private StarlarkSemantics createSemantics() {
