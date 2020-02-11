@@ -233,11 +233,11 @@ public class SkylarkParser {
       module = thread.getGlobals();
 
       // validate
-      file = handleStarlarkFileValidation(input, file, thread);
+      file = handleStarlarkFileValidation(input, file, module, thread.getSemantics());
 
       // execute
       try (Mutability mu = module.mutability()) { // finally freeze module
-        EvalUtils.exec(file, thread);
+        EvalUtils.exec(file, module, thread);
       } catch (EvalException ex) {
         eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
         checkCondition(false, "Error loading config file");
@@ -248,13 +248,14 @@ public class SkylarkParser {
       return module;
     }
 
-    private StarlarkFile handleStarlarkFileValidation(ParserInput input, StarlarkFile file,
-        StarlarkThread thread) throws ValidationException {
+    private StarlarkFile handleStarlarkFileValidation(
+        ParserInput input, StarlarkFile file, Module module, StarlarkSemantics semantics)
+        throws ValidationException {
       if (validation == StarlarkMode.NO_VALIDATION) {
         Event.replayEventsOn(eventHandler, file.errors());
         return file;
       }
-      StarlarkFile validatedFile = EvalUtils.parseAndValidateSkylark(input, thread);
+      StarlarkFile validatedFile = EvalUtils.parseAndValidate(input, module, semantics);
       if (!validatedFile.errors().isEmpty()) {
         if (validation == StarlarkMode.STRICT) {
           file = validatedFile;
