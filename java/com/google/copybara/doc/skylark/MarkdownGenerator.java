@@ -495,7 +495,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
      * Don't wrap this text. Also use '`' to show it as code.
      */
     private String nowrap(String text) {
-      return String.format("<nobr>`%s`</nobr>", text);
+      return String.format("<span style=\"white-space: nowrap;\">`%s`</span>", text);
     }
   }
 

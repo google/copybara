@@ -553,23 +553,23 @@ main_config_path | Location of the config file. This is subject to change
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--config-root`</nobr> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
-<nobr>`--console-file-flush-interval`</nobr> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
-<nobr>`--console-file-path`</nobr> | *string* | If set, write the console output also to the given file path.
-<nobr>`--debug-file-break`</nobr> | *string* | Stop when file matching the glob changes
-<nobr>`--debug-metadata-break`</nobr> | *boolean* | Stop when message and/or author changes
-<nobr>`--debug-transform-break`</nobr> | *string* | Stop when transform description matches
-<nobr>`--disable-reversible-check`</nobr> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
-<nobr>`--dry-run`</nobr> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
-<nobr>`--fetch-timeout`</nobr> | *duration* | Fetch timeout
-<nobr>`--force`</nobr> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
-<nobr>`--noansi`</nobr> | *boolean* | Don't use ANSI output for messages
-<nobr>`--nocleanup`</nobr> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
-<nobr>`--output-limit`</nobr> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
-<nobr>`--output-root`</nobr> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
-<nobr>`--squash`</nobr> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
-<nobr>`--validate-starlark`</nobr> | *string* | Starlark should be validated prior toexecution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT
-<nobr>`-v, --verbose`</nobr> | *boolean* | Verbose output.
+<span style="white-space: nowrap;">`--config-root`</span> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
+<span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
+<span style="white-space: nowrap;">`--console-file-path`</span> | *string* | If set, write the console output also to the given file path.
+<span style="white-space: nowrap;">`--debug-file-break`</span> | *string* | Stop when file matching the glob changes
+<span style="white-space: nowrap;">`--debug-metadata-break`</span> | *boolean* | Stop when message and/or author changes
+<span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
+<span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
+<span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
+<span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout
+<span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
+<span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
+<span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
+<span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
+<span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
+<span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
+<span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior toexecution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT
+<span style="white-space: nowrap;">`-v, --verbose`</span> | *boolean* | Verbose output.
 
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
@@ -1178,26 +1178,26 @@ checkout | `boolean`<br><p>Allows disabling the checkout. The usage of this feat
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--change-request-from-sot-limit`</nobr> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
-<nobr>`--change-request-from-sot-retry`</nobr> | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
-<nobr>`--change_request_parent`</nobr> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
-<nobr>`--check-last-rev-state`</nobr> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
-<nobr>`--default-author`</nobr> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
-<nobr>`--diff-in-origin`</nobr> | *boolean* | When this flag is enabled, copybara will show different changes between last Revision and current revision in origin instead of in destination. NOTE: it Only works for SQUASH and ITERATIVE
-<nobr>`--force-author`</nobr> | *author* | Force the author to this. Note that this only changes the author before the transformations happen, you can still use the transformations to alter it.
-<nobr>`--force-message`</nobr> | *string* | Force the change description to this. Note that this only changes the message before the transformations happen, you can still use the transformations to alter it.
-<nobr>`--ignore-noop`</nobr> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
-<nobr>`--import-noop-changes`</nobr> | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
-<nobr>`--init-history`</nobr> | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
-<nobr>`--iterative-limit-changes`</nobr> | *int* | Import just a number of changes instead of all the pending ones
-<nobr>`--last-rev`</nobr> | *string* | Last revision that was migrated to the destination
-<nobr>`--nosmart-prune`</nobr> | *boolean* | Disable smart prunning
-<nobr>`--notransformation-join`</nobr> | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
-<nobr>`--read-config-from-change`</nobr> | *boolean* | For each imported origin change, load the workflow's origin_files, destination_files and transformations from the config version of that change. The rest of the fields (more importantly, origin and destination) cannot change and the version from the first config will be used.
-<nobr>`--squash-skip-history`</nobr> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
-<nobr>`--threads`</nobr> | *int* | Number of threads to use when running transformations that change lot of files
-<nobr>`--threads-min-size`</nobr> | *int* | Minimum size of the lists to process to run them in parallel
-<nobr>`--workflow-identity-user`</nobr> | *string* | Use a custom string as a user for computing change identity
+<span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
+<span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
+<span style="white-space: nowrap;">`--change_request_parent`</span> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
+<span style="white-space: nowrap;">`--check-last-rev-state`</span> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
+<span style="white-space: nowrap;">`--default-author`</span> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
+<span style="white-space: nowrap;">`--diff-in-origin`</span> | *boolean* | When this flag is enabled, copybara will show different changes between last Revision and current revision in origin instead of in destination. NOTE: it Only works for SQUASH and ITERATIVE
+<span style="white-space: nowrap;">`--force-author`</span> | *author* | Force the author to this. Note that this only changes the author before the transformations happen, you can still use the transformations to alter it.
+<span style="white-space: nowrap;">`--force-message`</span> | *string* | Force the change description to this. Note that this only changes the message before the transformations happen, you can still use the transformations to alter it.
+<span style="white-space: nowrap;">`--ignore-noop`</span> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
+<span style="white-space: nowrap;">`--import-noop-changes`</span> | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+<span style="white-space: nowrap;">`--init-history`</span> | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
+<span style="white-space: nowrap;">`--iterative-limit-changes`</span> | *int* | Import just a number of changes instead of all the pending ones
+<span style="white-space: nowrap;">`--last-rev`</span> | *string* | Last revision that was migrated to the destination
+<span style="white-space: nowrap;">`--nosmart-prune`</span> | *boolean* | Disable smart prunning
+<span style="white-space: nowrap;">`--notransformation-join`</span> | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
+<span style="white-space: nowrap;">`--read-config-from-change`</span> | *boolean* | For each imported origin change, load the workflow's origin_files, destination_files and transformations from the config version of that change. The rest of the fields (more importantly, origin and destination) cannot change and the version from the first config will be used.
+<span style="white-space: nowrap;">`--squash-skip-history`</span> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
+<span style="white-space: nowrap;">`--threads`</span> | *int* | Number of threads to use when running transformations that change lot of files
+<span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
+<span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity
 
 
 
@@ -1521,7 +1521,7 @@ A folder destination is a destination that puts the output in a folder. It can b
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--folder-dir`</nobr> | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
+<span style="white-space: nowrap;">`--folder-dir`</span> | *string* | Local directory to write the output of the migration to. If the directory exists, all files will be deleted. By default Copybara will generate a temporary directory, so you shouldn't need this.
 
 <a id="folder.origin" aria-hidden="true"></a>
 ### folder.origin
@@ -1543,9 +1543,9 @@ materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will ref
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--folder-origin-author`</nobr> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
-<nobr>`--folder-origin-ignore-invalid-symlinks`</nobr> | *boolean* | If an invalid symlink is found, ignore it instead of failing
-<nobr>`--folder-origin-message`</nobr> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
+<span style="white-space: nowrap;">`--folder-origin-author`</span> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
+<span style="white-space: nowrap;">`--folder-origin-ignore-invalid-symlinks`</span> | *boolean* | If an invalid symlink is found, ignore it instead of failing
+<span style="white-space: nowrap;">`--folder-origin-message`</span> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
 
 
 
@@ -1611,7 +1611,7 @@ Formats all the BUILD files inside `foo` except for `foo/bar/BUILD`
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--buildifier-batch-size`</nobr> | *int* | Process files in batches this size
+<span style="white-space: nowrap;">`--buildifier-batch-size`</span> | *int* | Process files in batches this size
 
 
 
@@ -1876,11 +1876,11 @@ Set of functions to define Git origins and destinations.
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--experiment-checkout-affected-files`</nobr> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
-<nobr>`--git-credential-helper-store-file`</nobr> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
-<nobr>`--git-tag-overwrite`</nobr> | *boolean* | If set, copybara will force update existing git tag
-<nobr>`--nogit-credential-helper-store`</nobr> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
-<nobr>`--nogit-prompt`</nobr> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
+<span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
+<span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
+<span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
 
 <a id="git.destination" aria-hidden="true"></a>
 ### git.destination
@@ -1907,16 +1907,16 @@ integrates | `sequence of git_integrate`<br><p>Integrate changes from a url pres
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--git-committer-email`</nobr> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
-<nobr>`--git-committer-name`</nobr> | *string* | If set, overrides the committer name for the generated commits in git destination.
-<nobr>`--git-destination-fetch`</nobr> | *string* | If set, overrides the git destination fetch reference.
-<nobr>`--git-destination-ignore-integration-errors`</nobr> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
-<nobr>`--git-destination-last-rev-first-parent`</nobr> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
-<nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
-<nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
-<nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.gerrit_api" aria-hidden="true"></a>
 ### git.gerrit_api
@@ -1939,9 +1939,9 @@ checker | `checker`<br><p>A checker for the Gerrit API transport.</p>
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--gerrit-change-id`</nobr> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
-<nobr>`--gerrit-new-change`</nobr> | *boolean* | Create a new change instead of trying to reuse an existing one.
-<nobr>`--gerrit-topic`</nobr> | *string* | Gerrit topic to use
+<span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+<span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
+<span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
 
 <a id="git.gerrit_destination" aria-hidden="true"></a>
 ### git.gerrit_destination
@@ -1975,16 +1975,16 @@ topic | `string`<br><p>Sets the topic of the Gerrit change created.<br><br>By de
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--git-committer-email`</nobr> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
-<nobr>`--git-committer-name`</nobr> | *string* | If set, overrides the committer name for the generated commits in git destination.
-<nobr>`--git-destination-fetch`</nobr> | *string* | If set, overrides the git destination fetch reference.
-<nobr>`--git-destination-ignore-integration-errors`</nobr> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
-<nobr>`--git-destination-last-rev-first-parent`</nobr> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
-<nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
-<nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
-<nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.gerrit_origin" aria-hidden="true"></a>
 ### git.gerrit_origin
@@ -2042,9 +2042,9 @@ checker | `checker`<br><p>A checker for the Gerrit API transport provided by thi
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--gerrit-change-id`</nobr> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
-<nobr>`--gerrit-new-change`</nobr> | *boolean* | Create a new change instead of trying to reuse an existing one.
-<nobr>`--gerrit-topic`</nobr> | *string* | Gerrit topic to use
+<span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+<span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
+<span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
 
 <a id="git.github_api" aria-hidden="true"></a>
 ### git.github_api
@@ -2067,7 +2067,7 @@ checker | `checker`<br><p>A checker for the GitHub API transport.</p>
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--github-destination-delete-pr-branch`</nobr> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 
 <a id="git.github_destination" aria-hidden="true"></a>
 ### git.github_destination
@@ -2095,16 +2095,16 @@ api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--git-committer-email`</nobr> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
-<nobr>`--git-committer-name`</nobr> | *string* | If set, overrides the committer name for the generated commits in git destination.
-<nobr>`--git-destination-fetch`</nobr> | *string* | If set, overrides the git destination fetch reference.
-<nobr>`--git-destination-ignore-integration-errors`</nobr> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
-<nobr>`--git-destination-last-rev-first-parent`</nobr> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
-<nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
-<nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
-<nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_origin" aria-hidden="true"></a>
 ### git.github_origin
@@ -2195,18 +2195,18 @@ git.github_pr_destination(
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--git-committer-email`</nobr> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
-<nobr>`--git-committer-name`</nobr> | *string* | If set, overrides the committer name for the generated commits in git destination.
-<nobr>`--git-destination-fetch`</nobr> | *string* | If set, overrides the git destination fetch reference.
-<nobr>`--git-destination-ignore-integration-errors`</nobr> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
-<nobr>`--git-destination-last-rev-first-parent`</nobr> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
-<nobr>`--git-destination-non-fast-forward`</nobr> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<nobr>`--git-destination-path`</nobr> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
-<nobr>`--git-destination-push`</nobr> | *string* | If set, overrides the git destination push reference.
-<nobr>`--git-destination-url`</nobr> | *string* | If set, overrides the git destination URL.
-<nobr>`--github-destination-pr-branch`</nobr> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
-<nobr>`--github-destination-pr-create`</nobr> | *boolean* | If the pull request should be created
-<nobr>`--nogit-destination-rebase`</nobr> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--github-destination-pr-branch`</span> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
+<span style="white-space: nowrap;">`--github-destination-pr-create`</span> | *boolean* | If the pull request should be created
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_pr_origin" aria-hidden="true"></a>
 ### git.github_pr_origin
@@ -2257,11 +2257,11 @@ describe_version | `boolean`<br><p>Download tags and use 'git describe' to creat
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--github-force-import`</nobr> | *boolean* | Force import regardless of the state of the PR
-<nobr>`--github-pr-merge`</nobr> | *boolean* | Override merge bit from config
-<nobr>`--github-required-label`</nobr> | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
-<nobr>`--github-retryable-label`</nobr> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
-<nobr>`--github-skip-required-labels`</nobr> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
+<span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
+<span style="white-space: nowrap;">`--github-required-label`</span> | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-retryable-label`</span> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.github_trigger" aria-hidden="true"></a>
 ### git.github_trigger
@@ -2285,7 +2285,7 @@ events | `sequence of string`<br><p>Type of events to subscribe. Valid values ar
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--github-destination-delete-pr-branch`</nobr> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate
@@ -2362,7 +2362,7 @@ description | `string`<br><p>A description of what this workflow achieves</p>
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--git-mirror-force`</nobr> | *boolean* | Force push even if it is not fast-forward
+<span style="white-space: nowrap;">`--git-mirror-force`</span> | *boolean* | Force push even if it is not fast-forward
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
@@ -2406,9 +2406,9 @@ message | `string`<br><p>The message to be added as review comment.</p>
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--gerrit-change-id`</nobr> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
-<nobr>`--gerrit-new-change`</nobr> | *boolean* | Create a new change instead of trying to reuse an existing one.
-<nobr>`--gerrit-topic`</nobr> | *string* | Gerrit topic to use
+<span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+<span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
+<span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
 
 
 
@@ -3476,9 +3476,9 @@ strip | `integer`<br><p>Number of segments to strip. (This sets -pX flag, for ex
 
 Name | Type | Description
 ---- | ---- | -----------
-<nobr>`--patch-bin`</nobr> | *string* | Path for GNU Patch command
-<nobr>`--patch-skip-version-check`</nobr> | *boolean* | Skip checking the version of patch and assume it is fine
-<nobr>`--patch-use-git-apply`</nobr> | *boolean* | Don't use GNU Patch and instead use 'git apply'
+<span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
+<span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
+<span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
 
 
 
