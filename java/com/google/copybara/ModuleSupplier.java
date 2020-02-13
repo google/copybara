@@ -24,6 +24,8 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
+import com.google.copybara.format.BuildifierOptions;
+import com.google.copybara.format.FormatModule;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitHubDestinationOptions;
@@ -36,12 +38,12 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.remotefile.RemoteFileModule;
+import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
-import com.google.copybara.remotefile.RemoteFileModule;
-import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import java.nio.file.FileSystem;
@@ -86,6 +88,8 @@ public class ModuleSupplier {
             options.get(FolderOriginOptions.class),
             options.get(FolderDestinationOptions.class),
             general),
+        new FormatModule(
+            options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
         new Authoring.Module(),
@@ -100,6 +104,7 @@ public class ModuleSupplier {
         new GitDestinationOptions(generalOptions, gitOptions);
     return new Options(ImmutableList.of(
         generalOptions,
+        new BuildifierOptions(),
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
         gitOptions,

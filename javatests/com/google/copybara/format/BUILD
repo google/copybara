@@ -12,45 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("//javatests/com/google/copybara:test.bzl", "all_tests")
+
 licenses(["notice"])  # Apache 2.0
 
-package(default_visibility = ["//visibility:public"])
-
-java_library(
-    name = "testing",
+# This is required because golang binaries have the build architecture in their
+# path.
+genrule(
+    name = "normalised_buildifier",
     testonly = 1,
-    srcs = glob(["**/*.java"]),
-    javacopts = [
-        "-Xlint:unchecked",
-        "-source",
-        "1.8",
-    ],
-    visibility = [
-        "//visibility:public",
-    ],
+    srcs = ["@buildtools//buildifier"],
+    outs = ["buildifier"],
+    cmd = "cp $(SRCS) $@",
+)
+
+all_tests(
+    data = [":normalised_buildifier"],
+    tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara:general_options",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/format:buildifier_options",
-        "//java/com/google/copybara/git",
-        "//java/com/google/copybara/hg",
-        "//java/com/google/copybara/monitor",
-        "//java/com/google/copybara/remotefile",
-        "//java/com/google/copybara/transform/debug",
-        "//java/com/google/copybara/transform/patch",
+        "//java/com/google/copybara/format",
+        "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:google_http_client",
-        "//third_party:guava",
         "//third_party:jimfs",
-        "//third_party:jsr305",
+        "//third_party:mockito",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
         "//third_party:truth",
     ],

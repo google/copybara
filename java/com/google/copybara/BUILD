@@ -195,6 +195,7 @@ java_library(
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/format",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",

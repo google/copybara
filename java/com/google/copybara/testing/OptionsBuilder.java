@@ -24,11 +24,10 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.copybara.transform.debug.DebugOptions;
-import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;
+import com.google.copybara.format.BuildifierOptions;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitHubDestinationOptions;
@@ -39,8 +38,10 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
-import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.testing.TestingModule.TestingOptions;
+import com.google.copybara.transform.debug.DebugOptions;
+import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.FileSystems;
@@ -74,6 +75,7 @@ public class OptionsBuilder {
   public PatchingOptions patch = new PatchingOptions(general);
   public DebugOptions debug = new DebugOptions(general);
   public RemoteFileOptions remoteFile = new RemoteFileOptions();
+  public BuildifierOptions buildifier = new BuildifierOptions();
 
   public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
@@ -146,7 +148,7 @@ public class OptionsBuilder {
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch, debug, remoteFile);
+            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier);
   }
 
   public final Options build() {

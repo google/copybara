@@ -56,6 +56,8 @@
   - [folder](#folder)
     - [folder.destination](#folder.destination)
     - [folder.origin](#folder.origin)
+  - [format](#format)
+    - [format.buildifier](#format.buildifier)
   - [gerritapi.AccountInfo](#gerritapi.accountinfo)
   - [gerritapi.ApprovalInfo](#gerritapi.approvalinfo)
   - [gerritapi.ChangeInfo](#gerritapi.changeinfo)
@@ -1435,6 +1437,72 @@ Name | Type | Description
 <nobr>`--folder-origin-author`</nobr> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
 <nobr>`--folder-origin-ignore-invalid-symlinks`</nobr> | *boolean* | If an invalid symlink is found, ignore it instead of failing
 <nobr>`--folder-origin-message`</nobr> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
+
+
+
+## format
+
+Module for formatting the code to Google's style/guidelines
+
+<a id="format.buildifier" aria-hidden="true"></a>
+### format.buildifier
+
+Formats the BUILD files using buildifier.
+
+`transformation format.buildifier(paths=glob(["**.bzl", "**/BUILD", "BUILD"]), type='auto', lint="OFF", lint_warnings=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+paths | `glob`<br><p>Paths of the files to format relative to the workdir.</p>
+type | `string`<br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
+lint | `string`<br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
+lint_warnings | `sequence of string`<br><p>Warnings used in the lint mode. Default is buildifier default`</p>
+
+
+#### Examples:
+
+
+##### Default usage:
+
+The default parameters formats all BUILD and bzl files in the checkout directory:
+
+```python
+format.buildifier()
+```
+
+
+##### Enable lint:
+
+Enable lint for buildifier
+
+```python
+format.buildifier(lint = "FIX")
+```
+
+
+##### Using globs:
+
+Globs can be used to match only certain files:
+
+```python
+format.buildifier(
+    paths = glob(["foo/BUILD", "foo/**/BUILD"], exclude = ["foo/bar/BUILD"])
+)
+```
+
+Formats all the BUILD files inside `foo` except for `foo/bar/BUILD`
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<nobr>`--buildifier-batch-size`</nobr> | *int* | Process files in batches this size
 
 
 

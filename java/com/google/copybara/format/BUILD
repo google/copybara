@@ -17,41 +17,35 @@ licenses(["notice"])  # Apache 2.0
 package(default_visibility = ["//visibility:public"])
 
 java_library(
-    name = "testing",
-    testonly = 1,
-    srcs = glob(["**/*.java"]),
-    javacopts = [
-        "-Xlint:unchecked",
-        "-source",
-        "1.8",
-    ],
-    visibility = [
-        "//visibility:public",
+    name = "format",
+    srcs = [
+        "BuildifierFormat.java",
+        "BuildifierOptions.java",
+        "FormatModule.java",
     ],
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/config:parser",
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/format:buildifier_options",
-        "//java/com/google/copybara/git",
-        "//java/com/google/copybara/hg",
-        "//java/com/google/copybara/monitor",
-        "//java/com/google/copybara/remotefile",
-        "//java/com/google/copybara/transform/debug",
-        "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
-        "//java/com/google/copybara/util/console/testing",
-        "//third_party:google_http_client",
+        "//third_party:flogger",
         "//third_party:guava",
-        "//third_party:jimfs",
+        "//third_party:jcommander",
         "//third_party:jsr305",
+        "//third_party:shell",
         "//third_party:skylark-lang",
-        "//third_party:truth",
+    ],
+)
+
+# TODO(malcon): Temporary until format.goimports is removed.
+java_library(
+    name = "buildifier_options",
+    srcs = ["BuildifierOptions.java"],
+    deps = [
+        "//java/com/google/copybara:base",
+        "//third_party:jcommander",
     ],
 )
