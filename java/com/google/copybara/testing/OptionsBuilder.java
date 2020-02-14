@@ -25,6 +25,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.buildozer.BuildozerOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.format.BuildifierOptions;
@@ -76,6 +77,8 @@ public class OptionsBuilder {
   public DebugOptions debug = new DebugOptions(general);
   public RemoteFileOptions remoteFile = new RemoteFileOptions();
   public BuildifierOptions buildifier = new BuildifierOptions();
+
+  public String buildozerBin = null;
 
   public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
@@ -145,10 +148,15 @@ public class OptionsBuilder {
    * child classes, in which case it should also include the superclass' instances.
    */
   protected Iterable<Option> allOptions() {
+    BuildozerOptions buildozer = new BuildozerOptions(general, buildifier, workflowOptions);
+
+    if (buildozerBin != null) {
+      buildozer.buildozerBin = buildozerBin;
+    }
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier);
+            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier, buildozer);
   }
 
   public final Options build() {

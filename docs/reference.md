@@ -7,6 +7,11 @@
     - [authoring.pass_thru](#authoring.pass_thru)
     - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
+  - [buildozer](#buildozer)
+    - [buildozer.cmd](#buildozer.cmd)
+    - [buildozer.create](#buildozer.create)
+    - [buildozer.delete](#buildozer.delete)
+    - [buildozer.modify](#buildozer.modify)
   - [change](#change)
   - [ChangeMessage](#changemessage)
     - [message.label_values](#message.label_values)
@@ -285,6 +290,110 @@ authoring.whitelisted(
 ## authoring_class
 
 The authors mapping between an origin and a destination
+
+
+
+## buildozer
+
+Module for Buildozer-related functionality such as creating and modifying BUILD targets.
+
+<a id="buildozer.cmd" aria-hidden="true"></a>
+### buildozer.cmd
+
+Creates a Buildozer command. You can specify the reversal with the 'reverse' argument.
+
+`command buildozer.cmd(forward, reverse=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+forward | `string`<br><p>Specifies the Buildozer command, e.g. 'replace deps :foo :bar'</p>
+reverse | `string`<br><p>The reverse of the command. This is only required if the given command cannot be reversed automatically and the reversal of this command is required by some workflow or Copybara check. The following commands are automatically reversible:<br><ul><li>add</li><li>remove (when used to remove element from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul></p>
+
+<a id="buildozer.create" aria-hidden="true"></a>
+### buildozer.create
+
+A transformation which creates a new build target and populates its attributes. This transform can reverse automatically to delete the target.
+
+`buildozerCreate buildozer.create(target, rule_type, commands=[], before='', after='')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+target | `string`<br><p>Target to create, including the package, e.g. 'foo:bar'. The package can be '.' for the root BUILD file.</p>
+rule_type | `string`<br><p>Type of this rule, for instance, java_library.</p>
+commands | `sequence`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+before | `string`<br><p>When supplied, causes this target to be created *before* the target named by 'before'</p>
+after | `string`<br><p>When supplied, causes this target to be created *after* the target named by 'after'</p>
+
+<a id="buildozer.delete" aria-hidden="true"></a>
+### buildozer.delete
+
+A transformation which is the opposite of creating a build target. When run normally, it deletes a build target. When reversed, it creates and prepares one.
+
+`buildozerDelete buildozer.delete(target, rule_type='', recreate_commands=[], before='', after='')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+target | `string`<br><p>Target to create, including the package, e.g. 'foo:bar'</p>
+rule_type | `string`<br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
+recreate_commands | `sequence`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+before | `string`<br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
+after | `string`<br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *after* the target named by 'after'</p>
+
+<a id="buildozer.modify" aria-hidden="true"></a>
+### buildozer.modify
+
+A transformation which runs one or more Buildozer commands against a single target expression. See http://go/buildozer for details on supported commands and target expression formats.
+
+`buildozerModify buildozer.modify(target, commands)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+target | `object`<br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
+commands | `sequence`<br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+
+
+#### Examples:
+
+
+##### Add a setting to one target:
+
+Add "config = ':foo'" to foo/bar:baz:
+
+```python
+buildozer.modify(
+    target = 'foo/bar:baz',
+    commands = [
+        buildozer.cmd('set config ":foo"'),
+    ],
+)
+```
+
+
+##### Add a setting to several targets:
+
+Add "config = ':foo'" to foo/bar:baz and foo/bar:fooz:
+
+```python
+buildozer.modify(
+    target = ['foo/bar:baz', 'foo/bar:fooz'],
+    commands = [
+        buildozer.cmd('set config ":foo"'),
+    ],
+)
+```
+
 
 
 

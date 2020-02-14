@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
+import com.google.copybara.buildozer.BuildozerModule;
+import com.google.copybara.buildozer.BuildozerOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -90,10 +92,12 @@ public class ModuleSupplier {
             general),
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
+        new BuildozerModule(
+            options.get(WorkflowOptions.class), options.get(BuildozerOptions.class)),
         new PatchModule(options.get(PatchingOptions.class)),
-        new MetadataModule(),
-        new Authoring.Module(),
-        new RemoteFileModule(options));
+            new MetadataModule(),
+            new Authoring.Module(),
+            new RemoteFileModule(options));
   }
 
   /** Returns a new list of {@link Option}s. */
@@ -102,9 +106,12 @@ public class ModuleSupplier {
     GitOptions gitOptions = new GitOptions(generalOptions);
     GitDestinationOptions gitDestinationOptions =
         new GitDestinationOptions(generalOptions, gitOptions);
+    BuildifierOptions buildifierOptions = new BuildifierOptions();
+    WorkflowOptions workflowOptions = new WorkflowOptions();
     return new Options(ImmutableList.of(
         generalOptions,
-        new BuildifierOptions(),
+        buildifierOptions,
+        new BuildozerOptions(generalOptions, buildifierOptions, workflowOptions),
         new FolderDestinationOptions(),
         new FolderOriginOptions(),
         gitOptions,
@@ -118,7 +125,7 @@ public class ModuleSupplier {
         new HgOptions(generalOptions),
         new HgOriginOptions(),
         new PatchingOptions(generalOptions),
-        new WorkflowOptions(),
+        workflowOptions,
         new RemoteFileOptions(),
         new DebugOptions(generalOptions)));
   }
