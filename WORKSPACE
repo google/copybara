@@ -71,12 +71,70 @@ http_archive(
     url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
 )
 
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "io_bazel",
+    sha256 = bazel_sha256,
+    strip_prefix = "bazel-" + bazel_version,
+    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+)
+
+# LICENSE: The Apache Software License, Version 2.0
+# Buildifier and friends:
+http_archive(
+    name = "buildtools",
+    sha256 = "fc9c2375fc9d50e5dd2f535b55dd25f12839a3043e7bd09a43ef7180b5670502",
+    strip_prefix = "buildtools-90de5e7001fbdfec29d4128bb508e01169f46950",
+    url = "https://github.com/bazelbuild/buildtools/archive/90de5e7001fbdfec29d4128bb508e01169f46950.zip",
+)
+
 # Stuff used by Bazel Starlark syntax package transitively:
+# LICENSE: The Apache Software License, Version 2.0
 http_archive(
     name = "com_google_protobuf",
     sha256 = bazel_sha256,
     strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.6.1",
     url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+)
+
+
+# Stuff used by Buildifier transitively:
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "b27e55d2dcc9e6020e17614ae6e0374818a3e3ce6f2024036e688ada24110444",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
+    ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
+go_rules_dependencies()
+
+go_register_toolchains()
+
+# LICENSE: The Apache Software License, Version 2.0
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "86c6d481b3f7aedc1d60c1c211c6f76da282ae197c3b3160f54bd3a8f847896f",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.19.1/bazel-gazelle-v0.19.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.19.1/bazel-gazelle-v0.19.1.tar.gz",
+    ],
+)
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+
+gazelle_dependencies()
+
+# LICENSE: The Apache Software License, Version 2.0
+go_repository(
+    name = "skylark_syntax",
+    importpath = "go.starlark.net",
+    sum = "h1:Qoe+9POtDT51UBQ8XEnS9QKeHDQzEl2QRh3eok9R4aw=",
+    version = "v0.0.0-20200203144150-6677ee5c7211",
 )
 
 # LICENSE: The Apache Software License, Version 2.0
