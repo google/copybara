@@ -71,7 +71,7 @@ you need:
 
   * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
   * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
-  * Clone the copybara sorce locally: 
+  * Clone the copybara source locally: 
       * `git clone https://github.com/google/copybara.git`
   * Build:
       * `bazel build //java/com/google/copybara`.
