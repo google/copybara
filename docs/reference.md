@@ -2258,6 +2258,7 @@ describe_version | `boolean`<br><p>Download tags and use 'git describe' to creat
 Name | Type | Description
 ---- | ---- | -----------
 <nobr>`--github-force-import`</nobr> | *boolean* | Force import regardless of the state of the PR
+<nobr>`--github-pr-merge`</nobr> | *boolean* | Override merge bit from config
 <nobr>`--github-required-label`</nobr> | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
 <nobr>`--github-retryable-label`</nobr> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 <nobr>`--github-skip-required-labels`</nobr> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.

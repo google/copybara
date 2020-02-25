@@ -34,12 +34,12 @@ public class GitHubPrOriginOptions implements Option {
   @Parameter(names = "--github-required-label",
       description = "Required labels in the Pull Request to be imported by "
           + GitModule.GITHUB_PR_ORIGIN_NAME)
-  public List<String> requiredLabels= new ArrayList<>();
+  public List<String> requiredLabels = new ArrayList<>();
 
   @Parameter(names = "--github-retryable-label",
       description = "Required labels in the Pull Request that should be retryed to be imported by "
           + GitModule.GITHUB_PR_ORIGIN_NAME)
-  public List<String> retryableLabels= new ArrayList<>();
+  public List<String> retryableLabels = new ArrayList<>();
 
   @Parameter(names = "--github-skip-required-labels", description = "Skip checking labels for"
       + " importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.")
@@ -48,6 +48,9 @@ public class GitHubPrOriginOptions implements Option {
   @Parameter(names = "--github-force-import", description = "Force import regardless of the state"
       + " of the PR")
   public boolean forceImport = false;
+
+  @Parameter(names = "--github-pr-merge", description = "Override merge bit from config", arity = 1)
+  public Boolean overrideMerge = null;
 
   /**
    * Compute the labels that should be required by git.github_pr_origin for importing a

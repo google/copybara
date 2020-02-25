@@ -804,15 +804,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       }
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
-
+    GitHubPrOriginOptions prOpts = options.get(GitHubPrOriginOptions.class);
     return new GitHubPROrigin(
         fixHttp(url, thread.getCallerLocation()),
-        merge,
+        prOpts.overrideMerge != null ? prOpts.overrideMerge : merge,
         options.get(GeneralOptions.class),
         options.get(GitOptions.class),
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
-        options.get(GitHubPrOriginOptions.class),
+        prOpts,
         ImmutableSet.copyOf(requiredLabels.getContents(String.class, "required_labels")),
         ImmutableSet.copyOf(retryableLabels.getContents(String.class, "retryable_labels")),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
