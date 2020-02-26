@@ -163,3 +163,9 @@ java_library(
         "//java/com/google/copybara/hg/testing",
     ]
 )
+
+# Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
+# is fixed
+exports_files(["bazel.patch"])
+
+

@@ -1,0 +1,12 @@
+--- src/main/java/com/google/devtools/build/lib/syntax/BUILD
++++ src/main/java/com/google/devtools/build/lib/syntax/BUILD
+@@ -129,7 +130,8 @@
+         "StringModule.java",
+         "Tuple.java",
+     ],
+-    data = [":libcpu_profiler.so"],  # will be loaded dynamically
++    # Does not currently build in an importing workspace
++    # data = [":libcpu_profiler.so"],  # will be loaded dynamically
+     deps = [
+         ":frontend",
+         "//src/main/java/com/google/devtools/build/lib:events",
