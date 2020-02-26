@@ -88,15 +88,31 @@ http_archive(
     url = "https://github.com/bazelbuild/buildtools/archive/90de5e7001fbdfec29d4128bb508e01169f46950.zip",
 )
 
+EXPORT_WORKSPACE_IN_BUILD_FILE = [
+    "test -f BUILD && chmod u+w BUILD || true",
+    "echo >> BUILD",
+    "echo 'exports_files([\"WORKSPACE\"], visibility = [\"//visibility:public\"])' >> BUILD",
+]
+
+EXPORT_WORKSPACE_IN_BUILD_FILE_WIN = [
+    "Add-Content -Path BUILD -Value \"`nexports_files([`\"WORKSPACE`\"], visibility = [`\"//visibility:public`\"])`n\" -Force",
+]
+
 # Stuff used by Bazel Starlark syntax package transitively:
 # LICENSE: The Apache Software License, Version 2.0
 http_archive(
     name = "com_google_protobuf",
-    sha256 = bazel_sha256,
-    strip_prefix = "bazel-" + bazel_version + "/third_party/protobuf/3.6.1",
-    url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    patch_args = ["-p1"],
+    patches = ["@io_bazel//third_party/protobuf:3.11.3.patch"],
+    patch_cmds = EXPORT_WORKSPACE_IN_BUILD_FILE,
+    patch_cmds_win = EXPORT_WORKSPACE_IN_BUILD_FILE_WIN,
+    sha256 = "cf754718b0aa945b00550ed7962ddc167167bd922b842199eeb6505e6f344852",
+    strip_prefix = "protobuf-3.11.3",
+    urls = [
+        "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v3.11.3.tar.gz",
+        "https://github.com/protocolbuffers/protobuf/archive/v3.11.3.tar.gz",
+    ],
 )
-
 
 # Stuff used by Buildifier transitively:
 # LICENSE: The Apache Software License, Version 2.0
