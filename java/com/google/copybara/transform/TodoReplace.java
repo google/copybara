@@ -113,6 +113,10 @@ public class TodoReplace implements Transformation {
       StringBuffer sb = new StringBuffer();
       boolean modified = false;
       while (matcher.find()) {
+        if (matcher.group(2).trim().isEmpty()){
+          matcher.appendReplacement(sb, matcher.group(0));
+          continue;
+        }
         List<String> users = Splitter.on(",").splitToList(matcher.group(2));
         List<String> mappedUsers = mapUsers(users, matcher.group(0), file.getPath(), console);
         modified |= !users.equals(mappedUsers);

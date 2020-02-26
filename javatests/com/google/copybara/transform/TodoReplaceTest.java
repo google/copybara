@@ -213,6 +213,23 @@ public final class TodoReplaceTest {
   }
 
   @Test
+  public void testEmptyTODO() throws Exception {
+    TodoReplace replace = todoReplace(
+        "mode = 'USE_DEFAULT'",
+        "default = 'TEST'");
+
+    write("one.txt", "// TODO(): Example\n");
+    write("two.txt", "// TODO: Example\n");
+
+    run(replace);
+
+    assertThatPath(checkoutDir)
+        .containsFile("one.txt", "// TODO(): Example\n")
+        .containsFile("two.txt", "// TODO: Example\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testScrub() throws Exception {
     TodoReplace replace = todoReplace(
         "mode = 'SCRUB_NAMES'");
