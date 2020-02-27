@@ -17,7 +17,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -99,7 +98,7 @@ public class GitDestinationReaderTest {
         .truncatedTo(ChronoUnit.SECONDS);
     repo.commit("= Foo = <bar@bara.com>", date,
         String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
-    FileSubjects.assertThatPath(workDir).containsNoFiles();
+    FileSubjects.assertThatPath(workDir).containsNoMoreFiles();
     runWorkflow(ImmutableList.of(
         "ctx.destination_reader().copy_destination_files(glob = glob(include = ['**']))"));
     FileSubjects.assertThatPath(workDir).containsFile("destination.txt", "foo");
