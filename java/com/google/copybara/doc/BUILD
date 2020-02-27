@@ -36,6 +36,7 @@ java_plugin(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
+        "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
 )

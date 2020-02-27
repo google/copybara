@@ -1179,7 +1179,7 @@ checkout | `boolean`<br><p>Allows disabling the checkout. The usage of this feat
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
-<span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *integer>* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
+<span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list&lt;integer&gt;* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
 <span style="white-space: nowrap;">`--change_request_parent`</span> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 <span style="white-space: nowrap;">`--check-last-rev-state`</span> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--default-author`</span> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
@@ -2259,8 +2259,8 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
 <span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
-<span style="white-space: nowrap;">`--github-required-label`</span> | *string>* | Required labels in the Pull Request to be imported by github_pr_origin
-<span style="white-space: nowrap;">`--github-retryable-label`</span> | *string>* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-label`</span> | *list&lt;string&gt;* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-retryable-label`</span> | *list&lt;string&gt;* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.github_trigger" aria-hidden="true"></a>
@@ -2552,7 +2552,7 @@ number | `integer`<br><p>Pull Request number</p>
 
 Get Pull Requests for a repo
 
-`immutableList<E> github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
+`immutableList&lt;e&gt; github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
 
 
 #### Parameters:
