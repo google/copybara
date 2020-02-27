@@ -25,6 +25,11 @@ RUN bazel build //java/com/google/copybara:copybara_deploy.jar \
 # Fails currently
 # RUN bazel test //...
 
+FROM golang:latest AS buildtools
+
+RUN go get github.com/bazelbuild/buildtools/buildozer
+RUN go get github.com/bazelbuild/buildtools/buildifier
+
 FROM openjdk:8-jre-slim
 ENV COPYBARA_CONFIG=copy.bara.sky \
     COPYBARA_SUBCOMMAND=migrate \
@@ -32,6 +37,7 @@ ENV COPYBARA_CONFIG=copy.bara.sky \
     COPYBARA_WORKFLOW=default \
     COPYBARA_SOURCEREF=''
 COPY --from=build /tmp/copybara/ /opt/copybara/
+COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/bin/
 COPY .docker/entrypoint.sh /usr/local/bin/copybara
 
 RUN chmod +x /usr/local/bin/copybara
