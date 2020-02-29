@@ -2131,7 +2131,7 @@ version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_destination_url=None, pr_branch=None, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
 
 
 #### Parameters:
@@ -2140,6 +2140,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
+pr_destination_url | `string`<br><p>Url of the GitHub project to create the PullRequest on. Set this if you want to push to a personal fork and create the PullRequest on the upstream project (e.g. because you don't have write access to the upstream repo).By default, `pr_destination_url` is the same as `url`.</p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>

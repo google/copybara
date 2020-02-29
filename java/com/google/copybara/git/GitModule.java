@@ -89,6 +89,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -1200,6 +1201,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "Destination reference for the change. By default 'master'",
             defaultValue = "\"master\""),
         @Param(
+            name = "pr_destination_url",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                "Url of the GitHub project to create the PullRequest on. Set this if you want to "
+                    + "push to a personal fork and create the PullRequest on the upstream project "
+                    + "(e.g. because you don't have write access to the upstream repo)."
+                    + "By default, `pr_destination_url` is the same as `url`."),
+        @Param(
             name = "pr_branch",
             type = String.class,
             defaultValue = "None",
@@ -1297,6 +1310,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public GitHubPrDestination githubPrDestination(
       String url,
       String destinationRef,
+      Object prDestinationUrl,
       Object prBranch,
       Object title,
       Object body,
@@ -1309,12 +1323,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
     check(GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    check(prDestinationUrl == Starlark.NONE || GitHubUtil.isGitHubUrl((String)prDestinationUrl),
+          "'%s' is not a valid GitHub url", prDestinationUrl);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GitHubPrDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
             thread.getCallerLocation()),
         destinationRef,
+        Optional.ofNullable(
+            prDestinationUrl == Starlark.NONE ?
+                null :
+                fixHttp(
+                    checkNotEmpty((String)prDestinationUrl, "pr_destination_url"),
+                    thread.getCallerLocation())),
         convertFromNoneable(prBranch, null),
         generalOptions,
         options.get(GitHubOptions.class),

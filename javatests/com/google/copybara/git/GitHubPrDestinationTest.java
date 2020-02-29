@@ -438,6 +438,45 @@ public class GitHubPrDestinationTest {
         .onceInLog(MessageType.ERROR, ".*'https://github.com' is not a valid GitHub url.*");
   }
 
+  private void checkFindProject(String url, String project) throws ValidationException {
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = '" + url + "',"
+        + "    destination_ref = 'other',"
+        + ")");
+
+    assertThat(d.getProjectName()).isEqualTo(project);
+  }
+
+  @Test
+  public void testFindUpstreamProject() throws ValidationException {
+    checkFindProjectFromUpstreamUrl("https://github.com/foo", "foo");
+    checkFindProjectFromUpstreamUrl("https://github.com/foo/bar", "foo/bar");
+    checkFindProjectFromUpstreamUrl("https://github.com/foo.git", "foo");
+    checkFindProjectFromUpstreamUrl("https://github.com/foo/", "foo");
+    checkFindProjectFromUpstreamUrl("git+https://github.com/foo", "foo");
+    checkFindProjectFromUpstreamUrl("git@github.com/foo", "foo");
+    checkFindProjectFromUpstreamUrl(
+        "git@github.com:org/internal_repo_name.git", "org/internal_repo_name");
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> checkFindProjectFromUpstreamUrl("https://github.com", "foo"));
+    console
+        .assertThat()
+        .onceInLog(MessageType.ERROR, ".*'https://github.com' is not a valid GitHub url.*");
+  }
+
+  private void checkFindProjectFromUpstreamUrl(
+      String url, String project) throws ValidationException {
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/google/copybara',"
+        + "    pr_destination_url = '" + url + "',"
+        + "    destination_ref = 'other',"
+        + ")");
+
+    assertThat(d.getProjectName()).isEqualTo(project);
+  }
+
   @Test
   public void testIntegratesCanBeRemoved() throws Exception {
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
@@ -462,15 +501,6 @@ public class GitHubPrDestinationTest {
         + ")");
 
     assertThat(d.getIntegrates()).isEmpty();
-  }
-
-  private void checkFindProject(String url, String project) throws ValidationException {
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = '" + url + "',"
-        + "    destination_ref = 'other',"
-        + ")");
-
-    assertThat(d.getProjectName()).isEqualTo(project);
   }
 
   @Test
@@ -525,6 +555,62 @@ public class GitHubPrDestinationTest {
     assertThat(remote.refExists(branchName)).isTrue();
     assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::getBody))
         .containsExactly("first change\n", "second change\n",
+        "test summary\n"
+            + "\n"
+            + "DummyOrigin-RevId: one\n");
+  }
+
+  @Test
+  public void testPrDestinationUrl() throws ValidationException, IOException, RepoException {
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo',"
+        + "    pr_destination_url = 'https://github.com/bar',"
+        + ")");
+    DummyRevision dummyRevision = new DummyRevision("dummyReference", "feature");
+    WriterContext writerContext =
+        new WriterContext("piper_to_github_pr", "TEST", false, dummyRevision,
+            Glob.ALL_FILES.roots());
+    String branchName =
+        Identity.computeIdentity(
+            "OriginGroupIdentity",
+            dummyRevision.contextReference(),
+            writerContext.getWorkflowName(),
+            "copy.bara.sky",
+            writerContext.getWorkflowIdentityUser());
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/bar/pulls?per_page=100&head=foo:" + branchName,
+        mockResponse("[]"));
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/bar/pulls",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\""
+                + "}",
+            req ->
+                req.equals(
+                    "{\"base\":\"master\",\"body\":\"test summary\\n\",\"head\":\""
+                        + branchName
+                        + "\",\"title\":\"test summary\"}")));
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    writeFile(this.workdir, "test.txt", "some content");
+    writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
+
+    assertThat(remote.refExists(branchName)).isTrue();
+    assertThat(Iterables.transform(remote.log(branchName).run(), GitLogEntry::getBody))
+        .containsExactly("first change\n",
         "test summary\n"
             + "\n"
             + "DummyOrigin-RevId: one\n");

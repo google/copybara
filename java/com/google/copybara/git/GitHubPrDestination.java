@@ -54,6 +54,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -64,6 +65,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
   private final String url;
   private final String destinationRef;
+  private final Optional<String> prDestinationUrl;
   private final String prBranch;
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
@@ -82,6 +84,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   GitHubPrDestination(
       String url,
       String destinationRef,
+      Optional<String> prDestinationUrl,
       @Nullable String prBranch,
       GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
@@ -97,6 +100,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       boolean updateDescription) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
+    this.prDestinationUrl = Preconditions.checkNotNull(prDestinationUrl);
     this.prBranch = prBranch;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
@@ -176,6 +180,12 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
+        String prBranch =
+            getQualifiedPullRequestBranchName(
+                writerContext.getOriginalRevision(),
+                writerContext.getWorkflowName(),
+                writerContext.getWorkflowIdentityUser());
+
         if (!gitHubDestinationOptions.createPullRequest) {
           console.infoFmt(
               "Please create a PR manually following this link: %s/compare/%s...%s"
@@ -188,9 +198,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         GitHubApi api = gitHubOptions.newGitHubApi(getProjectName());
 
         ImmutableList<PullRequest> pullRequests = api.getPullRequests(
-            getProjectName(),
-            PullRequestListParams.DEFAULT
-                .withHead(String.format("%s:%s", getUserNameFromUrl(url), prBranch)));
+            getProjectName(), PullRequestListParams.DEFAULT.withHead(prBranch));
 
         ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
 
@@ -275,7 +283,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
   @VisibleForTesting
   String getProjectName() throws ValidationException {
-    return GitHubUtil.getProjectNameFromUrl(url);
+    return GitHubUtil.getProjectNameFromUrl(prDestinationUrl.orElse(url));
   }
 
   @VisibleForTesting
@@ -286,6 +294,16 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @VisibleForTesting
   public Iterable<GitIntegrateChanges> getIntegrates() {
     return integrates;
+  }
+
+  private String getQualifiedPullRequestBranchName(
+      @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
+      throws ValidationException {
+    String branch = getPullRequestBranchName(changeRevision, workflowName, workflowIdentityUser);
+    if (prDestinationUrl.isPresent()) {
+      return String.format("%s:%s", getUserNameFromUrl(url), branch);
+    }
+    return branch;
   }
 
   private String getPullRequestBranchName(
