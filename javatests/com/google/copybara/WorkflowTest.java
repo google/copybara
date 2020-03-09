@@ -1573,7 +1573,7 @@ public class WorkflowTest {
         + ")\n";
 
     addGitFile(originPath, origin, "foo.txt", "not important");
-    commit(origin, "baseline");
+    commit(origin, "baseline\n\nOrigin-Label: 1234567");
 
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
@@ -1605,6 +1605,9 @@ public class WorkflowTest {
     assertThat(e)
         .hasMessageThat()
         .contains("Migration of the revision resulted in an empty change");
+    assertThat(e)
+        .hasMessageThat()
+        .contains(destination.parseRef("HEAD"));
   }
 
   private void checkChangeRequest_sot_ahead_sot()

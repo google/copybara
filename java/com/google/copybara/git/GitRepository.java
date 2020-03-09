@@ -788,8 +788,10 @@ public class GitRepository {
       String message)
       throws RepoException, ValidationException {
     if (isEmptyStaging() && !amend) {
-      throw new EmptyChangeException("Migration of the revision resulted in an empty change. "
-          + "Is the change already migrated?");
+      throw new EmptyChangeException(
+          String.format(
+              "Migration of the revision resulted in an empty change from baseline '%s'.\n"
+                  + "Is the change already migrated?", parseRef("HEAD")));
     }
 
     ImmutableList.Builder<String> params = ImmutableList.<String>builder().add("commit");
