@@ -124,7 +124,8 @@ public class GitDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+    return GitRepository.newBareRepo(path, getEnv(), /*verbose=*/true, DEFAULT_TIMEOUT,
+        /*noVerify=*/false);
   }
 
   public GitEnvironment getEnv() {

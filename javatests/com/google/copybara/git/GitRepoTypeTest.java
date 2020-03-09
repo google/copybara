@@ -55,7 +55,8 @@ public class GitRepoTypeTest {
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
     testRepo = new GitRepository(
-        repoGitDir, null, /*verbose=*/true, getGitEnv(), Duration.ofMinutes(1)) {
+        repoGitDir, null, /*verbose=*/true, getGitEnv(), Duration.ofMinutes(1),
+        /*noVerify=*/ false) {
       @Override
       public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags) {
         interceptedFetches.add(new String[]{url, ref});
@@ -71,7 +72,7 @@ public class GitRepoTypeTest {
 
   private void disableFetchMocks() throws RepoException {
     testRepo = GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true,
-        DEFAULT_TIMEOUT);
+        DEFAULT_TIMEOUT, /*noVerify=*/ false);
     testRepo.init();
   }
 

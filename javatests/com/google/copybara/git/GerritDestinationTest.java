@@ -167,7 +167,8 @@ public class GerritDestinationTest {
   }
 
   private GitRepository repo() {
-    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
+    return GitRepository.newBareRepo(
+        repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
   }
 
   private String git(String... argv) throws RepoException {

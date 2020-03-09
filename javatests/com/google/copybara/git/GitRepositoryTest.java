@@ -38,6 +38,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.GitObjectType;
+import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.git.GitTestUtil;
@@ -70,13 +71,15 @@ public class GitRepositoryTest {
 
   private GitRepository repository;
   private Path workdir;
+  private Path gitDir;
 
   @Before
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
+    gitDir = Files.createTempDirectory("gitdir");
+
     repository = GitRepository
-        .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
-            DEFAULT_TIMEOUT)
+        .newBareRepo(gitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(workdir);
     repository.init();
   }
@@ -152,7 +155,7 @@ public class GitRepositoryTest {
   @Test
   public void testStatus() throws RepoException, IOException {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     dest.init();
 
     Files.write(workdir.resolve("renamed"), "renamed".getBytes(UTF_8));
@@ -198,7 +201,7 @@ public class GitRepositoryTest {
   @Test
   public void testForceClean() throws RepoException, IOException {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     dest.init();
 
     Files.write(Files.createDirectories(workdir.resolve("some/folder")).resolve("file.txt"),
@@ -290,7 +293,7 @@ public class GitRepositoryTest {
       ValidationException {
     workdir = Files.createTempDirectory("workdir");
     this.repository = GitRepository.newBareRepo(Files.createTempDirectory("gitdir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(workdir)
         .init();
 
@@ -478,7 +481,7 @@ public class GitRepositoryTest {
   @Test
   public void testFetch() throws Exception {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     dest.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
@@ -516,7 +519,7 @@ public class GitRepositoryTest {
 
     Path localWorkdir = Files.createTempDirectory("workdir");
     GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     local.init();
     GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
     GitTestUtil.writeFile(workdir, "b/bar.txt", "b");
@@ -538,7 +541,7 @@ public class GitRepositoryTest {
     List<Iterable<String>> requestedFetches = new ArrayList<>();
 
     GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
-        true, getGitEnv(), DEFAULT_TIMEOUT) {
+        true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
 
       @Override
       public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
@@ -569,7 +572,7 @@ public class GitRepositoryTest {
   @Test
   public void testFetchInvalidGitRepo() throws Exception {
     GitRepository dest = GitRepository.newBareRepo(Files.createTempDirectory("destDir"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     dest.init();
 
     Path notAGitRepo = Files.createTempDirectory("not_a_git_repo");
@@ -708,7 +711,7 @@ public class GitRepositoryTest {
   public void testPush() throws Exception {
     GitRepository remote = GitRepository
         .newBareRepo(Files.createTempDirectory("remote"), getGitEnv(), /*verbose=*/true,
-            DEFAULT_TIMEOUT)
+            DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
@@ -752,7 +755,7 @@ public class GitRepositoryTest {
                     .withRefspecs(
                         remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
                     .run());
-    assertThat(e.getMessage()).contains("[rejected]");
+    assertThat(e).hasMessageThat().contains("[rejected]");
 
     // Now it works because we force the push
     repository.push()
@@ -766,7 +769,7 @@ public class GitRepositoryTest {
   @Test
   public void testPushPrune() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(Files.createTempDirectory("remote"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT);
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     remote.init();
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
@@ -798,6 +801,45 @@ public class GitRepositoryTest {
     assertThat(remote.refExists("master")).isTrue();
     assertThat(remote.refExists("other")).isFalse();
   }
+
+  @Test
+  public void testPushWithHook() throws Exception {
+    RepoException expected = assertThrows(RepoException.class, () -> doPushWithHook(repository));
+    assertThat(expected).hasMessageThat().contains("Hook run");
+  }
+
+  @Test
+  public void testPushWithHook_noVerify() throws Exception {
+    GitRepository origin =
+        GitRepository
+            .newBareRepo(gitDir, getGitEnv(), /*verbose=*/true,
+                DEFAULT_TIMEOUT, /*noVerify=*/ true)
+            .withWorkTree(workdir);
+   doPushWithHook(origin);
+  }
+
+  public void doPushWithHook(GitRepository origin) throws Exception {
+    GitRepository remote = GitRepository.newBareRepo(Files.createTempDirectory("remote"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
+    remote.init();
+    Files.createDirectories(gitDir.resolve("hooks"));
+    Path hook = gitDir.resolve("hooks/pre-commit");
+    Files.write(hook, "#!/bin/bash\necho Hook run\nexit 1".getBytes(StandardCharsets.UTF_8));
+    hook.toFile().setExecutable(true);
+
+    Files.write(workdir.resolve("secret.txt"), "ya29.123456789fakeoauth".getBytes(
+        StandardCharsets.UTF_8));
+    origin.add().files("secret.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    origin.commit(COMMITER.toString(), date, "initial");
+    new PushCmd(
+        origin,
+        "file://" + remote.getGitDir(),
+        ImmutableList.of(repository.createRefSpec("+master:master")),
+        false).run();
+  }
+
 
   @Test
   public void testLightWeightTag() throws Exception {

@@ -76,6 +76,10 @@ public class GitOptions implements Option {
           + "Note that this is experimental.")
   boolean experimentCheckoutAffectedFiles = false;
 
+  @Parameter(names = "--git-no-verify", description =
+      "Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.")
+  public boolean gitNoVerify = false;
+
   public GitOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
@@ -108,7 +112,7 @@ public class GitOptions implements Option {
     GitRepository repo =
         GitRepository.newBareRepo(
             path, getGitEnvironment(generalOptions.getEnvironment()),
-            generalOptions.isVerbose(), generalOptions.fetchTimeout);
+            generalOptions.isVerbose(), generalOptions.fetchTimeout, gitNoVerify);
     return initRepo(repo);
   }
 

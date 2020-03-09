@@ -50,7 +50,8 @@ public class GitCredentialTest {
   public void setup() throws Exception {
     repoGitDir = Files.createTempDirectory("test_repo");
     credentialsFile = Files.createTempFile("credentials", "test");
-    repo = newBareRepo(repoGitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
+    repo = newBareRepo(
+        repoGitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 

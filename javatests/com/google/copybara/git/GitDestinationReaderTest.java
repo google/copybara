@@ -67,7 +67,7 @@ public class GitDestinationReaderTest {
     origin = new DummyOrigin();
     options.testingOptions.origin = origin;
     repo = GitRepository.newBareRepo(destinationPath, getGitEnv(),
-        /*verbose=*/true, DEFAULT_TIMEOUT).withWorkTree(gitDir).init();
+        /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(gitDir).init();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     workDir = Files.createTempDirectory("workdir");

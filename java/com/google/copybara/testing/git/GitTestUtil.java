@@ -336,7 +336,7 @@ public class GitTestUtil {
       GitRepository repo =
           GitRepository.newBareRepo(
               httpsRepos.resolve(url), new GitEnvironment(env), generalOptions.isVerbose(),
-              DEFAULT_TIMEOUT);
+              DEFAULT_TIMEOUT, false);
       repo.init();
       return repo;
     }
@@ -379,7 +379,7 @@ public class GitTestUtil {
           gitDir,
           workTree,
           generalOptions.isVerbose(),
-          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.fetchTimeout);
+          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.fetchTimeout, false);
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

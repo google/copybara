@@ -61,7 +61,7 @@ public class GitHubApiTransportImplTest {
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     repo =
         newBareRepo(Files.createTempDirectory("test_repo"), getGitEnv(), /*verbose=*/ true,
-            DEFAULT_TIMEOUT)
+            DEFAULT_TIMEOUT, /*noVerify=*/ false)
             .init()
             .withCredentialHelper("store --file=" + credentialsFile);
   }

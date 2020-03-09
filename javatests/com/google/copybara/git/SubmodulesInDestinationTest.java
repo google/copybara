@@ -76,7 +76,7 @@ public final class SubmodulesInDestinationTest {
 
     submodule = GitRepository
         .newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
-            DEFAULT_TIMEOUT)
+            DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(Files.createTempDirectory("worktree"))
         .init();
 
@@ -86,7 +86,8 @@ public final class SubmodulesInDestinationTest {
   }
 
   private GitRepository repo() {
-    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
+    return GitRepository.newBareRepo(repoGitDir, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT,
+        /*noVerify=*/ false);
   }
 
   private String git(String... argv) throws RepoException {

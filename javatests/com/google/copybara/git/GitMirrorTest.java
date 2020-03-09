@@ -62,7 +62,7 @@ public class GitMirrorTest {
             .setWorkdirToRealTempDir()
             .setConsole(new TestingConsole());
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
-        /*verbose=*/true, DEFAULT_TIMEOUT)
+        /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(Files.createTempDirectory("worktree"));
     originRepo.init();
     destRepo = bareRepo(Files.createTempDirectory("destinationFolder"));
@@ -235,7 +235,7 @@ public class GitMirrorTest {
   private GitRepository bareRepo(Path path) {
     return newBareRepo(
         path, new GitEnvironment(options.general.getEnvironment()), options.general.isVerbose(),
-        DEFAULT_TIMEOUT);
+        DEFAULT_TIMEOUT, /*noVerify=*/ false);
   }
 
   @Test

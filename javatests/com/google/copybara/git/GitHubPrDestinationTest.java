@@ -676,7 +676,8 @@ public class GitHubPrDestinationTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
+    return GitRepository
+        .newBareRepo(path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
   }
 
   private static String getPullRequestsUrl(String branchName) {

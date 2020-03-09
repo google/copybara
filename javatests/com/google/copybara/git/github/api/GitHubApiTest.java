@@ -63,7 +63,7 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
     credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT)
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 

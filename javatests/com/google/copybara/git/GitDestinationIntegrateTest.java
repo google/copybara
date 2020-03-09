@@ -182,7 +182,7 @@ public class GitDestinationIntegrateTest {
     Path gitDir = Files.createTempDirectory("gitdir");
     Path repoPath = Files.createTempDirectory("workdir");
     GitRepository repo = GitRepository.newBareRepo(gitDir, getGitEnv(), /*verbose=*/ true,
-        DEFAULT_TIMEOUT)
+        DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init()
         .withWorkTree(repoPath);
 
@@ -625,7 +625,8 @@ public class GitDestinationIntegrateTest {
   }
 
   private GitRepository repoForPath(Path path) {
-    return GitRepository.newBareRepo(path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT);
+    return GitRepository.newBareRepo(
+        path, getGitEnv(),  /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
   }
 
   private String git(String... argv) throws RepoException {

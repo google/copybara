@@ -165,6 +165,7 @@ public class GitRepository {
   private final boolean verbose;
   private final GitEnvironment gitEnv;
   private final Duration fetchTimeout;
+  protected final boolean noVerify;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
       Arrays.stream(StatusCode.values())
@@ -172,18 +173,19 @@ public class GitRepository {
 
   protected GitRepository(
       Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv,
-      Duration fetchTimeout) {
+      Duration fetchTimeout, boolean noVerify) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
     this.gitEnv = checkNotNull(gitEnv);
     this.fetchTimeout = checkNotNull(fetchTimeout);
+    this.noVerify = noVerify;
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv,
-      Duration fetchTimeout) {
-    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, fetchTimeout);
+      Duration fetchTimeout, boolean noVerify) {
+    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, fetchTimeout, noVerify);
   }
 
   /**
@@ -191,13 +193,13 @@ public class GitRepository {
    * not bare.
    */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
-    return newRepo(verbose, path, gitEnv, DEFAULT_FETCH_TIMEOUT);
+    return newRepo(verbose, path, gitEnv, DEFAULT_FETCH_TIMEOUT, /*noVerify=*/false);
   }
 
   /** Create a new bare repository */
   public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose,
-      Duration fetchTimeout) {
-    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, fetchTimeout);
+      Duration fetchTimeout, boolean noVerify) {
+    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, fetchTimeout, noVerify);
   }
 
   /**
@@ -554,7 +556,8 @@ public class GitRepository {
    * initialize or alter the given work tree.
    */
   public GitRepository withWorkTree(Path newWorkTree) {
-    return new GitRepository(this.gitDir, newWorkTree, this.verbose, this.gitEnv, fetchTimeout);
+    return new GitRepository(
+        this.gitDir, newWorkTree, this.verbose, this.gitEnv, fetchTimeout, this.noVerify);
   }
 
   /**
@@ -571,7 +574,7 @@ public class GitRepository {
   }
 
   /**
-   * Can be overwriten to add custom behavior.
+   * Can be overwritten to add custom behavior.
    */
   protected String runPush(PushCmd pushCmd) throws RepoException, ValidationException {
     List<String> cmd = Lists.newArrayList("push");
@@ -581,6 +584,10 @@ public class GitRepository {
 
     if (pushCmd.prune) {
       cmd.add("--prune");
+    }
+
+    if (noVerify) {
+      cmd.add("--no-verify");
     }
 
     if (pushCmd.url != null) {
@@ -803,6 +810,9 @@ public class GitRepository {
     }
     if (amend) {
       params.add("--amend");
+    }
+    if (noVerify) {
+      params.add("--no-verify");
     }
     Path descriptionFile = null;
     try {

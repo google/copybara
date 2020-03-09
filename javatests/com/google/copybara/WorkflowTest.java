@@ -324,7 +324,7 @@ public class WorkflowTest {
   public void testTestWorkflowWithDiffInOrigin() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
-            DEFAULT_TIMEOUT).withWorkTree(workdir);
+            DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
@@ -365,7 +365,7 @@ public class WorkflowTest {
   public void testTestWorkflowWithDiffInOriginAndRespondNo() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
-        DEFAULT_TIMEOUT).withWorkTree(workdir);
+        DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
@@ -1557,7 +1557,7 @@ public class WorkflowTest {
     Path destinationPath = Files.createTempDirectory("destination");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
-        /*verbose=*/true, DEFAULT_TIMEOUT).init();
+        /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false).init();
 
     String config = "core.workflow("
         + "    name = 'default',\n"
@@ -2936,7 +2936,7 @@ public class WorkflowTest {
 
     Path destinationPath = Files.createTempDirectory("destination");
     GitRepository destRepo = GitRepository
-        .newBareRepo(destinationPath, getGitEnv(), true, DEFAULT_TIMEOUT)
+        .newBareRepo(destinationPath, getGitEnv(), true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init();
 
     String config = "core.workflow("
@@ -3168,7 +3168,8 @@ public class WorkflowTest {
             Files.createTempDirectory("destination"),
             getGitEnv(),
             /*verbose=*/ true,
-            DEFAULT_TIMEOUT);
+            DEFAULT_TIMEOUT,
+            /*noVerify=*/ false);
     destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
 

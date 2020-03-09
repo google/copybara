@@ -128,7 +128,8 @@ public final class GitDestinationOptions implements Option {
                 generalOptions.isVerbose(),
                 path,
                 gitOptions.getGitEnvironment(generalOptions.getEnvironment()),
-                generalOptions.fetchTimeout));
+                generalOptions.fetchTimeout,
+                gitOptions.gitNoVerify));
       }
       throw new RepoException(path + " is not empty and is not a git repository");
     } catch (IOException e) {
