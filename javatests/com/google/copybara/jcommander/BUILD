@@ -19,18 +19,16 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-DEPS = [
-    "//java/com/google/copybara/jcommander:converters",
-    "//java/com/google/copybara:base",
-    "//java/com/google/copybara:copybara_lib",
-    "//java/com/google/copybara:general_options",
-    "//java/com/google/copybara:options",
-    "//java/com/google/copybara/util/console/testing",
-    "//third_party:jcommander",
-    "//third_party:truth",
-]
-
 all_tests(
     tests = ["DurationConverterTest.java"],
-    deps = DEPS,
+    deps = [
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara:options",
+        "//java/com/google/copybara/jcommander:converters",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:jcommander",
+        "//third_party:truth",
+    ],
 )

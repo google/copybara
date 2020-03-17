@@ -19,18 +19,6 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-DEPS = [
-    "//java/com/google/copybara/hg",
-    "//java/com/google/copybara/util",
-    "//java/com/google/copybara/authoring",
-    "//java/com/google/copybara/exception",
-    "//third_party:skylark-lang",
-    "//java/com/google/copybara:base",
-    "//java/com/google/copybara/testing",
-    "//java/com/google/copybara/util/console/testing",
-    "//third_party:truth",
-]
-
 all_tests(
     shard_count = 6,
     tags = ["local"],
@@ -39,5 +27,15 @@ all_tests(
         "HgOriginTest.java",
         "HgRepositoryTest.java",
     ],
-    deps = DEPS,
+    deps = [
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/hg",
+        "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:skylark-lang",
+        "//third_party:truth",
+    ],
 )

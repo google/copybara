@@ -19,15 +19,13 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-DEPS = [
-    "//java/com/google/copybara/git/github:util",
-    "//java/com/google/copybara/exception",
-    "//third_party:truth",
-    "//third_party:mockito",
-    "//third_party:guava_testlib",
-]
-
 all_tests(
     tests = ["GitHubUtilTest.java"],
-    deps = DEPS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git/github:util",
+        "//third_party:guava_testlib",
+        "//third_party:mockito",
+        "//third_party:truth",
+    ],
 )

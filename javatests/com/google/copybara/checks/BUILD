@@ -16,16 +16,14 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
-DEPS = [
-    "//java/com/google/copybara/checks",
-    "//java/com/google/copybara/exception",
-    "//java/com/google/copybara/util/console",
-    "//java/com/google/copybara/util/console/testing",
-    "//third_party:mockito",
-    "//third_party:truth",
-]
-
 all_tests(
     tests = glob(["**/*Test.java"]),
-    deps = DEPS,
+    deps = [
+        "//java/com/google/copybara/checks",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:mockito",
+        "//third_party:truth",
+    ],
 )
