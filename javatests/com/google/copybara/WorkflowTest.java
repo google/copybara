@@ -1801,7 +1801,7 @@ public class WorkflowTest {
         assertThrows(ValidationException.class, () -> checkChangeRequestSmartPrune());
     assertThat(e)
         .hasMessageThat()
-        .contains("smart_prune is not compatible with --change_request_parent");
+        .contains("smart_prune is not compatible with --change-request-parent");
   }
 
   private ImmutableList<DiffFile> checkChangeRequestSmartPrune()

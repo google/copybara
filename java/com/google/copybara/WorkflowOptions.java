@@ -39,13 +39,15 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public class WorkflowOptions implements Option {
 
-  static final String CHANGE_REQUEST_PARENT_FLAG = "--change_request_parent";
+  static final String CHANGE_REQUEST_PARENT_FLAG = "--change-request-parent";
+  static final String CHANGE_REQUEST_PARENT_FLAG_ALT = "--change_request_parent";
+
   static final String READ_CONFIG_FROM_CHANGE = "--read-config-from-change";
   static final FluentLogger logger = FluentLogger.forEnclosingClass();
   protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG =
       "--change-request-from-sot-limit";
 
-  @Parameter(names = CHANGE_REQUEST_PARENT_FLAG,
+  @Parameter(names = {CHANGE_REQUEST_PARENT_FLAG, CHANGE_REQUEST_PARENT_FLAG_ALT},
       description = "Commit revision to be used as parent when importing a commit using"
           + " CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able"
           + " to detect the parent commit message.")
