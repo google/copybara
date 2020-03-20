@@ -2132,7 +2132,7 @@ version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", push_to_fork=False, fork_url=None, pr_branch=None, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
 
 
 #### Parameters:
@@ -2141,6 +2141,8 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
+push_to_fork | `boolean`<br><p>Indicates that the result of the change should be pushed to the current user's personal fork. The PullRequest will still be created on the upstream project.<p>The url of the fork is inferred from `url` and the credentials of the GitHub user (e.g., if `url` is `https://github.com/google/copybara.git` and the workflow is executed by `copybara-bot`, `fork_url` is assumed to be `https://github.com/copybara-bot/copybara.git`).</p><p>If `fork_url` is set, this will be ignored.</p></p>
+fork_url | `string`<br><p>Sets the url of the fork Copybara will push the change to. The PullRequest will still be created on the upstream project.<p>`push_to_fork` is ignored if this is set.</p></p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>

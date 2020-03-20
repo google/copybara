@@ -195,7 +195,8 @@ public final class GitDestination implements Destination<GitRevision> {
       implements Writer<GitRevision> {
 
     final boolean skipPush;
-    private final String repoUrl;
+    private final String fetchRepoUrl;
+    private final String pushRepoUrl;
     private final String remoteFetch;
     private final String remotePush;
     @Nullable private final String tagNameTemplate;
@@ -218,18 +219,75 @@ public final class GitDestination implements Destination<GitRevision> {
     private final int visitChangePageSize;
     private final boolean gitTagOverwrite;
 
-    /**
-     * Create a new git.destination writer
-     */
-    WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush,  String tagNameTemplate, String tagMsgTemplate,
-        GeneralOptions generalOptions, WriteHook writeHook, S state,
-        boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
-        boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
-        String committerName, String committerEmail, boolean rebase, int visitChangePageSize,
+    @Deprecated
+    WriterImpl(
+        boolean skipPush,
+        String repoUrl,
+        String remoteFetch,
+        String remotePush,
+        String tagNameTemplate,
+        String tagMsgTemplate,
+        GeneralOptions generalOptions,
+        WriteHook writeHook,
+        S state,
+        boolean nonFastForwardPush,
+        Iterable<GitIntegrateChanges> integrates,
+        boolean lastRevFirstParent,
+        boolean ignoreIntegrationErrors,
+        String localRepoPath,
+        String committerName,
+        String committerEmail,
+        boolean rebase,
+        int visitChangePageSize,
+        boolean gitTagOverwrite) {
+      this(
+          skipPush,
+          repoUrl,
+          repoUrl,
+          remoteFetch,
+          remotePush,
+          tagNameTemplate,
+          tagMsgTemplate,
+          generalOptions,
+          writeHook,
+          state,
+          nonFastForwardPush,
+          integrates,
+          lastRevFirstParent,
+          ignoreIntegrationErrors,
+          localRepoPath,
+          committerName,
+          committerEmail,
+          rebase,
+          visitChangePageSize,
+          gitTagOverwrite);
+    }
+
+    /** Create a new git.destination writer */
+    WriterImpl(
+        boolean skipPush,
+        String fetchRepoUrl,
+        String pushRepoUrl,
+        String remoteFetch,
+        String remotePush,
+        String tagNameTemplate,
+        String tagMsgTemplate,
+        GeneralOptions generalOptions,
+        WriteHook writeHook,
+        S state,
+        boolean nonFastForwardPush,
+        Iterable<GitIntegrateChanges> integrates,
+        boolean lastRevFirstParent,
+        boolean ignoreIntegrationErrors,
+        String localRepoPath,
+        String committerName,
+        String committerEmail,
+        boolean rebase,
+        int visitChangePageSize,
         boolean gitTagOverwrite) {
       this.skipPush = skipPush;
-      this.repoUrl = checkNotNull(repoUrl);
+      this.fetchRepoUrl = checkNotNull(fetchRepoUrl);
+      this.pushRepoUrl = checkNotNull(pushRepoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
       this.tagNameTemplate = tagNameTemplate;
@@ -249,6 +307,16 @@ public final class GitDestination implements Destination<GitRevision> {
       this.rebase = rebase;
       this.visitChangePageSize = visitChangePageSize;
       this.gitTagOverwrite = gitTagOverwrite;
+    }
+
+    @VisibleForTesting
+    String getFetchRepoUrl() {
+      return fetchRepoUrl;
+    }
+
+    @VisibleForTesting
+    String getPushRepoUrl() {
+      return pushRepoUrl;
     }
 
     @Override
@@ -284,7 +352,7 @@ public final class GitDestination implements Destination<GitRevision> {
     private void fetchIfNeeded(GitRepository repo, Console console)
         throws RepoException, ValidationException {
       if (!state.alreadyFetched) {
-        GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
+        GitRevision revision = fetchFromRemote(console, repo, getFetchRepoUrl(), remoteFetch);
         if (revision != null) {
           repo.simpleCommand("branch", state.localBranch, revision.getSha1());
         }
@@ -343,8 +411,10 @@ public final class GitDestination implements Destination<GitRevision> {
         if (force) {
           return null;
         }
-        throw new RepoException(String.format("Could not find %s in %s and '%s' was not used",
-            remoteFetch, repoUrl, GeneralOptions.FORCE));
+        throw new RepoException(
+            String.format(
+                "Could not find %s in %s and '%s' was not used",
+                remoteFetch, getFetchRepoUrl(), GeneralOptions.FORCE));
       }
     }
 
@@ -436,7 +506,8 @@ public final class GitDestination implements Destination<GitRevision> {
         Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       logger.atInfo().log(
-          "Exporting from %s to: url=%s ref=%s", transformResult.getPath(), repoUrl, remotePush);
+          "Exporting from %s to: url=%s ref=%s",
+          transformResult.getPath(), getPushRepoUrl(), remotePush);
       String baseline = transformResult.getBaseline();
 
       GitRepository scratchClone = getRepository(console);
@@ -450,13 +521,13 @@ public final class GitDestination implements Destination<GitRevision> {
 
       if (state.firstWrite) {
         String reference = baseline != null ? baseline : state.localBranch;
-        configForPush(getRepository(console), repoUrl, remotePush);
+        configForPush(getRepository(console), getPushRepoUrl(), remotePush);
         if (!force && localBranchRevision == null) {
-          throw new RepoException(String.format(
-              "Cannot checkout '%s' from '%s'. Use '%s' if the destination is a new git repo or"
-                  + " you don't care about the destination current status", reference,
-              repoUrl,
-              GeneralOptions.FORCE));
+          throw new RepoException(
+              String.format(
+                  "Cannot checkout '%s' from '%s'. Use '%s' if the destination is a new git repo or"
+                      + " you don't care about the destination current status",
+                  reference, getPushRepoUrl(), GeneralOptions.FORCE));
         }
         if (localBranchRevision != null) {
           scratchClone.simpleCommand("checkout", "-f", "-q", reference);
@@ -468,7 +539,7 @@ public final class GitDestination implements Destination<GitRevision> {
       } else if (!skipPush) {
         // Should be a no-op, but an iterative migration could take several minutes between
         // migrations so lets fetch the latest first.
-        fetchFromRemote(console, scratchClone, repoUrl, remoteFetch);
+        fetchFromRemote(console, scratchClone, getFetchRepoUrl(), remoteFetch);
       }
 
       PathMatcher pathMatcher = destinationFiles.relativeTo(scratchClone.getWorkTree());
@@ -505,7 +576,7 @@ public final class GitDestination implements Destination<GitRevision> {
           commitMessage);
 
       // Don't remove. Used internally in test
-      console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
+      console.verboseFmt("Integrates for %s: %s", getPushRepoUrl(), Iterables.size(integrates));
 
       for (GitIntegrateChanges integrate : integrates) {
         integrate.run(alternate, generalOptions, messageInfo,
@@ -562,7 +633,7 @@ public final class GitDestination implements Destination<GitRevision> {
         console.info(DiffUtil.colorize(
             console, scratchClone.simpleCommand("show", "HEAD").getStdout()));
         if (!console.promptConfirmation(
-            String.format("Proceed with push to %s %s?", repoUrl, remotePush))) {
+            String.format("Proceed with push to %s %s?", getPushRepoUrl(), remotePush))) {
           console.warn("Migration aborted by user.");
           throw new ChangeRejectedException(
               "User aborted execution: did not confirm diff changes.");
@@ -588,24 +659,29 @@ public final class GitDestination implements Destination<GitRevision> {
                 new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
       }
       String push = writeHook.getPushReference(getCompleteRef(remotePush), transformResult);
-      console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
+      console.progress(String.format("Git Destination: Pushing to %s %s", getPushRepoUrl(), push));
       checkCondition(!nonFastForwardPush
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
-      String serverResponse = generalOptions.repoTask(
-          "push",
-          () -> scratchClone.push()
-              .withRefspecs(repoUrl,
-                  tagName != null
-                  ? ImmutableList.of(scratchClone.createRefSpec(
-                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
-                      scratchClone.createRefSpec((gitTagOverwrite ? "+" : "")
-                          + tagName))
-              : ImmutableList.of(scratchClone.createRefSpec(
-                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
-              .run()
-      );
+      String serverResponse =
+          generalOptions.repoTask(
+              "push",
+              () ->
+                  scratchClone
+                      .push()
+                      .withRefspecs(
+                          getPushRepoUrl(),
+                          tagName != null
+                              ? ImmutableList.of(
+                                  scratchClone.createRefSpec(
+                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
+                                  scratchClone.createRefSpec(
+                                      (gitTagOverwrite ? "+" : "") + tagName))
+                              : ImmutableList.of(
+                                  scratchClone.createRefSpec(
+                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
+                      .run());
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
@@ -661,11 +737,15 @@ public final class GitDestination implements Destination<GitRevision> {
     private void updateLocalBranchToBaseline(GitRepository repo, String baseline)
         throws RepoException {
       if (baseline != null && !repo.refExists(baseline)) {
-        throw new RepoException("Cannot find baseline '" + baseline
-            + (getLocalBranchRevision(repo) != null
-            ? "' from fetch reference '" + remoteFetch + "'"
-            : "' and fetch reference '" + remoteFetch + "' itself")
-            + " in " + repoUrl + ".");
+        throw new RepoException(
+            "Cannot find baseline '"
+                + baseline
+                + (getLocalBranchRevision(repo) != null
+                    ? "' from fetch reference '" + remoteFetch + "'"
+                    : "' and fetch reference '" + remoteFetch + "' itself")
+                + " in "
+                + getFetchRepoUrl()
+                + ".");
       } else if (baseline != null) {
         // Update the local branch to use the baseline
         repo.simpleCommand("update-ref", state.localBranch, baseline);

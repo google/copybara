@@ -54,6 +54,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -61,8 +62,12 @@ import javax.annotation.Nullable;
  * A destination for creating/updating Github Pull Requests.
  */
 public class GitHubPrDestination implements Destination<GitRevision> {
+  private static final String CANNOT_INFER_FORK_URL_MESSAGE =
+      "Could not infer fork url. Please set 'fork_url'.";
 
   private final String url;
+  private final boolean pushToFork;
+  private final Optional<String> forkUrl;
   private final String destinationRef;
   private final String prBranch;
   private final GeneralOptions generalOptions;
@@ -82,6 +87,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   GitHubPrDestination(
       String url,
       String destinationRef,
+      boolean pushToFork,
+      Optional<String> forkUrl,
       @Nullable String prBranch,
       GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
@@ -96,6 +103,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable Checker endpointChecker,
       boolean updateDescription) {
     this.url = Preconditions.checkNotNull(url);
+    this.pushToFork = pushToFork;
+    this.forkUrl = Preconditions.checkNotNull(forkUrl);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -108,7 +117,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.title = title;
     this.body = body;
     this.updateDescription = updateDescription;
-    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
+    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(getFetchUrl()));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
   }
@@ -123,35 +132,45 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
-            .put("url", url)
-            .put("destination_ref", destinationRef);
+            .put("url", getFetchUrl())
+            .put("push_to_fork", (pushToFork || forkUrl.isPresent()) ? "True" : "False");
+    if (forkUrl.isPresent()) {
+      builder.put("fork_url", forkUrl.get());
+    }
+    builder.put("destination_ref", destinationRef);
     return builder.build();
   }
 
   @Override
   public Writer<GitRevision> newWriter(WriterContext writerContext) throws ValidationException {
-
-    String prBranch =
-        getPullRequestBranchName(
+    LazyResourceLoader<GitHubApi> githubApi =
+        memoized(gitHubOptions.newGitHubApiSupplier(getFetchUrl(), null));
+    Optional<String> pushUrl = pushUrl(githubApi);
+    PrBranch prBranch =
+        new PrBranch(
             writerContext.getOriginalRevision(),
             writerContext.getWorkflowName(),
-            writerContext.getWorkflowIdentityUser());
+            writerContext.getWorkflowIdentityUser(),
+            url,
+            pushUrl);
 
-    GitHubWriterState state = new GitHubWriterState(
-        localRepo,
-        destinationOptions.localRepoPath != null
-            ? prBranch
-            : "copybara/push-"
-                + UUID.randomUUID()
-                + (writerContext.isDryRun() ? "-dryrun" : ""));
+    GitHubWriterState state =
+        new GitHubWriterState(
+            localRepo,
+            destinationOptions.localRepoPath != null
+                ? prBranch.getLocalName()
+                : "copybara/push-"
+                    + UUID.randomUUID()
+                    + (writerContext.isDryRun() ? "-dryrun" : ""));
 
     return new WriterImpl<GitHubWriterState>(
         writerContext.isDryRun(),
-        url,
+        getFetchUrl(),
+        pushUrl.orElse(getFetchUrl()),
         destinationRef,
-        prBranch,
-        /*tagName*/null,
-        /*tagMsg*/null,
+        prBranch.getLocalName(),
+        /*tagName*/ null,
+        /*tagMsg*/ null,
         generalOptions,
         writeHook,
         state,
@@ -180,36 +199,36 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           console.infoFmt(
               "Please create a PR manually following this link: %s/compare/%s...%s"
                   + " (Only needed once)",
-              asHttpsUrl(), destinationRef, prBranch);
+              asGithubHttpsUrl(pushUrl), destinationRef, prBranch.getPrRef());
           state.pullRequestNumber = -1L;
           return result.build();
         }
 
-        GitHubApi api = gitHubOptions.newGitHubApi(getProjectName());
-
-        ImmutableList<PullRequest> pullRequests = api.getPullRequests(
-            getProjectName(),
-            PullRequestListParams.DEFAULT
-                .withHead(String.format("%s:%s", getUserNameFromUrl(url), prBranch)));
-
         ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
 
-        String title = GitHubPrDestination.this.title == null
-            ? msg.firstLine()
-            : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
-                GitHubPrDestination.this.title, "title");
+        String title =
+            GitHubPrDestination.this.title == null
+                ? msg.firstLine()
+                : SkylarkUtil.mapLabels(
+                    transformResult.getLabelFinder(), GitHubPrDestination.this.title, "title");
 
         String prBody =
             GitHubPrDestination.this.body == null
                 ? msg.toString()
-                : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
-                    GitHubPrDestination.this.body, "body");
+                : SkylarkUtil.mapLabels(
+                    transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
 
+        ImmutableList<PullRequest> pullRequests =
+            githubApi
+                .load(console)
+                .getPullRequests(
+                    getProjectName(),
+                    PullRequestListParams.DEFAULT.withHead(prBranch.getQualifiedPrRef()));
         for (PullRequest pr : pullRequests) {
-          if (pr.isOpen() && pr.getHead().getRef().equals(prBranch)) {
+          if (pr.isOpen() && pr.getHead().getRef().equals(prBranch.getLocalName())) {
             console.infoFmt(
                 "Pull request for branch %s already exists as %s/pull/%s",
-                prBranch, asHttpsUrl(), pr.getNumber());
+                prBranch.getPrRef(), asGithubHttpsUrl(pushUrl), pr.getNumber());
             if (!pr.getBase().getRef().equals(destinationRef)) {
               // TODO(malcon): Update PR or create a new one?
               console.warnFmt(
@@ -221,9 +240,12 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   !Strings.isNullOrEmpty(title),
                   "Pull Request title cannot be empty. Either use 'title' field in"
                       + " git.github_pr_destination or modify the message to not be empty");
-              api.updatePullRequest(getProjectName(), pr.getNumber(),
-                  new UpdatePullRequest(title, prBody, /*state=*/null));
-
+              githubApi
+                  .load(console)
+                  .updatePullRequest(
+                      getProjectName(),
+                      pr.getNumber(),
+                      new UpdatePullRequest(title, prBody, /*state=*/ null));
             }
             result.add(
                 new DestinationEffect(
@@ -242,13 +264,14 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 + " git.github_pr_destination or modify the message to not be empty");
 
         PullRequest pr =
-            api.createPullRequest(
-                getProjectName(),
-                new CreatePullRequest(
-                    title, prBody, prBranch, destinationRef));
+            githubApi
+                .load(console)
+                .createPullRequest(
+                    getProjectName(),
+                    new CreatePullRequest(title, prBody, prBranch.getPrRef(), destinationRef));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
-            asHttpsUrl(), pr.getNumber(), prBranch);
+            asGithubHttpsUrl(pushUrl), pr.getNumber(), prBranch.getPrRef());
         state.pullRequestNumber = pr.getNumber();
         result.add(
             new DestinationEffect(
@@ -263,19 +286,48 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Override
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
+        String url = pushUrl.orElse(getFetchUrl());
         return new GitHubEndPoint(
             gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url, console);
       }
     };
   }
 
-  private String asHttpsUrl() throws ValidationException {
-    return "https://github.com/" + getProjectName();
+  @VisibleForTesting
+  Optional<String> pushUrl(LazyResourceLoader<GitHubApi> api) throws ValidationException {
+    if (forkUrl.isPresent()) {
+      return forkUrl;
+    }
+    if (pushToFork) {
+      String repoName = GitHubUtil.getRepoNameFromUrl(getFetchUrl());
+      if (!Strings.isNullOrEmpty(repoName)) {
+        try {
+          String username = api.load(generalOptions.console()).getAuthenticatedUser().getLogin();
+          return Optional.of(asGithubHttpsUrl(username + "/" + repoName));
+        } catch (RepoException e) {
+          throw new ValidationException(CANNOT_INFER_FORK_URL_MESSAGE, e);
+        }
+      }
+      throw new ValidationException(CANNOT_INFER_FORK_URL_MESSAGE);
+    }
+    return Optional.empty();
+  }
+
+  private String getFetchUrl() {
+    return url;
+  }
+
+  private String asGithubHttpsUrl(String project) {
+    return "https://github.com/" + project;
+  }
+
+  private String asGithubHttpsUrl(Optional<String> pushUrl) throws ValidationException {
+    return asGithubHttpsUrl(GitHubUtil.getProjectNameFromUrl(pushUrl.orElse(getFetchUrl())));
   }
 
   @VisibleForTesting
   String getProjectName() throws ValidationException {
-    return GitHubUtil.getProjectNameFromUrl(url);
+    return GitHubUtil.getProjectNameFromUrl(getFetchUrl());
   }
 
   @VisibleForTesting
@@ -288,31 +340,74 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     return integrates;
   }
 
-  private String getPullRequestBranchName(
-      @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
-      throws ValidationException {
-    if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
-      return gitHubDestinationOptions.destinationPrBranch;
+  private class PrBranch {
+    private final String name;
+    private final String url;
+    private final Optional<String> forkUrl;
+
+    public PrBranch(
+        @Nullable Revision changeRevision,
+        String workflowName,
+        String workflowIdentityUser,
+        String url,
+        Optional<String> forkUrl)
+        throws ValidationException {
+      this.name = getPullRequestBranchName(changeRevision, workflowName, workflowIdentityUser);
+      this.url = Preconditions.checkNotNull(url);
+      this.forkUrl = Preconditions.checkNotNull(forkUrl);
     }
-    String contextReference = changeRevision.contextReference();
-    // We could do more magic here with the change identity. But this is already complex so we
-    // require  a group identity either provided by the origin or the workflow (Will be implemented
-    // later.
-    checkCondition(contextReference != null,
-        "git.github_pr_destination is incompatible with the current origin. Origin has to be"
-            + " able to provide the contextReference or use '%s' flag",
-        GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
-    String branchNameFromUser = getCustomBranchName(contextReference);
-    String branchName =
-        branchNameFromUser != null
-            ? branchNameFromUser
-            : Identity.computeIdentity(
-                "OriginGroupIdentity",
-                contextReference,
-                workflowName,
-                mainConfigFile.getIdentifier(),
-                workflowIdentityUser);
-    return GitHubUtil.getValidBranchName(branchName);
+
+    private String getPullRequestBranchName(
+        @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
+        throws ValidationException {
+      if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
+        return gitHubDestinationOptions.destinationPrBranch;
+      }
+      String contextReference = changeRevision.contextReference();
+      // We could do more magic here with the change identity. But this is already complex so we
+      // require  a group identity either provided by the origin or the workflow (Will be
+      // implemented
+      // later.
+      checkCondition(
+          contextReference != null,
+          "git.github_pr_destination is incompatible with the current origin. Origin has to be"
+              + " able to provide the contextReference or use '%s' flag",
+          GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
+      String branchNameFromUser = getCustomBranchName(contextReference);
+      String branchName =
+          branchNameFromUser != null
+              ? branchNameFromUser
+              : Identity.computeIdentity(
+                  "OriginGroupIdentity",
+                  contextReference,
+                  workflowName,
+                  mainConfigFile.getIdentifier(),
+                  workflowIdentityUser);
+      return GitHubUtil.getValidBranchName(branchName);
+    }
+
+    public String getUpstreamUrl() {
+      return url;
+    }
+
+    public String getLocalName() {
+      return name;
+    }
+
+    private String qualifiedName(String url) throws ValidationException {
+      return String.format("%s:%s", getUserNameFromUrl(url), getLocalName());
+    }
+
+    public String getPrRef() throws ValidationException {
+      if (!forkUrl.isPresent()) {
+        return getLocalName();
+      }
+      return qualifiedName(forkUrl.get());
+    }
+
+    public String getQualifiedPrRef() throws ValidationException {
+      return qualifiedName(forkUrl.orElse(url));
+    }
   }
 
   @Nullable

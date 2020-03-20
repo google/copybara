@@ -18,6 +18,7 @@ package com.google.copybara.git.github.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
+import static com.google.copybara.git.github.util.GitHubUtil.getRepoNameFromUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.getValidBranchName;
 import static org.junit.Assert.assertThrows;
@@ -62,6 +63,26 @@ public class GitHubUtilTest {
     assertThat(getUserNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("foo");
     ValidationException e =
         assertThrows(ValidationException.class, () -> getUserNameFromUrl("foo@bar:baz"));
+    assertThat(e).hasMessageThat().contains("Cannot find project name");
+  }
+
+  private void assertCannotFindRepoName(String url) throws Exception {
+    ValidationException e = assertThrows(ValidationException.class, () -> getRepoNameFromUrl(url));
+    assertThat(e).hasMessageThat().contains("Cannot find repo name");
+  }
+
+  @Test
+  public void testGetRepoNameFromUrl() throws Exception {
+    assertThat(getRepoNameFromUrl("https://github.com/foo/bar")).isEqualTo("bar");
+    assertThat(getRepoNameFromUrl("https://github.com/foo/bar.git")).isEqualTo("bar");
+    assertThat(getRepoNameFromUrl("https://github.com/foo/bar/baz")).isEqualTo("bar");
+    assertThat(getRepoNameFromUrl("ssh://git@github.com/foo/bar.git")).isEqualTo("bar");
+    assertThat(getRepoNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("bar");
+    assertThat(getRepoNameFromUrl("git@github.com:foo/bar.git")).isEqualTo("bar");
+    assertCannotFindRepoName("https://github.com/foo");
+    assertCannotFindRepoName("https://github.com/foo.git");
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> getRepoNameFromUrl("foo@bar:baz"));
     assertThat(e).hasMessageThat().contains("Cannot find project name");
   }
 
