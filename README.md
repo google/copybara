@@ -78,6 +78,17 @@ you need:
 	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create a executable uberjar.
   * Tests: `bazel test //...` if you want to ensure you are not using a broken version.
 
+### System packages
+
+These packages can be installed using the appropriate package manager for your
+system.
+
+#### Arch Linux
+
+  * [`aur/copybara-git`][install/archlinux/aur-git]
+
+[install/archlinux/aur-git]: https://aur.archlinux.org/packages/copybara-git "Copybara on the AUR"
+
 ### Using Intellij with Bazel plugin
 
 If you use Intellij and the Bazel plugin, use this project configuration:
