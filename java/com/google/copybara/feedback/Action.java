@@ -36,6 +36,6 @@ public interface Action extends StarlarkValue {
 
   String getName();
 
-  /** Returns a key-value ist of the options the action was instantiated with. */
+  /** Returns a key-value list of the options the action was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
 }
