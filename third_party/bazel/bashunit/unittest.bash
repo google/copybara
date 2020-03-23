@@ -516,7 +516,7 @@ if [ "$(uname -s | tr 'A-Z' 'a-z')" = "linux" ]; then
 else
     function timestamp() {
 	# OS X and FreeBSD do not have %N so python is the best we can do
-	python -c 'import time; print int(round(time.time() * 1000))'
+	python -c 'import time; print(int(round(time.time() * 1000)))'
     }
 fi
 
