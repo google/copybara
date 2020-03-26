@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.flogger.LoggerConfig;
 import com.google.common.testing.FakeTicker;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -33,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.logging.LogRecord;
 import org.junit.Before;
 import org.junit.Test;
@@ -188,9 +188,16 @@ public class ProfilerTest {
 
   @Test
   public void testListenerLogging() {
+    // Keep a strong reference to the Logger we use to capture log records for the duration of the
+    // test to avoid any potential race conditions with the weak referencing used by the JDK
+    //
+    // TODO: This could be migrated to use the package level logger name, which would be less
+    // fragile against code being moved around.
+    Logger loggerUnderTest = Logger.getLogger(LogProfilerListener.class.getCanonicalName());
+
     TestLogHandler assertingHandler = new TestLogHandler();
     assertingHandler.setLevel(Level.FINE);
-    LoggerConfig.getConfig(LogProfilerListener.class).addHandler(assertingHandler);
+    loggerUnderTest.addHandler(assertingHandler);
 
     profiler = new Profiler(ticker);
     profiler.init(ImmutableList.of(new LogProfilerListener()));
@@ -200,6 +207,8 @@ public class ProfilerTest {
     LogRecord record = assertingHandler.getStoredLogRecords().get(0);
     assertThat(record.getMessage()).contains("testListenerLogging");
     assertThat(record.getSourceClassName()).contains(this.getClass().getName());
+
+    loggerUnderTest.removeHandler(assertingHandler);
   }
 
   @Test
