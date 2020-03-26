@@ -301,11 +301,7 @@ public class SkylarkParser {
   }
 
   private StarlarkSemantics createSemantics() {
-    return StarlarkSemantics.DEFAULT_SEMANTICS
-        .toBuilder()
-        // TODO(malcon): Remove this one too. Requires user migration.
-        .incompatibleRestrictNamedParams(false)
-        .build();
+    return StarlarkSemantics.DEFAULT_SEMANTICS;
   }
 
   /** Updates the module globals with information about the current loaded config file. */
