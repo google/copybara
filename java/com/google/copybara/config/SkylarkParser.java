@@ -218,7 +218,7 @@ public class SkylarkParser {
               moduleName, new Extension(ImmutableMap.copyOf(imp.getExportedBindings()), ""));
         }
       }
-      StarlarkThread.PrintHandler printHandler = StarlarkThread.makeDebugPrintHandler(eventHandler);
+      StarlarkThread.PrintHandler printHandler = Event.makeDebugPrintHandler(eventHandler);
       updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
 
       // Create a Starlark thread making the modules available as predeclared bindings.

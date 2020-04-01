@@ -16,8 +16,8 @@
 
 package com.google.copybara;
 
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Location;
 
 /**
  * Exception thrown when a {@link Transformation} is not reversible but the configuration asked for

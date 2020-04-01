@@ -27,7 +27,7 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.events.Location;
+import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 
 /**

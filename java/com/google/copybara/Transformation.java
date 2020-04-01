@@ -17,9 +17,9 @@
 package com.google.copybara;
 
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.events.Location;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
