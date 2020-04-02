@@ -42,6 +42,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.exception.AccessValidationException;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -367,8 +368,11 @@ public class GitRepository {
       throw new CannotResolveRevisionException(
           String.format("%s: %s", url, output.getStderr().trim()));
     }
-    checkCondition(!output.getStderr().contains("Repository not found"),
-        "%s: %s", url, output.getStderr());
+    if (output.getStderr().contains("Permission denied")
+            || output.getStderr().contains("Could not read from remote repository")
+            || output.getStderr().contains("Repository not found")) {
+      throw new AccessValidationException(output.getStderr());
+    }
     throw throwUnknownGitError(output, args);
   }
 

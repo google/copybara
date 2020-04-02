@@ -23,7 +23,7 @@ package com.google.copybara.exception;
 public class ValidationException extends Exception {
 
   private final boolean retryable;
-  
+
   public ValidationException(String message) {
     this(false, message);
   }

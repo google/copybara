@@ -47,6 +47,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.exception.AccessValidationException;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
@@ -299,7 +300,10 @@ public final class GitDestination implements Destination<GitRevision> {
       GitRepository repo = getRepository(baseConsole);
       try {
         fetchIfNeeded(repo, baseConsole);
+      } catch (AccessValidationException e) {
+         throw e;
       } catch (ValidationException e) {
+        // TODO(joshgoldman): only return null for CannotResolveRevisionException, not all VE
         return null;
       }
       GitRevision startRef = getLocalBranchRevision(repo);
