@@ -82,7 +82,7 @@ public class GitCredentialTest {
   public void testSeveralPathsSuccess() throws Exception {
     Files.write(credentialsFile, ("https://user:SECRET@somehost.com/path1\n"
         + "https://user:TOPSECRET@somehost.com/path2").getBytes(UTF_8));
-    repo.git(repo.getGitDir(), "config", "--local", "credential.github.com.useHttpPath", "true");
+    repo.git(repo.getGitDir(), "config", "--local", "credential.useHttpPath", "true");
 
     assertThat(credential.fill(repoGitDir, "https://somehost.com/path1")
         .getPassword_BeCareful()).isEqualTo("SECRET");
