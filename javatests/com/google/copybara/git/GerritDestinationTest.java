@@ -699,12 +699,15 @@ public class GerritDestinationTest {
     pushToRefsFor = "master";
     fetch = "master";
     options.gerrit.gerritTopic = "testTopic";
-    GerritDestination destination = destination("submit = False", "notify ='ALL'");
+    GerritDestination destination =
+        destination("submit = False", "partial_fetch = True", "notify ='ALL'");
     Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
     assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
     // %topic and %notify should not be part of describe()
     assertThat(destination.describe(glob).get("push"))
         .isEqualTo(ImmutableSet.of("refs/for/master"));
+    assertThat(destination.describe(glob).get("partialFetch"))
+        .isEqualTo(ImmutableSet.of("true"));
   }
 
   @Test
@@ -1080,7 +1083,8 @@ public class GerritDestinationTest {
             /*labels*/ ImmutableList.of(),
             /*endpointChecker=*/ null,
             /*notifyOption*/ null,
-            /*topicTemplate*/ null);
+            /*topicTemplate*/ null,
+            /*partialFetch*/ false);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(

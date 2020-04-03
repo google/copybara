@@ -198,6 +198,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "If true, it only uses the first parent when looking for changes. Note that"
                     + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                     + " change of the merged branch."),
+          @Param(
+              name = "partial_fetch",
+              type = Boolean.class,
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = PATCH_FIELD,
             type = Transformation.class,
@@ -230,6 +238,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String submodules,
       Boolean includeBranchCommitLogs,
       Boolean firstParent,
+      Boolean partialFetch,
       Object patch,
       Object describeVersion,
       Object versionSelector,
@@ -253,6 +262,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         includeBranchCommitLogs,
         firstParent,
+        partialFetch,
         patchTransformation,
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null));
@@ -361,6 +371,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc = "Remove remote refs that don't have a origin counterpart",
             defaultValue = "False"),
+          @Param(
+              name = "partial_fetch",
+              type = Boolean.class,
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = "description",
             type = String.class,
@@ -378,6 +396,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String destination,
       Sequence<?> strRefSpecs, // <String>
       Boolean prune,
+      Boolean partialFetch,
       Object description,
       StarlarkThread thread)
       throws EvalException {
@@ -409,6 +428,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 refspecs,
                 options.get(GitMirrorOptions.class),
                 prune,
+                partialFetch,
                 mainConfigFile,
                 convertFromNoneable(description, null)));
     return Starlark.NONE;
@@ -480,6 +500,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " change of the merged branch.",
             positional = false),
         @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
             name = "api_checker",
             type = Checker.class,
             defaultValue = "None",
@@ -523,6 +551,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object ref,
       String submodules,
       Boolean firstParent,
+      Boolean partialFetch,
       Object checkerObj,
       Object patch,
       Object branch,
@@ -547,6 +576,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
           /*includeBranchCommitLogs=*/ false,
           firstParent,
+          partialFetch,
           patchTransformation,
           convertDescribeVersion(describeVersion),
           /*versionSelector=*/ null);
@@ -556,6 +586,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         url,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         firstParent,
+        partialFetch,
         convertFromNoneable(checkerObj, null),
         patchTransformation,
         convertFromNoneable(branch, null),
@@ -682,6 +713,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " change of the merged branch.",
             positional = false),
         @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
             name = "state",
             type = String.class,
             defaultValue = "'OPEN'",
@@ -768,6 +807,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String submodules,
       Boolean baselineFromBranch,
       Boolean firstParent,
+      Boolean partialClone,
       String state,
       Object reviewStateParam,
       Object reviewApproversParam,
@@ -818,6 +858,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
         firstParent,
+        partialClone,
         stringToEnum("state", state, StateFilter.class),
         reviewState,
         reviewApprovers,
@@ -867,6 +908,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " change of the merged branch.",
             positional = false),
         @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
             name = PATCH_FIELD,
             type = Transformation.class,
             defaultValue = "None",
@@ -897,6 +946,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object ref,
       String submodules,
       Boolean firstParent,
+      Boolean partialFetch,
       Object patch,
       Object describeVersion,
       Object versionSelector,
@@ -922,6 +972,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         /*includeBranchCommitLogs=*/ false,
         firstParent,
+        partialFetch,
         patchTransformation,
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null));
@@ -989,6 +1040,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             noneable = true),
         @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
             name = "integrates",
             type = Sequence.class,
             named = true,
@@ -1009,6 +1068,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object tagName,
       Object tagMsg,
       Object fetch,
+      boolean partialFetch,
       Object integrates,
       StarlarkThread thread)
       throws EvalException {
@@ -1023,6 +1083,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
             "fetch"),
         resolvedPush,
+        partialFetch,
         convertFromNoneable(tagName, null),
         convertFromNoneable(tagMsg, null),
         destinationOptions,
@@ -1081,6 +1142,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             noneable = true),
         @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
             name = "delete_pr_branch",
             type = Boolean.class,
             named = true,
@@ -1123,6 +1191,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String push,
       Object fetch,
       Object prBranchToUpdate,
+      Boolean partialFetch,
       Object deletePrBranchParam,
       Object integrates,
       Object checker,
@@ -1162,6 +1231,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             firstNotNull(destinationOptions.fetch, convertFromNoneable(fetch, null), resolvedPush),
             "fetch"),
         resolvedPush,
+        partialFetch,
         /*tagName*/ null,
         /*tagMsg*/ null,
         destinationOptions,
@@ -1210,6 +1280,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "Customize the pull request branch. Any variable present in the message in the "
                     + "form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable "
                     + "reference (head, PR number, Gerrit change number, etc.)."),
+          @Param(
+              name = "partial_fetch",
+              type = Boolean.class,
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = "title",
             type = String.class,
@@ -1298,6 +1376,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String url,
       String destinationRef,
       Object prBranch,
+      Boolean partialFetch,
       Object title,
       Object body,
       Object integrates,
@@ -1316,6 +1395,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             thread.getCallerLocation()),
         destinationRef,
         convertFromNoneable(prBranch, null),
+        partialFetch,
         generalOptions,
         options.get(GitHubOptions.class),
         destinationOptions,
@@ -1381,6 +1461,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
                     + " This is effectively a git.destination that sets a Change-Id",
             defaultValue = "False"),
+        @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            doc =
+                "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = "notify",
             type = String.class,
@@ -1484,6 +1571,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String fetch,
       Object pushToRefsFor,
       Boolean submit,
+      Boolean partialFetch,
       Object notifyOptionObj,
       String changeIdPolicy,
       Boolean allowEmptyPatchSet,
@@ -1525,6 +1613,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 fetch),
             "push_to_refs_for"),
         submit,
+        partialFetch,
         notifyOption,
         stringToEnum("change_id_policy", changeIdPolicy, ChangeIdPolicy.class),
         allowEmptyPatchSet,

@@ -119,9 +119,9 @@ public class GitIntegrateChanges implements StarlarkValue {
           integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository,
               generalOptions);
           if (integrateLabel == null) {
-            GitRevision gitRevision = GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null,
-                                                                 label.getValue(), generalOptions,
-                /*describeVersion=*/false);
+            GitRevision gitRevision =
+                GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null, label.getValue(),
+                    generalOptions, /*describeVersion=*/false, /*partialFetch*/ false);
             integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
           }
         }

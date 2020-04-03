@@ -89,6 +89,7 @@ public final class GitDestination implements Destination<GitRevision> {
   private final String repoUrl;
   private final String fetch;
   private final String push;
+  private final boolean partialFetch;
   @Nullable private final String tagName;
   @Nullable private final String tagMsg;
   private final GitDestinationOptions destinationOptions;
@@ -103,6 +104,7 @@ public final class GitDestination implements Destination<GitRevision> {
       String repoUrl,
       String fetch,
       String push,
+      boolean partialFetch,
       @Nullable String tagName,
       @Nullable String tagMsg,
       GitDestinationOptions destinationOptions,
@@ -113,6 +115,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
+    this.partialFetch = partialFetch;
     this.tagName = tagName;
     this.tagMsg = tagMsg;
     this.destinationOptions = checkNotNull(destinationOptions);
@@ -155,6 +158,7 @@ public final class GitDestination implements Destination<GitRevision> {
         repoUrl,
         fetch,
         push,
+        partialFetch,
         tagName,
         tagMsg,
         generalOptions,
@@ -202,6 +206,7 @@ public final class GitDestination implements Destination<GitRevision> {
     @Nullable private final String tagNameTemplate;
     @Nullable private final String tagMsgTemplate;
     private final boolean force;
+    private final boolean partialFetch;
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
     private final GeneralOptions generalOptions;
@@ -223,7 +228,7 @@ public final class GitDestination implements Destination<GitRevision> {
      * Create a new git.destination writer
      */
     WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush,  String tagNameTemplate, String tagMsgTemplate,
+        String remotePush, boolean partialFetch, String tagNameTemplate, String tagMsgTemplate,
         GeneralOptions generalOptions, WriteHook writeHook, S state,
         boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
         boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
@@ -233,6 +238,7 @@ public final class GitDestination implements Destination<GitRevision> {
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
       this.remotePush = checkNotNull(remotePush);
+      this.partialFetch = partialFetch;
       this.tagNameTemplate = tagNameTemplate;
       this.tagMsgTemplate = tagMsgTemplate;
       this.force = generalOptions.isForced();
@@ -682,7 +688,7 @@ public final class GitDestination implements Destination<GitRevision> {
       String completeFetchRef = getCompleteRef(fetch);
       try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")) {
         console.progress("Git Destination: Fetching: " + repoUrl + " " + completeFetchRef);
-        return repo.fetchSingleRef(repoUrl, completeFetchRef);
+        return repo.fetchSingleRef(repoUrl, completeFetchRef, partialFetch);
       } catch (CannotResolveRevisionException e) {
         String warning = format("Git Destination: '%s' doesn't exist in '%s'",
             completeFetchRef, repoUrl);
@@ -765,6 +771,7 @@ public final class GitDestination implements Destination<GitRevision> {
         .add("repoUrl", repoUrl)
         .add("fetch", fetch)
         .add("push", push)
+        .add("partialFetch", partialFetch)
         .toString();
   }
 
@@ -791,7 +798,8 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("type", getType())
             .put("url", repoUrl)
             .put("fetch", fetch)
-            .put("push", push);
+            .put("push", push)
+            .put("partialFetch", Boolean.toString(partialFetch));
     builder.putAll(writerHook.describe());
     if (tagName != null) {
       builder.put("tagName", tagName);

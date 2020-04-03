@@ -87,6 +87,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
   boolean firstParent;
+  private final boolean partialFetch;
   @Nullable private final PatchTransformation patchTransformation;
   protected final boolean describeVersion;
   @Nullable private final LatestVersionSelector versionSelector;
@@ -94,7 +95,7 @@ public class GitOrigin implements Origin<GitRevision> {
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
-      boolean includeBranchCommitLogs, boolean firstParent,
+      boolean includeBranchCommitLogs, boolean firstParent, boolean partialClone,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
       @Nullable LatestVersionSelector versionSelector) {
     this.generalOptions = generalOptions;
@@ -110,6 +111,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.submoduleStrategy = submoduleStrategy;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.firstParent = firstParent;
+    this.partialFetch = partialClone;
     this.patchTransformation = patchTransformation;
     this.describeVersion = describeVersion;
     this.versionSelector = versionSelector;
@@ -117,6 +119,9 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
+    if (partialFetch) {
+      return gitOptions.cachedBareRepoForUrl(repoUrl).withPartialClone();
+    }
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
 
@@ -124,7 +129,7 @@ public class GitOrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
         gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent, patchTransformation, describeVersion);
+        firstParent, partialFetch, patchTransformation, describeVersion);
   }
 
   @Override
@@ -144,7 +149,7 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
-        describeVersion);
+        describeVersion, partialFetch);
     return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 
@@ -165,6 +170,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
     private final boolean firstParent;
+    private final boolean partialFetch;
     @Nullable private final PatchTransformation patchTransformation;
     private final boolean describeVersion;
 
@@ -175,6 +181,7 @@ public class GitOrigin implements Origin<GitRevision> {
         boolean includeBranchCommitLogs,
         SubmoduleStrategy submoduleStrategy,
         boolean firstParent,
+        boolean partialFetch,
         @Nullable PatchTransformation patchTransformation,
         boolean describeVersion) {
       this.repoUrl = checkNotNull(repoUrl);
@@ -186,6 +193,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
       this.firstParent = firstParent;
+      this.partialFetch = partialFetch;
       this.patchTransformation = patchTransformation;
       this.describeVersion = describeVersion;
     }
@@ -195,10 +203,14 @@ public class GitOrigin implements Origin<GitRevision> {
           .setVerbose(generalOptions.isVerbose())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs)
           .setRoots(originFiles.roots())
+          .setPartialFetch(partialFetch)
           .setUrl(repoUrl);
     }
 
     protected GitRepository getRepository() throws RepoException {
+      if (partialFetch) {
+        return gitOptions.cachedBareRepoForUrl(repoUrl).withPartialClone();
+      }
       return gitOptions.cachedBareRepoForUrl(repoUrl);
     }
 
@@ -278,16 +290,17 @@ public class GitOrigin implements Origin<GitRevision> {
         // TODO(danielromero): Remove temporary feature after 2019-10-30
         if (generalOptions.isTemporaryFeature("SUBMODULES_FETCH_ALL", true)) {
           if (submodule.getBranch() != null) {
-            subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
+            subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch(), partialFetch);
           } else {
             subRepo.fetch(
                 submodule.getUrl(), /*prune*/
                 true, /*force*/
                 true,
-                ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"));
+                ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
+                partialFetch);
           }
         } else {
-          subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch());
+          subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch(), partialFetch);
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(
@@ -315,7 +328,7 @@ public class GitOrigin implements Origin<GitRevision> {
         return;
       }
       generalOptions.console().info(String.format("Rebasing %s to %s", rebaseToRef, rebaseToRef));
-      GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef);
+      GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef, partialFetch);
       repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
       repo.rebase(COPYBARA_TMP_REF);
     }
@@ -418,13 +431,14 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
+      boolean partialClone,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
       @Nullable LatestVersionSelector versionSelector) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        submoduleStrategy, includeBranchCommitLogs, firstParent, patchTransformation,
-        describeVersion, versionSelector);
+        submoduleStrategy, includeBranchCommitLogs, firstParent, partialClone,
+        patchTransformation, describeVersion, versionSelector);
   }
 
   @Override

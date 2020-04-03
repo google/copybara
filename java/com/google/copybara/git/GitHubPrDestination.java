@@ -65,6 +65,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final String url;
   private final String destinationRef;
   private final String prBranch;
+  private final boolean partialFetch;
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final GitDestinationOptions destinationOptions;
@@ -83,6 +84,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       String url,
       String destinationRef,
       @Nullable String prBranch,
+      boolean partialFetch,
       GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
       GitDestinationOptions destinationOptions,
@@ -98,6 +100,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
+    this.partialFetch = partialFetch;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
@@ -150,6 +153,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         url,
         destinationRef,
         prBranch,
+        partialFetch,
         /*tagName*/null,
         /*tagMsg*/null,
         generalOptions,

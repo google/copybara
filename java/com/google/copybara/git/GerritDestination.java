@@ -112,6 +112,7 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final List<String> labelsTemplate;
     @Nullable
     private final String topicTemplate;
+    private final boolean partialFetch;
 
     GerritWriteHook(
         GeneralOptions generalOptions,
@@ -125,7 +126,8 @@ public final class GerritDestination implements Destination<GitRevision> {
         List<String> labelsTemplate,
         @Nullable Checker endpointChecker,
         @Nullable NotifyOption notifyOption,
-        @Nullable String topicTemplate) {
+        @Nullable String topicTemplate,
+        boolean partialFetch) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -139,6 +141,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.notifyOption = notifyOption;
       this.labelsTemplate = labelsTemplate;
       this.topicTemplate = topicTemplate;
+      this.partialFetch = partialFetch;
     }
 
     /**
@@ -220,7 +223,7 @@ public final class GerritDestination implements Destination<GitRevision> {
 
         try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_previous_patchset")) {
           repo.fetch(repoUrl, /*prune=*/ false, /*force=*/ true,
-              ImmutableList.of(changeInfo.getCurrentRevision()));
+              ImmutableList.of(changeInfo.getCurrentRevision()), partialFetch);
         } catch (RepoException | ValidationException e) {
           // Don't fail if we cannot find the previous patchset
           logger.atWarning().withCause(e).log("Cannot download previous patchset: %s", changeInfo);
@@ -500,6 +503,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       String fetch,
       String pushToRefsFor,
       boolean submit,
+      boolean partialFetch,
       @Nullable NotifyOption notifyOption,
       ChangeIdPolicy changeIdPolicy,
       boolean allowEmptyPatchSet,
@@ -518,6 +522,7 @@ public final class GerritDestination implements Destination<GitRevision> {
             url,
             fetch,
             push,
+            partialFetch,
             /*tagName=*/null,
             /*tagMsg=*/null,
             destinationOptions,
@@ -535,7 +540,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 labels,
                 endpointChecker,
                 notifyOption,
-                topicTemplate),
+                topicTemplate,
+                partialFetch),
             integrates),
         submit);
   }

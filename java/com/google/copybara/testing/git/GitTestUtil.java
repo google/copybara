@@ -389,9 +389,9 @@ public class GitTestUtil {
 
     @Override
     public FetchResult fetch(String url, boolean prune, boolean force,
-        Iterable<String> refspecs) throws RepoException, ValidationException {
+        Iterable<String> refspecs, boolean partialFetch) throws RepoException, ValidationException {
       validator.validateFetch(url, prune, force, refspecs);
-      return super.fetch(mapUrl(url), prune, force, refspecs);
+      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch);
     }
 
     @Override

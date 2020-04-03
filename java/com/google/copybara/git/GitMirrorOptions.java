@@ -46,7 +46,8 @@ public class GitMirrorOptions implements Option {
       description = "Force push even if it is not fast-forward")
   boolean forcePush = false;
 
-  public void mirror(String origin, String destination, List<Refspec> refspec, boolean prune)
+  public void mirror(String origin, String destination, List<Refspec> refspec, boolean prune,
+      boolean partialFetch)
       throws RepoException, ValidationException {
     GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
     List<String> fetchRefspecs = refspec.stream()
@@ -57,7 +58,7 @@ public class GitMirrorOptions implements Option {
 
     Profiler profiler = generalOptions.profiler();
     try (ProfilerTask ignore = profiler.start("fetch")) {
-      repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs);
+      repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs, partialFetch);
     }
 
     if (generalOptions.dryRunMode) {

@@ -256,13 +256,13 @@ public class GitRepository {
    * locations. IOW
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
-  public GitRevision fetchSingleRef(String url, String ref)
+  public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch)
       throws RepoException, ValidationException {
-    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false);
+    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false, partialFetch);
   }
 
-  public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags)
-      throws RepoException, ValidationException {
+  public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags,
+      boolean partialFetch) throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -275,7 +275,7 @@ public class GitRepository {
     // allows to download it.
     if (isSha1Reference(ref)) {
       // Tags are fetched by the default refspec
-      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of());
+      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(), partialFetch);
       try {
         return resolveReferenceWithContext(ref, /*contextRef=*/ref, url);
       } catch (RepoException | CannotResolveRevisionException ignore) {
@@ -285,14 +285,14 @@ public class GitRepository {
 
     if (fetchTags) {
       fetch(url, /*prune=*/false, /*force=*/true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"));
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"), partialFetch);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
       fetch(
           url,
           /*prune=*/ false,
           /*force=*/ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref));
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     }
   }
@@ -328,10 +328,13 @@ public class GitRepository {
    * @return the set of fetched references and what action was done ( rejected, new reference,
    * updated, etc.)
    */
-  public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
-      throws RepoException, ValidationException {
+  public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
+      boolean partialFetch) throws RepoException, ValidationException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
+    if (partialFetch) {
+      args.add("--filter=blob:none");
+    }
     args.add("--verbose");
     // This shows progress in the log if not attached to a terminal
     args.add("--progress");
@@ -1017,6 +1020,15 @@ public class GitRepository {
     git(gitDir, ImmutableList.of("config", "--local", "credential.helper",
         checkNotNull(credentialHelper)));
     return this;
+  }
+
+  public GitRepository withPartialClone() {
+    try {
+      this.simpleCommand("config", "extensions.partialClone", "true");
+    } catch (Exception e) {
+      logger.atInfo().withCause(e).log("Partial Clone %s", e);
+    }
+    return new GitRepository(gitDir, workTree, verbose, gitEnv, fetchTimeout, noVerify);
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {

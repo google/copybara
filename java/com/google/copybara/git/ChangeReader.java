@@ -46,12 +46,13 @@ class ChangeReader {
   private final boolean includeBranchCommitLogs;
   private final String url;
   private final boolean firstParent;
+  private final boolean partialFetch;
   private final int skip;
   @Nullable private final String grepString;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
       Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
-      boolean firstParent, int skip, @Nullable String grepString) {
+      boolean firstParent, boolean partialFetch, int skip, @Nullable String grepString) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.limit = limit;
@@ -59,6 +60,7 @@ class ChangeReader {
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.url = url;
     this.firstParent = firstParent;
+    this.partialFetch = partialFetch;
     this.skip = skip;
     this.grepString = grepString;
   }
@@ -76,6 +78,11 @@ class ChangeReader {
     if (grepString != null) {
       logCmd = logCmd.grep(grepString);
     }
+    if (partialFetch) {
+      logCmd = logCmd.withPaths(roots);
+      return parseChanges(logCmd.includeMergeDiff(true).run());
+    }
+
     // Log command does not filter by roots here because of how git log works. Some commits (e.g.
     // fake merges) might not include the files in the log, and filtering here would return
     // incorrect results. We do filter later on the changes to match the actual glob.
@@ -161,6 +168,7 @@ class ChangeReader {
     private boolean includeBranchCommitLogs = false;
     private String url;
     private boolean firstParent;
+    private boolean partialFetch;
     private int skip;
     private String grepString;
 
@@ -195,6 +203,11 @@ class ChangeReader {
 
     private Builder setAuthoring(Authoring authoring) {
       this.authoring = checkNotNull(authoring, "authoring");
+      return this;
+    }
+
+    Builder setPartialFetch(boolean partialFetch) {
+      this.partialFetch = partialFetch;
       return this;
     }
 
@@ -236,7 +249,7 @@ class ChangeReader {
     ChangeReader build() {
       return new ChangeReader(
           authoring, repository, limit, roots, includeBranchCommitLogs, url,
-          firstParent, skip, grepString);
+          firstParent, partialFetch, skip, grepString);
     }
   }
 

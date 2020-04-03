@@ -493,7 +493,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     FetchResult result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-                                    ImmutableList.of("refs/*:refs/*"));
+                                    ImmutableList.of("refs/*:refs/*"), false);
 
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
@@ -507,12 +507,33 @@ public class GitRepositoryTest {
     repository.simpleCommand("branch", "-D", "deleted");
 
     result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"));
+        ImmutableList.of("refs/*:refs/*"), false);
 
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
     assertThat(result.getInserted()).isEmpty();
   }
+
+  @Test
+  public void testPartialFetch() throws Exception {
+    GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
+    local.init();
+    local = local.withPartialClone();
+    GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
+    GitTestUtil.writeFile(workdir, "b/bar.txt", "b");
+    repository.add().files("a/foo.txt").run();
+    repository.add().files("b/bar.txt").run();
+    repository.simpleCommand("commit", "a/foo.txt", "b/bar.txt", "-m", "message");
+    String fetchUrl = "file://" + repository.getGitDir();
+
+    local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
+        ImmutableList.of("refs/*:refs/*"), true);
+    CommandOutput commandOutput =
+        local.simpleCommand( "config", "--get-regexp", "remote..*.partialclonefilter");
+    assertThat(commandOutput.getStdout()).contains("blob:none");
+  }
+
 
   @Test
   public void testForceCheckout() throws Exception {
@@ -529,7 +550,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"));
+        ImmutableList.of("refs/*:refs/*"), false);
     local.withWorkTree(localWorkdir).forceCheckout("master", ImmutableSet.of("a"));
 
     assertThat(Files.exists(localWorkdir.resolve("a/foo.txt"))).isTrue();
@@ -544,10 +565,10 @@ public class GitRepositoryTest {
         true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
 
       @Override
-      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs)
+      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs, boolean partialFetch)
           throws RepoException, ValidationException {
         requestedFetches.add(refspecs);
-        return super.fetch(url, prune, force, refspecs);
+        return super.fetch(url, prune, force, refspecs, partialFetch);
       }
     }.init();
 
@@ -559,7 +580,7 @@ public class GitRepositoryTest {
         CannotResolveRevisionException.class,
         () ->
             dest.fetchSingleRef(
-                "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+                "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false));
 
     // This is the important part of the test: We do two fetches, the first ones for the default
     // head and if it fails we do one for the ref
@@ -582,7 +603,7 @@ public class GitRepositoryTest {
         CannotResolveRevisionException.class,
         () ->
             dest.fetch(
-                fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*")));
+                fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"), false));
   }
 
   @Test

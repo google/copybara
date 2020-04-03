@@ -52,12 +52,13 @@ public class Mirror implements Migration {
   private final List<Refspec> refspec;
   private final GitMirrorOptions mirrorOptions;
   private final boolean prune;
+  private final boolean partialFetch;
   private final ConfigFile mainConfigFile;
   @Nullable private final String description;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
       String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
-      ConfigFile mainConfigFile, @Nullable String description) {
+      boolean partialFetch, ConfigFile mainConfigFile, @Nullable String description) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -66,6 +67,7 @@ public class Mirror implements Migration {
     this.refspec = Preconditions.checkNotNull(refspec);
     this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
     this.prune = prune;
+    this.partialFetch = partialFetch;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.description = description;
   }
@@ -74,7 +76,7 @@ public class Mirror implements Migration {
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
-      mirrorOptions.mirror(origin, destination, refspec, prune);
+      mirrorOptions.mirror(origin, destination, refspec, prune, partialFetch);
     }
 
     // More fine grain events based on the references created/updated/deleted:

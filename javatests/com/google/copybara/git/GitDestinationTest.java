@@ -91,6 +91,7 @@ public class GitDestinationTest {
   private SkylarkTestExecutor skylark;
   private String tagName;
   private String tagMsg;
+  private String partialClone;
 
   private Path workdir;
 
@@ -104,6 +105,7 @@ public class GitDestinationTest {
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
+    partialClone = "False";
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options);
@@ -191,7 +193,8 @@ public class GitDestinationTest {
             + "    url = '%s',\n"
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
-            + ")", url, fetch, push));
+            + "    partial_fetch = %s,\n"
+            + ")", url, fetch, push, partialClone));
   }
 
   private GitDestination evalDestinationWithTag(String tagMsg)

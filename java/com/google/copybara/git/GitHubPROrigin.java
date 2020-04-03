@@ -109,6 +109,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final Console console;
   private final boolean baselineFromBranch;
   private final Boolean firstParent;
+  private final Boolean partialFetch;
   private final StateFilter requiredState;
   @Nullable private final ReviewState reviewState;
   private final ImmutableSet<AuthorAssociation> reviewApprovers;
@@ -122,7 +123,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
       GitHubPrOriginOptions gitHubPrOriginOptions,
       Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
-      boolean baselineFromBranch, Boolean firstParent, StateFilter requiredState,
+      boolean baselineFromBranch, Boolean firstParent, Boolean partialClone,
+      StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
@@ -141,6 +143,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
     this.firstParent = firstParent;
+    this.partialFetch = partialClone;
     this.requiredState = checkNotNull(requiredState);
     this.reviewState = reviewState;
     this.reviewApprovers = checkNotNull(reviewApprovers);
@@ -301,7 +304,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       }
       ImmutableList<String> refspec = refSpecBuilder.build();
-      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true, refspec);
+      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true, refspec,
+          partialFetch);
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(
@@ -365,7 +369,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       throws ValidationException {
     return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
         generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent,
-        patchTransformation, describeVersion) {
+        partialFetch, patchTransformation, describeVersion) {
 
       /**
        * Disable rebase since this is controlled by useMerge field.

@@ -59,6 +59,7 @@ public class GerritOrigin extends GitOrigin {
   private final GerritOptions gerritOptions;
   private final SubmoduleStrategy submoduleStrategy;
   private final boolean includeBranchCommitLogs;
+  private final boolean partialFetch;
   @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
@@ -73,6 +74,7 @@ public class GerritOrigin extends GitOrigin {
       SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs,
       boolean firstParent,
+      boolean partialFetch,
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
@@ -87,6 +89,7 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         includeBranchCommitLogs,
         firstParent,
+        partialFetch,
         patchTransformation, describeVersion,
         /*versionSelector=*/null);
     this.generalOptions = checkNotNull(generalOptions);
@@ -98,6 +101,7 @@ public class GerritOrigin extends GitOrigin {
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
     this.branch = branch;
+    this.partialFetch = partialFetch;
   }
 
   @Override
@@ -110,7 +114,7 @@ public class GerritOrigin extends GitOrigin {
         this.generalOptions);
     if (change == null) {
       GitRevision gitRevision = GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
-          this.generalOptions, describeVersion);
+          this.generalOptions, describeVersion, partialFetch);
       return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
     }
     GerritApi api = gerritOptions.newGerritApi(repoUrl);
@@ -150,8 +154,9 @@ public class GerritOrigin extends GitOrigin {
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
       Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
-      @Nullable Checker endpointChecker, @Nullable PatchTransformation patchTransformation,
-      @Nullable String branch, boolean describeVersion) {
+      boolean partialFetch, @Nullable Checker endpointChecker,
+      @Nullable PatchTransformation patchTransformation, @Nullable String branch,
+      boolean describeVersion) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -163,6 +168,7 @@ public class GerritOrigin extends GitOrigin {
         submoduleStrategy,
         /*includeBranchCommitLogs=*/ false,
         firstParent,
+        partialFetch,
         endpointChecker,
         patchTransformation,
         branch,
@@ -172,7 +178,7 @@ public class GerritOrigin extends GitOrigin {
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent,
+        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent, partialFetch,
         patchTransformation, describeVersion) {
 
       @Override
