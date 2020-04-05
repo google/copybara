@@ -42,6 +42,8 @@ import com.google.copybara.Revision;
 import com.google.copybara.WriterContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitDestination.WriterImpl;
+import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.testing.DummyRevision;
@@ -60,6 +62,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -528,6 +531,77 @@ public class GitHubPrDestinationTest {
         "test summary\n"
             + "\n"
             + "DummyOrigin-RevId: one\n");
+  }
+
+  @Test
+  public void testForkUrl() throws Exception {
+    {
+      GitHubPrDestination d =
+          skylark.eval(
+              "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'," + ")");
+      Optional<String> forkUrl = d.pushUrl(null);
+      assertThat(forkUrl.isPresent()).isFalse();
+    }
+
+    {
+      GitHubPrDestination d =
+          skylark.eval(
+              "r",
+              "r = git.github_pr_destination("
+                  + "    url = 'https://github.com/foo',"
+                  + "    fork_url = 'https://github.com/bar',"
+                  + ")");
+      Optional<String> forkUrl = d.pushUrl(null);
+      assertThat(forkUrl.isPresent()).isTrue();
+      assertThat(forkUrl.get()).isEqualTo("https://github.com/bar");
+    }
+
+    {
+      GitHubPrDestination d =
+          skylark.eval(
+              "r",
+              "r = git.github_pr_destination("
+                  + "    url = 'https://github.com/foo',"
+                  + "    push_to_fork = True,"
+                  + "    fork_url = 'https://github.com/bar',"
+                  + ")");
+      Optional<String> forkUrl = d.pushUrl(null);
+      assertThat(forkUrl.isPresent()).isTrue();
+      assertThat(forkUrl.get()).isEqualTo("https://github.com/bar");
+    }
+
+    {
+      // fork_url wins over push_to_fork.
+      GitHubPrDestination d =
+          skylark.eval(
+              "r",
+              "r = git.github_pr_destination("
+                  + "    url = 'https://github.com/foo',"
+                  + "    push_to_fork = False,"
+                  + "    fork_url = 'https://github.com/bar',"
+                  + ")");
+      Optional<String> forkUrl = d.pushUrl(null);
+      assertThat(forkUrl.isPresent()).isTrue();
+      assertThat(forkUrl.get()).isEqualTo("https://github.com/bar");
+    }
+  }
+
+  @Test
+  public void testPushToForkUrl() throws Exception {
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_pr_destination("
+                + "    url = 'https://github.com/foo',"
+                + "    fork_url = 'https://github.com/bar',"
+                + ")");
+    DummyRevision dummyRevision = new DummyRevision("dummyReference", "feature");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github_pr", "TEST", false, dummyRevision, Glob.ALL_FILES.roots());
+    WriterImpl<WriterState> writer = (WriterImpl<WriterState>) d.newWriter(writerContext);
+    assertThat(writer.getFetchRepoUrl()).isEqualTo("https://github.com/foo");
+    assertThat(writer.getPushRepoUrl()).isEqualTo("https://github.com/bar");
   }
 
   @Test

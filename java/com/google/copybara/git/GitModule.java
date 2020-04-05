@@ -89,6 +89,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -1200,6 +1201,32 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "Destination reference for the change. By default 'master'",
             defaultValue = "\"master\""),
         @Param(
+            name = "push_to_fork",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "Indicates that the result of the change should be pushed to the current user's "
+                    + "personal fork. The PullRequest will still be created on the upstream "
+                    + "project."
+                    + "<p>The url of the fork is inferred from `url` and the credentials of the "
+                    + "GitHub user (e.g., if `url` is `https://github.com/google/copybara.git` and "
+                    + "the workflow is executed by `copybara-bot`, `fork_url` is assumed to be "
+                    + "`https://github.com/copybara-bot/copybara.git`).</p>"
+                    + "<p>If `fork_url` is set, this will be ignored.</p>"),
+        @Param(
+            name = "fork_url",
+            type = String.class,
+            defaultValue = "None",
+            noneable = true,
+            named = true,
+            positional = false,
+            doc =
+                "Sets the url of the fork Copybara will push the change to. "
+                    + "The PullRequest will still be created on the upstream project."
+                    + "<p>`push_to_fork` is ignored if this is set.</p>"),
+        @Param(
             name = "pr_branch",
             type = String.class,
             defaultValue = "None",
@@ -1297,6 +1324,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public GitHubPrDestination githubPrDestination(
       String url,
       String destinationRef,
+      Boolean pushToFork,
+      Object forkUrl,
       Object prBranch,
       Object title,
       Object body,
@@ -1309,12 +1338,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
     check(GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    check(
+        forkUrl == Starlark.NONE || GitHubUtil.isGitHubUrl((String) forkUrl),
+        "'%s' is not a valid GitHub url",
+        forkUrl);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GitHubPrDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
             thread.getCallerLocation()),
         destinationRef,
+        pushToFork,
+        forkUrl == Starlark.NONE
+            ? Optional.empty()
+            : Optional.of(
+                fixHttp(checkNotEmpty((String) forkUrl, "fork_url"), thread.getCallerLocation())),
         convertFromNoneable(prBranch, null),
         generalOptions,
         options.get(GitHubOptions.class),

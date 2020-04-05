@@ -52,6 +52,20 @@ public class GitHubUtil {
   }
 
   /**
+   * Return the repository part of a github url. For example in https://github.com/foo/bar/baz,
+   * 'bar' would be the repository.
+   */
+  public static String getRepoNameFromUrl(String url) throws ValidationException {
+    String project = getProjectNameFromUrl(url);
+    int start = project.indexOf("/");
+    if (start < 0) {
+      throw new ValidationException("Cannot find repo name from url " + url);
+    }
+    int end = project.indexOf("/", start + 1);
+    return end < 0 ? project.substring(start + 1) : project.substring(start + 1, end);
+  }
+
+  /**
    * Given a url that represents a GitHub repository, return the project name.
    */
   public static String getProjectNameFromUrl(String url) throws ValidationException {
