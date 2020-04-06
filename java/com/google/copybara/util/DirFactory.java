@@ -47,7 +47,7 @@ public class DirFactory {
   /** Creates a temp directory in the root path. */
   public Path newTempDir(String name) throws IOException {
     Path outputPath = getTmpRoot();
-    // Create the output if it doesn't exist.
+    // Create the output if it does not exist.
     Files.createDirectories(outputPath);
     return Files.createTempDirectory(outputPath, name);
   }
