@@ -368,7 +368,7 @@ public final class GitDestination implements Destination<GitRevision> {
           throws ValidationException, RepoException;
 
       /**
-       * Validate or do modifications to the current change to be pushed.
+       * Validate or modify the current change to be pushed.
        *
        * <p>{@code HEAD} commit should point to the commit to be pushed. Any change on the local
        * git repo should keep current commit as HEAD or do the proper modifications to make HEAD to
