@@ -356,29 +356,29 @@ public class GitRepository {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
     }
-    checkStdErr(output, url, requestedRefs);
+    checkFetchError(output.getStderr(), url, requestedRefs);
     throw throwUnknownGitError(output, args);
   }
 
-  public void checkStdErr(CommandOutputWithStatus output, String url, List<String> requestedRefs)
+  public void checkFetchError(String stdErr, String url, List<String> requestedRefs)
       throws ValidationException, RepoException {
-    if (output.getStderr().isEmpty()
-        || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
+    if (stdErr.isEmpty()
+        || FETCH_CANNOT_RESOLVE_ERRORS.matcher(stdErr).find()) {
       throw new CannotResolveRevisionException("Cannot find reference(s): " + requestedRefs);
     }
-    if (NO_GIT_REPOSITORY.matcher(output.getStderr()).find()) {
+    if (NO_GIT_REPOSITORY.matcher(stdErr).find()) {
       throw new CannotResolveRevisionException(
-          String.format("Invalid Git repository: %s. Error: %s", url, output.getStderr()));
+          String.format("Invalid Git repository: %s. Error: %s", url, stdErr));
     }
-    if (output.getStderr().contains(
+    if (stdErr.contains(
         "Server does not allow request for unadvertised object")) {
       throw new CannotResolveRevisionException(
-          String.format("%s: %s", url, output.getStderr().trim()));
+          String.format("%s: %s", url, stdErr.trim()));
     }
-    if (output.getStderr().contains("Permission denied")
-        || output.getStderr().contains("Could not read from remote repository")
-        || output.getStderr().contains("Repository not found")) {
-      throw new AccessValidationException(output.getStderr());
+    if (stdErr.contains("Permission denied")
+        || stdErr.contains("Could not read from remote repository")
+        || stdErr.contains("Repository not found")) {
+      throw new AccessValidationException(stdErr);
     }
   }
 
