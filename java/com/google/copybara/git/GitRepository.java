@@ -107,7 +107,8 @@ public class GitRepository {
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
-  private static final Pattern FAILED_REBASE = Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
+  private static final Pattern FAILED_REBASE =
+      Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
       ImmutableList.of(
           Pattern.compile("pathspec '(.+)' did not match any file"),
@@ -355,6 +356,12 @@ public class GitRepository {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
     }
+    checkStdErr(output, url, requestedRefs);
+    throw throwUnknownGitError(output, args);
+  }
+
+  public void checkStdErr(CommandOutputWithStatus output, String url, List<String> requestedRefs)
+      throws ValidationException, RepoException {
     if (output.getStderr().isEmpty()
         || FETCH_CANNOT_RESOLVE_ERRORS.matcher(output.getStderr()).find()) {
       throw new CannotResolveRevisionException("Cannot find reference(s): " + requestedRefs);
@@ -369,11 +376,10 @@ public class GitRepository {
           String.format("%s: %s", url, output.getStderr().trim()));
     }
     if (output.getStderr().contains("Permission denied")
-            || output.getStderr().contains("Could not read from remote repository")
-            || output.getStderr().contains("Repository not found")) {
+        || output.getStderr().contains("Could not read from remote repository")
+        || output.getStderr().contains("Repository not found")) {
       throw new AccessValidationException(output.getStderr());
     }
-    throw throwUnknownGitError(output, args);
   }
 
   /**
