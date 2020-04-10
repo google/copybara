@@ -23,6 +23,7 @@ import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNMODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.UNTRACKED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
+import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
@@ -43,6 +44,12 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -57,10 +64,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
@@ -150,6 +153,26 @@ public class GitRepositoryTest {
 
     assertThat(entry.getAuthorDate()).isEquivalentAccordingToCompareTo(epoch);
     assertThat(entry.getCommitDate()).isEquivalentAccordingToCompareTo(epoch);
+  }
+
+  @Test
+  public void testUnicodeFilename() throws RepoException, IOException {
+    writeFile(workdir,"unrelated","unrelated");
+    repository.add().files("unrelated").run();
+    repository.simpleCommand("commit", "-a", "-m", "unrelated change");
+
+    writeFile(workdir, "test/hello_\360\237\214\220.isolate", "hi");
+    writeFile(workdir, "test/foo", "bye");
+    repository.add().files("test/hello_\360\237\214\220.isolate").run();
+    repository.add().files("test/foo").run();
+    //
+    repository.simpleCommand("commit", "-a", "-m", "message");
+    GitLogEntry entry = repository.log("HEAD")
+        .includeFiles(true)
+        .withLimit(2)
+        .run().get(0);
+    assertThat(entry.getFiles())
+        .containsExactly("test/hello_\360\237\214\220.isolate", "test/foo");
   }
 
   @Test
@@ -542,8 +565,8 @@ public class GitRepositoryTest {
     GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     local.init();
-    GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
-    GitTestUtil.writeFile(workdir, "b/bar.txt", "b");
+    writeFile(workdir, "a/foo.txt", "a");
+    writeFile(workdir, "b/bar.txt", "b");
     repository.add().files("a/foo.txt").run();
     repository.add().files("b/bar.txt").run();
     repository.simpleCommand("commit", "a/foo.txt", "b/bar.txt", "-m", "message");

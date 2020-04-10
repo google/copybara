@@ -59,6 +59,7 @@ import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -84,6 +85,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -151,7 +153,7 @@ public class GitRepository {
    * We cannot control the repo storage location, but we can limit the number of characters of the
    * repo folder name.
    */
-  private static final int  DEFAULT_MAX_LOG_LINES = 4_000;
+  private static final int DEFAULT_MAX_LOG_LINES = 4_000;
   public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
   public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
 
@@ -207,17 +209,15 @@ public class GitRepository {
   /**
    * Get the version of git that will be used for running migrations. Returns empty if git cannot be
    * found.
-   *
-   * @param gitEnv
    */
   private static Optional<String> version(GitEnvironment gitEnv) {
     try {
       String version =
           executeGit(
-                  Paths.get(StandardSystemProperty.USER_DIR.value()),
-                  ImmutableList.of("version"),
-                  gitEnv,
-                  /*verbose=*/ false)
+              Paths.get(StandardSystemProperty.USER_DIR.value()),
+              ImmutableList.of("version"),
+              gitEnv,
+              /*verbose=*/ false)
               .getStdout();
       return Optional.of(version);
     } catch (CommandException e) {
@@ -311,10 +311,10 @@ public class GitRepository {
     }
   }
 
-  public String showDiff(String referenceFrom, String referenceTo) throws RepoException{
-      Preconditions.checkNotNull(referenceFrom, "Parameter referenceFrom should not be null");
-      Preconditions.checkNotNull(referenceTo, "Parameter referenceTo should not be null");
-      return simpleCommand("diff", referenceFrom, referenceTo).getStdout();
+  public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
+    Preconditions.checkNotNull(referenceFrom, "Parameter referenceFrom should not be null");
+    Preconditions.checkNotNull(referenceTo, "Parameter referenceTo should not be null");
+    return simpleCommand("diff", referenceFrom, referenceTo).getStdout();
   }
 
   /**
@@ -427,7 +427,7 @@ public class GitRepository {
   }
 
 
-   private static Map<String, String> lsRemote(Path cwd,
+  private static Map<String, String> lsRemote(Path cwd,
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException {
 
@@ -937,7 +937,7 @@ public class GitRepository {
     if (recursive) {
       args.add("-r");
     }
-    if (fullName){
+    if (fullName) {
       args.add("--full-name");
     }
     if (treeish != null) {
@@ -1083,6 +1083,7 @@ public class GitRepository {
     // Force clean and also untracked directories.
     simpleCommand("clean", "-f", "-d");
   }
+
   /**
    * Execute git apply.
    *
@@ -1282,16 +1283,16 @@ public class GitRepository {
    * Resolves a git reference to the SHA-1 reference
    */
   public String readFile(String revision, String path) throws RepoException {
-   CommandOutputWithStatus result = gitAllowNonZeroExit(NO_INPUT,
-       ImmutableList.of("--no-pager", "show", String.format("%s:%s", revision, path)),
-       DEFAULT_TIMEOUT);
+    CommandOutputWithStatus result = gitAllowNonZeroExit(NO_INPUT,
+        ImmutableList.of("--no-pager", "show", String.format("%s:%s", revision, path)),
+        DEFAULT_TIMEOUT);
     if (!result.getTerminationStatus().success()) {
       throw new RepoException(String.format("Cannot read file '%s' in '%s'", path, revision));
     }
     return result.getStdout();
   }
 
-  public void checkout(Glob glob, Path destRoot, GitRevision rev) throws  RepoException {
+  public void checkout(Glob glob, Path destRoot, GitRevision rev) throws RepoException {
     ImmutableList<TreeElement> treeElements = lsTree(rev, null, true, true);
     PathMatcher pathMatcher = glob.relativeTo(destRoot);
     for (TreeElement file : treeElements) {
@@ -1741,6 +1742,9 @@ public class GitRepository {
       if (includeMergeDiff) {
         cmd.add("-m");
       }
+      // Without this flag, non-ascii characters in file names are returned wrapped
+      // in quotes and the unicode chars escaped.
+      cmd.add("-z");
       if (skip > 0) {
         cmd.add("--skip");
         cmd.add(Integer.toString(skip));
@@ -1770,7 +1774,7 @@ public class GitRepository {
       }
 
       ImmutableList.Builder<GitLogEntry> commits = ImmutableList.builder();
-      for (String msg : Splitter.on("\n" + COMMIT_SEPARATOR).
+      for (String msg : Splitter.on("\0" + COMMIT_SEPARATOR).
           split(log.substring(COMMIT_SEPARATOR.length()))) {
 
         List<String> groups = Splitter.on("\n" + GROUP).splitToList(msg);
@@ -1787,10 +1791,14 @@ public class GitRepository {
           body = body.replace("\r\n", "\n");
         }
 
-        ImmutableSet<String> files = includeStat
-            ? ImmutableSet.copyOf(Splitter.on("\n").omitEmptyStrings().split(groups.get(2)))
-            : null;
-
+        ImmutableSet<String> files = null;
+        if (includeStat) {
+          String fileString = groups.get(2);
+          if (fileString.startsWith("\0\n")) {
+            fileString = fileString.substring(2);
+          }
+          files = ImmutableSet.copyOf(Splitter.on("\0").omitEmptyStrings().split(fileString));
+        }
         ImmutableList.Builder<GitRevision> parents = ImmutableList.builder();
         for (String parent : Splitter.on(" ").omitEmptyStrings()
             .split(getField(fields, PARENTS_FIELD))) {
