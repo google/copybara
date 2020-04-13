@@ -144,9 +144,9 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
         new DestinationEffect(
             type,
             summary,
-            originRefs.getContents(OriginRef.class, "origin_refs"),
+            Sequence.cast(originRefs, OriginRef.class, "origin_refs"),
             destinationRef,
-            errors.getContents(String.class, "errors")));
+            Sequence.cast(errors, String.class, "errors")));
   }
 
   /**
@@ -155,6 +155,4 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
   public ImmutableList<DestinationEffect> getNewDestinationEffects() {
     return ImmutableList.copyOf(newDestinationEffects);
   }
-
-
 }

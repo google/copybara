@@ -145,6 +145,9 @@ public final class SkylarkUtil {
    * error message.
    */
   public static List<String> convertStringList(Object x, String message) throws EvalException {
+    // TODO(adonovan): replace all calls to this function with:
+    //  Sequence.cast(x, String.class, message).
+    // But beware its result should not be modified.
     if (!(x instanceof Sequence)) {
       throw new EvalException(
           null, String.format("%s: got %s, want sequence", message, EvalUtils.getDataTypeName(x)));
@@ -169,7 +172,9 @@ public final class SkylarkUtil {
    */
   public static Map<String, String> convertStringMap(Object x, String message)
       throws EvalException {
-    // TODO(adonovan): support mappings other than dict.
+    // TODO(adonovan): replace all calls to this function with:
+    //    Dict.cast(x, String.class, String.class, message)
+    // and fix up tests. Beware: its result is not to be modified.
     if (!(x instanceof Dict)) {
       throw new EvalException(
           null, String.format("%s: got %s, want dict", message, EvalUtils.getDataTypeName(x)));

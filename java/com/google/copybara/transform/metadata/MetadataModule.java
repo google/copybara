@@ -924,7 +924,7 @@ public class MetadataModule implements StarlarkValue {
       Sequence<?> labels, // <String>
       StarlarkThread thread)
       throws EvalException {
-    Map<String, String> groupsMap = groups.getContents(String.class, String.class, "regex_groups");
+    Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "regex_groups");
     check(
         groupsMap.containsKey("before_ref")
             && (groupsMap.size() != 2 || groupsMap.containsKey("after_ref"))

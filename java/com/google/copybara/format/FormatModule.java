@@ -149,7 +149,7 @@ public class FormatModule implements StarlarkValue {
         generalOptions,
         convertFromNoneable(paths, DEFAULT_BUILDIFIER_PATHS),
         lintMode,
-        ImmutableList.copyOf(warnings.getContents(String.class, "lint_warnings")),
+        ImmutableList.copyOf(Sequence.cast(warnings, String.class, "lint_warnings")),
         typeStr);
   }
 }

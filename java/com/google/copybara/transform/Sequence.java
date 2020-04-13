@@ -27,7 +27,7 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.SkylarkType;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkCallable;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
@@ -173,7 +173,11 @@ public class Sequence implements Transformation {
     if (element instanceof StarlarkCallable) {
       return new SkylarkTransformation((StarlarkCallable) element, Dict.empty(), thread);
     }
-    SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
-    return (Transformation) element;
+    if (element instanceof Transformation) {
+      return (Transformation) element;
+    }
+    throw Starlark.errorf(
+        "for '%s' element, got %s, want function or transformation",
+        description, Starlark.type(element));
   }
 }

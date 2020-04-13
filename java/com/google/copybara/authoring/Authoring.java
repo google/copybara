@@ -200,8 +200,7 @@ public final class Authoring implements StarlarkValue {
       return new Authoring(
           Author.parse(defaultAuthor),
           AuthoringMappingMode.WHITELISTED,
-          createWhitelist(
-              whitelist.getContents(String.class, "whitelist"))); // can't import SkylarkUtil here
+          createWhitelist(Sequence.cast(whitelist, String.class, "whitelist")));
       }
 
     private static ImmutableSet<String> createWhitelist(List<String> whitelist)

@@ -330,10 +330,12 @@ public final class CoreTransformTest {
 
   @Test
   public void errorForNonTransformationElementInList() {
-    skylark.evalFails("core.transform([42], reversal = [core.move('foo', 'bar')])",
-        "expected type '?transformation'? for 'transformations' .* type '?int'? instead");
-    skylark.evalFails("core.transform([core.move('foo', 'bar')], reversal = [42])",
-        "expected type '?transformation'? for 'reversal' .* type '?int'? instead");
+    skylark.evalFails(
+        "core.transform([42], reversal = [core.move('foo', 'bar')])",
+        "for 'transformations' element, got int, want function or transformation");
+    skylark.evalFails(
+        "core.transform([core.move('foo', 'bar')], reversal = [42])",
+        "for 'reversal' element, got int, want function or transformation");
   }
 
 }

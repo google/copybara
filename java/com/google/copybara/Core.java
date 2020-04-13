@@ -131,7 +131,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       ) throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
-    for (Object t : transforms.getContents(Object.class, "transformations")) {
+    for (Object t : transforms) {
       try {
         if (t instanceof StarlarkCallable) {
           builder.add(
@@ -1194,8 +1194,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     if (mapping instanceof Dict) {
       ImmutableMap<String, String> map =
-          ImmutableMap.copyOf(
-              Dict.castSkylarkDictOrNoneToDict(mapping, String.class, String.class, "mapping"));
+          ImmutableMap.copyOf(Dict.noneableCast(mapping, String.class, String.class, "mapping"));
       check(!map.isEmpty(), "Empty mapping is not allowed." + " Remove the transformation instead");
       return new MapMapper(map, location);
     }
@@ -1232,7 +1231,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     check(!mapping.isEmpty(), "Empty mapping is not allowed");
     ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
-    for (Transformation t : mapping.getContents(Transformation.class, "mapping")) {
+    for (Transformation t :
+        com.google.devtools.build.lib.syntax.Sequence.cast(
+            mapping, Transformation.class, "mapping")) {
       check(
           t instanceof Replace,
           "Only core.replace can be used as mapping, but got: " + t.describe());

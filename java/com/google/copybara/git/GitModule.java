@@ -404,7 +404,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GitOptions gitOptions = options.get(GitOptions.class);
     List<Refspec> refspecs = new ArrayList<>();
 
-    for (String refspec : Sequence.castList(strRefSpecs, String.class, "refspecs")) {
+    for (String refspec : Sequence.cast(strRefSpecs, String.class, "refspecs")) {
       try {
         refspecs.add(
             Refspec.create(
@@ -853,8 +853,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
         prOpts,
-        ImmutableSet.copyOf(requiredLabels.getContents(String.class, "required_labels")),
-        ImmutableSet.copyOf(retryableLabels.getContents(String.class, "retryable_labels")),
+        ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class, "required_labels")),
+        ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class, "retryable_labels")),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
         firstParent,
@@ -1090,10 +1090,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOptions.class),
         generalOptions,
         new DefaultWriteHook(),
-        Sequence.castList(
-            convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class,
-            "integrates"));
+        EvalUtils.isNullOrNone(integrates)
+            ? defaultGitIntegrate
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
   }
 
   @SuppressWarnings("unused")
@@ -1245,10 +1244,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectiveDeletePrBranch,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
-        Sequence.castList(
-            convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class,
-            "integrates"));
+        EvalUtils.isNullOrNone(integrates)
+            ? defaultGitIntegrate
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
   }
 
   @SuppressWarnings("unused")
@@ -1402,10 +1400,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
         new DefaultWriteHook(),
-        Sequence.castList(
-            convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class,
-            "integrates"),
+        EvalUtils.isNullOrNone(integrates)
+            ? defaultGitIntegrate
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         convertFromNoneable(title, null),
         convertFromNoneable(body, null),
         mainConfigFile,
@@ -1621,10 +1618,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         cc,
         labels,
         convertFromNoneable(checkerObj, null),
-        Sequence.castList(
-            convertFromNoneable(integrates, defaultGitIntegrate),
-            GitIntegrateChanges.class,
-            "integrates"),
+        EvalUtils.isNullOrNone(integrates)
+            ? defaultGitIntegrate
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         topicStr);
   }
 
@@ -1773,7 +1769,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     LinkedHashSet<GitHubEventType> eventBuilder = new LinkedHashSet<>();
-    for (String e : events.getContents(String.class, "events")) {
+    for (String e : Sequence.cast(events, String.class, "events")) {
       GitHubEventType event = stringToEnum("events", e, GitHubEventType.class);
       check(eventBuilder.add(event), "Repeated element %s", e);
       check(
@@ -1817,8 +1813,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     return SetReviewInput.create(
         convertFromNoneable(message, null),
-        Dict.castSkylarkDictOrNoneToDict(
-            labels, String.class, Integer.class, "Gerrit review labels"));
+        Dict.noneableCast(labels, String.class, Integer.class, "Gerrit review labels"));
   }
 
   @SuppressWarnings("unused")
@@ -1856,8 +1851,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Dict<?, ?> groups, // <String, String>
       StarlarkThread thread)
       throws EvalException {
-    Map<String, String> groupsMap =
-        groups.getContents(String.class, String.class, "refspec_groups");
+    Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "refspec_groups");
     check(
         refspec.startsWith("refs/"),
         "Wrong value '%s'. Refspec has to"
