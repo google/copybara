@@ -1049,7 +1049,7 @@ transformations | `sequence of transformation`<br><p>The transformations to reve
 
 Replace Google style TODOs. For example `TODO(username, othername)`.
 
-`todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None)`
+`todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None, ignore=None)`
 
 
 #### Parameters:
@@ -1061,6 +1061,7 @@ mapping | `dict`<br><p>Mapping of users/strings</p>
 mode | `string`<br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
 paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 default | `string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
+ignore | `string`<br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
 
 
 #### Examples:
@@ -1093,6 +1094,20 @@ core.todo_replace(
 ```
 
 Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo and NOTE:foo
+
+
+##### Ignoring Regex Patterns:
+
+Ignore regEx inside TODOs when scrubbing/mapping
+
+```python
+core.todo_replace(
+  mapping = { 'aaa' : 'foo'},
+  ignore = 'b/.*'
+)
+```
+
+Would replace texts like TODO(b/123, aaa) with TODO(b/123, foo)
 
 
 <a id="core.transform" aria-hidden="true"></a>

@@ -991,6 +991,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " 'USE_DEFAULT' modes",
             noneable = true,
             defaultValue = "None"),
+        @Param(
+            name = "ignore",
+            named = true,
+            type = String.class,
+            doc =
+                "If set, elements within TODO (with usernames) that match the regex will be "
+                    + "ignored. For example ignore = \"foo\" would ignore \"foo\" in "
+                    + "\"TODO(foo,bar)\" but not \"bar\".",
+            defaultValue = "None",
+            noneable = true),
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -1014,12 +1024,18 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       after =
           "Would replace texts like TODO(test1): foo or NOTE(test1, test2):foo with TODO:foo"
               + " and NOTE:foo")
+  @Example(
+      title = "Ignoring Regex Patterns",
+      before = "Ignore regEx inside TODOs when scrubbing/mapping",
+      code = "core.todo_replace(\n" + "  mapping = { 'aaa' : 'foo'},\n" + "  ignore = 'b/.*'\n)",
+      after = "Would replace texts like TODO(b/123, aaa) with TODO(b/123, foo)")
   public TodoReplace todoReplace(
       com.google.devtools.build.lib.syntax.Sequence<?> skyTags, // <String>
       Dict<?, ?> skyMapping, // <String, String>
       String modeStr,
       Object paths,
       Object skyDefault,
+      Object regexToIgnore,
       StarlarkThread thread)
       throws EvalException {
     Mode mode = stringToEnum("mode", modeStr, Mode.class);
@@ -1027,6 +1043,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
     ImmutableList<String> tags =
         ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
+    String ignorePattern = convertFromNoneable(regexToIgnore, null);
+    Pattern regexWhitelist = ignorePattern != null ? Pattern.compile(ignorePattern) : null;
 
     check(!tags.isEmpty(), "'tags' cannot be empty");
     if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {
@@ -1044,7 +1062,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         mode,
         mapping,
         defaultString,
-        workflowOptions.parallelizer());
+        workflowOptions.parallelizer(),
+        regexWhitelist);
   }
 
   public static final String TODO_FILTER_REPLACE_EXAMPLE = ""

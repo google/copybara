@@ -311,6 +311,15 @@ public final class TodoReplaceTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testRegexToIgnore() throws Exception {
+    TodoReplace replace =
+        todoReplace("mapping = { 'aaa': 'foo'}", "ignore ='b/.*'", "mode = 'MAP_OR_FAIL'");
+    write("one.txt", "// TODO(b/123, aaa): Example");
+    run(replace);
+    assertThatPath(checkoutDir).containsFile("one.txt", "// TODO(b/123, foo): Example");
+  }
+
   private TransformWork run(Transformation replace) throws IOException, ValidationException {
     TransformWork work = TransformWorks.of(checkoutDir, "testmsg", console);
     replace.transform(work);
