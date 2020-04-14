@@ -42,6 +42,7 @@ import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -268,7 +269,10 @@ public class GitHubEndpointTest {
             + "    target_url : 'https://github.com/google/example',\n"
             + "    description : 'Observed foo',\n"
             + "    context : 'test'\n"
-            + "}", content -> content.contains(createValues.next())));
+            + "}",
+            new MockRequestAssertion(String.format(
+                "Requests were expected to cycle through the values of %s", createValues),
+                r -> r.contains(createValues.next()))));
 
     feedback.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");
@@ -473,10 +477,12 @@ public class GitHubEndpointTest {
   public void testFeedbackDeleteReference() throws Exception{
     AtomicBoolean called = new AtomicBoolean(false);
     gitUtil.mockApi(eq("DELETE"), contains("/git/refs/heads/test"),
-        mockResponseWithStatus("", 202, s -> {
-          called.set(true);
-          return true;
-        }));
+        mockResponseWithStatus("", 202,
+            new MockRequestAssertion("Always true with side-effect",
+            s -> {
+              called.set(true);
+              return true;
+        })));
     runFeedback(ImmutableList.of("ctx.destination.delete_reference('refs/heads/test')"));
     assertThat(called.get()).isTrue();
   }
@@ -485,10 +491,12 @@ public class GitHubEndpointTest {
   public void testFeedbackDeleteReference_MasterCheck() {
     AtomicBoolean called = new AtomicBoolean(false);
     gitUtil.mockApi(eq("DELETE"), contains("/git/refs/heads/master"),
-        mockResponseWithStatus("", 202, s -> {
-          called.set(true);
-          return true;
-        }));
+        mockResponseWithStatus("", 202,
+            new MockRequestAssertion("Always true with side-effect",
+            s -> {
+              called.set(true);
+              return true;
+            })));
     ValidationException expected = assertThrows(ValidationException.class, () ->
         runFeedback(ImmutableList.of("ctx.destination.delete_reference('refs/heads/master')")));
     assertThat(expected).hasMessageThat().contains("Copybara doesn't allow to delete master");
@@ -563,7 +571,7 @@ public class GitHubEndpointTest {
                     "label", "someuser:somebranch",
                     "sha", Strings.repeat("a", 40),
                     "ref", "somebranch"
-                ))), s -> s.contains("{\"state\":\"closed\"}")));
+                ))), MockRequestAssertion.contains("{\"state\":\"closed\"}")));
     runFeedback(ImmutableList.<String>builder()
         .add("res = ctx.destination.update_pull_request(12345, state='CLOSED')")
             .addAll(checkFieldStarLark("res", "number", "12345"))

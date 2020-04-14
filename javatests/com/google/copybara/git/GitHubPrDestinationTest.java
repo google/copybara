@@ -50,6 +50,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
+import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
@@ -135,9 +136,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            req ->
-                req.equals(
-                    "{\"base\":\"master\","
+            MockRequestAssertion.equals("{\"base\":\"master\","
                         + "\"body\":\"custom body\","
                         + "\"head\":\"feature\","
                         + "\"title\":\"custom title\"}")));
@@ -183,12 +182,10 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            req ->
-                req.equals(
-                    "{\"base\":\"master\","
-                        + "\"body\":\"Body first a\","
-                        + "\"head\":\"feature\","
-                        + "\"title\":\"Title first a\"}")));
+            MockRequestAssertion.equals("{\"base\":\"master\","
+                + "\"body\":\"Body first a\","
+                + "\"head\":\"feature\","
+                + "\"title\":\"Title first a\"}")));
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo', \n"
@@ -244,8 +241,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            req ->
-                req.equals("{\"body\":\"Body first b\","
+                MockRequestAssertion.equals("{\"body\":\"Body first b\","
                         + "\"title\":\"Title first b\"}")));
 
     writeFile(this.workdir, "test.txt", "some other content");
@@ -288,8 +284,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"test summary\",\n"
                 + "  \"body\": \"test summary\""
                 + "}",
-            req ->
-                req.equals(
+            MockRequestAssertion.equals(
                     "{\"base\":\"master\",\"body\":\"Internal change.\\n\",\"head\":\"feature\","
                         + "\"title\":\"Internal change.\"}")));
 
@@ -348,8 +343,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"test summary\",\n"
                 + "  \"body\": \"test summary\"\n"
                 + "}",
-            req ->
-                req.equals(
+            MockRequestAssertion.equals(
                     "{\"base\":\"master\",\"body\":\"test summary\\n\",\"head\":\""
                         + "feature"
                         + "\",\"title\":\"test summary\"}")));
@@ -504,8 +498,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"test summary\",\n"
                 + "  \"body\": \"test summary\""
                 + "}",
-            req ->
-                req.equals(
+            MockRequestAssertion.equals(
                     "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
                         + branchName
                         + "\",\"title\":\"test summary\"}")));
@@ -571,8 +564,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"test summary\",\n"
                 + "  \"body\": \"test summary\""
                 + "}",
-            req ->
-                req.equals(
+            MockRequestAssertion.equals(
                     "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
                         + expectedBranchName
                         + "\",\"title\":\"test summary\"}")));

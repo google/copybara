@@ -64,6 +64,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
+import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -568,7 +569,7 @@ public class GitHubPrOriginTest {
         startsWith("https://api.github.com/repos/google/example/statuses/"),
         mockResponseAndValidateRequest(
             "{ state : 'success', context : 'the_context' }",
-            content -> content.contains("Migration success at")));
+            MockRequestAssertion.contains("Migration success at")));
 
     Path dest = Files.createTempDirectory("");
     options.folderDestination.localFolder = dest.toString();

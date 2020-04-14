@@ -226,7 +226,7 @@ public class GitHubDestinationTest {
     if (expectDeletePrBranch) {
       when(gitUtil.httpTransport().buildRequest(eq("DELETE"),
           contains("repos/foo/git/refs/heads/other"))).thenReturn(
-          mockResponseWithStatus("", 204, (req) -> true));
+          mockResponseWithStatus("", 204));
     }
     gitUtil.mockApi(
         "GET",
@@ -429,11 +429,11 @@ public class GitHubDestinationTest {
     gitUtil.mockApi(
         "GET",
         "https://api.github.com/repos/foo/git/refs/heads/other_12345",
-        mockResponseWithStatus("", 403, any -> true));
+        mockResponseWithStatus("", 403));
     gitUtil.mockApi(
         "GET",
         "https://api.github.com/repos/foo/git/refs/other_6789",
-        mockResponseWithStatus("", 403, any -> true));
+        mockResponseWithStatus("", 403));
     addFiles(
         remote,
         "master",

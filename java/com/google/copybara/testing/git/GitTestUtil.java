@@ -67,6 +67,9 @@ public class GitTestUtil {
 
   private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
+  static final MockRequestAssertion ALWAYS_TRUE =
+      new MockRequestAssertion("Always true", any -> true);
+
   protected MockHttpTransport mockHttpTransport = null;
 
   private final OptionsBuilder optionsBuilder;
@@ -76,24 +79,33 @@ public class GitTestUtil {
   }
 
   public static LowLevelHttpRequest mockResponse(String responseContent) {
-    return mockResponseWithStatus(responseContent, 200, any -> true);
+    return mockResponseWithStatus(responseContent, 200, ALWAYS_TRUE);
   }
 
   public static LowLevelHttpRequest mockResponseAndValidateRequest(
-      String responseContent, Predicate<String> requestValidator) {
-    return mockResponseWithStatus(responseContent, 200, requestValidator);
+      String responseContent, String predicateText, Predicate<String> requestValidator) {
+    return mockResponseWithStatus(responseContent, 200,
+        new MockRequestAssertion(predicateText, requestValidator));
   }
 
-  public static LowLevelHttpRequest mockNotFoundResponse(String responseContent) {
-    return mockResponseWithStatus(responseContent, 404, any -> true);
+  public static LowLevelHttpRequest mockResponseAndValidateRequest(
+      String responseContent, MockRequestAssertion assertion) {
+    return mockResponseWithStatus(responseContent, 200, assertion);
+  }
+
+  public static LowLevelHttpRequest mockResponseWithStatus(String responseContent, int status) {
+    return mockResponseWithStatus(responseContent, status, ALWAYS_TRUE);
   }
 
   public static LowLevelHttpRequest mockResponseWithStatus(
-      String responseContent, int status, Predicate<String> requestValidator) {
+      String responseContent, int status, MockRequestAssertion requestValidator) {
     return new MockLowLevelHttpRequest() {
       @Override
       public LowLevelHttpResponse execute() throws IOException {
-        assertWithMessage("Request doesn't match predicate: <" + this.getContentAsString() + ">")
+        assertWithMessage(
+                String.format(
+                    "Request <%s> did not match predicate: '%s'",
+                    this.getContentAsString(), requestValidator))
             .that(requestValidator.test(this.getContentAsString()))
             .isTrue();
         // Responses contain a IntputStream for content. Cannot be reused between for two
@@ -106,12 +118,16 @@ public class GitTestUtil {
     };
   }
 
+  public static LowLevelHttpRequest mockNotFoundResponse(String responseContent) {
+    return mockResponseWithStatus(responseContent, 404);
+  }
+
   public static LowLevelHttpRequest mockGitHubNotFound() {
     return mockResponseWithStatus(
         "{\n"
             + "\"message\" : \"Not Found\",\n"
             + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-            + "}", 404, r -> true);
+            + "}", 404, ALWAYS_TRUE);
   }
 
   public static LowLevelHttpRequest mockGitHubUnprocessable() {
@@ -119,7 +135,7 @@ public class GitTestUtil {
         "{\n"
             + "\"message\" : \"Not Found\",\n"
             + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
-            + "}", 422, r -> true);
+            + "}", 422, ALWAYS_TRUE);
   }
 
   public void mockRemoteGitRepos() throws IOException {
@@ -146,12 +162,12 @@ public class GitTestUtil {
                       return mockResponseWithStatus(
                           "not used",
                           404,
-                          content -> {
+                          new MockRequestAssertion("Always throw", content -> {
                             throw new AssertionError(
                                 String.format(
                                     "Cannot find a programmed answer for: %s %s\n%s",
                                     method, url, content));
-                          });
+                          }));
                     }));
 
     optionsBuilder.git = new GitOptionsForTest(optionsBuilder.general, validator);
@@ -450,5 +466,49 @@ public class GitTestUtil {
       throws IOException {
     Files.createDirectories(basePath.resolve(relativePath).getParent());
     Files.write(basePath.resolve(relativePath), content.getBytes(UTF_8));
+  }
+
+  /**
+   * Wrapper for predicate to allow readable test failures.
+   */
+  public static class MockRequestAssertion implements Predicate<String> {
+
+    private final String text;
+    private final Predicate<String> delegate;
+
+    public static MockRequestAssertion contains(String expected) {
+      return new MockRequestAssertion(
+          String.format("Expected request to contain '%s'", expected), s -> s.contains(expected));
+    }
+
+    public static MockRequestAssertion equals(String expected) {
+      return new MockRequestAssertion(
+          String.format("Expected request to be equal to '%s'", expected), s -> s.equals(expected));
+    }
+
+    public static MockRequestAssertion and(MockRequestAssertion p1, MockRequestAssertion p2) {
+      return new MockRequestAssertion(
+          String.format("Expected request Satisfy:\n%s\nand\n%s", p1, p2),
+          s -> p1.test(s) && p2.test(s));
+    }
+
+    MockRequestAssertion(Predicate<String> delegate) {
+      this("Predicate text not given", delegate);
+    }
+
+    public MockRequestAssertion(String text, Predicate<String> delegate) {
+      this.text = text;
+      this.delegate = delegate;
+    }
+
+    @Override
+    public boolean test(String s) {
+      return delegate.test(s);
+    }
+
+    @Override
+    public String toString() {
+      return text;
+    }
   }
 }

@@ -412,7 +412,7 @@ public class GerritEndpointTest {
         eq("POST"),
         matches(BASE_URL + "/changes/.*/revisions/.*/review"),
         mockResponseWithStatus(
-            "\n\nApplying label \"Verified\": -1 is restricted.", 403, x -> true));
+            "\n\nApplying label \"Verified\": -1 is restricted.", 403));
     ValidationException expected = assertThrows(ValidationException.class, () ->
         runFeedback(ImmutableList.of("ctx.destination.post_review("
             + "'12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")));
