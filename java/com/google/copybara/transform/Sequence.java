@@ -25,10 +25,10 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.SkylarkType;
+import com.google.devtools.build.lib.syntax.StarlarkCallable;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -170,8 +170,8 @@ public class Sequence implements Transformation {
 
   private static Transformation convertToTransformation(
       String description, Supplier<StarlarkThread> thread, Object element) throws EvalException {
-    if (element instanceof BaseFunction) {
-      return new SkylarkTransformation((BaseFunction) element, Dict.empty(), thread);
+    if (element instanceof StarlarkCallable) {
+      return new SkylarkTransformation((StarlarkCallable) element, Dict.empty(), thread);
     }
     SkylarkType.checkType(element, Transformation.class, "'" + description + "' element");
     return (Transformation) element;

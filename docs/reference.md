@@ -627,7 +627,7 @@ Create a dynamic Skylark feedback migration. This should only be used by librari
 
 Parameter | Description
 --------- | -----------
-impl | `baseFunction`<br><p>The Skylark function to call</p>
+impl | `starlarkCallable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.dynamic_transform" aria-hidden="true"></a>
@@ -642,7 +642,7 @@ Create a dynamic Skylark transformation. This should only be used by libraries d
 
 Parameter | Description
 --------- | -----------
-impl | `baseFunction`<br><p>The Skylark function to call</p>
+impl | `starlarkCallable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 

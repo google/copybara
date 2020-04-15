@@ -59,13 +59,13 @@ import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
-import com.google.devtools.build.lib.syntax.BaseFunction;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkCallable;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
@@ -127,15 +127,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       })
   public com.google.devtools.build.lib.syntax.Sequence<Transformation> reverse(
       com.google.devtools.build.lib.syntax.Sequence<?>
-          transforms // <Transformation> or <BaseFunction>
+          transforms // <Transformation> or <StarlarkCallable>
       ) throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
     for (Object t : transforms.getContents(Object.class, "transformations")) {
       try {
-        if (t instanceof BaseFunction) {
+        if (t instanceof StarlarkCallable) {
           builder.add(
-              new SkylarkTransformation((BaseFunction) t, Dict.empty(), dynamicStarlarkThread)
+              new SkylarkTransformation((StarlarkCallable) t, Dict.empty(), dynamicStarlarkThread)
                   .reverse());
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
@@ -1402,7 +1402,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "impl",
             named = true,
-            type = BaseFunction.class,
+            type = StarlarkCallable.class,
             doc = "The Skylark function to call"),
         @Param(
             name = "params",
@@ -1433,7 +1433,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "After defining this function, you can use `test('example', 42)` as a transformation"
               + " in `core.workflow`.")
   public Transformation dynamic_transform(
-      BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
+      StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkTransformation(
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
   }
@@ -1448,7 +1448,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "impl",
             named = true,
-            type = BaseFunction.class,
+            type = StarlarkCallable.class,
             doc = "The Skylark function to call"),
         @Param(
             name = "params",
@@ -1458,7 +1458,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "{}"),
       },
       useStarlarkThread = true)
-  public Action dynamicFeedback(BaseFunction impl, Dict<?, ?> params, StarlarkThread thread) {
+  public Action dynamicFeedback(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkAction(
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
   }
@@ -1601,8 +1601,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
-      if (action instanceof BaseFunction) {
-        actions.add(new SkylarkAction((BaseFunction) action, Dict.empty(), thread));
+      if (action instanceof StarlarkCallable) {
+        actions.add(new SkylarkAction((StarlarkCallable) action, Dict.empty(), thread));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
