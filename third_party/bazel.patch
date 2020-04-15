@@ -1,6 +1,6 @@
 --- src/main/java/com/google/devtools/build/lib/syntax/BUILD
 +++ src/main/java/com/google/devtools/build/lib/syntax/BUILD
-@@ -129,7 +130,8 @@
+@@ -128,6 +128,7 @@
          "StringModule.java",
          "Tuple.java",
      ],
@@ -9,4 +9,4 @@
 +    # data = [":libcpu_profiler.so"],  # will be loaded dynamically
      deps = [
          ":frontend",
-         "//src/main/java/com/google/devtools/build/lib:util",
+
