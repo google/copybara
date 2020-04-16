@@ -701,13 +701,16 @@ public class GerritDestinationTest {
     options.gerrit.gerritTopic = "testTopic";
     GerritDestination destination =
         destination("submit = False", "partial_fetch = True", "notify ='ALL'");
-    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    Glob glob = Glob.createGlob(ImmutableList.of("foo/bar", "foo/bar1", "bar/foo"),
+        excludedDestinationPaths);
     assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
     // %topic and %notify should not be part of describe()
     assertThat(destination.describe(glob).get("push"))
         .isEqualTo(ImmutableSet.of("refs/for/master"));
     assertThat(destination.describe(glob).get("partialFetch"))
         .isEqualTo(ImmutableSet.of("true"));
+    assertThat(destination.describe(glob).get("root"))
+        .isEqualTo(ImmutableSet.of("foo", "bar"));
   }
 
   @Test

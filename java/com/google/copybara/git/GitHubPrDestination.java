@@ -122,12 +122,15 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+  public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
             .put("url", url)
             .put("destination_ref", destinationRef);
+    if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
+      builder.putAll("root", destinationFiles.roots());
+    }
     return builder.build();
   }
 

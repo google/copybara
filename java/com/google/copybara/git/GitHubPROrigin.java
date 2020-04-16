@@ -482,6 +482,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     if (branch != null) {
       builder.put("branch", branch);
     }
+    if (!originFiles.roots().isEmpty() && !originFiles.roots().contains("")) {
+      builder.putAll("root", originFiles.roots());
+    }
     if (reviewState != null) {
       builder.put("review_state", reviewState.name());
       builder.putAll("review_approvers",

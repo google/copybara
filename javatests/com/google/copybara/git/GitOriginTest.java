@@ -1154,6 +1154,7 @@ public class GitOriginTest {
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
     assertThat(actual.get("type")).containsExactly("git.origin");
     assertThat(actual.get("repoType")).containsExactly("GIT");
+    assertThat(actual.get("root")).isEmpty();
   }
 
   @Test

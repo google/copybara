@@ -792,7 +792,7 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+  public ImmutableSetMultimap<String, String> describe(Glob destinationFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
@@ -801,6 +801,9 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("push", push)
             .put("partialFetch", Boolean.toString(partialFetch));
     builder.putAll(writerHook.describe());
+    if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
+      builder.putAll("root", destinationFiles.roots());
+    }
     if (tagName != null) {
       builder.put("tagName", tagName);
     }

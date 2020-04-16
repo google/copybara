@@ -454,6 +454,9 @@ public class GitOrigin implements Origin<GitRevision> {
             .put("repoType", repoType.name())
             .put("url", repoUrl)
             .put("submodules", submoduleStrategy.name());
+    if (!originFiles.roots().isEmpty() && !originFiles.roots().contains("")) {
+      builder.putAll("root", originFiles.roots());
+    }
     if (configRef != null) {
       builder.put("ref", configRef);
     }
