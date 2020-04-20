@@ -1544,7 +1544,6 @@ public class WorkflowTest {
         .contains(
             "Couldn't find any parent change for 3"
                 + " and origin_files = glob(include = [\"I_dont_exist/**\"])");
-      assertThat(e.isRetryable()).isFalse();
   }
 
   /**
@@ -1633,7 +1632,6 @@ public class WorkflowTest {
       fail();
     } catch (ValidationException e) {
       assertThat(e).hasMessageThat().contains("Make sure to sync the submitted changes");
-      assertThat(e.isRetryable()).isTrue();
     }
   }
 

@@ -263,10 +263,7 @@ public class Main {
       return new CommandResult(ExitCode.NO_OP, subcommand, commandEnv);
     } catch (ValidationException e) {
       printCauseChain(Level.WARNING, console, args, e);
-      // TODO(malcon): Think of a better way of doing this
-      return new CommandResult(e.isRetryable()
-          ? ExitCode.REPOSITORY_ERROR
-          : ExitCode.CONFIGURATION_ERROR,
+      return new CommandResult(ExitCode.CONFIGURATION_ERROR,
           subcommand, commandEnv);
     } catch (IOException e) {
       handleUnexpectedError(console, e.getMessage(), args, e);

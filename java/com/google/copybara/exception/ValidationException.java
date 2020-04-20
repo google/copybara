@@ -22,25 +22,17 @@ package com.google.copybara.exception;
  */
 public class ValidationException extends Exception {
 
-  private final boolean retryable;
-
   public ValidationException(String message) {
-    this(false, message);
+    super(message);
   }
 
   public ValidationException(String message, Throwable cause) {
     super(message, cause);
-    retryable = cause instanceof ValidationException
-        && ((ValidationException) cause).retryable;
-  }
-
-  private ValidationException(boolean retryable, String message) {
-    super(message);
-    this.retryable = retryable;
   }
 
   /**
    * Check a condition and throw {@link ValidationException} if false
+   *
    * @throws ValidationException if {@code condition} is false
    */
   public static void checkCondition(boolean condition, String format, Object... args)
@@ -56,11 +48,6 @@ public class ValidationException extends Exception {
 
   /** Throw a {@link ValidationException} that can be retried */
   public static ValidationException retriableException(String message) {
-    return new ValidationException(true, message);
-  }
-
-  /** If the execution could be retried and succeed */
-  public boolean isRetryable() {
-    return retryable;
+    return new ValidationException(message);
   }
 }
