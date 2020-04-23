@@ -20,7 +20,6 @@ package com.google.copybara.util.console;
  * Modes for parsing config files.
  */
 public enum StarlarkMode {
-  NO_VALIDATION,
-  WARN,
+  LOOSE,
   STRICT
 }

@@ -568,7 +568,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
 <span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
-<span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior toexecution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT
+<span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior to execution, but this might break legacy configs. Options are LOOSE, STRICT
 <span style="white-space: nowrap;">`-v, --verbose`</span> | *boolean* | Verbose output.
 
 <a id="core.copy" aria-hidden="true"></a>
@@ -3052,7 +3052,7 @@ metadata.map_references(
         "before_ref": "[0-9a-f]+",
         "after_ref": "[0-9]+",
     },
-),
+)
 ```
 
 This would be translated into 'Fixes bug introduced in destination/123456', provided that a change with the proper label was found - the message remains unchanged otherwise.

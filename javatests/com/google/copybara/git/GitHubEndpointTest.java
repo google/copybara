@@ -45,6 +45,7 @@ import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -631,11 +632,17 @@ public class GitHubEndpointTest {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }
 
+  // var, field, and value are all Starlark expressions.
   private static ImmutableList<String> checkFieldStarLark(String var, String field, String value) {
     return ImmutableList.of(
         String.format("if %s.%s != %s:", var, field, value),
-        String.format("  fail('unexpected value for %1$s.%2$s (expected %3$s): ' + %1$s.%2$s)",
-            var, field, value));
+        String.format(
+            "  fail('unexpected value for '+%1$s+'.'+%2$s+' (expected '+%3$s+'): ' + %4$s.%5$s)",
+            Starlark.repr(var), // string literal
+            Starlark.repr(field), // string literal
+            Starlark.repr(value), // string literal
+            var, // expression
+            field)); // expression
   }
 
   private void runFeedback(ImmutableList<String> funBody) throws Exception {

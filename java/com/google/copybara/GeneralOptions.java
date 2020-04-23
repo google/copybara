@@ -417,9 +417,12 @@ public final class GeneralOptions implements Option {
       + "test your changes locally.")
   public boolean squash = false;
 
-  @Parameter(names = "--validate-starlark", description = "Starlark should be validated prior to"
-      + "execution, but this might break legacy configs. Options are NO_VALIDATION, WARN, STRICT")
-  public String starlarkMode = StarlarkMode.NO_VALIDATION.name();
+  @Parameter(
+      names = "--validate-starlark",
+      description =
+          "Starlark should be validated prior to execution, but this might break legacy configs."
+              + " Options are LOOSE, STRICT")
+  public String starlarkMode = StarlarkMode.LOOSE.name();
 
   public StarlarkMode getStarlarkMode() {
     return StarlarkMode.valueOf(starlarkMode);

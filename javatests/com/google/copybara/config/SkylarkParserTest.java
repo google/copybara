@@ -160,14 +160,19 @@ public class SkylarkParserTest {
 
   @Test
   public void testStrictStarlarkParsingCatchesError() throws IOException, ValidationException {
-    options.general.starlarkMode = StarlarkMode.NO_VALIDATION.name();
+    // A parse error is always reported, even in LOOSE mode.
+    options.general.starlarkMode = StarlarkMode.LOOSE.name();
     parser = new SkylarkTestExecutor(options);
-    parser.loadConfig("foo = 42,");
+    ValidationException ex =
+        assertThrows(ValidationException.class, () -> parser.loadConfig("foo = '\\j',"));
+    assertThat(ex).hasMessageThat().contains("Trailing comma");
+
+    // Strict mode detects string escapes, if/for at top level, and loads not at the top.
     options.general.starlarkMode = StarlarkMode.STRICT.name();
     parser = new SkylarkTestExecutor(options);
-    ValidationException expected =
-        assertThrows(ValidationException.class, () -> parser.loadConfig("foo = 42,"));
-    assertThat(expected).hasMessageThat().contains("Trailing comma");
+    ex = assertThrows(ValidationException.class, () -> parser.loadConfig("foo = '\\j',"));
+    assertThat(ex).hasMessageThat().contains("Trailing comma");
+    assertThat(ex).hasMessageThat().contains("invalid escape sequence");
   }
 
   /** This test checks that we can load the transitive includes of a config file. */
@@ -353,7 +358,9 @@ public class SkylarkParserTest {
         + "\n"
         + NON_IMPORTANT_WORKFLOW
         + "";
-    parser.evalProgramFails(content, ".*cannot reassign global 'other'.*");
+    // The += operation is statically OK because of FileOptions.allowToplevelRebinding,
+    // but it fails during execution because the value is frozen.
+    parser.evalProgramFails(content, ".*trying to mutate a frozen list.*");
   }
 
   @SkylarkModule(
