@@ -85,6 +85,7 @@ import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1813,7 +1814,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     return SetReviewInput.create(
         convertFromNoneable(message, null),
-        Dict.noneableCast(labels, String.class, Integer.class, "Gerrit review labels"));
+        // The need for unmodifiableMap here is extremely subtle, and suggests a bug but I'm not
+        // sure where. A Dict is both a Map and an Iterable, whereas the wrapper returned by
+        // unmodifiableMap is not iterable. The SetReviewInput object makes its way into
+        // com.google.api.client.json.JsonFactory,
+        //
+        //   post_review_to_gerrit (feedback.bara.sky)
+        //   -> GoogleGerritApiTransport.post (ctx.destination.post_review)
+        //   -> GerritApiTransport.post
+        //   -> GerritApi.setReview
+        //   -> GerritEndpoint.postReview
+        //   -> JsonFactory.toByteArray
+        //
+        // where the Iterability of the labels map causes it to be treated like a list of keys.
+        Collections.unmodifiableMap(
+            Dict.noneableCast(labels, String.class, Integer.class, "Gerrit review labels")));
   }
 
   @SuppressWarnings("unused")
