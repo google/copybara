@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -31,10 +31,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /** A dummy endpoint for feedback mechanism */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "dummy_endpoint",
     doc = "A dummy endpoint for feedback mechanism",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class DummyEndpoint implements Endpoint, StarlarkValue {
 
   public final List<String> messages = new ArrayList<>();

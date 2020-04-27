@@ -17,17 +17,17 @@
 package com.google.copybara;
 
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 
 /** Interface implemented by all source code transformations. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "transformation",
     doc = "A transformation to the workdir",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Transformation extends StarlarkValue {
 

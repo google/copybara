@@ -19,16 +19,16 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#approval-info */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "gerritapi.ApprovalInfo",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit approval information.")
 public class ApprovalInfo extends AccountInfo implements StarlarkValue {
   @Key int value;

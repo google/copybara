@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -39,11 +39,11 @@ import java.util.Set;
  *
  * <p>For a given author in the origin, always provides an author in the destination.
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "authoring_class",
     namespace = true,
     doc = "The authors mapping between an origin and a destination",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public final class Authoring implements StarlarkValue {
 
   private final Author defaultAuthor;
@@ -98,11 +98,11 @@ public final class Authoring implements StarlarkValue {
     }
   }
 
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "authoring",
       namespace = true,
       doc = "The authors mapping between an origin and a destination",
-      category = SkylarkModuleCategory.BUILTIN)
+      category = StarlarkDocumentationCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
 
     @SkylarkCallable(

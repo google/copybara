@@ -23,17 +23,17 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.FileSystem;
 
 /** Main module that groups all the functions related to folders. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "folder",
     doc = "Module for dealing with local filesystem folders",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class FolderModule implements StarlarkValue {
 
   private static final String DESTINATION_VAR = "destination";

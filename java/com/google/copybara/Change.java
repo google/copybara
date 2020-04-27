@@ -29,8 +29,8 @@ import com.google.common.collect.Maps;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -41,9 +41,9 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 /** Represents a change in a Repository */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "change",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
 public final class Change<R extends Revision> extends OriginRef implements StarlarkValue {
 

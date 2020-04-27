@@ -18,18 +18,18 @@ package com.google.copybara.testing;
 
 import com.google.copybara.Endpoint;
 import com.google.copybara.Trigger;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 
 /**
  * A dummy trigger for feedback mechanism.
  *
  * <p>Extends {@link DummyEndpoint} just for convenience for the tests.
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "dummy_trigger",
     doc = "A dummy trigger for feedback mechanism",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class DummyTrigger extends DummyEndpoint implements Trigger {
 
   @Override

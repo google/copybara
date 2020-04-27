@@ -21,8 +21,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -31,9 +31,9 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 /** An effect happening in the destination as a consequence of the migration */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "destination_effect",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents an effect that happened in the destination due to a single migration")
 @SuppressWarnings("unused")
 public class DestinationEffect implements StarlarkValue {
@@ -210,9 +210,9 @@ public class DestinationEffect implements StarlarkValue {
   }
 
   /** Reference to the change/review read from the origin. */
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "origin_ref",
-      category = SkylarkModuleCategory.BUILTIN,
+      category = StarlarkDocumentationCategory.BUILTIN,
       doc = "Reference to the change/review in the origin.")
   public static class OriginRef implements StarlarkValue {
     private final String ref;
@@ -259,9 +259,9 @@ public class DestinationEffect implements StarlarkValue {
   }
 
   /** Reference to the change/review created/updated on the destination. */
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "destination_ref",
-      category = SkylarkModuleCategory.BUILTIN,
+      category = StarlarkDocumentationCategory.BUILTIN,
       doc = "Reference to the change/review created/updated on the destination.")
   public static class DestinationRef implements StarlarkValue {
     @Nullable private final String url;

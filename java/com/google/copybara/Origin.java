@@ -30,8 +30,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,10 +50,10 @@ import javax.annotation.Nullable;
  *
  * @param <R> the origin type of the references/revisions this origin handles
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "origin",
     doc = "A Origin represents a source control repository from which source is copied.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Origin<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 

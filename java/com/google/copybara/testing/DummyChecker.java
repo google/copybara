@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,10 +33,10 @@ import java.util.Map.Entry;
  *
  * TODO(danielromero): Promote to a real transform that uses regex
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "dummy_checker",
     doc = "A dummy checker for tests",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class DummyChecker implements Checker {
 
   private final ImmutableSet<String> badWords;

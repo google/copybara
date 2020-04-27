@@ -24,8 +24,8 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import org.junit.Before;
@@ -55,10 +55,10 @@ public final class SkylarkTestExecutorTest {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "dummy",
       doc = "For testing.",
-      category = SkylarkModuleCategory.BUILTIN,
+      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static final class DummyModule implements LabelsAwareModule, StarlarkValue {
     private ConfigFile configFile;

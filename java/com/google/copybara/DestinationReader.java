@@ -22,15 +22,15 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** An api handle to read files from the destination, rather than just the origin. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "destination_reader",
     doc = "Handle to read from the destination",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = true)
 public abstract class DestinationReader implements StarlarkValue {
 

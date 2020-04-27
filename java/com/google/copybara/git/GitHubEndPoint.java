@@ -53,8 +53,8 @@ import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -65,9 +65,9 @@ import javax.annotation.Nullable;
 
 /** GitHub specific class used in feedback mechanism and migration event hooks to access GitHub */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "github_api_obj",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "GitHub API endpoint implementation for feedback migrations and after migration hooks.")
 public class GitHubEndPoint implements Endpoint, StarlarkValue {
 

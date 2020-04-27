@@ -20,8 +20,8 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -30,9 +30,9 @@ import java.util.List;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#commit-info */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "gerritapi.CommitInfo",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit commit information.")
 public class CommitInfo implements StarlarkValue {
   @Key private String commit;

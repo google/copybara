@@ -29,8 +29,8 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -43,8 +43,8 @@ import javax.annotation.Nullable;
 
 // Module needed because both Transformation and ReversibleFunction are Starlark objects but
 // neither of them extend each other
-@SkylarkModule(name = "filter_replace",
-    category = SkylarkModuleCategory.BUILTIN,
+@StarlarkBuiltin(name = "filter_replace",
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "A core.filter_replace transformation")
 public class FilterReplace implements Transformation, ReversibleFunction<String, String>{
 

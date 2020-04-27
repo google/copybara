@@ -33,17 +33,17 @@ import com.google.copybara.format.BuildifierFormat.LintMode;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Skylark module for transforming the code to Google's style/guidelines. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "format",
     doc = "Module for formatting the code to Google's style/guidelines",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class FormatModule implements StarlarkValue {
 
   private static final ImmutableSet<String> BUILDIFIER_TYPE_VALUES =

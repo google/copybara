@@ -19,8 +19,8 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -31,9 +31,9 @@ import java.util.List;
  *
  * <p>https://developer.github.com/v3/repos/statuses
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "github_api_combined_status_obj",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Combined Information about a commit status as defined in"
             + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"

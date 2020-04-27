@@ -22,17 +22,17 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import java.nio.file.Path;
 
 /**
  * A DestinationReader for reading files from a GitDestination.
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "git_destination_reader",
     doc = "Handle to read from a git destination",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public class GitDestinationReader extends DestinationReader {
 

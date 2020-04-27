@@ -38,7 +38,7 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     return ImmutableList.of(new ProcessingStep() {
       @Override
       public Set<? extends Class<? extends Annotation>> annotations() {
-        return ImmutableSet.of(SkylarkModule.class, SkylarkGlobalLibrary.class);
+        return ImmutableSet.of(StarlarkBuiltin.class, SkylarkGlobalLibrary.class);
       }
 
       @Override
@@ -130,10 +130,10 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       }
     }
 
-    for (Element element : elementsByAnnotation.get(SkylarkModule.class)) {
+    for (Element element : elementsByAnnotation.get(StarlarkBuiltin.class)) {
       TypeElement module = (TypeElement) element;
 
-      SkylarkModule skyModule = module.getAnnotation(SkylarkModule.class);
+      StarlarkBuiltin skyModule = module.getAnnotation(StarlarkBuiltin.class);
       if (!skyModule.documented()) {
         continue;
       }
@@ -274,7 +274,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     if (element == null) {
       return simplerJavaTypes(declared);
     }
-    SkylarkModule skyType = element.getAnnotation(SkylarkModule.class);
+    StarlarkBuiltin skyType = element.getAnnotation(StarlarkBuiltin.class);
     if (skyType == null) {
       return simplerJavaTypes(element.asType());
     }

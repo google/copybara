@@ -22,8 +22,8 @@ import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -36,10 +36,10 @@ import com.google.devtools.build.lib.syntax.StarlarkValue;
  * operations on the API.
  */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "endpoint",
     doc = "An origin or destination API in a feedback migration.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
 public interface Endpoint extends StarlarkValue {
 
   /**

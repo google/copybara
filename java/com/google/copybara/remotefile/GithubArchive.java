@@ -23,8 +23,8 @@ import com.google.common.io.ByteStreams;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.OutputStream;
 import java.io.Serializable;
@@ -32,9 +32,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 /** A tarball for a given ref, downloaded from GitHub */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "remote_http_file.GitHubArchive",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false,
     doc = "A GitHub archive that can be downloaded at the given revision. Only exposes the SHA256 "
         + "hash of the archive.")

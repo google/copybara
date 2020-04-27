@@ -39,8 +39,8 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,9 +49,9 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 /** Integrate changes from a url present in the migrated change label. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "git_integrate",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false,
     doc = "")
 public class GitIntegrateChanges implements StarlarkValue {

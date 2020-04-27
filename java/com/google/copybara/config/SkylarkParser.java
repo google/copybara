@@ -32,8 +32,8 @@ import com.google.copybara.util.console.StarlarkMode;
 import com.google.devtools.build.lib.events.Event;
 import com.google.devtools.build.lib.events.EventHandler;
 import com.google.devtools.build.lib.events.EventKind;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkInterfaceUtils;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkInterfaceUtils;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.FileOptions;
@@ -358,9 +358,9 @@ public class SkylarkParser {
       // Create the module object and associate it with the functions
       ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
       try {
-        if (SkylarkInterfaceUtils.getSkylarkModule(module) != null) {
+        if (StarlarkInterfaceUtils.getStarlarkBuiltin(module) != null) {
           Starlark.addModule(envBuilder, module.getConstructor().newInstance());
-        } else if (SkylarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
+        } else if (StarlarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {
@@ -381,7 +381,7 @@ public class SkylarkParser {
   }
 
   private static String getModuleName(Class<?> cls) {
-    return cls.getAnnotation(SkylarkModule.class).name();
+    return cls.getAnnotation(StarlarkBuiltin.class).name();
   }
 
   /**

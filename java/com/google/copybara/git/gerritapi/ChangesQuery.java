@@ -20,8 +20,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.UnsupportedEncodingException;
@@ -33,12 +33,12 @@ import javax.annotation.Nullable;
  *
  * <p>https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "gerritapi.ChangesQuery",
     doc =
         "Input for listing Gerrit changes. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class ChangesQuery implements StarlarkValue {
 
   private final String query;

@@ -24,8 +24,8 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.ParamType;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -36,11 +36,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Skylark module for Buildozer-related functionality. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "buildozer",
     doc =
         "Module for Buildozer-related functionality such as creating and modifying BUILD targets.",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public final class BuildozerModule implements StarlarkValue {
 
   private final BuildozerOptions buildozerOptions;

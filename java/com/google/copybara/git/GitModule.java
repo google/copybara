@@ -69,8 +69,8 @@ import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -95,10 +95,10 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "git",
     doc = "Set of functions to define Git origins and destinations.",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 @UsesFlags(GitOptions.class)
 public class GitModule implements LabelsAwareModule, StarlarkValue {
 

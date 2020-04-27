@@ -47,7 +47,7 @@ import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import java.nio.file.FileSystem;
 import java.util.Map;
 import java.util.function.Function;
@@ -142,19 +142,19 @@ public class ModuleSupplier {
   private ImmutableMap<String, Object> modulesToVariableMap(Options options) {
     return getModules(options).stream()
         .collect(ImmutableMap.toImmutableMap(
-            this::findClosestSkylarkModuleName,
+            this::findClosestStarlarkBuiltinName,
             Function.identity()));
   }
 
-  private String findClosestSkylarkModuleName(Object o) {
+  private String findClosestStarlarkBuiltinName(Object o) {
     Class<?> cls = o.getClass();
     while (cls != null && cls != Object.class) {
-      SkylarkModule annotation = cls.getAnnotation(SkylarkModule.class);
+      StarlarkBuiltin annotation = cls.getAnnotation(StarlarkBuiltin.class);
       if (annotation != null) {
         return annotation.name();
       }
       cls = cls.getSuperclass();
     }
-    throw new IllegalStateException("Cannot find @SkylarkModule for " + o.getClass());
+    throw new IllegalStateException("Cannot find @StarlarkBuiltin for " + o.getClass());
   }
 }

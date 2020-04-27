@@ -17,12 +17,12 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
 
 /**
- * A {@link SkylarkModule} that implements this interface will be given information about the
+ * A {@link StarlarkBuiltin} that implements this interface will be given information about the
  * config files and resources loaded by theconfiguration.
  */
 public interface LabelsAwareModule {

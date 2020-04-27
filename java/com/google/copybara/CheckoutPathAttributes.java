@@ -18,8 +18,8 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
@@ -27,9 +27,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 /** Represents file attributes exposed to Skylark. */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "PathAttributes",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents a path attributes like size.")
 public class CheckoutPathAttributes implements StarlarkValue {
 

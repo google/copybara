@@ -24,8 +24,8 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -41,9 +41,9 @@ import javax.annotation.CheckReturnValue;
  * <p>This class is immutable.
  */
 @SuppressWarnings("unused")
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "ChangeMessage",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents a well formed parsed change message with its associated labels.")
 @DocSignaturePrefix("message")
 public final class ChangeMessage implements StarlarkValue {

@@ -19,15 +19,15 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
 /** Represents a pull request returned by https://api.github.com/repos/REPO_ID/pulls/NUMBER */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "github_api_pull_request_obj",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Information about a pull request as defined in"
             + " https://developer.github.com/v3/repos/pulls. This is a subset of the available"

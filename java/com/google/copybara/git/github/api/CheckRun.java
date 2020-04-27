@@ -21,8 +21,8 @@ import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
@@ -31,9 +31,9 @@ import javax.annotation.Nullable;
  * https://developer.github.com/v3/checks/runs/#create-a-check-run
  * https://developer.github.com/v3/checks/runs/#response
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "github_check_run_obj",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Detail about a check run as defined in "
             + "https://developer.github.com/v3/checks/runs/#create-a-check-run")

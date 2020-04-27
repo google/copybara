@@ -57,8 +57,8 @@ import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
@@ -87,10 +87,10 @@ import java.util.function.Supplier;
  * )
  * </pre>
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "core",
     doc = "Core functionality for creating migrations, and basic transformations.",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 @UsesFlags({GeneralOptions.class, DebugOptions.class})
 public class Core implements LabelsAwareModule, StarlarkValue {
 

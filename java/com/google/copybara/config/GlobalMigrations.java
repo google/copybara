@@ -18,8 +18,8 @@ package com.google.copybara.config;
 
 import static com.google.copybara.config.SkylarkUtil.check;
 
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -28,10 +28,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@SkylarkModule(
+@StarlarkBuiltin(
     name = GlobalMigrations.GLOBAL_MIGRATIONS,
     doc = "Global variable that holds the registered migrations in the config files",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false)
 public class GlobalMigrations implements StarlarkValue {
 

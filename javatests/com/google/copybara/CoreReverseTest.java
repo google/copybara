@@ -28,8 +28,8 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 import java.util.Objects;
@@ -119,11 +119,11 @@ public final class CoreReverseTest {
     console.assertThat().onceInLog(MessageType.ERROR, ".*foo is not reversible.*");
   }
 
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "mock",
       namespace = true,
       doc = "Mock classes for testing reverse",
-      category = SkylarkModuleCategory.BUILTIN,
+      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static class Mock implements StarlarkValue {
 

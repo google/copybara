@@ -20,8 +20,8 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Collections;
@@ -29,12 +29,12 @@ import java.util.Map;
 import java.util.Objects;
 
 /** See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "SetReviewInput",
     doc =
         "Input for posting a review to Gerrit. See "
             + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 public class SetReviewInput implements StarlarkValue {
 
   @Key String message;

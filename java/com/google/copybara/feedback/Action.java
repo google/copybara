@@ -20,15 +20,15 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** An action that will be executed in a feedback workflow or on finish hook */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "feedback.action",
     doc = "An action that will be executed in a feedback workflow or on_finish hook",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE,
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Action extends StarlarkValue {
 

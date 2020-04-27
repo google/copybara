@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.HasBinary;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -44,12 +44,12 @@ import java.util.Objects;
  * <p>The returned {@link PathMatcher} returns true if any of the {@code paths} expressions match.
  * If {@code paths} is empty it will no match any file.
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "glob",
     doc =
         "Glob returns a list of every file in the workdir that matches at least one"
             + " pattern in include and does not match any of the patterns in exclude.",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false)
 public abstract class Glob implements StarlarkValue, HasBinary {
 

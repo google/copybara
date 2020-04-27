@@ -26,8 +26,8 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.net.URL;
@@ -40,11 +40,11 @@ import java.util.stream.Collectors;
 /**
  * A starlark construct to download remote files via Http.
  */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "remote_http_file",
     documented = false,
     doc = "A file loaded via http(s). This is experimental.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
 public abstract class RemoteHttpFile implements StarlarkValue {
   protected final String reference;
    private final HttpStreamFactory transport;

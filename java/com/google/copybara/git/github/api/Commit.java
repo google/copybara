@@ -19,15 +19,15 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
 /** Represents the current status of a ref, as returned by the git/refs API call */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "github_api_commit_obj",
-    category = SkylarkModuleCategory.BUILTIN,
+    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Commit field for GitHub commit information"
             + " https://developer.github.com/v3/git/commits/#get-a-commit."
@@ -52,9 +52,9 @@ public class Commit implements StarlarkValue {
     return committer;
   }
 
-  @SkylarkModule(
+  @StarlarkBuiltin(
       name = "github_api_commit_author_obj",
-      category = SkylarkModuleCategory.BUILTIN,
+      category = StarlarkDocumentationCategory.BUILTIN,
       doc =
           "Author/Committer for commit field for GitHub commit information"
               + " https://developer.github.com/v3/git/commits/#get-a-commit."

@@ -27,18 +27,18 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Arrays;
 
 /** Module for helpers to load files from a source other than the origin. Use with caution. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "remotefiles",
     doc = "Functions to access remote files not in either repo.",
     documented = false,
-    category = SkylarkModuleCategory.BUILTIN)
+    category = StarlarkDocumentationCategory.BUILTIN)
 @UsesFlags(RemoteFileOptions.class)
 public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
 

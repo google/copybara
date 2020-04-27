@@ -18,15 +18,15 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModule;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkModuleCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Wrapper class to prevent arbitrary instantiation of endpoints in starlark. */
-@SkylarkModule(
+@StarlarkBuiltin(
     name = "endpoint_provider",
     doc = "An handle for an origin or destination API in a feedback migration.",
-    category = SkylarkModuleCategory.TOP_LEVEL_TYPE)
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
 public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endpoint {
   final T endpoint;
 
