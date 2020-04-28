@@ -150,7 +150,7 @@ public final class SkylarkUtil {
     // But beware its result should not be modified.
     if (!(x instanceof Sequence)) {
       throw new EvalException(
-          null, String.format("%s: got %s, want sequence", message, EvalUtils.getDataTypeName(x)));
+          null, String.format("%s: got %s, want sequence", message, Starlark.type(x)));
     }
 
     ArrayList<String> result = new ArrayList<>();
@@ -158,7 +158,7 @@ public final class SkylarkUtil {
       if (!(elem instanceof String)) {
         throw new EvalException(
             null, String.format("%s: at index #%d, got %s, want string",
-                message, result.size(), EvalUtils.getDataTypeName(elem)));
+                message, result.size(), Starlark.type(elem)));
       }
       result.add((String) elem);
     }
@@ -177,7 +177,7 @@ public final class SkylarkUtil {
     // and fix up tests. Beware: its result is not to be modified.
     if (!(x instanceof Dict)) {
       throw new EvalException(
-          null, String.format("%s: got %s, want dict", message, EvalUtils.getDataTypeName(x)));
+          null, String.format("%s: got %s, want dict", message, Starlark.type(x)));
     }
     Map<String, String> result = new HashMap<>();
     for (Map.Entry<?, ?> e : ((Dict<?, ?>) x).entrySet()) {
@@ -186,14 +186,14 @@ public final class SkylarkUtil {
             null,
             String.format(
                 "%s: in dict key, got %s, want string",
-                message, EvalUtils.getDataTypeName(e.getKey())));
+                message, Starlark.type(e.getKey())));
       }
       if (!(e.getValue() instanceof String)) {
         throw new EvalException(
             null,
             String.format(
                 "%s: in value for dict key '%s', got %s, want string",
-                message, e.getKey(), EvalUtils.getDataTypeName(e.getValue())));
+                message, e.getKey(), Starlark.type(e.getValue())));
       }
       result.put((String) e.getKey(), (String) e.getValue());
     }
