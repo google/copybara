@@ -94,9 +94,9 @@ public final class Command implements StarlarkValue {
         case "copy_no_overwrite":
           validateCount(argCount() == 2, "exactly 2 arguments");
           break;
-        case "fix":  // can take 0+
-          break;
+        case "fix":
         case "print":
+        case "remove_comment":
           break; // can take 0+
         case "replace_subinclude":
         case "move":
