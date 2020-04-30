@@ -137,6 +137,11 @@ public class OptionsBuilder {
     return this;
   }
 
+  public final OptionsBuilder setLabels(ImmutableMap<String, String> labels) {
+    general.setCliLabelsForTest(labels);
+    return this;
+  }
+
   public final OptionsBuilder setLastRevision(String lastRevision) {
     workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision,
         workflowOptions.checkLastRevState);

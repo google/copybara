@@ -204,6 +204,10 @@ public final class GeneralOptions implements Option {
             .collect(toImmutableList()));
   }
 
+  public ImmutableMap<String, String> cliLabels() {
+    return labels;
+  }
+
   /**
    * Run a repository task with profiling
    */
@@ -265,6 +269,11 @@ public final class GeneralOptions implements Option {
   @VisibleForTesting
   public void setForceForTest(boolean force) {
     this.force = force;
+  }
+
+  @VisibleForTesting
+  public void setCliLabelsForTest(ImmutableMap<String, String> labels) {
+    this.labels = labels;
   }
 
   @VisibleForTesting
@@ -390,6 +399,17 @@ public final class GeneralOptions implements Option {
           "Disable logging of this binary. Note that commands executed by Copybara "
               + "might still log to their own file.", hidden = true)
   boolean noLogging = false;
+
+  @Parameter(
+      names = "--labels",
+      description =
+          "Additional flags. It has been exposed to Feedback Context, "
+              + "which can be accessed through ctx.cli_labels. "
+              + "Format: --labels=flag1:value1,flag2:value2 "
+              + "Or: --labels flag1:value1,flag2:value2 ",
+      converter = MapConverter.class,
+      hidden = true)
+  ImmutableMap<String, String> labels = ImmutableMap.of();
 
   @Parameter(
       names = "--temporary-features",

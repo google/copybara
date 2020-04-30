@@ -20,6 +20,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
@@ -58,6 +59,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
       LazyResourceLoader<Endpoint> origin,
       LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
+      ImmutableMap<String, String> labels,
       Revision resolvedRevision,
       SkylarkConsole console) {
     this(
@@ -65,6 +67,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
         origin,
         destination,
         destinationEffects,
+        labels,
         console,
         Dict.empty(),
         new SkylarkRevision(resolvedRevision));
@@ -75,10 +78,11 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
       LazyResourceLoader<Endpoint> origin,
       LazyResourceLoader<Endpoint> destination,
       ImmutableList<DestinationEffect> destinationEffects,
+      ImmutableMap<String, String> labels,
       SkylarkConsole console,
       Dict<?, ?> params,
       SkylarkRevision resolvedRevision) {
-    super(currentAction, console, params);
+    super(currentAction, console, labels, params);
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.destinationEffects = Preconditions.checkNotNull(destinationEffects);
@@ -120,7 +124,8 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
   @Override
   public FinishHookContext withParams(Dict<?, ?> params) {
     return new FinishHookContext(
-        currentAction, origin, destination, destinationEffects, console, params, resolvedRevision);
+        currentAction, origin, destination, destinationEffects, labels, console, params,
+        resolvedRevision);
   }
 
   @Override

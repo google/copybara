@@ -2706,6 +2706,33 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testCliLabelsInAfterMigration() throws Exception {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    options.setLabels(ImmutableMap.of("foo", "label_bar"));
+
+    String config = ""
+        + "def _test_impl(ctx):\n"
+        + "  for effect in ctx.effects:\n"
+        + "    ctx.origin.message(ctx.cli_labels['foo'])\n"
+        + "\n"
+        + "def test():\n"
+        + "  return core.dynamic_feedback(impl = _test_impl,\n"
+        + "                               params = {})\n"
+        + "\n"
+        + "core.workflow(\n"
+        + "  name = 'default',\n"
+        + "  origin = testing.origin(),\n"
+        + "  destination = testing.destination(),\n"
+        + "  transformations = [],\n"
+        + "  authoring = " + authoring + ",\n"
+        + "  after_migration = [test()]"
+        + ")\n";
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
+    assertThat(origin.getEndpoint().getMessages())
+        .containsExactly("label_bar");
+  }
+
+  @Test
   public void testAfterAllMigrations1() throws Exception {
     checkAfterAllMigrations("1", ITERATIVE);
     assertThat(destination.getEndpoint().messages).containsExactly(

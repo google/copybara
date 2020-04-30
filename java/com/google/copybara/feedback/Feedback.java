@@ -86,7 +86,8 @@ public class Feedback implements Migration {
           eventMonitors().dispatchEvent(
               m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
           FeedbackMigrationContext context =
-              new FeedbackMigrationContext(this, action, sourceRefs, console);
+              new FeedbackMigrationContext(
+                  this, action, generalOptions.cliLabels(), sourceRefs, console);
           action.run(context);
           effects.addAll(context.getNewDestinationEffects());
           ActionResult actionResult = context.getActionResult();

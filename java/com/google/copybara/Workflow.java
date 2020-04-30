@@ -619,6 +619,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                 originEndpoint,
                 destinationEndpoint,
                 ImmutableList.copyOf(effects),
+                generalOptions.labels,
                 resolvedRef,
                 console);
         action.run(context);

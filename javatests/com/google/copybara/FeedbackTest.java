@@ -56,13 +56,14 @@ public class FeedbackTest {
   private TestingEventMonitor eventMonitor;
   private DummyTrigger dummyTrigger;
   private Path workdir;
+  private OptionsBuilder options;
 
   @Before
   public void setup() throws Exception {
     workdir = Jimfs.newFileSystem().getPath("/");
     console = new TestingConsole(/*verbose=*/ false);
     eventMonitor = new TestingEventMonitor();
-    OptionsBuilder options = new OptionsBuilder();
+    options = new OptionsBuilder();
     options.setConsole(console);
     options.general.enableEventMonitor("justTesting", eventMonitor);
     dummyTrigger = new DummyTrigger();
@@ -183,6 +184,26 @@ public class FeedbackTest {
     console
         .assertThat()
         .matchesNext(MessageType.INFO, ".*Ref: 12345")
+        .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
+        .containsNoMoreMessages();
+  }
+
+  @Test
+  public void verifyCliLabels() throws Exception {
+    options.general.setCliLabelsForTest(ImmutableMap.of("foo", "value"));
+    Feedback feedback =
+        feedback(
+            ""
+                + "def test_action(ctx):\n"
+                + "    foo = ctx.cli_labels['foo']\n"
+                + "    ctx.console.info('foo is: ' + foo)\n"
+                + "    return ctx.success()\n"
+                + "\n",
+            "test_action");
+    feedback.run(workdir, ImmutableList.of());
+    console
+        .assertThat()
+        .matchesNext(MessageType.INFO, ".*foo is: value")
         .matchesNext(MessageType.INFO, ".*Action 'test_action' returned success.*")
         .containsNoMoreMessages();
   }

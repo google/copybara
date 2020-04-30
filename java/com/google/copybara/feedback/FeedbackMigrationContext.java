@@ -21,6 +21,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.ValidationException;
@@ -51,17 +52,19 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
 
 
   FeedbackMigrationContext(
-      Feedback feedback, Action currentAction, ImmutableList<String> refs, SkylarkConsole console) {
-    this(feedback, currentAction, refs, console, Dict.empty());
+      Feedback feedback, Action currentAction,  ImmutableMap<String, String> labels,
+      ImmutableList<String> refs, SkylarkConsole console) {
+    this(feedback, currentAction, labels, refs, console, Dict.empty());
   }
 
   private FeedbackMigrationContext(
       Feedback feedback,
       Action currentAction,
+      ImmutableMap<String, String> labels,
       ImmutableList<String> refs,
       SkylarkConsole console,
       Dict<?, ?> params) {
-    super(currentAction, console, params);
+    super(currentAction, console, labels, params);
     this.feedback = Preconditions.checkNotNull(feedback);
     this.refs = ImmutableList.copyOf(refs);
   }
@@ -127,7 +130,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
 
   @Override
   public FeedbackContext withParams(Dict<?, ?> params) {
-    return new FeedbackMigrationContext(feedback, currentAction, refs, console, params);
+    return new FeedbackMigrationContext(feedback, currentAction, labels, refs, console, params);
   }
 
   @Override

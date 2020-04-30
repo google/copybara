@@ -1463,6 +1463,7 @@ Gives access to the feedback migration information and utilities. This context i
 Name | Description
 ---- | -----------
 action_name | The name of the current action.
+cli_labels | Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].
 console | Get an instance of the console to report errors or warnings
 destination | An object representing the destination. Can be used to query or modify the destination state
 feedback_name | The name of the Feedback migration calling this action.
@@ -1535,6 +1536,7 @@ Gives access to the feedback migration information and utilities. This context i
 Name | Description
 ---- | -----------
 action_name | The name of the current action.
+cli_labels | Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].
 console | Get an instance of the console to report errors or warnings
 destination | An object representing the destination. Can be used to query or modify the destination state
 effects | The list of effects that happened in the destination

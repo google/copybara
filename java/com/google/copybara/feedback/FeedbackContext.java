@@ -18,6 +18,7 @@ package com.google.copybara.feedback;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
@@ -42,14 +43,20 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
 
   final Action currentAction;
   final SkylarkConsole console;
+  final ImmutableMap<String, String> labels;
   final List<DestinationEffect> newDestinationEffects = new ArrayList<>();
 
   private final Dict<?, ?> params;
 
-  FeedbackContext(Action currentAction, SkylarkConsole console, Dict<?, ?> params) {
+  FeedbackContext(
+      Action currentAction,
+      SkylarkConsole console,
+      ImmutableMap<String, String> labels,
+      Dict<?, ?> params) {
     this.currentAction = Preconditions.checkNotNull(currentAction);
     this.console = Preconditions.checkNotNull(console);
     this.params = Preconditions.checkNotNull(params);
+    this.labels = Preconditions.checkNotNull(labels);
   }
 
   @StarlarkMethod(name = "origin", doc = "An object representing the origin. Can be used to"
@@ -80,6 +87,16 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       structField = true)
   public Dict<?, ?> getParams() {
     return params;
+  }
+
+  @StarlarkMethod(
+      name = "cli_labels",
+      doc = "Access labels that a user passes through flag '--labels'. "
+          + "For example: --labels=foo:value1,bar:value2. Then it can access in this way:"
+          + "cli_labels['foo'].",
+      structField = true)
+  public Dict<String, String> getCliLabels() {
+    return Dict.copyOf(null, labels);
   }
 
   @StarlarkMethod(

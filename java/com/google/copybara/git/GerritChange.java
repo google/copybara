@@ -197,6 +197,7 @@ class GerritChange {
                     repository, generalOptions, repoUrl, change, patchSet, changeId)
                     .toString())
             .putAll(additionalLabels)
+            .putAll(generalOptions.cliLabels().entrySet())
             .build(),
         repoUrl);
   }
