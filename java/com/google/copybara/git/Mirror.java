@@ -77,6 +77,14 @@ public class Mirror implements Migration {
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
       mirrorOptions.mirror(origin, destination, refspec, prune, partialFetch);
+    } catch (RepoException e) {
+      // non-fast-forward errors in git mirror usually means that the destination
+      // has commits that the origin doesn't. Usually by a user submitting directly
+      // to the destination instead of using Copybara.
+      if (e.getMessage().contains("(non-fast-forward)")) {
+        throw new ValidationException(e.getMessage(), e);
+      }
+      throw e;
     }
 
     // More fine grain events based on the references created/updated/deleted:
