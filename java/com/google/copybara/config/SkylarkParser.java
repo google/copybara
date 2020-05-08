@@ -287,7 +287,7 @@ public class SkylarkParser {
           .build();
 
   private StarlarkSemantics createSemantics() {
-    return StarlarkSemantics.DEFAULT_SEMANTICS;
+    return StarlarkSemantics.DEFAULT;
   }
 
   /** Updates the module globals with information about the current loaded config file. */
