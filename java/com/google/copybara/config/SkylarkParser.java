@@ -46,7 +46,6 @@ import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
-import com.google.devtools.build.lib.syntax.StarlarkThread.Extension;
 import com.google.devtools.build.lib.syntax.Statement;
 import java.io.IOException;
 import java.util.HashMap;
@@ -215,13 +214,12 @@ public class SkylarkParser {
               : STARLARK_LOOSE_FILE_OPTIONS;
       StarlarkFile file = StarlarkFile.parse(input, options);
 
-      Map<String, Extension> imports = new HashMap<>();
+      Map<String, Module> loadedModules = new HashMap<>();
       for (Statement stmt :  file.getStatements()) {
         if (stmt instanceof LoadStatement) {
           String moduleName = ((LoadStatement) stmt).getImport().getValue();
           Module imp = eval(content.resolve(moduleName + BARA_SKY));
-          imports.put(
-              moduleName, new Extension(ImmutableMap.copyOf(imp.getExportedBindings()), ""));
+          loadedModules.put(moduleName, imp);
         }
       }
       StarlarkThread.PrintHandler printHandler = Event.makeDebugPrintHandler(eventHandler);
@@ -234,7 +232,7 @@ public class SkylarkParser {
           StarlarkThread.builder(Mutability.create("CopybaraModules"))
               .setSemantics(createSemantics())
               .setGlobals(Module.createForBuiltins(environment))
-              .setImportedExtensions(imports)
+              .setLoadedModules(loadedModules)
               .build();
       thread.setPrintHandler(printHandler);
       module = thread.getGlobals();
