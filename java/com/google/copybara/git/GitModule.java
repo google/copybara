@@ -199,14 +199,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "If true, it only uses the first parent when looking for changes. Note that"
                     + " when disabled in ITERATIVE mode, it will try to do a migration for each"
                     + " change of the merged branch."),
-          @Param(
-              name = "partial_fetch",
-              type = Boolean.class,
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc =
-                  "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = PATCH_FIELD,
             type = Transformation.class,
@@ -372,14 +372,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc = "Remove remote refs that don't have a origin counterpart",
             defaultValue = "False"),
-          @Param(
-              name = "partial_fetch",
-              type = Boolean.class,
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc =
-                  "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "description",
             type = String.class,
@@ -507,7 +507,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "api_checker",
             type = Checker.class,
@@ -720,7 +720,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "state",
             type = String.class,
@@ -915,7 +915,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = PATCH_FIELD,
             type = Transformation.class,
@@ -1047,7 +1047,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "integrates",
             type = Sequence.class,
@@ -1147,7 +1147,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "delete_pr_branch",
             type = Boolean.class,
@@ -1279,14 +1279,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "Customize the pull request branch. Any variable present in the message in the "
                     + "form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable "
                     + "reference (head, PR number, Gerrit change number, etc.)."),
-          @Param(
-              name = "partial_fetch",
-              type = Boolean.class,
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc =
-                  "If true, partially fetch git repository by only fetching affected files."),
+        @Param(
+            name = "partial_fetch",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "title",
             type = String.class,
@@ -1465,7 +1465,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             doc =
-                "If true, partially fetch git repository by only fetching affected files."),
+                "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "notify",
             type = String.class,

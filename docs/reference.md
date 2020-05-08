@@ -1915,7 +1915,7 @@ push | `string`<br><p>Reference to use for pushing the change, for example 'mast
 tag_name | `string`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
@@ -1976,7 +1976,7 @@ url | `string`<br><p>Indicates the URL to push to as well as the URL from which 
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit</p>
 push_to_refs_for | `string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
 submit | `boolean`<br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 notify | `string`<br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
 change_id_policy | `string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
 allow_empty_diff_patchset | `boolean`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
@@ -2034,7 +2034,7 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
@@ -2104,7 +2104,7 @@ url | `string`<br><p>Indicates the URL to push to as well as the URL from which 
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 pr_branch_to_update | `string`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 delete_pr_branch | `boolean`<br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
@@ -2142,7 +2142,7 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
@@ -2162,7 +2162,7 @@ Parameter | Description
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
@@ -2265,7 +2265,7 @@ retryable_labels | `sequence of string`<br><p>Required labels to import the PR t
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch | `boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 state | `string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 review_state | `string`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
 review_approvers | `sequence of string`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
@@ -2377,7 +2377,7 @@ origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
 refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
 prune | `boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 description | `string`<br><p>A description of what this workflow achieves</p>
 
 
@@ -2405,7 +2405,7 @@ ref | `string`<br><p>Represents the default reference that will be used for read
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 include_branch_commit_logs | `boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
 first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
