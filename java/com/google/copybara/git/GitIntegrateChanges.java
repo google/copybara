@@ -283,11 +283,31 @@ public class GitIntegrateChanges implements StarlarkValue {
         if (previousHead == null) {
           return head.getCommit().getSha1();
         }
+        String sha1;
         try {
-          return repository.mergeBase(previousHead.getSha1(),
-              integrateLabel.getRevision().getSha1());
+          sha1 = integrateLabel.getRevision().getSha1();
         } catch (RepoException e) {
-          logger.atWarning().log(
+          // There is a weird git submodule issue where the first time we fetch a reference but
+          // the local state (git-tree and workdir) doesn't have a reference to the submodule it
+          // fails trying to get the resolve the submodule. But the main fetch success, so a
+          // call to resolve would return the reference.
+          if (!e.getMessage().contains("Could not access submodule")) {
+            logger.atWarning().withCause(e).log(
+                "Cannot fetch/find integrate commit: %s.", integrateLabel);
+            return head.getCommit().getSha1();
+          }
+          try {
+            sha1 = integrateLabel.getRevision().getSha1();
+          } catch (RepoException retryException) {
+            logger.atWarning().withCause(retryException).log(
+                "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
+            return head.getCommit().getSha1();
+          }
+        }
+        try {
+          return repository.mergeBase(previousHead.getSha1(), sha1);
+        } catch (RepoException e) {
+          logger.atWarning().withCause(e).log(
               "Cannot find common parent for previous head commit %s and integrate commit: %s.",
               previousHead, integrateLabel);
           return head.getCommit().getSha1();
