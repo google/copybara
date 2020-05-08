@@ -232,8 +232,8 @@ public class SkylarkParser {
           StarlarkThread.builder(Mutability.create("CopybaraModules"))
               .setSemantics(createSemantics())
               .setGlobals(Module.createForBuiltins(environment))
-              .setLoadedModules(loadedModules)
               .build();
+      thread.setLoader(loadedModules::get);
       thread.setPrintHandler(printHandler);
       module = thread.getGlobals();
 
