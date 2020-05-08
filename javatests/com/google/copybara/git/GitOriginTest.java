@@ -1134,6 +1134,19 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testPartialfetchSet() throws Exception {
+    origin = skylark.eval("result",
+        "result = git.origin(\n"
+            + "    url = 'https://my-server.org/copybara',\n"
+            + "    partial_fetch = True"
+            + ")");
+    ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+
+    assertThat(actual.get("partialFetch")).containsExactly("true");
+    assertThat(actual.get("url")).containsExactly("https://my-server.org/copybara");
+  }
+
+  @Test
   public void doesNotIncludeBranchCommitLogHeadingForNonMergeCommits() throws Exception {
     Files.write(remote.resolve("foofile.txt"), new byte[0]);
     git("add", "foofile.txt");
@@ -1154,6 +1167,7 @@ public class GitOriginTest {
     ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
     assertThat(actual.get("type")).containsExactly("git.origin");
     assertThat(actual.get("repoType")).containsExactly("GIT");
+    assertThat(actual.get("partialFetch")).containsExactly("false");
     assertThat(actual.get("root")).isEmpty();
   }
 
