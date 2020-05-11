@@ -26,10 +26,11 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkCallable;
+import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
-import java.util.function.Supplier;
 
 /**
  * An implementation of {@link Action} that delegates to a Skylark function.
@@ -38,30 +39,30 @@ public class SkylarkAction implements Action {
 
   private final StarlarkCallable function;
   private final Dict<?, ?> params;
-  private final Supplier<StarlarkThread> thread;
+  private final StarlarkThread.PrintHandler printHandler;
 
   public SkylarkAction(
-      StarlarkCallable function, Dict<?, ?> params, Supplier<StarlarkThread> thread) {
+      StarlarkCallable function, Dict<?, ?> params, StarlarkThread.PrintHandler printHandler) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
-    this.thread = Preconditions.checkNotNull(thread);
+    this.printHandler = Preconditions.checkNotNull(printHandler);
   }
 
   @Override
   public void run(SkylarkContext<?> context) throws ValidationException, RepoException {
-    try {
-      //noinspection unchecked
-      SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
+    //noinspection unchecked
+    SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
+    try (Mutability mu = Mutability.create("dynamic_action")) {
+      StarlarkThread thread = new StarlarkThread(mu, StarlarkSemantics.DEFAULT);
+      thread.setPrintHandler(printHandler);
       Object result =
           Starlark.call(
-              thread.get(),
-              function,
-              ImmutableList.of(actionContext),
-              /*kwargs=*/ ImmutableMap.of());
+              thread, function, ImmutableList.of(actionContext), /*kwargs=*/ ImmutableMap.of());
       context.onFinish(result, actionContext);
     } catch (IllegalArgumentException e) {
       throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
+      // TODO(copybara-team): display e's stack trace to users.
       Throwable cause = e.getCause();
       String error =
           String.format("Error while executing the skylark transformation %s: %s. Location: %s",

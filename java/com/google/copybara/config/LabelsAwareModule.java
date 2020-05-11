@@ -47,11 +47,8 @@ public interface LabelsAwareModule {
   }
 
   /**
-   * Dynamic environment to be used by Skylark code that is run during a migration (For example
+   * Set handler for print statements executed by Starlark code run during a migration (for example
    * dynamic transformations, migration hooks or feedback mechanism).
-   *
-   * <p>It provides an immutable access to the globals of its own file and dependencies imported but
-   * it is mutable for its own execution, allowing it to create local variables.
    */
-  default void setDynamicEnvironment(Supplier<StarlarkThread> dynamicStarlarkThread) {}
+  default void setPrintHandler(StarlarkThread.PrintHandler printHandler) {}
 }

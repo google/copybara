@@ -29,11 +29,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
+import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkCallable;
+import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
-import java.util.function.Supplier;
 
 /**
  * A transformation that uses a Skylark function to transform the code.
@@ -42,13 +43,13 @@ public class SkylarkTransformation implements Transformation {
 
   private final StarlarkCallable function;
   private final Dict<?, ?> params;
-  private final Supplier<StarlarkThread> dynamicThread;
+  private final StarlarkThread.PrintHandler printHandler;
 
   public SkylarkTransformation(
-      StarlarkCallable function, Dict<?, ?> params, Supplier<StarlarkThread> dynamicThread) {
+      StarlarkCallable function, Dict<?, ?> params, StarlarkThread.PrintHandler printHandler) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
-    this.dynamicThread = Preconditions.checkNotNull(dynamicThread);
+    this.printHandler = Preconditions.checkNotNull(printHandler);
   }
 
   @Override
@@ -57,13 +58,12 @@ public class SkylarkTransformation implements Transformation {
     SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
     TransformWork skylarkWork = work.withConsole(skylarkConsole)
         .withParams(params);
-    try {
+    try (Mutability mu = Mutability.create("dynamic_transform")) {
+      StarlarkThread thread = new StarlarkThread(mu, StarlarkSemantics.DEFAULT);
+      thread.setPrintHandler(printHandler);
       Object result =
           Starlark.call(
-              dynamicThread.get(),
-              function,
-              ImmutableList.of(skylarkWork),
-              /*kwargs=*/ ImmutableMap.of());
+              thread, function, ImmutableList.of(skylarkWork), /*kwargs=*/ ImmutableMap.of());
       checkCondition(
           result == Starlark.NONE,
           "Message transformer functions should not return anything, but '%s' returned: %s",

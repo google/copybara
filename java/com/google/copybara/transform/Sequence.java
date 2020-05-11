@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -157,21 +156,22 @@ public class Sequence implements Transformation {
       boolean joinTransformations,
       com.google.devtools.build.lib.syntax.Sequence<?> elements,
       String description,
-      Supplier<StarlarkThread> thread,
+      StarlarkThread.PrintHandler printHandler,
       Function<Transformation, Transformation> transformWrapper)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(
-          transformWrapper.apply(convertToTransformation(description, thread, element)));
+          transformWrapper.apply(convertToTransformation(description, printHandler, element)));
     }
     return new Sequence(profiler, joinTransformations, transformations.build());
   }
 
   private static Transformation convertToTransformation(
-      String description, Supplier<StarlarkThread> thread, Object element) throws EvalException {
+      String description, StarlarkThread.PrintHandler printHandler, Object element)
+      throws EvalException {
     if (element instanceof StarlarkCallable) {
-      return new SkylarkTransformation((StarlarkCallable) element, Dict.empty(), thread);
+      return new SkylarkTransformation((StarlarkCallable) element, Dict.empty(), printHandler);
     }
     if (element instanceof Transformation) {
       return (Transformation) element;

@@ -225,7 +225,7 @@ public class SkylarkParser {
       // Create a Starlark thread making the modules available as predeclared bindings.
       // For modules that implement OptionsAwareModule, options are set in the object so
       // that the module can construct objects that require options.
-      StarlarkSemantics semantics = createSemantics();
+      StarlarkSemantics semantics = StarlarkSemantics.DEFAULT;
       module = Module.withPredeclared(semantics, environment);
 
       // resolve
@@ -281,10 +281,6 @@ public class SkylarkParser {
           .requireLoadStatementsFirst(false)
           .build();
 
-  private StarlarkSemantics createSemantics() {
-    return StarlarkSemantics.DEFAULT;
-  }
-
   /** Updates the module globals with information about the current loaded config file. */
   // TODO(copybara-team): evaluate the cleaner approach of saving the varying parts in the
   // StarlarkThread.setThreadLocal and leaving the modules alone as nature intended.
@@ -299,16 +295,7 @@ public class SkylarkParser {
       if (module instanceof LabelsAwareModule) {
         LabelsAwareModule m = (LabelsAwareModule) module;
         m.setConfigFile(mainConfigFile, currentConfigFile);
-        // TODO(malcon): these two setDynamicEnvironment calls are identical.
-        // Eliminate the feature?
-        m.setDynamicEnvironment(
-            () -> {
-              StarlarkThread thread =
-                  new StarlarkThread(
-                      Mutability.create("dynamic_action"), StarlarkSemantics.DEFAULT);
-              thread.setPrintHandler(printHandler);
-              return thread;
-            });
+        m.setPrintHandler(printHandler);
       }
     }
     for (Class<?> module : modules) {
@@ -317,14 +304,7 @@ public class SkylarkParser {
       if (LabelsAwareModule.class.isAssignableFrom(module)) {
         LabelsAwareModule m = (LabelsAwareModule) environment.get(getModuleName(module));
         m.setConfigFile(mainConfigFile, currentConfigFile);
-        m.setDynamicEnvironment(
-            () -> {
-              StarlarkThread thread =
-                  new StarlarkThread(
-                      Mutability.create("dynamic_action"), StarlarkSemantics.DEFAULT);
-              thread.setPrintHandler(printHandler);
-              return thread;
-            });
+        m.setPrintHandler(printHandler);
       }
     }
   }

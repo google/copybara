@@ -102,7 +102,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   private final DebugOptions debugOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
-  private Supplier<StarlarkThread> dynamicStarlarkThread;
+  private StarlarkThread.PrintHandler printHandler;
 
   public Core(
       GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions) {
@@ -135,7 +135,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       try {
         if (t instanceof StarlarkCallable) {
           builder.add(
-              new SkylarkTransformation((StarlarkCallable) t, Dict.empty(), dynamicStarlarkThread)
+              new SkylarkTransformation((StarlarkCallable) t, Dict.empty(), printHandler)
                   .reverse());
         } else if (t instanceof Transformation) {
           builder.add(((Transformation) t).reverse());
@@ -460,7 +460,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.joinTransformations(),
             transformations,
             "transformations",
-            dynamicStarlarkThread,
+            printHandler,
             debugOptions::transformWrapper);
     Transformation reverseTransform = null;
     if (!generalOptions.isDisableReversibleCheck()
@@ -536,8 +536,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             allConfigFiles,
             dryRunMode,
             checkLastRevState || workflowOptions.checkLastRevState,
-            convertFeedbackActions(afterMigrations, dynamicStarlarkThread),
-            convertFeedbackActions(afterAllMigrations, dynamicStarlarkThread),
+            convertFeedbackActions(afterMigrations, printHandler),
+            convertFeedbackActions(afterAllMigrations, printHandler),
             changeIdentity,
             setRevId,
             smartPrune,
@@ -1378,7 +1378,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.joinTransformations(),
             transformations,
             "transformations",
-            dynamicStarlarkThread,
+            printHandler,
             debugOptions::transformWrapper);
     com.google.devtools.build.lib.syntax.Sequence<Transformation> reverseList =
         convertFromNoneable(reversal, null);
@@ -1400,7 +1400,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.joinTransformations(),
             reverseList,
             "reversal",
-            dynamicStarlarkThread,
+            printHandler,
             debugOptions::transformWrapper);
     return new ExplicitReversal(
         forward, reverse, updatedIgnoreNoop);
@@ -1449,7 +1449,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   public Transformation dynamic_transform(
       StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkTransformation(
-        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }
 
   @SuppressWarnings("unused")
@@ -1474,7 +1474,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       useStarlarkThread = true)
   public Action dynamicFeedback(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
     return new SkylarkAction(
-        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), dynamicStarlarkThread);
+        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }
 
   @SuppressWarnings("unused")
@@ -1568,7 +1568,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object description,
       StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, dynamicStarlarkThread);
+    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, printHandler);
     Feedback migration =
         new Feedback(
             workflowName,
@@ -1611,12 +1611,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
 
   private static ImmutableList<Action> convertFeedbackActions(
       com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
-      Supplier<StarlarkThread> thread)
+      StarlarkThread.PrintHandler printHandler)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof StarlarkCallable) {
-        actions.add(new SkylarkAction((StarlarkCallable) action, Dict.empty(), thread));
+        actions.add(new SkylarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
@@ -1639,7 +1639,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @Override
-  public void setDynamicEnvironment(Supplier<StarlarkThread> dynamicStarlarkThread) {
-    this.dynamicStarlarkThread = dynamicStarlarkThread;
+  public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
+    this.printHandler = printHandler;
   }
 }
