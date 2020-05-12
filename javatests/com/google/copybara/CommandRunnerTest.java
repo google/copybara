@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -57,9 +59,16 @@ public class CommandRunnerTest {
 
   private static final int LINES_SIZE = 1000;
 
-  private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-  private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-  private final List<String> logLines = Lists.newLinkedList();
+  private ByteArrayOutputStream outContent;
+  private ByteArrayOutputStream errContent;
+  private List<String> logLines;
+
+  @Before
+  public void setUp() throws Exception {
+    outContent = new ByteArrayOutputStream();
+    errContent = new ByteArrayOutputStream();
+    logLines = Lists.newLinkedList();
+  }
 
   @Test
   public void testCommand() throws Exception {
@@ -67,8 +76,12 @@ public class CommandRunnerTest {
     CommandOutputWithStatus result = runCommand(new CommandRunner(command));
     assertThat(result.getTerminationStatus().success()).isTrue();
     assertThat(result.getStdout()).isEqualTo("hello world\n");
-    assertThat(outContent.toByteArray()).isEmpty();
-    assertThat(errContent.toByteArray()).isEmpty();
+    assertWithMessage("Not empty: %s", new String(outContent.toByteArray(), UTF_8))
+        .that(outContent.toByteArray())
+        .isEmpty();
+    assertWithMessage("Not empty: %s", new String(errContent.toByteArray(), UTF_8))
+        .that(errContent.toByteArray())
+        .isEmpty();
     assertLogContains(
         "Executing [echo hello world]", "'echo' STDOUT: hello world", "Command 'echo' finished");
   }
@@ -85,7 +98,7 @@ public class CommandRunnerTest {
             () -> runCommand(new CommandRunner(command, Duration.ofSeconds(1))));
     assertThat(e.getOutput().getStdout()).contains("stdout msg");
     assertThat(e.getOutput().getStderr()).contains("stderr msg");
-      assertThat(e.getMessage())
+    assertThat(e.getMessage())
           .containsMatch("Command '.*' killed by Copybara after timeout \\(1s\\)");
       assertThat(e.getTimeout()).isEquivalentAccordingToCompareTo(Duration.ofSeconds(1));
   }
@@ -251,6 +264,8 @@ public class CommandRunnerTest {
 
   private CommandOutputWithStatus runCommand(CommandRunner commandRunner) throws CommandException {
     Logger logger = Logger.getLogger(CommandRunner.class.getName());
+    boolean useParentLogger = logger.getUseParentHandlers();
+    logger.setUseParentHandlers(false);
     StreamHandler handler = new StreamHandler() {
       @Override
       public synchronized void publish(LogRecord record) {
@@ -268,6 +283,7 @@ public class CommandRunnerTest {
       System.setOut(outRestore);
       System.setErr(errRestore);
       logger.removeHandler(handler);
+      logger.setUseParentHandlers(useParentLogger);
     }
   }
 
