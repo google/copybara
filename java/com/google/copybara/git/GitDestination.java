@@ -798,11 +798,14 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("type", getType())
             .put("url", repoUrl)
             .put("fetch", fetch)
-            .put("push", push)
-            .put("partialFetch", Boolean.toString(partialFetch));
+            .put("push", push);
     builder.putAll(writerHook.describe());
     if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
       builder.putAll("root", destinationFiles.roots());
+    }
+    if (partialFetch) {
+      builder
+          .put("partialFetch", Boolean.toString(partialFetch));
     }
     if (tagName != null) {
       builder.put("tagName", tagName);
