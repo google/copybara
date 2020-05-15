@@ -21,9 +21,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** A Skylark module used by tests */
@@ -40,27 +40,27 @@ public class TestingModule implements StarlarkValue {
     this.testingOptions = checkNotNull(opts.get(TestingOptions.class), "TestOptions not set");
   }
 
-  @SkylarkCallable(name = "origin", doc = "A dummy origin")
+  @StarlarkMethod(name = "origin", doc = "A dummy origin")
   public DummyOrigin origin() {
     return testingOptions.origin;
   }
 
-  @SkylarkCallable(name = "destination", doc = "A dummy destination")
+  @StarlarkMethod(name = "destination", doc = "A dummy destination")
   public RecordsProcessCallDestination destination() {
     return testingOptions.destination;
   }
 
-  @SkylarkCallable(name = "dummy_endpoint", doc = "A dummy feedback endpoint")
+  @StarlarkMethod(name = "dummy_endpoint", doc = "A dummy feedback endpoint")
   public EndpointProvider<DummyEndpoint> dummyEndpoint() {
     return EndpointProvider.wrap(testingOptions.feedbackTrigger);
   }
 
-  @SkylarkCallable(name = "dummy_trigger", doc = "A dummy feedback trigger")
+  @StarlarkMethod(name = "dummy_trigger", doc = "A dummy feedback trigger")
   public DummyTrigger dummyTrigger() {
     return testingOptions.feedbackTrigger;
   }
 
-  @SkylarkCallable(name = "dummy_checker", doc = "A dummy checker")
+  @StarlarkMethod(name = "dummy_checker", doc = "A dummy checker")
   public DummyChecker dummyChecker() {
     return testingOptions.checker;
   }

@@ -20,9 +20,9 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
@@ -45,7 +45,7 @@ public class ChangeMessageInfo implements StarlarkValue {
   @Key private String tag;
   @Key("_revision_number") private int revisionNumber;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "id",
       doc = "The ID of the message.",
       structField = true,
@@ -54,7 +54,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return id;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "author",
       doc =
           "Author of the message as an AccountInfo entity.\n"
@@ -65,7 +65,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return author;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "real_author",
       doc =
           "Real author of the message as an AccountInfo entity.\n"
@@ -80,7 +80,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return parseTimestamp(date);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "date",
       doc = "The timestamp of when this identity was constructed.",
       structField = true,
@@ -89,7 +89,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return date;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "message",
       doc = "The text left by the user.",
       structField = true,
@@ -98,7 +98,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return message;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "tag",
       doc = "Value of the tag field from ReviewInput set while posting the review. "
           + "NOTE: To apply different tags on on different votes/comments multiple "
@@ -109,7 +109,7 @@ public class ChangeMessageInfo implements StarlarkValue {
     return tag;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "revision_number",
       doc = "Which patchset (if any) generated this message.",
       structField = true,

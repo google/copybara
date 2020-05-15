@@ -23,9 +23,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -102,13 +102,13 @@ public final class ChangeMessage implements StarlarkValue {
         .collect(Collectors.toList());
   }
 
-  @SkylarkCallable(name = "first_line", doc = "First line of this message", structField = true)
+  @StarlarkMethod(name = "first_line", doc = "First line of this message", structField = true)
   public String firstLine() {
     int idx = text.indexOf('\n');
     return idx == -1 ? text : text.substring(0, idx);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "text",
       doc = "The text description this message, not including the labels.",
       structField = true)
@@ -135,7 +135,7 @@ public final class ChangeMessage implements StarlarkValue {
     return result.build();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "label_values",
       doc = "Returns a list of values associated with the label name.",
       parameters = {

@@ -21,9 +21,9 @@ import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -67,7 +67,7 @@ public interface Endpoint extends StarlarkValue {
   /** Returns a key-value ist of the options the endpoint was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "new_origin_ref",
       doc = "Creates a new origin reference out of this endpoint.",
       parameters = {
@@ -77,7 +77,7 @@ public interface Endpoint extends StarlarkValue {
     return new OriginRef(ref);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "new_destination_ref",
       doc = "Creates a new destination reference out of this endpoint.",
       parameters = {
@@ -100,7 +100,7 @@ public interface Endpoint extends StarlarkValue {
     return new DestinationRef(ref, type, url);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "url",
       doc = "Return the URL of this endpoint.",
       structField = true,

@@ -18,9 +18,9 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
@@ -34,7 +34,7 @@ public class ParentCommitInfo implements StarlarkValue {
   @Key private String commit;
   @Key private String subject;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "commit",
       doc =
           "The commit ID. Not set if included in a RevisionInfo entity that is contained "
@@ -45,7 +45,7 @@ public class ParentCommitInfo implements StarlarkValue {
     return commit;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "subject",
       doc = "The subject of the commit (header line of the commit message).",
       structField = true,

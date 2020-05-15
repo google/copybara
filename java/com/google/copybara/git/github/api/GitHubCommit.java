@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Represents GitHub information for a commit */
@@ -40,7 +40,7 @@ public class GitHubCommit implements StarlarkValue {
   @Key private User committer;
   @Key private Commit commit;
 
-  @SkylarkCallable(name = "sha", doc = "SHA of the commit", structField = true)
+  @StarlarkMethod(name = "sha", doc = "SHA of the commit", structField = true)
   public String getSha() {
     return sha;
   }
@@ -49,24 +49,24 @@ public class GitHubCommit implements StarlarkValue {
     return url;
   }
 
-  @SkylarkCallable(name = "html_url", doc = "GitHub url for the commit", structField = true)
+  @StarlarkMethod(name = "html_url", doc = "GitHub url for the commit", structField = true)
   public String getHtmlUrl() {
     return htmlUrl;
   }
 
-  @SkylarkCallable(name = "author", doc = "GitHub information about the author of the change",
+  @StarlarkMethod(name = "author", doc = "GitHub information about the author of the change",
       structField = true)
   public User getAuthor() {
     return author;
   }
 
-  @SkylarkCallable(name = "committer",
+  @StarlarkMethod(name = "committer",
       doc = "GitHub information about the committer of the change", structField = true)
   public User getCommitter() {
     return committer;
   }
 
-  @SkylarkCallable(name = "commit", doc = "Information about the commit, like the message or"
+  @StarlarkMethod(name = "commit", doc = "Information about the commit, like the message or"
       + " git commit author/committer",
       structField = true)
   public Commit getCommit() {

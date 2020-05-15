@@ -21,9 +21,9 @@ import static com.google.common.collect.Iterables.transform;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
 import com.google.common.collect.ImmutableSet;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 import java.util.EnumSet;
@@ -69,7 +69,7 @@ public class Status implements StarlarkValue {
     return state;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "state",
     doc = "The state of the commit status: success, failure, pending or error",
     structField = true
@@ -78,7 +78,7 @@ public class Status implements StarlarkValue {
     return state.toString().toLowerCase();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "target_url",
     doc = "Get the target url of the commit status. Can be None.",
     structField = true,
@@ -89,7 +89,7 @@ public class Status implements StarlarkValue {
     return targetUrl;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "description",
     doc = "Description of the commit status. Can be None.",
     structField = true,
@@ -100,7 +100,7 @@ public class Status implements StarlarkValue {
     return description;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "context",
     doc = "Context of the commit status. This is a relatively stable id",
     structField = true,

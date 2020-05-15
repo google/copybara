@@ -36,9 +36,9 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkGlobalLibrary;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -92,7 +92,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     return ImmutableList.of(new ProcessingStep() {
       @Override
       public Set<? extends Class<? extends Annotation>> annotations() {
-        return ImmutableSet.of(StarlarkBuiltin.class, SkylarkGlobalLibrary.class);
+        return ImmutableSet.of(StarlarkBuiltin.class, StarlarkGlobalLibrary.class);
       }
 
       @Override
@@ -117,15 +117,15 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       throws ElementException, IOException {
 
     LinkedList<DocModule> modules = new LinkedList<>();
-    Set<Element> globalModules = elementsByAnnotation.get(SkylarkGlobalLibrary.class);
+    Set<Element> globalModules = elementsByAnnotation.get(StarlarkGlobalLibrary.class);
     if (!globalModules.isEmpty()) {
       DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
       modules.add(docModule);
       for (Element element : globalModules) {
         TypeElement module = (TypeElement) element;
-        for (Element member : findSkylarkCallables(module)) {
+        for (Element member : findStarlarkMethods(module)) {
           docModule.functions.add(callableFunction((ExecutableElement) member,
-              annotationHelper(member, SkylarkCallable.class), /*prefix=*/null));
+              annotationHelper(member, StarlarkMethod.class), /*prefix=*/null));
         }
       }
     }
@@ -144,8 +144,8 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       DocModule docModule = new DocModule(skyModule.name(), skyModule.doc());
       modules.add(docModule);
 
-      for (Element member : findSkylarkCallables(module)) {
-        AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
+      for (Element member : findStarlarkMethods(module)) {
+        AnnotationHelper<StarlarkMethod> ann = annotationHelper(member, StarlarkMethod.class);
         if (ann.ann.structField()) {
           docModule.fields.add(new DocField(ann.ann.name(), ann.ann.doc()));
         } else {
@@ -168,7 +168,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   }
 
   private DocFunction callableFunction(ExecutableElement member,
-      AnnotationHelper<SkylarkCallable> callable, @Nullable String prefix) throws ElementException {
+      AnnotationHelper<StarlarkMethod> callable, @Nullable String prefix) throws ElementException {
 
     return documentSkylarkSignature(member,
         prefix != null
@@ -178,17 +178,17 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         callable.ann.parameters(), skylarkTypeName(member.getReturnType()));
   }
 
-  private List<? extends Element> findSkylarkCallables(TypeElement module) {
+  private List<? extends Element> findStarlarkMethods(TypeElement module) {
     TypeMirror superclass = module.getSuperclass();
     ImmutableList.Builder<Element> result = ImmutableList.builder();
     if (!(superclass instanceof NoType)) {
       Element element = processingEnv.getTypeUtils().asElement(superclass);
       if (element instanceof TypeElement) {
-        result.addAll(findSkylarkCallables((TypeElement) element));
+        result.addAll(findStarlarkMethods((TypeElement) element));
       }
     }
     result.addAll(module.getEnclosedElements().stream().filter(member -> {
-      AnnotationHelper<SkylarkCallable> ann = annotationHelper(member, SkylarkCallable.class);
+      AnnotationHelper<StarlarkMethod> ann = annotationHelper(member, StarlarkMethod.class);
       return ann != null && member instanceof ExecutableElement && ann.ann.documented();
     }).collect(Collectors.toList()));
     return result.build();

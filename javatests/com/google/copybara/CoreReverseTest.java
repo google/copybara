@@ -27,9 +27,9 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 import java.util.Objects;
@@ -127,7 +127,7 @@ public final class CoreReverseTest {
       documented = false)
   public static class Mock implements StarlarkValue {
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "transform",
         doc = "A mock Transform",
         parameters = {

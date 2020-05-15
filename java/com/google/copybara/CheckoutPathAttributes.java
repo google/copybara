@@ -17,9 +17,9 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
@@ -41,7 +41,7 @@ public class CheckoutPathAttributes implements StarlarkValue {
     this.attributes = Preconditions.checkNotNull(attributes);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "size",
       doc = "The size of the file. Throws an error if file size > 2GB.",
       structField = true)
@@ -54,7 +54,7 @@ public class CheckoutPathAttributes implements StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "symlink",
+  @StarlarkMethod(name = "symlink",
       doc = "Returns true if it is a symlink", structField = true)
   public boolean isSymlink() {
     return attributes.isSymbolicLink();

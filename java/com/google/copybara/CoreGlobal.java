@@ -21,8 +21,8 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkGlobalLibrary;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkGlobalLibrary;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -34,11 +34,11 @@ import java.util.List;
  *
  * <p>Don't add functions here and prefer "core" namespace unless it is something really general
  */
-@SkylarkGlobalLibrary
+@StarlarkGlobalLibrary
 public class CoreGlobal implements StarlarkValue {
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "glob",
       doc =
           "Glob returns a list of every file in the workdir that matches at least one"
@@ -118,7 +118,7 @@ public class CoreGlobal implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "parse_message",
       doc = "Returns a ChangeMessage parsed from a well formed string.",
       parameters = {
@@ -136,7 +136,7 @@ public class CoreGlobal implements StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "new_author",
       doc = "Create a new author from a string with the form 'name <foo@bar.com>'",
       parameters = {

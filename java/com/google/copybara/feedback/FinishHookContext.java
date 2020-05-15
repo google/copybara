@@ -28,9 +28,9 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -105,7 +105,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "effects",
       doc = "The list of effects that happened in the destination",
       structField = true)
@@ -113,7 +113,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     return StarlarkList.immutableCopyOf(destinationEffects);
   }
 
-  @SkylarkCallable(name = "revision", doc = "Get the requested/resolved revision",
+  @StarlarkMethod(name = "revision", doc = "Get the requested/resolved revision",
       structField = true)
   public SkylarkRevision getRevision() {
     return resolvedRevision;
@@ -151,7 +151,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
       this.revision = Preconditions.checkNotNull(revision);
     }
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "labels",
         doc = "A dictionary with the labels detected for the" + " requested/resolved revision.",
         structField = true)

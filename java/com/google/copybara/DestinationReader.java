@@ -21,9 +21,9 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** An api handle to read files from the destination, rather than just the origin. */
@@ -58,7 +58,7 @@ public abstract class DestinationReader implements StarlarkValue {
     }
   };
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "read_file",
       doc = "Read a file from the destination.",
       parameters = {
@@ -78,7 +78,7 @@ public abstract class DestinationReader implements StarlarkValue {
   @SuppressWarnings("unused")
   public abstract String readFile(String path) throws RepoException;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "copy_destination_files",
       doc = "Copy files from the destination into the workdir.",
       parameters = {

@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
@@ -37,17 +37,17 @@ public class Commit implements StarlarkValue {
   @Key private CommitAuthor author;
   @Key private CommitAuthor committer;
 
-  @SkylarkCallable(name = "message", doc = "Message of the commit", structField = true)
+  @StarlarkMethod(name = "message", doc = "Message of the commit", structField = true)
   public String getMessage() {
     return message;
   }
 
-  @SkylarkCallable(name = "author", doc = "Author of the commit", structField = true)
+  @StarlarkMethod(name = "author", doc = "Author of the commit", structField = true)
   public CommitAuthor getAuthor() {
     return author;
   }
 
-  @SkylarkCallable(name = "committer", doc = "Committer of the commit", structField = true)
+  @StarlarkMethod(name = "committer", doc = "Committer of the commit", structField = true)
   public CommitAuthor getCommitter() {
     return committer;
   }
@@ -68,17 +68,17 @@ public class Commit implements StarlarkValue {
       return ZonedDateTime.parse(date);
     }
 
-    @SkylarkCallable(name = "date", doc = "Date of the commit", structField = true)
+    @StarlarkMethod(name = "date", doc = "Date of the commit", structField = true)
     public String getDateForSkylark() {
       return date;
     }
 
-    @SkylarkCallable(name = "name", doc = "Name of the author/committer", structField = true)
+    @StarlarkMethod(name = "name", doc = "Name of the author/committer", structField = true)
     public String getName() {
       return name;
     }
 
-    @SkylarkCallable(name = "email", doc = "Email of the author/committer", structField = true)
+    @StarlarkMethod(name = "email", doc = "Email of the author/committer", structField = true)
     public String getEmail() {
       return email;
     }

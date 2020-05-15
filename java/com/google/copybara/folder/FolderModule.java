@@ -22,9 +22,9 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.FileSystem;
@@ -52,7 +52,7 @@ public class FolderModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(name = DESTINATION_VAR,
+  @StarlarkMethod(name = DESTINATION_VAR,
       doc = "A folder destination is a destination that puts the output in a folder. It can be used"
           + " both for testing or real production migrations."
           + "Given that folder destination does not support a lot of the features of real VCS, "
@@ -72,7 +72,7 @@ public class FolderModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "origin",
       doc =
           "A folder origin is a origin that uses a folder as input. The folder is specified via "

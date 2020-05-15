@@ -21,9 +21,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
@@ -53,7 +53,7 @@ public class AccountInfo implements StarlarkValue {
     return accountId;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "account_id",
       doc = "The numeric ID of the account.",
       structField = true,
@@ -62,7 +62,7 @@ public class AccountInfo implements StarlarkValue {
     return Long.toString(accountId);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "name",
       doc =
           "The full name of the user.\n"
@@ -75,7 +75,7 @@ public class AccountInfo implements StarlarkValue {
     return name;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "email",
       doc =
           "The email address the user prefers to be contacted through.\n"
@@ -88,7 +88,7 @@ public class AccountInfo implements StarlarkValue {
     return email;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "secondary_emails",
       doc =
           "A list of the secondary email addresses of the user.\n"
@@ -102,7 +102,7 @@ public class AccountInfo implements StarlarkValue {
     return ImmutableList.copyOf(secondaryEmails);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "username",
       doc =
           "The username of the user.\n"

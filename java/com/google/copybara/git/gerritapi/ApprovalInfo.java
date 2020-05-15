@@ -18,9 +18,9 @@ package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
@@ -34,7 +34,7 @@ public class ApprovalInfo extends AccountInfo implements StarlarkValue {
   @Key int value;
   @Key String date;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "value",
       doc =
           "The vote that the user has given for the label. If present and zero, the user "
@@ -50,7 +50,7 @@ public class ApprovalInfo extends AccountInfo implements StarlarkValue {
     return GerritApiUtil.parseTimestamp(date);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "date",
       doc = "The time and date describing when the approval was made.",
       structField = true,

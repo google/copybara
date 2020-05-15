@@ -27,7 +27,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -51,15 +51,15 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
     this.params = Preconditions.checkNotNull(params);
   }
 
-  @SkylarkCallable(name = "origin", doc = "An object representing the origin. Can be used to"
+  @StarlarkMethod(name = "origin", doc = "An object representing the origin. Can be used to"
       + " query about the ref or modifying the origin state", structField = true)
   public abstract Endpoint getOrigin() throws EvalException;
 
-  @SkylarkCallable(name = "destination", doc = "An object representing the destination. Can be used"
+  @StarlarkMethod(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
   public abstract Endpoint getDestination() throws EvalException;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "action_name",
       doc = "The name of the current action.",
       structField = true)
@@ -67,13 +67,13 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
     return currentAction.getName();
   }
 
-  @SkylarkCallable(name = "console", doc = "Get an instance of the console to report errors or"
+  @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
       + " warnings", structField = true)
   public Console getConsole() {
     return console;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "params",
       doc = "Parameters for the function if created with" + " core.dynamic_feedback",
       structField = true)
@@ -81,7 +81,7 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
     return params;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "record_effect",
       doc = "Records an effect of the current action.",
       parameters = {

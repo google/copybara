@@ -38,9 +38,9 @@ import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -174,17 +174,17 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
    * A description of the migrated changes to include in the destination's change description. The
    * destination may add more boilerplate text or metadata.
    */
-  @SkylarkCallable(name = "message", doc = "Message to be used in the change", structField = true)
+  @StarlarkMethod(name = "message", doc = "Message to be used in the change", structField = true)
   public String getMessage() {
     return metadata.getMessage();
   }
 
-  @SkylarkCallable(name = "author", doc = "Author to be used in the change", structField = true)
+  @StarlarkMethod(name = "author", doc = "Author to be used in the change", structField = true)
   public Author getAuthor() {
     return metadata.getAuthor();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "params",
       doc = "Parameters for the function if created with" + " core.dynamic_transform",
       structField = true)
@@ -192,7 +192,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return skylarkTransformParams;
   }
 
-  @SkylarkCallable(name = "set_message", doc = "Update the message to be used in the change",
+  @StarlarkMethod(name = "set_message", doc = "Update the message to be used in the change",
       parameters = { @Param(name = "message", type = String.class)}
   )
   public void setMessage(String message) {
@@ -207,7 +207,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     this.metadata = metadata.addHiddenLabels(hiddenLabels);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "run",
       doc =
           "Run a glob or a transform. For example:<br>"
@@ -245,7 +245,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         runnable, runnable.getClass());
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "new_path",
       doc = "Create a new path",
       parameters = {
@@ -256,7 +256,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         checkoutDir.getFileSystem().getPath(path), checkoutDir);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "create_symlink",
       doc = "Create a symlink",
       parameters = {
@@ -300,7 +300,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "write_path",
       doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
@@ -315,7 +315,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     Files.write(fullPath, content.getBytes(UTF_8));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "read_path",
       doc = "Read the content of path as UTF-8",
       parameters = {
@@ -333,7 +333,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return normalized;
   }
 
-  @SkylarkCallable(name = "add_label",
+  @StarlarkMethod(name = "add_label",
       doc = "Add a label to the end of the description",
       parameters = {
           @Param(name = "label", type = String.class, doc = "The label to replace"),
@@ -354,7 +354,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     }
   }
 
-  @SkylarkCallable(name = "add_or_replace_label",
+  @StarlarkMethod(name = "add_or_replace_label",
       doc = "Replace an existing label or add it to the end of the description",
       parameters = {
           @Param(name = "label", type = String.class, doc = "The label to replace"),
@@ -368,7 +368,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .toString());
   }
 
-  @SkylarkCallable(name = "add_text_before_labels",
+  @StarlarkMethod(name = "add_text_before_labels",
       doc = "Add a text to the description before the labels paragraph",
       parameters = { @Param(name = "text", type = String.class) })
   public void addTextBeforeLabels(String text) {
@@ -377,7 +377,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     setMessage(message.toString());
   }
 
-  @SkylarkCallable(name = "replace_label", doc = "Replace a label if it exist in the message",
+  @StarlarkMethod(name = "replace_label", doc = "Replace a label if it exist in the message",
       parameters = {
           @Param(name = "label", type = String.class, doc = "The label to replace"),
           @Param(name = "value", type = String.class, doc = "The new value for the label"),
@@ -393,7 +393,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .toString());
   }
 
-  @SkylarkCallable(name = "remove_label", doc = "Remove a label from the message if present",
+  @StarlarkMethod(name = "remove_label", doc = "Remove a label from the message if present",
       parameters = {
           @Param(name = "label", type = String.class, doc = "The label to delete"),
           @Param(name = "whole_message", type = Boolean.class,
@@ -409,7 +409,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     setMessage(parseMessage(wholeMessage).withRemovedLabelByNameAndValue(label, value).toString());
   }
 
-  @SkylarkCallable(name = "now_as_string", doc = "Get current date as a string",
+  @StarlarkMethod(name = "now_as_string", doc = "Get current date as a string",
       parameters = {
           @Param(name = "format", type = String.class, doc = "The format to use. See:"
               + " https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html"
@@ -430,7 +430,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         : ChangeMessage.parseMessage(getMessage());
   }
 
-  @SkylarkCallable(name = "find_label", doc = ""
+  @StarlarkMethod(name = "find_label", doc = ""
       + "Tries to find a label. First it looks at the generated message (IOW labels that might"
       + " have been added by previous steps), then looks in all the commit messages being imported"
       + " and finally in the resolved reference passed in the CLI.",
@@ -442,7 +442,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return labelValues.isEmpty() ? null : Iterables.getLast(labelValues);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "find_all_labels",
       doc =
           "Tries to find all the values for a label. First it looks at the generated message (IOW"
@@ -455,7 +455,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return findLabelValues(label, /*all=*/true);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "origin_api",
       doc =
           "Returns an api handle for the origin repository. Methods available depend on the origin "
@@ -466,7 +466,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return originApi.load(console);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "destination_api",
       doc =
           "Returns an api handle for the destination repository. Methods available depend on the "
@@ -477,7 +477,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return destinationApi.load(console);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "destination_reader",
       doc =
           "Returns a handle to read files from the destination, if supported by the destination.")
@@ -544,19 +544,19 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .filter(label -> label.isLabel(name)).collect(ImmutableList.toImmutableList());
   }
 
-  @SkylarkCallable(name = "set_author", doc = "Update the author to be used in the change",
+  @StarlarkMethod(name = "set_author", doc = "Update the author to be used in the change",
       parameters = { @Param(name = "author", type = Author.class) })
   public void setAuthor(Author author) {
     this.metadata = this.metadata.withAuthor(author);
   }
 
-  @SkylarkCallable(name = "changes", doc = "List of changes that will be migrated",
+  @StarlarkMethod(name = "changes", doc = "List of changes that will be migrated",
       structField = true)
   public Changes getChanges() {
     return changes;
   }
 
-  @SkylarkCallable(name = "console", doc = "Get an instance of the console to report errors or"
+  @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
       + " warnings", structField = true)
   public Console getConsole() {
     return console;

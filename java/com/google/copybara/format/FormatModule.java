@@ -32,9 +32,9 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.format.BuildifierFormat.LintMode;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -63,7 +63,7 @@ public class FormatModule implements StarlarkValue {
 
 
   // TODO(malcon): Move this to the OSS version
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "buildifier",
       doc = "Formats the BUILD files using buildifier.",
       parameters = {

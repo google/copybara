@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class CheckRuns implements StarlarkValue {
   @Key("check_runs")
   private List<CheckRun> checkRuns;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "total_count",
       doc = "The total count of check runs.",
       structField = true
@@ -51,7 +51,7 @@ public class CheckRuns implements StarlarkValue {
     return totalCount;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "check_runs",
       doc = "The list of the detail for each check run.",
       structField = true

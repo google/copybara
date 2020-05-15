@@ -17,9 +17,9 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Wrapper class to prevent arbitrary instantiation of endpoints in starlark. */
@@ -51,7 +51,7 @@ public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endp
   }
 
   @Override
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "url",
       doc = "Return the URL of this endpoint, if any.",
       structField = true,

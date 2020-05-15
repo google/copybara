@@ -19,9 +19,9 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -42,7 +42,7 @@ public class CommitInfo implements StarlarkValue {
   @Key private String subject;
   @Key private String message;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "commit",
       doc =
           "The commit ID. Not set if included in a RevisionInfo entity that is contained "
@@ -57,7 +57,7 @@ public class CommitInfo implements StarlarkValue {
     return parents == null ? ImmutableList.of() : ImmutableList.copyOf(parents);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "parents",
       doc =
           "The parent commits of this commit as a list of CommitInfo entities. "
@@ -67,7 +67,7 @@ public class CommitInfo implements StarlarkValue {
     return StarlarkList.immutableCopyOf(getParents());
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "author",
       doc = "The author of the commit as a GitPersonInfo entity.",
       structField = true,
@@ -76,7 +76,7 @@ public class CommitInfo implements StarlarkValue {
     return author;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "committer",
       doc = "The committer of the commit as a GitPersonInfo entity.",
       structField = true,
@@ -85,7 +85,7 @@ public class CommitInfo implements StarlarkValue {
     return committer;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "subject",
       doc = "The subject of the commit (header line of the commit message).",
       structField = true,
@@ -94,7 +94,7 @@ public class CommitInfo implements StarlarkValue {
     return subject;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "message",
       doc = "The commit message.",
       structField = true,

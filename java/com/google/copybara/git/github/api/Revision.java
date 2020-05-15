@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /**
@@ -37,17 +37,17 @@ public class Revision implements StarlarkValue {
   @Key private String ref;
   @Key private String sha;
 
-  @SkylarkCallable(name = "label", doc = "Label for the revision", structField = true)
+  @StarlarkMethod(name = "label", doc = "Label for the revision", structField = true)
   public String getLabel() {
     return label;
   }
 
-  @SkylarkCallable(name = "ref", doc = "Reference", structField = true)
+  @StarlarkMethod(name = "ref", doc = "Reference", structField = true)
   public String getRef() {
     return ref;
   }
 
-  @SkylarkCallable(name = "sha", doc = "SHA of the reference", structField = true)
+  @StarlarkMethod(name = "sha", doc = "SHA of the reference", structField = true)
   public String getSha() {
     return sha;
   }

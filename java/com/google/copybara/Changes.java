@@ -17,9 +17,9 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -45,7 +45,7 @@ public final class Changes implements StarlarkValue {
     this.migrated = StarlarkList.immutableCopyOf(migrated);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "current",
       doc = "List of changes that will be migrated",
       structField = true)
@@ -53,7 +53,7 @@ public final class Changes implements StarlarkValue {
     return current;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "migrated",
       doc =
           "List of changes that where migrated in previous Copybara executions or if using"

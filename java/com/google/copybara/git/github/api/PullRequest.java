@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 
@@ -38,12 +38,12 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
 
-  @SkylarkCallable(name = "head", doc = "Information about head", structField = true)
+  @StarlarkMethod(name = "head", doc = "Information about head", structField = true)
   public Revision getHead() {
     return head;
   }
 
-  @SkylarkCallable(name = "base", doc = "Information about base", structField = true)
+  @StarlarkMethod(name = "base", doc = "Information about base", structField = true)
   public Revision getBase() {
     return base;
   }

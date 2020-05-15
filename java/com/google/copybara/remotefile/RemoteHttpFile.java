@@ -25,9 +25,9 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.net.URL;
@@ -96,7 +96,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "sha256",
       documented = false,
       doc = "Sha256 of the file.")

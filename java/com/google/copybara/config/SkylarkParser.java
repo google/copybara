@@ -358,7 +358,7 @@ public class SkylarkParser {
       try {
         if (StarlarkInterfaceUtils.getStarlarkBuiltin(module) != null) {
           Starlark.addModule(envBuilder, module.getConstructor().newInstance());
-        } else if (StarlarkInterfaceUtils.hasSkylarkGlobalLibrary(module)) {
+        } else if (StarlarkInterfaceUtils.hasStarlarkGlobalLibrary(module)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {

@@ -19,9 +19,9 @@ package com.google.copybara.testing;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -46,7 +46,7 @@ public class DummyEndpoint implements Endpoint, StarlarkValue {
         .build();
   }
 
-  @SkylarkCallable(name = "message", doc = "Add a new message",
+  @StarlarkMethod(name = "message", doc = "Add a new message",
       parameters = { @Param(name = "message", type = String.class) })
   public void add(String msg) {
     messages.add(msg);
@@ -61,7 +61,7 @@ public class DummyEndpoint implements Endpoint, StarlarkValue {
     printer.append("dummy");
   }
 
-  @SkylarkCallable(name = "get_messages", doc = "Get the messages", structField = true)
+  @StarlarkMethod(name = "get_messages", doc = "Get the messages", structField = true)
   public Sequence<String> getMessages() {
     return StarlarkList.immutableCopyOf(messages);
   }

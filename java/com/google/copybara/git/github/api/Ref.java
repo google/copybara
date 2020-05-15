@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Represents the current status of a ref, as returned by the git/refs API call */
@@ -46,7 +46,7 @@ public class Ref implements StarlarkValue {
     @Key private String url;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "ref",
       doc = "The name of the reference",
       structField = true
@@ -55,7 +55,7 @@ public class Ref implements StarlarkValue {
     return ref;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "url",
       doc = "The url of the reference",
       structField = true
@@ -64,7 +64,7 @@ public class Ref implements StarlarkValue {
     return url;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "sha",
       doc = "The sha of the reference",
       structField = true

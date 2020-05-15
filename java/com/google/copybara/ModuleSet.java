@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableSet;
 public class ModuleSet {
 
   private final Options options;
-  // TODO(malcon): Remove this once all modules are @SkylarkCallable
+  // TODO(malcon): Remove this once all modules are @StarlarkMethod
   private final ImmutableSet<Class<?>> staticModules;
   private final ImmutableMap<String, Object> modules;
 

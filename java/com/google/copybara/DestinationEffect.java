@@ -20,9 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -69,7 +69,7 @@ public class DestinationEffect implements StarlarkValue {
     return originRefs;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "origin_refs",
       doc = "List of origin changes that were included in" + " this migration",
       structField = true)
@@ -82,7 +82,7 @@ public class DestinationEffect implements StarlarkValue {
     return type;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "type",
     doc =
         "Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS"
@@ -94,7 +94,7 @@ public class DestinationEffect implements StarlarkValue {
   }
 
   /** Textual summary of what happened. Users of this class should not try to parse this field. */
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "summary",
     doc =
         "Textual summary of what happened. Users of this class should not try to parse this"
@@ -110,7 +110,7 @@ public class DestinationEffect implements StarlarkValue {
    * if the type is error (For example a synchronous presubmit test failed but a review was
    * created).
    */
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "destination_ref",
     doc =
         "Destination reference updated/created. Might be null if there was no effect. Might be"
@@ -132,7 +132,7 @@ public class DestinationEffect implements StarlarkValue {
     return errors;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "errors",
       doc = "List of errors that happened during the migration",
       structField = true)
@@ -223,7 +223,7 @@ public class DestinationEffect implements StarlarkValue {
     }
 
     /** Origin reference*/
-    @SkylarkCallable(name = "ref", doc = "Origin reference ref", structField = true)
+    @StarlarkMethod(name = "ref", doc = "Origin reference ref", structField = true)
     public String getRef() {
       return ref;
     }
@@ -275,7 +275,7 @@ public class DestinationEffect implements StarlarkValue {
     }
 
     /** Destination reference id */
-    @SkylarkCallable(name = "id", doc = "Destination reference id", structField = true)
+    @StarlarkMethod(name = "id", doc = "Destination reference id", structField = true)
     public String getId() {
       return id;
     }
@@ -284,7 +284,7 @@ public class DestinationEffect implements StarlarkValue {
      * Type of reference created. Each destination defines its own and guarantees to be more stable
      * than urls/ids.
      */
-    @SkylarkCallable(
+    @StarlarkMethod(
       name = "type",
       doc =
           "Type of reference created. Each destination defines its own and guarantees to be more"
@@ -296,7 +296,7 @@ public class DestinationEffect implements StarlarkValue {
     }
 
     /** Url, if any, of the destination change */
-    @SkylarkCallable(
+    @StarlarkMethod(
       name = "url",
       doc = "Url, if any, of the destination change",
       structField = true,

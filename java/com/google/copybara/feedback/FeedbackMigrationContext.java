@@ -26,9 +26,9 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -76,7 +76,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return feedback.getDestination().withConsole(console);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "feedback_name",
       doc = "The name of the Feedback migration calling this action.",
       structField = true)
@@ -84,7 +84,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return feedback.getName();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "refs",
       doc =
           "A list containing string representations of the entities " + "that triggered the event",
@@ -93,12 +93,12 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return StarlarkList.immutableCopyOf(refs);
   }
 
-  @SkylarkCallable(name = "success", doc = "Returns a successful action result.")
+  @StarlarkMethod(name = "success", doc = "Returns a successful action result.")
   public ActionResult success() {
     return ActionResult.success();
   }
 
-  @SkylarkCallable(name = "noop", doc = "Returns a no op action result with an optional message.",
+  @StarlarkMethod(name = "noop", doc = "Returns a no op action result with an optional message.",
       parameters = {
           @Param(
               name = "msg",
@@ -111,7 +111,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return ActionResult.noop(convertFromNoneable(noopMsg, /*defaultMsg*/ null));
   }
 
-  @SkylarkCallable(name = "error", doc = "Returns an error action result.",
+  @StarlarkMethod(name = "error", doc = "Returns an error action result.",
       parameters = {
           @Param(
               name = "msg",

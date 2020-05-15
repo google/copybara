@@ -18,9 +18,9 @@ package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -49,7 +49,7 @@ public final class Author implements StarlarkValue {
   /**
    * Returns the name of the author.
    */
-  @SkylarkCallable(name = "name", doc = "The name of the author", structField = true)
+  @StarlarkMethod(name = "name", doc = "The name of the author", structField = true)
   public String getName() {
     return name;
   }
@@ -57,7 +57,7 @@ public final class Author implements StarlarkValue {
   /**
    * Returns the email address of the author.
    */
-  @SkylarkCallable(name = "email", doc = "The email of the author", structField = true)
+  @StarlarkMethod(name = "email", doc = "The email of the author", structField = true)
   public String getEmail() {
     return email;
   }

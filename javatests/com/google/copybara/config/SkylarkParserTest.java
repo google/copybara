@@ -42,9 +42,9 @@ import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.StarlarkMode;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
@@ -377,7 +377,7 @@ public class SkylarkParserTest {
     }
 
     @SuppressWarnings("unused")
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "read_foo",
         doc = "Read 'foo' label from config file",
         documented = false)
@@ -397,7 +397,7 @@ public class SkylarkParserTest {
       documented = false)
   public static class Mock implements StarlarkValue {
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "origin",
         doc = "A mock Origin",
         parameters = {
@@ -414,7 +414,7 @@ public class SkylarkParserTest {
       return new MockOrigin(url, branch);
     }
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "destination",
         doc = "A mock Destination",
         parameters = {
@@ -425,7 +425,7 @@ public class SkylarkParserTest {
       return new MockDestination(folder);
     }
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "transform",
         doc = "A mock Transform",
         parameters = {

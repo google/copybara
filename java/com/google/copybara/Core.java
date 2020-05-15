@@ -56,9 +56,9 @@ import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
@@ -112,7 +112,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "reverse",
       doc =
           "Given a list of transformations, returns the list of transformations equivalent to"
@@ -152,7 +152,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "workflow",
       doc =
           "Defines a migration pipeline which can be invoked via the Copybara command.\n"
@@ -564,7 +564,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "move",
       doc = "Moves files between directories and renames files",
       parameters = {
@@ -641,7 +641,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "copy",
       doc = "Copy files between directories and renames files",
       parameters = {
@@ -716,7 +716,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "remove",
       doc =
           "Remove files from the workdir. **This transformation is only meant to be used inside"
@@ -749,7 +749,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "replace",
       doc =
           "Replace a text with another text using optional regex groups. This tranformer can be"
@@ -943,7 +943,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "todo_replace",
       doc = "Replace Google style TODOs. For example `TODO(username, othername)`.",
       parameters = {
@@ -1096,7 +1096,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       + ")";
 
   @SuppressWarnings({"unused", "unchecked"})
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "filter_replace",
       doc =
           "Applies an initial filtering to find a substring to be replaced and then applies"
@@ -1204,7 +1204,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return (ReversibleFunction<String, String>) mapping;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "replace_mapper",
       doc =
           "A mapping function that applies a list of replaces until one replaces the text"
@@ -1247,7 +1247,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "verify_match",
       doc =
           "Verifies that a RegEx matches (or not matches) the specified files. Does not"
@@ -1307,7 +1307,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "transform",
       doc =
           "Groups some transformations in a transformation that can contain a particular,"
@@ -1394,7 +1394,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "dynamic_transform",
       doc =
           "Create a dynamic Skylark transformation. This should only be used by libraries"
@@ -1440,7 +1440,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "dynamic_feedback",
       doc =
           "Create a dynamic Skylark feedback migration. This should only be used by libraries"
@@ -1465,7 +1465,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "fail_with_noop",
       doc = "If invoked, it will fail the current migration as a noop",
       parameters = {
@@ -1477,7 +1477,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     throw new EmptyChangeException(new EvalException(thread.getCallerLocation(), msg), msg);
   }
 
-  @SkylarkCallable(name = "main_config_path",
+  @StarlarkMethod(name = "main_config_path",
       doc = "Location of the config file. This is subject to change",
       structField = true)
   public String getMainConfigFile() {
@@ -1485,7 +1485,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "feedback",
       doc =
           "Defines a migration of changes' metadata, that can be invoked via the Copybara command"
@@ -1576,7 +1576,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     getGlobalMigrations(module).addMigration(name, migration);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "format",
       doc = "Formats a String using Java format patterns.",
       parameters = {

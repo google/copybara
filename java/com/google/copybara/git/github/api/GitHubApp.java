@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** Represents a GitHub App detail. https://developer.github.com/v3/apps/#response */
@@ -36,7 +36,7 @@ public class GitHubApp implements StarlarkValue {
 
   @Key private String name;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "id",
       doc = "The GitHub App's Id",
       structField = true,
@@ -46,7 +46,7 @@ public class GitHubApp implements StarlarkValue {
     return id;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "slug",
       doc = "The url-friendly name of the GitHub App.",
       structField = true
@@ -55,7 +55,7 @@ public class GitHubApp implements StarlarkValue {
     return slug;
   }
   
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "name",
       doc = "The GitHub App's name",
       structField = true,

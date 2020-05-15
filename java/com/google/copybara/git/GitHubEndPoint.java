@@ -52,9 +52,9 @@ import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -85,7 +85,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     this.console = Preconditions.checkNotNull(console);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "create_status",
       doc = "Create or update a status for a commit. Returns the status created.",
       parameters = {
@@ -140,7 +140,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_check_runs",
       doc =
           "Get the list of check runs for a sha. "
@@ -163,7 +163,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_combined_status",
       doc = "Get the combined status for a commit. Returns None if not found.",
       parameters = {
@@ -187,7 +187,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_commit",
       doc = "Get information for a commit in GitHub. Returns None if not found.",
       parameters = {
@@ -212,7 +212,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "update_reference",
       doc = "Update a reference to point to a new commit. Returns the info of the reference.",
       parameters = {
@@ -251,7 +251,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "delete_reference",
       doc = "Delete a reference.",
       parameters = {
@@ -270,7 +270,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_reference",
       doc = "Get a reference SHA-1 from GitHub. Returns None if not found.",
       parameters = {
@@ -295,7 +295,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_pull_requests",
       doc = "Get Pull Requests for a repo",
       parameters = {
@@ -372,7 +372,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "update_pull_request",
       doc = "Update Pull Requests for a repo. Returns None if not found",
       parameters = {
@@ -423,7 +423,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_authenticated_user",
       doc = "Get autenticated user info, return null if not found",
       allowReturnNones = true)
@@ -444,7 +444,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     return null;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_references",
       doc =
           "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
@@ -458,7 +458,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_pull_request_comment",
       doc = "Get a pull request comment",
       parameters = {
@@ -479,7 +479,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_pull_request_comments",
       doc = "Get all pull request comments",
       parameters = {
@@ -496,7 +496,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "url",
       doc = "Return the URL of this endpoint.",
       structField = true)
@@ -504,7 +504,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     return url;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "add_label",
       doc = "Add labels to a PR/issue",
       parameters = {

@@ -23,9 +23,9 @@ import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
@@ -42,7 +42,7 @@ public class HgModule implements LabelsAwareModule, StarlarkValue {
   public HgModule(Options options) { this.options = Preconditions.checkNotNull(options); }
 
   // TODO(jlliu): look into adding parameter for bookmark
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "origin",
       doc = "<b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.",
       parameters = {

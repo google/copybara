@@ -19,9 +19,9 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Map;
@@ -46,7 +46,7 @@ public class RevisionInfo implements StarlarkValue {
     return Kind.valueOf(kind);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "kind",
       doc =
           "The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, "
@@ -57,7 +57,7 @@ public class RevisionInfo implements StarlarkValue {
     return kind;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "patchset_number",
       doc = "The patch set number, or edit if the patch set is an edit.",
       structField = true,
@@ -66,7 +66,7 @@ public class RevisionInfo implements StarlarkValue {
     return patchsetNumber;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "created",
       doc = "The timestamp of when the patch set was created.",
       structField = true,
@@ -75,7 +75,7 @@ public class RevisionInfo implements StarlarkValue {
     return created;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "uploader",
       doc = "The uploader of the patch set as an AccountInfo entity.",
       structField = true,
@@ -84,7 +84,7 @@ public class RevisionInfo implements StarlarkValue {
     return uploader;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "ref",
       doc = "The Git reference for the patch set.",
       structField = true,
@@ -97,7 +97,7 @@ public class RevisionInfo implements StarlarkValue {
     return fetch == null ? ImmutableMap.of() : ImmutableMap.copyOf(fetch);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "commit",
       doc = "The commit of the patch set as CommitInfo entity.",
       structField = true,

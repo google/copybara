@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.copybara.git.github.api.Status.State;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -52,7 +52,7 @@ public class CombinedStatus implements StarlarkValue {
     return state;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "state",
       doc = "The overall state of all statuses for a commit: success, failure, pending or error",
       structField = true
@@ -61,17 +61,17 @@ public class CombinedStatus implements StarlarkValue {
     return state.toString().toLowerCase();
   }
 
-  @SkylarkCallable(name = "sha", doc = "The SHA-1 of the commit", structField = true)
+  @StarlarkMethod(name = "sha", doc = "The SHA-1 of the commit", structField = true)
   public String getSha() {
     return sha;
   }
 
-  @SkylarkCallable(name = "total_count", doc = "Total number of statuses", structField = true)
+  @StarlarkMethod(name = "total_count", doc = "Total number of statuses", structField = true)
   public int getTotalCount() {
     return totalCount;
   }
 
-  @SkylarkCallable(name = "statuses", doc = "List of statuses for the commit", structField = true)
+  @StarlarkMethod(name = "statuses", doc = "List of statuses for the commit", structField = true)
   public Sequence<Status> getStatuses() {
     return StarlarkList.immutableCopyOf(statuses);
   }

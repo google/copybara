@@ -23,9 +23,9 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.skylarkinterface.Param;
 import com.google.devtools.build.lib.skylarkinterface.ParamType;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -79,7 +79,7 @@ public final class BuildozerModule implements StarlarkValue {
     return wrappedCommands.build();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "create",
       doc =
           "A transformation which creates a new build target and populates its "
@@ -159,7 +159,7 @@ public final class BuildozerModule implements StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "delete",
       doc =
           "A transformation which is the opposite of creating a build target. When run normally,"
@@ -240,7 +240,7 @@ public final class BuildozerModule implements StarlarkValue {
         recreateAs);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "modify",
       doc =
           "A transformation which runs one or more Buildozer commands against a single"
@@ -295,7 +295,7 @@ public final class BuildozerModule implements StarlarkValue {
         coerceCommandList(location, commands));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "cmd",
       doc =
           "Creates a Buildozer command. You can specify the reversal with the 'reverse' "

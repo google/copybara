@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE,
-    ElementType.FIELD, // TODO(malcon): Remove this once everything migrated to @SkylarkCallable
+    ElementType.FIELD, // TODO(malcon): Remove this once everything migrated to @StarlarkMethod
     ElementType.METHOD})
 public @interface UsesFlags {
 

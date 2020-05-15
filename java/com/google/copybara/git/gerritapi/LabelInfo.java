@@ -20,9 +20,9 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
@@ -50,7 +50,7 @@ public class LabelInfo implements StarlarkValue {
     return optional;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "approved",
       doc =
           "One user who approved this label on the change (voted the maximum value) as an "
@@ -61,7 +61,7 @@ public class LabelInfo implements StarlarkValue {
     return approved;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "rejected",
       doc =
           "One user who rejected this label on the change (voted the minimum value) as an "
@@ -72,7 +72,7 @@ public class LabelInfo implements StarlarkValue {
     return rejected;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "recommended",
       doc =
           "One user who recommended this label on the change (voted positively, but not the "
@@ -83,7 +83,7 @@ public class LabelInfo implements StarlarkValue {
     return recommended;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "disliked",
       doc =
           "One user who disliked this label on the change (voted negatively, but not the "
@@ -94,7 +94,7 @@ public class LabelInfo implements StarlarkValue {
     return disliked;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "blocking",
       doc = "If true, the label blocks submit operation. If not set, the default is false.",
       structField = true,
@@ -103,7 +103,7 @@ public class LabelInfo implements StarlarkValue {
     return blocking;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "value",
       doc =
           "The voting value of the user who recommended/disliked this label on the change if "
@@ -114,7 +114,7 @@ public class LabelInfo implements StarlarkValue {
     return value;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "default_value",
       doc =
           "The default voting value for the label. This value may be outside the range "
@@ -125,7 +125,7 @@ public class LabelInfo implements StarlarkValue {
     return defaultValue;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "values",
       doc =
           "A map of all values that are allowed for this label. The map maps the values "
@@ -136,7 +136,7 @@ public class LabelInfo implements StarlarkValue {
     return ImmutableMap.copyOf(values);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "all",
       doc =
           "List of all approvals for this label as a list of ApprovalInfo entities. Items "

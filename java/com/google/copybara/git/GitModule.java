@@ -68,9 +68,9 @@ import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -142,7 +142,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "origin",
       doc =
           "Defines a standard Git origin. For Git specific origins use: `github_origin` or "
@@ -282,7 +282,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "integrate",
       doc = "Integrate changes from a url present in the migrated change label.",
       parameters = {
@@ -341,7 +341,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "mirror",
       doc = "Mirror git references between repositories",
       parameters = {
@@ -436,7 +436,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "gerrit_origin",
       doc =
           "Defines a Git origin for Gerrit reviews.\n"
@@ -597,7 +597,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = GITHUB_PR_ORIGIN_NAME,
       doc =
           "Defines a Git origin for Github pull requests.\n"
@@ -870,7 +870,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "github_origin",
       doc =
           "Defines a Git origin for a Github repository. This origin should be used for public"
@@ -985,7 +985,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "destination",
       doc =
           "Creates a commit in a git repository using the transformed worktree.<br><br>Given that"
@@ -1097,7 +1097,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "github_destination",
       doc =
           "Creates a commit in a GitHub repository branch (for example master). For creating Pull"
@@ -1251,7 +1251,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "github_pr_destination",
       doc = "Creates changes in a new pull request in the destination.",
       parameters = {
@@ -1421,7 +1421,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "gerrit_destination",
       doc =
           "Creates a change in Gerrit using the transformed worktree. If this is used in iterative"
@@ -1626,7 +1626,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = GITHUB_API,
       doc =
           "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API"
@@ -1661,7 +1661,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = GERRIT_API,
       doc =
           ""
@@ -1700,7 +1700,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = GERRIT_TRIGGER,
       doc = "Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
@@ -1731,7 +1731,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = GITHUB_TRIGGER,
       doc = "Defines a feedback trigger based on updates on a GitHub PR.",
       parameters = {
@@ -1789,7 +1789,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "review_input",
       doc = "Creates a review to be posted on Gerrit.",
       parameters = {
@@ -1832,7 +1832,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "latest_version",
       doc =
           "Customize what version of the available branches and tags to pick."

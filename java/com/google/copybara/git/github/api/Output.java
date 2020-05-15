@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
@@ -42,7 +42,7 @@ public class Output implements StarlarkValue {
   @Nullable
   private String text;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "title",
       doc = "The title of the check run.",
       structField = true,
@@ -52,7 +52,7 @@ public class Output implements StarlarkValue {
     return title;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "summary",
       doc = "The summary of the check run.",
       structField = true
@@ -61,7 +61,7 @@ public class Output implements StarlarkValue {
     return summary;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "text",
       doc = "The details of the check run.",
       structField = true,

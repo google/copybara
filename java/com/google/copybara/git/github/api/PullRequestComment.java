@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 
@@ -66,7 +66,7 @@ public class PullRequestComment implements StarlarkValue {
   @Key("updated_at")
   private String updatedAt;
 
-  @SkylarkCallable(name = "id", doc = "Comment identifier", structField = true)
+  @StarlarkMethod(name = "id", doc = "Comment identifier", structField = true)
   public String getIdAsStr() {
     return Long.toString(id);
   }
@@ -75,22 +75,22 @@ public class PullRequestComment implements StarlarkValue {
     return id;
   }
 
-  @SkylarkCallable(name = "user", doc = "The user who posted the comment", structField = true)
+  @StarlarkMethod(name = "user", doc = "The user who posted the comment", structField = true)
   public User getUser() {
     return user;
   }
 
-  @SkylarkCallable(name = "body", doc = "Body of the comment", structField = true)
+  @StarlarkMethod(name = "body", doc = "Body of the comment", structField = true)
   public String getBody() {
     return body;
   }
 
-  @SkylarkCallable(name = "position", doc = "Position of the comment", structField = true)
+  @StarlarkMethod(name = "position", doc = "Position of the comment", structField = true)
   public int getPosition() {
     return position;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "original_position",
       doc = "Original position of the comment",
       structField = true)
@@ -106,7 +106,7 @@ public class PullRequestComment implements StarlarkValue {
     return originalCommitId;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "diff_hunk",
       doc = "The diff hunk where the comment was posted",
       structField = true)
@@ -114,7 +114,7 @@ public class PullRequestComment implements StarlarkValue {
     return diffHunk;
   }
 
-  @SkylarkCallable(name = "path", doc = "The file path", structField = true)
+  @StarlarkMethod(name = "path", doc = "The file path", structField = true)
   public String getPath() {
     return path;
   }

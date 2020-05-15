@@ -23,9 +23,9 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import org.junit.Before;
@@ -68,7 +68,7 @@ public final class SkylarkTestExecutorTest {
       this.configFile = currentConfigFile;
     }
 
-    @SkylarkCallable(name = "read_foo_extra", doc = "Read foo_extra", documented = false)
+    @StarlarkMethod(name = "read_foo_extra", doc = "Read foo_extra", documented = false)
     public String readFooExtra() {
       try {
         return configFile.resolve("foo_extra").readContent();

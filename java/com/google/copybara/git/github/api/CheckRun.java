@@ -20,9 +20,9 @@ import com.google.api.client.util.Key;
 import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 
@@ -60,7 +60,7 @@ public class CheckRun implements StarlarkValue {
 
   @Key private Output output;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "detail_url",
       doc = "The URL of the integrator's site that has the full details of the check.",
       structField = true,
@@ -71,7 +71,7 @@ public class CheckRun implements StarlarkValue {
     return detailUrl;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "status",
       doc = "The current status of the check run. Can be one of queued, in_progress, or completed.",
       structField = true
@@ -80,7 +80,7 @@ public class CheckRun implements StarlarkValue {
     return status.toString().toLowerCase();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "conclusion",
       doc = "The final conclusion of the check. Can be one of success, failure, neutral, "
           + "cancelled, timed_out, or action_required.",
@@ -92,7 +92,7 @@ public class CheckRun implements StarlarkValue {
     return conclusion.toString().toLowerCase();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "sha",
       doc = "The SHA-1 the check run is based on",
       structField = true
@@ -101,7 +101,7 @@ public class CheckRun implements StarlarkValue {
     return sha;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "name",
       doc = "The name of the check",
       structField = true
@@ -110,7 +110,7 @@ public class CheckRun implements StarlarkValue {
     return name;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "app",
       doc = "The detail of a GitHub App, such as id, slug, and name",
       structField = true
@@ -119,7 +119,7 @@ public class CheckRun implements StarlarkValue {
     return app;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "output",
       doc = "The description of a GitHub App's run, including title, summary, text.",
       structField = true

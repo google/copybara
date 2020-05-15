@@ -21,9 +21,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -105,7 +105,7 @@ public final class Authoring implements StarlarkValue {
       category = StarlarkDocumentationCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "overwrite",
         doc =
             "Use the default author for all the submits in the destination. Note that some"
@@ -133,7 +133,7 @@ public final class Authoring implements StarlarkValue {
         title = "Pass thru usage example",
         before = "",
         code = "authoring.pass_thru(default = \"Foo Bar <noreply@foobar.com>\")")
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "pass_thru",
         doc = "Use the origin author as the author in the destination, no whitelisting.",
         parameters = {
@@ -150,7 +150,7 @@ public final class Authoring implements StarlarkValue {
           Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
       }
 
-    @SkylarkCallable(
+    @StarlarkMethod(
         name = "whitelisted",
         doc = "Create an individual or team that contributes code.",
         parameters = {

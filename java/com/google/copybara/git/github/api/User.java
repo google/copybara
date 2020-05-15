@@ -18,9 +18,9 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 /** A user object returned as a field by many GitHub API responses. */
@@ -39,7 +39,7 @@ public class User implements StarlarkValue {
   @Key("site_admin")
   private boolean siteAdmin;
 
-  @SkylarkCallable(name = "login", doc = "Login of the user", structField = true)
+  @StarlarkMethod(name = "login", doc = "Login of the user", structField = true)
   public String getLogin() {
     return login;
   }

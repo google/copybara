@@ -22,9 +22,9 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -62,7 +62,7 @@ public class ChangeInfo implements StarlarkValue {
   @Key("_more_changes") private boolean moreChanges;
   @Key private Map<String, List<AccountInfo>> reviewers;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "id",
       doc =
           "The ID of the change in the format \"`<project>~<branch>~<Change-Id>`\", where "
@@ -74,7 +74,7 @@ public class ChangeInfo implements StarlarkValue {
     return id;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "project",
       doc = "The name of the project.",
       structField = true,
@@ -83,7 +83,7 @@ public class ChangeInfo implements StarlarkValue {
     return project;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "branch",
       doc = "The name of the target branch.\n" + "The refs/heads/ prefix is omitted.",
       structField = true,
@@ -92,7 +92,7 @@ public class ChangeInfo implements StarlarkValue {
     return branch;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "topic",
       doc = "The topic to which this change belongs.",
       structField = true,
@@ -101,7 +101,7 @@ public class ChangeInfo implements StarlarkValue {
     return topic;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "change_id",
       doc = "The Change-Id of the change.",
       structField = true,
@@ -110,7 +110,7 @@ public class ChangeInfo implements StarlarkValue {
     return changeId;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "subject",
       doc = "The subject of the change (header line of the commit message).",
       structField = true,
@@ -123,7 +123,7 @@ public class ChangeInfo implements StarlarkValue {
     return ChangeStatus.valueOf(status);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "status",
       doc = "The status of the change (NEW, MERGED, ABANDONED).",
       structField = true,
@@ -136,7 +136,7 @@ public class ChangeInfo implements StarlarkValue {
     return parseTimestamp(created);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "created",
       doc = "The timestamp of when the change was created.",
       structField = true,
@@ -149,7 +149,7 @@ public class ChangeInfo implements StarlarkValue {
     return parseTimestamp(updated);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "updated",
       doc = "The timestamp of when the change was last updated.",
       structField = true,
@@ -162,7 +162,7 @@ public class ChangeInfo implements StarlarkValue {
     return parseTimestamp(submitted);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "submitted",
       doc = "The timestamp of when the change was submitted.",
       structField = true,
@@ -171,7 +171,7 @@ public class ChangeInfo implements StarlarkValue {
     return submitted;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "submittable",
       doc = "Whether the change has been approved by the project submit rules. Only set if "
           + "requested via additional field SUBMITTABLE.",
@@ -185,7 +185,7 @@ public class ChangeInfo implements StarlarkValue {
     return number;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "number",
       doc = "The legacy numeric ID of the change.",
       structField = true,
@@ -194,7 +194,7 @@ public class ChangeInfo implements StarlarkValue {
     return Long.toString(number);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "owner",
       doc = "The owner of the change as an AccountInfo entity.",
       structField = true,
@@ -207,7 +207,7 @@ public class ChangeInfo implements StarlarkValue {
     return labels == null ? ImmutableMap.of() : ImmutableMap.copyOf(labels);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "labels",
       doc =
           "The labels of the change as a map that maps the label names to LabelInfo entries.\n"
@@ -221,7 +221,7 @@ public class ChangeInfo implements StarlarkValue {
     return messages == null ? ImmutableList.of() : ImmutableList.copyOf(messages);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "messages",
       doc =
           "Messages associated with the change as a list of ChangeMessageInfo entities.\n"
@@ -231,7 +231,7 @@ public class ChangeInfo implements StarlarkValue {
     return StarlarkList.immutableCopyOf(getMessages());
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "current_revision",
       doc =
           "The commit ID of the current patch set of this change.\n"
@@ -246,7 +246,7 @@ public class ChangeInfo implements StarlarkValue {
     return allRevisions == null ? ImmutableMap.of() : ImmutableMap.copyOf(allRevisions);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "revisions",
       doc =
           "All patch sets of this change as a map that maps the commit ID of the patch set to a "

@@ -26,9 +26,9 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Arrays;
@@ -49,7 +49,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "github_archive",
       doc = "A tarball for a specific SHA1 on GitHub. Experimental.",
       documented = false,

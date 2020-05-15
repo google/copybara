@@ -35,9 +35,9 @@ import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -61,7 +61,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     this.console = Preconditions.checkNotNull(console);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "get_change",
       doc = "Retrieve a Gerrit change.",
       parameters = {
@@ -110,7 +110,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     return gerritApi.getChange(changeId, new GetChangeInput(includeResults));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "post_review",
       doc =
           "Post a review to a Gerrit change for a particular revision. The review will be authored "
@@ -153,7 +153,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "list_changes_by_commit",
       doc =
           "Get changes from Gerrit based on a query. See"
@@ -188,7 +188,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
                 .withInclude(getIncludeResults(includeResults))));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "url",
       doc = "Return the URL of this endpoint.",
       structField = true)

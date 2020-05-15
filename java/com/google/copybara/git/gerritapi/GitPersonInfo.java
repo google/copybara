@@ -20,9 +20,9 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZoneId;
@@ -42,7 +42,7 @@ public class GitPersonInfo implements StarlarkValue {
   @Key private String date;
   @Key private int tz;
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "name",
       doc = "The name of the author/committer.",
       structField = true,
@@ -51,7 +51,7 @@ public class GitPersonInfo implements StarlarkValue {
     return name;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "email",
       doc = "The email address of the author/committer.",
       structField = true,
@@ -65,7 +65,7 @@ public class GitPersonInfo implements StarlarkValue {
         ZoneId.from(ZoneOffset.ofTotalSeconds(tz * 60)));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "date",
       doc = "The timestamp of when this identity was constructed.",
       structField = true,

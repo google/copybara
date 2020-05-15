@@ -23,9 +23,9 @@ import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.ResolvedSymlink;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -70,20 +70,20 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return new CheckoutPath(relative.normalize(), checkoutDir);
   }
 
-  @SkylarkCallable(name = "path", doc = "Full path relative to the checkout directory",
+  @StarlarkMethod(name = "path", doc = "Full path relative to the checkout directory",
       structField = true)
   public String fullPath() {
     return path.toString();
   }
 
-  @SkylarkCallable(name = "name",
+  @StarlarkMethod(name = "name",
       doc = "Filename of the path. For foo/bar/baz.txt it would be baz.txt",
       structField = true)
   public String name() {
     return path.getFileName().toString();
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "parent",
       doc = "Get the parent path",
       structField = true,
@@ -99,7 +99,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return create(parent);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "relativize",
       doc =
           "Constructs a relative path between this path and a given path. For example:<br>"
@@ -115,7 +115,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return create(path.relativize(other.path));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "resolve",
       doc = "Resolve the given path against this path.",
       parameters = {
@@ -136,7 +136,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
         "Cannot resolve children for type %s: %s", child.getClass().getSimpleName(), child);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "resolve_sibling",
       doc = "Resolve the given path against this path.",
       parameters = {
@@ -157,7 +157,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
         "Cannot resolve sibling for type %s: %s", other.getClass().getSimpleName(), other);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "attr",
       doc = "Get the file attributes, for example size.",
       structField = true)
@@ -173,7 +173,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     }
   }
 
-  @SkylarkCallable(name = "read_symlink", doc = "Read the symlink")
+  @StarlarkMethod(name = "read_symlink", doc = "Read the symlink")
   public CheckoutPath readSymbolicLink() throws EvalException {
     try {
       Path symlinkPath = checkoutDir.resolve(path);

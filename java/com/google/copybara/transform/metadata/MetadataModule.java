@@ -26,9 +26,9 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -58,7 +58,7 @@ import java.util.Map;
 public class MetadataModule implements StarlarkValue {
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "squash_notes",
       doc =
           "Generate a message that includes a constant prefix text and a list of changes"
@@ -211,7 +211,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "save_author",
       doc =
           "For a given change, store a copy of the author as a label with the name"
@@ -237,7 +237,7 @@ public class MetadataModule implements StarlarkValue {
       + "})";
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "map_author",
       doc =
           "Map the author name and mail to another author. The mapping can be done by both name"
@@ -327,7 +327,7 @@ public class MetadataModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "use_last_change",
       doc =
           "Use metadata (message or/and author) from the last change being migrated."
@@ -380,7 +380,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "expose_label",
       doc =
           "Certain labels are present in the internal metadata but are not exposed in the message"
@@ -463,7 +463,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "remove_label",
       doc = "Remove a label from the message",
       parameters = {
@@ -482,7 +482,7 @@ public class MetadataModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "restore_author",
       doc =
           "For a given change, restore the author present in the ORIGINAL_AUTHOR label as the"
@@ -511,7 +511,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "add_header",
       doc =
           "Adds a header line to the commit message. Any variable present in the message in the"
@@ -618,7 +618,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "replace_message",
       doc =
           "Replace the change message with a template text. Any variable present in the message in"
@@ -671,7 +671,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "scrubber",
       doc = "Removes part of the change message using a regex",
       parameters = {
@@ -813,7 +813,7 @@ public class MetadataModule implements StarlarkValue {
     }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "verify_match",
       doc =
           "Verifies that a RegEx matches (or not matches) the change message. Does not"
@@ -850,7 +850,7 @@ public class MetadataModule implements StarlarkValue {
   }
 
   @SuppressWarnings("unused")
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "map_references",
       doc =
           "Allows updating links to references in commit messages to match the destination's "

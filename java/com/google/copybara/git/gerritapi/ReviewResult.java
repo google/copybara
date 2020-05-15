@@ -19,9 +19,9 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -45,7 +45,7 @@ public class ReviewResult implements StarlarkValue {
   public ReviewResult() {
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "labels",
       doc = "Map of labels to values after the review was posted.",
       structField = true,
@@ -58,7 +58,7 @@ public class ReviewResult implements StarlarkValue {
     return labels == null ? ImmutableMap.of() : ImmutableMap.copyOf(labels);
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
     name = "ready",
     doc =
         "If true, the change was moved from WIP to ready for review as a result of this action."

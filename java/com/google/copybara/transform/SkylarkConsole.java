@@ -20,9 +20,9 @@ import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.util.function.Predicate;
@@ -49,7 +49,7 @@ public class SkylarkConsole implements Console, StarlarkValue {
     throw new UnsupportedOperationException("Shouldn't be called from skylark");
   }
 
-  @SkylarkCallable(name = "error",
+  @StarlarkMethod(name = "error",
       doc = "Show an error in the log. Note that this will stop Copybara execution.",
       parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
   @Override
@@ -63,14 +63,14 @@ public class SkylarkConsole implements Console, StarlarkValue {
     return delegate.isVerbose();
   }
 
-  @SkylarkCallable(name = "warn", doc = "Show a warning in the console",
+  @StarlarkMethod(name = "warn", doc = "Show a warning in the console",
       parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
   @Override
   public void warn(String message) {
     delegate.warn(message);
   }
 
-  @SkylarkCallable(name = "verbose",
+  @StarlarkMethod(name = "verbose",
       doc = "Show an info message in the console if verbose logging is enabled.",
       parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
   @Override
@@ -78,14 +78,14 @@ public class SkylarkConsole implements Console, StarlarkValue {
     delegate.verbose(message);
   }
 
-  @SkylarkCallable(name = "info", doc = "Show an info message in the console",
+  @StarlarkMethod(name = "info", doc = "Show an info message in the console",
       parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
   @Override
   public void info(String message) {
     delegate.info(message);
   }
 
-  @SkylarkCallable(name = "progress", doc = "Show a progress message in the console",
+  @StarlarkMethod(name = "progress", doc = "Show a progress message in the console",
       parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
   @Override
   public void progress(String progress) {

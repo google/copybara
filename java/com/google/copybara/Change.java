@@ -28,9 +28,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -101,7 +101,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
     return parents;
   }
 
-  @SkylarkCallable(name = "original_author", doc = "The author of the change before any"
+  @StarlarkMethod(name = "original_author", doc = "The author of the change before any"
       + " mapping", structField = true)
   public Author getAuthor() {
     return author;
@@ -110,7 +110,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   /**
    * The author of the change. Can already be mapped using metadata.map_author
    */
-  @SkylarkCallable(name = "author", doc = "The author of the change", structField = true)
+  @StarlarkMethod(name = "author", doc = "The author of the change", structField = true)
   public Author getMappedAuthor() {
     return Preconditions.checkNotNull(mappedAuthor == null ? author : mappedAuthor);
   }
@@ -119,12 +119,12 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
     this.mappedAuthor = mappedAuthor;
   }
 
-  @SkylarkCallable(name = "message", doc = "The message of the change", structField = true)
+  @StarlarkMethod(name = "message", doc = "The message of the change", structField = true)
   public String getMessage() {
     return message;
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "labels",
       doc =
           "A dictionary with the labels detected for the change. If the label is present multiple"
@@ -137,7 +137,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
         ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
   }
 
-  @SkylarkCallable(
+  @StarlarkMethod(
       name = "labels_all_values",
       doc =
           "A dictionary with the labels detected for the change. Note that the value is a"
@@ -162,7 +162,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
     return dateTime;
   }
 
-  @SkylarkCallable(name = "date_time_iso_offset",
+  @StarlarkMethod(name = "date_time_iso_offset",
       doc = "Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'",
       structField = true)
   public String dateTimeFmt() {
@@ -176,7 +176,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   /**
    * Returns the first line of the change. Usually a summary.
    */
-  @SkylarkCallable(name = "first_line_message", doc = "The message of the change"
+  @StarlarkMethod(name = "first_line_message", doc = "The message of the change"
       , structField = true)
   public String firstLineMessage() {
     return extractFirstLine(message);
@@ -190,7 +190,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   /**
    * Returns true if the change represents a merge.
    */
-  @SkylarkCallable(name = "merge", doc = "Returns true if the change represents a merge"
+  @StarlarkMethod(name = "merge", doc = "Returns true if the change represents a merge"
       , structField = true)
   public boolean isMerge() {
     return merge;

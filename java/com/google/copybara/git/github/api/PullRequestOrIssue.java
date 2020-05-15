@@ -21,7 +21,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
-import com.google.devtools.build.lib.skylarkinterface.SkylarkCallable;
+import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -44,7 +44,7 @@ public class PullRequestOrIssue implements StarlarkValue {
   @Key private User assignee;
   @Key private List<User> assignees;
 
-  @SkylarkCallable(name = "number", doc = "Pull Request number", structField = true)
+  @StarlarkMethod(name = "number", doc = "Pull Request number", structField = true)
   public int getNumberForStarlark() {
     // Sadly Starlark doesn't support long.
     return Ints.saturatedCast(number);
@@ -57,17 +57,17 @@ public class PullRequestOrIssue implements StarlarkValue {
   public String getState() {
     return state;
   }
-  @SkylarkCallable(name = "state", doc = "Pull Request state", structField = true)
+  @StarlarkMethod(name = "state", doc = "Pull Request state", structField = true)
   public String getStateForSkylark() {
     return state.toUpperCase();
   }
 
-  @SkylarkCallable(name = "title", doc = "Pull Request title", structField = true)
+  @StarlarkMethod(name = "title", doc = "Pull Request title", structField = true)
   public String getTitle() {
     return title;
   }
 
-  @SkylarkCallable(name = "body", doc = "Pull Request body", structField = true)
+  @StarlarkMethod(name = "body", doc = "Pull Request body", structField = true)
   public String getBody() {
     return body;
   }
@@ -93,14 +93,14 @@ public class PullRequestOrIssue implements StarlarkValue {
     return "open".equals(state);
   }
 
-  @SkylarkCallable(name = "assignee", doc = "Pull Request assignee", structField = true,
+  @StarlarkMethod(name = "assignee", doc = "Pull Request assignee", structField = true,
       allowReturnNones = true)
   @Nullable
   public User getAssignee() {
     return assignee;
   }
 
-  @SkylarkCallable(name = "user", doc = "Pull Request owner", structField = true)
+  @StarlarkMethod(name = "user", doc = "Pull Request owner", structField = true)
   public User getUser() {
     return user;
   }
