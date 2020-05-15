@@ -275,7 +275,14 @@ public class GitRepository {
     // allows to download it.
     if (isSha1Reference(ref)) {
       // Tags are fetched by the default refspec
-      fetch(url, /*prune=*/false, /*force=*/true, ImmutableList.of(), partialFetch);
+      try {
+        fetch(url, /*prune=*/ false, /*force=*/ true, ImmutableList.of(), partialFetch);
+      } catch (CannotResolveRevisionException e) {
+        // Some servers are configured without HEAD. That is fine, we'll try fetching the SHA
+        // instead.
+        logger.atWarning().withCause(e).log(
+            "Cannot fetch remote HEAD. Ignoring and fetching SHA-1 directly");
+      }
       try {
         return resolveReferenceWithContext(ref, /*contextRef=*/ref, url);
       } catch (RepoException | CannotResolveRevisionException ignore) {

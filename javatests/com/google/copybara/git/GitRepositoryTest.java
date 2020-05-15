@@ -157,7 +157,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testUnicodeFilename() throws RepoException, IOException {
-    writeFile(workdir,"unrelated","unrelated");
+    writeFile(workdir, "unrelated", "unrelated");
     repository.add().files("unrelated").run();
     repository.simpleCommand("commit", "-a", "-m", "unrelated change");
 
@@ -516,7 +516,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     FetchResult result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-                                    ImmutableList.of("refs/*:refs/*"), false);
+        ImmutableList.of("refs/*:refs/*"), false);
 
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
@@ -553,7 +553,7 @@ public class GitRepositoryTest {
     local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
         ImmutableList.of("refs/*:refs/*"), true);
     CommandOutput commandOutput =
-        local.simpleCommand( "config", "--get-regexp", "remote..*.partialclonefilter");
+        local.simpleCommand("config", "--get-regexp", "remote..*.partialclonefilter");
     assertThat(commandOutput.getStdout()).contains("blob:none");
   }
 
@@ -588,7 +588,8 @@ public class GitRepositoryTest {
         true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
 
       @Override
-      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs, boolean partialFetch)
+      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
+          boolean partialFetch)
           throws RepoException, ValidationException {
         requestedFetches.add(refspecs);
         return super.fetch(url, prune, force, refspecs, partialFetch);
@@ -603,7 +604,8 @@ public class GitRepositoryTest {
         CannotResolveRevisionException.class,
         () ->
             dest.fetchSingleRef(
-                "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", false));
+                "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                false));
 
     // This is the important part of the test: We do two fetches, the first ones for the default
     // head and if it fails we do one for the ref
@@ -611,6 +613,34 @@ public class GitRepositoryTest {
         ImmutableList.of(),
         ImmutableList.of("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:refs/copybara_fetch/aaaaaaaaaa"
             + "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")));
+  }
+
+  @Test
+  public void testFetchRemoteNoHEAD() throws Exception {
+    List<Iterable<String>> requestedFetches = new ArrayList<>();
+
+    GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
+        true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
+
+      @Override
+      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
+          boolean partialFetch)
+          throws RepoException, ValidationException {
+        requestedFetches.add(refspecs);
+        return super.fetch(url, prune, force, refspecs, partialFetch);
+      }
+    }.init();
+
+    Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message 1");
+    GitRevision rev = repository.resolveReference("HEAD");
+    // Direct HEAD to another non-existent ref so that it fails fetching the default HEAD.
+    // We don't delete because this makes it an invalid local repo.
+    GitTestUtil.writeFile(repository.getGitDir(), "HEAD",
+        "ref: refs/heads/other");
+    dest.fetchSingleRef(
+        "file://" + repository.getGitDir(), rev.getSha1(), false);
   }
 
   @Test
@@ -626,7 +656,8 @@ public class GitRepositoryTest {
         CannotResolveRevisionException.class,
         () ->
             dest.fetch(
-                fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"), false));
+                fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"),
+                false));
   }
 
   @Test
@@ -685,7 +716,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testLsRemote() throws Exception {
-    Files.write(workdir.resolve("foo.txt"), new byte[] {});
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     repository.simpleCommand("branch", "b1");
@@ -702,7 +733,7 @@ public class GitRepositoryTest {
     assertThat(refsToShas.get("refs/heads/master")).isEqualTo(headSha);
 
     repository.simpleCommand("checkout", "b1");
-    Files.write(workdir.resolve("boo.txt"), new byte[] {});
+    Files.write(workdir.resolve("boo.txt"), new byte[]{});
     repository.add().files("boo.txt").run();
     repository.simpleCommand("commit", "boo.txt", "-m", "message");
     refsToShas =
@@ -717,7 +748,7 @@ public class GitRepositoryTest {
 
   @Test
   public void testLsTreeWithReviewContext() throws Exception {
-    Files.write(Files.createDirectories(workdir.resolve("foo")).resolve("foo.txt"), new byte[] {});
+    Files.write(Files.createDirectories(workdir.resolve("foo")).resolve("foo.txt"), new byte[]{});
     repository.add().files("foo/foo.txt").run();
     repository.simpleCommand("commit", "foo/foo.txt", "-m", "message");
     GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
@@ -736,7 +767,7 @@ public class GitRepositoryTest {
     for (int i = 0; i < repeats; i++) {
       descBuilder.append(line);
     }
-    Files.write(workdir.resolve("foo.txt"), new byte[] {});
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
         .truncatedTo(ChronoUnit.SECONDS);
@@ -859,7 +890,7 @@ public class GitRepositoryTest {
             .newBareRepo(gitDir, getGitEnv(), /*verbose=*/true,
                 DEFAULT_TIMEOUT, /*noVerify=*/ true)
             .withWorkTree(workdir);
-   doPushWithHook(origin);
+    doPushWithHook(origin);
   }
 
   public void doPushWithHook(GitRepository origin) throws Exception {
