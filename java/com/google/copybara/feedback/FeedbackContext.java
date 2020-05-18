@@ -26,14 +26,14 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Abstract context for feedback migrations. */
 @SuppressWarnings("unused")

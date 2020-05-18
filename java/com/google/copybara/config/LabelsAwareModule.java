@@ -17,9 +17,9 @@
 package com.google.copybara.config;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.util.function.Supplier;
+import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
  * A {@link StarlarkBuiltin} that implements this interface will be given information about the

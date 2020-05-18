@@ -17,13 +17,13 @@
 package com.google.copybara;
 
 import com.google.common.base.Preconditions;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Represents file attributes exposed to Skylark. */
 @SuppressWarnings("unused")

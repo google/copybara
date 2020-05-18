@@ -34,14 +34,14 @@ import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})

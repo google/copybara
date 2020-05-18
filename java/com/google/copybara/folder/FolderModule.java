@@ -21,13 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.FileSystem;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Main module that groups all the functions related to folders. */
 @StarlarkBuiltin(

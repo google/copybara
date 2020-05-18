@@ -21,12 +21,12 @@ import static com.google.copybara.feedback.ActionResult.Result.NO_OP;
 import static com.google.copybara.feedback.ActionResult.Result.SUCCESS;
 
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Represents the result returned by an {@link Action}. */
 @SuppressWarnings("unused")

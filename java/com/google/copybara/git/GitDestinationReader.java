@@ -22,9 +22,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import java.nio.file.Path;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /**
  * A DestinationReader for reading files from a GitDestination.

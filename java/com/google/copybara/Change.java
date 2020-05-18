@@ -28,9 +28,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -39,6 +36,9 @@ import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Represents a change in a Repository */
 @StarlarkBuiltin(

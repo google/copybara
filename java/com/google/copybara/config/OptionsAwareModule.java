@@ -17,7 +17,7 @@
 package com.google.copybara.config;
 
 import com.google.copybara.Options;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
  * A {@link StarlarkBuiltin} that implements this interface will be initialized with the options.

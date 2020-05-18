@@ -29,8 +29,6 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -40,6 +38,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 // Module needed because both Transformation and ReversibleFunction are Starlark objects but
 // neither of them extend each other

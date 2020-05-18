@@ -39,14 +39,14 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /** Integrate changes from a url present in the migrated change label. */
 @StarlarkBuiltin(

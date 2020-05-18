@@ -67,10 +67,6 @@ import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
@@ -93,6 +89,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
 @StarlarkBuiltin(

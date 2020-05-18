@@ -18,8 +18,8 @@ package com.google.copybara.testing;
 
 import com.google.copybara.Endpoint;
 import com.google.copybara.Trigger;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /**
  * A dummy trigger for feedback mechanism.

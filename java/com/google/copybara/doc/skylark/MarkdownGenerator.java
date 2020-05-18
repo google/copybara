@@ -35,10 +35,6 @@ import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkGlobalLibrary;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -71,6 +67,10 @@ import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkGlobalLibrary;
+import net.starlark.java.annot.StarlarkMethod;
 
 /**
  * Reads classes annotated with {@link DocElement} or

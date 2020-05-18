@@ -25,10 +25,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
@@ -38,6 +34,10 @@ import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /**
  * Metadata module for manipulating metadata of the changes. This is intended to be used by the

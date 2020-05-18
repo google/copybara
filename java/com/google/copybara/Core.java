@@ -55,10 +55,6 @@ import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.skylarkinterface.Param;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkMethod;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
@@ -73,6 +69,10 @@ import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /**
  * Main configuration class for creating migrations.

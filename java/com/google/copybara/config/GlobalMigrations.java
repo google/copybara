@@ -18,8 +18,6 @@ package com.google.copybara.config;
 
 import static com.google.copybara.config.SkylarkUtil.check;
 
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -27,6 +25,8 @@ import com.google.re2j.Pattern;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 @StarlarkBuiltin(
     name = GlobalMigrations.GLOBAL_MIGRATIONS,

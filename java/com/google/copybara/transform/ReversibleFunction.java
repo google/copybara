@@ -17,10 +17,10 @@
 package com.google.copybara.transform;
 
 import com.google.copybara.NonReversibleValidationException;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkBuiltin;
-import com.google.devtools.build.lib.skylarkinterface.StarlarkDocumentationCategory;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.function.Function;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 @StarlarkBuiltin(
     name = "mapping_function",
