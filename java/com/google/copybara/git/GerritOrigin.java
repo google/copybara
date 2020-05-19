@@ -32,7 +32,6 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -184,7 +183,7 @@ public class GerritOrigin extends GitOrigin {
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(
           GitRevision startRevision, int limit)
-          throws RepoException, CannotResolveRevisionException {
+          throws RepoException, ValidationException {
 
         // Skip the first change as it is the Gerrit review change
         BaselinesWithoutLabelVisitor<GitRevision> visitor =

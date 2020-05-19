@@ -35,7 +35,6 @@ import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -335,7 +334,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
     @Override
     public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
-        throws RepoException {
+        throws RepoException, ValidationException {
 
       String refRange = fromRef == null
           ? toRef.getSha1()
@@ -364,7 +363,8 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     @Override
-    public Change<GitRevision> change(GitRevision ref) throws RepoException, EmptyChangeException {
+    public Change<GitRevision> change(GitRevision ref)
+        throws RepoException, ValidationException {
       // The limit=1 flag guarantees that only one change is returned
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setLimit(1)
@@ -400,7 +400,7 @@ public class GitOrigin implements Origin<GitRevision> {
      */
     @Override
     public void visitChanges(GitRevision start, ChangesVisitor visitor)
-        throws RepoException, CannotResolveRevisionException {
+        throws RepoException, ValidationException {
       ChangeReader.Builder queryChanges = changeReaderBuilder(repoUrl).setFirstParent(firstParent);
       ImmutableSet<String> roots = originFiles.roots();
 

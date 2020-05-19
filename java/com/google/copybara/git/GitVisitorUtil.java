@@ -24,6 +24,7 @@ import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 
 /** Utility methods for visiting Git repos. */
@@ -39,7 +40,7 @@ public class GitVisitorUtil {
       GeneralOptions generalOptions,
       String type,
       int visitChangePageSize)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     Preconditions.checkNotNull(start);
     int skip = 0;
     boolean finished = false;

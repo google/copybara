@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Authoring;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
@@ -269,7 +268,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
      * @param ref current revision to transform.
      * @throws RepoException if any error happens during the computation of the diff.
      */
-    Change<R> change(R ref) throws RepoException, EmptyChangeException;
+    Change<R> change(R ref) throws RepoException, ValidationException;
 
     /**
      * Finds the baseline of startRevision. Most of the implementations will use the label to

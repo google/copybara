@@ -420,7 +420,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
        */
       @Override
       public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef,
-          GitRevision toRef) throws RepoException {
+          GitRevision toRef) throws RepoException, ValidationException {
         if (!useMerge) {
           return super.changes(fromRef, toRef);
         }

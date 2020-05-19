@@ -26,6 +26,7 @@ import com.google.copybara.ChangeMessage;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.LogCmd;
 import com.google.copybara.util.Glob;
@@ -65,7 +66,8 @@ class ChangeReader {
     this.grepString = grepString;
   }
 
-  ImmutableList<Change<GitRevision>> run(String refExpression) throws RepoException {
+  ImmutableList<Change<GitRevision>> run(String refExpression)
+      throws RepoException, ValidationException {
     LogCmd logCmd = repository
         .log(refExpression)
         .firstParent(firstParent);
@@ -77,6 +79,10 @@ class ChangeReader {
     }
     if (grepString != null) {
       logCmd = logCmd.grep(grepString);
+    }
+    if (partialFetch && roots.contains("")) {
+      throw new ValidationException("Config error: partial_fetch feature is not compatible "
+          + "with fetching the whole repo.");
     }
     if (partialFetch) {
       logCmd = logCmd.withPaths(roots);
