@@ -228,14 +228,8 @@ public class SkylarkParser {
       // Create a Starlark thread making the modules available as predeclared bindings.
       // For modules that implement OptionsAwareModule, options are set in the object so
       // that the module can construct objects that require options.
-      StarlarkThread thread =
-          StarlarkThread.builder(Mutability.create("CopybaraModules"))
-              .setSemantics(createSemantics())
-              .setGlobals(Module.createForBuiltins(environment))
-              .build();
-      thread.setLoader(loadedModules::get);
-      thread.setPrintHandler(printHandler);
-      module = thread.getGlobals();
+      StarlarkSemantics semantics = createSemantics();
+      module = Module.withPredeclared(semantics, environment);
 
       // resolve
       Resolver.resolveFile(file, module);
@@ -246,7 +240,11 @@ public class SkylarkParser {
       }
 
       // execute
-      try (Mutability mu = module.mutability()) { // finally freeze module
+      try (Mutability mu = Mutability.create("CopybaraModules")) {
+        StarlarkThread thread = new StarlarkThread(mu, semantics);
+        thread.setLoader(loadedModules::get);
+        thread.setPrintHandler(printHandler);
+
         EvalUtils.exec(file, module, thread);
       } catch (EvalException ex) {
         eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
@@ -304,12 +302,13 @@ public class SkylarkParser {
       if (module instanceof LabelsAwareModule) {
         LabelsAwareModule m = (LabelsAwareModule) module;
         m.setConfigFile(mainConfigFile, currentConfigFile);
+        // TODO(malcon): these two setDynamicEnvironment calls are identical.
+        // Eliminate the feature?
         m.setDynamicEnvironment(
             () -> {
               StarlarkThread thread =
-                  StarlarkThread.builder(Mutability.create("dynamic_action"))
-                      .setSemantics(createSemantics())
-                      .build();
+                  new StarlarkThread(
+                      Mutability.create("dynamic_action"), StarlarkSemantics.DEFAULT);
               thread.setPrintHandler(printHandler);
               return thread;
             });
@@ -324,9 +323,8 @@ public class SkylarkParser {
         m.setDynamicEnvironment(
             () -> {
               StarlarkThread thread =
-                  StarlarkThread.builder(Mutability.create("dynamic_action"))
-                      .useDefaultSemantics()
-                      .build();
+                  new StarlarkThread(
+                      Mutability.create("dynamic_action"), StarlarkSemantics.DEFAULT);
               thread.setPrintHandler(printHandler);
               return thread;
             });
@@ -341,7 +339,6 @@ public class SkylarkParser {
   private ImmutableMap<String, Object> createEnvironment(
       ModuleSet moduleSet, Supplier<ImmutableMap<String, ConfigFile>> configFilesSupplier) {
     Map<String, Object> env = Maps.newHashMap();
-    env.putAll(Starlark.UNIVERSE);
     for (Entry<String, Object> module : moduleSet.getModules().entrySet()) {
       logger.atInfo().log("Creating variable for %s", module.getKey());
       if (module.getValue() instanceof LabelsAwareModule) {

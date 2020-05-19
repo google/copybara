@@ -103,7 +103,7 @@ public class SkylarkTestExecutor {
     return evalWithConfigFilePath(var, config, DEFAULT_FILE);
   }
 
-  @SuppressWarnings("TypeParameterUnusedInFormals")
+  @SuppressWarnings({"TypeParameterUnusedInFormals"})
   public <T> T evalWithConfigFilePath(String var, String config, String configPath)
       throws ValidationException {
     try {
@@ -111,7 +111,7 @@ public class SkylarkTestExecutor {
           skylarkParser.executeSkylark(
               createConfigFile(configPath, config), createModuleSet(), options.general.console());
       @SuppressWarnings("unchecked") // the cast below is wildly unsound
-      T t = (T) module.get(var);
+      T t = (T) module.getGlobal(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {
