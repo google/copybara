@@ -364,6 +364,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return workflow.getReverseTransformForCheck();
     }
 
+    protected Glob getReversibleCheckIgnoreFiles() {
+      return workflow.getReversibleCheckIgnoreFiles();
+    }
+
     public final Profiler profiler() {
       return workflow.profiler();
     }
@@ -574,9 +578,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
         String diff;
         try {
-          diff = new String(DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
-              workflow.getGeneralOptions().getEnvironment()),
-              StandardCharsets.UTF_8);
+          byte[] byteDiff = DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
+              workflow.getGeneralOptions().getEnvironment());
+
+          // This should be more optimal than parsing a potential huge diff file.
+          if (getReversibleCheckIgnoreFiles() != null) {
+            PathMatcher pathMatcher = getReversibleCheckIgnoreFiles().relativeTo(Paths.get("reverse"));
+            diff = DiffUtil.filterDiff(byteDiff, (s -> !pathMatcher.matches(Paths.get(s))));
+          } else {
+            diff = new String(byteDiff, StandardCharsets.UTF_8);
+          }
         } catch (InsideGitDirException e) {
           throw new ValidationException(String.format(
               "Cannot use 'reversible_check = True' because Copybara temporary directory (%s) is"

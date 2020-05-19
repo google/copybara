@@ -78,6 +78,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -94,7 +95,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
 import javax.annotation.Nullable;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -197,9 +200,9 @@ public class WorkflowTest {
         + "    migrate_noop_changes = " + (migrateNoopChangesField ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + (extraWorkflowFields.isEmpty()
-            ? ""
-            : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n"
-          )
+        ? ""
+        : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n"
+    )
         + ")\n";
     System.err.println(config);
     return (Workflow<?, ?>) loadConfig(config).getMigration(name);
@@ -282,7 +285,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 2);
     DummyRevision expected = origin.resolve("HEAD");
     origin.addChange(/*timestamp*/ 3, Paths.get("not important"), "message",
-                     /*matchesGlob=*/false);
+        /*matchesGlob=*/false);
 
     options.setForce(false);
     workflow = skylarkWorkflow("default", SQUASH);
@@ -309,7 +312,7 @@ public class WorkflowTest {
     options
         .setWorkdirToRealTempDir()
         .setHomeDir(StandardSystemProperty.USER_HOME.value());
-     new SkylarkTestExecutor(options).loadConfig("core.workflow(\n"
+    new SkylarkTestExecutor(options).loadConfig("core.workflow(\n"
         + "    name = 'foo',\n"
         + "    origin = testing.origin(),\n"
         + "    destination = folder.destination(),\n"
@@ -324,7 +327,7 @@ public class WorkflowTest {
   public void testTestWorkflowWithDiffInOrigin() throws Exception {
     GitRepository remote = GitRepository.newBareRepo(
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
-            DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
+        DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
@@ -336,7 +339,7 @@ public class WorkflowTest {
     remote.add().files("bar.txt").run();
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
-    TestingConsole testingConsole = new  TestingConsole().respondYes();
+    TestingConsole testingConsole = new TestingConsole().respondYes();
     options.workflowOptions.lastRevision = lastRev.getSha1();
     options
         .setWorkdirToRealTempDir()
@@ -346,19 +349,19 @@ public class WorkflowTest {
     Workflow<?, ?> workflow =
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
             "core.workflow(\n"
-        + "    name = 'foo',\n"
-        + "    origin = git.origin(url='" + remote.getGitDir()+"'),\n"
-        + "    destination = folder.destination(),\n"
-        + "    mode = 'ITERATIVE',\n"
-        + "    authoring = " + authoring + ",\n"
-        + "    transformations = [metadata.replace_message(''),],\n"
-        + ")\n")
-        .getMigration("foo");
+                + "    name = 'foo',\n"
+                + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
+                + "    destination = folder.destination(),\n"
+                + "    mode = 'ITERATIVE',\n"
+                + "    authoring = " + authoring + ",\n"
+                + "    transformations = [metadata.replace_message(''),],\n"
+                + ")\n")
+            .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     workflow.run(workdir, ImmutableList.of("master"));
     testingConsole.assertThat()
         .onceInLog(MessageType.WARNING, "Change 1 of 1 \\(.*\\)\\: Continue to migrate with '"
-        + workflow.getMode() + "'"+" to " + workflow.getDestination().getType()+ "\\?");
+            + workflow.getMode() + "'" + " to " + workflow.getDestination().getType() + "\\?");
   }
 
   @Test
@@ -377,7 +380,7 @@ public class WorkflowTest {
     remote.add().files("bar.txt").run();
     remote.simpleCommand("commit", "bar.txt", "-m", "message_s");
 
-    TestingConsole testingConsole = new  TestingConsole().respondNo();
+    TestingConsole testingConsole = new TestingConsole().respondNo();
     options.workflowOptions.lastRevision = lastRev.getSha1();
     options
         .setWorkdirToRealTempDir()
@@ -388,7 +391,7 @@ public class WorkflowTest {
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
             "core.workflow(\n"
                 + "    name = 'foo',\n"
-                + "    origin = git.origin(url='" + remote.getGitDir()+"'),\n"
+                + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
                 + "    destination = folder.destination(),\n"
                 + "    mode = 'ITERATIVE',\n"
                 + "    authoring = " + authoring + ",\n"
@@ -934,7 +937,6 @@ public class WorkflowTest {
     ProcessedChange change = Iterables.getOnlyElement(destination.processed);
     assertThat(change.getChangesSummary()).contains("Project import generated by Copybara.\n");
 
-
     // Regular run afterwards
     workflow = iterativeWorkflow(/*previousRef=*/ null);
     options.general.squash = false;
@@ -947,12 +949,12 @@ public class WorkflowTest {
     transformations = ImmutableList.of("metadata.squash_notes()");
     origin.singleFileChange(0, "base1", "file.txt", "a");
     origin.singleFileChange(1, "base2\n\n" + destination.getLabelNameWhenOrigin() + ": 1\n",
-                            "file.txt", "b");
+        "file.txt", "b");
     origin.singleFileChange(2, "pending1", "file.txt", "c");
     origin.addRevisionToGroup(origin.resolve("HEAD"), "pending1");
     skylarkWorkflow("default", CHANGE_REQUEST).run(workdir, ImmutableList.of("2"));
     origin.singleFileChange(3, "base3\n\n" + destination.getLabelNameWhenOrigin() + ": 3\n",
-                            "file.txt", "d");
+        "file.txt", "d");
 
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("1");
@@ -1161,17 +1163,17 @@ public class WorkflowTest {
     WriterContext writerContext = new WriterContext("piper_to_github", "TEST", false,
         new DummyRevision("test"), Glob.ALL_FILES.roots());
     assertThat(
-            destination
-                .newWriter(writerContext)
-                .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
-                .getBaseline())
+        destination
+            .newWriter(writerContext)
+            .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
+            .getBaseline())
         .isEqualTo("3");
     workflow().run(workdir, ImmutableList.of(oldRef));
     assertThat(
-            destination
-                .newWriter(writerContext)
-                .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
-                .getBaseline())
+        destination
+            .newWriter(writerContext)
+            .getDestinationStatus(Glob.ALL_FILES, origin.getLabelName())
+            .getBaseline())
         .isEqualTo("0");
   }
 
@@ -1829,10 +1831,10 @@ public class WorkflowTest {
 
     options.workflowOptions.ignoreNoop = false;
     transformations = ImmutableList.of(""
-        + "        core.replace(\n"
-        + "             before = 'only_in_change',\n"
-        + "             after = 'foo',\n"
-        + "        )",
+            + "        core.replace(\n"
+            + "             before = 'only_in_change',\n"
+            + "             after = 'foo',\n"
+            + "        )",
         "          core.verify_match('EXCLUDED', verify_no_match=True)");
     Workflow<?, ?> workflow = skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST);
     workflow.run(workdir, ImmutableList.of("HEAD"));
@@ -1896,7 +1898,6 @@ public class WorkflowTest {
         + "    mode = '" + WorkflowMode.SQUASH + "',\n"
         + ")\n";
 
-
     Migration workflow = loadConfig(config).getMigration("default");
 
     Path included = originPath.resolve("included");
@@ -1920,6 +1921,58 @@ public class WorkflowTest {
                 + "points outside the checkout dir. Consider removing this symlink from your "
                 + "origin_files or, alternatively, set reversible_check = False in your "
                 + "workflow.");
+  }
+
+  @Test
+  public void reversibleCheckFiles() throws Exception {
+    Path someRoot = Files.createTempDirectory("someRoot");
+    Path originPath = someRoot.resolve("origin");
+    Files.createDirectories(originPath);
+
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    options.setOutputRootToTmpDir();
+    String config = "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + "    destination = testing.destination(),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    reversible_check = True,\n"
+        + "    reversible_check_ignore_files = glob([\"to_ignore/**\"],"
+        + "                                          exclude = [\"to_ignore/exclude\"]),\n"
+        + "    mode = '" + WorkflowMode.SQUASH + "',\n"
+        + "    transformations = ["
+        + "      core.replace(before = 'aa', after = 'bb')"
+        + "    ]"
+        + ")\n";
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    GitTestUtil.writeFile(originPath, "test", "aabb");
+    GitTestUtil.writeFile(originPath, "to_ignore/test", "aabb");
+    GitTestUtil.writeFile(originPath, "to_ignore/exclude", "aabb");
+
+    origin.add().all().run();
+    origin.simpleCommand("commit", "-m", "change");
+
+    try {
+      workflow.run(Files.createDirectory(someRoot.resolve("run1")), ImmutableList.of());
+      fail();
+    } catch (ValidationException e) {
+      assertThat(e).hasMessageThat().contains("is not reversible");
+      String msg = console().getMessages().asList().stream().filter(
+          m -> m.getType() == MessageType.ERROR && m.getText().contains("Non reversible"))
+          .findFirst().get().getText();
+      assertThat(msg).contains("+++ b/reverse/test");
+      assertThat(msg).doesNotContain("+++ b/reverse/to_ignore/test");
+      assertThat(msg).contains("+++ b/reverse/to_ignore/exclude");
+    }
+
+    // Now lets fix the only file that we check in reversible check:
+    GitTestUtil.writeFile(originPath, "test", "aa");
+    GitTestUtil.writeFile(originPath, "to_ignore/exclude", "aa");
+    origin.add().all().run();
+    origin.simpleCommand("commit", "-m", "change 2");
+    workflow.run(Files.createDirectory(someRoot.resolve("run2")), ImmutableList.of());
   }
 
   @Test
@@ -1970,7 +2023,6 @@ public class WorkflowTest {
         + "metadata.add_header('Resolved revision is ${GIT_DESCRIBE_REQUESTED_VERSION}"
         + " and change revision is ${GIT_DESCRIBE_CHANGE_VERSION}')]"
         + ")\n";
-
 
     GitTestUtil.writeFile(originPath, "initial.txt", "initial");
     origin.add().files("initial.txt").run();
@@ -2026,9 +2078,9 @@ public class WorkflowTest {
         + ")\n\n"
         + "");
 
-    origin.addSimpleChange(1,"change\n\nsome_label=a");
-    origin.addSimpleChange(2,"change\n\nsome_label=b");
-    origin.addSimpleChange(3,"change\n\nsome_label=c");
+    origin.addSimpleChange(1, "change\n\nsome_label=a");
+    origin.addSimpleChange(2, "change\n\nsome_label=b");
+    origin.addSimpleChange(3, "change\n\nsome_label=c");
 
     config.getMigration("one").run(workdir, ImmutableList.of());
 
@@ -2056,6 +2108,7 @@ public class WorkflowTest {
 
     assertThat(oneResult).isNotEqualTo(threeResult);
   }
+
   @Test
   public void customIdentity_customPathIncluded() throws Exception {
     options.workflowOptions.initHistory = true;
@@ -2075,7 +2128,7 @@ public class WorkflowTest {
     Config config2 = skylark.loadConfig(
         new MapConfigFile(ImmutableMap.of("bar/copy.bara.sky", cfgContent), "bar/copy.bara.sky"));
 
-    origin.addSimpleChange(1,"change\n\nsome_label=a");
+    origin.addSimpleChange(1, "change\n\nsome_label=a");
 
     config1.getMigration("default").run(workdir, ImmutableList.of());
     ImmutableList<String> oneResult = destination.processed.stream().map(
@@ -2138,7 +2191,7 @@ public class WorkflowTest {
                         + ")\n"));
     for (Message message : console().getMessages()) {
       System.err.println(message);
-      }
+    }
     console()
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: origin.*");
@@ -2523,7 +2576,7 @@ public class WorkflowTest {
             + " \"CREATED destination/2\","
             + " \"CREATED destination/3\"]");
   }
-  
+
   @Test
   public void testAfterAllMigrations3() throws Exception {
     checkAfterAllMigrations("3", SQUASH);
@@ -2800,9 +2853,9 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
 
     Path originDir = Files.createTempDirectory("change1");
-    Files.write(originDir.resolve("bar"), new byte[] {});
-    Files.write(originDir.resolve("foo_included"), new byte[] {});
-    Files.write(originDir.resolve("foo42"), new byte[] {});
+    Files.write(originDir.resolve("bar"), new byte[]{});
+    Files.write(originDir.resolve("foo_included"), new byte[]{});
+    Files.write(originDir.resolve("foo42"), new byte[]{});
     origin.addChange(/*timestamp=*/42, originDir, "change1", /*matchesGlob=*/true);
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
@@ -2836,15 +2889,15 @@ public class WorkflowTest {
             ValidationException.class,
             () ->
                 loadConfig(
-                        "core.workflow(\n"
-                            + "    name = 'foo',\n"
-                            + "    origin = testing.origin(),\n"
-                            + "    destination = folder.destination(),\n"
-                            + "    authoring = "
-                            + authoring
-                            + ",\n"
-                            + "    mode = 'CHANGE_REQUEST',\n"
-                            + ")\n")
+                    "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + "    origin = testing.origin(),\n"
+                        + "    destination = folder.destination(),\n"
+                        + "    authoring = "
+                        + authoring
+                        + ",\n"
+                        + "    mode = 'CHANGE_REQUEST',\n"
+                        + ")\n")
                     .getMigration("foo")
                     .run(workdir, ImmutableList.of()));
     assertThat(thrown)

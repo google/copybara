@@ -29,17 +29,20 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.copybara.git.GitEnvironment;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -53,13 +56,38 @@ public class DiffUtil {
   /**
    * Calculates the diff between two sibling directory trees.
    *
-   * <p>Returns the diff as an encoding-independent {@code byte[]} that can be write to a file or
-   * fed directly into {@link DiffUtil#patch}.
+   * <p>Returns the diff as an encoding-independent {@code byte[]}.
    */
   public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
     return new FoldersDiff(verbose, environment)
         .run(one, other);
+  }
+
+  /**
+   * Filter a diff output to only include paths that match filter.
+   */
+  public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
+    boolean include = true;
+    StringBuilder filteredDiff = new StringBuilder();
+    for (String line : Splitter.on('\n').split(new String(diff))) {
+      if (line.startsWith("diff ")) {
+        List<String> diffHeader = Splitter.on(' ').splitToList(line);
+        // Given a diff in the format of:
+        //     diff --git a/copybara/util/Test.java b/copybara/util/Test.java
+        // Returns "copybara/util/Test.java"
+        String path = diffHeader.get(3).substring(2);
+        include = pathFilter.test(path);
+      }
+      if (include) {
+        filteredDiff.append(line).append("\n");
+      }
+    }
+    // Nothing to add
+    if (filteredDiff.length() == 0) {
+      return "";
+    }
+    return filteredDiff.toString();
   }
 
   /**

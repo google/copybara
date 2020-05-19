@@ -16,11 +16,8 @@
 
 package com.google.copybara.git;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -37,9 +34,12 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.StatusCode;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -193,13 +193,15 @@ public class GitIntegrateChanges implements StarlarkValue {
         GitLogEntry head = getHeadCommit(repository);
         byte[] diff;
         if (newGitIntegrate) {
-          diff = computeExternalDiff(repository, integrateLabel, externalFiles, head);
+          // TODO(malcon): This doesn't support binaries well. We should fix it.
+          diff = computeExternalDiff(repository, integrateLabel, externalFiles, head)
+              .getBytes(StandardCharsets.UTF_8);
         } else {
           diff = repository.simpleCommandNoRedirectOutput("diff",
               head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
               .getStdoutBytes();
         }
-        if (diff == null) {
+        if (diff.length == 0) {
           return;
         }
         try {
@@ -246,35 +248,17 @@ public class GitIntegrateChanges implements StarlarkValue {
         repository.forceClean();
       }
 
-      @Nullable
-      private byte[] computeExternalDiff(GitRepository repository, IntegrateLabel integrateLabel,
+      private String computeExternalDiff(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, GitLogEntry head)
           throws ValidationException, RepoException {
         String commonBaseline = findCommonBaseline(repository, integrateLabel, head);
         // Create a patch of the changes from common baseline..feature head.
-        String diff = new String(repository.simpleCommandNoRedirectOutput("diff",
+        byte[] diffs = repository.simpleCommandNoRedirectOutput("diff",
             commonBaseline + ".." + integrateLabel.getRevision().getSha1())
-            .getStdoutBytes(), UTF_8);
-
-        boolean include = true;
+            .getStdoutBytes();
         // Filter the diff to the external files changed by the external change that weren't
         // migrated to the internal repository.
-        StringBuilder filteredDiff = new StringBuilder();
-        for (String line : Splitter.on("\n").split(diff)) {
-          if (line.startsWith("diff ")) {
-            List<String> diffHeader = Splitter.on(" ").splitToList(line);
-            String path = diffHeader.get(3).substring(2);
-            include = externalFiles.test(path);
-          }
-          if (include) {
-            filteredDiff.append(line).append("\n");
-          }
-        }
-        // Nothing to add
-        if (filteredDiff.length() == 0) {
-          return null;
-        }
-        return filteredDiff.toString().getBytes(UTF_8);
+        return DiffUtil.filterDiff(diffs, externalFiles);
       }
 
       private String findCommonBaseline(GitRepository repository, IntegrateLabel integrateLabel,

@@ -409,13 +409,24 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " changes and you are not interested on the files of the dependant repo, just"
                     + " the new version.",
             defaultValue = "True"),
+          @Param(
+              name = "reversible_check_ignore_files",
+              named = true,
+              type = Glob.class,
+              doc = "Ignore the files matching the glob in the reversible check",
+              defaultValue = "None",
+              noneable = true,
+              positional = false),
+
       },
+
       useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
   @DocDefault(field = "destination_files", value = "glob([\"**\"])")
   @DocDefault(field = CHECK_LAST_REV_STATE, value = "True for CHANGE_REQUEST")
   @DocDefault(field = "reversible_check", value = "True for 'CHANGE_REQUEST' mode. False otherwise")
+  @DocDefault(field = "reversible_check_ignore_files", value = "None")
   public void workflow(
       String workflowName,
       Origin<?> origin, // <Revision>
@@ -438,6 +449,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object customRevIdField,
       Object description,
       Boolean checkout,
+      Object reversibleCheckIgnoreFiles,
       StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum("mode", modeStr, WorkflowMode.class);
@@ -518,6 +530,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             effectiveMode,
             workflowOptions,
             reverseTransform,
+            convertFromNoneable(reversibleCheckIgnoreFiles, null),
             askForConfirmation,
             mainConfigFile,
             allConfigFiles,

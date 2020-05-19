@@ -98,6 +98,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   private final Transformation reverseTransformForCheck;
   private final boolean verbose;
+  private Glob reversibleCheckIgnoreFiles;
   private final boolean askForConfirmation;
   private final boolean force;
   private final ConfigFile mainConfigFile;
@@ -129,6 +130,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       WorkflowMode mode,
       WorkflowOptions workflowOptions,
       @Nullable Transformation reverseTransformForCheck,
+      Glob reversibleCheckIgnoreFiles,
       boolean askForConfirmation,
       ConfigFile mainConfigFile,
       Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles,
@@ -158,6 +160,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.reverseTransformForCheck = reverseTransformForCheck;
     this.verbose = generalOptions.isVerbose();
+    this.reversibleCheckIgnoreFiles = reversibleCheckIgnoreFiles;
     this.askForConfirmation = askForConfirmation;
     this.force = generalOptions.isForced();
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
@@ -642,5 +645,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable
   public String customRevId() {
     return customRevId;
+  }
+
+  public Glob getReversibleCheckIgnoreFiles() {
+    return reversibleCheckIgnoreFiles;
   }
 }

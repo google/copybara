@@ -88,6 +88,31 @@ public class DiffUtilTest {
   }
 
   @Test
+  public void testFilterDiff() throws Exception {
+    writeFile(left, "file1.txt", "foo-left");
+    writeFile(left, "file2.txt", "bar-left");
+    writeFile(right, "file1.txt", "foo-right");
+    writeFile(right, "file2.txt", "bar-right");
+
+    assertThat(DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
+        f -> false)).isEmpty();
+
+    String all = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
+        f -> true);
+    assertThat(all).contains("diff --git a/left/file1.txt b/right/file1.txt");
+    assertThat(all).contains("diff --git a/left/file2.txt b/right/file2.txt");
+
+    String one = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
+        f -> f.equals("right/file1.txt"));
+    assertThat(one).contains("diff --git a/left/file1.txt b/right/file1.txt");
+    assertThat(one).contains("-foo-left\n"
+        + "\\ No newline at end of file\n"
+        + "+foo-right\n"
+        + "\\ No newline at end of file");
+    assertThat(one).doesNotContain("diff --git a/left/file2.txt b/right/file2.txt");
+  }
+
+  @Test
   public void testDiffFiles() throws Exception {
     writeFile(left, "deleted.txt", "");
     writeFile(left, "modified.txt", "");

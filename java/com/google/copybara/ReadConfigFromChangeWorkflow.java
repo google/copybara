@@ -78,6 +78,7 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.getMode(),
         workflow.getWorkflowOptions(),
         workflow.getReverseTransformForCheck(),
+        workflow.getReversibleCheckIgnoreFiles(),
         workflow.isAskForConfirmation(),
         workflow.getMainConfigFile(),
         workflow.getAllConfigFiles(),
@@ -219,5 +220,11 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
     protected Transformation getReverseTransformForCheck() {
       return changeWorkflow.getReverseTransformForCheck();
     }
+
+    @Override
+    protected Glob getReversibleCheckIgnoreFiles() {
+      return changeWorkflow.getReversibleCheckIgnoreFiles();
+    }
+
   }
 }
