@@ -452,7 +452,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
-        throws RepoException, ChangeRejectedException {
+        throws RepoException, ValidationException {
         if (!workflow.getWorkflowOptions().diffInOrigin
             || workflow.getMode() == WorkflowMode.CHANGE_REQUEST
             || workflow.getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
@@ -460,6 +460,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             return false;
         }
         String diff = workflow.getOrigin().showDiff(lastRev, rev);
+        if (diff == null) {
+          throw new ValidationException("diff_in_origin does not supported for origin "
+              + workflow.getOrigin().getType());
+        }
+        if (diff.isEmpty() && !workflow.getGeneralOptions().force) {
+          throw new EmptyChangeException("No difference at diff_in_origin");
+        }
         StringBuilder sb = new StringBuilder();
         for (String line : Splitter.on('\n').split(diff)) {
           sb.append("\n");

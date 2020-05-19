@@ -1178,6 +1178,78 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testWorkflowWithEmptyDiffInOrigin() throws Exception {
+    GitRepository remote = GitRepository.newBareRepo(
+        Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
+        DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
+    remote.init();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    GitRevision lastRev = remote.resolveReference("master");
+
+    Files.write(workdir.resolve("foo.txt"), "change content".getBytes(UTF_8));
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+
+    TestingConsole testingConsole = new TestingConsole().respondYes();
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.general.force = false;
+    options
+        .setWorkdirToRealTempDir()
+        .setConsole(testingConsole)
+        .setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
+            "core.workflow(\n"
+                + "    name = 'foo',\n"
+                + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
+                + "    destination = folder.destination(),\n"
+                + "    mode = 'ITERATIVE',\n"
+                + "    authoring = " + authoring + ",\n"
+                + "    transformations = [metadata.replace_message(''),],\n"
+                + ")\n")
+            .getMigration("foo");
+    workflow.getWorkflowOptions().diffInOrigin = true;
+    workflow.run(workdir, ImmutableList.of("master"));
+
+    testingConsole.assertThat()
+        .onceInLog(MessageType.WARNING, ".*No difference at diff_in_origin.*");
+  }
+
+  @Test
+  public void testShowDiffInOriginFail() throws Exception {
+    origin.addSimpleChange(/*timestamp*/ 1);
+    origin.addSimpleChange(/*timestamp*/ 2);
+    origin.addSimpleChange(/*timestamp*/ 3);
+    options.workflowOptions.lastRevision = "1";
+    options.workflowOptions.diffInOrigin = true;
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
+            "core.workflow(\n"
+                + "    name = 'foo',\n"
+                + "    origin = testing.origin(),\n"
+                + "    destination = testing.destination(),\n"
+                + "    mode = 'ITERATIVE',\n"
+                + "    authoring = " + authoring + ",\n"
+                + "    transformations = [metadata.replace_message(''),],\n"
+                + ")\n")
+            .getMigration("foo");
+    ValidationException e = assertThrows(ValidationException.class,
+        () ->  workflow.run(workdir, ImmutableList.of("HEAD")));
+
+    assertThat(e).hasMessageThat().contains(
+        "diff_in_origin does not supported for origin " + origin.getType());
+  }
+
+  @Test
   public void runsTransformations() throws Exception {
     workflow().run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
