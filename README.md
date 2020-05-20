@@ -109,7 +109,7 @@ You can build copybara using Docker like so
 docker build --rm -t copybara .
 ```
 
-Once this has finished building you can run the image like so from the root of the code you are trying to use Copybara on:
+Once this has finished building, you can run the image like so from the root of the code you are trying to use Copybara on:
 
 ```
 docker run -it -v "$(pwd)":/usr/src/app copybara copybara
