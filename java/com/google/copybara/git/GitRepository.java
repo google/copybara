@@ -790,6 +790,17 @@ public class GitRepository {
   }
 
   /**
+   * Set the sparse checkout
+   */
+  public CommandOutput setSparseCheckout(ImmutableSet<String> checkoutPaths)
+      throws RepoException {
+    ImmutableList.Builder<String> argv = ImmutableList.builder();
+    argv.add("sparse-checkout", "set");
+    argv.addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(Collectors.toList()));
+    return simpleCommand(argv.build());
+  }
+
+  /**
    * Checks out the given ref in the repo, quietly and throwing away local changes.
    */
   public CommandOutput forceCheckout(String ref) throws RepoException {

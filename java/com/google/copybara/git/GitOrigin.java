@@ -238,6 +238,11 @@ public class GitOrigin implements Origin<GitRevision> {
         GitRepository repository, Path workdir, GitRevision ref)
         throws RepoException {
       GitRepository repo = repository.withWorkTree(workdir);
+      if (partialFetch) {
+        repo.setSparseCheckout(originFiles.roots());
+        repo.forceCheckout(ref.getSha1());
+        return repo;
+      }
       repo.forceCheckout(ref.getSha1(),
           gitOptions.experimentCheckoutAffectedFiles
           ? originFiles.roots()

@@ -557,6 +557,20 @@ public class GitRepositoryTest {
     assertThat(commandOutput.getStdout()).contains("blob:none");
   }
 
+  @Test
+  public void testSparseCheckout() throws Exception {
+    GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
+    local.init();
+    local = local.withPartialClone();
+
+    local.withWorkTree(workdir).setSparseCheckout(ImmutableSet.of("foo", "bar"));
+    Path sparseCheckout =
+        local.getGitDir().resolve("info/sparse-checkout");
+
+    List<String> paths = Files.readAllLines(sparseCheckout);
+    assertThat(paths).containsExactly("foo", "bar");
+  }
 
   @Test
   public void testForceCheckout() throws Exception {
