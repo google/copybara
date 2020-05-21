@@ -29,9 +29,6 @@ import com.google.copybara.ModuleSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
-import com.google.devtools.build.lib.events.Event;
-import com.google.devtools.build.lib.events.EventHandler;
-import com.google.devtools.build.lib.events.EventKind;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.FileOptions;
@@ -45,6 +42,7 @@ import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.Statement;
+import com.google.devtools.build.lib.syntax.SyntaxError;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -181,7 +179,6 @@ public class SkylarkParser {
     private final Map<String, Module> loaded = new HashMap<>();
     private final Console console;
     private final ConfigFile mainConfigFile;
-    private final EventHandler eventHandler;
     // Predeclared environment shared by all files (modules) loaded.
     private final ImmutableMap<String, Object> environment;
     private final ModuleSet moduleSet;
@@ -192,7 +189,6 @@ public class SkylarkParser {
       this.console = checkNotNull(console);
       this.mainConfigFile = checkNotNull(mainConfigFile);
       this.moduleSet = checkNotNull(moduleSet);
-      this.eventHandler = new ConsoleEventHandler(this.console);
       this.environment = createEnvironment(this.moduleSet, configFilesSupplier);
     }
 
@@ -222,7 +218,8 @@ public class SkylarkParser {
           loadedModules.put(moduleName, imp);
         }
       }
-      StarlarkThread.PrintHandler printHandler = Event.makeDebugPrintHandler(eventHandler);
+      StarlarkThread.PrintHandler printHandler =
+          (thread, msg) -> console.verbose(thread.getCallerLocation() + ": " + msg);
       updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
 
       // Create a Starlark thread making the modules available as predeclared bindings.
@@ -234,8 +231,9 @@ public class SkylarkParser {
       // resolve
       Resolver.resolveFile(file, module);
       if (!file.ok()) {
-        Event.replayEventsOn(eventHandler, file.errors());
-        Event.replayEventsOn(new NoErrorConsoleEventHandler(eventHandler, console), file.errors());
+        for (SyntaxError error : file.errors()) {
+          console.error(error.toString());
+        }
         checkCondition(false, "Error loading config file.");
       }
 
@@ -244,10 +242,9 @@ public class SkylarkParser {
         StarlarkThread thread = new StarlarkThread(mu, semantics);
         thread.setLoader(loadedModules::get);
         thread.setPrintHandler(printHandler);
-
         EvalUtils.exec(file, module, thread);
       } catch (EvalException ex) {
-        eventHandler.handle(Event.error(ex.getLocation(), ex.getMessage()));
+        console.error(ex.getLocation() + ": " + ex.getMessage());
         checkCondition(false, "Error loading config file");
       }
 
@@ -377,73 +374,5 @@ public class SkylarkParser {
 
   private static String getModuleName(Class<?> cls) {
     return cls.getAnnotation(StarlarkBuiltin.class).name();
-  }
-
-  /**
-   * An EventHandler that does the translation to {@link Console} events.
-   */
-  private static class ConsoleEventHandler implements EventHandler {
-
-    final Console console;
-
-    private ConsoleEventHandler(Console console) {
-      this.console = console;
-    }
-
-    @Override
-    public void handle(Event event) {
-      switch (event.getKind()) {
-        case ERROR:
-          console.error(messageWithLocation(event));
-          break;
-        case WARNING:
-          console.warn(messageWithLocation(event));
-          break;
-        case DEBUG:
-          console.verbose(messageWithLocation(event));
-          break;
-        case INFO:
-          console.info(messageWithLocation(event));
-          break;
-        case PROGRESS:
-          console.progress(messageWithLocation(event));
-          break;
-        case STDOUT:
-          System.out.println(event);
-          break;
-        case STDERR:
-          System.err.println(event);
-          break;
-        default:
-          System.err.println("Unknown message type: " + event);
-      }
-    }
-
-    String messageWithLocation(Event event) {
-      String location =
-          event.getLocation() == null ? "<no location>" : event.getLocation().toString();
-      return location + ": " + event.getMessage();
-    }
-  }
-
-  /**
-   * An EventHandler that downgrades ERROR to warning
-   */
-  private static class NoErrorConsoleEventHandler extends ConsoleEventHandler {
-    private final EventHandler delegate;
-
-    private NoErrorConsoleEventHandler(EventHandler delegate, Console console) {
-      super(console);
-      this.delegate = checkNotNull(delegate);
-    }
-
-    @Override
-    public void handle(Event event) {
-      if (event.getKind() == EventKind.ERROR) {
-        console.warn(messageWithLocation(event));
-      } else {
-        delegate.handle(event);
-      }
-    }
   }
 }
