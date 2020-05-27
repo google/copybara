@@ -86,9 +86,7 @@ class ChangeReader {
     }
     if (partialFetch) {
       logCmd = logCmd.withPaths(roots);
-      return parseChanges(logCmd.includeMergeDiff(true).run());
     }
-
     // Log command does not filter by roots here because of how git log works. Some commits (e.g.
     // fake merges) might not include the files in the log, and filtering here would return
     // incorrect results. We do filter later on the changes to match the actual glob.

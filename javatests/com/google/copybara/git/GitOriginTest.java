@@ -1160,6 +1160,44 @@ public class GitOriginTest {
   }
 
   @Test
+  public void partialFetchAtGitOrigin() throws Exception {
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/fileA.txt"), new byte[0]);
+    git("add", "include/fileA.txt");
+    git("commit", "-m", "not include");
+    git("checkout", "master");
+
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/mainline-file.txt"), new byte[0]);
+    git("add", "include/mainline-file.txt");
+    git("commit", "-m", "message_a!");
+
+    options.setForce(true);
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        + "         url = '" + url + "',\n"
+        + "         include_branch_commit_logs = True,\n"
+        + "         partial_fetch = True,\n"
+        + "    ),\n"
+        + "    origin_files = glob(['include/mainline-file.txt']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'ITERATIVE',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + ")\n").getMigration("default");
+
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+    List<ProcessedChange> changes = destination.processed;
+
+    assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).getChangesSummary()).contains("message_a!");
+  }
+
+  @Test
   public void testPartialfetchSet() throws Exception {
     origin = skylark.eval("result",
         "result = git.origin(\n"
