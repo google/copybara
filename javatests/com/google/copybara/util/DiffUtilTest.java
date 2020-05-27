@@ -103,7 +103,7 @@ public class DiffUtilTest {
     assertThat(all).contains("diff --git a/left/file2.txt b/right/file2.txt");
 
     String one = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
-        f -> f.equals("right/file1.txt"));
+        f -> f.equals("left/file1.txt"));
     assertThat(one).contains("diff --git a/left/file1.txt b/right/file1.txt");
     assertThat(one).contains("-foo-left\n"
         + "\\ No newline at end of file\n"

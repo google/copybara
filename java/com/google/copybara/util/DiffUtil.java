@@ -65,7 +65,7 @@ public class DiffUtil {
   }
 
   /**
-   * Filter a diff output to only include paths that match filter.
+   * Filter a diff output to only include diffs for original files that match a filter.
    */
   public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
     boolean include = true;
@@ -74,9 +74,9 @@ public class DiffUtil {
       if (line.startsWith("diff ")) {
         List<String> diffHeader = Splitter.on(' ').splitToList(line);
         // Given a diff in the format of:
-        //     diff --git a/copybara/util/Test.java b/copybara/util/Test.java
-        // Returns "copybara/util/Test.java"
-        String path = diffHeader.get(3).substring(2);
+        //     diff --git a/left/copybara/util/Test.java b/right/copybara/util/Test.java
+        // Returns "left/copybara/util/Test.java"
+        String path = diffHeader.get(2).substring(2);
         include = pathFilter.test(path);
       }
       if (include) {

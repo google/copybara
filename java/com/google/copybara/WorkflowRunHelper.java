@@ -578,12 +578,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
         String diff;
         try {
-          byte[] byteDiff = DiffUtil.diff(originCopy, reverse, workflow.isVerbose(),
-              workflow.getGeneralOptions().getEnvironment());
+          byte[] byteDiff =
+              DiffUtil.diff(
+                  originCopy,
+                  reverse,
+                  workflow.isVerbose(),
+                  workflow.getGeneralOptions().getEnvironment());
 
           // This should be more optimal than parsing a potential huge diff file.
           if (getReversibleCheckIgnoreFiles() != null) {
-            PathMatcher pathMatcher = getReversibleCheckIgnoreFiles().relativeTo(Paths.get("reverse"));
+            PathMatcher pathMatcher =
+                getReversibleCheckIgnoreFiles().relativeTo(Paths.get("origin"));
             diff = DiffUtil.filterDiff(byteDiff, (s -> !pathMatcher.matches(Paths.get(s))));
           } else {
             diff = new String(byteDiff, StandardCharsets.UTF_8);

@@ -1962,9 +1962,9 @@ public class WorkflowTest {
       String msg = console().getMessages().asList().stream().filter(
           m -> m.getType() == MessageType.ERROR && m.getText().contains("Non reversible"))
           .findFirst().get().getText();
-      assertThat(msg).contains("+++ b/reverse/test");
-      assertThat(msg).doesNotContain("+++ b/reverse/to_ignore/test");
-      assertThat(msg).contains("+++ b/reverse/to_ignore/exclude");
+      assertThat(msg).contains("--- a/origin/test");
+      assertThat(msg).doesNotContain("--- a/origin/to_ignore/test");
+      assertThat(msg).contains("--- a/origin/to_ignore/exclude");
     }
 
     // Now lets fix the only file that we check in reversible check:
