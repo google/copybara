@@ -1246,7 +1246,7 @@ public class WorkflowTest {
         () ->  workflow.run(workdir, ImmutableList.of("HEAD")));
 
     assertThat(e).hasMessageThat().contains(
-        "diff_in_origin does not supported for origin " + origin.getType());
+        "diff_in_origin is not supported by origin " + origin.getType());
   }
 
   @Test

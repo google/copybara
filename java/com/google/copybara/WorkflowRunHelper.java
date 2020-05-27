@@ -461,7 +461,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
         String diff = workflow.getOrigin().showDiff(lastRev, rev);
         if (diff == null) {
-          throw new ValidationException("diff_in_origin does not supported for origin "
+          throw new ValidationException("diff_in_origin is not supported by origin "
               + workflow.getOrigin().getType());
         }
         if (diff.isEmpty() && !workflow.getGeneralOptions().force) {
