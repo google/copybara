@@ -20,16 +20,19 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.ArgumentMatchers.startsWith;
 
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,6 +44,7 @@ import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -174,8 +178,8 @@ public class GerritEndpointTest {
     assertThat(expected)
         .hasMessageThat()
         .contains("Error while executing the skylark transformation test_action");
-      Throwable cause = expected.getCause();
-      assertThat(cause).isInstanceOf(IllegalArgumentException.class);
+    Throwable cause = expected.getCause();
+    assertThat(cause).isInstanceOf(IllegalArgumentException.class);
     assertThat(dummyTrigger.messages).isEmpty();
   }
 
@@ -403,6 +407,21 @@ public class GerritEndpointTest {
             + ".post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")
         .addAll(checkFieldStarLark("res", "labels", "{'Code-Review': 1}"))
         .build());
+  }
+
+  @Test
+  public void testPostTag() throws Exception {
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse(postLabel()));
+    gitUtil.mockApi(eq("POST"), contains("/changes/12345/revisions/sha1/review"),
+        mockResponseAndValidateRequest(
+            postLabel(), MockRequestAssertion.contains("\"tag\":\"tag:me\"")));
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, tag='tag:me'))")
+         .build());
   }
 
   @Test

@@ -343,7 +343,8 @@ public class GerritApiTest {
         + ")]}'\n" + mockReviewResult());
 
     ReviewResult reviewResult =
-        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create(null, ImmutableMap.of()));
+        gerritApi.setReview(CHANGE_ID, REVISION_ID,
+            SetReviewInput.create(null, ImmutableMap.of(), null));
     assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
   }
 
@@ -353,8 +354,8 @@ public class GerritApiTest {
         + ")]}'\n" + mockReviewResult());
 
     ReviewResult reviewResult =
-        gerritApi.setReview(CHANGE_ID, REVISION_ID, SetReviewInput.create("foo",
-            ImmutableMap.of()));
+        gerritApi.setReview(CHANGE_ID, REVISION_ID,
+            SetReviewInput.create("foo", ImmutableMap.of(), null ));
     assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
   }
 
@@ -367,7 +368,7 @@ public class GerritApiTest {
   @Test
   public void testSetReviewInputSerialization() {
     SetReviewInput setReviewInput =
-        SetReviewInput.create("foo", ImmutableMap.of("Code Review", 1));
+        SetReviewInput.create("foo", ImmutableMap.of("Code Review", 1), null);
     Gson gson = new Gson();
     String text = gson.toJson(setReviewInput);
     SetReviewInput deserialized = gson.fromJson(text, SetReviewInput.class);

@@ -25,6 +25,7 @@ import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 
@@ -40,19 +41,25 @@ public class SetReviewInput implements StarlarkValue {
   @Key String message;
   @VisibleForTesting
   @Key Map<String, Integer> labels;
+  @Key String tag;
 
   @SuppressWarnings("unused")
   public SetReviewInput() {
     this.labels = Collections.emptyMap();
   }
 
-  public SetReviewInput(String message, Map<String, Integer> labels) {
+  private SetReviewInput(String message, Map<String, Integer> labels, @Nullable String tag) {
     this.message = message;
     this.labels = labels;
+    this.tag = tag;
   }
 
-  public static SetReviewInput create(String message, Map<String, Integer> labels) {
-    return new SetReviewInput(message, labels);
+  public SetReviewInput(String message, Map<String, Integer> labels) {
+    this(message, labels ,null);
+  }
+
+  public static SetReviewInput create(String message, Map<String, Integer> labels, String tag) {
+    return new SetReviewInput(message, labels, tag);
   }
 
   public String getMessage() {
@@ -68,6 +75,7 @@ public class SetReviewInput implements StarlarkValue {
     return MoreObjects.toStringHelper(this)
         .add("message", message)
         .add("labels", labels)
+        .add("tag", tag)
         .toString();
   }
 
@@ -81,7 +89,8 @@ public class SetReviewInput implements StarlarkValue {
     }
     SetReviewInput setReviewInput = (SetReviewInput) o;
     return Objects.equals(message, setReviewInput.message)
-        && Objects.equals(labels, setReviewInput.labels);
+        && Objects.equals(labels, setReviewInput.labels)
+        && Objects.equals(tag, setReviewInput.tag);
   }
 
   @Override
