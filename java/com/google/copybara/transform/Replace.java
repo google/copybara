@@ -117,6 +117,12 @@ public final class Replace implements Transformation {
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException {
+
+    work.getConsole().verboseFmt("Running Replace %s", this);
+    if (before.getBefore().matches("") && !firstOnly) {
+      work.getConsole().warnFmt("Replace %s matches the empty String, this is likely to cause"
+          + " unintended behavior, unless it is a no-op.", this);
+    }
     Path checkoutDir = work.getCheckoutDir();
 
     Iterable<FileState> files = work.getTreeState().find(
