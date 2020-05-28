@@ -747,6 +747,20 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testCurrentRevDateTime() throws Exception {
+    options.setForce(true);
+    // Timestamp for  2020-05-28T21:25:00Z.
+    origin.addSimpleChange(1590701100);
+    createWorkflow(WorkflowMode.SQUASH,
+        "metadata.replace_message('foo\\n\\nbar\\nbaz\\n')",
+        "metadata.replace_message('Message: ${COPYBARA_CURRENT_REV_DATE_TIME}')")
+        .run(workdir, ImmutableList.of());
+
+    assertThat(Iterables.getLast(destination.processed).getChangesSummary())
+        .isEqualTo("Message: 2020-05-28T21:25:00Z");
+  }
+
+  @Test
   public void testCurrentRevForSquashEmptyChanges() throws Exception {
     options.setForce(true);
     passThruAuthoring();

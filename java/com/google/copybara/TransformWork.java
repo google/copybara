@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -43,6 +44,7 @@ import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,7 +58,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.annotation.Nullable;
+
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
@@ -85,6 +89,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
   static final String COPYBARA_CURRENT_REV = "COPYBARA_CURRENT_REV";
+  static final String COPYBARA_CURRENT_REV_DATE_TIME = "COPYBARA_CURRENT_REV_DATE_TIME";
   static final String COPYBARA_CURRENT_MESSAGE = "COPYBARA_CURRENT_MESSAGE";
   static final String COPYBARA_AUTHOR = "COPYBARA_AUTHOR";
   static final String COPYBARA_CURRENT_MESSAGE_TITLE = "COPYBARA_CURRENT_MESSAGE_TITLE";
@@ -98,12 +103,14 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   private final TreeState treeState;
   private final boolean insideExplicitTransform;
   private final boolean ignoreNoop;
-  @Nullable private final Revision lastRev;
-  @Nullable private final Revision currentRev;
+  @Nullable
+  private final Revision lastRev;
+  @Nullable
+  private final Revision currentRev;
   private TransformWork skylarkTransformWork;
   private final Dict<?, ?> skylarkTransformParams;
   private final LazyResourceLoader<Endpoint> originApi;
-  private final LazyResourceLoader<Endpoint>  destinationApi;
+  private final LazyResourceLoader<Endpoint> destinationApi;
   private final ResourceSupplier<DestinationReader> destinationReader;
 
 
@@ -193,7 +200,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   @StarlarkMethod(name = "set_message", doc = "Update the message to be used in the change",
-      parameters = { @Param(name = "message", type = String.class)}
+      parameters = {@Param(name = "message", type = String.class)}
   )
   public void setMessage(String message) {
     this.metadata = this.metadata.withMessage(message);
@@ -214,10 +221,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
               + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
-        @Param(
-            name = "runnable",
-            type = Object.class,
-            doc = "A glob or a transform (Transforms still not implemented)"),
+          @Param(
+              name = "runnable",
+              type = Object.class,
+              doc = "A glob or a transform (Transforms still not implemented)"),
       })
   public Object run(Object runnable) throws EvalException, IOException, ValidationException {
     if (runnable instanceof Glob) {
@@ -249,7 +256,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "new_path",
       doc = "Create a new path",
       parameters = {
-        @Param(name = "path", type = String.class, doc = "The string representing the path"),
+          @Param(name = "path", type = String.class, doc = "The string representing the path"),
       })
   public CheckoutPath newPath(String path) throws EvalException {
     return CheckoutPath.createWithCheckoutDir(
@@ -260,8 +267,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "create_symlink",
       doc = "Create a symlink",
       parameters = {
-        @Param(name = "link", type = CheckoutPath.class, doc = "The link path"),
-        @Param(name = "target", type = CheckoutPath.class, doc = "The target path"),
+          @Param(name = "link", type = CheckoutPath.class, doc = "The link path"),
+          @Param(name = "target", type = CheckoutPath.class, doc = "The target path"),
       })
   public void createSymlink(CheckoutPath link, CheckoutPath target) throws EvalException {
     try {
@@ -304,8 +311,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "write_path",
       doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
-        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
-        @Param(name = "content", type = String.class, doc = "The content of the file"),
+          @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
+          @Param(name = "content", type = String.class, doc = "The content of the file"),
       })
   public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
     Path fullPath = asCheckoutPath(path);
@@ -319,7 +326,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "read_path",
       doc = "Read the content of path as UTF-8",
       parameters = {
-        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
+          @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
       })
   public String readPath(CheckoutPath path) throws IOException, EvalException {
     return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
@@ -370,7 +377,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
 
   @StarlarkMethod(name = "add_text_before_labels",
       doc = "Add a text to the description before the labels paragraph",
-      parameters = { @Param(name = "text", type = String.class) })
+      parameters = {@Param(name = "text", type = String.class)})
   public void addTextBeforeLabels(String text) {
     ChangeMessage message = ChangeMessage.parseMessage(getMessage());
     message = message.withText(message.getText() + '\n' + text);
@@ -434,7 +441,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       + "Tries to find a label. First it looks at the generated message (IOW labels that might"
       + " have been added by previous steps), then looks in all the commit messages being imported"
       + " and finally in the resolved reference passed in the CLI.",
-      parameters = { @Param(name = "label", type = String.class) },
+      parameters = {@Param(name = "label", type = String.class)},
       allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
@@ -545,7 +552,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   @StarlarkMethod(name = "set_author", doc = "Update the author to be used in the change",
-      parameters = { @Param(name = "author", type = Author.class) })
+      parameters = {@Param(name = "author", type = Author.class)})
   public void setAuthor(Author author) {
     this.metadata = this.metadata.withAuthor(author);
   }
@@ -607,7 +614,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork withChanges(Changes changes) {
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
-       resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev,
+        resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev,
         skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
   }
 
@@ -681,11 +688,33 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         : ImmutableList.of(
             currentRev.asString().replaceAll(" .*", "")));
 
+    setDateForCurrentRev(labels);
+
     labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
     labels.put(COPYBARA_AUTHOR, ImmutableList.of(getMessage()));
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
         ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
     return labels;
+  }
+
+  private void setDateForCurrentRev(Map<String, ImmutableList<String>> labels) {
+    if (currentRev == null) {
+      labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of());
+      return;
+    }
+    ZonedDateTime time;
+    try {
+      time = currentRev.readTimestamp();
+    } catch (RepoException e) {
+      console
+          .warn("Cannot access date for change " + currentRev.asString() + ": " + e.getMessage());
+      logger.atWarning().withCause(e)
+          .log("Cannot access readTimestamp for revision: " + currentRev);
+      labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of());
+      return;
+    }
+    labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of(
+        ISO_OFFSET_DATE_TIME.format(time)));
   }
 
   @Override
@@ -697,6 +726,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   public interface ResourceSupplier<T> {
+
     T get() throws ValidationException, RepoException;
   }
 }

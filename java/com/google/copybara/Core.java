@@ -170,6 +170,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + TransformWork.COPYBARA_CURRENT_REV
               + ": The current reference being migrated\n"
               + "  - "
+              + TransformWork.COPYBARA_CURRENT_REV_DATE_TIME
+              + ": Date & time for the current reference being migrated in ISO format"
+              + " (Example: \"2011-12-03T10:15:30+01:00\")\n"
+              + "  - "
               + TransformWork.COPYBARA_CURRENT_MESSAGE
               + ": The current message at this point of the transformations\n"
               + "  - "

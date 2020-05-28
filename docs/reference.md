@@ -1153,6 +1153,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_CONTEXT_REFERENCE: Requested reference. For example if copybara is invoked as `copybara copy.bara.sky workflow master`, the value would be `master`.
   - COPYBARA_LAST_REV: Last reference that was migrated
   - COPYBARA_CURRENT_REV: The current reference being migrated
+  - COPYBARA_CURRENT_REV_DATE_TIME: Date & time for the current reference being migrated in ISO format (Example: "2011-12-03T10:15:30+01:00")
   - COPYBARA_CURRENT_MESSAGE: The current message at this point of the transformations
   - COPYBARA_CURRENT_MESSAGE_TITLE: The current message title (first line) at this point of the transformations
   - COPYBARA_AUTHOR: The author of the change
