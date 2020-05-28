@@ -22,7 +22,7 @@ licenses(["notice"])  # Apache 2.0
 all_tests(
     tests = [
         "DurationConverterTest.java",
-        "GlobConverterTest.java"
+        "GlobConverterTest.java",
     ],
     deps = [
         "//java/com/google/copybara:base",
