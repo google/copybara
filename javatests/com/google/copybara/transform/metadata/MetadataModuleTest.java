@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.TransformWorks.toChange;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
@@ -47,11 +48,14 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -722,7 +726,7 @@ public class MetadataModuleTest {
             ValidationException.class,
             () ->
                 createWorkflow(
-                        WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
+                    WorkflowMode.SQUASH, "metadata.replace_message('${COPYBARA_LAST_REV}\\n')")
                     .run(workdir, ImmutableList.of()));
     assertThat(e).hasMessageThat().contains("Cannot find label 'COPYBARA_LAST_REV' in message");
   }
@@ -751,13 +755,15 @@ public class MetadataModuleTest {
     options.setForce(true);
     // Timestamp for  2020-05-28T21:25:00Z.
     origin.addSimpleChange(1590701100);
+    String date = ISO_OFFSET_DATE_TIME
+        .format(ZonedDateTime.ofInstant(Instant.ofEpochSecond(1590701100), ZoneId.systemDefault()));
     createWorkflow(WorkflowMode.SQUASH,
         "metadata.replace_message('foo\\n\\nbar\\nbaz\\n')",
         "metadata.replace_message('Message: ${COPYBARA_CURRENT_REV_DATE_TIME}')")
         .run(workdir, ImmutableList.of());
 
     assertThat(Iterables.getLast(destination.processed).getChangesSummary())
-        .isEqualTo("Message: 2020-05-28T21:25:00Z");
+        .isEqualTo("Message: " + date);
   }
 
   @Test
@@ -961,12 +967,12 @@ public class MetadataModuleTest {
         assertThrows(
             ValidationException.class,
             () ->
-              checkScrubber(
-                  "This\nis\nvery confidential\nbut this is public\nvery public\n",
-                  "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
-                      + "fail_if_no_match = True,"
-                      + "replacement = '$1')",
-                  /*not used*/ null));
+                checkScrubber(
+                    "This\nis\nvery confidential\nbut this is public\nvery public\n",
+                    "metadata.scrubber('^(?:\\n|.)*PUBLIC:((?:\\n|.)*)(?:\\n|.)*$', "
+                        + "fail_if_no_match = True,"
+                        + "replacement = '$1')",
+                    /*not used*/ null));
     assertThat(e)
         .hasMessageThat()
         .contains(
@@ -991,7 +997,8 @@ public class MetadataModuleTest {
   @Test
   public void testMapAuthor() throws Exception {
     options.setLastRevision(origin.resolve("HEAD").asString());
-    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, MetadataModule.MAP_AUTHOR_EXAMPLE_SIMPLE);
+    Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE,
+        MetadataModule.MAP_AUTHOR_EXAMPLE_SIMPLE);
 
     origin.setAuthor(new Author("john", "john@example.com"))
         .addSimpleChange(0, "change 0");
