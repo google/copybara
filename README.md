@@ -27,7 +27,8 @@ Examples uses of Copybara include:
     authoritative repository. Any merge conflicts are dealt with in the same way as an out-of-date
     change within the authoritative repository.
 
-Currently, the only supported type of repository is Git. Copybara also supports reading from Mercurial repositories, but the feature is still experimental.
+Currently, the only supported type of repository is Git. Copybara also supports
+reading from Mercurial repositories, but the feature is still experimental.
 Support for other repositories types will be added in the future.
 
 ## Example
@@ -66,8 +67,8 @@ $ copybara copy.bara.sky
 
 ## Getting Started using Copybara
 
-Copybara doesn't have a release process yet, so you need to compile from HEAD. In order to do that
-you need:
+Copybara doesn't have a release process yet, so you need to compile from HEAD.
+In order to do that, you need to do the following:
 
   * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
   * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
@@ -107,8 +108,8 @@ targets:
   //third_party/...
 ```
 
-Note that configuration files can be stored in any place, even in a local folder. We recommend to
-use a VCS (like git) to store them; treat them as source code.
+Note: configuration files can be stored in any place, even in a local folder.
+We recommend using a VCS (like git) to store them; treat them as source code.
 
 ### Building Copybara in an external Bazel workspace
 
@@ -116,7 +117,7 @@ There are convenience macros defined for all of Copybara's dependencies. Add the
 following code to your `WORKSPACE` file, replacing `{{ sha256sum }}` and
 `{{ commit }}` as necessary.
 
-```
+```bzl
 http_archive(
   name = "com_github_google_copybara",
   sha256 = "{{ sha256sum }}"
@@ -139,7 +140,7 @@ copybara_go_repositories()
 
 You can then build and run the Copybara tool from within your workspace:
 
-```
+```sh
 bazel run @com_github_google_copybara//java/com/google/copybara -- <args...>
 ```
 
@@ -149,15 +150,15 @@ bazel run @com_github_google_copybara//java/com/google/copybara -- <args...>
 
 You can build copybara using Docker like so
 
-```
+```sh
 docker build --rm -t copybara .
 ```
 
-Once this has finished building, you can run the image like so from the root of the code you are trying to use Copybara on:
+Once this has finished building, you can run the image like so from the root of
+the code you are trying to use Copybara on:
 
-```
+```sh
 docker run -it -v "$(pwd)":/usr/src/app copybara copybara
-
 ```
 
 A few environment variables exist to allow you to change how you run copybara:
@@ -172,24 +173,25 @@ A few environment variables exist to allow you to change how you run copybara:
 * `COPYBARA_SOURCEREF=''`
   * allows you to specify the sourceref, defaults to none
 
-```
-docker run
-       -e COPYBARA_CONFIG='other.config.sky'
-       -e COPYBARA_SUBCOMMAND='validate'
-       -v "$(pwd)":/usr/src/app
-       -it copybara copybara
+```sh
+docker run \
+    -e COPYBARA_CONFIG='other.config.sky' \
+    -e COPYBARA_SUBCOMMAND='validate' \
+    -v "$(pwd)":/usr/src/app \
+    -it copybara copybara
 ```
 
 #### Git Config and Credentials
 
-There are a number of ways by which to share your git config and ssh credentials with the docker container, an example with OS X is below:
+There are a number of ways by which to share your git config and ssh credentials
+with the Docker container, an example with macOS is below:
 
-```
-docker run
-       -v ~/.ssh:/root/.ssh
-       -v ~/.gitconfig:/root/.gitconfig
-       -v "$(pwd)":/usr/src/app
-       -it copybara copybara
+```sh
+docker run \
+    -v ~/.ssh:/root/.ssh \
+    -v ~/.gitconfig:/root/.gitconfig \
+    -v "$(pwd)":/usr/src/app \
+    -it copybara copybara
 ```
 
 ## Documentation
@@ -201,8 +203,14 @@ We are still working on the documentation. Here are some resources:
 
 ## Contact us
 
-If you have any questions about how Copybara works please contact us at our [mailing list](https://groups.google.com/forum/#!forum/copybara-discuss)
+If you have any questions about how Copybara works, please contact us at our
+[mailing list](https://groups.google.com/forum/#!forum/copybara-discuss).
 
 ## Optional tips
 
-  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your `~/.bazelrc: *test --test_output=streamed*`.
+* If you want to see the test errors in Bazel, instead of having to `cat` the
+  logs, add this line to your `~/.bazelrc`:
+
+  ```
+  test --test_output=streamed
+  ```
