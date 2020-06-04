@@ -25,7 +25,9 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.AuthorConverter;
+import com.google.copybara.jcommander.GlobConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.List;
@@ -137,6 +139,14 @@ public class WorkflowOptions implements Option {
           + "origin and destination) cannot change and the version from the first config will be "
           + "used.")
   boolean readConfigFromChange = false;
+
+  @Parameter(names = "--read-config-from-head-paths",
+      description = "When "+ READ_CONFIG_FROM_CHANGE + " flag is used, read the following"
+          + " path from head instead. This flag allows to unblock migrations due to config"
+          + " libraries bugs. The paths accept globs syntax (**, ?, etc.)",
+      converter = GlobConverter.class, hidden = true)
+  @Nullable
+  public Glob readConfigFromChangePaths= null;
 
   @Parameter(names = "--nosmart-prune",
       description = "Disable smart prunning")
