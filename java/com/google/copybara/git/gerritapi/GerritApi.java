@@ -142,4 +142,12 @@ public class GerritApi {
       return transport.get("/accounts/self", AccountInfo.class);
     }
   }
+
+  public Map<String, ActionInfo> getActions(String changeId, String revision)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_get_actions")) {
+      return transport.get("/changes/" +  changeId + "/revisions/" +  revision + "/actions",
+          new TypeToken<Map<String, ActionInfo>>() {}.getType());
+    }
+  }
 }

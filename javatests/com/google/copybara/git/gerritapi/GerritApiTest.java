@@ -359,6 +359,39 @@ public class GerritApiTest {
     assertThat(reviewResult.getLabels()).isEqualTo(ImmutableMap.of("Code-Review", -1));
   }
 
+  @Test
+  public void testGetActions() throws Exception {
+    mockResponse(new CheckRequest("GET", ".*/changes/.*/revisions/.*/actions"), ""
+        + ")]}'\n"
+    + "{\n"
+    + "    \"submit\": {\n"
+    + "         \"method\": \"POST\", \n"
+    + "         \"label\": \"Submit\", \n"
+    + "         \"title\": \"Submit patch set 1 into master\", \n"
+    + "         \"enabled\": true\n"
+    + "      },\n"
+    + "    \"cherrypick\": {\n"
+    + "          \"method\": \"POST\", \n"
+    + "          \"label\": \"Cherry Pick\", \n"
+    + "          \"title\": \"Cherry pick change to a different branch\",\n"
+    + "          \"enabled\": false\n"
+    + "     }\n"
+    + " }");
+
+    Map<String, ActionInfo> actions =
+        gerritApi.getActions(CHANGE_ID, REVISION_ID);
+    assertThat(actions.size()).isEqualTo(2);
+    assertThat(actions.get("cherrypick").getEnabled()).isFalse();
+    assertThat(actions.get("cherrypick").getLabel()).isEqualTo("Cherry Pick");
+    assertThat(actions.get("cherrypick").getMethod()).isEqualTo("POST");
+    assertThat(actions.get("cherrypick").getTitle()).isEqualTo(
+        "Cherry pick change to a different branch");
+    assertThat(actions.get("submit").getEnabled()).isTrue();
+    assertThat(actions.get("submit").getLabel()).isEqualTo("Submit");
+    assertThat(actions.get("submit").getMethod()).isEqualTo("POST");
+    assertThat(actions.get("submit").getTitle()).isEqualTo("Submit patch set 1 into master");
+  }
+
   private static String mockReviewResult() throws IOException {
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("labels", ImmutableMap.of("Code-Review", (short) -1));
