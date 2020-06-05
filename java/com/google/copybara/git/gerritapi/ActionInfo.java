@@ -21,8 +21,16 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#action-info */
+
+@StarlarkBuiltin(
+    name = "gerritapi.getActionInfo",
+    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
+    doc = "Gerrit actions information.")
 public class ActionInfo implements StarlarkValue {
 
   @Key
@@ -46,6 +54,11 @@ public class ActionInfo implements StarlarkValue {
     return method;
   }
 
+  @StarlarkMethod(
+      name = "label",
+      doc = "Short title to display to a user describing the action",
+      structField = true,
+      allowReturnNones = true)
   public String getLabel() {
     return label;
   }
@@ -54,6 +67,12 @@ public class ActionInfo implements StarlarkValue {
     return title;
   }
 
+  @StarlarkMethod(
+      name = "enabled",
+      doc = "If true the action is permitted at this time and the caller is likely "
+          + "allowed to execute it.",
+      structField = true,
+      allowReturnNones = true)
   public boolean getEnabled() {
     return enabled;
   }

@@ -142,6 +142,36 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void testActions() throws Exception {
+    gitUtil.mockApi(
+        eq("GET"),
+        matches(BASE_URL + "/changes/12345/revisions/sha1/actions"),
+        mockResponse(
+            ""
+                + ")]}'\n"
+                + "{\n"
+                + "    \"submit\": {\n"
+                + "         \"method\": \"POST\", \n"
+                + "         \"label\": \"Submit\", \n"
+                + "         \"title\": \"Submit patch set 1 into master\", \n"
+                + "         \"enabled\": true\n"
+                + "      },\n"
+                + "    \"cherrypick\": {\n"
+                + "          \"method\": \"POST\", \n"
+                + "          \"label\": \"Cherry Pick\", \n"
+                + "          \"title\": \"Cherry pick change to a different branch\",\n"
+                + "          \"enabled\": false\n"
+                + "     }\n"
+                + " }"));
+
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_actions('12345', 'sha1').get(\"submit\")")
+        .addAll(checkFieldStarLark("res", "label", "'Submit'"))
+        .addAll(checkFieldStarLark("res", "enabled", "True"))
+        .build());
+  }
+
+  @Test
   public void testParsingEmptyUrl() {
     skylark.evalFails("git.gerrit_api(url = '')", "Invalid empty field 'url'");
   }

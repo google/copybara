@@ -69,12 +69,14 @@
   - [gerritapi.ChangeMessageInfo](#gerritapi.changemessageinfo)
   - [gerritapi.ChangesQuery](#gerritapi.changesquery)
   - [gerritapi.CommitInfo](#gerritapi.commitinfo)
+  - [gerritapi.getActionInfo](#gerritapi.getactioninfo)
   - [gerritapi.GitPersonInfo](#gerritapi.gitpersoninfo)
   - [gerritapi.LabelInfo](#gerritapi.labelinfo)
   - [gerritapi.ParentCommitInfo](#gerritapi.parentcommitinfo)
   - [gerritapi.ReviewResult](#gerritapi.reviewresult)
   - [gerritapi.RevisionInfo](#gerritapi.revisioninfo)
   - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
     - [gerrit_api_obj.list_changes_by_commit](#gerrit_api_obj.list_changes_by_commit)
     - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
@@ -1740,6 +1742,20 @@ subject | The subject of the commit (header line of the commit message).
 
 
 
+## gerritapi.getActionInfo
+
+Gerrit actions information.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+enabled | If true the action is permitted at this time and the caller is likely allowed to execute it.
+label | Short title to display to a user describing the action
+
+
+
 ## gerritapi.GitPersonInfo
 
 Git person information.
@@ -1832,6 +1848,21 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 Name | Description
 ---- | -----------
 url | Return the URL of this endpoint.
+
+<a id="gerrit_api_obj.get_actions" aria-hidden="true"></a>
+### gerrit_api_obj.get_actions
+
+Retrieve the actions of a Gerrit change.
+
+`map&lt;k,v&gt; gerrit_api_obj.get_actions(id, revision)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+id | `string`<br><p>The change id or change number.</p>
+revision | `string`<br><p>The revision of the change.</p>
 
 <a id="gerrit_api_obj.get_change" aria-hidden="true"></a>
 ### gerrit_api_obj.get_change

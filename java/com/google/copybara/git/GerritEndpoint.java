@@ -25,6 +25,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.ActionInfo;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.GerritApi;
@@ -38,6 +39,7 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
+import java.util.Map;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
@@ -91,6 +93,30 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(null, "Error getting change", e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "get_actions",
+      doc = "Retrieve the actions of a Gerrit change.",
+      parameters = {
+          @Param(
+              name = "id",
+              type = String.class,
+              named = true,
+              doc = "The change id or change number."),
+          @Param(
+              name = "revision",
+              type = String.class,
+              named = true,
+              doc = "The revision of the change."),
+      })
+  public Map<String, ActionInfo> getActions(String id, String revision) throws EvalException {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      return gerritApi.getActions(id, revision);
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(null, "Error getting actions", e);
     }
   }
 
