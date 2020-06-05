@@ -121,7 +121,6 @@ public final class CoreReverseTest {
 
   @StarlarkBuiltin(
       name = "mock",
-      namespace = true,
       doc = "Mock classes for testing reverse",
       category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)

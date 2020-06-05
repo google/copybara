@@ -41,7 +41,6 @@ import net.starlark.java.annot.StarlarkMethod;
  */
 @StarlarkBuiltin(
     name = "authoring_class",
-    namespace = true,
     doc = "The authors mapping between an origin and a destination",
     category = StarlarkDocumentationCategory.BUILTIN)
 public final class Authoring implements StarlarkValue {
@@ -100,7 +99,6 @@ public final class Authoring implements StarlarkValue {
 
   @StarlarkBuiltin(
       name = "authoring",
-      namespace = true,
       doc = "The authors mapping between an origin and a destination",
       category = StarlarkDocumentationCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
