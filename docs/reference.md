@@ -3034,8 +3034,8 @@ Allows updating links to references in commit messages to match the destination'
 
 Parameter | Description
 --------- | -----------
-before | `string`<br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses linkslike 'http://changes?1234', the template would be 'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'</p>
-after | `string`<br><p>Format for references in the destination, use the token '${reference}' to represent the destination reference. E.g. 'http://changes(${reference})'.</p>
+before | `string`<br><p>Template for origin references in the change message. Use a '${reference}' token to capture the actual references. E.g. if the origin uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
+after | `string`<br><p>Format for destination references in the change message. Use a '${reference}' token to represent the destination reference.  E.g. if the destination uses links like 'http://changes?1234', the template would be 'http://changes?${reference}', with reference_regex = '[0-9]+'</p>
 regex_groups | `dict`<br><p>Regexes for the ${reference} token's content. Requires one 'before_ref' entry matching the ${reference} token's content on the before side. Optionally accepts one 'after_ref' used for validation. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
 additional_import_labels | `sequence of string`<br><p>Meant to be used when migrating from another tool: Per default, copybara will only recognize the labels defined in the workflow's endpoints. The tool will use these additional labels to find labels created by other invocations and tools.</p>
 

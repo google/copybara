@@ -863,16 +863,17 @@ public class MetadataModule implements StarlarkValue {
             doc =
                 "Template for origin references in the change message. Use a '${reference}'"
                     + " token to capture the actual references. E.g. if the origin uses links"
-                    + "like 'http://changes?1234', the template would be "
-                    + "'http://internalReviews.com/${reference}', with reference_regex = '[0-9]+'"),
+                    + " like 'http://changes?1234', the template would be "
+                    + "'http://changes?${reference}', with reference_regex = '[0-9]+'"),
         @Param(
             name = "after",
             type = String.class,
             named = true,
             doc =
-                "Format for references in the destination, use the token '${reference}' to"
-                    + " represent the destination reference. E.g."
-                    + " 'http://changes(${reference})'."),
+                "Format for destination references in the change message. Use a '${reference}'"
+                    + " token to represent the destination reference.  E.g. if the destination uses"
+                    + " links like 'http://changes?1234', the template would be "
+                    + "'http://changes?${reference}', with reference_regex = '[0-9]+'"),
         @Param(
             name = "regex_groups",
             type = Dict.class,
