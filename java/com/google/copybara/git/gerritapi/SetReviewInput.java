@@ -70,6 +70,10 @@ public class SetReviewInput implements StarlarkValue {
     return labels;
   }
 
+  @Nullable public String getTag() {
+    return tag;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
