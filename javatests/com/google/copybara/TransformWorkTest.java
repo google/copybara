@@ -44,6 +44,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -328,6 +329,22 @@ public class TransformWorkTest {
     assertThat(work.getLabel("THREE")).isEqualTo("three");
     assertThat(work.getLabel("RESOLVED")).isEqualTo("resolved");
     assertThat(work.getLabel("FOO")).isEqualTo(null);
+  }
+
+  @Test
+  public void testGetDateLabel_null() {
+    TransformWork workNullTime = create("Foo\n\nSOME=TEST\n")
+        .withCurrentRev(new DummyRevision("1").withTimestamp(null));
+    assertThat(workNullTime.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo(null);
+  }
+
+  @Test
+  public void testGetDateLabel_value() {
+    TransformWork work = create("Foo\n\nSOME=TEST\n")
+        .withCurrentRev(new DummyRevision("1")
+            .withTimestamp(ZonedDateTime.ofInstant(
+                Instant.ofEpochSecond(1591743457), ZoneId.of("UTC"))));
+    assertThat(work.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo("2020-06-09T22:57:37Z");
   }
 
   @Test

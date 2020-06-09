@@ -702,7 +702,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of());
       return;
     }
-    ZonedDateTime time;
+    ZonedDateTime time = null;
     try {
       time = currentRev.readTimestamp();
     } catch (RepoException e) {
@@ -710,11 +710,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
           .warn("Cannot access date for change " + currentRev.asString() + ": " + e.getMessage());
       logger.atWarning().withCause(e)
           .log("Cannot access readTimestamp for revision: " + currentRev);
-      labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of());
-      return;
     }
-    labels.put(COPYBARA_CURRENT_REV_DATE_TIME, ImmutableList.of(
-        ISO_OFFSET_DATE_TIME.format(time)));
+    labels.put(
+        COPYBARA_CURRENT_REV_DATE_TIME,
+        time != null ? ImmutableList.of(ISO_OFFSET_DATE_TIME.format(time)) : ImmutableList.of());
   }
 
   @Override
