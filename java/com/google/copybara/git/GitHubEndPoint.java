@@ -440,7 +440,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
 
   @Nullable
   private <T> T returnNullOnNotFound(GitHubApiException e) throws EvalException {
-    SkylarkUtil.check(e.getResponseCode() == ResponseCode.NOT_FOUND, e.getMessage());
+    SkylarkUtil.check(e.getResponseCode() == ResponseCode.NOT_FOUND, "%s", e.getMessage());
     return null;
   }
 

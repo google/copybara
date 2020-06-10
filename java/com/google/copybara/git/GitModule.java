@@ -1880,7 +1880,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     check(
         refspec.startsWith("refs/"),
         "Wrong value '%s'. Refspec has to"
-            + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'");
+            + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'",
+        refspec);
 
     TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
     Pattern regexKey = Pattern.compile("([sn])([0-9])");

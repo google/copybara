@@ -1253,7 +1253,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             mapping, Transformation.class, "mapping")) {
       check(
           t instanceof Replace,
-          "Only core.replace can be used as mapping, but got: " + t.describe());
+          "Only core.replace can be used as mapping, but got: %S", t.describe());
       Replace replace = (Replace) t;
       check(
           replace.getPaths().equals(Glob.ALL_FILES),

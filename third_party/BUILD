@@ -157,6 +157,13 @@ java_library(
 )
 
 java_library(
+    name = "error_prone",
+    exports = [
+        "@io_bazel//third_party:error_prone_annotations",
+    ],
+)
+
+java_library(
     name = "hg_testing",
     testonly = 1,
     exports = [

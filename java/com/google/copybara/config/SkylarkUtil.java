@@ -29,6 +29,8 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -88,16 +90,14 @@ public final class SkylarkUtil {
   }
 
   /** Checks a condition or throw {@link EvalException}. */
-  public static void check(boolean condition, String format, Object... args) throws EvalException {
+   /** Checks a condition or throw {@link EvalException}. */
+  @FormatMethod
+  public static void check(boolean condition, @FormatString String format, Object... args)
+      throws EvalException {
     if (!condition) {
-      // TODO(adonovan): consider adding @FormatMethod annotation
-      // to this method, so we can use simply:
-      //   throw Starlark.errorf(format, args);
-      // and get static checking for free.
-      throw Starlark.errorf("%s", String.format(format, args));
+      throw Starlark.errorf(format, args);
     }
   }
-
   /**
    * A utility for resolving list of string labels to values
    */
