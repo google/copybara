@@ -36,6 +36,7 @@ import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENT
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
@@ -1859,7 +1860,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             type = Dict.class,
             doc =
-                "A set of named regexes that can be used to match part of the versions.Copybara"
+                "A set of named regexes that can be used to match part of the versions. Copybara"
                     + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
                     + " following nomenclature n0, n1, n2 for the version part (will use numeric"
                     + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
@@ -1912,8 +1913,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       }
     }
 
-    return new LatestVersionSelector(
+    LatestVersionSelector versionPicker = new LatestVersionSelector(
         refspec, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
+    ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
+    check(extraGroups.isEmpty(), "Extra refspec_groups not used in pattern: %s", extraGroups);
+    return versionPicker;
   }
 
   @Override

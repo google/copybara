@@ -119,6 +119,18 @@ public class LatestVersionSelectorTest {
   }
 
   @Test
+  public void testVersionSelector_extraGroups() {
+    ValidationException e = assertThrows(ValidationException.class, () -> checkTagsCustomSelector(
+        "refspec_format = 'refs/tags/${n0}',"
+            + " refspec_groups = {'n0' : '20200609', 'n1' : 'OOOPS'}",
+        "20200609",
+        "refs/tags/*"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Extra refspec_groups not used in pattern: [n1]");
+  }
+
+  @Test
   public void testVersionSelector_customDate() throws Exception {
     createTags(
         "20109999.999",

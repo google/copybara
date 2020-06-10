@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
@@ -33,6 +34,7 @@ import com.google.devtools.build.lib.syntax.Printer;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -169,6 +171,14 @@ public class LatestVersionSelector implements VersionSelector {
   private int compareElement(Object o, Object n) {
     return ((Comparable) o).compareTo(n);
 
+  }
+
+  public ImmutableList<String> getUnmatchedGroups() {
+    Collection<String> usedGroups = template.getGroupIndexes().keySet();
+    return groupTypes.entrySet().stream()
+        .map(e -> e.getValue().varName(e.getKey()))
+        .filter(s -> !usedGroups.contains(s))
+        .collect(toImmutableList());
   }
 
 }
