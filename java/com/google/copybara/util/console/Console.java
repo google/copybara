@@ -16,6 +16,7 @@
 
 package com.google.copybara.util.console;
 
+import com.google.errorprone.annotations.FormatMethod;
 import java.io.IOException;
 import java.util.function.Predicate;
 import javax.annotation.CheckReturnValue;
@@ -37,6 +38,7 @@ public interface Console extends AutoCloseable {
   /**
    * Print a format string as error on the console
    */
+  @FormatMethod
   default void errorFmt(String format, Object... args) {
     error(String.format(format, args));
   }
@@ -49,6 +51,7 @@ public interface Console extends AutoCloseable {
   /**
    * Print a format string as warn on the console
    */
+  @FormatMethod
   default void warnFmt(String format, Object... args) {
     warn(String.format(format, args));
   }
@@ -71,6 +74,7 @@ public interface Console extends AutoCloseable {
   /**
    * Print a format string as info on the console, if verbose logging is enabled
    */
+  @FormatMethod
   default void verboseFmt(String format, Object... args) {
     verbose(String.format(format, args));
   }
@@ -86,6 +90,7 @@ public interface Console extends AutoCloseable {
   /**
    * Print a format string as info on the console
    */
+  @FormatMethod
   default void infoFmt(String format, Object... args) {
     info(String.format(format, args));
   }
@@ -98,6 +103,7 @@ public interface Console extends AutoCloseable {
   /**
    * Print a format string as progress on the console
    */
+  @FormatMethod
   default void progressFmt(String format, Object... args) {
     progress(String.format(format, args));
   }
@@ -112,6 +118,7 @@ public interface Console extends AutoCloseable {
    * Like promptConfirmation, but takes a format String as argument.
    */
   @CheckReturnValue
+  @FormatMethod
   default boolean promptConfirmationFmt(String format, Object... args) throws IOException {
     return promptConfirmation(String.format(format, args));
   }

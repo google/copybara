@@ -96,9 +96,9 @@ class GitHubPRIntegrateLabel implements IntegrateLabel {
     if (sha1.equals(gitRevision.getSha1())) {
       return gitRevision;
     }
-    generalOptions.console().warnFmt(String.format(
+    generalOptions.console().warnFmt(
         "Pull Request %s has more changes after %s (PR HEAD is %s)."
-            + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1()));
+            + " Not all changes might be migrated", pr, sha1, gitRevision.getSha1());
     return repository.resolveReferenceWithContext(sha1, gitRevision.contextReference(), repoUrl);
   }
 

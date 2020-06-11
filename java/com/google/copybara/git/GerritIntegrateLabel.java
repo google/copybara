@@ -107,10 +107,10 @@ class GerritIntegrateLabel implements IntegrateLabel {
     if (patchSet == null) {
       patchSet = latestPatchSet;
     } else if (latestPatchSet > patchSet) {
-      generalOptions.console().warnFmt(String.format(
+      generalOptions.console().warnFmt(
           "Change %s has more patch sets after Patch Set %s. Latest is Patch Set %s."
               + " Not all changes might be migrated", changeNumber, patchSet,
-          latestPatchSet));
+          latestPatchSet);
     }
 
     return GitRepoType.GERRIT.resolveRef(repository, url,
