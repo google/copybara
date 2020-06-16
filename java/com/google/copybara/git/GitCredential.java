@@ -79,7 +79,7 @@ public final class GitCredential {
       throw new ValidationException("Cannot get credentials for " + url, e);
     }
     String protocol = uri.getScheme();
-    checkCondition(!Strings.isNullOrEmpty(protocol), "Cannot find the protocol for " + url);
+    checkCondition(!Strings.isNullOrEmpty(protocol), "Cannot find the protocol for %s", url);
     String host = uri.getHost();
     Command cmd = new Command(new String[]{gitBinary, "credential", "fill"}, env,
         cwd.toFile());

@@ -16,6 +16,9 @@
 
 package com.google.copybara.exception;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
+
 /**
  * Indicates that the configuration is wrong or some error attributable to the user happened. For
  * example wrong flag usage, errors in fields or errors that we discover during execution.
@@ -35,7 +38,8 @@ public class ValidationException extends Exception {
    *
    * @throws ValidationException if {@code condition} is false
    */
-  public static void checkCondition(boolean condition, String format, Object... args)
+  @FormatMethod
+  public static void checkCondition(boolean condition, @FormatString String format, Object... args)
       throws ValidationException {
     if (!condition) {
       // Don't try to format if there is no args. This allows strings like '%Fooooo'¡
@@ -44,6 +48,15 @@ public class ValidationException extends Exception {
       }
       throw new ValidationException(String.format(format, args));
     }
+  }
+
+  /**
+   * Check a condition and throw {@link ValidationException} if false
+   *
+   * @throws ValidationException if {@code condition} is false
+   */
+  public static void checkCondition(boolean condition, String msg) throws ValidationException {
+    checkCondition(condition, "%s", msg);
   }
 
   /** Throw a {@link ValidationException} that can be retried */

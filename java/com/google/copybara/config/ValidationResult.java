@@ -22,6 +22,7 @@ import static com.google.copybara.config.ValidationResult.Level.WARNING;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.FormatMethod;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -124,6 +125,7 @@ public class ValidationResult {
       return this;
     }
 
+    @FormatMethod
     public Builder warningFmt(String message, Object... args) {
       messages.add(new ValidationMessage(WARNING, String.format(message, args)));
       return this;
@@ -134,6 +136,7 @@ public class ValidationResult {
       return this;
     }
 
+    @FormatMethod
     public Builder errorFmt(String message, Object... args) {
       messages.add(new ValidationMessage(ERROR, String.format(message, args)));
       return this;
