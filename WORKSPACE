@@ -68,8 +68,6 @@ http_archive(
     name = "io_bazel",
     sha256 = bazel_sha256,
     strip_prefix = "bazel-" + bazel_version,
-    # patch required to avoid depending on broken @io_bazel//src/main/java/com/google/devtools/build/lib/syntax:libcpu_profiler.so
-    patches = ["@copybara//third_party:bazel.patch"],
     url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
 )
 
