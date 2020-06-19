@@ -64,7 +64,7 @@ public class FileSubjects {
   public static class PathSubject extends Subject {
 
     private final Path actual;
-    private final Set<Path> whitelistedPaths = new HashSet<>();
+    private final Set<Path> allowedPaths = new HashSet<>();
 
     PathSubject(FailureMetadata failureMetadata, Path target) {
       super(failureMetadata, target);
@@ -195,7 +195,7 @@ public class FileSubjects {
                 throws IOException {
               if (attrs.isRegularFile()) {
                 Path relativeFile = actual.relativize(file);
-                if (!whitelistedPaths.contains(relativeFile)) {
+                if (!allowedPaths.contains(relativeFile)) {
                   failWithActual("expected to contain no more files", relativeFile.toString());
                 }
               }
@@ -210,7 +210,7 @@ public class FileSubjects {
       if (!Files.exists(filePath)) {
         failWithActual("missing file", filename);
       }
-      whitelistedPaths.add(actual.relativize(filePath));
+      allowedPaths.add(actual.relativize(filePath));
       return filePath;
     }
 
