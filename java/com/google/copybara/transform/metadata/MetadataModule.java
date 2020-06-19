@@ -339,7 +339,7 @@ public class MetadataModule implements StarlarkValue {
             named = true,
             doc =
                 "Replace author with the last change author (Could still be the default"
-                    + " author if not whitelisted or using `authoring.overwrite`.",
+                    + " author if not on the allowlist or using `authoring.overwrite`.)",
             defaultValue = "True",
             positional = false),
         @Param(

@@ -16,14 +16,17 @@
 
 package com.google.copybara.authoring;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.HashSet;
 import java.util.List;
@@ -47,13 +50,13 @@ public final class Authoring implements StarlarkValue {
 
   private final Author defaultAuthor;
   private final AuthoringMappingMode mode;
-  private final ImmutableSet<String> whitelist;
+  private final ImmutableSet<String> allowlist;
 
   public Authoring(
-      Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> whitelist) {
-    this.defaultAuthor = Preconditions.checkNotNull(defaultAuthor);
-    this.mode = Preconditions.checkNotNull(mode);
-    this.whitelist = Preconditions.checkNotNull(whitelist);
+      Author defaultAuthor, AuthoringMappingMode mode, ImmutableSet<String> allowlist) {
+    this.defaultAuthor = checkNotNull(defaultAuthor);
+    this.mode = checkNotNull(mode);
+    this.allowlist = checkNotNull(allowlist);
   }
 
   /**
@@ -65,20 +68,20 @@ public final class Authoring implements StarlarkValue {
 
   /**
    * Returns the default author, used for squash workflows,
-   * {@link AuthoringMappingMode#OVERWRITE} mode and for non-whitelisted authors.
+   * {@link AuthoringMappingMode#OVERWRITE} mode and for non-allowed authors.
    */
   public Author getDefaultAuthor() {
     return defaultAuthor;
   }
 
   /**
-   * Returns a {@code Set} of whitelisted author identifiers.
+   * Returns a {@code Set} of allowed author identifiers.
    *
    * <p>An identifier is typically an email but might have different representations depending on
    * the origin.
    */
-  public ImmutableSet<String> getWhitelist() {
-    return whitelist;
+  public ImmutableSet<String> getAllowlist() {
+    return allowlist;
   }
 
   /**
@@ -90,18 +93,27 @@ public final class Authoring implements StarlarkValue {
         return true;
       case OVERWRITE:
         return false;
-      case WHITELISTED:
-        return whitelist.contains(userId);
+      case ALLOWED:
+        return allowlist.contains(userId);
       default:
         throw new IllegalStateException(String.format("Mode '%s' not implemented.", mode));
     }
   }
 
+  /**
+   * Starlark Module for authoring.
+   */
   @StarlarkBuiltin(
       name = "authoring",
       doc = "The authors mapping between an origin and a destination",
       category = StarlarkDocumentationCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
+
+    private final Console console;
+
+    public Module(Console console) {
+      this.console = checkNotNull(console);
+    }
 
     @StarlarkMethod(
         name = "overwrite",
@@ -133,7 +145,7 @@ public final class Authoring implements StarlarkValue {
         code = "authoring.pass_thru(default = \"Foo Bar <noreply@foobar.com>\")")
     @StarlarkMethod(
         name = "pass_thru",
-        doc = "Use the origin author as the author in the destination, no whitelisting.",
+        doc = "Use the origin author as the author in the destination, no filtering.",
         parameters = {
           @Param(
               name = "default",
@@ -148,9 +160,35 @@ public final class Authoring implements StarlarkValue {
           Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
       }
 
+    /**
+     * @deprecated Use authoring.allowed.
+     */
     @StarlarkMethod(
         name = "whitelisted",
-        doc = "Create an individual or team that contributes code.",
+        documented = false,
+        useStarlarkThread = true,
+        parameters = {
+            @Param(
+                name = "default",
+                type = String.class,
+                named = true),
+            @Param(
+                name = "whitelist",
+                type = Sequence.class,
+                generic1 = String.class,
+                named = true),
+        })
+    @Deprecated
+    public Authoring whitelisted(String defaultAuthor, Sequence<?> whitelist, StarlarkThread thread)
+        throws EvalException {
+      console.warnFmt("Using deprecated authoring.whitelisted at %s. This will be removed in the "
+          + "near future, please switch to authoring.allowed.", thread.getCallerLocation());
+      return allowed(defaultAuthor, whitelist);
+    }
+
+    @StarlarkMethod(
+        name = "allowed",
+        doc = "Create a list for an individual or team contributing code.",
         parameters = {
           @Param(
               name = "default",
@@ -158,63 +196,64 @@ public final class Authoring implements StarlarkValue {
               named = true,
               doc =
                   "The default author for commits in the destination. This is used"
-                      + " in squash mode workflows or when users are not whitelisted."),
+                      + " in squash mode workflows or when users are not on the list."),
           @Param(
-              name = "whitelist",
+              name = "allowlist",
               type = Sequence.class,
               generic1 = String.class,
               named = true,
-              doc = "List of white listed authors in the origin. The authors must be unique"),
+              doc = "List of  authors in the origin that are allowed to contribute code. The "
+                  + "authors must be unique"),
         })
     @Example(
-        title = "Only pass thru whitelisted users",
+        title = "Only pass thru allowed users",
         before = "",
         code =
-            "authoring.whitelisted(\n"
+            "authoring.allowed(\n"
                 + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-                + "    whitelist = [\n"
+                + "    allowlist = [\n"
                 + "       \"someuser@myorg.com\",\n"
                 + "       \"other@myorg.com\",\n"
                 + "       \"another@myorg.com\",\n"
                 + "    ],\n"
                 + ")")
     @Example(
-        title = "Only pass thru whitelisted LDAPs/usernames",
+        title = "Only pass thru allowed LDAPs/usernames",
         before =
             "Some repositories are not based on email but use LDAPs/usernames. This is also"
                 + " supported since it is up to the origin how to check whether two authors are"
                 + " the same.",
         code =
-            "authoring.whitelisted(\n"
+            "authoring.allowed(\n"
                 + "    default = \"Foo Bar <noreply@foobar.com>\",\n"
-                + "    whitelist = [\n"
+                + "    allowlist = [\n"
                 + "       \"someuser\",\n"
                 + "       \"other\",\n"
                 + "       \"another\",\n"
                 + "    ],\n"
                 + ")")
-    public Authoring whitelisted(String defaultAuthor, Sequence<?> whitelist // <String>
+    public Authoring allowed(String defaultAuthor, Sequence<?> allowlist // <String>
         ) throws EvalException {
       return new Authoring(
           Author.parse(defaultAuthor),
-          AuthoringMappingMode.WHITELISTED,
-          createWhitelist(Sequence.cast(whitelist, String.class, "whitelist")));
-      }
+          AuthoringMappingMode.ALLOWED,
+          createAllowlist(Sequence.cast(allowlist, String.class, "allowed")));
+    }
 
-    private static ImmutableSet<String> createWhitelist(List<String> whitelist)
+    private static ImmutableSet<String> createAllowlist(List<String> list)
         throws EvalException {
-      if (whitelist.isEmpty()) {
+      if (list.isEmpty()) {
         throw Starlark.errorf(
-            "'whitelisted' function requires a non-empty 'whitelist' field. For default mapping,"
+            "'allowed' function requires a non-empty 'allowlist' field. For default mapping,"
                 + " use 'overwrite(...)' mode instead.");
       }
       Set<String> uniqueAuthors = new HashSet<>();
-      for (String author : whitelist) {
+      for (String author : list) {
         if (!uniqueAuthors.add(author)) {
-          throw Starlark.errorf("Duplicated whitelist entry '%s'", author);
+          throw Starlark.errorf("Duplicated allowlist entry '%s'", author);
         }
       }
-      return ImmutableSet.copyOf(whitelist);
+      return ImmutableSet.copyOf(list);
     }
   }
 
@@ -233,10 +272,10 @@ public final class Authoring implements StarlarkValue {
      */
     PASS_THRU,
     /**
-     * Corresponds with {@link Authoring.Module#whitelisted(String, Sequence, Location)} built-in
+     * Corresponds to {@link Authoring.Module#allowed(String, Sequence)} built-in
      * function.
      */
-    WHITELISTED
+    ALLOWED
   }
 
   @Override
@@ -250,12 +289,12 @@ public final class Authoring implements StarlarkValue {
     Authoring authoring = (Authoring) o;
     return Objects.equals(defaultAuthor, authoring.defaultAuthor) &&
         mode == authoring.mode &&
-        Objects.equals(whitelist, authoring.whitelist);
+        Objects.equals(allowlist, authoring.allowlist);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(defaultAuthor, mode, whitelist);
+    return Objects.hash(defaultAuthor, mode, allowlist);
   }
 
   @Override
@@ -263,7 +302,7 @@ public final class Authoring implements StarlarkValue {
     return MoreObjects.toStringHelper(this)
         .add("defaultAuthor", defaultAuthor)
         .add("mode", mode)
-        .add("whitelist", whitelist)
+        .add("allowlist", allowlist)
         .toString();
   }
 }

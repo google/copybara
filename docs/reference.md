@@ -3,9 +3,9 @@
 
   - [author](#author)
   - [authoring](#authoring)
+    - [authoring.allowed](#authoring.allowed)
     - [authoring.overwrite](#authoring.overwrite)
     - [authoring.pass_thru](#authoring.pass_thru)
-    - [authoring.whitelisted](#authoring.whitelisted)
   - [authoring_class](#authoring_class)
   - [buildozer](#buildozer)
     - [buildozer.cmd](#buildozer.cmd)
@@ -182,6 +182,57 @@ name | The name of the author
 
 The authors mapping between an origin and a destination
 
+<a id="authoring.allowed" aria-hidden="true"></a>
+### authoring.allowed
+
+Create a list for an individual or team contributing code.
+
+`authoring_class authoring.allowed(default, allowlist)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+default | `string`<br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not on the list.</p>
+allowlist | `sequence of string`<br><p>List of  authors in the origin that are allowed to contribute code. The authors must be unique</p>
+
+
+#### Examples:
+
+
+##### Only pass thru allowed users:
+
+
+
+```python
+authoring.allowed(
+    default = "Foo Bar <noreply@foobar.com>",
+    allowlist = [
+       "someuser@myorg.com",
+       "other@myorg.com",
+       "another@myorg.com",
+    ],
+)
+```
+
+
+##### Only pass thru allowed LDAPs/usernames:
+
+Some repositories are not based on email but use LDAPs/usernames. This is also supported since it is up to the origin how to check whether two authors are the same.
+
+```python
+authoring.allowed(
+    default = "Foo Bar <noreply@foobar.com>",
+    allowlist = [
+       "someuser",
+       "other",
+       "another",
+    ],
+)
+```
+
+
 <a id="authoring.overwrite" aria-hidden="true"></a>
 ### authoring.overwrite
 
@@ -212,7 +263,7 @@ authoring.overwrite("Foo Bar <noreply@foobar.com>")
 <a id="authoring.pass_thru" aria-hidden="true"></a>
 ### authoring.pass_thru
 
-Use the origin author as the author in the destination, no whitelisting.
+Use the origin author as the author in the destination, no filtering.
 
 `authoring_class authoring.pass_thru(default)`
 
@@ -233,57 +284,6 @@ default | `string`<br><p>The default author for commits in the destination. This
 
 ```python
 authoring.pass_thru(default = "Foo Bar <noreply@foobar.com>")
-```
-
-
-<a id="authoring.whitelisted" aria-hidden="true"></a>
-### authoring.whitelisted
-
-Create an individual or team that contributes code.
-
-`authoring_class authoring.whitelisted(default, whitelist)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-default | `string`<br><p>The default author for commits in the destination. This is used in squash mode workflows or when users are not whitelisted.</p>
-whitelist | `sequence of string`<br><p>List of white listed authors in the origin. The authors must be unique</p>
-
-
-#### Examples:
-
-
-##### Only pass thru whitelisted users:
-
-
-
-```python
-authoring.whitelisted(
-    default = "Foo Bar <noreply@foobar.com>",
-    whitelist = [
-       "someuser@myorg.com",
-       "other@myorg.com",
-       "another@myorg.com",
-    ],
-)
-```
-
-
-##### Only pass thru whitelisted LDAPs/usernames:
-
-Some repositories are not based on email but use LDAPs/usernames. This is also supported since it is up to the origin how to check whether two authors are the same.
-
-```python
-authoring.whitelisted(
-    default = "Foo Bar <noreply@foobar.com>",
-    whitelist = [
-       "someuser",
-       "other",
-       "another",
-    ],
-)
 ```
 
 
@@ -3460,7 +3460,7 @@ Use metadata (message or/and author) from the last change being migrated. Useful
 
 Parameter | Description
 --------- | -----------
-author | `boolean`<br><p>Replace author with the last change author (Could still be the default author if not whitelisted or using `authoring.overwrite`.</p>
+author | `boolean`<br><p>Replace author with the last change author (Could still be the default author if not on the allowlist or using `authoring.overwrite`.)</p>
 message | `boolean`<br><p>Replace message with last change message.</p>
 default_message | `string`<br><p>Replace message with last change message.</p>
 use_merge | `boolean`<br><p>If true then merge changes are taken into account for looking for the last change.</p>

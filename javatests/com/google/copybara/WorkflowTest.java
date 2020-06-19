@@ -109,7 +109,7 @@ public class WorkflowTest {
   private static final String PREFIX = "TRANSFORMED";
   private static final Author ORIGINAL_AUTHOR =
       new Author("Foo Bar", "foo@bar.com");
-  private static final Author NOT_WHITELISTED_ORIGINAL_AUTHOR =
+  private static final Author NOT_ALLOWED_ORIGINAL_AUTHOR =
       new Author("Secret Coder", "secret@coder.com");
   private static final Author DEFAULT_AUTHOR = new Author("Copybara", "no-reply@google.com");
   private static final String FORCED_MESSAGE = "Test forced message";
@@ -622,15 +622,15 @@ public class WorkflowTest {
   }
 
   @Test
-  public void iterativeWorkflowTest_whitelistAuthoring() throws Exception {
+  public void iterativeWorkflowTest_allowlistAuthoring() throws Exception {
     origin
         .addSimpleChange(0)
         .setAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_ALLOWED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
-    whiteListAuthoring();
+    allowAuthoring();
 
     Workflow<?, ?> workflow = iterativeWorkflow("0");
 
@@ -647,11 +647,11 @@ public class WorkflowTest {
         .addSimpleChange(0)
         .setAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_ALLOWED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     options.workflowOptions.defaultAuthor = "From Flag <fromflag@google.com>";
-    whiteListAuthoring();
+    allowAuthoring();
 
     Workflow<?, ?> workflow = iterativeWorkflow("0");
 
@@ -732,7 +732,7 @@ public class WorkflowTest {
 
     options.workflowOptions.forcedChangeMessage = FORCED_MESSAGE;
     options.workflowOptions.forcedAuthor = FORCED_AUTHOR;
-    whiteListAuthoring();
+    allowAuthoring();
 
     Workflow<?, ?> workflow = iterativeWorkflow("0");
 
@@ -762,11 +762,11 @@ public class WorkflowTest {
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(FORCED_AUTHOR);
   }
 
-  private void whiteListAuthoring() {
+  private void allowAuthoring() {
     authoring = ""
-        + "authoring.whitelisted(\n"
+        + "authoring.allowed(\n"
         + "   default = '" + DEFAULT_AUTHOR + "',\n"
-        + "   whitelist = ['" + ORIGINAL_AUTHOR.getEmail() + "'],\n"
+        + "   allowlist = ['" + ORIGINAL_AUTHOR.getEmail() + "'],\n"
         + ")";
   }
 
@@ -776,7 +776,7 @@ public class WorkflowTest {
         .addSimpleChange(0)
         .setAuthor(ORIGINAL_AUTHOR)
         .addSimpleChange(1)
-        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_ALLOWED_ORIGINAL_AUTHOR)
         .addSimpleChange(2);
 
     passThruAuthoring();
@@ -786,7 +786,7 @@ public class WorkflowTest {
     assertThat(destination.processed).hasSize(2);
 
     assertThat(destination.processed.get(0).getAuthor()).isEqualTo(ORIGINAL_AUTHOR);
-    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(NOT_WHITELISTED_ORIGINAL_AUTHOR);
+    assertThat(destination.processed.get(1).getAuthor()).isEqualTo(NOT_ALLOWED_ORIGINAL_AUTHOR);
   }
 
   private void passThruAuthoring() {
@@ -1747,13 +1747,13 @@ public class WorkflowTest {
   }
 
   @Test
-  public void changeRequest_whitelistAuthoring() throws Exception {
+  public void changeRequest_allowlistAuthoring() throws Exception {
     origin
-        .setAuthor(NOT_WHITELISTED_ORIGINAL_AUTHOR)
+        .setAuthor(NOT_ALLOWED_ORIGINAL_AUTHOR)
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change");
 
-    whiteListAuthoring();
+    allowAuthoring();
 
     changeRequestWorkflow(null).run(workdir, ImmutableList.of("1"));
 

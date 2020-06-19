@@ -95,9 +95,9 @@ public class ModuleSupplier {
         new BuildozerModule(
             options.get(WorkflowOptions.class), options.get(BuildozerOptions.class)),
         new PatchModule(options.get(PatchingOptions.class)),
-            new MetadataModule(),
-            new Authoring.Module(),
-            new RemoteFileModule(options));
+        new MetadataModule(),
+        new Authoring.Module(console),
+        new RemoteFileModule(options));
   }
 
   /** Returns a new list of {@link Option}s. */

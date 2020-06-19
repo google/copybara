@@ -63,24 +63,24 @@ public class AuthoringTest {
   }
 
   @Test
-  public void whitelistedTest() throws Exception {
+  public void allowedTest() throws Exception {
     Authoring authoring = skylark.eval("result", ""
-        + "result = authoring.whitelisted(\n"
+        + "result = authoring.allowed(\n"
         + "    default = 'foo bar <baz@bar.com>',\n"
-        + "    whitelist = ['foo', 'bar'])");
+        + "    allowlist = ['foo', 'bar'])");
     assertThat(authoring)
         .isEqualTo(new Authoring(new Author("foo bar", "baz@bar.com"),
-        AuthoringMappingMode.WHITELISTED, ImmutableSet.of("foo", "bar")));
+        AuthoringMappingMode.ALLOWED, ImmutableSet.of("foo", "bar")));
   }
 
   @Test
-  public void testWhitelistMappingDuplicates() throws Exception {
+  public void testAllowlistMappingDuplicates() throws Exception {
     skylark.evalFails(""
-            + "authoring.whitelisted(\n"
+            + "authoring.allowed(\n"
             + "  default = 'Copybara <no-reply@google.com>',\n"
-            + "  whitelist = ['foo', 'foo']\n"
+            + "  allowlist = ['foo', 'foo']\n"
             + ")\n",
-        "Duplicated whitelist entry 'foo'");
+        "Duplicated allowlist entry 'foo'");
   }
 
   @Test
@@ -98,13 +98,13 @@ public class AuthoringTest {
   }
 
   @Test
-  public void testWhitelistNotEmpty() throws Exception {
+  public void testAllowlistNotEmpty() throws Exception {
     skylark.evalFails(""
-            + "authoring.whitelisted(\n"
+            + "authoring.allowed(\n"
             + "  default = 'Copybara <no-reply@google.com>',\n"
-            + "  whitelist = []\n"
+            + "  allowlist = []\n"
             + ")\n",
-        "'whitelisted' function requires a non-empty 'whitelist' field. "
+        "'allowed' function requires a non-empty 'allowlist' field. "
             + "For default mapping, use 'overwrite\\(...\\)' mode instead.");
   }
 
@@ -123,9 +123,9 @@ public class AuthoringTest {
   }
 
   @Test
-  public void testResolve_whitelist() throws Exception {
+  public void testResolve_allowlist() throws Exception {
     Authoring authoring = new Authoring(
-        DEFAULT_AUTHOR, AuthoringMappingMode.WHITELISTED, ImmutableSet.of("baz@bar.com"));
+        DEFAULT_AUTHOR, AuthoringMappingMode.ALLOWED, ImmutableSet.of("baz@bar.com"));
     assertThat(authoring.useAuthor("baz@bar.com")).isTrue();
     assertThat(authoring.useAuthor("john@someemail.com")).isFalse();
   }

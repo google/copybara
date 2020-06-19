@@ -514,7 +514,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Author defaultAuthorFlag = workflowOptions.getDefaultAuthorFlag();
     if (defaultAuthorFlag != null) {
       resolvedAuthoring = new Authoring(defaultAuthorFlag, authoring.getMode(),
-          authoring.getWhitelist());
+          authoring.getAllowlist());
     }
 
     WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
