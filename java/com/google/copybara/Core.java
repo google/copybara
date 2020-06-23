@@ -839,7 +839,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             type = com.google.devtools.build.lib.syntax.Sequence.class,
             doc =
-                "A set of regexes. Any text that matches any expression in this set, which"
+                "A set of regexes. Any line that matches any expression in this set, which"
                     + " might otherwise be transformed, will be ignored.",
             defaultValue = "[]"),
       },

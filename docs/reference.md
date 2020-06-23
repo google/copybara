@@ -902,7 +902,7 @@ paths | `glob`<br><p>A glob expression relative to the workdir representing the 
 first_only | `boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline | `boolean`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups | `boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-ignore | `sequence`<br><p>A set of regexes. Any text that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
+ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
 
 
 #### Examples:
