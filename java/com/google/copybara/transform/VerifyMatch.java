@@ -120,7 +120,7 @@ public final class VerifyMatch implements Transformation {
 
   @Override
   public String describe() {
-    return String.format("Verify match '%s'", pattern);
+    return String.format("Verify match '%s', located at %s", pattern, location);
   }
 
   @Override

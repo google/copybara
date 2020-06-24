@@ -86,10 +86,10 @@ public final class VerifyMatchTest {
         assertThrows(ValidationException.class, () -> transform(transformation));
     assertThat(e)
         .hasMessageThat()
-        .contains("1 file(s) failed the validation of Verify match 'foo'.");
+        .contains("1 file(s) failed the validation of Verify match 'foo'");
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
   }
 
   @Test
@@ -104,9 +104,9 @@ public final class VerifyMatchTest {
         assertThrows(ValidationException.class, () -> transform(transformation.reverse()));
     assertThat(e)
         .hasMessageThat()
-        .contains("1 file(s) failed the validation of Verify match 'foo'.");
+        .contains("1 file(s) failed the validation of Verify match 'foo'");
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'file1.txt' failed validation 'Verify match 'foo'.*");
   }
 
   @Test
@@ -120,7 +120,7 @@ public final class VerifyMatchTest {
     assertThrows(ValidationException.class, () -> transform(transformation));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
   }
 
   @Test
@@ -144,9 +144,9 @@ public final class VerifyMatchTest {
     assertThrows(ValidationException.class, () -> transform(transformation));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo''.");
+        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'folder/file1.txt' failed validation 'Verify match 'foo''.");
+          "File 'folder/file1.txt' failed validation 'Verify match 'foo'.*");
   }
 
   @Test
