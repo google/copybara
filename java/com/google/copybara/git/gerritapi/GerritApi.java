@@ -150,4 +150,13 @@ public class GerritApi {
           new TypeToken<Map<String, ActionInfo>>() {}.getType());
     }
   }
+
+  public void deleteVote(String changeId, long accountId, String  labelId,
+      DeleteVoteInput deleteVoteInput) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_delete_reviewer_vote")) {
+      transport.post(
+          "/changes/" + changeId + "/reviewers/" + accountId + "/votes/"  + labelId + "/delete",
+          deleteVoteInput, DeleteVoteInput.class);
+    }
+  }
 }

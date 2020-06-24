@@ -392,6 +392,22 @@ public class GerritApiTest {
     assertThat(actions.get("submit").getTitle()).isEqualTo("Submit patch set 1 into master");
   }
 
+  @Test
+  public void deleteViewerVote() throws Exception {
+    mockResponse(new CheckRequest("POST",
+        ".*/changes/.*/reviewers/123/votes/Code-Review/delete"), "");
+    gerritApi.deleteVote(CHANGE_ID, 123, "Code-Review", new DeleteVoteInput(NotifyType.NONE));
+  }
+
+  @Test
+  public void deleteVoteNotFound() throws Exception {
+    try {
+      gerritApi.deleteVote(CHANGE_ID, 123, "Code-Review", new DeleteVoteInput(NotifyType.NONE));
+    } catch (GerritApiException e) {
+      assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
+    }
+  }
+
   private static String mockReviewResult() throws IOException {
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("labels", ImmutableMap.of("Code-Review", (short) -1));
