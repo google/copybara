@@ -1061,7 +1061,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ImmutableList<String> tags =
         ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
     String ignorePattern = convertFromNoneable(regexToIgnore, null);
-    Pattern regexWhitelist = ignorePattern != null ? Pattern.compile(ignorePattern) : null;
+    Pattern regexIgnorelist = ignorePattern != null ? Pattern.compile(ignorePattern) : null;
 
     check(!tags.isEmpty(), "'tags' cannot be empty");
     if (mode == Mode.MAP_OR_DEFAULT || mode == Mode.USE_DEFAULT) {
@@ -1080,7 +1080,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         mapping,
         defaultString,
         workflowOptions.parallelizer(),
-        regexWhitelist);
+        regexIgnorelist);
   }
 
   public static final String TODO_FILTER_REPLACE_EXAMPLE = ""

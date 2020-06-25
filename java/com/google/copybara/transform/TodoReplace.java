@@ -67,7 +67,7 @@ public class TodoReplace implements Transformation {
   @Nullable
   private final String defaultString;
   @Nullable
-  private final Pattern regexWhitelist;
+  private final Pattern regexIgnorelist;
 
   public TodoReplace(
       Location location,
@@ -77,7 +77,7 @@ public class TodoReplace implements Transformation {
       Map<String, String> mapping,
       @Nullable String defaultString,
       LocalParallelizer parallelizer,
-      @Nullable Pattern regexWhitelist) {
+      @Nullable Pattern regexIgnorelist) {
     this.location = Preconditions.checkNotNull(location);
     this.glob = Preconditions.checkNotNull(glob);
     this.todoTags = Preconditions.checkNotNull(todoTags);
@@ -89,7 +89,7 @@ public class TodoReplace implements Transformation {
     if (mode == Mode.USE_DEFAULT || mode == Mode.MAP_OR_DEFAULT) {
       Preconditions.checkNotNull(defaultString);
     }
-    this.regexWhitelist = regexWhitelist;
+    this.regexIgnorelist = regexIgnorelist;
     pattern = createPattern(todoTags);
   }
 
@@ -161,8 +161,8 @@ public class TodoReplace implements Transformation {
       String prefix = matcher.group(1);
       String originUser = matcher.group(2);
       String suffix = matcher.group(3);
-      if (regexWhitelist != null) {
-        if (regexWhitelist.matcher(originUser).matches()) {
+      if (regexIgnorelist != null) {
+        if (regexIgnorelist.matcher(originUser).matches()) {
           result.add(prefix + originUser + suffix);
           continue;
         }
@@ -218,7 +218,7 @@ public class TodoReplace implements Transformation {
         mapping.inverse(),
         defaultString,
         parallelizer,
-        regexWhitelist);
+        regexIgnorelist);
   }
 
   @Override
