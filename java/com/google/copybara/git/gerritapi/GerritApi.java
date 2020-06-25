@@ -151,7 +151,7 @@ public class GerritApi {
     }
   }
 
-  public void deleteVote(String changeId, long accountId, String  labelId,
+  public void deleteVote(String changeId, String accountId, String  labelId,
       DeleteVoteInput deleteVoteInput) throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_delete_reviewer_vote")) {
       transport.post(

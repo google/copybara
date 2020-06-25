@@ -28,10 +28,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.gerritapi.ActionInfo;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
+import com.google.copybara.git.gerritapi.DeleteVoteInput;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.GerritApiException;
 import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.git.gerritapi.IncludeResult;
+import com.google.copybara.git.gerritapi.NotifyType;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
@@ -176,6 +178,38 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       throw new EvalException(null, "Error calling post_review", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException(null, "Error calling post_review", e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "delete_vote",
+      doc =
+          "Delete a label vote from an account owner on a Gerrit change.\n",
+      parameters = {
+          @Param(
+              name = "change_id",
+              type = String.class,
+              named = true,
+              doc = "The Gerrit change id."),
+          @Param(
+              name = "account_id",
+              type = String.class,
+              named = true,
+              doc = "The account owner who votes on label_id. Use 'me' or 'self' "
+                  + "if the account owner makes this api call"),
+          @Param(
+              name = "label_id",
+              type = String.class,
+              named = true,
+              doc = "The name of the label."),
+      })
+  public void deleteVote(String changeId, String accountId, String labelId)
+      throws EvalException {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException(null, "Error calling delete_vote", e);
     }
   }
 

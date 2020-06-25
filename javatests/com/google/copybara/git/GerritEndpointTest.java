@@ -52,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -452,6 +453,27 @@ public class GerritEndpointTest {
         .add("res = ctx.destination"
             + ".post_review('12345', 'sha1', git.review_input({'Code-Review': 1}, tag='tag:me'))")
          .build());
+  }
+
+  @Test
+  public void deleteVote() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        startsWith(BASE_URL + "/changes/12345/reviewers/me/votes/Code-Review/delete"),
+        mockResponseWithStatus("", 204,
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  called.set(true);
+                  return true;
+                })));
+
+    runFeedback(ImmutableList.<String>builder()
+        .add("ctx.destination"
+            + ".delete_vote('12345', 'me', 'Code-Review')")
+        .build());
+
+    assertThat(called.get()).isTrue();
   }
 
   @Test

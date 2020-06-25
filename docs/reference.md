@@ -76,6 +76,7 @@
   - [gerritapi.ReviewResult](#gerritapi.reviewresult)
   - [gerritapi.RevisionInfo](#gerritapi.revisioninfo)
   - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.delete_vote](#gerrit_api_obj.delete_vote)
     - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
     - [gerrit_api_obj.list_changes_by_commit](#gerrit_api_obj.list_changes_by_commit)
@@ -1848,6 +1849,23 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 Name | Description
 ---- | -----------
 url | Return the URL of this endpoint.
+
+<a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
+### gerrit_api_obj.delete_vote
+
+Delete a label vote from an account owner on a Gerrit change.
+
+
+`gerrit_api_obj.delete_vote(change_id, account_id, label_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
+account_id | `string`<br><p>The account owner who votes on label_id. Use 'me' or 'self' if the account owner makes this api call</p>
+label_id | `string`<br><p>The name of the label.</p>
 
 <a id="gerrit_api_obj.get_actions" aria-hidden="true"></a>
 ### gerrit_api_obj.get_actions

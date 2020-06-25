@@ -396,13 +396,14 @@ public class GerritApiTest {
   public void deleteViewerVote() throws Exception {
     mockResponse(new CheckRequest("POST",
         ".*/changes/.*/reviewers/123/votes/Code-Review/delete"), "");
-    gerritApi.deleteVote(CHANGE_ID, 123, "Code-Review", new DeleteVoteInput(NotifyType.NONE));
+    gerritApi.deleteVote(CHANGE_ID,
+        "123", "Code-Review", new DeleteVoteInput(NotifyType.NONE));
   }
 
   @Test
   public void deleteVoteNotFound() throws Exception {
     try {
-      gerritApi.deleteVote(CHANGE_ID, 123, "Code-Review", new DeleteVoteInput(NotifyType.NONE));
+      gerritApi.deleteVote(CHANGE_ID, "123", "Code-Review", new DeleteVoteInput(NotifyType.NONE));
     } catch (GerritApiException e) {
       assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
     }
