@@ -513,6 +513,52 @@ public class GerritEndpointTest {
         .build());
   }
 
+  @Test
+  public void testListChangesByQueryString() throws Exception {
+    gitUtil.mockApi(
+        "GET",
+        BASE_URL
+            + "/changes/?q=topic:test/1234%2Bstatus:open",
+        mockResponse(
+            "[{"
+                + "\"id\":"
+                + " \"34567\""
+                + "},"
+            + "{"
+                + "\"id\":"
+                + " \"4567\""
+                + "}]"));
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".list_changes('topic:test/1234+status:open')")
+        .addAll(checkFieldStarLark("res[0]", "id",
+            "'34567'"))
+        .addAll(checkFieldStarLark("res[1]", "id",
+            "'4567'"))
+        .build());
+  }
+
+  @Test
+  public void testListChangesByQueryString_withIncludeResults() throws Exception {
+    gitUtil.mockApi(
+        "GET",
+        BASE_URL
+            + "/changes/?q=topic:test/1234%2Bstatus:open"
+            + "&o=LABELS&o=MESSAGES",
+        mockResponse(
+            "[{"
+                + "\"id\":"
+                + " \"4567\""
+                + "}]"));
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination"
+            + ".list_changes('topic:test/1234+status:open',"
+            + " include_results = ['LABELS', 'MESSAGES'])")
+        .addAll(checkFieldStarLark("res[0]", "id",
+            "'4567'"))
+        .build());
+  }
+
   private Feedback notifyChangeToOriginFeedback() throws IOException, ValidationException {
     return feedback(
         ""
