@@ -2093,7 +2093,7 @@ Implicit labels that can be used/exposed:
   - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None)`
+`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None, ignore_gerrit_noop=False)`
 
 
 #### Parameters:
@@ -2109,6 +2109,7 @@ api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for
 patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
 describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+ignore_gerrit_noop | `boolean`<br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger

@@ -42,6 +42,8 @@ import com.google.copybara.git.gerritapi.GetChangeInput;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
@@ -62,6 +64,7 @@ public class GerritOrigin extends GitOrigin {
   @Nullable private final Checker endpointChecker;
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
+  private final boolean ignoreGerritNoop;
 
   private GerritOrigin(
       GeneralOptions generalOptions,
@@ -77,7 +80,8 @@ public class GerritOrigin extends GitOrigin {
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
-      boolean describeVersion) {
+      boolean describeVersion,
+      boolean ignoreGerritNoop) {
     super(
         generalOptions,
         repoUrl,
@@ -101,6 +105,7 @@ public class GerritOrigin extends GitOrigin {
     this.patchTransformation = patchTransformation;
     this.branch = branch;
     this.partialFetch = partialFetch;
+    this.ignoreGerritNoop = ignoreGerritNoop;
   }
 
   @Override
@@ -152,10 +157,16 @@ public class GerritOrigin extends GitOrigin {
 
   /** Builds a new {@link GerritOrigin}. */
   static GerritOrigin newGerritOrigin(
-      Options options, String url, SubmoduleStrategy submoduleStrategy, boolean firstParent,
-      boolean partialFetch, @Nullable Checker endpointChecker,
-      @Nullable PatchTransformation patchTransformation, @Nullable String branch,
-      boolean describeVersion) {
+      Options options,
+      String url,
+      SubmoduleStrategy submoduleStrategy,
+      boolean firstParent,
+      boolean partialFetch,
+      @Nullable Checker endpointChecker,
+      @Nullable PatchTransformation patchTransformation,
+      @Nullable String branch,
+      boolean describeVersion,
+      boolean ignoreGerritNoop) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -171,19 +182,29 @@ public class GerritOrigin extends GitOrigin {
         endpointChecker,
         patchTransformation,
         branch,
-        describeVersion);
+        describeVersion,
+        ignoreGerritNoop);
   }
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new GitOrigin.ReaderImpl(repoUrl, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, includeBranchCommitLogs, submoduleStrategy, firstParent, partialFetch,
-        patchTransformation, describeVersion) {
+    return new GitOrigin.ReaderImpl(
+        repoUrl,
+        originFiles,
+        authoring,
+        gitOptions,
+        gitOriginOptions,
+        generalOptions,
+        includeBranchCommitLogs,
+        submoduleStrategy,
+        firstParent,
+        partialFetch,
+        patchTransformation,
+        describeVersion) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(
-          GitRevision startRevision, int limit)
-          throws RepoException, ValidationException {
+          GitRevision startRevision, int limit) throws RepoException, ValidationException {
 
         // Skip the first change as it is the Gerrit review change
         BaselinesWithoutLabelVisitor<GitRevision> visitor =
@@ -197,6 +218,20 @@ public class GerritOrigin extends GitOrigin {
         gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
         return new GerritEndpoint(
             gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+      }
+
+      @Override
+      public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
+          throws RepoException, ValidationException {
+        ChangesResponse<GitRevision> result = super.changes(fromRef, toRef);
+        if (ignoreGerritNoop) {
+          PathMatcher pathMatcher = originFiles.relativeTo(Paths.get("/"));
+          if (result.getChanges().get(0).getChangeFiles().stream()
+              .noneMatch(x -> pathMatcher.matches(Paths.get("/", x)))) {
+            throw new EmptyChangeException("First change here is a noop");
+          }
+        }
+        return result;
       }
     };
   }

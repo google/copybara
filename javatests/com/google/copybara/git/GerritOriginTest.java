@@ -302,6 +302,30 @@ public class GerritOriginTest {
   }
 
   @Test
+  public void testIgnoreGerritNoop() throws Exception {
+    mockChange(12345);
+    GerritOrigin origin =
+        skylark.eval(
+            "g",
+            "g = git.gerrit_origin("
+                + "  url = 'https://"
+                + REPO_URL
+                + "',"
+                + "  branch = 'master',"
+                + "  ignore_gerrit_noop = True)");
+    Reader<GitRevision> reader =
+        origin.newReader(Glob.createGlob(ImmutableList.of("depot/foo/bar")), AUTHORING);
+    assertThrows(
+        EmptyChangeException.class,
+        () ->
+            reader
+                .changes(
+                    origin.resolve("http://foo.com/#/c/12345/1"),
+                    origin.resolve("http://foo.com/#/c/12345/3"))
+                .getChanges());
+  }
+
+  @Test
   public void testReferenceNotFound() throws RepoException, ValidationException {
     CannotResolveRevisionException thrown =
         assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("54321"));

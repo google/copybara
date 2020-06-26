@@ -507,8 +507,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "api_checker",
             type = Checker.class,
@@ -545,7 +544,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc = DESCRIBE_VERSION_FIELD_DOC,
-            noneable = true)
+            noneable = true),
+        @Param(
+            name = "ignore_gerrit_noop",
+            type = Boolean.class,
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "Option to not migrate Gerrit changes that do not change origin_files")
       },
       useStarlarkThread = true)
   public GitOrigin gerritOrigin(
@@ -558,6 +564,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object patch,
       Object branch,
       Object describeVersion,
+      Boolean ignoreGerritNoop,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -592,7 +599,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(checkerObj, null),
         patchTransformation,
         convertFromNoneable(branch, null),
-        convertDescribeVersion(describeVersion));
+        convertDescribeVersion(describeVersion),
+        ignoreGerritNoop);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";

@@ -197,7 +197,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.describeVersion = describeVersion;
     }
 
-    private ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
+    ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
       return ChangeReader.Builder.forOrigin(authoring, getRepository(), generalOptions.console())
           .setVerbose(generalOptions.isVerbose())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs)
