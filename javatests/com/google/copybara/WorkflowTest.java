@@ -79,6 +79,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.StarlarkValue;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -104,6 +105,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
+
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.annot.StarlarkMethod;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -2524,6 +2529,50 @@ public class WorkflowTest {
                     + "").getBytes(UTF_8)), "copy.bara.sky")).getMigration("default"));
 
     wf.run(workdir, ImmutableList.of("HEAD"));
+  }
+
+
+  @Test
+  public void testDynamicTransformThrowingRepoException() throws Exception {
+    SkylarkTestExecutor exec = skylark.withStaticModules(ImmutableSet.of(ThrowingCallable.class));
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+
+    Workflow<?, ?> wf = ((Workflow<?, ?>) exec.loadConfig(
+        new MapConfigFile(
+            ImmutableMap.of(
+                "copy.bara.sky", (""
+                    + "def dynamic_foo(ctx):\n"
+                    + "  dynamic_test.throw_repo()\n"
+                    + ""
+                    + "core.workflow(\n"
+                    + "    name = 'default',\n"
+                    + "    authoring = " + authoring + "\n,"
+                    + "    origin = testing.origin(),\n"
+                    + "    destination = testing.destination(),\n"
+                    + "    transformations = [dynamic_foo],\n"
+                    + ")\n"
+                    + "").getBytes(UTF_8)), "copy.bara.sky")).getMigration("default"));
+
+    RepoException expected =
+        assertThrows(RepoException.class, () -> wf.run(workdir, ImmutableList.of("HEAD")));
+    assertThat(expected).hasMessageThat().contains("Oh noes");
+  }
+
+
+  @StarlarkBuiltin(
+      name = "dynamic_test",
+      documented = false,
+      doc = "Just a Test.",
+      category = StarlarkDocumentationCategory.BUILTIN)
+  public static class ThrowingCallable implements StarlarkValue {
+    @SuppressWarnings("unused")
+    @StarlarkMethod(
+        name = "throw_repo",
+        documented = false,
+        doc = "Throw repo exception.")
+    public String throwRepoException() throws RepoException  {
+     throw new RepoException("Oh noes");
+    }
   }
 
   @Test

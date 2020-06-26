@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -37,7 +38,7 @@ public interface Transformation extends StarlarkValue {
    * @throws IOException if an error occur during the access to the files
    * @throws ValidationException if an error attributable to the user happened
    */
-  void transform(TransformWork work) throws IOException, ValidationException;
+  void transform(TransformWork work) throws IOException, ValidationException, RepoException;
 
   /**
    * Returns a transformation which runs this transformation in reverse.

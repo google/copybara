@@ -245,7 +245,7 @@ public class SkylarkParser {
         EvalUtils.exec(file, module, thread);
       } catch (EvalException ex) {
         console.error(ex.getLocation() + ": " + ex.getMessage());
-        checkCondition(false, "Error loading config file");
+        throw new ValidationException("Error loading config file", ex);
       }
 
       pending.remove(content.path());

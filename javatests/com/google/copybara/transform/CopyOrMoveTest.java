@@ -60,7 +60,7 @@ public class CopyOrMoveTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation t) throws IOException, ValidationException {
+  private void transform(Transformation t) throws Exception {
     t.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 

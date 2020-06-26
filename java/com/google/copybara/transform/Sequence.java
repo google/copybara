@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -57,7 +58,7 @@ public class Sequence implements Transformation {
 
   @Override
   public void transform(TransformWork work)
-      throws IOException, ValidationException {
+      throws IOException, ValidationException, RepoException {
     if (sequence.size() == 1) {
       Transformation transform = sequence.get(0);
       logger.log(Level.INFO, transform.describe());
@@ -87,7 +88,7 @@ public class Sequence implements Transformation {
     work.updateFrom(localWork);
   }
 
-  private List<Transformation> getTransformations() {
+  private ImmutableList<Transformation> getTransformations() {
     if (!joinTransformations) {
       return sequence;
     }
@@ -106,11 +107,11 @@ public class Sequence implements Transformation {
     if (prev != null) {
       result.add(prev);
     }
-    return result;
+    return ImmutableList.copyOf(result);
   }
 
   private void runOneTransform(TransformWork work, Transformation transform)
-      throws IOException, ValidationException {
+      throws IOException, ValidationException, RepoException {
     try(ProfilerTask ignored = profiler.start(transform.describe().replace('/', ' '))) {
       transform.transform(work);
     }

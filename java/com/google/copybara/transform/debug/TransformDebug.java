@@ -30,6 +30,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.treestate.TreeState.FileState;
@@ -69,7 +70,8 @@ public final class TransformDebug implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public void transform(TransformWork work)
+      throws IOException, ValidationException, RepoException {
     Console console = work.getConsole();
     boolean fileDebug = false;
     if (debugOptions.getDebugFileBreak() != null) {

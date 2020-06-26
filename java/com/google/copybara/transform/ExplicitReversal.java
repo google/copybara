@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.MoreObjects;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
@@ -50,7 +51,7 @@ public final class ExplicitReversal implements Transformation {
 
   @Override
   public void transform(TransformWork work)
-      throws IOException, ValidationException {
+      throws IOException, ValidationException, RepoException {
     TransformWork newWork;
     if(ignoreNoop == null){
       // use parent ignoreNoop if current ignoreNoop is null

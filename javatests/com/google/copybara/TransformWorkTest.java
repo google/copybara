@@ -345,7 +345,7 @@ public class TransformWorkTest {
             .withTimestamp(ZonedDateTime.ofInstant(
                 Instant.ofEpochSecond(1591743457), ZoneId.of("UTC"))));
     assertThat(work.getLabel("COPYBARA_CURRENT_REV_DATE_TIME")).isEqualTo("2020-06-09T22:57:37Z");
-  }
+   }
 
   @Test
   public void testReversable() {
@@ -660,7 +660,7 @@ public class TransformWorkTest {
   }
 
   @Test
-  public void testSymlinks() throws IOException, ValidationException {
+  public void testSymlinks() throws Exception {
     Path base = Files.createDirectories(workdir.resolve("foo"));
     Files.write(Files.createDirectory(base.resolve("a")).resolve("file.txt"),
         "THE CONTENT".getBytes(UTF_8));

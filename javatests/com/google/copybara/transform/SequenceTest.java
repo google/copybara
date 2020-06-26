@@ -24,7 +24,6 @@ import com.google.common.jimfs.Jimfs;
 import com.google.common.truth.BooleanSubject;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.Glob;
@@ -89,7 +88,7 @@ public final class SequenceTest {
    * last one could be a safe one. But we shouldn't be able to reuse that cache.
    */
   @Test
-  public void testSequenceTreeStateIsNotCached_allGood() throws IOException, ValidationException {
+  public void testSequenceTreeStateIsNotCached_allGood() throws Exception {
     t1.useTreeState = true;
     t2.useTreeState = true;
     TransformWork work = cachedTreeStateTranformWork();
@@ -102,7 +101,7 @@ public final class SequenceTest {
   }
 
   @Test
-  public void testSequenceTreeStateIsNotCached_firstBad() throws IOException, ValidationException {
+  public void testSequenceTreeStateIsNotCached_firstBad() throws Exception {
     t1.useTreeState = false;
     t2.useTreeState = true;
     TransformWork work = cachedTreeStateTranformWork();

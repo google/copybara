@@ -23,7 +23,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
  * A {@link StarlarkBuiltin} that implements this interface will be given information about the
- * config files and resources loaded by theconfiguration.
+ * config files and resources loaded by the configuration.
  */
 public interface LabelsAwareModule {
 

@@ -133,7 +133,7 @@ public class TransformDebugTest {
         .thenReturn(answer, answers);
   }
 
-  private void runWorkflow() throws ValidationException, IOException {
+  private void runWorkflow() throws Exception {
     Workflow<?, ?> wf = (Workflow<?, ?>) skylark.loadConfig(""
         + "core.workflow(\n"
         + "    name = 'default',\n"

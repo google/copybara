@@ -40,7 +40,7 @@ public final class VerifyMatchTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation verifyMatch) throws IOException, ValidationException {
+  private void transform(Transformation verifyMatch) throws Exception {
     verifyMatch.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 

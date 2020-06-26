@@ -73,7 +73,7 @@ public final class ExplicitReversalTest {
     assertThat(explicit.describe()).isEqualTo("t1-foo");
   }
 
-  private void transform(Transformation transformation) throws IOException, ValidationException {
+  private void transform(Transformation transformation) throws Exception {
     transformation.transform(
         TransformWorks.of(get("/foo"), "test msg", console)
     );

@@ -555,7 +555,7 @@ public class MetadataModuleTest {
   }
 
   private void checkLabelChange(String msg, String transform, String expectedOutput)
-      throws ValidationException, IOException {
+      throws Exception {
     TransformWork tw = TransformWorks.of(workdir, msg, testingConsole)
         .withChanges(new Changes(ImmutableList.of(
             toChange(

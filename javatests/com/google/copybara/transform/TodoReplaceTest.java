@@ -320,7 +320,7 @@ public final class TodoReplaceTest {
     assertThatPath(checkoutDir).containsFile("one.txt", "// TODO(b/123, foo): Example");
   }
 
-  private TransformWork run(Transformation replace) throws IOException, ValidationException {
+  private TransformWork run(Transformation replace) throws Exception {
     TransformWork work = TransformWorks.of(checkoutDir, "testmsg", console);
     replace.transform(work);
     return work;

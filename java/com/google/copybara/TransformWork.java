@@ -226,7 +226,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               type = Object.class,
               doc = "A glob or a transform (Transforms still not implemented)"),
       })
-  public Object run(Object runnable) throws EvalException, IOException, ValidationException {
+  public Object run(Object runnable) throws
+      EvalException, IOException, ValidationException, RepoException {
     if (runnable instanceof Glob) {
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 

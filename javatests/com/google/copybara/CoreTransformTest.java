@@ -58,7 +58,7 @@ public final class CoreTransformTest {
     options.setConsole(console);
   }
 
-  private void transform(Transformation transform) throws IOException, ValidationException {
+  private void transform(Transformation transform) throws Exception {
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
@@ -78,7 +78,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void autoReversibleCheck() throws ValidationException, IOException {
+  public void autoReversibleCheck() throws Exception {
     ExplicitReversal t = skylark.eval("x", "x="
         + "core.transform([\n"
         + "    core.replace(\n"
@@ -107,7 +107,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void testOneLayerTransformWithNoop() throws ValidationException, IOException {
+  public void testOneLayerTransformWithNoop() throws Exception {
     ExplicitReversal t = skylark.eval("x", "x="
                 + "core.transform([\n"
                 + "    core.replace(\n"
@@ -155,7 +155,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void testSecondLayerWithInnerNoop() throws ValidationException, IOException {
+  public void testSecondLayerWithInnerNoop() throws Exception {
     String secondLayerTransform =
                 "core.transform([\n"
                 + "    core.replace(\n"
@@ -187,7 +187,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void testIgnoreNoopWithVerboseFalse() throws ValidationException, IOException {
+  public void testIgnoreNoopWithVerboseFalse() throws Exception {
     ExplicitReversal t = skylark.eval("x", "x="
         + "core.transform([\n"
             + "    core.replace(\n"
@@ -205,7 +205,7 @@ public final class CoreTransformTest {
   }
 
   @Test
-  public void testSecondLayerTransformWithOuterNoop() throws ValidationException, IOException {
+  public void testSecondLayerTransformWithOuterNoop() throws Exception {
     String secondLayerTransform =
         "core.transform([\n"
           + "    core.replace(\n"

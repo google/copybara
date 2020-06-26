@@ -118,7 +118,7 @@ public class RemoveTest {
         .contains("core.remove() is only mean to be used inside core.transform");
   }
 
-  private void transform(Transformation t) throws IOException, ValidationException {
+  private void transform(Transformation t) throws Exception {
     t.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 

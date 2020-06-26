@@ -25,6 +25,7 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
@@ -54,7 +55,7 @@ public class SkylarkTransformation implements Transformation {
 
   @Override
   public void transform(TransformWork work)
-      throws IOException, ValidationException {
+      throws IOException, ValidationException, RepoException {
     SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
     TransformWork skylarkWork = work.withConsole(skylarkConsole)
         .withParams(params);
@@ -72,6 +73,12 @@ public class SkylarkTransformation implements Transformation {
     } catch (EvalException e) {
       if (e.getCause() instanceof EmptyChangeException) {
         throw ((EmptyChangeException) e.getCause());
+      }
+      if (e.getCause() instanceof RepoException) {
+        throw new RepoException(
+            String.format(
+                "Error while executing the skylark transformation %s: %s. Location: %s",
+                function.getName(), e.getMessage(), e.getLocation()), e);
       }
       throw new ValidationException(
           String.format(

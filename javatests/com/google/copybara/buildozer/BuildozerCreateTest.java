@@ -56,7 +56,7 @@ public final class BuildozerCreateTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation transformation) throws IOException, ValidationException {
+  private void transform(Transformation transformation) throws Exception {
     transformation.transform(TransformWorks.of(checkoutDir, "test msg", console));
   }
 

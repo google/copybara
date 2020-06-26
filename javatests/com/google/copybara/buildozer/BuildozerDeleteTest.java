@@ -22,15 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.Transformation;
-
+import com.google.copybara.buildozer.testing.BuildozerTesting;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.buildozer.testing.BuildozerTesting;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.Before;
@@ -56,7 +54,7 @@ public final class BuildozerDeleteTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation transformation) throws IOException, ValidationException {
+  private void transform(Transformation transformation) throws Exception {
     transformation.transform(TransformWorks.of(checkoutDir, "test msg", console));
   }
 
@@ -159,8 +157,7 @@ public final class BuildozerDeleteTest {
             + "proto_library(name = \"baz\")\n");
   }
 
-  private void checkCanDeleteTarget(String extraArgs)
-      throws IOException, ValidationException {
+  private void checkCanDeleteTarget(String extraArgs) throws Exception {
     BuildozerDelete delete = skylark.eval("d", "d = "
         + "buildozer.delete(target = 'foo/bar:baz'," + extraArgs + ")");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
