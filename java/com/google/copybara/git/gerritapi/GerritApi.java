@@ -156,7 +156,14 @@ public class GerritApi {
     try (ProfilerTask ignore = profiler.start("gerrit_delete_reviewer_vote")) {
       transport.post(
           "/changes/" + changeId + "/reviewers/" + accountId + "/votes/"  + labelId + "/delete",
-          deleteVoteInput, DeleteVoteInput.class);
+          deleteVoteInput, Empty.class);
+    }
+  }
+
+  public ChangeInfo submitChange(String changeId, SubmitInput submitInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_submit_change")) {
+      return transport.post("/changes/" + changeId + "/submit", submitInput, ChangeInfo.class);
     }
   }
 }

@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.git.gerritapi.ChangeStatus.ABANDONED;
+import static com.google.copybara.git.gerritapi.ChangeStatus.MERGED;
 import static com.google.copybara.git.gerritapi.ChangeStatus.NEW;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_COMMIT;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
@@ -58,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -72,10 +74,12 @@ public class GerritApiTest {
   private static final String REVISION_ID = "674ac754f91e64a0efb8087e59a176484bd534d1";
 
   protected Map<Predicate<String>, byte[]> requestToResponse = Maps.newHashMap();
+  protected AtomicBoolean apiCalled;
 
   protected GerritApi gerritApi;
   private MockHttpTransport httpTransport;
   private Path credentialsFile;
+
 
   @Before
   public void setUp() throws Exception {
@@ -100,8 +104,10 @@ public class GerritApiTest {
             MockLowLevelHttpRequest request = new MockLowLevelHttpRequest();
             MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
             request.setResponse(response);
+            apiCalled = new AtomicBoolean(false);
             for (Entry<Predicate<String>, byte[]> entry : requestToResponse.entrySet()) {
               if (entry.getKey().test(requestString)) {
+                apiCalled.set(true);
                 byte[] content = entry.getValue();
                 assertWithMessage("'" + method + " " + url + "'").that(content).isNotNull();
                 if (content.length == 0) {
@@ -206,7 +212,10 @@ public class GerritApiTest {
   @Test
   public void testDeleteReviewer() throws Exception {
     mockResponse(new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers/12345/delete"), "");
+
     gerritApi.deleteReviewer(CHANGE_ID, 12345, new DeleteReviewerInput(NotifyType.ALL));
+
+    assertThat(apiCalled.get()).isTrue();
   }
 
   @Test
@@ -222,7 +231,10 @@ public class GerritApiTest {
   public void testAddReviewer() throws Exception {
     mockResponse(new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers"), ""
         + ")]}'\n" + mockAddReviewerResult());
+
     gerritApi.addReviewer(CHANGE_ID, new ReviewerInput("test@google.com"));
+
+    assertThat(apiCalled.get()).isTrue();
   }
 
   @Test
@@ -396,8 +408,11 @@ public class GerritApiTest {
   public void deleteViewerVote() throws Exception {
     mockResponse(new CheckRequest("POST",
         ".*/changes/.*/reviewers/123/votes/Code-Review/delete"), "");
+
     gerritApi.deleteVote(CHANGE_ID,
         "123", "Code-Review", new DeleteVoteInput(NotifyType.NONE));
+
+    assertThat(apiCalled.get()).isTrue();
   }
 
   @Test
@@ -407,6 +422,18 @@ public class GerritApiTest {
     } catch (GerritApiException e) {
       assertThat(e.getResponseCode()).isEqualTo(ResponseCode.NOT_FOUND);
     }
+  }
+
+  @Test
+  public void submitChange() throws Exception {
+    mockResponse(new CheckRequest("POST", ".*/changes/.*/submit"), ""
+        + ")]}'\n" + mockChangeInfo(MERGED));
+
+    ChangeInfo changeInfo =
+        gerritApi.submitChange(CHANGE_ID, new SubmitInput(NotifyType.NONE));
+
+    assertThat(apiCalled.get()).isTrue();
+    assertThat(changeInfo.getStatus()).isEqualTo(MERGED);
   }
 
   private static String mockReviewResult() throws IOException {
