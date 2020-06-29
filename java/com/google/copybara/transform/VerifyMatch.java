@@ -91,7 +91,7 @@ public final class VerifyMatch implements Transformation {
 
     ValidationException.checkCondition(
         size == 0,
-        "%d file(s) failed the validation of %s.", size, describe());
+        "%d file(s) failed the validation of %s, located at %s.", size, describe(), location);
   }
 
   private class BatchRun implements TransformFunc<FileState, List<String>> {
@@ -120,7 +120,7 @@ public final class VerifyMatch implements Transformation {
 
   @Override
   public String describe() {
-    return String.format("Verify match '%s', located at %s", pattern, location);
+    return String.format("Verify match '%s'", pattern);
   }
 
   @Override
