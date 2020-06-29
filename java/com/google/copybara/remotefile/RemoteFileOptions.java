@@ -16,9 +16,12 @@
 
 package com.google.copybara.remotefile;
 
+import com.beust.jcommander.Parameter;
 import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.jcommander.DurationConverter;
+import java.time.Duration;
 import java.util.function.Supplier;
 
 /**
@@ -26,7 +29,13 @@ import java.util.function.Supplier;
  */
 public class RemoteFileOptions implements Option {
 
-  Supplier<HttpStreamFactory> transport = Suppliers.memoize(() -> new GclientHttpStreamFactory());
+  @Parameter(names = "--remote-http-files-connection-timeout",
+      description = "Timeout for the fetch operation, e.g. 30s.",
+      converter = DurationConverter.class)
+  protected Duration connectionTimeout = Duration.ofSeconds(60L);
+
+  Supplier<HttpStreamFactory> transport = Suppliers.memoize(() -> new GclientHttpStreamFactory(
+      connectionTimeout));
 
   protected HttpStreamFactory getTransport() throws ValidationException {
     return transport.get();

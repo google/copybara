@@ -17,16 +17,21 @@
 package com.google.copybara.remotefile;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.http.LowLevelHttpRequest;
+import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
+import com.google.copybara.exception.RepoException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,7 +68,7 @@ public class GithubArchiveTest {
           }
         };
     RemoteFileOptions options = new RemoteFileOptions();
-    options.transport = () -> new GclientHttpStreamFactory(httpTransport);
+    options.transport = () -> new GclientHttpStreamFactory(httpTransport, Duration.ofSeconds(20));
     Console console = new TestingConsole();
     OptionsBuilder optionsBuilder = new OptionsBuilder().setConsole(console);
     optionsBuilder.remoteFile = options;
@@ -103,5 +108,32 @@ public class GithubArchiveTest {
             + "revision='674ac754f91e64a0efb8087e59a176484bd534d1',"
             + "type='FOO')",
         "Unsupported archive type: 'FOO'. Supported values: \\[TARBALL, ZIP\\]");
+  }
+
+  @Test
+  public void repoExceptionOnDownloadFailure() throws Exception {
+    httpTransport =
+        new MockHttpTransport() {
+          @Override
+          public LowLevelHttpRequest buildRequest(String method, String url) {
+             MockLowLevelHttpRequest request = new MockLowLevelHttpRequest() {
+                public LowLevelHttpResponse execute() throws IOException {
+                  throw new IOException("OH NOES!");
+                }
+             };
+            return request;
+          }
+        };
+    RemoteFileOptions options = new RemoteFileOptions();
+    options.transport = () -> new GclientHttpStreamFactory(httpTransport, Duration.ofSeconds(20));
+    Console console = new TestingConsole();
+    OptionsBuilder optionsBuilder = new OptionsBuilder().setConsole(console);
+    optionsBuilder.remoteFile = options;
+    skylark = new SkylarkTestExecutor(optionsBuilder);
+    ValidationException e = assertThrows(ValidationException.class, () -> skylark.eval("sha256",
+        "sha256 = remotefiles.github_archive("
+            + "project = 'google/copybara',"
+            + "revision='674ac754f91e64a0efb8087e59a176484bd534d1').sha256()"));
+    assertThat(e).hasCauseThat().hasCauseThat().hasCauseThat().isInstanceOf(RepoException.class);
   }
 }

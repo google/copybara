@@ -25,6 +25,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.time.Duration;
 
 /**
  * A HttpStreamFactory wrapping the Google GHttp Client without side effects
@@ -32,19 +33,22 @@ import java.net.URL;
 public class GclientHttpStreamFactory implements HttpStreamFactory {
 
   private final HttpTransport javaNet;
+  private final Duration timeout;
 
 
-  GclientHttpStreamFactory() {
-    this(new NetHttpTransport());
+  GclientHttpStreamFactory(Duration timeout) {
+    this(new NetHttpTransport(), timeout);
   }
 
-  public GclientHttpStreamFactory(HttpTransport javaNet) {
+  public GclientHttpStreamFactory(HttpTransport javaNet, Duration timeout) {
     this.javaNet = checkNotNull(javaNet);
+    this.timeout = checkNotNull(timeout);
   }
 
   @Override
   public InputStream open(URL url) throws IOException {
-    HttpRequest req = javaNet.createRequestFactory().buildGetRequest(new GenericUrl(url));
+    HttpRequest req = javaNet.createRequestFactory().buildGetRequest(new GenericUrl(url))
+        .setConnectTimeout((int) timeout.getSeconds());
     return req.execute().getContent();
   }
 }
