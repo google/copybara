@@ -63,6 +63,7 @@ import com.google.copybara.hg.HgRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
+import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
@@ -78,6 +79,12 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -97,11 +104,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -3049,6 +3051,58 @@ public class WorkflowTest {
         .containsExactly("file://" + origin.getWorkTree());
     assertThat(info.destinationDescription().get("url"))
         .containsExactly("file://" + destination.getWorkTree());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void testToFolderFlag() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    Path destinationPath = Files.createTempDirectory("destination");
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository destination =
+        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+
+    String config = "core.workflow("
+        + "    name = '" + "default" + "',"
+        + "    origin = git.origin("
+        + "        url = 'file://" + origin.getWorkTree() + "',\n"
+        + "        ref = 'master',\n"
+        + "    ),\n"
+        + "    destination = git.destination("
+        + "        url = 'file://" + destination.getWorkTree() + "',\n"
+        + "    ),\n"
+        + "    authoring = " + authoring + ","
+        + "    mode = '" + WorkflowMode.ITERATIVE + "',"
+        + ")\n";
+
+    Files.write(originPath.resolve("foo.txt"), "change".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    String firstCommit = origin.parseRef("HEAD");
+
+    options.workflowOptions.toFolder = true;
+    options.general.squash = true;
+
+    Path localFolder = Files.createTempDirectory("local_folder");
+    options.folderDestination.localFolder = localFolder.toString();
+
+    options.setWorkdirToRealTempDir();
+    // Pass custom HOME directory so that we run an hermetic test and we
+    // can add custom configuration to $HOME/.gitconfig.
+    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setHomeDir(Files.createTempDirectory("home").toString());
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.workflowOptions.checkLastRevState = true;
+
+    loadConfig(config).getMigration("default").
+        run(Files.createTempDirectory("checkout"), ImmutableList.of());
+
+    FileSubjects.assertThatPath(localFolder)
+        .containsFile("foo.txt", "change")
+        .containsNoMoreFiles();
+
+    assertThrows(CannotResolveRevisionException.class, () -> destination.resolveReference("HEAD"));
   }
 
 

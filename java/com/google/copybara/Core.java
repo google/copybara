@@ -38,6 +38,9 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.SkylarkAction;
+import com.google.copybara.folder.FolderDestination;
+import com.google.copybara.folder.FolderDestinationOptions;
+import com.google.copybara.folder.FolderModule;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
@@ -100,15 +103,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   private final GeneralOptions generalOptions;
   private final WorkflowOptions workflowOptions;
   private final DebugOptions debugOptions;
+  private FolderModule folderModule;
+  private FolderDestinationOptions folderDestinationOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private StarlarkThread.PrintHandler printHandler;
 
   public Core(
-      GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions) {
+      GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions,
+  FolderModule folderModule) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.debugOptions = Preconditions.checkNotNull(debugOptions);
+    this.folderModule = Preconditions.checkNotNull(folderModule);
   }
 
   @SuppressWarnings("unused")
@@ -457,6 +464,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum("mode", modeStr, WorkflowMode.class);
+
+    // Overwrite destination for testing workflow locally
+    if (workflowOptions.toFolder) {
+      destination = folderModule.destination();
+    }
 
     Sequence sequenceTransform =
         Sequence.fromConfig(

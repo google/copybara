@@ -47,10 +47,12 @@ import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
+
+import net.starlark.java.annot.StarlarkBuiltin;
+
 import java.nio.file.FileSystem;
 import java.util.Map;
 import java.util.function.Function;
-import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -83,13 +85,15 @@ public class ModuleSupplier {
    */
   public ImmutableSet<Object> getModules(Options options) {
     GeneralOptions general = options.get(GeneralOptions.class);
+    FolderModule folderModule = new FolderModule(
+        options.get(FolderOriginOptions.class),
+        options.get(FolderDestinationOptions.class),
+        general);
     return ImmutableSet.of(
-        new Core(general, options.get(WorkflowOptions.class), options.get(DebugOptions.class)),
+        new Core(general, options.get(WorkflowOptions.class), options.get(DebugOptions.class),
+                 folderModule),
         new GitModule(options), new HgModule(options),
-        new FolderModule(
-            options.get(FolderOriginOptions.class),
-            options.get(FolderDestinationOptions.class),
-            general),
+        folderModule,
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
         new BuildozerModule(
