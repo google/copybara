@@ -26,6 +26,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Change;
@@ -57,6 +59,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -64,6 +67,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 /**
@@ -256,15 +260,18 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Override
     public String getPushReference(String pushToRefsFor, TransformResult transformResult)
         throws ValidationException {
-      ImmutableList<String> reviewers =
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate);
-      ImmutableList<String> cc =
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate);
-      ImmutableList<String> labels =
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate);
-      List<String> options = new ArrayList<>();
+      List<String> components = Splitter.on('%').limit(2).splitToList(pushToRefsFor);
+
+      Multimap<String, String> options = LinkedHashMultimap.create();
+      if (components.size() > 1) {
+        for (Entry<String, String> entry : Splitter.on(',').withKeyValueSeparator('=')
+            .split(components.get(1)).entrySet()) {
+          options.put(entry.getKey(), entry.getValue());
+        }
+      }
+
       if (notifyOption != null) {
-        options.add("notify=" + notifyOption);
+        options.put("notify", notifyOption.toString());
       }
 
       String topic = null;
@@ -286,24 +293,25 @@ public final class GerritDestination implements Destination<GitRevision> {
         }
         topic = gerritOptions.gerritTopic;
       }
+
       if (topic != null) {
-        options.add("topic=" + topic);
+        options.put("topic", topic);
       }
-      if (!reviewers.isEmpty()) {
-        options.add(asGerritParam("r", reviewers));
+
+      options.putAll("r",
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate));
+
+      options.putAll("cc",
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate));
+
+      options.putAll("label",
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate));
+
+      String result = components.get(0);
+      if (!options.isEmpty()) {
+        result += "%" + Joiner.on(',').withKeyValueSeparator('=').join(options.entries());
       }
-      if (!cc.isEmpty()) {
-        options.add(asGerritParam("cc", cc));
-      }
-      if (!labels.isEmpty()) {
-        options.add(asGerritParam("label", labels));
-      }
-      return options.isEmpty() ? pushToRefsFor : pushToRefsFor +
-          // Don't add % if the push_to_refs_for reference already contains '%'. This happens
-          // if labels or other things are set in the push ref (For things we don't have support
-          // as specific fields).
-          (pushToRefsFor.contains("%") ? ',' : '%')
-          + Joiner.on(',').join(options);
+      return result;
     }
 
     private static String asGerritParam(String param, ImmutableList<String> values) {
