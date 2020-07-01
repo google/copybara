@@ -1561,6 +1561,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "Sets the topic of the Gerrit change created.<br><br>"
                     + "By default it sets no topic. This field accepts a template with labels. "
                     + "For example: `\"topic_${CONTEXT_REFERENCE}\"`"),
+          @Param(
+              name = "gerrit_submit",
+              type = Boolean.class,
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "By default, Copybara uses git commit/push to the main branch when submit = True."
+                      + "  If this flag is enabled, it will update the Gerrit change with the "
+                      + "latest commit and submit using Gerrit."),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1580,9 +1590,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object checkerObj,
       Object integrates,
       Object topicObj,
+      Boolean gerritSubmit,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
+    if (gerritSubmit) {
+      Preconditions.checkArgument(submit, "Only set gerrit_submit if submit is true");
+    }
 
     List<String> newReviewers = SkylarkUtil.convertStringList(reviewers, "reviewers");
     List<String> cc = SkylarkUtil.convertStringList(ccParam, "cc");
@@ -1623,7 +1637,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         EvalUtils.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        topicStr);
+        topicStr,
+        gerritSubmit);
   }
 
   @SuppressWarnings("unused")

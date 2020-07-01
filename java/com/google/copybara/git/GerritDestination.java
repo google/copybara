@@ -24,6 +24,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -53,7 +54,12 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
+import com.google.copybara.git.gerritapi.DeleteVoteInput;
+import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.IncludeResult;
+import com.google.copybara.git.gerritapi.NotifyType;
+import com.google.copybara.git.gerritapi.SetReviewInput;
+import com.google.copybara.git.gerritapi.SubmitInput;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -117,6 +123,7 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Nullable
     private final String topicTemplate;
     private final boolean partialFetch;
+    private final boolean gerritSubmit;
 
     GerritWriteHook(
         GeneralOptions generalOptions,
@@ -131,7 +138,8 @@ public final class GerritDestination implements Destination<GitRevision> {
         @Nullable Checker endpointChecker,
         @Nullable NotifyOption notifyOption,
         @Nullable String topicTemplate,
-        boolean partialFetch) {
+        boolean partialFetch,
+        boolean gerritSubmit) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -146,6 +154,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.labelsTemplate = labelsTemplate;
       this.topicTemplate = topicTemplate;
       this.partialFetch = partialFetch;
+      this.gerritSubmit = gerritSubmit;
     }
 
     /**
@@ -243,7 +252,6 @@ public final class GerritDestination implements Destination<GitRevision> {
       if (allowEmptyDiffPatchSet || gerritMessageInfo.newReview) {
         return;
       }
-
       // Keep old HEAD state, prefer the symbolic-ref (branch name) if possible so that it works
       // with local repos.
       String oldHead;
@@ -254,14 +262,10 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
 
       try (ProfilerTask ignore = generalOptions.profiler().start("previous_patchset_check")) {
-        List<ChangeInfo> changes = findChanges(gerritMessageInfo.changeId,
-            ImmutableList.of(IncludeResult.CURRENT_REVISION));
-        if (changes.isEmpty()) {
-          return; // Probably CLI flag
+        ChangeInfo changeInfo = findChange(gerritMessageInfo.changeId);
+        if (changeInfo == null) {
+          return;
         }
-
-        ChangeInfo changeInfo = changes.get(0);
-
         try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_previous_patchset")) {
           repo.fetch(repoUrl, /*prune=*/ false, /*force=*/ true,
               ImmutableList.of(changeInfo.getCurrentRevision()), partialFetch);
@@ -291,6 +295,46 @@ public final class GerritDestination implements Destination<GitRevision> {
 
       } finally {
         repo.forceCheckout(oldHead);
+      }
+    }
+
+    @Nullable
+    private  ChangeInfo findChange(String changeId) throws ValidationException, RepoException {
+      List<ChangeInfo> changes = findChanges(changeId,
+          ImmutableList.of(IncludeResult.CURRENT_REVISION));
+      if (changes.isEmpty()) {
+        return null;
+      }
+      ChangeInfo changeInfo = changes.get(0);
+      return changeInfo;
+    }
+
+    private void submitChange(String changeId)
+        throws RepoException, ValidationException {
+      try (ProfilerTask ignore = generalOptions.profiler().start("submit_gerrit_change")) {
+        ChangeInfo changeInfo = findChange(changeId);
+        if (changeInfo == null) {
+          return;
+        }
+        GerritApi gerritApi = gerritOptions.newGerritApi(repoUrl);
+        // Default selfReview before submitchange. We might consider to let users decide whether
+        // do the selfReview before submitChange in future on demand. The main reason is that there
+        // are two ways make a gerrit change submittable. One is selfReview, the other is prolog
+        // config.
+        gerritApi.setReview(changeInfo.getChangeId(), changeInfo.getCurrentRevision(),
+            new SetReviewInput("", ImmutableMap
+                .of("Code-Review", 2)));
+        try {
+          ChangeInfo resultInfo =
+              gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
+          console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
+        } catch (RepoException | ValidationException e) {
+          // remove code-review if submitChange failed to avoid the change being manually
+          // submitted.
+          gerritApi.deleteVote(changeInfo.getChangeId(), "me", "Code-Review",
+              new DeleteVoteInput(NotifyType.NONE));
+          throw e;
+        }
       }
     }
 
@@ -378,9 +422,12 @@ public final class GerritDestination implements Destination<GitRevision> {
     @Override
     public ImmutableList<DestinationEffect> afterPush(String serverResponse,
         MessageInfo messageInfo, GitRevision pushedRevision,
-        List<? extends Change<?>> originChanges) {
+        List<? extends Change<?>> originChanges) throws ValidationException, RepoException {
       // Should be the message info returned by generateMessageInfo
       GerritMessageInfo gerritMessageInfo = (GerritMessageInfo) messageInfo;
+      if (gerritSubmit) {
+        submitChange(gerritMessageInfo.changeId);
+      }
       ImmutableList.Builder<DestinationEffect> result = ImmutableList.<DestinationEffect>builder()
               .add(new DestinationEffect(
                   DestinationEffect.Type.CREATED,
@@ -402,6 +449,9 @@ public final class GerritDestination implements Destination<GitRevision> {
         String changeNum = url.substring(url.lastIndexOf("/") + 1);
         message = message + url;
         console.info(message);
+        if (gerritSubmit) {
+          message = message + ".\n Submited the change through API.";
+        }
         result.add(
             new DestinationEffect(
                 gerritMessageInfo.newReview
@@ -557,10 +607,12 @@ public final class GerritDestination implements Destination<GitRevision> {
       List<String> labels,
       @Nullable Checker endpointChecker,
       Iterable<GitIntegrateChanges> integrates,
-      @Nullable String topicTemplate) {
+      @Nullable String topicTemplate,
+      boolean gerritSubmit) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    String push = submit ? pushToRefsFor : String.format("refs/for/%s", pushToRefsFor);
+    String push = submit && !gerritSubmit
+        ? pushToRefsFor : String.format("refs/for/%s", pushToRefsFor);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     return new GerritDestination(
         new GitDestination(
@@ -586,7 +638,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 endpointChecker,
                 notifyOption,
                 topicTemplate,
-                partialFetch),
+                partialFetch,
+                gerritSubmit),
             integrates),
         submit);
   }

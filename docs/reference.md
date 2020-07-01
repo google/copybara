@@ -2034,7 +2034,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None)`
+`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None, gerrit_submit=False)`
 
 
 #### Parameters:
@@ -2055,6 +2055,7 @@ labels | `sequence`<br><p>The list of labels to be pushed with the change. The f
 api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 topic | `string`<br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
+gerrit_submit | `boolean`<br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
 
 
 

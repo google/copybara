@@ -18,11 +18,15 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
+import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
@@ -55,6 +59,7 @@ import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.GerritMessageInfo;
 import com.google.copybara.git.GerritDestination.GerritWriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.git.gerritapi.GerritApiException;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyEndpoint;
 import com.google.copybara.testing.DummyOrigin;
@@ -64,6 +69,8 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
+import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -76,6 +83,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -118,6 +126,7 @@ public class GerritDestinationTest {
       + "<o> [master] ~/dev/copybara$\n";
 
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
+  private static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
 
   private String url;
   private String fetch;
@@ -147,7 +156,6 @@ public class GerritDestinationTest {
     assertWithMessage(
         "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody())
         .that(line).isNotNull();
-
     return line;
   }
 
@@ -252,7 +260,7 @@ public class GerritDestinationTest {
             + "hashtag:%22copybara_id_origin_ref2_commiter@email%22%20AND"
             + "%20project:foo/bar%20AND%20status:NEW"),
         mockResponse("[]"));
-    
+
     writeFile(workdir, "file", "some content");
 
     options.setForce(true);
@@ -350,7 +358,13 @@ public class GerritDestinationTest {
         .setOutputRootToTmpDir();
 
     gitUtil = new GitTestUtil(options);
-    gitUtil.mockRemoteGitRepos();
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, BASE_URL.getBytes(UTF_8));
+    GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
+        .init()
+        .withCredentialHelper("store --file=" + credentialsFile);
+    gitUtil.mockRemoteGitRepos(new Validator(), repo);
 
     options.gitDestination = new GitDestinationOptions(options.general, options.git);
     options.gitDestination.committerEmail = "commiter@email";
@@ -620,6 +634,196 @@ public class GerritDestinationTest {
     assertThat(result.get(0).getErrors()).isEmpty();
     assertPushRef("refs/for/master%topic=testTopic,hashtag=copybara_id_origin_ref_commiter@email,"
         + "r=foo@example.com");
+  }
+
+  @Test
+  public void configFailed_gerritSubmitFalse() {
+    IllegalArgumentException illegalArgumentException =
+        assertThrows(IllegalArgumentException.class,
+            () -> destination("submit = False", "gerrit_submit = True"));
+    assertThat(illegalArgumentException).hasMessageThat()
+        .contains("Only set gerrit_submit if submit is true");
+  }
+
+  @Test
+  public void gerritSubmit_success() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(eq("GET"), startsWith(BASE_URL +  "/changes/"),
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"NEW\""
+                + "}]")
+        );
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    AtomicBoolean reviewCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseAndValidateRequest("{\"labels\": { \"Code-Review\": 2}}",
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  reviewCalled.set(true);
+                  return true;
+                })));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseAndValidateRequest(
+            "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"submitted\""
+                + "}",
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                }))
+    );
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString()),
+                glob,
+                console);
+
+    assertThat(reviewCalled.get()).isTrue();
+    assertThat(submitCalled.get()).isTrue();
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+
+  }
+
+  @Test
+  public void gerritSubmit_noChange() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(eq("GET"), startsWith(BASE_URL +  "/changes/"),
+        mockResponse("[]")
+    );
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    AtomicBoolean reviewCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseWithStatus("", 204,
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  reviewCalled.set(true);
+                  return true;
+                })));
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseWithStatus("", 204,
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                }))
+    );
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString()),
+                glob,
+                console);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(submitCalled.get()).isFalse();
+    assertThat(reviewCalled.get()).isFalse();
+  }
+
+  @Test
+  public void gerritSubmit_fail() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(eq("GET"), startsWith(BASE_URL +  "/changes/"),
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \"12345\","
+                + "  status : \"NEW\""
+                + "}]")
+    );
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponse("{\"labels\": { \"Code-Review\": 2}}"));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseWithStatus(
+            "Submit failed.", 403)
+    );
+    AtomicBoolean deleteVoteCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        startsWith(BASE_URL + "/changes/12345/reviewers/me/votes/Code-Review/delete"),
+        mockResponseWithStatus("", 204,
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  deleteVoteCalled.set(true);
+                  return true;
+                })));
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+
+    WriterContext writerContext =
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
+
+    GerritApiException gerritApiException =
+        assertThrows(GerritApiException.class,
+          () -> destination
+              .newWriter(writerContext)
+              .write(
+                  TransformResults.of(workdir, originRef)
+                      .withSummary("Test message")
+                      .withIdentity(originRef.asString()),
+                  glob,
+                  console));
+
+    assertThat(gerritApiException).hasMessageThat().contains("Submit failed");
   }
 
   @Test
@@ -1181,7 +1385,8 @@ public class GerritDestinationTest {
             /*endpointChecker=*/ null,
             /*notifyOption*/ null,
             /*topicTemplate*/ null,
-            /*partialFetch*/ false);
+            /*partialFetch*/ false,
+            /*gerritSubmit*/ false);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
