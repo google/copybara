@@ -87,6 +87,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final String COPYBARA_CONTEXT_REFERENCE_LABEL = "COPYBARA_CONTEXT_REFERENCE";
+  // This is an alias which got usage by being supported for some fields.
+  // TODO (hsudhof) remove usage and port other code that implements labels without TransformWork
+  static final String CONTEXT_REFERENCE_LABEL = "CONTEXT_REFERENCE";
+
   static final String COPYBARA_LAST_REV = "COPYBARA_LAST_REV";
   static final String COPYBARA_CURRENT_REV = "COPYBARA_CURRENT_REV";
   static final String COPYBARA_CURRENT_REV_DATE_TIME = "COPYBARA_CURRENT_REV_DATE_TIME";
@@ -675,6 +679,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     labels.put(COPYBARA_CONTEXT_REFERENCE_LABEL, ctxRef == null
         ? ImmutableList.of()
         : ImmutableList.of(ctxRef));
+    // Alias to capture a parallel development
+    labels.put(CONTEXT_REFERENCE_LABEL, labels.get(COPYBARA_CONTEXT_REFERENCE_LABEL));
 
     labels.put(COPYBARA_LAST_REV, lastRev == null
         ? ImmutableList.of()

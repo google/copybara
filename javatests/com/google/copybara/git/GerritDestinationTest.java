@@ -33,13 +33,19 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.Changes;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.LabelFinder;
+import com.google.copybara.Metadata;
+import com.google.copybara.MigrationInfo;
+import com.google.copybara.TransformWork;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
@@ -50,6 +56,7 @@ import com.google.copybara.git.GerritDestination.GerritMessageInfo;
 import com.google.copybara.git.GerritDestination.GerritWriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.DummyEndpoint;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -220,11 +227,25 @@ public class GerritDestinationTest {
     WriterContext writerContext =
         new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
             Glob.ALL_FILES.roots());
+    Writer<GitRevision> gitRevisionWriter = destination.newWriter(writerContext);
+    // This is largely unused, except for the label finder.
+    TransformWork work =
+        new TransformWork(
+            workdir,
+            new Metadata("Desc", new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
+            Changes.EMPTY,
+            console,
+            new MigrationInfo(DummyOrigin.LABEL_NAME, null),
+            originRef,
+            /*ignoreNoop=*/ false,
+            console -> new DummyEndpoint(),
+            console -> gitRevisionWriter.getFeedbackEndPoint(console),
+            () -> gitRevisionWriter.getDestinationReader(console, null, workdir)
+        );
     ImmutableList<DestinationEffect> result =
-        destination
-            .newWriter(writerContext)
+        gitRevisionWriter
             .write(
-                TransformResults.of(workdir, originRef)
+                TransformResults.of(workdir, originRef).withLabelFinder(work::getAllLabels)
                     .withIdentity(originRef.asString()),
                 Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths),
                 console);

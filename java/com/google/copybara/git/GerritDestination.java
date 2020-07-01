@@ -59,15 +59,12 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.UUID;
-
 import javax.annotation.Nullable;
 
 /**
@@ -277,15 +274,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       String topic = null;
       if (topicTemplate != null) {
         topic =
-            SkylarkUtil.mapLabels(
-                s ->
-                    s.equals("CONTEXT_REFERENCE")
-                        ? ImmutableList.of(
-                            Objects.requireNonNull(
-                                transformResult.getCurrentRevision().contextReference()))
-                        : ImmutableList.of(s),
-                topicTemplate,
-                "topic");
+            SkylarkUtil.mapLabels(transformResult.getLabelFinder(), topicTemplate, "topic");
       }
       if (!Strings.isNullOrEmpty(gerritOptions.gerritTopic)) {
         if (topic != null) {
