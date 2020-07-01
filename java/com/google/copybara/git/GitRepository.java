@@ -548,7 +548,7 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  ImmutableMap<String, GitRevision> showRef() throws RepoException {
+  public ImmutableMap<String, GitRevision> showRef() throws RepoException {
     return showRef(ImmutableList.of());
   }
 

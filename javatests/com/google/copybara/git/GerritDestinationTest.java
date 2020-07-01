@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.writeFile;
@@ -32,6 +33,7 @@ import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -59,13 +61,22 @@ import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyEndpoint;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
+import com.google.copybara.testing.FileSubjects.PathSubject;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -74,11 +85,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.stubbing.Answer;
+import java.util.Map.Entry;
+import java.util.Optional;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -128,45 +136,25 @@ public class GerritDestinationTest {
 
   private GitTestUtil gitUtil;
 
-  @Before
-  public void setup() throws Exception {
-    workdir = Files.createTempDirectory("workdir");
+  private static String lastCommitChangeIdLineForRef(String gitRef, String originRef,
+      GitRepository repo) throws RepoException {
+    GitLogEntry log = Iterables.getOnlyElement(repo.log(getGerritRef(repo, gitRef))
+        .withLimit(1).run());
+    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
+    String line = null;
+    for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
+      if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
+        assertWithMessage(log.getBody() + " has a Change-Id label that doesn't"
+            + " match the regex").that(label.getValue()).matches("I[0-9a-f]{40}$");
+        assertThat(line).isNull(); // Multiple Change-Ids are not allowed.
+        line = label.getLine();
+      }
+    }
+    assertWithMessage(
+        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody())
+        .that(line).isNotNull();
 
-    console = new TestingConsole();
-    options = new OptionsBuilder()
-        .setConsole(console)
-        .setOutputRootToTmpDir();
-
-    gitUtil = new GitTestUtil(options);
-    gitUtil.mockRemoteGitRepos();
-
-    options.gitDestination = new GitDestinationOptions(options.general, options.git);
-    options.gitDestination.committerEmail = "commiter@email";
-    options.gitDestination.committerName = "Bara Kopi";
-    excludedDestinationPaths = ImmutableList.of();
-
-    repoGitDir = gitUtil.mockRemoteRepo("localhost:33333/foo/bar").getGitDir();
-    url = "https://localhost:33333/foo/bar";
-    repo().init();
-
-    skylark = new SkylarkTestExecutor(options);
-
-    when(gitUtil
-            .httpTransport()
-            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
-        .then(
-            (Answer<LowLevelHttpRequest>)
-                invocation -> {
-                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
-                  return mockResponse(
-                      "["
-                          + "{"
-                          + "  change_id : \""
-                          + change
-                          + "\","
-                          + "  status : \"NEW\""
-                          + "}]");
-                });
+    return line;
   }
 
   private String changeIdFromRequest(String url) {
@@ -198,23 +186,20 @@ public class GerritDestinationTest {
     return lastCommitChangeIdLineForRef("refs/for/master", ref, repo);
   }
 
-  private static String lastCommitChangeIdLineForRef(String gitRef, String originRef,
-      GitRepository repo) throws RepoException {
-    GitLogEntry log = Iterables.getOnlyElement(repo.log(gitRef).withLimit(1).run());
-    assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
-    String line = null;
-    for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
-      if (label.isLabel(GerritDestination.CHANGE_ID_LABEL)) {
-        assertThat(label.getValue()).matches("I[0-9a-f]{40}$");
-        assertThat(line).isNull(); // Multiple Change-Ids are not allowed.
-        line = label.getLine();
-      }
+  /**
+   * Given a reference like refs/heads/master returns a reference created in the fake gerrit
+   * (Something like refs/heads/master%somelabel=value).
+   */
+  private static String getGerritRef(GitRepository repo, String ref)
+      throws RepoException {
+    ImmutableSet<String> refs = repo.showRef().keySet();
+    Optional<String> first = refs.stream()
+        .filter(e -> e.equals(ref) || e.startsWith(ref + "%")).findFirst();
+    if (!first.isPresent()) {
+      assertWithMessage("Cannot find reference " + ref + " in repo. Refs:\n    "
+      + Joiner.on("\n    ").join(refs)).fail();
     }
-    assertWithMessage(
-        "Cannot find " + GerritDestination.CHANGE_ID_LABEL + " in:\n" + log.getBody())
-        .that(line).isNotNull();
-
-    return line;
+    return first.get();
   }
 
   private void process(DummyRevision originRef)
@@ -260,6 +245,20 @@ public class GerritDestinationTest {
   public void gerritChangeIdChangesBetweenCommits() throws Exception {
     fetch = "master";
 
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse("[]"));
+
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref2_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse("[]"));
+    
     writeFile(workdir, "file", "some content");
 
     options.setForce(true);
@@ -268,7 +267,7 @@ public class GerritDestinationTest {
     String firstChangeIdLine = lastCommitChangeIdLine("origin_ref", repo());
 
     writeFile(workdir, "file2", "some more content");
-    git("branch", "master", "refs/for/master");
+    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
     options.setForce(false);
     process(new DummyRevision("origin_ref2"));
 
@@ -289,7 +288,7 @@ public class GerritDestinationTest {
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
 
-    git("branch", "master", "refs/for/master");
+    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
 
     writeFile(workdir, "file", "some different content");
 
@@ -344,49 +343,52 @@ public class GerritDestinationTest {
     return GerritDestination.CHANGE_ID_LABEL + ": " + changeId;
   }
 
-  @Test
-  public void reuseChangeId() throws Exception {
-    fetch = "master";
+  @Before
+  public void setup() throws Exception {
+    workdir = Files.createTempDirectory("workdir");
 
-    writeFile(workdir, "file", "some content");
+    console = new TestingConsole();
+    options = new OptionsBuilder()
+        .setConsole(console)
+        .setOutputRootToTmpDir();
 
-    options.setForce(true);
-    options.gerrit.gerritChangeId = null;
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
 
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+    excludedDestinationPaths = ImmutableList.of();
+
+    repoGitDir = gitUtil.mockRemoteRepo("localhost:33333/foo/bar").getGitDir();
     url = "https://localhost:33333/foo/bar";
-    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
-    mockNoChangesFound();
+    repo().init();
 
-    process(new DummyRevision("origin_ref"));
-    String changeId = lastCommitChangeIdLine("origin_ref", repo);
-    assertThat(changeId).matches(GerritDestination.CHANGE_ID_LABEL + ": I[a-z0-9]+");
-    LabelFinder labelFinder = new LabelFinder(changeId);
+    skylark = new SkylarkTestExecutor(options);
 
-    writeFile(workdir, "file", "some different content");
-    String expected =
-        "https://localhost:33333/changes/?q=change:%20"
-            + labelFinder.getValue()
-            + "%20AND%20project:foo/bar";
+    when(gitUtil
+            .httpTransport()
+            .buildRequest(eq("GET"), startsWith("https://localhost:33333/changes/")))
+        .then(
+            (Answer<LowLevelHttpRequest>)
+                invocation -> {
+                  String change = changeIdFromRequest((String) invocation.getArguments()[1]);
+                  return mockResponse(
+                      "["
+                          + "{"
+                          + "  change_id : \""
+                          + change
+                          + "\","
+                          + "  status : \"NEW\""
+                          + "}]");
+                });
 
     gitUtil.mockApi(
-        "GET",
-        expected,
-        mockResponse(
-            "["
-                + "{"
-                + "  change_id : \""
-                + labelFinder.getValue()
-                + "\","
-                + "  status : \"NEW\""
-                + "}]"));
-
-    // Allow to push again in a non-fastforward way.
-    repo.simpleCommand("update-ref", "-d", "refs/for/master");
-    process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref", repo)).isEqualTo(changeId);
-    GitTesting.assertThatCheckout(repo, "refs/for/master")
-        .containsFile("file", "some different content")
-        .containsNoMoreFiles();
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse("[]"));
   }
 
   private void mockNoChangesFound() throws IOException {
@@ -531,13 +533,58 @@ public class GerritDestinationTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
 
-    String changeId = lastCommitChangeIdLineForRef("master", "origin_ref", repo)
+    String changeId = lastCommitChangeIdLineForRef("refs/heads/master", "origin_ref", repo)
         .replace("Change-Id: ", "").trim();
-    
+
     assertThat(changeId).isNotNull();
     assertThat(destination.getType()).isEqualTo("git.destination");
     assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
     assertThat(destination.describe(glob).get("push")).isEqualTo(ImmutableSet.of("master"));
+  }
+
+  @Test
+  public void reuseChangeId() throws Exception {
+    fetch = "master";
+
+    writeFile(workdir, "file", "some content");
+
+    options.setForce(true);
+    options.gerrit.gerritChangeId = null;
+
+    url = "https://localhost:33333/foo/bar";
+    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
+    mockNoChangesFound();
+
+    process(new DummyRevision("origin_ref"));
+    String changeId = lastCommitChangeIdLine("origin_ref", repo);
+    assertThat(changeId).matches(GerritDestination.CHANGE_ID_LABEL + ": I[a-z0-9]+");
+    LabelFinder labelFinder = new LabelFinder(changeId);
+
+    writeFile(workdir, "file", "some different content");
+    String expected =
+        "https://localhost:33333/changes/?q=change:%20"
+            + labelFinder.getValue()
+            + "%20AND%20project:foo/bar";
+
+    gitUtil.mockApi(
+        "GET",
+        expected,
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \""
+                + labelFinder.getValue()
+                + "\","
+                + "  status : \"NEW\""
+                + "}]"));
+
+    // Allow to push again in a non-fastforward way.
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/master"));
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine("origin_ref", repo)).isEqualTo(changeId);
+    assertThatGerritCheckout(repo, "refs/for/master")
+        .containsFile("file", "some different content")
+        .containsNoMoreFiles();
   }
 
   @Test
@@ -574,14 +621,8 @@ public class GerritDestinationTest {
                 console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(
-                message ->
-                    message
-                        .getText()
-                        .contains("refs/for/master%topic=testTopic,r=foo@example.com"));
-    assertThat(correctMessage).isTrue();
+    assertPushRef("refs/for/master%topic=testTopic,hashtag=copybara_id_origin_ref_commiter@email,"
+        + "r=foo@example.com");
   }
 
   @Test
@@ -617,14 +658,20 @@ public class GerritDestinationTest {
                 console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(
-                message ->
-                    message
-                        .getText()
-                        .contains("refs/for/master%label=Foo,r=foo@example.com"));
-    assertThat(correctMessage).isTrue();
+    assertPushRef("refs/for/master%label=Foo,hashtag=copybara_id_origin_ref_commiter@email,"
+        + "r=foo@example.com");
+  }
+
+  private void assertPushRef(String ref) {
+    ImmutableList<Message> messages = console.getMessages();
+    for (Message message : messages) {
+      if (message.getText().matches(".*Pushing to .*" + ref + ".*")) {
+        return;
+      }
+    }
+    assertWithMessage(String.format("'%s' not found in:\n    %s", ref,
+        Joiner.on("\n    ").join(messages)))
+        .fail();
   }
 
   @Test
@@ -661,58 +708,8 @@ public class GerritDestinationTest {
                 console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(
-                message ->
-                    message
-                        .getText()
-                        .contains("refs/for/master%topic=testTopic,cc=foo@example.com"));
-    assertThat(correctMessage).isTrue();
-  }
-
-  @Test
-  public void testLabels() throws Exception {
-    pushToRefsFor = "master";
-    writeFile(workdir, "file", "some content");
-    fetch = "master";
-    options.gerrit.gerritTopic = "testTopic";
-    options.setForce(true);
-
-    url = "https://localhost:33333/foo/bar";
-    mockNoChangesFound();
-
-    DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination =
-        destination("submit = False", "labels = [\"${SOME_LABELS}\"]");
-    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
-    WriterContext writerContext =
-        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
-            Glob.ALL_FILES.roots());
-    List<DestinationEffect> result =
-        destination
-            .newWriter(writerContext)
-            .write(
-                TransformResults.of(workdir, originRef)
-                    .withSummary("Test message")
-                    .withIdentity(originRef.asString())
-                    .withLabelFinder(
-                        e ->
-                            e.equals("SOME_LABELS")
-                                ? ImmutableList.of("Foo+1", "Bar-1")
-                                : ImmutableList.of()),
-                glob,
-                console);
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(
-                message ->
-                    message
-                        .getText()
-                        .contains("refs/for/master%topic=testTopic,label=Foo+1,label=Bar-1"));
-    assertThat(correctMessage).isTrue();
+    assertPushRef("refs/for/master%topic=testTopic,hashtag=copybara_id_origin_ref_commiter@email,"
+        + "cc=foo@example.com");
   }
 
   @Test
@@ -756,6 +753,44 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testLabels() throws Exception {
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "labels = [\"${SOME_LABELS}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString())
+                    .withLabelFinder(
+                        e ->
+                            e.equals("SOME_LABELS")
+                                ? ImmutableList.of("Foo+1", "Bar-1")
+                                : ImmutableList.of()),
+                glob,
+                console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertPushRef("refs/for/master%topic=testTopic,hashtag=copybara_id_origin_ref_commiter@email,"
+        + "label=Foo\\+1,label=Bar-1");
+  }
+
+  @Test
   public void testDisableNotifications() throws Exception {
     pushToRefsFor = "master";
     fetch = "master";
@@ -781,7 +816,8 @@ public class GerritDestinationTest {
                 console);
     assertThat(result).hasSize(1);
 
-    GitTesting.assertThatCheckout(repo(), "refs/for/master%notify=NONE")
+    assertThatGerritCheckout(repo(),
+        "refs/for/master%notify=NONE,hashtag=copybara_id_origin_ref_commiter@email")
         .containsFile("file.txt", "new content")
         .containsNoMoreFiles();
   }
@@ -816,12 +852,8 @@ public class GerritDestinationTest {
             console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console
-            .getMessages()
-            .stream()
-            .anyMatch(message -> message.getText().contains("refs/for/master%r=foo@example.com"));
-    assertThat(correctMessage).isTrue();
+    assertPushRef("refs/for/master%hashtag=copybara_id_origin_ref_commiter@email,"
+        + "r=foo@example.com");
   }
 
   @Test
@@ -855,51 +887,8 @@ public class GerritDestinationTest {
             console);
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(
-                message ->
-                    message
-                        .getText()
-                        .contains(
-                            "refs/for/master%topic=testTopic,r=foo@example.com,r=bar@example.com"));
-    assertThat(correctMessage).isTrue();
-  }
-
-  @Test
-  public void testEmptyReviewersField() throws Exception {
-    pushToRefsFor = "master";
-    writeFile(workdir, "file", "some content");
-    fetch = "master";
-    options.gerrit.gerritTopic = "testTopic";
-    options.setForce(true);
-
-    url = "https://localhost:33333/foo/bar";
-    mockNoChangesFound();
-
-    DummyRevision originRef = new DummyRevision("origin_ref");
-    GerritDestination destination =
-        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
-    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
-    WriterContext writerContext =
-        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
-            Glob.ALL_FILES.roots());
-    List<DestinationEffect> result = destination
-        .newWriter(writerContext)
-        .write(
-            TransformResults.of(workdir, originRef)
-                .withSummary("Test message")
-                .withIdentity(originRef.asString()),
-            glob,
-            console);
-    assertThat(result).hasSize(1);
-    assertThat(result.get(0).getErrors()).isEmpty();
-    boolean correctMessage =
-        console
-            .getMessages()
-            .stream()
-            .anyMatch(message -> message.getText().contains("refs/for/master%topic=testTopic"));
-    assertThat(correctMessage).isTrue();
+    assertPushRef("refs/for/master%topic=testTopic,hashtag=copybara_id_origin_ref_commiter@email,"
+        + "r=foo@example.com,r=bar@example.com");
   }
 
   @Test
@@ -940,6 +929,13 @@ public class GerritDestinationTest {
 
     gitUtil.mockApi(
         eq("GET"),
+        eq("https://localhost:33333/changes/?q=hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse("[]"));
+
+    // TODO(malcon): As a transition period, if no hashtag is found we default to the existing
+    // mechanism
+    gitUtil.mockApi(
+        eq("GET"),
         matches("https://localhost:33333/changes/.*" + firstChangeId + ".*"),
         mockResponse(
             String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", firstChangeId)));
@@ -955,6 +951,34 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testHashTagFound() throws Exception {
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    String secondChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
+        .putInt(1)
+        .hash();
+
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse(
+            String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
+
+    process(new DummyRevision("origin_ref"));
+    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
+        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
+  }
+
+  /**
+   * TODO(malcon): Remove this test once hashtag is the only method
+   */
+  @Test
   public void changeAlreadyMergedTooOften() throws Exception {
     fetch = "master";
     writeFile(workdir, "file", "some content");
@@ -963,11 +987,19 @@ public class GerritDestinationTest {
       String changeId =
           "I"
               + Hashing.sha1()
-                  .newHasher()
-                  .putString("origin_ref", StandardCharsets.UTF_8)
-                  .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-                  .putInt(i)
-                  .hash();
+              .newHasher()
+              .putString("origin_ref", StandardCharsets.UTF_8)
+              .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
+              .putInt(i)
+              .hash();
+
+      gitUtil.mockApi(
+          eq("GET"),
+          eq("https://localhost:33333/changes/?q="
+              + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+              + "%20project:foo/bar%20AND%20status:NEW"),
+          mockResponse("[]"));
+
       gitUtil.mockApi(
           eq("GET"),
           matches("https://localhost:33333/changes/.*" + changeId + ".*"),
@@ -1006,17 +1038,35 @@ public class GerritDestinationTest {
         /*expectedRef*/ "refs/for/master%topic=testTopic");
   }
 
-  private void verifyTopic(GerritDestination destination, String expectedRef)
-      throws IOException, ValidationException, RepoException {
-    options.setForce(true);
+  @Test
+  public void testEmptyReviewersField() throws Exception {
+    pushToRefsFor = "master";
     writeFile(workdir, "file", "some content");
-    process(
-        new DummyRevision("origin_ref").withContextReference("1234"),
-        destination);
-    boolean correctMessage =
-        console.getMessages().stream()
-            .anyMatch(message -> message.getText().contains(expectedRef));
-    assertThat(correctMessage).isTrue();
+    fetch = "master";
+    options.gerrit.gerritTopic = "testTopic";
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination =
+        destination("submit = False", "reviewers = [\"${SOME_REVIEWER}\"]");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestination", "TEST", false, new DummyRevision("test"),
+            Glob.ALL_FILES.roots());
+    List<DestinationEffect> result = destination
+        .newWriter(writerContext)
+        .write(
+            TransformResults.of(workdir, originRef)
+                .withSummary("Test message")
+                .withIdentity(originRef.asString()),
+            glob,
+            console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertPushRef("refs/for/master%topic=testTopic");
   }
 
   @Test
@@ -1029,9 +1079,9 @@ public class GerritDestinationTest {
     ZonedDateTime time1 = ZonedDateTime.ofInstant(Instant.ofEpochSecond(355558888),
                                                   ZoneId.of("-08:00"));
     process(new DummyRevision("first_commit").withTimestamp(time1));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master", time1);
+    GitTesting.assertAuthorTimestamp(repo(), getGerritRef(repo(), "refs/for/master"), time1);
 
-    git("branch", "master", "refs/for/master");
+    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
 
     writeFile(workdir, "test2.txt", "some more content");
     options.setForce(false);
@@ -1039,8 +1089,7 @@ public class GerritDestinationTest {
                                                   ZoneId.of("-08:00"));
     process(new DummyRevision("first_commit").withTimestamp(
         time2));
-    GitTesting.assertAuthorTimestamp(repo(), "refs/for/master",
-                                     time2);
+    GitTesting.assertAuthorTimestamp(repo(), getGerritRef(repo(), "refs/for/master"), time2);
   }
 
   @Test
@@ -1150,8 +1199,11 @@ public class GerritDestinationTest {
     options.setForce(true);
     process(new DummyRevision("origin_ref"));
 
+    GitRepository repo = repo();
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/testPushToRef");
+    String showResult = repo.simpleCommand("show",
+        getGerritRef(repo, "refs/for/testPushToRef"))
+        .getStdout();
     assertThat(showResult).contains("some content");
   }
 
@@ -1163,8 +1215,19 @@ public class GerritDestinationTest {
     process(new DummyRevision("origin_ref"));
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "refs/for/fooze");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show",
+        getGerritRef(repo(), "refs/for/fooze"));
     assertThat(showResult).contains("some content");
+  }
+
+  private void verifyTopic(GerritDestination destination, String expectedRef)
+      throws IOException, ValidationException, RepoException {
+    options.setForce(true);
+    writeFile(workdir, "file", "some content");
+    process(
+        new DummyRevision("origin_ref").withContextReference("1234"),
+        destination);
+    assertPushRef(expectedRef);
   }
 
   @Test
@@ -1181,10 +1244,17 @@ public class GerritDestinationTest {
     writeFile(workdir, "normal_file.txt", "some more content");
     excludedDestinationPaths = ImmutableList.of("excluded.txt");
     process(new DummyRevision("ref"));
-    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+    assertThatGerritCheckout(repo(), "refs/for/master")
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
+  }
+
+  private PathSubject assertThatGerritCheckout(GitRepository repo, String ref)
+      throws IOException, RepoException {
+    Path tempWorkTree = Files.createTempDirectory("assertAboutCheckout");
+    repo.withWorkTree(tempWorkTree).forceCheckout(getGerritRef(repo, ref));
+    return assertThatPath(tempWorkTree);
   }
 
   @Test
@@ -1249,15 +1319,15 @@ public class GerritDestinationTest {
 
     runAllowEmptyPatchSetFalse(oldParent.getSha1());
 
-    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+    assertThatGerritCheckout(repo(), "refs/for/master")
         .containsFile("non_relevant.txt", "foo")
         .containsFile("foo.txt", firstChange)
         .containsNoMoreFiles();
 
-    GitRevision currentRev = repo.resolveReference("refs/for/master");
+    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/master"));
     repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
     // To avoid the non-fastforward. In real Gerrit this is not a problem
-    repo.simpleCommand("update-ref", "-d", "refs/for/master");
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/master"));
 
     repo.forceCheckout("master");
 
@@ -1318,7 +1388,7 @@ public class GerritDestinationTest {
     writeFile(workdir, "non_relevant.txt", "bar");
     runAllowEmptyPatchSetFalse(newParent.getSha1());
 
-    GitTesting.assertThatCheckout(repo(), "refs/for/master")
+    assertThatGerritCheckout(repo(), "refs/for/master")
         .containsFile("non_relevant.txt", "bar")
         .containsFile("foo.txt", thirdChange)
         .containsNoMoreFiles();

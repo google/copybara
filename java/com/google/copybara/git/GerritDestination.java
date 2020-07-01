@@ -59,12 +59,16 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**
@@ -169,7 +173,15 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
 
       String workflowId = result.getChangeIdentity();
+      String hashTag = computeInternalHashTag(result);
+      Optional<ChangeInfo> activeChange = findActiveChange(hashTag);
+      if (activeChange.isPresent()) {
+        return createMessageInfo(result, /*newReview=*/false,
+            activeChange.get().getChangeId(), changeIdPolicy);
+      }
 
+      // TODO(malcon): Remove this logic after 2020-08-01, once all new changes are created with
+      // hashtag.
       int attempt = 0;
       while (attempt <= MAX_FIND_ATTEMPTS) {
         String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
@@ -186,6 +198,35 @@ public final class GerritDestination implements Destination<GitRevision> {
       throw new RepoException(
           String.format("Unable to find unmerged change for '%s', committer '%s'.",
               workflowId, committer));
+    }
+
+    private String computeInternalHashTag(TransformResult result) {
+      return "copybara_id_" + result.getChangeIdentity()
+          + "_" + committer.getEmail().replaceAll("[ ,]", "_");
+    }
+
+    private Optional<ChangeInfo> findActiveChange(String hashTag)
+        throws RepoException, ValidationException {
+
+      if (!isGerritReuseByHashTag()) {
+        return Optional.empty();
+      }
+      console.progressFmt("Querying Gerrit ('%s') for active changes with hashtag '%s'",
+          repoUrl, hashTag);
+      List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
+          String.format("hashtag:\"%s\" AND project:%s AND status:NEW",
+              hashTag, gerritOptions.getProject(repoUrl))));
+      if (changes.size() > 1) {
+        console.warnFmt("Multiple changes found for the same internal copybara tag: %s. Reusing"
+                + " first one.",
+            changes.stream().map(ChangeInfo::getNumber).collect(Collectors.toList()));
+      }
+      return changes.stream().findFirst();
+    }
+
+    // TODO(malcon): Remove after 2020-08-01
+    private boolean isGerritReuseByHashTag() {
+      return generalOptions.isTemporaryFeature("GERRIT_BY_HASHTAG", true);
     }
 
     private List<ChangeInfo> findChanges(String changeId, Iterable<IncludeResult> includes)
@@ -285,6 +326,11 @@ public final class GerritDestination implements Destination<GitRevision> {
 
       if (topic != null) {
         options.put("topic", topic);
+      }
+
+      if (isGerritReuseByHashTag()) {
+        // Set an internal hashtag so that we can reuse changes in future snapshots.
+        options.put("hashtag", computeInternalHashTag(transformResult));
       }
 
       options.putAll("r",
