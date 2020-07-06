@@ -44,6 +44,13 @@ public class TransformWorks {
    * Creates an instance with reasonable defaults for testing.
    */
   public static TransformWork of(Path checkoutDir, String msg, Console console) {
+    return of(checkoutDir, msg, console, false);
+  }
+
+  /**
+   * Creates an instance with reasonable defaults for testing and setting of ignoreNoop.
+   */
+  public static TransformWork of(Path checkoutDir, String msg, Console console, boolean ignoreNoop) {
     return new TransformWork(
         checkoutDir,
         new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
@@ -51,7 +58,7 @@ public class TransformWorks {
         console,
         new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
         new DummyRevision("1234567890"),
-        /*ignoreNoop=*/ false, c -> new DummyEndpoint(), c -> new DummyEndpoint(),
+        ignoreNoop, c -> new DummyEndpoint(), c -> new DummyEndpoint(),
         () -> DestinationReader.NOT_IMPLEMENTED);
   }
 
