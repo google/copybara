@@ -203,7 +203,7 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      ParserInput input = ParserInput.create(content.readContent(), content.path());
+      ParserInput input = ParserInput.fromUTF8(content.readContentBytes(), content.path());
       FileOptions options =
           validation == StarlarkMode.STRICT
               ? STARLARK_STRICT_FILE_OPTIONS
