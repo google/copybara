@@ -713,7 +713,7 @@ public class GitOriginTest {
 
     // We don't visit 'feature' branch since the visit is using --first-parent
     assertThat(visited).hasSize(4);
-    assertThat(visited.get(0).firstLineMessage()).isEqualTo("Merge branch 'feature'");
+    assertThat(visited.get(0).firstLineMessage()).contains("Merge branch 'feature'");
     assertThat(visited.get(1).firstLineMessage()).isEqualTo("master2");
     assertThat(visited.get(2).firstLineMessage()).isEqualTo("master1");
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
@@ -737,11 +737,17 @@ public class GitOriginTest {
     // Now because we don't use --first-parent we visit feature branch.
     assertThat(visited).hasSize(6);
     // First commit is the merge
-    assertThat(visited.get(0).firstLineMessage()).isEqualTo("Merge branch 'feature'");
+    assertThat(visited.get(0).firstLineMessage()).contains("Merge branch 'feature'");
     // The rest can come in a different order depending on the time difference, as git log
     // ordering is undefined for same time.
-    assertThat(Lists.transform(visited, Change::firstLineMessage)).containsExactly(
-        "Merge branch 'feature'", "master2", "change3", "master1", "change2", "first file");
+    List<String> visitedMsgList = Lists.transform(visited, Change::firstLineMessage);
+    assertThat(visitedMsgList).hasSize(6);
+    assertThat(visitedMsgList.get(0)).contains("Merge branch 'feature'");
+    assertThat(visitedMsgList.get(1)).contains("master2");
+    assertThat(visitedMsgList.get(2)).contains("change3");
+    assertThat(visitedMsgList.get(3)).contains("master1");
+    assertThat(visitedMsgList.get(4)).contains("change2");
+    assertThat(visitedMsgList.get(5)).contains("first file");
 
     changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChanges();
     assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
@@ -796,7 +802,7 @@ public class GitOriginTest {
     assertThat(changes).hasSize(3);
     assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
     assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
-    assertThat(changes.get(2).getMessage()).isEqualTo("Merge branch 'feature'\n");
+    assertThat(changes.get(2).getMessage()).contains("Merge branch 'feature'");
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
       assertThat(change.getDateTime()).isAtLeast(beforeTime);
@@ -823,32 +829,36 @@ public class GitOriginTest {
     ImmutableList<Change<GitRevision>> changes = newReader()
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(1).getMessage()).isEqualTo("Merge branch 'feature'\n");
+    assertThat(changes.get(1).getMessage()).contains("Merge branch 'feature'");
   }
 
   @Test
   public void testChangesMergeNoop() throws Exception {
     ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(false);
-    assertThat(includedChanges.stream().map(Change::getMessage).collect(Collectors.toList()))
-        .containsExactly(
-            "Merge branch 'feature1'\n",
-            "feature1\n",
-            "main_branch_change\n");
+    List<String> msgList =
+        includedChanges.stream().map(Change::getMessage).collect(Collectors.toList());
+
+    assertThat(msgList).hasSize(3);
+    assertThat(msgList.get(0)).contains("Merge branch 'feature1'");
+    assertThat(msgList.get(1)).contains("feature1");
+    assertThat(msgList.get(2)).contains("main_branch_change");
   }
 
   @Test
   public void testChangesMergeNoop_importNoopChanges() throws Exception {
     ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(true);
-    assertThat(includedChanges.stream().map(Change::getMessage).collect(Collectors.toList()))
-        .containsExactly(
-            "Merge branch 'feature1'\n",
-            "feature1\n",
-            "main_branch_change\n",
-            "change1\n",
-            "change2\n",
-            "change3\n",
-            "exclude1\n",
-            "Merge branch 'feature2'\n");
+    List<String> msgList =
+        includedChanges.stream().map(Change::getMessage).collect(Collectors.toList());
+    assertThat(msgList).hasSize(8);
+    assertThat(msgList.get(0)).contains("Merge branch 'feature2'");
+    assertThat(msgList.get(1)).contains("change3");
+    assertThat(msgList.get(2)).contains("change2");
+    assertThat(msgList.get(3)).contains("change1");
+    assertThat(msgList.get(4)).contains("Merge branch 'feature1'");
+    assertThat(msgList.get(5)).contains("feature1");
+    assertThat(msgList.get(6)).contains("exclude1");
+    assertThat(msgList.get(7)).contains("main_branch_change");
+
   }
 
   @SuppressWarnings("unchecked")

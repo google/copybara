@@ -1042,7 +1042,8 @@ public class GitRepository {
 
   public GitRepository withPartialClone() {
     try {
-      this.simpleCommand("config", "extensions.partialClone", "true");
+      this.simpleCommand("config", "core.repositoryFormatVersion", "1");
+      this.simpleCommand("config", "extensions.partialClone", "origin");
     } catch (Exception e) {
       logger.atInfo().withCause(e).log("Partial Clone %s", e);
     }
