@@ -357,7 +357,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
               Reader<O> oReader = origin.newReader(originFiles, authoring);
               DestinationStatus destinationStatus =
-                  generalOptions.repoTask("destination.previous_ref", () -> getDestinationStatus(lastResolved));
+                  generalOptions.repoTask(
+                      "destination.previous_ref", () -> getDestinationStatus(lastResolved));
 
               O lastMigrated =
                   generalOptions.repoTask(
@@ -376,12 +377,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                             ? ImmutableList.of()
                             : ImmutableList.copyOf(changes.getChanges());
                       });
-              WorkflowRunHelper<O, D> helper = newRunHelper(
-                  // We shouldn't use this path for info
-                  Paths.get("shouldnt_be_used"),
-                  lastResolved, /*rawSourceRef=*/null,
-                  // We don't create effects on info
-                  changeMigrationFinishedEvent -> {});
+              WorkflowRunHelper<O, D> helper =
+                  newRunHelper(
+                      // We shouldn't use this path for info
+                      Paths.get("shouldnt_be_used"),
+                      lastResolved,
+                      /*rawSourceRef=*/ null,
+                      // We don't create effects on info
+                      changeMigrationFinishedEvent -> {});
 
               List<Change<O>> affectedChanges = new ArrayList<>();
               for (Change<O> change : allChanges) {
@@ -390,10 +393,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                 }
                 affectedChanges.add(change);
               }
-              MigrationReference<O> migrationRef = MigrationReference.create(
-                  String.format("workflow_%s", name),
-                  lastMigrated,
-                  affectedChanges);
+              MigrationReference<O> migrationRef =
+                  MigrationReference.create(
+                      String.format("workflow_%s", name), lastMigrated, affectedChanges);
 
               return Info.create(
                   getOriginDescription(),

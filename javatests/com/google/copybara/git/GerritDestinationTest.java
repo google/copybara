@@ -33,7 +33,6 @@ import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -43,7 +42,6 @@ import com.google.copybara.Changes;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.Type;
-import com.google.copybara.DestinationReader;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
@@ -70,13 +68,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -85,8 +76,12 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -136,10 +131,9 @@ public class GerritDestinationTest {
 
   private GitTestUtil gitUtil;
 
-  private static String lastCommitChangeIdLineForRef(String gitRef, String originRef,
-      GitRepository repo) throws RepoException {
-    GitLogEntry log = Iterables.getOnlyElement(repo.log(getGerritRef(repo, gitRef))
-        .withLimit(1).run());
+  private static String lastCommitChangeIdLineForRef(String originRef,
+      GitRepository repo, String gitRef) throws RepoException {
+    GitLogEntry log = Iterables.getOnlyElement(repo.log(gitRef).withLimit(1).run());
     assertThat(log.getBody()).contains("\n" + DummyOrigin.LABEL_NAME + ": " + originRef + "\n");
     String line = null;
     for (LabelFinder label : ChangeMessage.parseMessage(log.getBody()).getLabels()) {
@@ -183,7 +177,7 @@ public class GerritDestinationTest {
   }
 
   private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
-    return lastCommitChangeIdLineForRef("refs/for/master", ref, repo);
+    return lastCommitChangeIdLineForRef(ref, repo, getGerritRef(repo, "refs/for/master"));
   }
 
   /**
@@ -306,7 +300,8 @@ public class GerritDestinationTest {
     pushToRefsFor = null;
 
     String expectedChangeId = runForDefaults();
-    assertThat(lastCommitChangeIdLineForRef("refs/for/foo", "origin_ref", repo()))
+    assertThat(lastCommitChangeIdLineForRef("origin_ref", repo(),
+        getGerritRef(repo(), "refs/for/foo")))
         .isEqualTo(expectedChangeId);
   }
 
@@ -317,7 +312,8 @@ public class GerritDestinationTest {
     pushToRefsFor = null;
 
     String expectedChangeId = runForDefaults();
-    assertThat(lastCommitChangeIdLineForRef("refs/for/foo", "origin_ref", repo()))
+    assertThat(lastCommitChangeIdLineForRef("origin_ref", repo(),
+        getGerritRef(repo(), "refs/for/foo")))
         .isEqualTo(expectedChangeId);
   }
 
@@ -328,7 +324,8 @@ public class GerritDestinationTest {
     pushToRefsFor = "baz";
 
     String expectedChangeId = runForDefaults();
-    assertThat(lastCommitChangeIdLineForRef("refs/for/baz", "origin_ref", repo()))
+    assertThat(lastCommitChangeIdLineForRef("origin_ref", repo(),
+        getGerritRef(repo(), "refs/for/baz")))
         .isEqualTo(expectedChangeId);
   }
 
@@ -533,7 +530,7 @@ public class GerritDestinationTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
 
-    String changeId = lastCommitChangeIdLineForRef("refs/heads/master", "origin_ref", repo)
+    String changeId = lastCommitChangeIdLineForRef("origin_ref", repo, "refs/heads/master")
         .replace("Change-Id: ", "").trim();
 
     assertThat(changeId).isNotNull();

@@ -59,16 +59,13 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 
 /**
@@ -328,7 +325,7 @@ public final class GerritDestination implements Destination<GitRevision> {
         options.put("topic", topic);
       }
 
-      if (isGerritReuseByHashTag()) {
+      if (isGerritReuseByHashTag() && pushToRefsFor.startsWith("refs/for/")) {
         // Set an internal hashtag so that we can reuse changes in future snapshots.
         options.put("hashtag", computeInternalHashTag(transformResult));
       }
@@ -347,14 +344,6 @@ public final class GerritDestination implements Destination<GitRevision> {
         result += "%" + Joiner.on(',').withKeyValueSeparator('=').join(options.entries());
       }
       return result;
-    }
-
-    private static String asGerritParam(String param, ImmutableList<String> values) {
-      List<String> newReviewers = new ArrayList<>();
-      for (String reviewer : values) {
-        newReviewers.add(String.format(param + "=%s", reviewer));
-      }
-      return Joiner.on(",").join(newReviewers);
     }
 
     private boolean tryToCherryPick(GitRepository repo, String commit, long changeNumber) {
