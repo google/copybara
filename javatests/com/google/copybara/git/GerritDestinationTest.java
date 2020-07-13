@@ -948,6 +948,33 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testFieldWithoutValue() throws Exception {
+    fetch = "master%wip";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    String secondChangeId = "I" + Hashing.sha1()
+        .newHasher()
+        .putString("origin_ref", StandardCharsets.UTF_8)
+        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
+        .putInt(1)
+        .hash();
+
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponse(
+            String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
+
+    process(new DummyRevision("origin_ref"));
+    String master = getGerritRef(repo(), "refs/for/master");
+
+    assertThat(master).isEqualTo(
+        "refs/for/master%wip,hashtag=copybara_id_origin_ref_commiter@email");
+  }
+
+  @Test
   public void testHashTagFound() throws Exception {
     fetch = "master";
     writeFile(workdir, "file", "some content");

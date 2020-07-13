@@ -59,6 +59,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
@@ -66,6 +67,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**
@@ -297,16 +299,21 @@ public final class GerritDestination implements Destination<GitRevision> {
         throws ValidationException {
       List<String> components = Splitter.on('%').limit(2).splitToList(pushToRefsFor);
 
-      Multimap<String, String> options = LinkedHashMultimap.create();
+      Multimap<String, Optional<String>> options = LinkedHashMultimap.create();
       if (components.size() > 1) {
-        for (Entry<String, String> entry : Splitter.on(',').withKeyValueSeparator('=')
-            .split(components.get(1)).entrySet()) {
-          options.put(entry.getKey(), entry.getValue());
+        for (String entry : Splitter.on(',')
+            .split(components.get(1))) {
+          List<String> strings = Splitter.on("=").limit(1).splitToList(entry);
+          if (strings.size() > 1) {
+            options.put(strings.get(0), Optional.of(strings.get(1)));
+          } else {
+            options.put(strings.get(0), Optional.empty());
+          }
         }
       }
 
       if (notifyOption != null) {
-        options.put("notify", notifyOption.toString());
+        options.put("notify", Optional.of(notifyOption.toString()));
       }
 
       String topic = null;
@@ -322,26 +329,32 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
 
       if (topic != null) {
-        options.put("topic", topic);
+        options.put("topic", Optional.of(topic));
       }
 
       if (isGerritReuseByHashTag() && pushToRefsFor.startsWith("refs/for/")) {
         // Set an internal hashtag so that we can reuse changes in future snapshots.
-        options.put("hashtag", computeInternalHashTag(transformResult));
+        options.put("hashtag", Optional.of(computeInternalHashTag(transformResult)));
       }
 
       options.putAll("r",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate));
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate)
+              .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("cc",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate));
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate)
+              .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("label",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate));
+          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate)
+              .stream().map(Optional::of).collect(Collectors.toList()));
 
       String result = components.get(0);
       if (!options.isEmpty()) {
-        result += "%" + Joiner.on(',').withKeyValueSeparator('=').join(options.entries());
+        result += "%" + Joiner.on(',').join(options.entries()
+            .stream()
+            .map(e -> e.getKey()+(e.getValue().isPresent()?"="+e.getValue().get():""))
+            .collect(Collectors.toList()));
       }
       return result;
     }
