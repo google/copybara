@@ -29,10 +29,11 @@ import java.util.function.Supplier;
  */
 public class RemoteFileOptions implements Option {
 
-  @Parameter(names = "--remote-http-files-connection-timeout",
+  @Parameter(
+      names = "--remote-http-files-connection-timeout",
       description = "Timeout for the fetch operation, e.g. 30s.",
       converter = DurationConverter.class)
-  protected Duration connectionTimeout = Duration.ofSeconds(60L);
+  protected Duration connectionTimeout = Duration.ofMinutes(2);
 
   Supplier<HttpStreamFactory> transport = Suppliers.memoize(() -> new GclientHttpStreamFactory(
       connectionTimeout));
