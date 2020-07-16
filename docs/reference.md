@@ -80,7 +80,6 @@
     - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
     - [gerrit_api_obj.list_changes](#gerrit_api_obj.list_changes)
-    - [gerrit_api_obj.list_changes_by_commit](#gerrit_api_obj.list_changes_by_commit)
     - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
   - [git](#git)
     - [git.destination](#git.destination)
@@ -1913,22 +1912,6 @@ Get changes from Gerrit based on a query. See https://gerrit-review.googlesource
 Parameter | Description
 --------- | -----------
 query | `string`<br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
-include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
-
-<a id="gerrit_api_obj.list_changes_by_commit" aria-hidden="true"></a>
-### gerrit_api_obj.list_changes_by_commit
-
-Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
-
-
-`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes_by_commit(commit, include_results=[])`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-commit | `string`<br><p>The commit sha to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
 include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
 
 <a id="gerrit_api_obj.post_review" aria-hidden="true"></a>

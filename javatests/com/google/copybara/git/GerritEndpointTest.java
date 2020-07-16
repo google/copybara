@@ -495,7 +495,7 @@ public class GerritEndpointTest {
     mockForTest();
     runFeedback(ImmutableList.<String>builder()
         .add("res = ctx.destination"
-            + ".list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425')")
+            + ".list_changes('commit:7956f527ec8a23ebba9c3ebbcf88787aa3411425')")
         .addAll(checkFieldStarLark("res[0]", "id",
             "'copybara-team%2Fcopybara~master~I85dd4ea583ac218d9480eefb12ff2c83ce0bce61'"))
         .build());
@@ -506,7 +506,7 @@ public class GerritEndpointTest {
     mockForTest();
     runFeedback(ImmutableList.<String>builder()
         .add("res = ctx.destination"
-            + ".list_changes_by_commit('7956f527ec8a23ebba9c3ebbcf88787aa3411425',"
+            + ".list_changes('commit:7956f527ec8a23ebba9c3ebbcf88787aa3411425',"
             + " include_results = ['LABELS', 'MESSAGES'])")
         .addAll(checkFieldStarLark("res[0]", "id",
             "'copybara-team%2Fcopybara~master~I16e447bb2bb51952021ec3ea50991d923dcbbf58'"))

@@ -213,42 +213,6 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     }
   }
 
-  // TODO(huanhuanchen): Deprecate this one. We will use list_change instead.
-  @StarlarkMethod(
-      name = "list_changes_by_commit",
-      doc =
-          "Get changes from Gerrit based on a query. See"
-              + " https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.\n",
-      parameters = {
-        @Param(
-            name = "commit",
-            type = String.class,
-            named = true,
-            doc =
-                "The commit sha to list changes by. See"
-                    + " https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
-        @Param(
-            name = "include_results",
-            named = true,
-            type = Sequence.class,
-            generic1 = String.class,
-            doc =
-                ""
-                    + "What to include in the response. See "
-                    + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
-                    + "#query-options",
-            positional = false,
-            defaultValue = "[]"),
-      })
-  public Sequence<ChangeInfo> listChangesByCommit(String commit, Sequence<?> includeResults)
-      throws EvalException, RepoException, ValidationException {
-      GerritApi gerritApi = apiSupplier.load(console);
-    return StarlarkList.immutableCopyOf(
-        gerritApi.getChanges(
-            new ChangesQuery(String.format("commit:%s", commit))
-                .withInclude(getIncludeResults(includeResults))));
-  }
-
   @StarlarkMethod(
       name = "list_changes",
       doc =
