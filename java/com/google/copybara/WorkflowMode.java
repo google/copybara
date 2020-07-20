@@ -494,7 +494,8 @@ public enum WorkflowMode {
       } else {
         throw new ValidationException(
             String.format("Cannot find last imported revision. Use %s if you really want to proceed"
-                + " with the migration", FORCE), e);
+                + " with the migration use, or use '--last-rev' to override the revision.", FORCE),
+            e);
       }
       return null;
     }
