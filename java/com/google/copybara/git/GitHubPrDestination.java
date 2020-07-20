@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.github.api.UpdatePullRequest.State.OPEN;
 import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -213,10 +214,19 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                     GitHubPrDestination.this.body, "body");
 
         for (PullRequest pr : pullRequests) {
-          if (pr.isOpen() && pr.getHead().getRef().equals(prBranch)) {
-            console.infoFmt(
-                "Pull request for branch %s already exists as %s/pull/%s",
-                prBranch, asHttpsUrl(), pr.getNumber());
+          if (pr.getHead().getRef().equals(prBranch)) {
+            if (!pr.isOpen()) {
+              console.warnFmt(
+                  "Pull request for branch %s already exists as %s/pull/%s, but is closed - "
+                      + "reopening.",
+                  prBranch, asHttpsUrl(), pr.getNumber());
+              api.updatePullRequest(getProjectName(), pr.getNumber(),
+                  new UpdatePullRequest(null, null, OPEN));
+            } else {
+              console.infoFmt(
+                  "Pull request for branch %s already exists as %s/pull/%s",
+                  prBranch, asHttpsUrl(), pr.getNumber());
+            }
             if (!pr.getBase().getRef().equals(destinationRef)) {
               // TODO(malcon): Update PR or create a new one?
               console.warnFmt(

@@ -314,8 +314,59 @@ public class GitHubPrDestinationTest {
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
   }
 
-  private void mockNoPullRequestsGet(String branchName) throws IOException {
-    gitUtil.mockApi("GET", getPullRequestsUrl(branchName), mockResponse("[]"));
+  @Test
+  public void testPrExistsButIsClosed()
+      throws ValidationException, IOException, RepoException {
+    options.githubDestination.destinationPrBranch = "feature";
+
+    gitUtil.mockApi("GET", getPullRequestsUrl("feature"), mockResponse("[{"
+        + "  \"id\": 1,\n"
+        + "  \"number\": 12345,\n"
+        + "  \"state\": \"closed\",\n"
+        + "  \"title\": \"test summary\",\n"
+        + "  \"body\": \"test summary\","
+        + "  \"head\": {\"ref\": \"feature\"},"
+        + "  \"base\": {\"ref\": \"base\"}"
+        + "}]"));
+
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/pulls/12345",
+        mockResponseAndValidateRequest(
+            "{\n"
+                + "  \"id\": 1,\n"
+                + "  \"number\": 12345,\n"
+                + "  \"state\": \"open\",\n"
+                + "  \"title\": \"test summary\",\n"
+                + "  \"body\": \"test summary\""
+                + "}",
+            MockRequestAssertion.equals(
+                "{\"state\":\"open\"}")));
+
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo'"
+        + ")");
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "test", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+
+    writeFile(this.workdir, "test.txt", "some content");
+    writer.write(TransformResults.of(this.workdir,
+        new DummyRevision("one")).withSummary("\n\n\n\n\nInternal change."),
+        Glob.ALL_FILES,
+        console);
+
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("GET", getPullRequestsUrl("feature"));
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/pulls/12345");
   }
 
   @Test
@@ -632,6 +683,10 @@ public class GitHubPrDestinationTest {
     assertThat(status.getBaseline()).isEqualTo("baseline");
     // Not supported for now as we rewrite the whole branch history.
     assertThat(status.getPendingChanges()).isEmpty();
+  }
+
+  private void mockNoPullRequestsGet(String branchName) {
+    gitUtil.mockApi("GET", getPullRequestsUrl(branchName), mockResponse("[]"));
   }
 
   private void addFiles(GitRepository remote, String branch, String msg, Map<String, String> files)
