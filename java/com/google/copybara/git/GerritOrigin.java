@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_ACCOUNTS;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
@@ -25,11 +26,14 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
+import com.google.copybara.Change;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.EmptyChangeException;
@@ -53,6 +57,8 @@ import javax.annotation.Nullable;
  * already migrated patchets
  */
 public class GerritOrigin extends GitOrigin {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final GeneralOptions generalOptions;
   private final GitOptions gitOptions;
@@ -224,11 +230,24 @@ public class GerritOrigin extends GitOrigin {
       public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
           throws RepoException, ValidationException {
         ChangesResponse<GitRevision> result = super.changes(fromRef, toRef);
-        if (ignoreGerritNoop) {
+        Change<GitRevision> change = change(toRef);
+        if (ignoreGerritNoop
+            && change.getChangeFiles() != null
+            && toRef.associatedLabels().containsKey(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL)) {
           PathMatcher pathMatcher = originFiles.relativeTo(Paths.get("/"));
-          if (result.getChanges().get(0).getChangeFiles().stream()
+          if (change.getChangeFiles().stream()
               .noneMatch(x -> pathMatcher.matches(Paths.get("/", x)))) {
-            throw new EmptyChangeException("First change here is a noop");
+            logger.atInfo().log("Skipping a Gerrit noop change with ref: %s", toRef.getSha1());
+            return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
+          } else {
+            result =
+                ChangesResponse.forChangesWithMerges(
+                    result.getChanges().stream()
+                        .filter(
+                            x ->
+                                x.getChangeFiles().stream()
+                                    .anyMatch(y -> pathMatcher.matches(Paths.get("/", y))))
+                        .collect(toImmutableList()));
           }
         }
         return result;

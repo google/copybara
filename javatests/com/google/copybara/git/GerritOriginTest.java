@@ -32,6 +32,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
+import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -139,6 +141,10 @@ public class GerritOriginTest {
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
+
+    Files.write(remote.resolve("foo.md"), "some content".getBytes());
+    repo.add().files("foo.md").run();
+
     secondRevision =
         new GitRevision(
             repo,
@@ -311,18 +317,40 @@ public class GerritOriginTest {
                 + "  url = 'https://"
                 + REPO_URL
                 + "',"
-                + "  branch = 'master',"
+                + "  branch = 'my_branch',"
                 + "  ignore_gerrit_noop = True)");
     Reader<GitRevision> reader =
         origin.newReader(Glob.createGlob(ImmutableList.of("depot/foo/bar")), AUTHORING);
-    assertThrows(
-        EmptyChangeException.class,
-        () ->
-            reader
-                .changes(
-                    origin.resolve("http://foo.com/#/c/12345/1"),
-                    origin.resolve("http://foo.com/#/c/12345/3"))
-                .getChanges());
+    assertThat(reader
+        .changes(
+            origin.resolve("http://foo.com/#/c/12345/1"),
+            origin.resolve("http://foo.com/#/c/12345/2")).isEmpty()).isTrue();
+  }
+
+  @Test
+  public void testOpFollowedByNoop() throws Exception {
+    mockChange(12345);
+    GerritOrigin origin =
+        skylark.eval(
+            "g",
+            "g = git.gerrit_origin("
+                + "  url = 'https://"
+                + REPO_URL
+                + "',"
+                + "  branch = 'my_branch',"
+                + "  ignore_gerrit_noop = True)");
+    Reader<GitRevision> reader =
+        origin.newReader(Glob.createGlob(ImmutableList.of("**.md")), AUTHORING);
+    // noop should return empty
+    assertThat(reader
+        .changes(
+            origin.resolve("http://foo.com/#/c/12345/1"),
+            origin.resolve("http://foo.com/#/c/12345/2")).isEmpty()).isTrue();
+    // noop -> op should not return empty
+    assertThat(reader
+        .changes(
+            origin.resolve("http://foo.com/#/c/12345/1"),
+            origin.resolve("http://foo.com/#/c/12345/3")).isEmpty()).isFalse();
   }
 
   @Test
