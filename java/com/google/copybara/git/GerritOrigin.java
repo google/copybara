@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_ACCOUNTS;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
@@ -231,24 +230,18 @@ public class GerritOrigin extends GitOrigin {
           throws RepoException, ValidationException {
         ChangesResponse<GitRevision> result = super.changes(fromRef, toRef);
         Change<GitRevision> change = change(toRef);
-        if (ignoreGerritNoop
-            && change.getChangeFiles() != null
-            && toRef.associatedLabels().containsKey(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL)) {
-          PathMatcher pathMatcher = originFiles.relativeTo(Paths.get("/"));
-          if (change.getChangeFiles().stream()
-              .noneMatch(x -> pathMatcher.matches(Paths.get("/", x)))) {
-            logger.atInfo().log("Skipping a Gerrit noop change with ref: %s", toRef.getSha1());
-            return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
-          } else {
-            result =
-                ChangesResponse.forChangesWithMerges(
-                    result.getChanges().stream()
-                        .filter(
-                            x ->
-                                x.getChangeFiles().stream()
-                                    .anyMatch(y -> pathMatcher.matches(Paths.get("/", y))))
-                        .collect(toImmutableList()));
-          }
+        if (!ignoreGerritNoop
+            || change.getChangeFiles() == null
+            || !toRef
+                .associatedLabels()
+                .containsKey(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL)) {
+          return result;
+        }
+        PathMatcher pathMatcher = originFiles.relativeTo(Paths.get("/"));
+        if (change.getChangeFiles().stream()
+            .noneMatch(x -> pathMatcher.matches(Paths.get("/", x)))) {
+          logger.atInfo().log("Skipping a Gerrit noop change with ref: %s", toRef.getSha1());
+          return ChangesResponse.noChanges(EmptyReason.NO_CHANGES);
         }
         return result;
       }
