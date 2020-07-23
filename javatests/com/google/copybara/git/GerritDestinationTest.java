@@ -792,16 +792,6 @@ public class GerritDestinationTest {
         mockResponseWithStatus(
             "Submit failed.", 403)
     );
-    AtomicBoolean deleteVoteCalled = new AtomicBoolean(false);
-    gitUtil.mockApi(
-        eq("POST"),
-        startsWith(BASE_URL + "/changes/12345/reviewers/me/votes/Code-Review/delete"),
-        mockResponseWithStatus("", 204,
-            new MockRequestAssertion("Always true with side-effect",
-                s -> {
-                  deleteVoteCalled.set(true);
-                  return true;
-                })));
 
     options.setForce(true);
     DummyRevision originRef = new DummyRevision("origin_ref");

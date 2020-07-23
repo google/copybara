@@ -54,10 +54,8 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
-import com.google.copybara.git.gerritapi.DeleteVoteInput;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.IncludeResult;
-import com.google.copybara.git.gerritapi.NotifyType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.gerritapi.SubmitInput;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
@@ -324,17 +322,9 @@ public final class GerritDestination implements Destination<GitRevision> {
         gerritApi.setReview(changeInfo.getChangeId(), changeInfo.getCurrentRevision(),
             new SetReviewInput("", ImmutableMap
                 .of("Code-Review", 2)));
-        try {
-          ChangeInfo resultInfo =
-              gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
-          console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
-        } catch (RepoException | ValidationException e) {
-          // remove code-review if submitChange failed to avoid the change being manually
-          // submitted.
-          gerritApi.deleteVote(changeInfo.getChangeId(), "me", "Code-Review",
-              new DeleteVoteInput(NotifyType.NONE));
-          throw e;
-        }
+        ChangeInfo resultInfo =
+            gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
+        console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
       }
     }
 
