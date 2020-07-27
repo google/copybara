@@ -48,7 +48,8 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   @Override
   public InputStream open(URL url) throws IOException {
     HttpRequest req = javaNet.createRequestFactory().buildGetRequest(new GenericUrl(url))
-        .setConnectTimeout((int) timeout.getSeconds());
+        .setReadTimeout((int) timeout.toMillis())
+        .setConnectTimeout((int) timeout.toMillis());
     return req.execute().getContent();
   }
 }
