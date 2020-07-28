@@ -756,14 +756,15 @@ public class GitDestinationTest {
     writeFile(workdir, "foo", "updated");
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
-    assertThrows(
-        RebaseConflictException.class,
-        () ->
-            processWithBaseline(
-                newWriter(),
-                destinationFiles,
-                new DummyRevision("origin_ref"),
-                baseline.getSha1()));
+    RebaseConflictException rebaseConflictException =
+        assertThrows(
+          RebaseConflictException.class,
+          () ->
+              processWithBaseline(
+                  newWriter(),
+                  destinationFiles,
+                  new DummyRevision("origin_ref"),
+                  baseline.getSha1()));
 
     writeFile(workdir, "foo", "conflict");
     writeFile(workdir, "bar", "other file");
@@ -772,6 +773,9 @@ public class GitDestinationTest {
     processWithBaseline(newWriter(), destinationFiles, new DummyRevision("origin_ref"),
         baseline.getSha1());
 
+    assertThat(rebaseConflictException).hasMessageThat()
+        .containsMatch(
+            ".*Please consider to use flag nogit-destination-rebase to workaround.*");
     assertThatCheckout(destRepo, "HEAD")
         .containsFile("foo", "conflict")
         .containsFile("bar", "other file")

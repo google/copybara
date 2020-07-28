@@ -771,8 +771,9 @@ public class GitRepository {
           String.format(
               ""
                   + "Conflict detected while rebasing %s to %s. Please sync or update the change "
-                  + "in the origin and retry. Git output was:\n%s",
-              workTree, newBaseline, output.getStdout()));
+                  + "in the origin and retry. Git output was:\n%s. Please consider to use flag %s "
+                  + "to workaround", workTree, newBaseline, output.getStdout(),
+              "nogit-destination-rebase"));
     }
     throw new RepoException(output.getStderr());
   }
