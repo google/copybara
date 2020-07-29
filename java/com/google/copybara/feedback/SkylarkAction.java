@@ -62,11 +62,11 @@ public class SkylarkAction implements Action {
     } catch (IllegalArgumentException e) {
       throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
-      // TODO(copybara-team): display e's stack trace to users.
       Throwable cause = e.getCause();
       String error =
-          String.format("Error while executing the skylark transformation %s: %s. Location: %s",
-              function.getName(), e.getMessage(), e.getLocation());
+          String.format(
+              "Error while executing the skylark transformation %s: %s.",
+              function.getName(), e.getMessageWithStack());
       if (cause instanceof RepoException) {
         throw new RepoException(error, cause);
       }

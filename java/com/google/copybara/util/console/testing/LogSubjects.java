@@ -85,6 +85,26 @@ public class LogSubjects {
     }
 
     /**
+     * Asserts that at least one log message of the specified {@code type} contains a match for the
+     * regular expression {@code regex}.
+     */
+    public LogSubject logContains(MessageType type, String regex) {
+      Pattern rx = Pattern.compile(regex);
+      for (Message message : messages) {
+        if (message.getType().equals(type) && rx.matcher(message.getText()).find()) {
+          return this; // found
+        }
+      }
+      throw new AssertionError(
+          "No log message matched the regular expression: "
+              + regex
+              + "\nExisting messages:"
+              + "\n--------\n"
+              + Joiner.on("\n").join(messages)
+              + "\n--------\n");
+    }
+
+    /**
      * Assert that a regex text message appears once in the console output for a certain message
      * {@code type}.
      */
@@ -97,9 +117,10 @@ public class LogSubjects {
      * certain message {@code type}.
      */
     public LogSubject timesInLog(int times, MessageType type, String regex) {
+      Pattern rx = Pattern.compile(regex);
       List<Message> matches = new ArrayList<>();
       for (Message message : messages) {
-        if (message.getType().equals(type) && message.getText().matches(regex)) {
+        if (message.getType().equals(type) && rx.matcher(message.getText()).find()) {
           matches.add(message);
         }
       }

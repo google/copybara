@@ -341,9 +341,7 @@ public class FeedbackTest {
         "test_action");
     ValidationException expected =
         assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
-    assertThat(expected)
-        .hasMessageThat()
-        .matches(".*missing 1 required positional argument: msg.*");
+    assertThat(expected).hasMessageThat().contains("missing 1 required positional argument: msg");
   }
 
   @Test
@@ -354,13 +352,17 @@ public class FeedbackTest {
             + "    result = ctx.foo()\n"
             + "\n",
         "test_action");
-    ValidationException expected =
+    ValidationException ex =
         assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
-    assertThat(expected)
+    assertThat(ex)
         .hasMessageThat()
-        .contains(
-            "Error while executing the skylark transformation test_action: 'feedback.context'"
-                + " value has no field or method 'foo'. Location: copy.bara.sky:2:14");
+        .contains("Error while executing the skylark transformation test_action");
+    assertThat(ex)
+        .hasMessageThat()
+        .contains("File \"copy.bara.sky\", line 2, column 17, in test_action");
+    assertThat(ex)
+        .hasMessageThat()
+        .contains("'feedback.context' value has no field or method 'foo'");
   }
 
   @Test

@@ -517,7 +517,7 @@ public class Main {
 
   private String printException(Throwable t) {
     if (t instanceof EvalException) {
-      return (((EvalException) t).print());
+      return ((EvalException) t).getMessageWithStack();
     }
     return t.getMessage();
   }

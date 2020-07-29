@@ -77,14 +77,15 @@ public class SkylarkTransformation implements Transformation {
       if (e.getCause() instanceof RepoException) {
         throw new RepoException(
             String.format(
-                "Error while executing the skylark transformation %s: %s. Location: %s",
-                function.getName(), e.getMessage(), e.getLocation()), e);
+                "Error while executing the skylark transformation %s: %s",
+                function.getName(), e.getMessageWithStack()),
+            e);
       }
       throw new ValidationException(
           String.format(
-              "Error while executing the skylark transformation %s: %s. Location: %s",
-              function.getName(), e.getMessage(), e.getLocation()), e
-      );
+              "Error while executing the skylark transformation %s: %s",
+              function.getName(), e.getMessageWithStack()),
+          e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new RuntimeException("This should not happen.", e);

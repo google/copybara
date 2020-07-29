@@ -244,7 +244,7 @@ public class SkylarkParser {
         thread.setPrintHandler(printHandler);
         EvalUtils.exec(file, module, thread);
       } catch (EvalException ex) {
-        console.error(ex.getLocation() + ": " + ex.getMessage());
+        console.error(ex.getMessageWithStack());
         throw new ValidationException("Error loading config file", ex);
       }
 

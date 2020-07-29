@@ -26,6 +26,7 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.EvalException;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Arrays;
 import net.starlark.java.annot.Param;
@@ -93,7 +94,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
           generalOptions.profiler(),
           generalOptions.console());
     } catch (ValidationException e) {
-      throw new EvalException("Error setting up remote http file:" + e.getMessage());
+      throw Starlark.errorf("Error setting up remote http file: %s", e.getMessage());
     }
   }
 }

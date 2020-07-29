@@ -94,7 +94,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(null, "Error getting change", e);
+      throw new EvalException(null, "Error getting change: " + e.getMessage(), e);
     }
   }
 
@@ -118,7 +118,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.getActions(id, revision);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(null, "Error getting actions", e);
+      throw new EvalException(null, "Error getting actions: " + e.getMessage(), e);
     }
   }
 
@@ -177,7 +177,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       }
       throw new EvalException(null, "Error calling post_review", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(null, "Error calling post_review", e);
+      throw new EvalException(null, "Error calling post_review: " + e.getMessage(), e);
     }
   }
 
@@ -209,7 +209,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       GerritApi gerritApi = apiSupplier.load(console);
       gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException(null, "Error calling delete_vote", e);
+      throw new EvalException(null, "Error calling delete_vote: " + e.getMessage(), e);
     }
   }
 
@@ -219,25 +219,25 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
           "Get changes from Gerrit based on a query. See"
               + " https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.\n",
       parameters = {
-          @Param(
-              name = "query",
-              type = String.class,
-              named = true,
-              doc =
-                  "The query string to list changes by. See"
-                      + " https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
-          @Param(
-              name = "include_results",
-              named = true,
-              type = Sequence.class,
-              generic1 = String.class,
-              doc =
-                  ""
-                      + "What to include in the response. See "
-                      + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
-                      + "#query-options",
-              positional = false,
-              defaultValue = "[]"),
+        @Param(
+            name = "query",
+            type = String.class,
+            named = true,
+            doc =
+                "The query string to list changes by. See"
+                    + " https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search."),
+        @Param(
+            name = "include_results",
+            named = true,
+            type = Sequence.class,
+            generic1 = String.class,
+            doc =
+                ""
+                    + "What to include in the response. See "
+                    + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html"
+                    + "#query-options",
+            positional = false,
+            defaultValue = "[]"),
       })
   public Sequence<ChangeInfo> listChanges(String queryString, Sequence<?> includeResults)
       throws EvalException, RepoException, ValidationException {
