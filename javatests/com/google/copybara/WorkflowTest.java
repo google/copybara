@@ -80,19 +80,13 @@ import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.function.ThrowingRunnable;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -103,12 +97,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
 import javax.annotation.Nullable;
-
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -1032,7 +1028,7 @@ public class WorkflowTest {
     workflow.run(workdir, ImmutableList.of(HEAD));
 
     ZonedDateTime timestamp = destination.processed.get(0).getTimestamp();
-    assertThat(timestamp.toInstant().getEpochSecond()).isEqualTo(42);
+    assertThat(timestamp.toInstant()).isEqualTo(Instant.ofEpochSecond(42));
   }
 
   @Test
@@ -1050,8 +1046,8 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 42918273);
     workflow.run(workdir, ImmutableList.of(HEAD));
     assertThat(destination.processed).hasSize(1);
-    assertThat(destination.processed.get(0).getTimestamp().toInstant().getEpochSecond())
-        .isEqualTo(42918273);
+    assertThat(destination.processed.get(0).getTimestamp().toInstant())
+        .isEqualTo(Instant.ofEpochSecond(42918273));
   }
 
   @Test

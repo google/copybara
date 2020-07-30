@@ -938,7 +938,7 @@ public class GitOriginTest {
     GitRevision master = origin.resolve("master");
     Instant timestamp = master.readTimestamp().toInstant();
     assertThat(timestamp).isNotNull();
-    assertThat(timestamp.getEpochSecond()).isEqualTo(1400110011L);
+    assertThat(timestamp).isEqualTo(Instant.ofEpochSecond(1400110011L));
   }
 
   @Test
