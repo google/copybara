@@ -997,10 +997,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "destination",
       doc =
-          "Creates a commit in a git repository using the transformed worktree.<br><br>Given that"
-              + " Copybara doesn't ask for user/password in the console when doing the push to"
-              + " remote repos, you have to use ssh protocol, have the credentials cached or use a"
-              + " credential manager.",
+          "Creates a commit in a git repository using the transformed worktree.<br><br>For"
+              + " GitHub use git.github_destination. For creating Pull Requests in GitHub, use"
+              + " git.github_pr_destination. For creating a Gerrit change use"
+              + " git.gerrit_destination.<br><br>Given that Copybara doesn't ask"
+              + " for user/password in the console when doing the push to remote repos, you have to"
+              + " use ssh protocol, have the credentials cached or use a credential manager.",
       parameters = {
         @Param(
             name = "url",
