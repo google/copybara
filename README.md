@@ -1,6 +1,6 @@
 # Copybara
 
-*A tool for transforming and moving code between repositories.*
+_A tool for transforming and moving code between repositories._
 
 Copybara is a tool used internally at Google. It transforms and moves code between repositories.
 
@@ -8,7 +8,7 @@ Often, source code needs to exist in multiple repositories, and Copybara allows 
 and move source code between these repositories. A common case is a project that involves
 maintaining a confidential repository and a public repository in sync.
 
-Copybara requires you to choose one of the repositories to be the authoritative repository, so that
+Copybara requires you to choose one of the repositories to be the authoritative repository so that
 there is always one source of truth. However, the tool allows contributions to any repository, and
 any repository can be used to cut a release.
 
@@ -17,15 +17,12 @@ Copybara can also be used for moving code once to a new repository.
 
 Examples uses of Copybara include:
 
-  - Importing sections of code from a confidential repository to a public repository.
+- Importing sections of code from a confidential repository to a public repository.
 
-  - Importing code from a public repository to a confidential repository.
+- Importing code from a public repository to a confidential repository.
 
-  - Importing a change from a non-authoritative repository into the authoritative repository. When
-    a change is made in the non-authoritative repository (for example, a contributor in the public
-    repository), Copybara transforms and moves that change into the appropriate place in the
-    authoritative repository. Any merge conflicts are dealt with in the same way as an out-of-date
-    change within the authoritative repository.
+- Importing a change from a non-authoritative repository into the authoritative repository. When a change is made in the non-authoritative repository (for example, a contributor in the public repository), Copybara transforms and moves that change into the appropriate place in the authoritative repository. Any merge conflicts are dealt with in the same way as an out-of-date
+  change within the authoritative repository.
 
 Currently, the only supported type of repository is Git. Copybara also supports reading from Mercurial repositories, but the feature is still experimental.
 Support for other repositories types will be added in the future.
@@ -69,14 +66,14 @@ $ copybara copy.bara.sky
 Copybara doesn't have a release process yet, so you need to compile from HEAD. In order to do that
 you need:
 
-  * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
-  * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
-  * Clone the copybara source locally:
-      * `git clone https://github.com/google/copybara.git`
-  * Build:
-      * `bazel build //java/com/google/copybara`.
-	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create a executable uberjar.
-  * Tests: `bazel test //...` if you want to ensure you are not using a broken version.
+- [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+- [Install Bazel](https://docs.bazel.build/versions/master/install.html).
+- Clone the copybara source locally:
+  - `git clone https://github.com/google/copybara.git`
+- Build:
+  - `bazel build //java/com/google/copybara`.
+  - `bazel build //java/com/google/copybara:copybara_deploy.jar` to create a executable uberjar.
+- Tests: `bazel test //...` if you want to ensure you are not using a broken version.
 
 ### System packages
 
@@ -85,7 +82,7 @@ system.
 
 #### Arch Linux
 
-  * [`aur/copybara-git`][install/archlinux/aur-git]
+- [`aur/copybara-git`][install/archlinux/aur-git]
 
 [install/archlinux/aur-git]: https://aur.archlinux.org/packages/copybara-git "Copybara on the AUR"
 
@@ -112,7 +109,7 @@ use a VCS (like git) to store them; treat them as source code.
 
 ### Using Docker to build and run Copybara
 
-*NOTE: Docker use is currently experimental, and we encourage feedback or contributions.*
+_NOTE: Docker use is currently experimental, and we encourage feedback or contributions._
 
 You can build copybara using Docker like so
 
@@ -128,16 +125,17 @@ docker run -it -v "$(pwd)":/usr/src/app copybara copybara
 ```
 
 A few environment variables exist to allow you to change how you run copybara:
-* `COPYBARA_CONFIG=copy.bara.sky`
-  * allows you to specify a path to a config file, defaults to root `copy.bara.sky`
-* `COPYBARA_SUBCOMMAND=migrate`
-  * allows you to change the command run, defaults to `migrate`
-* `COPYBARA_OPTIONS=''`
-  * allows you to specify options for copybara, defaults to none
-* `COPYBARA_WORKFLOW=default`
-  * allows you to specify the workflow to run, defaults to `default`
-* `COPYBARA_SOURCEREF=''`
-  * allows you to specify the sourceref, defaults to none
+
+- `COPYBARA_CONFIG=copy.bara.sky`
+  - allows you to specify a path to a config file, defaults to root `copy.bara.sky`
+- `COPYBARA_SUBCOMMAND=migrate`
+  - allows you to change the command run, defaults to `migrate`
+- `COPYBARA_OPTIONS=''`
+  - allows you to specify options for copybara, defaults to none
+- `COPYBARA_WORKFLOW=default`
+  - allows you to specify the workflow to run, defaults to `default`
+- `COPYBARA_SOURCEREF=''`
+  - allows you to specify the sourceref, defaults to none
 
 ```
 docker run
@@ -163,14 +161,13 @@ docker run
 
 We are still working on the documentation. Here are some resources:
 
-  * [Reference documentation](docs/reference.md)
-  * [Examples](docs/examples.md)
-  
+- [Reference documentation](docs/reference.md)
+- [Examples](docs/examples.md)
+
 ## Contact us
 
 If you have any questions about how Copybara works please contact us at our [mailing list](https://groups.google.com/forum/#!forum/copybara-discuss)
 
 ## Optional tips
 
-  * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your `~/.bazelrc: *test --test_output=streamed*`.
-
+- If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your `~/.bazelrc: *test --test_output=streamed*`.
