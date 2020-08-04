@@ -121,7 +121,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       })
   public Status createStatus(
       String sha, String state, String context, String description, Object targetUrl)
-      throws EvalException {
+      throws EvalException, RepoException {
     try {
       checkCondition(State.VALID_VALUES.contains(state),
                      "Invalid value for state. Valid values: %s", State.VALID_VALUES);
@@ -135,7 +135,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
                                                  convertFromNoneable(targetUrl, null),
                                                  description, context));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling create_status: %s", e.getMessage());
     }
   }
@@ -152,13 +152,13 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             named = true,
             doc = "The SHA-1 for which we want to get the check runs"),
       })
-  public CheckRuns getCheckRuns(String sha) throws EvalException {
+  public CheckRuns getCheckRuns(String sha) throws EvalException, RepoException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCheckRuns(project, sha);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_check_runs: %s", e.getMessage());
     }
   }
@@ -175,14 +175,14 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       },
       allowReturnNones = true)
   @Nullable
-  public CombinedStatus getCombinedStatus(String ref) throws EvalException {
+  public CombinedStatus getCombinedStatus(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCombinedStatus(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_combined_status: %s", e);
     }
   }
@@ -200,14 +200,14 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       },
       allowReturnNones = true)
   @Nullable
-  public GitHubCommit getCommit(String ref) throws EvalException {
+  public GitHubCommit getCommit(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCommit(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_commit: %s", e);
     }
   }
@@ -231,7 +231,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                     + " fast-forward update. Leaving this out or setting it to false will make"
                     + " sure you're not overwriting work. Default: false")
       })
-  public Ref updateReference(String sha, String ref, boolean force) throws EvalException {
+  public Ref updateReference(String sha, String ref, boolean force)
+      throws EvalException, RepoException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
@@ -246,7 +247,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling update_reference: %s", e.getMessage());
     }
   }
@@ -257,7 +258,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(name = "ref", type = String.class, named = true, doc = "The name of the reference."),
       })
-  public void deleteReference(String ref) throws EvalException {
+  public void deleteReference(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "ref cannot be empty");
       checkCondition(ref.startsWith("refs/"), "ref needs to be a complete reference."
@@ -265,7 +266,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       apiSupplier.load(console).deleteReference(project, ref);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling delete_reference: %s", e.getMessage());
     }
   }
@@ -282,7 +283,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       },
       allowReturnNones = true)
   @Nullable
-  public Ref getReference(String ref) throws EvalException {
+  public Ref getReference(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Ref cannot be empty");
 
@@ -290,7 +291,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       return apiSupplier.load(console).getReference(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_reference: %s", e.getMessage());
     }
   }
@@ -338,7 +339,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   @Nullable
   public ImmutableList<PullRequest> getPullRequests(
       Object headPrefixParam, Object basePrefixParam, String state, String sort, String direction)
-      throws EvalException {
+      throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       PullRequestListParams request = PullRequestListParams.DEFAULT;
@@ -367,7 +368,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                   .withSort(stringToEnum("sort", sort, SortFilter.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_pull_requests: %s", e.getMessage());
     }
   }
@@ -402,7 +403,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       allowReturnNones = true)
   @Nullable
   public PullRequest updatePullRequest(Integer number, Object title, Object body, Object state)
-      throws EvalException {
+      throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
 
@@ -418,7 +419,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
                       "state", convertFromNoneable(state, null), UpdatePullRequest.State.class)));
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling update_pull_request: %s", e.getMessage());
     }
   }
@@ -428,12 +429,12 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       doc = "Get autenticated user info, return null if not found",
       allowReturnNones = true)
   @Nullable
-  public User getAuthenticatedUser() throws EvalException {
+  public User getAuthenticatedUser() throws EvalException, RepoException {
     try {
       return apiSupplier.load(console).getAuthenticatedUser();
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_authenticated_user: %s", e.getMessage());
     }
   }
@@ -449,11 +450,11 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       doc =
           "Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum "
               + "number of 500.")
-  public Sequence<Ref> getReferences() throws EvalException {
+  public Sequence<Ref> getReferences() throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(apiSupplier.load(console).getReferences(project));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_references: %s", e.getMessage());
     }
   }
@@ -464,7 +465,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(name = "comment_id", type = String.class, named = true, doc = "Comment identifier"),
       })
-  public PullRequestComment getPullRequestComment(String commentId) throws EvalException {
+  public PullRequestComment getPullRequestComment(String commentId)
+      throws EvalException, RepoException {
     try {
       long commentIdLong;
       try {
@@ -474,7 +476,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       }
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getPullRequestComment(project, commentIdLong);
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_pull_request_comment: %s", e.getMessage());
     }
   }
@@ -486,12 +488,12 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
         @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
       })
   public Sequence<PullRequestComment> getPullRequestComments(Integer prNumber)
-      throws EvalException {
+      throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(
           apiSupplier.load(console).getPullRequestComments(project, prNumber));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_pull_request_comments: %s", e.getMessage());
     }
   }
@@ -512,13 +514,13 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
           @Param(name = "labels", type = Sequence.class, generic1 = String.class, named = true,
               doc = "List of labels to add."),
       })
-  public void addLabels(Integer prNumber, Sequence<?> labels) throws EvalException {
+  public void addLabels(Integer prNumber, Sequence<?> labels) throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       // Swallow response, until a use-case for returning it surfaces.
       apiSupplier.load(console).addLabels(project, prNumber,
           SkylarkUtil.convertStringList(labels, "Expected list of GitHub label names."));
-    } catch (RepoException | ValidationException | RuntimeException e) {
+    } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling add_label: %s", e.getMessage());
     }
   }
