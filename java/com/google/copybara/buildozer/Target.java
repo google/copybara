@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -59,17 +58,16 @@ final class Target {
   /**
    * Parses a target specified in configuration.
    *
-   * @param location where the target string appears in the configuration.
    * @param configString target specified in the form {@code PKG:TARGET_NAME}
    * @throws EvalException if {@code configString} is not formatted correctly
    */
-  static Target fromConfig(Location location, String configString) throws EvalException {
+  static Target fromConfig(String configString) throws EvalException {
     if (configString.startsWith("/")) {
-      throw new EvalException(location, "target must be relative and not start with '/' or '//'");
+      throw new EvalException("target must be relative and not start with '/' or '//'");
     }
     if (!TARGET_NAME_PATTERN.matcher(configString).matches()) {
       throw new EvalException(
-          location, "target must be in the form of {PKG}:{TARGET_NAME}, e.g. foo/bar:baz");
+          "target must be in the form of {PKG}:{TARGET_NAME}, e.g. foo/bar:baz");
     }
     return new Target(configString.split(":", 2));
   }

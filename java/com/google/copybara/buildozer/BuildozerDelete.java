@@ -26,7 +26,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 import javax.annotation.Nullable;
 
@@ -35,18 +34,16 @@ import javax.annotation.Nullable;
  */
 public final class BuildozerDelete implements BuildozerTransformation {
 
-  private final Location location;
   private final BuildozerOptions options;
   private final WorkflowOptions workflowOptions;
   private final Target target;
   @Nullable private final BuildozerCreate recreateAs;
 
   BuildozerDelete(
-      Location location, BuildozerOptions options,
+      BuildozerOptions options,
       WorkflowOptions workflowOptions,
       Target target,
       @Nullable BuildozerCreate recreateAs) {
-    this.location = location;
     this.options = checkNotNull(options, "options");
     this.workflowOptions = checkNotNull(workflowOptions, "workflowOptions");
     this.target = checkNotNull(target, "target");
@@ -86,9 +83,9 @@ public final class BuildozerDelete implements BuildozerTransformation {
   @Override
   public BuildozerCreate reverse() throws NonReversibleValidationException {
     if (recreateAs == null) {
-      throw new NonReversibleValidationException(location,
+      throw new NonReversibleValidationException(
           "This buildozer.delete is not reversible. Please specify at least rule_type to make it"
-          + " reversible.");
+              + " reversible.");
     }
     return recreateAs;
   }

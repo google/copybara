@@ -27,11 +27,11 @@ import com.google.devtools.build.lib.syntax.Location;
  */
 public class NonReversibleValidationException extends EvalException {
 
-  public NonReversibleValidationException(Location location, String message) {
-    super(location, message);
+  public NonReversibleValidationException(String message) {
+    super((Location) null, message);
   }
 
-  public NonReversibleValidationException(Location location, String message, Throwable cause) {
-    super(location, message, cause);
+  public NonReversibleValidationException(String message, Throwable cause) {
+    super((Location) null, message, cause);
   }
 }

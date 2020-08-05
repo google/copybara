@@ -20,24 +20,21 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.transform.ReversibleFunction;
-import com.google.devtools.build.lib.syntax.Location;
 
 public class MapMapper implements ReversibleFunction<String, String> {
 
   private final ImmutableMap<String, String> map;
-  private final Location location;
 
-  MapMapper(ImmutableMap<String, String> map, Location location) {
+  MapMapper(ImmutableMap<String, String> map) {
     this.map = Preconditions.checkNotNull(map);
-    this.location = location;
   }
 
   @Override
   public ReversibleFunction<String, String> reverseMapping() throws NonReversibleValidationException {
     try {
-      return new MapMapper(ImmutableBiMap.copyOf(map).inverse(), location);
+      return new MapMapper(ImmutableBiMap.copyOf(map).inverse());
     } catch (IllegalArgumentException e) {
-      throw new NonReversibleValidationException(location,
+      throw new NonReversibleValidationException(
           "Non-reversible map: " + map + ": " + e.getMessage());
     }
   }

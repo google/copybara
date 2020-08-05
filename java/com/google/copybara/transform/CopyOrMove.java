@@ -223,19 +223,20 @@ public class CopyOrMove implements Transformation {
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
     if (overwrite) {
-      throw new NonReversibleValidationException(location, "core."
-          + (isCopy ? "copy" : "move")
-          + "() with overwrite set is not"
-          + " automatically reversible. Use core.transform to define an explicit reverse");
+      throw new NonReversibleValidationException(
+          "core."
+              + (isCopy ? "copy" : "move")
+              + "() with overwrite set is not"
+              + " automatically reversible. Use core.transform to define an explicit reverse");
     }
     if (isCopy) {
       Path afterPath = Paths.get(after);
       if (paths != Glob.ALL_FILES) {
-        throw new NonReversibleValidationException(location, "core.copy not automatically"
-            + " reversible when using 'paths'");
+        throw new NonReversibleValidationException(
+            "core.copy not automatically" + " reversible when using 'paths'");
       } else if ("".equals(after) || Paths.get(before).normalize().startsWith(afterPath)) {
-        throw new NonReversibleValidationException(location, "core.copy not automatically"
-            + " reversible when copying to a parent directory");
+        throw new NonReversibleValidationException(
+            "core.copy not automatically" + " reversible when copying to a parent directory");
       }
       return new ExplicitReversal(new Remove(
           // After might be a directory or a file. Delete both

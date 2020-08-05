@@ -25,6 +25,7 @@ import com.google.copybara.NonReversibleValidationException;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,13 +35,11 @@ import javax.annotation.Nullable;
 /** Represents a possibly-reversible Buildozer command. */
 public final class Command implements StarlarkValue {
 
-  private Location location;
   private final String command;
   @Nullable
   private final String reverse;
 
-  private Command(Location location, String command, @Nullable String reverse) {
-    this.location = location;
+  private Command(String command, @Nullable String reverse) {
     this.command = checkNotNull(command, "command");
     Preconditions.checkArgument(!command.trim().isEmpty(), "Found empty command");
     Preconditions.checkArgument(reverse == null || !reverse.trim().isEmpty(),
@@ -53,19 +52,18 @@ public final class Command implements StarlarkValue {
     }
   }
 
-  static Command fromConfig(Location location, String command, @Nullable String reverse)
-      throws EvalException {
+  static Command fromConfig(String command, @Nullable String reverse) throws EvalException {
     if (reverse == null) {
       List<String> components = Splitter.on(' ').limit(2).omitEmptyStrings().splitToList(command);
       if (components.size() == 2) {
-        reverse = Command.reverse(components.get(0), components.get(1), location);
+        reverse = Command.reverse(components.get(0), components.get(1));
       }
     }
 
     try {
-      return new Command(location, command, reverse);
-    } catch (IllegalArgumentException e) {
-      throw new EvalException(location, e.getMessage());
+      return new Command(command, reverse);
+    } catch (IllegalArgumentException ex) {
+      throw new EvalException((Location) null, ex);
     }
   }
 
@@ -152,19 +150,16 @@ public final class Command implements StarlarkValue {
    */
   Command reverse() throws NonReversibleValidationException {
     if (reverse == null) {
-      throw new NonReversibleValidationException(location,
+      throw new NonReversibleValidationException(
           "The current command is not auto-reversible and a reverse was not provided: " + command);
     }
 
-    return new Command(location, reverse, command);
+    return new Command(reverse, command);
   }
 
-  /**
-   * Calculates the reversal a command whose reversal has not been manually-specified.
-   */
+  /** Calculates the reversal a command whose reversal has not been manually specified. */
   @Nullable
-  private static String reverse(String commandName, String args, Location location)
-      throws EvalException {
+  private static String reverse(String commandName, String args) throws EvalException {
     switch (commandName) {
       case "add":
         return "remove " + args;
@@ -177,9 +172,9 @@ public final class Command implements StarlarkValue {
       case "replace":
         List<String> reverseArgs = new ArrayList<>(splitArgv(args));
         if (reverseArgs.size() != 3) {
-          throw new EvalException(location,
-              String.format("Cannot reverse '%s %s', expected three arguments, but found %d.",
-                  commandName, args, reverseArgs.size()));
+          throw Starlark.errorf(
+              "Cannot reverse '%s %s', expected three arguments, but found %d.",
+              commandName, args, reverseArgs.size());
         }
         Collections.swap(reverseArgs, 1, 2);
         return "replace " + Joiner.on(' ').join(reverseArgs);

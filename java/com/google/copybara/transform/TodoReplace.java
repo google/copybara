@@ -199,15 +199,14 @@ public class TodoReplace implements Transformation {
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
     if (mode != Mode.MAP_OR_FAIL && mode != Mode.MAP_OR_IGNORE) {
-      throw new NonReversibleValidationException(location, mode + " mode is not reversible");
+      throw new NonReversibleValidationException(mode + " mode is not reversible");
     }
 
     BiMap<String, String> mapping;
     try {
       mapping = HashBiMap.create(this.mapping);
     } catch (IllegalArgumentException e) {
-      throw new NonReversibleValidationException(location,
-          "Non-reversible mapping: " + e.getMessage());
+      throw new NonReversibleValidationException("Non-reversible mapping: " + e.getMessage());
     }
 
     return new TodoReplace(

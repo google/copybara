@@ -58,7 +58,6 @@ import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.NoneType;
 import com.google.devtools.build.lib.syntax.Starlark;
@@ -1185,8 +1184,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object reverse,
       StarlarkThread thread)
       throws EvalException {
-    ReversibleFunction<String, String> func =
-        getMappingFunction(mapping, thread.getCallerLocation());
+    ReversibleFunction<String, String> func = getMappingFunction(mapping);
 
     String afterPattern = convertFromNoneable(reverse, regex);
     int numGroup = convertFromNoneable(group, 0);
@@ -1215,14 +1213,13 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   @SuppressWarnings("unchecked")
-  public static ReversibleFunction<String, String> getMappingFunction(Object mapping,
-      Location location)
+  public static ReversibleFunction<String, String> getMappingFunction(Object mapping)
       throws EvalException {
     if (mapping instanceof Dict) {
       ImmutableMap<String, String> map =
           ImmutableMap.copyOf(Dict.noneableCast(mapping, String.class, String.class, "mapping"));
       check(!map.isEmpty(), "Empty mapping is not allowed." + " Remove the transformation instead");
-      return new MapMapper(map, location);
+      return new MapMapper(map);
     }
     check(
         mapping instanceof ReversibleFunction,
@@ -1376,14 +1373,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false,
             noneable = true,
             defaultValue = "None")
-      },
-      useStarlarkThread = true)
+      })
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
   public Transformation transform(
       com.google.devtools.build.lib.syntax.Sequence<?> transformations, // <Transformation>
       Object reversal,
-      Object ignoreNoop,
-      StarlarkThread thread)
+      Object ignoreNoop)
       throws EvalException {
     Sequence forward =
         Sequence.fromConfig(
@@ -1496,11 +1491,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       doc = "If invoked, it will fail the current migration as a noop",
       parameters = {
         @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
-      },
-      useStarlarkThread = true)
-  public Action failWithNoop(String msg, StarlarkThread thread) throws EmptyChangeException {
-    // Add an internal EvalException to know the location of the error.
-    throw new EmptyChangeException(new EvalException(thread.getCallerLocation(), msg), msg);
+      })
+  public Action failWithNoop(String msg) throws EmptyChangeException {
+    throw new EmptyChangeException(msg);
   }
 
   @StarlarkMethod(name = "main_config_path",

@@ -29,7 +29,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.RegexTemplateTokens;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -48,11 +47,12 @@ public class LatestVersionSelector implements VersionSelector {
   private final TreeMap<Integer, VersionElementType> groupTypes;
   private final RegexTemplateTokens template;
 
-  LatestVersionSelector(String refspec, Map<String, Pattern> groups,
-      TreeMap<Integer, VersionElementType> groupTypes, Location location) throws EvalException {
+  LatestVersionSelector(
+      String refspec, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes)
+      throws EvalException {
     this.refspec = Preconditions.checkNotNull(refspec);
     this.groupTypes = Preconditions.checkNotNull(groupTypes);
-    template = new RegexTemplateTokens(location, refspec, groups, true);
+    template = new RegexTemplateTokens(refspec, groups, true);
   }
 
   @Override

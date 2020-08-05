@@ -26,7 +26,7 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
 import com.google.copybara.exception.ValidationException;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
+import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,7 +38,6 @@ import java.util.List;
  */
 public final class BuildozerCreate implements BuildozerTransformation {
 
-  private final Location location;
   private final BuildozerOptions options;
   private final WorkflowOptions workflowOptions;
   private final Target target;
@@ -49,37 +48,25 @@ public final class BuildozerCreate implements BuildozerTransformation {
   static final class RelativeTo {
     final String args;
 
-    // TODO(team): skylark. remove after migration.
-    RelativeTo(String before, String after) {
-      if (before != null) {
-        this.args = "before " + before;
-      } else if (after != null) {
-        this.args = "after " + after;
-      } else {
-        this.args = "";
-      }
-    }
-
-    private static void validateTargetName(Location location, String targetName)
-        throws EvalException {
+    private static void validateTargetName(String targetName) throws EvalException {
       if (targetName.contains(":")) {
-        throw new EvalException(location, String.format(
+        throw Starlark.errorf(
             "unexpected : in target name (did you include the package by mistake?) - '%s'",
-            targetName));
+            targetName);
       }
     }
 
-    RelativeTo(Location location, String before, String after) throws EvalException {
+    RelativeTo(String before, String after) throws EvalException {
       if (!before.isEmpty() && !after.isEmpty()) {
         throw new EvalException(
-            location, "cannot specify both 'before' and 'after' in the target create arguments");
+            "cannot specify both 'before' and 'after' in the target create arguments");
       }
 
       if (!before.isEmpty()) {
-        validateTargetName(location, before);
+        validateTargetName(before);
         this.args = "before " + before;
       } else if (!after.isEmpty()) {
-        validateTargetName(location, after);
+        validateTargetName(after);
         this.args = "after " + after;
       } else {
         this.args = "";
@@ -93,14 +80,13 @@ public final class BuildozerCreate implements BuildozerTransformation {
   }
 
   BuildozerCreate(
-      Location location, BuildozerOptions options,
+      BuildozerOptions options,
       WorkflowOptions workflowOptions,
       Target target,
       String ruleType,
       RelativeTo relativeTo,
       // TODO(matvore): Accept Iterable<Command> once YAML support is removed.
       Iterable<String> commands) {
-    this.location = location;
     this.options = checkNotNull(options, "options");
     this.workflowOptions = checkNotNull(workflowOptions, "workflowOptions");
     this.target = checkNotNull(target, "target");
@@ -167,7 +153,7 @@ public final class BuildozerCreate implements BuildozerTransformation {
 
   @Override
   public BuildozerDelete reverse() {
-    return new BuildozerDelete(location, options, workflowOptions, target, this);
+    return new BuildozerDelete(options, workflowOptions, target, this);
   }
 
   @Override

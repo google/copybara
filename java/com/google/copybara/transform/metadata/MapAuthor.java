@@ -132,16 +132,19 @@ public class MapAuthor implements Transformation {
       return new ExplicitReversal(IntentionalNoop.INSTANCE, this);
     }
     if (!reversible) {
-      throw new NonReversibleValidationException(location,
-          "Author mapping doesn't have reversible enabled");
+      throw new NonReversibleValidationException("Author mapping doesn't have reversible enabled");
     } else if (!mailToAuthor.isEmpty()) {
-      throw new NonReversibleValidationException(location, String.format(
-          "author mapping is not reversible because it contains mail -> author mappings."
-              + " Only author -> author is reversible: %s", nameToAuthor));
+      throw new NonReversibleValidationException(
+          String.format(
+              "author mapping is not reversible because it contains mail -> author mappings."
+                  + " Only author -> author is reversible: %s",
+              nameToAuthor));
     } else if (!nameToAuthor.isEmpty()) {
-      throw new NonReversibleValidationException(location, String.format(
-          "author mapping is not reversible because it contains name -> author mappings."
-              + " Only author -> author is reversible: %s", nameToAuthor));
+      throw new NonReversibleValidationException(
+          String.format(
+              "author mapping is not reversible because it contains name -> author mappings."
+                  + " Only author -> author is reversible: %s",
+              nameToAuthor));
     }
 
     try {
@@ -151,8 +154,7 @@ public class MapAuthor implements Transformation {
           ImmutableMap.of(), reversible, noopReverse, failIfNotFoundInReverse, failIfNotFound,
           mapAll);
     } catch (IllegalArgumentException e) {
-      throw new NonReversibleValidationException(location, "non-reversible author map:"
-          + e.getMessage());
+      throw new NonReversibleValidationException("non-reversible author map:" + e.getMessage());
     }
   }
 

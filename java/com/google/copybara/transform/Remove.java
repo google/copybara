@@ -67,7 +67,7 @@ public class Remove implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    throw new NonReversibleValidationException(location, "core.remove is not reversible");
+    throw new NonReversibleValidationException("core.remove is not reversible");
   }
 
   @Override

@@ -30,6 +30,7 @@ import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
@@ -142,8 +143,8 @@ public final class VerifyMatch implements Transformation {
     Pattern parsed;
     try {
       parsed = Pattern.compile(regEx, Pattern.MULTILINE);
-    } catch (PatternSyntaxException e) {
-      throw new EvalException(location, String.format("Regex '%s' is invalid.", regEx), e);
+    } catch (PatternSyntaxException ex) {
+      throw Starlark.errorf("Regex '%s' is invalid: %s", regEx, ex.getMessage());
     }
     return new VerifyMatch(parsed, verifyNoMatch, alsoOnReversal, paths, parallelizer, location);
   }

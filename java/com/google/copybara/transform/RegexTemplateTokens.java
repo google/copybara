@@ -31,7 +31,6 @@ import com.google.common.collect.Sets;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -55,8 +54,9 @@ public final class RegexTemplateTokens {
   private final ImmutableList<Token> tokens;
   private final Set<String> unusedGroups;
 
-  public RegexTemplateTokens(Location location, String template, Map<String, Pattern> regexGroups,
-      boolean repeatedGroups) throws EvalException {
+  public RegexTemplateTokens(
+      String template, Map<String, Pattern> regexGroups, boolean repeatedGroups)
+      throws EvalException {
     this.template = Preconditions.checkNotNull(template);
 
     this.tokens = ImmutableList.copyOf(new Parser().parse(template));

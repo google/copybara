@@ -22,10 +22,8 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,25 +49,24 @@ public final class BuildozerModule implements StarlarkValue {
     this.buildozerOptions = Preconditions.checkNotNull(buildozerOptions);
   }
 
-  private static ImmutableList<Target> getTargetList(Location location, Object arg)
-      throws EvalException {
+  private static ImmutableList<Target> getTargetList(Object arg) throws EvalException {
     if (arg instanceof String) {
-      return ImmutableList.of(Target.fromConfig(location, (String) arg));
+      return ImmutableList.of(Target.fromConfig((String) arg));
     } else {
       ImmutableList.Builder<Target> builder = ImmutableList.builder();
       for (String target : SkylarkUtil.convertStringList(arg, "target")) {
-        builder.add(Target.fromConfig(location, target));
+        builder.add(Target.fromConfig(target));
       }
       return builder.build();
     }
   }
 
-  private static ImmutableList<Command> coerceCommandList(Location location, Iterable<?> commands)
+  private static ImmutableList<Command> coerceCommandList(Iterable<?> commands)
       throws EvalException {
     ImmutableList.Builder<Command> wrappedCommands = new ImmutableList.Builder<>();
     for (Object command : commands) {
       if (command instanceof String) {
-        wrappedCommands.add(Command.fromConfig(location, (String) command, /*reverse*/ null));
+        wrappedCommands.add(Command.fromConfig((String) command, /*reverse*/ null));
       } else if (command instanceof Command) {
         wrappedCommands.add((Command) command);
       } else {
@@ -123,28 +120,20 @@ public final class BuildozerModule implements StarlarkValue {
             positional = false,
             defaultValue = "''",
             named = true),
-      },
-      useStarlarkThread = true)
+      })
   public BuildozerCreate create(
-      String target,
-      String ruleType,
-      Sequence<?> commands,
-      String before,
-      String after,
-      StarlarkThread thread)
+      String target, String ruleType, Sequence<?> commands, String before, String after)
       throws EvalException {
-    Location location = thread.getCallerLocation();
     List<String> commandStrings = new ArrayList<>();
-    for (Object command : coerceCommandList(location, commands)) {
+    for (Object command : coerceCommandList(commands)) {
       commandStrings.add(command.toString());
     }
     return new BuildozerCreate(
-        location,
         buildozerOptions,
         workflowOptions,
-        Target.fromConfig(location, target),
+        Target.fromConfig(target),
         ruleType,
-        new BuildozerCreate.RelativeTo(location, before, after),
+        new BuildozerCreate.RelativeTo(before, after),
         commandStrings);
   }
 
@@ -205,39 +194,36 @@ public final class BuildozerModule implements StarlarkValue {
             positional = false,
             defaultValue = "''",
             named = true),
-      },
-      useStarlarkThread = true)
+      })
   public BuildozerDelete delete(
       String targetString,
       String ruleType,
       Sequence<?> recreateCommands,
       String before,
-      String after,
-      StarlarkThread thread)
+      String after)
       throws EvalException {
-    Location location = thread.getCallerLocation();
     List<String> commandStrings = new ArrayList<>();
-    for (Object command : coerceCommandList(location, recreateCommands)) {
+    for (Object command : coerceCommandList(recreateCommands)) {
       commandStrings.add(command.toString());
     }
     BuildozerCreate recreateAs;
-    Target target = Target.fromConfig(location, targetString);
+    Target target = Target.fromConfig(targetString);
     if (ruleType.isEmpty()) {
       recreateAs = null;
       mustOmitRecreateParam(ImmutableList.of(), recreateCommands, "recreate_commands");
       mustOmitRecreateParam("", before, "before");
       mustOmitRecreateParam("", after, "after");
     } else {
-      recreateAs = new BuildozerCreate(
-          location, buildozerOptions,
-          workflowOptions,
-          target,
-          ruleType,
-          new BuildozerCreate.RelativeTo(location, before, after),
-          commandStrings);
+      recreateAs =
+          new BuildozerCreate(
+              buildozerOptions,
+              workflowOptions,
+              target,
+              ruleType,
+              new BuildozerCreate.RelativeTo(before, after),
+              commandStrings);
     }
-    return new BuildozerDelete(location, buildozerOptions, workflowOptions, target,
-        recreateAs);
+    return new BuildozerDelete(buildozerOptions, workflowOptions, target, recreateAs);
   }
 
   @StarlarkMethod(
@@ -262,8 +248,7 @@ public final class BuildozerModule implements StarlarkValue {
                 "Commands to apply to the target(s) specified. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
             named = true),
-      },
-      useStarlarkThread = true)
+      })
   @Example(
       title = "Add a setting to one target",
       before = "Add \"config = ':foo'\" to foo/bar:baz:",
@@ -284,15 +269,12 @@ public final class BuildozerModule implements StarlarkValue {
               + "        buildozer.cmd('set config \":foo\"'),\n"
               + "    ],\n"
               + ")")
-  public BuildozerModify modify(Object target, Sequence<?> commands, StarlarkThread thread)
-      throws EvalException {
+  public BuildozerModify modify(Object target, Sequence<?> commands) throws EvalException {
     if (commands.isEmpty()) {
       throw Starlark.errorf("at least one element required in 'commands' argument");
     }
-    Location location = thread.getCallerLocation();
     return new BuildozerModify(
-        buildozerOptions, workflowOptions, getTargetList(location, target),
-        coerceCommandList(location, commands));
+        buildozerOptions, workflowOptions, getTargetList(target), coerceCommandList(commands));
   }
 
   @StarlarkMethod(
@@ -318,10 +300,8 @@ public final class BuildozerModule implements StarlarkValue {
             noneable = true,
             defaultValue = "None",
             named = true),
-      },
-      useStarlarkThread = true)
-  public Command cmd(String forward, Object reverse, StarlarkThread thread) throws EvalException {
-    return Command.fromConfig(
-        thread.getCallerLocation(), forward, SkylarkUtil.convertOptionalString(reverse));
+      })
+  public Command cmd(String forward, Object reverse) throws EvalException {
+    return Command.fromConfig(forward, SkylarkUtil.convertOptionalString(reverse));
   }
 }

@@ -101,7 +101,7 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
 
   private FilterReplace internalReverse() throws NonReversibleValidationException {
     if (after == null) {
-      throw new NonReversibleValidationException(location, "No 'after' defined");
+      throw new NonReversibleValidationException("No 'after' defined");
     }
 
     return new FilterReplace(workflowOptions, after, before, reverseGroup, group, mapping.reverseMapping(),

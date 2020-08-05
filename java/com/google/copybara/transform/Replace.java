@@ -157,7 +157,6 @@ public final class Replace implements Transformation {
       after.validateUnused();
     } catch (EvalException e) {
       throw new NonReversibleValidationException(
-          location,
           "The transformation is not automatically reversible. Add an explicit reversal field with "
               + "core.transform: "
               + e.getMessage(),
@@ -176,9 +175,8 @@ public final class Replace implements Transformation {
     Map<String, Pattern> parsedGroups = parsePatterns(regexGroups);
 
     RegexTemplateTokens beforeTokens =
-        new RegexTemplateTokens(location, before, parsedGroups, repeatedGroups);
-    RegexTemplateTokens afterTokens =
-        new RegexTemplateTokens(location, after, parsedGroups, repeatedGroups);
+        new RegexTemplateTokens(before, parsedGroups, repeatedGroups);
+    RegexTemplateTokens afterTokens = new RegexTemplateTokens(after, parsedGroups, repeatedGroups);
 
     beforeTokens.validateUnused();
 
