@@ -38,8 +38,6 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.SkylarkAction;
-import com.google.copybara.folder.FolderDestination;
-import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
@@ -104,7 +102,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   private final WorkflowOptions workflowOptions;
   private final DebugOptions debugOptions;
   private FolderModule folderModule;
-  private FolderDestinationOptions folderDestinationOptions;
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private StarlarkThread.PrintHandler printHandler;

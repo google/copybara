@@ -149,16 +149,14 @@ public final class SkylarkUtil {
     //  Sequence.cast(x, String.class, message).
     // But beware its result should not be modified.
     if (!(x instanceof Sequence)) {
-      throw new EvalException(
-          null, String.format("%s: got %s, want sequence", message, Starlark.type(x)));
+      throw Starlark.errorf("%s: got %s, want sequence", message, Starlark.type(x));
     }
 
     ArrayList<String> result = new ArrayList<>();
     for (Object elem : (Sequence<?>) x) {
       if (!(elem instanceof String)) {
-        throw new EvalException(
-            null, String.format("%s: at index #%d, got %s, want string",
-                message, result.size(), Starlark.type(elem)));
+        throw Starlark.errorf(
+            "%s: at index #%d, got %s, want string", message, result.size(), Starlark.type(elem));
       }
       result.add((String) elem);
     }
@@ -176,24 +174,18 @@ public final class SkylarkUtil {
     //    Dict.cast(x, String.class, String.class, message)
     // and fix up tests. Beware: its result is not to be modified.
     if (!(x instanceof Dict)) {
-      throw new EvalException(
-          null, String.format("%s: got %s, want dict", message, Starlark.type(x)));
+      throw Starlark.errorf("%s: got %s, want dict", message, Starlark.type(x));
     }
     Map<String, String> result = new HashMap<>();
     for (Map.Entry<?, ?> e : ((Dict<?, ?>) x).entrySet()) {
       if (!(e.getKey() instanceof String)) {
-        throw new EvalException(
-            null,
-            String.format(
-                "%s: in dict key, got %s, want string",
-                message, Starlark.type(e.getKey())));
+        throw Starlark.errorf(
+            "%s: in dict key, got %s, want string", message, Starlark.type(e.getKey()));
       }
       if (!(e.getValue() instanceof String)) {
-        throw new EvalException(
-            null,
-            String.format(
-                "%s: in value for dict key '%s', got %s, want string",
-                message, e.getKey(), Starlark.type(e.getValue())));
+        throw Starlark.errorf(
+            "%s: in value for dict key '%s', got %s, want string",
+            message, e.getKey(), Starlark.type(e.getValue()));
       }
       result.put((String) e.getKey(), (String) e.getValue());
     }
