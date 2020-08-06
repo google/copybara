@@ -75,6 +75,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.devtools.build.lib.syntax.Starlark.UncheckedEvalException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -638,10 +639,10 @@ public class GerritDestinationTest {
 
   @Test
   public void configFailed_gerritSubmitFalse() {
-    IllegalArgumentException illegalArgumentException =
-        assertThrows(IllegalArgumentException.class,
+    UncheckedEvalException uncheckedEvalException =
+        assertThrows(UncheckedEvalException.class,
             () -> destination("submit = False", "gerrit_submit = True"));
-    assertThat(illegalArgumentException).hasMessageThat()
+    assertThat(uncheckedEvalException).hasMessageThat()
         .contains("Only set gerrit_submit if submit is true");
   }
 

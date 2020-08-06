@@ -139,7 +139,7 @@ public class GerritEndpointTest {
             ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
     assertThat(expected)
         .hasMessageThat()
-        .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:29");
+        .contains("Bad word 'badword' found: field 'path'.");
   }
 
   @Test
@@ -487,7 +487,7 @@ public class GerritEndpointTest {
     ValidationException expected = assertThrows(ValidationException.class, () ->
         runFeedback(ImmutableList.of("ctx.destination.post_review("
             + "'12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")));
-    assertThat(expected).hasMessageThat().contains("Gerrit returned a permission error");
+    assertThat(expected).hasMessageThat().contains("Permission error calling post_review");
   }
 
   @Test

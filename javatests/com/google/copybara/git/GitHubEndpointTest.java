@@ -221,7 +221,7 @@ public class GitHubEndpointTest {
             ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
     assertThat(expected)
         .hasMessageThat()
-        .contains("Bad word 'badword' found: field 'path'. Location: copy.bara.sky:2:3");
+        .contains("Bad word 'badword' found: field 'path'.");
   }
 
   @Test

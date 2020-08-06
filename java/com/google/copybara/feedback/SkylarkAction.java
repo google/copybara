@@ -28,6 +28,7 @@ import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.Starlark;
+import com.google.devtools.build.lib.syntax.Starlark.UncheckedEvalException;
 import com.google.devtools.build.lib.syntax.StarlarkCallable;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
@@ -59,7 +60,7 @@ public class SkylarkAction implements Action {
           Starlark.call(
               thread, function, ImmutableList.of(actionContext), /*kwargs=*/ ImmutableMap.of());
       context.onFinish(result, actionContext);
-    } catch (IllegalArgumentException e) {
+    } catch (UncheckedEvalException e) {
       throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
       Throwable cause = e.getCause();

@@ -169,7 +169,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       if (re.getGerritResponseMsg().matches("(?s).*Applying label \"\\w+\":.*is restricted.*")) {
         throw new EvalException(
             null,
-            "Error calling post_review",
+            "Permission error calling post_review",
             new ValidationException(
                 "Gerrit returned a permission error while attempting to post a review:\n"
                     + re.getMessage(),
