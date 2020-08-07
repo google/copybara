@@ -214,9 +214,6 @@ public final class GerritDestination implements Destination<GitRevision> {
     private Optional<ChangeInfo> findActiveChange(String hashTag)
         throws RepoException, ValidationException {
 
-      if (!isGerritReuseByHashTag()) {
-        return Optional.empty();
-      }
       console.progressFmt("Querying Gerrit ('%s') for active changes with hashtag '%s'",
           repoUrl, hashTag);
       List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
@@ -228,11 +225,6 @@ public final class GerritDestination implements Destination<GitRevision> {
             changes.stream().map(ChangeInfo::getNumber).collect(Collectors.toList()));
       }
       return changes.stream().findFirst();
-    }
-
-    // TODO(malcon): Remove after 2020-08-01
-    private boolean isGerritReuseByHashTag() {
-      return generalOptions.isTemporaryFeature("GERRIT_BY_HASHTAG", true);
     }
 
     private List<ChangeInfo> findChanges(String changeId, Iterable<IncludeResult> includes)
@@ -366,7 +358,7 @@ public final class GerritDestination implements Destination<GitRevision> {
         options.put("topic", Optional.of(topic));
       }
 
-      if (isGerritReuseByHashTag() && pushToRefsFor.startsWith("refs/for/")) {
+      if (pushToRefsFor.startsWith("refs/for/")) {
         // Set an internal hashtag so that we can reuse changes in future snapshots.
         options.put("hashtag", Optional.of(computeInternalHashTag(transformResult)));
       }
