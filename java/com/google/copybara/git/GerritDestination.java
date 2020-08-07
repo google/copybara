@@ -65,6 +65,7 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -219,12 +220,15 @@ public final class GerritDestination implements Destination<GitRevision> {
       List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
           String.format("hashtag:\"%s\" AND project:%s AND status:NEW",
               hashTag, gerritOptions.getProject(repoUrl))));
+      Optional<ChangeInfo> maxChangeNumber = changes.stream()
+          .max(Comparator.comparingLong(ChangeInfo::getNumber));
       if (changes.size() > 1) {
         console.warnFmt("Multiple changes found for the same internal copybara tag: %s. Reusing"
-                + " first one.",
-            changes.stream().map(ChangeInfo::getNumber).collect(Collectors.toList()));
+                + " %s",
+            changes.stream().map(ChangeInfo::getNumber).collect(Collectors.toList()),
+            maxChangeNumber.get().getNumber());
       }
-      return changes.stream().findFirst();
+      return maxChangeNumber;
     }
 
     private List<ChangeInfo> findChanges(String changeId, Iterable<IncludeResult> includes)
