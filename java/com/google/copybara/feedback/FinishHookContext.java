@@ -30,7 +30,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkList;
@@ -93,7 +92,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     try {
       return origin.load(console);
     } catch (RepoException | ValidationException e) {
-      throw new EvalException((Location) null, e);
+      throw new EvalException(e);
     }
   }
 
@@ -102,7 +101,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     try {
       return destination.load(console);
     } catch (RepoException | ValidationException e) {
-      throw new EvalException((Location) null, e);
+      throw new EvalException(e);
     }
   }
 

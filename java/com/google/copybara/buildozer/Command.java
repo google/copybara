@@ -23,7 +23,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.copybara.NonReversibleValidationException;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Printer;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -63,7 +62,7 @@ public final class Command implements StarlarkValue {
     try {
       return new Command(command, reverse);
     } catch (IllegalArgumentException ex) {
-      throw new EvalException((Location) null, ex);
+      throw new EvalException(ex);
     }
   }
 

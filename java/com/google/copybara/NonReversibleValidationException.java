@@ -17,7 +17,6 @@
 package com.google.copybara;
 
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 
 /**
  * Exception thrown when a {@link Transformation} is not reversible but the configuration asked for
@@ -28,10 +27,10 @@ import com.google.devtools.build.lib.syntax.Location;
 public class NonReversibleValidationException extends EvalException {
 
   public NonReversibleValidationException(String message) {
-    super((Location) null, message);
+    super(message);
   }
 
   public NonReversibleValidationException(String message, Throwable cause) {
-    super((Location) null, message, cause);
+    super(message, cause);
   }
 }

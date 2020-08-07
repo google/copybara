@@ -38,7 +38,6 @@ import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.StarlarkList;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
@@ -95,7 +94,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException((Location) null, "Error getting change: " + e.getMessage(), e);
+      throw new EvalException("Error getting change: " + e.getMessage(), e);
     }
   }
 
@@ -119,7 +118,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.getActions(id, revision);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException((Location) null, "Error getting actions: " + e.getMessage(), e);
+      throw new EvalException("Error getting actions: " + e.getMessage(), e);
     }
   }
 
@@ -169,16 +168,15 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     } catch (GerritApiException re) {
       if (re.getGerritResponseMsg().matches("(?s).*Applying label \"\\w+\":.*is restricted.*")) {
         throw new EvalException(
-            (Location) null,
             "Permission error calling post_review",
             new ValidationException(
                 "Gerrit returned a permission error while attempting to post a review:\n"
                     + re.getMessage(),
                 re));
       }
-      throw new EvalException((Location) null, "Error calling post_review", re);
+      throw new EvalException("Error calling post_review", re);
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException((Location) null, "Error calling post_review: " + e.getMessage(), e);
+      throw new EvalException("Error calling post_review: " + e.getMessage(), e);
     }
   }
 
@@ -210,7 +208,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       GerritApi gerritApi = apiSupplier.load(console);
       gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
     } catch (RepoException | ValidationException | RuntimeException e) {
-      throw new EvalException((Location) null, "Error calling delete_vote: " + e.getMessage(), e);
+      throw new EvalException("Error calling delete_vote: " + e.getMessage(), e);
     }
   }
 
