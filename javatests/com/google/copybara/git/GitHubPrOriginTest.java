@@ -70,6 +70,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -142,7 +143,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolvePullRequest() throws Exception {
-    mockPullRequestAndIssue(123, "open", "foo: yes", "bar: yes");
+    mockPullRequestAndIssue("open", 123, "foo: yes", "bar: yes");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",
@@ -153,7 +154,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveWithGitDescribe() throws Exception {
-    mockPullRequestAndIssue(123, "open", "foo: yes", "bar: yes");
+    mockPullRequestAndIssue("open", 123, "foo: yes", "bar: yes");
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
     addFiles(remote, "first change", ImmutableMap.<String, String>builder()
         .put(123 + ".txt", "").build());
@@ -172,7 +173,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolvePullRequestNumber() throws Exception {
-    mockPullRequestAndIssue(123, "open", "foo: yes", "bar: yes");
+    mockPullRequestAndIssue("open", 123, "foo: yes", "bar: yes");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",
@@ -188,7 +189,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolvePullRequestRawRef() throws Exception {
-    mockPullRequestAndIssue(123, "open", "foo: yes", "bar: yes");
+    mockPullRequestAndIssue("open", 123, "foo: yes", "bar: yes");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",
@@ -199,7 +200,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveSha1() throws Exception {
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
 
     GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
@@ -215,13 +216,13 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveNoLabelsRequired() throws Exception {
-    mockPullRequestAndIssue(125, "open", "bar: yes");
+    mockPullRequestAndIssue("open", 125, "bar: yes");
     checkResolve(
         githubPrOrigin("url = 'https://github.com/google/example'", "required_labels = []"),
         "125",
         125);
 
-    mockPullRequestAndIssue(126, "open");
+    mockPullRequestAndIssue("open", 126);
 
     checkResolve(
         githubPrOrigin("url = 'https://github.com/google/example'", "required_labels = []"),
@@ -231,7 +232,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsNotFound() throws Exception {
-    mockPullRequestAndIssue(125, "open", "bar: yes");
+    mockPullRequestAndIssue("open", 125, "bar: yes");
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
@@ -252,7 +253,7 @@ public class GitHubPrOriginTest {
   @Test
   public void testGitResolveRequiredLabelsNotFound_forceMigrate() throws Exception {
     options.githubPrOrigin.forceImport = true;
-    mockPullRequestAndIssue(125, "open", "bar: yes");
+    mockPullRequestAndIssue("open", 125, "bar: yes");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",
@@ -264,13 +265,13 @@ public class GitHubPrOriginTest {
   @Test
   public void testLimitByBranch() throws Exception {
     // This should work since it returns a PR for master.
-    mockPullRequestAndIssue(125, "open", "bar: yes");
+    mockPullRequestAndIssue("open", 125, "bar: yes");
     checkResolve(
         githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'master'"),
         "125",
         125);
 
-    mockPullRequestAndIssue(126, "open", "bar: yes");
+    mockPullRequestAndIssue("open", 126, "bar: yes");
     EmptyChangeException e =
         assertThrows(
             EmptyChangeException.class,
@@ -288,7 +289,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsRetried() throws Exception {
-    mockPullRequest(125, "open");
+    mockPullRequest(125, "open", "master");
 
     mockIssue(
         125,
@@ -310,7 +311,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsNotRetryable() throws Exception {
-    mockPullRequestAndIssue(125, "open");
+    mockPullRequestAndIssue("open", 125);
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
@@ -330,7 +331,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testAlreadyClosed_default() throws Exception {
-    mockPullRequestAndIssue(125, "closed", "foo: yes");
+    mockPullRequestAndIssue("closed", 125, "foo: yes");
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
@@ -342,7 +343,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testAlreadyClosed_only_open() throws Exception {
-    mockPullRequestAndIssue(125, "closed", "foo: yes");
+    mockPullRequestAndIssue("closed", 125, "foo: yes");
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
@@ -357,14 +358,14 @@ public class GitHubPrOriginTest {
   @Test
   public void testAlreadyClosed_only_open_forceMigration() throws Exception {
     options.githubPrOrigin.forceImport = true;
-    mockPullRequestAndIssue(125, "closed", "foo: yes");
+    mockPullRequestAndIssue("closed", 125, "foo: yes");
     checkResolve(
         githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"), "125", 125);
   }
 
   @Test
   public void testAlreadyClosed_only_closed() throws Exception {
-    mockPullRequestAndIssue(125, "open", "foo: yes");
+    mockPullRequestAndIssue("open", 125, "foo: yes");
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
@@ -378,7 +379,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testGitResolveRequiredLabelsMixed() throws Exception {
-    mockPullRequestAndIssue(125, "open", "foo: yes", "bar: yes");
+    mockPullRequestAndIssue("open", 125, "foo: yes", "bar: yes");
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'",
@@ -420,7 +421,7 @@ public class GitHubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
 
     GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
@@ -465,7 +466,7 @@ public class GitHubPrOriginTest {
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
 
     GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
@@ -513,7 +514,7 @@ public class GitHubPrOriginTest {
         "use_merge = True",
         "baseline_from_branch = True");
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
 
     GitRevision mergePrRevision = origin.resolve("123");
 
@@ -563,7 +564,7 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
     gitUtil.mockApi(
         eq("POST"),
         startsWith("https://api.github.com/repos/google/example/statuses/"),
@@ -715,7 +716,7 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123);
 
     gitUtil.mockApi(
         "GET",
@@ -792,27 +793,30 @@ public class GitHubPrOriginTest {
   @Test
   public void testMerge() throws Exception {
     GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
+
     addFiles(remote, "base", ImmutableMap.<String, String>builder()
         .put("a.txt", "").build());
-    remote.simpleCommand("branch", "foo");
-    remote.forceCheckout("foo");
+    remote.simpleCommand("branch", "testMerge");
+    remote.simpleCommand("branch", "primary");
+
+    remote.forceCheckout("testMerge");
     addFiles(remote, "one", ImmutableMap.<String, String>builder()
         .put("a.txt", "").put("b.txt", "").build());
     addFiles(remote, "two", ImmutableMap.<String, String>builder()
         .put("a.txt", "").put("b.txt", "").put("c.txt", "").build());
-    remote.forceCheckout("master");
-    addFiles(remote, "master change", ImmutableMap.<String, String>builder()
+    remote.forceCheckout("primary");
+    addFiles(remote, "primary change", ImmutableMap.<String, String>builder()
         .put("a.txt", "").put("d.txt", "").build());
-    remote.simpleCommand("merge", "foo");
-    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), remote.parseRef("foo"));
-    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("master"));
+    remote.simpleCommand("merge", "testMerge");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), remote.parseRef("testMerge"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("primary"));
 
 
     GitHubPROrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", "primary", 123);
 
     origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
 
@@ -832,14 +836,14 @@ public class GitHubPrOriginTest {
             remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1()));
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
-    assertThat(
-            Lists.transform(
-                reader.changes(/*fromRef=*/ null, mergeRevision).getChanges(),
-                Change::getMessage))
-        .isEqualTo(Lists.newArrayList("base\n", "one\n", "two\n", "Merge branch 'foo'\n"));
-
+    List<String> msgs = Lists.transform(
+        reader.changes(/*fromRef=*/ null, mergeRevision).getChanges(),
+        Change::getMessage);
+    assertThat(msgs).hasSize(4);
+    assertThat(msgs).containsAtLeast("base\n", "one\n", "two\n");
+    assertThat(msgs.get(3)).contains("Merge branch 'testMerge'");
     // Simulate fast-forward
-    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("foo"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("testMerge"));
 
     assertThat(Lists.transform(
         reader.changes(/*fromRef=*/null, origin.resolve("123")).getChanges(),
@@ -855,7 +859,7 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    mockPullRequestAndIssue(123, "open");
+    mockPullRequestAndIssue("open", 123, "master");
 
     // Now try with merge ref
     GitHubPROrigin origin = githubPrOrigin(
@@ -916,20 +920,27 @@ public class GitHubPrOriginTest {
         + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
   }
 
-  public void mockPullRequestAndIssue(int prNumber, String state, String... labels)
+  public void mockPullRequestAndIssue(String state, int prNumber, String... labels)
       throws IOException {
-    mockPullRequest(prNumber, state);
+    mockPullRequestAndIssue(state, "master", prNumber, labels);
+  }
+
+  public void mockPullRequestAndIssue(
+      String state, String primaryBranch, int prNumber, String... labels)
+      throws IOException {
+    // TODO(hsudhof): PrimaryBranch should not assume this value as
+    mockPullRequest(prNumber, state, primaryBranch);
     mockIssue(prNumber, issueResponse(prNumber, state, labels));
   }
 
-  private void mockPullRequest(int prNumber, String state) throws IOException {
-    mockPullRequest(gitUtil, prNumber, state);
+  private void mockPullRequest(int prNumber, String state, String primaryBranch) {
+    mockPullRequest(gitUtil, prNumber, state, primaryBranch);
   }
 
   /** Used internally */
-  public static void mockPullRequest(GitTestUtil gitUtil, int prNumber, String state)
-      throws IOException {
-    String content =
+  public static void mockPullRequest(
+      GitTestUtil gitUtil, int prNumber, String state, String primaryBranch) {
+    String content = String.format(
         "{\n"
             + "  \"id\": 1,\n"
             + "  \"number\": "
@@ -948,8 +959,8 @@ public class GitHubPrOriginTest {
             + "    \"ref\": \"example-branch\"\n"
             + "   },\n"
             + "  \"base\": {\n"
-            + "    \"label\": \"google:master\",\n"
-            + "    \"ref\": \"master\"\n"
+            + "    \"label\": \"google:%1$s\",\n"
+            + "    \"ref\": \"%1$s\"\n"
             + "   },\n"
             + "  \"user\": {\n"
             + "    \"login\": \"some_user\"\n"
@@ -962,7 +973,7 @@ public class GitHubPrOriginTest {
             + "      \"login\": \"assignee2\"\n"
             + "    }\n"
             + "  ]\n"
-            + "}";
+            + "}", primaryBranch);
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/" + prNumber),
