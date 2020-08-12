@@ -525,6 +525,24 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     }
   }
 
+  @StarlarkMethod(
+      name = "post_issue_comment",
+      doc = "Post a comment on a issue.",
+      parameters = {
+          @Param(name = "number", type = Integer.class, named = true,
+              doc = "Issue or Pull Request number"),
+          @Param(name = "comment", type = String.class, named = true,
+              doc = "Comment body to post."),
+      })
+  public void postIssueComment(Integer prNumber, String comment)
+      throws EvalException, RepoException {
+    try {
+      String project = GitHubUtil.getProjectNameFromUrl(url);
+      apiSupplier.load(console).postComment(project, prNumber, comment);
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling post_issue_comment: %s", e.getMessage());
+    }
+  }
 
   @Override
   public GitHubEndPoint withConsole(Console console) {

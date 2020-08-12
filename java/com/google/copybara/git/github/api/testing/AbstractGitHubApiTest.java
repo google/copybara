@@ -36,6 +36,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
 import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
+import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -634,6 +635,17 @@ public abstract class AbstractGitHubApiTest {
         (a) ->
             a.getLabels().equals(labels)), getResource("labels_response_testdata.json"));
     assertThat(api.addLabels("example/project", 12345, labels)).hasSize(2);
+  }
+
+  @Test
+  public void testPostIssueComment() throws Exception {
+    String comment = "This is a comment.";
+    JsonValidator<CommentBody> validator = createValidator(CommentBody.class,
+        (r) -> r.getBody().orElse("wrong body").equals(comment));
+    trainMockPost("/repos/example/project/issues/12345/comments", validator,
+        getResource("pulls_comment_12345_testdata.json"));
+    api.postComment("example/project", 12345, comment);
+    assertThat(validator.called).isTrue();
   }
 
   protected byte[] getResource(String testfile) throws IOException {

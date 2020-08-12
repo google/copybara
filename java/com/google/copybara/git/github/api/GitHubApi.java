@@ -406,6 +406,18 @@ public class GitHubApi {
     }
   }
 
+  /** https://docs.github.com/en/rest/reference/issues#create-an-issue-comment */
+  public PullRequestComment postComment(String projectId, int issueNumber, String comment)
+      throws RepoException, ValidationException {
+
+    try (ProfilerTask ignore = profiler.start("github_api_post_comment")) {
+      CommentBody request = new CommentBody(comment);
+      return transport.post(String.format("repos/%s/issues/%d/comments", projectId, issueNumber),
+          request, PullRequestComment.class);
+    }
+  }
+
+
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

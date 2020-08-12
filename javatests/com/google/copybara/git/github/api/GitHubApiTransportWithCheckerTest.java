@@ -52,7 +52,7 @@ public class GitHubApiTransportWithCheckerTest {
   public void testGet() throws Exception {
     transport.get("path/foo", String.class);
     verify(checker).check("path", "path/foo", "response_type", String.class);
-    verify(delegate).get(eq("path/foo"), eq(String.class), any(ImmutableListMultimap.class));
+    verify(delegate).get(eq("path/foo"), eq(String.class), any());
   }
 
   @Test
