@@ -187,7 +187,18 @@ public final class GerritDestination implements Destination<GitRevision> {
             activeChange.get().getChangeId(), changeIdPolicy);
       }
 
-      // TODO(malcon): Remove this logic after 2020-08-01, once all new changes are created with
+      if (isGerritRandomChangeId()) {
+        // If no change is found, create a random change-id. Change-Ids can be reused later
+        // by looking by hashtag in the code above.
+        return createMessageInfo(result, /*newReview=*/true,
+            "I"
+                + Hashing.sha1()
+                .newHasher()
+                .putString(UUID.randomUUID().toString(), StandardCharsets.UTF_8)
+                .hash(), changeIdPolicy);
+      }
+
+      // TODO(malcon): Remove this logic after 2020-09-01, once all new changes are created with
       // hashtag.
       int attempt = 0;
       while (attempt <= MAX_FIND_ATTEMPTS) {
@@ -205,6 +216,11 @@ public final class GerritDestination implements Destination<GitRevision> {
       throw new RepoException(
           String.format("Unable to find unmerged change for '%s', committer '%s'.",
               workflowId, committer));
+    }
+
+    // TODO(malcon): Remove after 2020-09-01
+    private boolean isGerritRandomChangeId() {
+      return generalOptions.isTemporaryFeature("GERRIT_RANDOM_CHANGE_ID", true);
     }
 
     private String computeInternalHashTag(TransformResult result) {

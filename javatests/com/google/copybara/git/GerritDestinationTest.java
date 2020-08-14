@@ -76,6 +76,13 @@ import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.devtools.build.lib.syntax.Starlark.UncheckedEvalException;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -85,12 +92,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.stubbing.Answer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {
@@ -186,23 +189,27 @@ public class GerritDestinationTest {
   }
 
   private static String lastCommitChangeIdLine(String ref, GitRepository repo) throws Exception {
-    return lastCommitChangeIdLineForRef(ref, repo, getGerritRef(repo, "refs/for/master"));
+    return lastCommitChangeIdLineForRef(ref, repo,
+        getGerritRef(repo, "refs/for/master%.*" + ref));
   }
 
   /**
    * Given a reference like refs/heads/master returns a reference created in the fake gerrit
    * (Something like refs/heads/master%somelabel=value).
    */
-  private static String getGerritRef(GitRepository repo, String ref)
+  private static String getGerritRef(GitRepository repo, String refRegex)
       throws RepoException {
+    Pattern compiled = Pattern.compile(refRegex);
     ImmutableSet<String> refs = repo.showRef().keySet();
-    Optional<String> first = refs.stream()
-        .filter(e -> e.equals(ref) || e.startsWith(ref + "%")).findFirst();
-    if (!first.isPresent()) {
-      assertWithMessage("Cannot find reference " + ref + " in repo. Refs:\n    "
-      + Joiner.on("\n    ").join(refs)).fail();
+    List<String> first = refs.stream()
+        .filter(e ->compiled.matcher(e).find()).collect(Collectors.toList());
+    assertWithMessage("Multiple refs found: " + first).that((first.size() < 2))
+        .isTrue();
+    if (first.isEmpty()) {
+      assertWithMessage("Cannot find reference " + refRegex + " in repo. Refs:\n    "
+          + Joiner.on("\n    ").join(refs)).fail();
     }
-    return first.get();
+    return first.get(0);
   }
 
   private void process(DummyRevision originRef)
@@ -574,9 +581,8 @@ public class GerritDestinationTest {
 
     writeFile(workdir, "file", "some different content");
     String expected =
-        "https://localhost:33333/changes/?q=change:%20"
-            + labelFinder.getValue()
-            + "%20AND%20project:foo/bar";
+        "https://localhost:33333/changes/?q=hashtag:%22copybara_id_origin_ref_commiter@email%22"
+            + "%20AND%20project:foo/bar%20AND%20status:NEW";
 
     gitUtil.mockApi(
         "GET",
@@ -1090,56 +1096,9 @@ public class GerritDestinationTest {
     writeFile(workdir, "file", "some content");
 
     options.setForce(true);
-    String expectedChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", StandardCharsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(0)
-        .hash();
     process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
-        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + expectedChangeId);
-  }
-
-  @Test
-  public void changeAlreadyMergedOnce() throws Exception {
-    fetch = "master";
-    writeFile(workdir, "file", "some content");
-    options.setForce(true);
-    String firstChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", StandardCharsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(0)
-        .hash();
-    String secondChangeId = "I" + Hashing.sha1()
-        .newHasher()
-        .putString("origin_ref", StandardCharsets.UTF_8)
-        .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-        .putInt(1)
-        .hash();
-
-    gitUtil.mockApi(
-        eq("GET"),
-        eq("https://localhost:33333/changes/?q=hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND%20project:foo/bar%20AND%20status:NEW"),
-        mockResponse("[]"));
-
-    // TODO(malcon): As a transition period, if no hashtag is found we default to the existing
-    // mechanism
-    gitUtil.mockApi(
-        eq("GET"),
-        matches("https://localhost:33333/changes/.*" + firstChangeId + ".*"),
-        mockResponse(
-            String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", firstChangeId)));
-
-    gitUtil.mockApi(
-        eq("GET"),
-        matches("https://localhost:33333/changes/.*" + secondChangeId + ".*"),
-        mockResponse(String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
-
-    process(new DummyRevision("origin_ref"));
-    assertThat(lastCommitChangeIdLine("origin_ref", repo()))
-        .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
+    // ChangeId is randomly generated.
+    assertThat(lastCommitChangeIdLine("origin_ref", repo())).isNotEmpty();
   }
 
   @Test
@@ -1192,42 +1151,6 @@ public class GerritDestinationTest {
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
-  }
-
-  /**
-   * TODO(malcon): Remove this test once hashtag is the only method
-   */
-  @Test
-  public void changeAlreadyMergedTooOften() throws Exception {
-    fetch = "master";
-    writeFile(workdir, "file", "some content");
-    options.setForce(true);
-    for (int i = 0; i < GerritDestination.MAX_FIND_ATTEMPTS + 1; i++) {
-      String changeId =
-          "I"
-              + Hashing.sha1()
-              .newHasher()
-              .putString("origin_ref", StandardCharsets.UTF_8)
-              .putString(options.gitDestination.committerEmail, StandardCharsets.UTF_8)
-              .putInt(i)
-              .hash();
-
-      gitUtil.mockApi(
-          eq("GET"),
-          eq("https://localhost:33333/changes/?q="
-              + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
-              + "%20project:foo/bar%20AND%20status:NEW"),
-          mockResponse("[]"));
-
-      gitUtil.mockApi(
-          eq("GET"),
-          matches("https://localhost:33333/changes/.*" + changeId + ".*"),
-          mockResponse(String.format("[{  change_id : \"%s\",  status : \"MERGED\"}]", changeId)));
-    }
-
-    RepoException expected =
-        assertThrows(RepoException.class, () -> process(new DummyRevision("origin_ref")));
-    assertThat(expected.getMessage()).contains("Unable to find unmerged change for ");
   }
 
   @Test
