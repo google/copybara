@@ -56,4 +56,12 @@ public class GitDestinationReader extends DestinationReader {
     repository.checkout(glob, workDir, baseline);
   }
 
+  @Override
+  public boolean exists(String path) {
+    try {
+      return repository.readFile(baseline.getSha1(), path) != null;
+    } catch (RepoException e) {
+      return false;
+    }
+  }
 }

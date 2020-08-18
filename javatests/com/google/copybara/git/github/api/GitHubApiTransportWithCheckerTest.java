@@ -23,7 +23,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;

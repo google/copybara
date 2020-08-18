@@ -42,6 +42,7 @@
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_reader.copy_destination_files)
+    - [destination_reader.file_exists](#destination_reader.file_exists)
     - [destination_reader.read_file](#destination_reader.read_file)
   - [destination_ref](#destination_ref)
   - [endpoint](#endpoint)
@@ -1276,6 +1277,20 @@ def _copy_destination_file(ctx):
 
 Would copy all files in path/to/ from the destination baseline to the copybara workdir. The files do not have to be covered by origin_files nor destination_files, but will cause errors if they are not covered by destination_files and not moved or deleted.
 
+
+<a id="destination_reader.file_exists" aria-hidden="true"></a>
+### destination_reader.file_exists
+
+Checks whether a given file exists in the destination.
+
+`boolean destination_reader.file_exists(path)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `string`<br><p>Path to the file.</p>
 
 <a id="destination_reader.read_file" aria-hidden="true"></a>
 ### destination_reader.read_file

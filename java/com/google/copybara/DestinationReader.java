@@ -44,6 +44,11 @@ public abstract class DestinationReader implements StarlarkValue {
     public void copyDestinationFiles(Glob path) throws RepoException {
       throw new RepoException("Reading files is not implemented by this destination");
     }
+
+    @Override
+    public boolean exists(String path) {
+      return false;
+    }
   };
 
   public static final DestinationReader NOOP_DESTINATION_READER = new DestinationReader() {
@@ -55,6 +60,11 @@ public abstract class DestinationReader implements StarlarkValue {
     @Override
     public void copyDestinationFiles(Glob path) {
       return;
+    }
+
+    @Override
+    public boolean exists(String path) {
+      return false;
     }
   };
 
@@ -100,4 +110,13 @@ public abstract class DestinationReader implements StarlarkValue {
               + "deleted.")
   @SuppressWarnings("unused")
   public abstract void copyDestinationFiles(Glob glob) throws RepoException, ValidationException;
+
+  @StarlarkMethod(
+      name = "file_exists",
+      doc = "Checks whether a given file exists in the destination.",
+      parameters = {
+          @Param(name = "path", type = String.class, named = true, doc = "Path to the file."),
+      })
+  @SuppressWarnings("unused")
+  public abstract boolean exists(String path);
 }

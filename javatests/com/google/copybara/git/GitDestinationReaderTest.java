@@ -104,6 +104,34 @@ public class GitDestinationReaderTest {
     FileSubjects.assertThatPath(workDir).containsFile("destination.txt", "foo");
   }
 
+  @Test
+  public void testFileExists() throws Exception {
+    Files.write(gitDir.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    repo.commit("= Foo = <bar@bara.com>", date,
+        String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
+    runWorkflow(ImmutableList.of(
+        "res = ctx.destination_reader().file_exists(path = 'foo.txt')",
+        "if not res:",
+        "  fail('expected foo.txt to exist')"));
+  }
+
+  @Test
+  public void testFileNotExists() throws Exception {
+    Files.write(gitDir.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    repo.commit("= Foo = <bar@bara.com>", date,
+        String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
+    runWorkflow(ImmutableList.of(
+        "res = ctx.destination_reader().file_exists(path = 'bar.txt')",
+        "if res:",
+        "  fail('expected bar.txt not to exist')"));
+  }
+
   private void runWorkflow(ImmutableList<String> funBody) throws Exception {
     Workflow<?, ?> test = workflow("def _dynamicTransform(ctx):\n"
         + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
