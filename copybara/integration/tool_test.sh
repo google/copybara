@@ -875,6 +875,39 @@ function test_disable_reversible_check() {
   copybara --disable-reversible-check copy.bara.sky --force
 }
 
+function test_info_list_cmd() {
+      cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "one_workflow",
+    origin = git.origin(
+      url = "file://foo",
+      ref = "primary",
+    ),
+    destination = git.destination(
+      url = "file://bar",
+      fetch = "primary",
+      push = "primary",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+)
+core.workflow(
+    name = "another_workflow",
+    origin = git.origin(
+      url = "file://foo",
+      ref = "primary",
+    ),
+    destination = git.destination(
+      url = "file://bar",
+      fetch = "primary",
+      push = "primary",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+)
+EOF
+  copybara_with_exit_code $SUCCESS INFO copy.bara.sky --info-list-only
+  expect_log "another_workflow,one_workflow"
+}
+
 function test_config_not_found() {
   copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky origin/master
   expect_log "Configuration file not found: copy.bara.sky"

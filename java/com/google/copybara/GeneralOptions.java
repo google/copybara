@@ -427,4 +427,10 @@ public final class GeneralOptions implements Option {
   public StarlarkMode getStarlarkMode() {
     return StarlarkMode.valueOf(starlarkMode);
   }
+
+  @Parameter(
+      names = "--info-list-only",
+      description =
+          "When set, the INFO command will print a list of workflows defined in the file.")
+  boolean infoListOnly = false;
 }

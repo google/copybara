@@ -18,11 +18,13 @@ package com.google.copybara;
 
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Ascii;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.Config;
@@ -66,6 +68,10 @@ public class InfoCmd implements CopybaraCmd {
     Config config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
         .load(console);
+    if (commandEnv.getOptions().get(GeneralOptions.class).infoListOnly) {
+      listMigrations(commandEnv, config);
+      return ExitCode.SUCCESS;
+    }
     if (configFileArgs.hasWorkflowName()) {
       ImmutableMap<String, String> context =
           contextProvider.getContext(config, configFileArgs, configLoaderProvider, console);
@@ -76,7 +82,12 @@ public class InfoCmd implements CopybaraCmd {
     return ExitCode.SUCCESS;
   }
 
-  private void showAllMigrations(CommandEnv commandEnv, Config config) {
+  private static void listMigrations(CommandEnv commandEnv, Config config) {
+    Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    console.info(Joiner.on(',').join(ImmutableSortedSet.copyOf(config.getMigrations().keySet())));
+  }
+
+  private static void showAllMigrations(CommandEnv commandEnv, Config config) {
     TablePrinter table = new TablePrinter("Name", "Origin", "Destination", "Mode", "Description");
     for (Migration m :
         config.getMigrations().values().stream()
@@ -107,7 +118,6 @@ public class InfoCmd implements CopybaraCmd {
   private static void info(
       Options options, Config config, String migrationName, ImmutableMap<String, String> context)
       throws ValidationException, RepoException {
-    @SuppressWarnings("unchecked")
     Info<? extends Revision> info = getInfo(migrationName, config);
     Console console = options.get(GeneralOptions.class).console();
     int outputSize = 0;
