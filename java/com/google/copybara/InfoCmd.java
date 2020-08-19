@@ -84,7 +84,8 @@ public class InfoCmd implements CopybaraCmd {
 
   private static void listMigrations(CommandEnv commandEnv, Config config) {
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
-    console.info(Joiner.on(',').join(ImmutableSortedSet.copyOf(config.getMigrations().keySet())));
+    console.infoFmt("MIGRATIONS: %s",
+        Joiner.on(',').join(ImmutableSortedSet.copyOf(config.getMigrations().keySet())));
   }
 
   private static void showAllMigrations(CommandEnv commandEnv, Config config) {
