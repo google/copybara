@@ -154,7 +154,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         builder.build().reverse());
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "unchecked"})
   @StarlarkMethod(
       name = "workflow",
       doc =
@@ -436,7 +436,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @DocDefault(field = "reversible_check_ignore_files", value = "None")
   public void workflow(
       String workflowName,
-      Origin<?> origin, // <Revision>
+      Origin<?> origin, // <Revision>, but skylark allows only ?
       Destination<?> destination,
       Authoring authoring,
       com.google.devtools.build.lib.syntax.Sequence<?> transformations,

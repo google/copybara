@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
@@ -295,13 +296,8 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "-m", "second");
     repository.simpleCommand("merge", "foo");
 
-    ImmutableList<GitLogEntry> log = repository.log("master").includeFiles(true)
-        .firstParent(true).run();
-
-    assertThat(log.get(0).getBody()).contains("Merge");
-    assertThat(log.get(0).getFiles()).isEmpty();
-
-    log = repository.log("master").includeFiles(true).firstParent(true).includeMergeDiff(true)
+    ImmutableList<GitLogEntry> log =
+        repository.log("master").includeFiles(true).firstParent(true).includeMergeDiff(true)
         .run();
     assertThat(log.get(0).getBody()).contains("Merge");
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");

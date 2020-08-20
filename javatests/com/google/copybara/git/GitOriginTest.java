@@ -1149,6 +1149,7 @@ public class GitOriginTest {
     options.testingOptions.destination = destination;
     options.setLastRevision(firstCommitRef);
 
+    @SuppressWarnings("unchecked")
     Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
         + "core.workflow(\n"
         + "    name = 'default',\n"
@@ -1186,6 +1187,7 @@ public class GitOriginTest {
     RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
     options.testingOptions.destination = destination;
     options.setLastRevision(firstCommitRef);
+    @SuppressWarnings("unchecked")
     Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
         + "core.workflow(\n"
         + "    name = 'default',\n"
