@@ -75,7 +75,7 @@ you need:
       * `git clone https://github.com/google/copybara.git`
   * Build:
       * `bazel build //java/com/google/copybara`.
-	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create a executable uberjar.
+	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
   * Tests: `bazel test //...` if you want to ensure you are not using a broken version.
 
 ### System packages
@@ -165,7 +165,7 @@ We are still working on the documentation. Here are some resources:
 
   * [Reference documentation](docs/reference.md)
   * [Examples](docs/examples.md)
-  
+
 ## Contact us
 
 If you have any questions about how Copybara works please contact us at our [mailing list](https://groups.google.com/forum/#!forum/copybara-discuss)
@@ -173,4 +173,3 @@ If you have any questions about how Copybara works please contact us at our [mai
 ## Optional tips
 
   * If you want to see the test errors in Bazel, instead of having to cat the logs, add this line to your `~/.bazelrc: *test --test_output=streamed*`.
-
