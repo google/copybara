@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load(":test.bzl", "all_tests")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])  # Apache 2.0
 
@@ -97,4 +98,10 @@ all_tests(
         "//third_party:skylark-lang",
         "//third_party:truth",
     ],
+)
+
+bzl_library(
+    name = "test_bzl",
+    srcs = ["test.bzl"],
+    visibility = ["//visibility:private"],
 )

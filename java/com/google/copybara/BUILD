@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load(":docs.bzl", "doc_generator")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
 licenses(["notice"])  # Apache 2.0
 
 package(default_visibility = ["//visibility:public"])
-
-load(":docs.bzl", "doc_generator")
 
 exports_files(
     [
@@ -216,4 +217,10 @@ java_library(
         "//third_party:re2j",
         "//third_party:skylark-lang",
     ],
+)
+
+bzl_library(
+    name = "docs_bzl",
+    srcs = ["docs.bzl"],
+    visibility = ["//visibility:private"],
 )
