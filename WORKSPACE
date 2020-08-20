@@ -16,6 +16,9 @@ workspace(name = "copybara")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("//third_party:bazel.bzl", "bazel_sha256", "bazel_version")
+load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_version")
+load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
+
 
 RULES_JVM_EXTERNAL_TAG = "3.0"
 
@@ -75,9 +78,19 @@ http_archive(
 # Buildifier and friends:
 http_archive(
     name = "buildtools",
-    sha256 = "fc9c2375fc9d50e5dd2f535b55dd25f12839a3043e7bd09a43ef7180b5670502",
-    strip_prefix = "buildtools-90de5e7001fbdfec29d4128bb508e01169f46950",
-    url = "https://github.com/bazelbuild/buildtools/archive/90de5e7001fbdfec29d4128bb508e01169f46950.zip",
+    sha256 = buildtools_sha256,
+    strip_prefix = "buildtools-" + buildtools_version,
+    url = "https://github.com/bazelbuild/buildtools/archive/" + buildtools_version + ".zip",
+)
+
+
+# LICENSE: The Apache Software License, Version 2.0
+# Additional bazel rules:
+http_archive(
+    name = "bazel_skylib",
+    sha256 = skylib_sha256,
+    strip_prefix = "bazel-skylib-" + skylib_version,
+    url = "https://github.com/bazelbuild/bazel-skylib/archive/" + skylib_version + ".zip",
 )
 
 EXPORT_WORKSPACE_IN_BUILD_FILE = [
