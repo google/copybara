@@ -26,7 +26,6 @@ import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.HashSet;
 import java.util.List;
@@ -109,11 +108,7 @@ public final class Authoring implements StarlarkValue {
       category = StarlarkDocumentationCategory.BUILTIN)
   public static final class Module implements StarlarkValue {
 
-    private final Console console;
-
-    public Module(Console console) {
-      this.console = checkNotNull(console);
-    }
+    public Module(Console console) {}
 
     @StarlarkMethod(
         name = "overwrite",
@@ -159,32 +154,6 @@ public final class Authoring implements StarlarkValue {
       return new Authoring(
           Author.parse(defaultAuthor), AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
       }
-
-    /**
-     * @deprecated Use authoring.allowed.
-     */
-    @StarlarkMethod(
-        name = "whitelisted",
-        documented = false,
-        useStarlarkThread = true,
-        parameters = {
-            @Param(
-                name = "default",
-                type = String.class,
-                named = true),
-            @Param(
-                name = "whitelist",
-                type = Sequence.class,
-                generic1 = String.class,
-                named = true),
-        })
-    @Deprecated
-    public Authoring whitelisted(String defaultAuthor, Sequence<?> whitelist, StarlarkThread thread)
-        throws EvalException {
-      console.warnFmt("Using deprecated authoring.whitelisted at %s. This will be removed in the "
-          + "near future, please switch to authoring.allowed.", thread.getCallerLocation());
-      return allowed(defaultAuthor, whitelist);
-    }
 
     @StarlarkMethod(
         name = "allowed",
