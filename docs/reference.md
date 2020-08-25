@@ -693,8 +693,8 @@ Defines a migration of changes' metadata, that can be invoked via the Copybara c
 
 It is considered change metadata any information associated with a change (pending or submitted) that is not core to the change itself. A few examples:
 <ul>
-  <li> Comments: Present in any code review system. Examples: Github PRs or Gerrit     code reviews.</li>
-  <li> Labels: Used in code review systems for approvals and/or CI results.     Examples: Github labels, Gerrit code review labels.</li>
+  <li> Comments: Present in any code review system. Examples: GitHub PRs or Gerrit     code reviews.</li>
+  <li> Labels: Used in code review systems for approvals and/or CI results.     Examples: GitHub labels, Gerrit code review labels.</li>
 </ul>
 For the purpose of this workflow, it is not considered metadata the commit message in Git, or any of the contents of the file tree.
 
@@ -900,7 +900,7 @@ Replace a text with another text using optional regex groups. This tranformer ca
 
 Parameter | Description
 --------- | -----------
-before | `string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'.</p>
+before | `string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'. [Note this argument is a string. If you want to match a regular expression it must be encoded as a regex_group.]</p>
 after | `string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
 regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>

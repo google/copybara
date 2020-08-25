@@ -785,7 +785,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " unique `regex_group`. If you require multiple references to the same"
                     + " `regex_group`, add `repeated_groups: True`.<p>If '$' literal character"
                     + " needs to be matched, '`$$`' should be used. For example '`$$FOO`' would"
-                    + " match the literal '$FOO'."),
+                    + " match the literal '$FOO'."
+                    + " [Note this argument is a string. If you want to match a regular expression"
+                    + " it must be encoded as a regex_group.]"),
         @Param(
             name = "after",
             named = true,
@@ -1505,10 +1507,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "It is considered change metadata any information associated with a change"
               + " (pending or submitted) that is not core to the change itself. A few examples:\n"
               + "<ul>\n"
-              + "  <li> Comments: Present in any code review system. Examples: Github PRs or"
+              + "  <li> Comments: Present in any code review system. Examples: GitHub PRs or"
               + " Gerrit     code reviews.</li>\n"
               + "  <li> Labels: Used in code review systems for approvals and/or CI results.    "
-              + " Examples: Github labels, Gerrit code review labels.</li>\n"
+              + " Examples: GitHub labels, Gerrit code review labels.</li>\n"
               + "</ul>\n"
               + "For the purpose of this workflow, it is not considered metadata the commit"
               + " message in Git, or any of the contents of the file tree.\n"
