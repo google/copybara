@@ -272,7 +272,7 @@ class GerritChange {
           String.format("Cannot find change number %d in '%s'", changeNumber, url));
     }
     for (Entry<String, String> e : refsToSha1.entrySet()) {
-      if (e.getKey().endsWith("/meta")) {
+      if (e.getKey().endsWith("/meta") || e.getKey().endsWith("/robot-comments")) {
         continue;
       }
       Preconditions.checkState(
