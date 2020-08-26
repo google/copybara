@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Printer;
+import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -96,7 +96,7 @@ public interface Endpoint extends StarlarkValue {
             defaultValue = "None"),
       })
   default DestinationRef newDestinationRef(String ref, String type, Object urlObj) {
-    String url = EvalUtils.isNullOrNone(urlObj) ? null : (String) urlObj;
+    String url = Starlark.isNullOrNone(urlObj) ? null : (String) urlObj;
     return new DestinationRef(ref, type, url);
   }
 

@@ -70,7 +70,6 @@ import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Location;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.NoneType;
@@ -272,7 +271,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable
   private PatchTransformation maybeGetPatchTransformation(Object patch) throws EvalException {
-    if (EvalUtils.isNullOrNone(patch)) {
+    if (Starlark.isNullOrNone(patch)) {
       return null;
     }
     check(
@@ -1102,7 +1101,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOptions.class),
         generalOptions,
         new DefaultWriteHook(),
-        EvalUtils.isNullOrNone(integrates)
+        Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
   }
@@ -1256,7 +1255,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectiveDeletePrBranch,
             getGeneralConsole(),
             convertFromNoneable(checker, null)),
-        EvalUtils.isNullOrNone(integrates)
+        Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
   }
@@ -1412,7 +1411,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
         new DefaultWriteHook(),
-        EvalUtils.isNullOrNone(integrates)
+        Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         convertFromNoneable(title, null),
@@ -1644,7 +1643,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         cc,
         labels,
         convertFromNoneable(checkerObj, null),
-        EvalUtils.isNullOrNone(integrates)
+        Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         topicStr,

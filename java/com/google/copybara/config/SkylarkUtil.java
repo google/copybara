@@ -26,7 +26,6 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.devtools.build.lib.syntax.Dict;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.Sequence;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.errorprone.annotations.FormatMethod;
@@ -58,10 +57,10 @@ public final class SkylarkUtil {
    */
   @SuppressWarnings("unchecked")
   public static <T> T convertFromNoneable(Object obj, @Nullable T defaultValue) {
-    if (EvalUtils.isNullOrNone(obj)) {
+    if (Starlark.isNullOrNone(obj)) {
       return defaultValue;
     }
-    return (T) obj;
+    return (T) obj; // wildly unsound cast!
   }
 
   /**
