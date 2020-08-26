@@ -30,18 +30,15 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
 import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.EvalUtils;
 import com.google.devtools.build.lib.syntax.FileOptions;
-import com.google.devtools.build.lib.syntax.LoadStatement;
 import com.google.devtools.build.lib.syntax.Module;
 import com.google.devtools.build.lib.syntax.Mutability;
 import com.google.devtools.build.lib.syntax.ParserInput;
-import com.google.devtools.build.lib.syntax.Resolver;
+import com.google.devtools.build.lib.syntax.Program;
 import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.devtools.build.lib.syntax.StarlarkFile;
 import com.google.devtools.build.lib.syntax.StarlarkSemantics;
 import com.google.devtools.build.lib.syntax.StarlarkThread;
-import com.google.devtools.build.lib.syntax.Statement;
 import com.google.devtools.build.lib.syntax.SyntaxError;
 import java.io.IOException;
 import java.util.HashMap;
@@ -203,46 +200,44 @@ public class SkylarkParser {
       }
       pending.add(content.path());
 
-      ParserInput input = ParserInput.fromUTF8(content.readContentBytes(), content.path());
-      FileOptions options =
-          validation == StarlarkMode.STRICT
-              ? STARLARK_STRICT_FILE_OPTIONS
-              : STARLARK_LOOSE_FILE_OPTIONS;
-      StarlarkFile file = StarlarkFile.parse(input, options);
-
-      Map<String, Module> loadedModules = new HashMap<>();
-      for (Statement stmt :  file.getStatements()) {
-        if (stmt instanceof LoadStatement) {
-          String moduleName = ((LoadStatement) stmt).getImport().getValue();
-          Module imp = eval(content.resolve(moduleName + BARA_SKY));
-          loadedModules.put(moduleName, imp);
-        }
-      }
-      StarlarkThread.PrintHandler printHandler =
-          (thread, msg) -> console.verbose(thread.getCallerLocation() + ": " + msg);
-      updateEnvironmentForConfigFile(printHandler, content, mainConfigFile, environment, moduleSet);
-
-      // Create a Starlark thread making the modules available as predeclared bindings.
+      // Make the modules available as predeclared bindings.
       // For modules that implement OptionsAwareModule, options are set in the object so
       // that the module can construct objects that require options.
       StarlarkSemantics semantics = StarlarkSemantics.DEFAULT;
       module = Module.withPredeclared(semantics, environment);
 
-      // resolve
-      Resolver.resolveFile(file, module);
-      if (!file.ok()) {
-        for (SyntaxError error : file.errors()) {
+      // parse & compile
+      ParserInput input = ParserInput.fromUTF8(content.readContentBytes(), content.path());
+      FileOptions options =
+          validation == StarlarkMode.STRICT
+              ? STARLARK_STRICT_FILE_OPTIONS
+              : STARLARK_LOOSE_FILE_OPTIONS;
+      Program prog;
+      try {
+        prog = Program.compileFile(StarlarkFile.parse(input, options), module);
+      } catch (SyntaxError.Exception ex) {
+        for (SyntaxError error : ex.errors()) {
           console.error(error.toString());
         }
         checkCondition(false, "Error loading config file.");
+        return null; // unreachable
+      }
+
+      // process loads
+      Map<String, Module> loadedModules = new HashMap<>();
+      for (String load : prog.getLoads()) {
+        Module loadedModule = eval(content.resolve(load + BARA_SKY));
+        loadedModules.put(load, loadedModule);
       }
 
       // execute
+      updateEnvironmentForConfigFile(
+          this::starlarkPrint, content, mainConfigFile, environment, moduleSet);
       try (Mutability mu = Mutability.create("CopybaraModules")) {
         StarlarkThread thread = new StarlarkThread(mu, semantics);
         thread.setLoader(loadedModules::get);
-        thread.setPrintHandler(printHandler);
-        EvalUtils.exec(file, module, thread);
+        thread.setPrintHandler(this::starlarkPrint);
+        Starlark.execFileProgram(prog, module, thread);
       } catch (EvalException ex) {
         console.error(ex.getMessageWithStack());
         throw new ValidationException("Error loading config file", ex);
@@ -251,6 +246,10 @@ public class SkylarkParser {
       pending.remove(content.path());
       loaded.put(content.path(), module);
       return module;
+    }
+
+    private void starlarkPrint(StarlarkThread thread, String msg) {
+      console.verbose(thread.getCallerLocation() + ": " + msg);
     }
 
     private ValidationException throwCycleError(String cycleElement)
