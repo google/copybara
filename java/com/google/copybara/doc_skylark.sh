@@ -17,7 +17,7 @@
 output=$1
 shift
 echo "Generating documentation for $# transitive jars"
-printf '# Table of Contents\n\n\n' >> "$output"
+printf '## Table of Contents\n\n\n' >> "$output"
 
 for jar in "$@";do
     # Continue if no md file is found
