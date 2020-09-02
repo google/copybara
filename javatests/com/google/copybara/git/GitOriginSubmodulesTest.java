@@ -257,6 +257,27 @@ public class GitOriginSubmodulesTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testDotInName() throws Exception {
+    Path base = Files.createTempDirectory("base");
+    createRepoWithFoo(base, "r1.with.dot");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+    // Build a relative url submodule
+    r2.simpleCommand("submodule", "add", "-f", "--name", "r1.with.dot", "--reference",
+        r2.getWorkTree().toString(), "../r1.with.dot");
+    commit(r2, "adding r1.with.dot submodule");
+    r2.simpleCommand("branch", "for_submodule");
+
+
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
+    GitRevision master = origin.resolve("master");
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("r1.with.dot/foo", "1");
+  }
+
   private void commitAdd(GitRepository repo, Map<String, String> files)
       throws IOException, RepoException, ValidationException {
     for (Entry<String, String> e : files.entrySet()) {

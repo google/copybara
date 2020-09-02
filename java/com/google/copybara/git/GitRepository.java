@@ -724,7 +724,8 @@ public class GitRepository {
         if (!line.startsWith("submodule.")) {
           continue;
         }
-        modules.add(Splitter.on('.').splitToList(line).get(1));
+        modules.add(line.substring("submodule.".length(),
+            line.lastIndexOf('.') > 0 ? line.lastIndexOf('.') : line.length()));
       }
       return ImmutableSet.copyOf(modules);
     } else if (out.getTerminationStatus().getExitCode() == 1 && out.getStderr().isEmpty()) {
