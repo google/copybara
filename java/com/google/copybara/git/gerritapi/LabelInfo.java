@@ -20,13 +20,13 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.devtools.build.lib.syntax.Printer;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 import java.util.Map;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkValue;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#label-info */
 @SuppressWarnings("unused")

@@ -35,14 +35,14 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import com.google.copybara.transform.RegexTemplateTokens;
 import com.google.copybara.transform.RegexTemplateTokens.Replacer;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Pattern;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.syntax.Location;
 
 /**
  * Adjusts textual references in  change messages to match the destination.

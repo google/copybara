@@ -16,7 +16,7 @@
 
 package com.google.copybara.remotefile;
 
-import static com.google.devtools.build.lib.syntax.Starlark.errorf;
+import static net.starlark.java.eval.Starlark.errorf;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Preconditions;
@@ -25,14 +25,14 @@ import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Arrays;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Module for helpers to load files from a source other than the origin. Use with caution. */
 @StarlarkBuiltin(

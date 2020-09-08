@@ -22,11 +22,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.HasBinary;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
-import com.google.devtools.build.lib.syntax.TokenKind;
 import com.google.re2j.Pattern;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -37,6 +32,11 @@ import java.util.List;
 import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.HasBinary;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkValue;
+import net.starlark.java.syntax.TokenKind;
 
 /**
  * A {@link PathMatcher} builder that creates a PathMatcher relative to a {@link Path}.

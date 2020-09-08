@@ -29,17 +29,6 @@ import com.google.copybara.ModuleSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.FileOptions;
-import com.google.devtools.build.lib.syntax.Module;
-import com.google.devtools.build.lib.syntax.Mutability;
-import com.google.devtools.build.lib.syntax.ParserInput;
-import com.google.devtools.build.lib.syntax.Program;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkFile;
-import com.google.devtools.build.lib.syntax.StarlarkSemantics;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
-import com.google.devtools.build.lib.syntax.SyntaxError;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -49,6 +38,17 @@ import java.util.Set;
 import java.util.function.Supplier;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkInterfaceUtils;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Module;
+import net.starlark.java.eval.Mutability;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkSemantics;
+import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.syntax.FileOptions;
+import net.starlark.java.syntax.ParserInput;
+import net.starlark.java.syntax.Program;
+import net.starlark.java.syntax.StarlarkFile;
+import net.starlark.java.syntax.SyntaxError;
 
 /**
  * Loads Copybara configs out of Skylark files.

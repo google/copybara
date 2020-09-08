@@ -33,9 +33,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.RegexTemplateTokens.Replacer;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
-import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
@@ -47,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Supplier;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.syntax.Location;
 
 /**
  * A source code transformation which replaces a regular expression with some other string.

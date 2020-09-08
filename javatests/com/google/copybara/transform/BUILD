@@ -33,7 +33,7 @@ all_tests(
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

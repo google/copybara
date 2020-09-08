@@ -17,10 +17,10 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Wrapper class to prevent arbitrary instantiation of endpoints in starlark. */
 @StarlarkBuiltin(

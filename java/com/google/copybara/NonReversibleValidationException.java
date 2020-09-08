@@ -16,7 +16,7 @@
 
 package com.google.copybara;
 
-import com.google.devtools.build.lib.syntax.EvalException;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Exception thrown when a {@link Transformation} is not reversible but the configuration asked for

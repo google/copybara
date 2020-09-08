@@ -20,7 +20,7 @@ all_tests(
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara/config:base",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

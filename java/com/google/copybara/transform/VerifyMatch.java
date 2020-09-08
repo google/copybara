@@ -28,9 +28,6 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
-import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
@@ -38,6 +35,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.syntax.Location;
 
 /**
  * A source code pseudo-transformation which verifies that all specified files satisfy a RegEx.

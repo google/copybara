@@ -30,7 +30,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
-import com.google.devtools.build.lib.syntax.EvalException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -41,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
 
 /**
  * A string which is interpolated with named variables. The string is composed of interpolated and

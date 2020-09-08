@@ -18,10 +18,10 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Represents a revision: information about the origin of a pull request like the ref (branch) or

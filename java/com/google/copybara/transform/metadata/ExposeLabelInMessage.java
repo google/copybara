@@ -24,9 +24,9 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 import java.util.LinkedHashSet;
+import net.starlark.java.syntax.Location;
 
 /**
  * Given a label that is not present in the change message but it is in the changes

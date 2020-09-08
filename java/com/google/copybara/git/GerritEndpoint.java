@@ -37,15 +37,15 @@ import com.google.copybara.git.gerritapi.NotifyType;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.StarlarkList;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Map;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Gerrit endpoint implementation for feedback migrations. */
 @SuppressWarnings({"unused", "UnusedReturnValue"})

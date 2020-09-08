@@ -27,16 +27,12 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
-        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
-        "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
     ],
 )

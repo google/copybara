@@ -25,7 +25,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.net.URL;
 import java.security.DigestInputStream;
@@ -36,6 +35,7 @@ import java.util.stream.Collectors;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * A starlark construct to download remote files via Http.

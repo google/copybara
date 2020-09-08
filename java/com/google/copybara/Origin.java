@@ -29,7 +29,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,6 +42,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * A {@code Origin} represents a source control repository from which source is copied.

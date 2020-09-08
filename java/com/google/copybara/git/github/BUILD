@@ -42,7 +42,6 @@ java_library(
     ),
     javacopts = JAVACOPTS,
     deps = [
-        ":util",
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:core",
@@ -53,6 +52,6 @@ java_library(
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )

@@ -18,13 +18,13 @@ package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Represents the contributor of a change in the destination repository. A contributor can be either

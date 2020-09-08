@@ -23,8 +23,8 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
+import net.starlark.java.syntax.Location;
 
 /**
  * A transformation which delegates to some arbitrary transformation and reverses to some arbitrary

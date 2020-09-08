@@ -25,13 +25,13 @@ import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
 
 /**
  * A transformation which creates a new build target and reverses to delete the same target.

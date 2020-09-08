@@ -75,14 +75,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Starlark.UncheckedEvalException;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -94,6 +86,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import net.starlark.java.eval.Starlark.UncheckedEvalException;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.stubbing.Answer;
 
 @RunWith(JUnit4.class)
 public class GerritDestinationTest {

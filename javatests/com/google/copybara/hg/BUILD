@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("//javatests/com/google/copybara:test.bzl", "all_tests")
+
 # Used for extending the tests internally. Not a public API.
 package(default_visibility = ["//visibility:public"])
-
-load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])  # Apache 2.0
 
@@ -35,7 +35,7 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

@@ -22,11 +22,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +30,11 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkValue;
+import net.starlark.java.syntax.Location;
 
 /**
  * Represents the authors mapping between an origin and a destination.

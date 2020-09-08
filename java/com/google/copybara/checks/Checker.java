@@ -18,11 +18,11 @@ package com.google.copybara.checks;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.nio.file.Path;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.StarlarkValue;
 
 /** A generic interface for performing checks on string contents and files. */
 @StarlarkBuiltin(

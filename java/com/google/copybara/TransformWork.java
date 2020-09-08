@@ -38,13 +38,6 @@ import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.Dict;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkList;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,13 +51,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
-
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Contains information related to an on-going process of repository transformation.
@@ -316,8 +313,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "write_path",
       doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
-          @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
-          @Param(name = "content", type = String.class, doc = "The content of the file"),
+        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
+        @Param(name = "content", type = String.class, doc = "The content of the file"),
       })
   public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
     Path fullPath = asCheckoutPath(path);
@@ -331,7 +328,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "read_path",
       doc = "Read the content of path as UTF-8",
       parameters = {
-          @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
+        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
       })
   public String readPath(CheckoutPath path) throws IOException, EvalException {
     return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);

@@ -33,12 +33,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.Module;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import net.starlark.java.eval.Module;
 
 /**
  * Utility class for running a simple skylark code and getting back a declared variable.

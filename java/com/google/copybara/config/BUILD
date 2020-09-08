@@ -39,7 +39,7 @@ java_library(
         "//third_party:error_prone",
         "//third_party:guava",
         "//third_party:jsr305",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )
 
@@ -61,7 +61,7 @@ java_library(
     deps = [
         ":base",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )
 
@@ -74,13 +74,11 @@ java_library(
     deps = [
         ":base",
         ":global_migrations",
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara:moduleset",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util/console",
         "//third_party:flogger",
         "//third_party:guava",
-        "//third_party:jsr305",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )

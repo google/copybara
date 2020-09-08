@@ -20,11 +20,11 @@ import com.google.api.client.util.Key;
 import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Represents a GitHub App's checkRun detail.

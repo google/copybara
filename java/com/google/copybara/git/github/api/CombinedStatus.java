@@ -18,13 +18,13 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.copybara.git.github.api.Status.State;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.StarlarkList;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.util.List;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * A combined commit status object

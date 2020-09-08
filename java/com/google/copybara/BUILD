@@ -60,7 +60,7 @@ java_library(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )
 
@@ -151,7 +151,7 @@ java_library(
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )
 
@@ -167,13 +167,10 @@ java_library(
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
-        "//third_party:autovalue",
         "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
-        "//third_party:re2j",
-        "//third_party:skylark-lang",
     ],
 )
 
@@ -215,7 +212,7 @@ java_library(
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:re2j",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
     ],
 )
 

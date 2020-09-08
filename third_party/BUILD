@@ -139,10 +139,11 @@ java_library(
 )
 
 java_library(
-    name = "skylark-lang",
+    name = "starlark",
     exports = [
-        "@io_bazel//src/main/java/com/google/devtools/build/lib:skylark-lang",
-        "@io_bazel//src/main/java/net/starlark/java/annot",
+        "@io_bazel//src/main/java/net/starlark/java/annot:annot_new",
+        "@io_bazel//src/main/java/net/starlark/java/eval",
+        "@io_bazel//src/main/java/net/starlark/java/syntax",
     ],
 )
 

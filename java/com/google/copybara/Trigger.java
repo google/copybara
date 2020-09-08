@@ -17,10 +17,10 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.devtools.build.lib.syntax.Printer;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Starter of feedback migration executions. */
 @StarlarkBuiltin(

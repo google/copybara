@@ -32,11 +32,11 @@ import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.syntax.Location;
 
 /**
  * Map authors between revision systems.

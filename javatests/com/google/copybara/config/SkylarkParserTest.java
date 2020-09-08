@@ -41,8 +41,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.StarlarkMode;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +52,8 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -443,14 +443,14 @@ public class SkylarkParserTest {
               named = true),
           @Param(
               name = "list",
-              type = com.google.devtools.build.lib.syntax.Sequence.class,
+              type = net.starlark.java.eval.Sequence.class,
               generic1 = String.class,
               defaultValue = "[]",
               named = true),
         },
         documented = false)
     public MockTransform transform(
-        Object field1, Object field2, com.google.devtools.build.lib.syntax.Sequence<?> list)
+        Object field1, Object field2, net.starlark.java.eval.Sequence<?> list)
         throws EvalException {
       return new MockTransform(
           SkylarkUtil.convertOptionalString(field1),

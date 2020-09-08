@@ -17,8 +17,8 @@
 package com.google.copybara.templatetoken;
 
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Starlark;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
 
 /**
  * Parse strings like "foo${bar}baz" in a series of literal and interpolation variables

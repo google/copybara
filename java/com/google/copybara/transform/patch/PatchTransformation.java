@@ -26,11 +26,11 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import net.starlark.java.syntax.Location;
 
 /**
  * Transformation for applying patch file during a workflow. Instantiated by {@link PatchModule}.

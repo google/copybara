@@ -39,10 +39,10 @@ import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.Dict;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.Dict;
 
 public class GitHubWriteHook extends DefaultWriteHook {
   private final String repoUrl;

@@ -24,10 +24,6 @@ import com.google.copybara.LabelFinder;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
-import com.google.devtools.build.lib.syntax.Dict;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.Starlark;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
@@ -40,6 +36,10 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.Starlark;
 
 /**
  * Utilities for dealing with Skylark parameter objects and converting them to Java ones.

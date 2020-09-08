@@ -17,7 +17,7 @@
 package com.google.copybara;
 
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.Dict;
+import net.starlark.java.eval.Dict;
 
 /**
  * A context object that can be enhanced with Skylark information.

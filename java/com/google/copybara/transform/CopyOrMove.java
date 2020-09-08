@@ -28,9 +28,6 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
-import com.google.devtools.build.lib.syntax.Starlark;
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
@@ -45,6 +42,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.syntax.Location;
 
 /**
  * Transformation that moves (renames) or copies a single file or directory.

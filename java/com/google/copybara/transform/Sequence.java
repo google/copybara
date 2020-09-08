@@ -26,17 +26,17 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.devtools.build.lib.syntax.Dict;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkCallable;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkCallable;
+import net.starlark.java.eval.StarlarkThread;
 
 /**
  * A transformation that runs a sequence of delegate transformations
@@ -155,7 +155,7 @@ public class Sequence implements Transformation {
   public static Sequence fromConfig(
       Profiler profiler,
       boolean joinTransformations,
-      com.google.devtools.build.lib.syntax.Sequence<?> elements,
+      net.starlark.java.eval.Sequence<?> elements,
       String description,
       StarlarkThread.PrintHandler printHandler,
       Function<Transformation, Transformation> transformWrapper)

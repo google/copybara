@@ -58,7 +58,6 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.Sequence;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,6 +66,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.Sequence;
 
 /**
  * A Git repository destination.

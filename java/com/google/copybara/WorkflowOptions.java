@@ -29,11 +29,11 @@ import com.google.copybara.jcommander.GlobConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Arguments for {@link Workflow} components.

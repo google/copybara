@@ -25,15 +25,15 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
-import com.google.devtools.build.lib.syntax.Dict;
-import com.google.devtools.build.lib.syntax.Sequence;
-import com.google.devtools.build.lib.syntax.StarlarkList;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Skylark context for feedback migrations. */
 @SuppressWarnings("unused")

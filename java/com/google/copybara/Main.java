@@ -49,7 +49,6 @@ import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.FileConsole;
 import com.google.copybara.util.console.LogConsole;
-import com.google.devtools.build.lib.syntax.EvalException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -66,6 +65,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Main class that invokes Copybara from command-line.

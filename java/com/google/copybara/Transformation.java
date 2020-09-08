@@ -18,11 +18,11 @@ package com.google.copybara;
 
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.Location;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.StarlarkValue;
+import net.starlark.java.syntax.Location;
 
 /** Interface implemented by all source code transformations. */
 @StarlarkBuiltin(

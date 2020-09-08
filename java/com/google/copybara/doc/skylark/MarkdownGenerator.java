@@ -266,7 +266,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
   @Nullable
   private String skylarkTypeName(TypeMirror declared) {
-    if (declared.toString().equals("com.google.devtools.build.lib.syntax.NoneType")
+    if (declared.toString().equals("net.starlark.java.eval.NoneType")
         || declared.toString().equals("void")) {
       return null;
     }

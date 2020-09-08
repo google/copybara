@@ -22,12 +22,12 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.Options;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Main module for Mercurial (Hg) origins and destinations */
 @StarlarkBuiltin(

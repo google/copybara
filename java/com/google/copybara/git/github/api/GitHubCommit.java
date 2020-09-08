@@ -18,10 +18,10 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Represents GitHub information for a commit */
 @StarlarkBuiltin(

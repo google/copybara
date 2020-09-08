@@ -26,11 +26,11 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import net.starlark.java.syntax.Location;
 
 /**
  * Generates a message that includes a constant prefix text and a list of changes

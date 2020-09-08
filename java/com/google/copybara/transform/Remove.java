@@ -27,8 +27,8 @@ import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
+import net.starlark.java.syntax.Location;
 
 /**
  * We might promote this to a Skylark transform. But because we already have origin_files,

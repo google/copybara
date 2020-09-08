@@ -23,13 +23,13 @@ import com.google.common.io.ByteStreams;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.StarlarkValue;
 
 /** A tarball for a given ref, downloaded from GitHub */
 @StarlarkBuiltin(

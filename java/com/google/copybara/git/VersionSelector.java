@@ -19,8 +19,8 @@ package com.google.copybara.git;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Select a version to migrate based on the reference passed as a parameter, the state of the remote

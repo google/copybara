@@ -19,7 +19,6 @@ package com.google.copybara.transform;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.io.IOException;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
@@ -27,6 +26,7 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 @StarlarkBuiltin(
     name = "Console",

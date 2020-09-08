@@ -20,10 +20,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.devtools.build.lib.syntax.EvalException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Specifies a target, including the package and name of target.

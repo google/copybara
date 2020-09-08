@@ -56,7 +56,7 @@ LOCAL_TESTS = {
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:shell",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 ) for file, count in LOCAL_TESTS.items()]
@@ -95,7 +95,7 @@ all_tests(
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:shell",
-        "//third_party:skylark-lang",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

@@ -25,9 +25,9 @@ import com.google.copybara.Transformation;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Pattern;
 import java.io.IOException;
+import net.starlark.java.syntax.Location;
 
 /**
  * A checker that validates that the change description satisfies a Regex or that it doesn't

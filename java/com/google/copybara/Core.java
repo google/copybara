@@ -56,14 +56,6 @@ import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
-import com.google.devtools.build.lib.syntax.Dict;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Module;
-import com.google.devtools.build.lib.syntax.NoneType;
-import com.google.devtools.build.lib.syntax.Starlark;
-import com.google.devtools.build.lib.syntax.StarlarkCallable;
-import com.google.devtools.build.lib.syntax.StarlarkThread;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
@@ -73,6 +65,15 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Module;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkCallable;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Main configuration class for creating migrations.
@@ -124,13 +125,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "transformations",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             generic1 = Transformation.class,
             doc = "The transformations to reverse"),
       })
-  public com.google.devtools.build.lib.syntax.Sequence<Transformation> reverse(
-      com.google.devtools.build.lib.syntax.Sequence<?>
-          transforms // <Transformation> or <StarlarkCallable>
+  public net.starlark.java.eval.Sequence<Transformation> reverse(
+      net.starlark.java.eval.Sequence<?> transforms // <Transformation> or <StarlarkCallable>
       ) throws EvalException {
 
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
@@ -150,8 +150,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       }
     }
 
-    return com.google.devtools.build.lib.syntax.StarlarkList.immutableCopyOf(
-        builder.build().reverse());
+    return StarlarkList.immutableCopyOf(builder.build().reverse());
   }
 
   @SuppressWarnings({"unused", "unchecked"})
@@ -219,7 +218,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "transformations",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             doc = "The transformations to be run for this workflow. They will run in sequence.",
             positional = false,
             defaultValue = "[]"),
@@ -312,7 +311,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after_migration",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "Run a feedback workflow after one migration happens. This runs once per"
                     + " change in `ITERATIVE` mode and only once for `SQUASH`.",
@@ -321,7 +320,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after_workflow",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "Run a feedback workflow after all the changes for this workflow run are migrated."
                     + " Prefer `after_migration` as it is executed per change (in ITERATIVE mode)."
@@ -416,17 +415,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " changes and you are not interested on the files of the dependant repo, just"
                     + " the new version.",
             defaultValue = "True"),
-          @Param(
-              name = "reversible_check_ignore_files",
-              named = true,
-              type = Glob.class,
-              doc = "Ignore the files matching the glob in the reversible check",
-              defaultValue = "None",
-              noneable = true,
-              positional = false),
-
+        @Param(
+            name = "reversible_check_ignore_files",
+            named = true,
+            type = Glob.class,
+            doc = "Ignore the files matching the glob in the reversible check",
+            defaultValue = "None",
+            noneable = true,
+            positional = false),
       },
-
       useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
@@ -439,7 +436,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Origin<?> origin, // <Revision>, but skylark allows only ?
       Destination<?> destination,
       Authoring authoring,
-      com.google.devtools.build.lib.syntax.Sequence<?> transformations,
+      net.starlark.java.eval.Sequence<?> transformations,
       Object originFiles,
       Object destinationFiles,
       String modeStr,
@@ -447,8 +444,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object checkLastRevStateField,
       Boolean askForConfirmation,
       Boolean dryRunMode,
-      com.google.devtools.build.lib.syntax.Sequence<?> afterMigrations,
-      com.google.devtools.build.lib.syntax.Sequence<?> afterAllMigrations,
+      net.starlark.java.eval.Sequence<?> afterMigrations,
+      net.starlark.java.eval.Sequence<?> afterAllMigrations,
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
@@ -845,7 +842,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "ignore",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "A set of regexes. Any line that matches any expression in this set, which"
                     + " might otherwise be transformed, will be ignored.",
@@ -951,7 +948,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean firstOnly,
       Boolean multiline,
       Boolean repeatedGroups,
-      com.google.devtools.build.lib.syntax.Sequence<?> ignore, // <String>
+      net.starlark.java.eval.Sequence<?> ignore, // <String>
       StarlarkThread thread)
       throws EvalException {
     return Replace.create(
@@ -975,7 +972,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "tags",
             named = true,
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             generic1 = String.class,
             doc = "Prefix tag to look for",
             defaultValue = "['TODO', 'NOTE']"),
@@ -1055,7 +1052,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       code = "core.todo_replace(\n" + "  mapping = { 'aaa' : 'foo'},\n" + "  ignore = 'b/.*'\n)",
       after = "Would replace texts like TODO(b/123, aaa) with TODO(b/123, foo)")
   public TodoReplace todoReplace(
-      com.google.devtools.build.lib.syntax.Sequence<?> skyTags, // <String>
+      net.starlark.java.eval.Sequence<?> skyTags, // <String>
       Dict<?, ?> skyMapping, // <String, String>
       String modeStr,
       Object paths,
@@ -1120,7 +1117,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       + "    }\n"
       + ")";
 
-  @SuppressWarnings({"unused", "unchecked"})
+  @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "filter_replace",
       doc =
@@ -1236,7 +1233,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "mapping",
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             generic1 = Transformation.class,
             named = true,
             doc = "The list of core.replace transformations"),
@@ -1249,14 +1246,13 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False"),
       })
   public ReplaceMapper mapImports(
-      com.google.devtools.build.lib.syntax.Sequence<?> mapping, // <Transformation>
+      net.starlark.java.eval.Sequence<?> mapping, // <Transformation>
       Boolean all)
       throws EvalException {
     check(!mapping.isEmpty(), "Empty mapping is not allowed");
     ImmutableList.Builder<Replace> replaces = ImmutableList.builder();
     for (Transformation t :
-        com.google.devtools.build.lib.syntax.Sequence.cast(
-            mapping, Transformation.class, "mapping")) {
+        net.starlark.java.eval.Sequence.cast(mapping, Transformation.class, "mapping")) {
       check(
           t instanceof Replace,
           "Only core.replace can be used as mapping, but got: %S", t.describe());
@@ -1344,7 +1340,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "transformations",
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             generic1 = Transformation.class,
             named = true,
             doc =
@@ -1352,7 +1348,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " transformation."),
         @Param(
             name = "reversal",
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             generic1 = Transformation.class,
             doc =
                 "The list of transformations to run as a result of running this"
@@ -1376,7 +1372,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       })
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
   public Transformation transform(
-      com.google.devtools.build.lib.syntax.Sequence<?> transformations, // <Transformation>
+      net.starlark.java.eval.Sequence<?> transformations, // <Transformation>
       Object reversal,
       Object ignoreNoop)
       throws EvalException {
@@ -1388,14 +1384,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             "transformations",
             printHandler,
             debugOptions::transformWrapper);
-    com.google.devtools.build.lib.syntax.Sequence<Transformation> reverseList =
+    net.starlark.java.eval.Sequence<Transformation> reverseList =
         convertFromNoneable(reversal, null);
     Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
       try {
-        reverseList =
-            com.google.devtools.build.lib.syntax.StarlarkList.immutableCopyOf(
-                ImmutableList.of(forward.reverse()));
+        reverseList = StarlarkList.immutableCopyOf(ImmutableList.of(forward.reverse()));
       } catch (NonReversibleValidationException e) {
         throw Starlark.errorf(
             "transformations are not automatically reversible."
@@ -1544,7 +1538,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true),
         @Param(
             name = "actions",
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             doc =
                 ""
                     + "A list of feedback actions to perform, with the following semantics:\n"
@@ -1570,7 +1564,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       String workflowName,
       Trigger trigger,
       EndpointProvider<?> destination,
-      com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
+      net.starlark.java.eval.Sequence<?> feedbackActions,
       Object description,
       StarlarkThread thread)
       throws EvalException {
@@ -1602,11 +1596,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(name = "format", type = String.class, named = true, doc = "The format string"),
         @Param(
             name = "args",
-            type = com.google.devtools.build.lib.syntax.Sequence.class,
+            type = net.starlark.java.eval.Sequence.class,
             named = true,
             doc = "The arguments to format"),
       })
-  public String format(String format, com.google.devtools.build.lib.syntax.Sequence<?> args)
+  public String format(String format, net.starlark.java.eval.Sequence<?> args)
       throws EvalException {
     try {
       return String.format(format, args.toArray(new Object[0]));
@@ -1616,8 +1610,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   }
 
   private static ImmutableList<Action> convertFeedbackActions(
-      com.google.devtools.build.lib.syntax.Sequence<?> feedbackActions,
-      StarlarkThread.PrintHandler printHandler)
+      net.starlark.java.eval.Sequence<?> feedbackActions, StarlarkThread.PrintHandler printHandler)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {

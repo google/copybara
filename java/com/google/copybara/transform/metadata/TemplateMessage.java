@@ -24,8 +24,8 @@ import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
+import net.starlark.java.syntax.Location;
 
 /**
  * Adds a header text in top of the change message.

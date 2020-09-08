@@ -37,16 +37,14 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkDocumentationCategory;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Integrate changes from a url present in the migrated change label. */
 @StarlarkBuiltin(

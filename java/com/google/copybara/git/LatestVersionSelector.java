@@ -28,8 +28,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.RegexTemplateTokens;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Printer;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -40,6 +38,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Printer;
 
 public class LatestVersionSelector implements VersionSelector {
 

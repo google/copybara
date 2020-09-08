@@ -25,9 +25,9 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.ValidationException;
-import com.google.devtools.build.lib.syntax.EvalException;
-import com.google.devtools.build.lib.syntax.Location;
 import java.io.IOException;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.syntax.Location;
 
 /**
  * Restores an original author stored in a label.

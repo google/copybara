@@ -21,11 +21,11 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
-import com.google.devtools.build.lib.syntax.StarlarkValue;
 import java.time.ZonedDateTime;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Common fields for issues and pull requests.

@@ -36,7 +36,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
-import com.google.devtools.build.lib.syntax.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.io.IOException;
@@ -49,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import net.starlark.java.syntax.Location;
 
 /**
  * Map Google style TODOs
