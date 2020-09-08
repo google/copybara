@@ -261,7 +261,7 @@ public enum WorkflowMode {
                 runHelper.workflowOptions().changeRequestFromSotLimit);
       } else {
         originBaselines = ImmutableList.of(
-            runHelper.originResolve(runHelper.workflowOptions().changeBaseline));
+            runHelper.originResolveLastRev(runHelper.workflowOptions().changeBaseline));
       }
 
       Baseline<O> destinationBaseline = getDestinationBaseline(runHelper, originBaselines);

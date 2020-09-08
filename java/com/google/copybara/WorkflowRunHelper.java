@@ -762,7 +762,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private O maybeGetLastRev() throws RepoException, ValidationException {
     if (workflow.getLastRevisionFlag() != null) {
       try {
-        return originResolve(workflow.getLastRevisionFlag());
+        return originResolveLastRev(workflow.getLastRevisionFlag());
       } catch (RepoException e) {
         throw new CannotResolveRevisionException(
             "Could not resolve --last-rev flag. Please make sure it exists in the origin: "
@@ -773,7 +773,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         workflow.getDestinationFiles(),
         getOriginLabelName());
     try {
-      O lastRev = (status == null) ? null : originResolve(status.getBaseline());
+      O lastRev = (status == null) ? null : originResolveLastRev(status.getBaseline());
       if (lastRev != null && workflow.isInitHistory()) {
         getConsole().warnFmt(
             "Ignoring %s because a previous imported revision '%s' was found in the destination.",
@@ -792,10 +792,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   /**
    * Resolve a string representation of a revision using the origin
    */
-   O originResolve(String revStr) throws RepoException, ValidationException {
-    return workflow.getOrigin().resolve(revStr);
+   O originResolveLastRev(String revStr) throws RepoException, ValidationException {
+    return workflow.getOrigin().resolveLastRev(revStr);
   }
-
 
   public EventMonitor eventMonitor() {
     return workflow.eventMonitor();

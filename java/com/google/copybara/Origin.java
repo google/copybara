@@ -57,12 +57,22 @@ import net.starlark.java.eval.StarlarkValue;
 public interface Origin<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 
   /**
-   * Resolves a migration reference into a revision. For example for git it would resolve 'master'
+   * Resolves a migration reference into a revision. For example for git it would resolve 'main'
    * to the SHA-1.
    *
    * @throws RepoException if any error happens during the resolve.
    */
   R resolve(String reference) throws RepoException, ValidationException;
+
+  /**
+   * Resolves a migration last migrated reference into a revision.
+   * For example for git it would resolve 'main' to the SHA-1.
+   *
+   * @throws RepoException if any error happens during the resolve.
+   */
+  default R resolveLastRev(String reference) throws RepoException, ValidationException {
+    return resolve(reference);
+  }
 
   /**
    * Show different changes between two references. Returns null if the origin doesn't
