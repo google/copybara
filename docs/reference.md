@@ -2224,7 +2224,7 @@ version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, partial_fetch=False, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
+`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
 
 
 #### Parameters:
@@ -2235,6 +2235,7 @@ url | `string`<br><p>Url of the GitHub project. For example "https://github.com/
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
 pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+allow_empty_diff | `boolean`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
 title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
@@ -3937,3 +3938,5 @@ Parameter | Description
 --------- | -----------
 path | `Path`<br><p>The string representing the path</p>
 content | `string`<br><p>The content of the file</p>
+
+

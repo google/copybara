@@ -1296,6 +1296,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
+            name = "allow_empty_diff",
+            type = Boolean.class,
+            defaultValue = "True",
+            named = true,
+            positional = false,
+            doc =
+                "By default, copybara migrates changes without checking existing PRs. "
+                    + "If set, copybara will skip pushing a change to an existing PR "
+                    + "only if the git three of the pending migrating change is the same "
+                    + "as the existing PR."),
+        @Param(
             name = "title",
             allowedTypes = {
               @ParamType(type = String.class),
@@ -1390,6 +1401,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String destinationRef,
       Object prBranch,
       Boolean partialFetch,
+      Boolean allowEmptyDiff,
       Object title,
       Object body,
       Object integrates,
@@ -1402,6 +1414,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     // Enterprise.
     check(GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    String destinationPrBranch = convertFromNoneable(prBranch, null);
     return new GitHubPrDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1414,7 +1428,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         destinationOptions,
         options.get(GitHubDestinationOptions.class),
         options.get(GitOptions.class),
-        new DefaultWriteHook(),
+        new GitHubPrWriteHook(
+            generalOptions,
+            url,
+            gitHubOptions,
+            destinationPrBranch,
+            partialFetch,
+            allowEmptyDiff,
+            getGeneralConsole()),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),

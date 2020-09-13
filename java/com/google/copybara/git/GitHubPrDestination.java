@@ -41,7 +41,6 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl;
-import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.GitDestination.WriterState;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -72,7 +71,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final GitDestinationOptions destinationOptions;
   private final GitHubDestinationOptions gitHubDestinationOptions;
   private final GitOptions gitOptions;
-  private final WriteHook writeHook;
+  private final GitHubPrWriteHook writeHook;
   private final Iterable<GitIntegrateChanges> integrates;
   @Nullable private final String title;
   @Nullable private final String body;
@@ -91,7 +90,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       GitDestinationOptions destinationOptions,
       GitHubDestinationOptions gitHubDestinationOptions,
       GitOptions gitOptions,
-      WriteHook writeHook,
+      GitHubPrWriteHook writeHook,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String title,
       @Nullable String body,
@@ -143,6 +142,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             writerContext.getOriginalRevision(),
             writerContext.getWorkflowName(),
             writerContext.getWorkflowIdentityUser());
+    GitHubPrWriteHook gitHubPrWriteHook = writeHook.withUpdatedPrBranch(prBranch);
 
     GitHubWriterState state = new GitHubWriterState(
         localRepo,
@@ -161,7 +161,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         /*tagName*/null,
         /*tagMsg*/null,
         generalOptions,
-        writeHook,
+        gitHubPrWriteHook,
         state,
         /*nonFastForwardPush=*/ true,
         integrates,

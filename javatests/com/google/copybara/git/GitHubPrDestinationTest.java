@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
+import static com.google.copybara.testing.TransformWorks.toChange;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -36,10 +37,14 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.copybara.Changes;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
+import com.google.copybara.DestinationEffect;
 import com.google.copybara.Revision;
 import com.google.copybara.WriterContext;
+import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
@@ -86,6 +91,9 @@ public class GitHubPrDestinationTest {
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
+        // Temporarily set this to true as the head git default branch is 'main'
+        // while external git default branch is still 'master'
+        .setForce(true)
         .setOutputRootToTmpDir();
 
     gitUtil = new GitTestUtil(options);
@@ -100,7 +108,6 @@ public class GitHubPrDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     skylark = new SkylarkTestExecutor(options);
   }
-
   @Test
   public void testWrite_noContextReference() throws ValidationException {
     WriterContext writerContext =
@@ -136,7 +143,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            MockRequestAssertion.equals("{\"base\":\"master\","
+            MockRequestAssertion.equals("{\"base\":\"main\","
                         + "\"body\":\"custom body\","
                         + "\"head\":\"feature\","
                         + "\"title\":\"custom title\"}")));
@@ -145,6 +152,7 @@ public class GitHubPrDestinationTest {
         + "    url = 'https://github.com/foo', \n"
         + "    title = 'custom title',\n"
         + "    body = 'custom body',\n"
+        + "    destination_ref = 'main'"
         + ")");
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
@@ -182,7 +190,7 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            MockRequestAssertion.equals("{\"base\":\"master\","
+            MockRequestAssertion.equals("{\"base\":\"main\","
                 + "\"body\":\"Body first a\","
                 + "\"head\":\"feature\","
                 + "\"title\":\"Title first a\"}")));
@@ -191,6 +199,7 @@ public class GitHubPrDestinationTest {
         + "    url = 'https://github.com/foo', \n"
         + "    title = 'Title ${aaa}',\n"
         + "    body = 'Body ${aaa}',\n"
+        + "    destination_ref = 'main',\n"
         + "    update_description = True,\n"
         + ")");
     WriterContext writerContext =
@@ -285,11 +294,12 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\""
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"master\",\"body\":\"Internal change.\\n\",\"head\":\"feature\","
+                    "{\"base\":\"main\",\"body\":\"Internal change.\\n\",\"head\":\"feature\","
                         + "\"title\":\"Internal change.\"}")));
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo'"
+        + "    url = 'https://github.com/foo',"
+        + "    destination_ref = 'main'"
         + ")");
 
     WriterContext writerContext =
@@ -344,7 +354,8 @@ public class GitHubPrDestinationTest {
                 "{\"state\":\"open\"}")));
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo'"
+        + "    url = 'https://github.com/foo',"
+        + "    destination_ref = 'main'"
         + ")");
 
     WriterContext writerContext =
@@ -395,17 +406,17 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\"\n"
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"master\",\"body\":\"test summary\\n\",\"head\":\""
+                    "{\"base\":\"main\",\"body\":\"test summary\\n\",\"head\":\""
                         + "feature"
                         + "\",\"title\":\"test summary\"}")));
 
     GitHubPrDestination d =
         skylark.eval(
-            "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo'" + ")");
+            "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo',"
+                + "    destination_ref = 'main'" + ")");
 
     Writer<GitRevision> writer = d.newWriter(new WriterContext("piper_to_github_pr", "TEST", false,
         revision, Glob.ALL_FILES.roots()));
-
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
@@ -519,7 +530,7 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
-  public void testWriteNoMaster() throws ValidationException, IOException, RepoException {
+  public void testWriteNomain() throws ValidationException, IOException, RepoException {
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo',"
         + "    destination_ref = 'other',"
@@ -556,7 +567,7 @@ public class GitHubPrDestinationTest {
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, "master", "first change", ImmutableMap.<String, String>builder()
+    addFiles(remote, "main", "first change", ImmutableMap.<String, String>builder()
         .put("foo.txt", "").build());
 
     addFiles(remote, "other", "second change", ImmutableMap.<String, String>builder()
@@ -575,23 +586,131 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
-  public void testBranchNameFromUserWithLabel() throws ValidationException, IOException, RepoException {
+  public void emptyChange() throws Exception {
+    Writer<GitRevision> writer = getWriterForTestEmptyDiff();
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+    String baseline = remote.resolveReference("HEAD").getSha1();
+    addFiles(
+        remote,
+        "test_feature",
+        "second change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").build());
+    String changeHead = remote.resolveReference("HEAD").getSha1();
+    gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
+        + "  \"id\": 1,\n"
+        + "  \"number\": 12345,\n"
+        + "  \"state\": \"closed\",\n"
+        + "  \"title\": \"test summary\",\n"
+        + "  \"body\": \"test summary\","
+        + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
+        + "  \"base\": {\"sha\": \"" + baseline + "\"}"
+        + "}]"));
+    writeFile(this.workdir, "foo.txt", "test");
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
+            .withChanges(new Changes(
+                ImmutableList.of(
+                    toChange(new DummyRevision("feature"),
+                        new Author("Foo Bar", "foo@bar.com"))),
+                ImmutableList.of()))
+            .withLabelFinder(
+                Functions.forMap(ImmutableMap.of("aaa", ImmutableList.of("first a", "second a")))),
+        Glob.ALL_FILES,
+        console));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Skipping push to the existing pr https://github.com/foo/pull/12345 "
+            + "as the change feature is empty.");
+  }
+
+  @Test
+  public void changeWithAllowEmptyDiff() throws Exception {
+    Writer<GitRevision> writer = getWriterForTestEmptyDiff();
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
+        .put("foo.txt", "").build());
+    String baseline = remote.resolveReference("HEAD").getSha1();
+
+    String changeHead = remote.resolveReference("HEAD").getSha1();
+    gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
+        + "  \"id\": 1,\n"
+        + "  \"number\": 12345,\n"
+        + "  \"state\": \"open\",\n"
+        + "  \"title\": \"test summary\",\n"
+        + "  \"body\": \"test summary\","
+        + "  \"head\": {\"sha\": \"" + changeHead + "\", \"ref\": \"test_feature\"},"
+        + "  \"base\": {\"sha\": \"" + baseline + "\", \"ref\": \"master\"}"
+        + "}]"));
+    writeFile(this.workdir, "foo.txt", "test");
+
+    ImmutableList<DestinationEffect> results =
+        writer.write(
+                TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
+                    .withChanges(new Changes(
+                        ImmutableList.of(
+                            toChange(new DummyRevision("feature"),
+                                new Author("Foo Bar", "foo@bar.com"))),
+                        ImmutableList.of()))
+                    .withLabelFinder(
+                        Functions.forMap(ImmutableMap.of("aaa",
+                            ImmutableList.of("first a", "second a")))),
+                Glob.ALL_FILES,
+                console);
+
+    assertThat(results.size()).isEqualTo(2);
+  }
+
+  private Writer<GitRevision> getWriterForTestEmptyDiff() throws Exception {
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+    skylark = new SkylarkTestExecutor(options);
+    options.githubDestination.destinationPrBranch = "test_feature";
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo', \n"
+        + "    title = 'Title ${aaa}',\n"
+        + "    body = 'Body ${aaa}',\n"
+        + "    allow_empty_diff = False,\n"
+        + "    destination_ref = 'main',\n"
+        + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+        + ")");
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
+    return d.newWriter(writerContext);
+  }
+
+  @Test
+  public void testBranchNameFromUserWithLabel()
+      throws ValidationException, IOException, RepoException {
     testBranchNameFromUser("test${CONTEXT_REFERENCE}", "test_feature", "&feature");
   }
 
   @Test
-  public void testBranchNameFromUserWithConstantString() throws ValidationException, IOException, RepoException {
+  public void testBranchNameFromUserWithConstantString()
+      throws ValidationException, IOException, RepoException {
     testBranchNameFromUser("test_my_branch", "test_my_branch", "feature");
   }
 
   @Test
-  public void testBranchNameFromUserWithAbnormalCharacters() throws ValidationException, IOException, RepoException {
+  public void testBranchNameFromUserWithAbnormalCharacters()
+      throws ValidationException, IOException, RepoException {
     testBranchNameFromUser(
         "test*my&special%characters^branch@name",
         "test_my_special_characters_branch_name", "feature");
   }
 
-  private void testBranchNameFromUser(String branchNameFromUser, String expectedBranchName, String contextReference) throws ValidationException, IOException, RepoException {
+  private void testBranchNameFromUser(String branchNameFromUser, String expectedBranchName,
+      String contextReference)
+      throws ValidationException, IOException, RepoException {
     GitHubPrDestination d =
         skylark.eval(
             "r",
@@ -627,7 +746,7 @@ public class GitHubPrDestinationTest {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
         remote,
-        "master",
+        "main",
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "").build());
 
@@ -658,14 +777,15 @@ public class GitHubPrDestinationTest {
         });
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo'"
+        + "    url = 'https://github.com/foo',"
+        + "    destination_ref = 'main'"
         + ")");
     WriterContext writerContext = new WriterContext("piper_to_github", "TEST", false,
         new DummyRevision("feature", "feature"), Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, "master", "first change\n\nDummyOrigin-RevId: baseline",
+    addFiles(remote, null, "first change\n\nDummyOrigin-RevId: baseline",
         ImmutableMap.<String, String>builder()
             .put("foo.txt", "").build());
 
@@ -696,10 +816,12 @@ public class GitHubPrDestinationTest {
     if (branch != null) {
       if (tmpRepo.refExists(branch)) {
         tmpRepo.simpleCommand("checkout", branch);
-      } else if (!branch.equals("master")) {
+      } else if (!branch.equals("main")) {
         tmpRepo.simpleCommand("branch", branch);
         tmpRepo.simpleCommand("checkout", branch);
       }
+    } else {
+      tmpRepo.simpleCommand("checkout", "-b", "main");
     }
 
     for (Entry<String, String> entry : files.entrySet()) {
