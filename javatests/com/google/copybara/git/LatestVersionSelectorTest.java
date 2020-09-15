@@ -24,16 +24,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.nio.file.Files;
-import java.nio.file.Path;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class LatestVersionSelectorTest {
@@ -175,7 +178,45 @@ public class LatestVersionSelectorTest {
     assertThat(origin.describe(Glob.ALL_FILES).get("refspec")).containsExactly(expectedRefspec);
   }
 
-  private void createTags(String ... repoTags) throws RepoException {
+  @Test
+  public void testResolve() throws Exception {
+    createTags("1.0.0");
+    options.testingOptions.destination = new RecordsProcessCallDestination();
+    options.general.setForceForTest(true);
+    Path workdir = Files.createTempDirectory("workdir");
+    //noinspection unchecked
+    String cfg = ""
+        + "core.workflow("
+        + "   name = 'default',"
+        + "   origin = git.origin("
+        + "     url = '" + url + "',\n"
+        + "     version_selector = git.latest_version(),\n"
+        + "   ),"
+        + "   authoring = authoring.overwrite('Foo <foo@example.com>'),"
+        + "   destination = testing.destination(),"
+        + ")";
+
+    skylark.loadConfig(cfg).getMigration("default")
+        .run(workdir, ImmutableList.of());
+
+    assertThat(options.testingOptions.destination.processed).hasSize(1);
+    assertThat(options.testingOptions.destination.processed.get(0).getWorkdir())
+    .containsExactly("test.txt", "some content");
+
+    writeFile(remote, "test.txt", "some content2");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "second change", "--date", COMMIT_TIME);
+
+    createTags("foo", "1.1.0");
+    options.general.setForceForTest(false);
+    skylark.loadConfig(cfg).getMigration("default")
+        .run(workdir, ImmutableList.of());
+
+    assertThat(options.testingOptions.destination.processed.get(1).getWorkdir())
+        .containsExactly("test.txt", "some content2");
+  }
+
+  private void createTags(String... repoTags) throws RepoException {
     for (String tag : repoTags) {
       git("tag", tag);
     }
@@ -185,7 +226,7 @@ public class LatestVersionSelectorTest {
     remote = folder;
     repo =
         GitRepository.newRepo(
-                /*verbose*/ true, remote, new GitEnvironment(options.general.getEnvironment()))
+            /*verbose*/ true, remote, new GitEnvironment(options.general.getEnvironment()))
             .init();
   }
 
