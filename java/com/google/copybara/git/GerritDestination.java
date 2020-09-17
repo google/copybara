@@ -50,7 +50,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
-import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
@@ -264,13 +263,10 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
       // Keep old HEAD state, prefer the symbolic-ref (branch name) if possible so that it works
       // with local repos.
-      String oldHead;
-      try {
-        oldHead = repo.simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
-      } catch (RepoException e) {
-        oldHead = repo.resolveReference("HEAD").getSha1();
-      }
-
+      GitRevision gitRevision = repo.getHeadRef();
+      String oldHead = gitRevision.contextReference() != null
+          ? gitRevision.contextReference()
+          : gitRevision.getSha1();
       try (ProfilerTask ignore = generalOptions.profiler().start("previous_patchset_check")) {
         ChangeInfo changeInfo = findChange(gerritMessageInfo.changeId);
         if (changeInfo == null) {
@@ -286,23 +282,13 @@ public final class GerritDestination implements Destination<GitRevision> {
               changeInfo.getNumber(), changeInfo.getChangeId());
           return;
         }
-
-        GitLogEntry newChange = Iterables.getLast(repo.log("HEAD").withLimit(1).run());
-        repo.simpleCommand("checkout", "-b", "cherry_pick" + UUID.randomUUID().toString(),
-            "HEAD~1");
-        if (tryToCherryPick(repo, changeInfo.getCurrentRevision(),
-            changeInfo.getNumber())) {
-          GitLogEntry oldWithCherryPick = Iterables.getLast(repo.log("HEAD").withLimit(1).run());
-
-          if (oldWithCherryPick.getTree().equals(newChange.getTree())) {
-            throw new EmptyChangeException(String.format(
+        if (repo.hasSameTree(changeInfo.getCurrentRevision())) {
+          throw new EmptyChangeException(String.format(
                 "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
                     + " same from the previous PatchSet (%s)",
                 changeInfo.getNumber(),
                 changeInfo.getCurrentRevision()));
-          }
         }
-
       } finally {
         repo.forceCheckout(oldHead);
       }
@@ -403,22 +389,6 @@ public final class GerritDestination implements Destination<GitRevision> {
             .collect(Collectors.toList()));
       }
       return result;
-    }
-
-    private boolean tryToCherryPick(GitRepository repo, String commit, long changeNumber) {
-      try {
-        repo.simpleCommand("cherry-pick", commit);
-        return true;
-      } catch (RepoException e) {
-        logger.atSevere().withCause(e).log("Couldn't compare previous PatchSet for change %s"
-            + " (%s)", changeNumber, commit);
-        // Abort the cherry-pick
-        try {
-          repo.simpleCommand("cherry-pick", "--abort");
-        } catch (RepoException ignore) {
-        }
-        return false;
-      }
     }
 
     @Override

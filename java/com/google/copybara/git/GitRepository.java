@@ -779,6 +779,47 @@ public class GitRepository {
     throw new RepoException(output.getStderr());
   }
 
+  /** Try to cherry pick a commit. If it fails, cherry-pick will be aborted and return false*/
+  public boolean tryToCherryPick(String commit) {
+    try {
+      this.simpleCommand("cherry-pick", commit);
+      return true;
+    } catch (RepoException e) {
+      logger.atSevere().withCause(e).log("Cherry-pick failed for %s", commit);
+      // Abort the cherry-pick
+      try {
+        this.simpleCommand("cherry-pick", "--abort");
+      } catch (RepoException ex) {
+        logger.atWarning().withCause(ex).log("cherry-pick --abort failed.");
+      }
+      return false;
+    }
+  }
+
+  /** Return the symbolic-ref (branch name) of HEAD. If it fails, return the sha1 of HEAD*/
+  public GitRevision getHeadRef()
+      throws RepoException, CannotResolveRevisionException {
+    try {
+      String reference = this.simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+      return new GitRevision(this, parseRef(reference), null, reference,
+          ImmutableListMultimap.of(), null);
+    } catch (RepoException e) {
+      return new GitRevision(this, this.resolveReference("HEAD").getSha1());
+    }
+  }
+
+  /** Check whether the remote sha1's tree is the same as repo's HEAD */
+  public boolean hasSameTree(String remoteCommit)
+      throws RepoException {
+    GitLogEntry newChange = Iterables.getLast(this.log("HEAD").withLimit(1).run());
+    this.simpleCommand("checkout", "-b", "cherry_pick" + UUID.randomUUID(), "HEAD~1");
+    if (tryToCherryPick(remoteCommit)) {
+      GitLogEntry oldWithCherryPick = Iterables.getLast(this.log("HEAD").withLimit(1).run());
+      return oldWithCherryPick.getTree().equals(newChange.getTree());
+    }
+    return false;
+  }
+
   /**
    * Checks out the given ref in the repo, quietly and throwing away local changes. If checkoutPath
    * is empty, it will checkout all files. If not, it will only checkout checkoutPaths

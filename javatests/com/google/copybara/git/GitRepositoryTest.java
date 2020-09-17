@@ -964,6 +964,77 @@ public class GitRepositoryTest {
     assertThat(repository.readFile("refs/heads/master", "foo.txt")).isEqualTo("Hello");
   }
 
+  @Test
+  public void headRef() throws Exception {
+    String branch = "test";
+    GitRepository repo = repository.withWorkTree(workdir);
+    repo.init();
+    repo.simpleCommand("checkout", "-b", branch);
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
+
+    assertThat(repo.getHeadRef().contextReference()).isEqualTo(branch);
+  }
+
+  @Test
+  public void cheryPick() throws Exception {
+    String branch = "test";
+    GitRepository mockRemoteRepo = repository.withWorkTree(workdir);
+    mockRemoteRepo.init();
+    mockRemoteRepo.simpleCommand("checkout", "-b", branch);
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    mockRemoteRepo.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    String sha1 =  mockRemoteRepo.resolveReference("HEAD").getSha1();
+
+    // mock local repo
+    Path localWorkTree = Files.createTempDirectory("localWorkTree");
+    Path localGitDir = Files.createTempDirectory("localGitDir");
+    GitRepository localRepo = mockRepository(localGitDir, localWorkTree);
+
+    localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch, false);
+
+    assertThat(localRepo.tryToCherryPick(sha1)).isTrue();
+  }
+
+  @Test
+  public void hasSameTree() throws Exception {
+    String branch = "test";
+    // mock remote repo
+    GitRepository mockRemoteRepo = repository.withWorkTree(workdir);
+    mockRemoteRepo.init();
+    mockRemoteRepo.simpleCommand("checkout", "-b", branch);
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    mockRemoteRepo.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    String sha1 =  mockRemoteRepo.resolveReference("HEAD").getSha1();
+
+    // mock local repo
+    Path localWorkTree = Files.createTempDirectory("localWorkTree");
+    Path localGitDir = Files.createTempDirectory("localGitDir");
+    GitRepository localRepo = mockRepository(localGitDir, localWorkTree);
+    localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch, false);
+    localRepo.forceCheckout(sha1);
+
+    // mock the same sha1 at remote and local
+    for (GitRepository repo : ImmutableList.of(localRepo, mockRemoteRepo)){
+      Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes());
+      repo.simpleCommand("commit", "foo.txt", "-m", "update msg");
+    }
+
+    String remoteHeadSha1 = mockRemoteRepo.resolveReference("HEAD").getSha1();
+
+    assertThat(localRepo.hasSameTree(remoteHeadSha1)).isTrue();
+  }
+
+  private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
+    GitRepository repository = GitRepository.newBareRepo(gitDir,
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
+        .withWorkTree(workTree);
+    return repository.init();
+  }
+
   private void setUpForTagTest(String tagMsg)
       throws Exception {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
