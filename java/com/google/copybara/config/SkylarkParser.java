@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.ModuleSet;
+import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
@@ -331,7 +332,7 @@ public class SkylarkParser {
       try {
         if (StarlarkInterfaceUtils.getStarlarkBuiltin(module) != null) {
           Starlark.addModule(envBuilder, module.getConstructor().newInstance());
-        } else if (StarlarkInterfaceUtils.hasStarlarkGlobalLibrary(module)) {
+        } else if (module.isAnnotationPresent(Library.class)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {

@@ -34,6 +34,7 @@ import com.google.copybara.doc.annotations.DocElement;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Examples;
+import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -69,7 +70,6 @@ import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkGlobalLibrary;
 import net.starlark.java.annot.StarlarkMethod;
 
 /**
@@ -89,35 +89,36 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   @Override
   protected Iterable<? extends ProcessingStep> initSteps() {
 
-    return ImmutableList.of(new ProcessingStep() {
-      @Override
-      public Set<? extends Class<? extends Annotation>> annotations() {
-        return ImmutableSet.of(StarlarkBuiltin.class, StarlarkGlobalLibrary.class);
-      }
+    return ImmutableList.of(
+        new ProcessingStep() {
+          @Override
+          public ImmutableSet<? extends Class<? extends Annotation>> annotations() {
+            return ImmutableSet.of(StarlarkBuiltin.class, Library.class);
+          }
 
-      @Override
-      public Set<Element> process(
-          SetMultimap<Class<? extends Annotation>, Element> elementsByAnnotation) {
-        try {
-          processDoc(elementsByAnnotation);
-        } catch (ElementException e) {
-          processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), e.element);
-        } catch (IOException e) {
-          // Unexpected but we cannot do too much about this and Kind.ERROR makes the build
-          // to fail.
-          e.printStackTrace();
-          processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
-        }
-        return ImmutableSet.of();
-      }
-    });
+          @Override
+          public ImmutableSet<Element> process(
+              SetMultimap<Class<? extends Annotation>, Element> elementsByAnnotation) {
+            try {
+              processDoc(elementsByAnnotation);
+            } catch (ElementException e) {
+              processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage(), e.element);
+            } catch (IOException e) {
+              // Unexpected but we cannot do too much about this and Kind.ERROR makes the build
+              // to fail.
+              e.printStackTrace();
+              processingEnv.getMessager().printMessage(Kind.ERROR, e.getMessage());
+            }
+            return ImmutableSet.of();
+          }
+        });
   }
 
   private void processDoc(SetMultimap<Class<? extends Annotation>, Element> elementsByAnnotation)
       throws ElementException, IOException {
 
     LinkedList<DocModule> modules = new LinkedList<>();
-    Set<Element> globalModules = elementsByAnnotation.get(StarlarkGlobalLibrary.class);
+    Set<Element> globalModules = elementsByAnnotation.get(Library.class);
     if (!globalModules.isEmpty()) {
       DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
       modules.add(docModule);
