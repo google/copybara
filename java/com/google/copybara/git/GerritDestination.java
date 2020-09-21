@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.flogger.FluentLogger;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -62,7 +61,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -71,7 +69,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 
 /**
@@ -80,8 +77,6 @@ import javax.annotation.Nullable;
 public final class GerritDestination implements Destination<GitRevision> {
 
   static final int MAX_FIND_ATTEMPTS = 150;
-
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final String CHANGE_ID_LABEL = "Change-Id";
 
@@ -261,36 +256,19 @@ public final class GerritDestination implements Destination<GitRevision> {
       if (allowEmptyDiffPatchSet || gerritMessageInfo.newReview) {
         return;
       }
-      // Keep old HEAD state, prefer the symbolic-ref (branch name) if possible so that it works
-      // with local repos.
-      GitRevision gitRevision = repo.getHeadRef();
-      String oldHead = gitRevision.contextReference() != null
-          ? gitRevision.contextReference()
-          : gitRevision.getSha1();
       try (ProfilerTask ignore = generalOptions.profiler().start("previous_patchset_check")) {
         ChangeInfo changeInfo = findChange(gerritMessageInfo.changeId);
         if (changeInfo == null) {
           return;
         }
-        try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_previous_patchset")) {
-          repo.fetch(repoUrl, /*prune=*/ false, /*force=*/ true,
-              ImmutableList.of(changeInfo.getCurrentRevision()), partialFetch);
-        } catch (RepoException | ValidationException e) {
-          // Don't fail if we cannot find the previous patchset
-          logger.atWarning().withCause(e).log("Cannot download previous patchset: %s", changeInfo);
-          console.warnFmt("Cannot download previous patchset for change %s (%s)",
-              changeInfo.getNumber(), changeInfo.getChangeId());
-          return;
-        }
-        if (repo.hasSameTree(changeInfo.getCurrentRevision())) {
+        SameGitTree sameGitTree = new SameGitTree(repo, repoUrl, generalOptions, partialFetch);
+        if (sameGitTree.hasSameTree(changeInfo.getCurrentRevision())) {
           throw new EmptyChangeException(String.format(
                 "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
                     + " same from the previous PatchSet (%s)",
                 changeInfo.getNumber(),
                 changeInfo.getCurrentRevision()));
         }
-      } finally {
-        repo.forceCheckout(oldHead);
       }
     }
 
