@@ -19,14 +19,12 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a GitHub App detail. https://developer.github.com/v3/apps/#response */
 @StarlarkBuiltin(
     name = "github_app_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Detail about a GitHub App.")
 public class GitHubApp implements StarlarkValue {
 

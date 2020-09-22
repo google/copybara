@@ -19,7 +19,6 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
@@ -28,7 +27,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "gerritapi.ParentCommitInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit parent commit information.")
 public class ParentCommitInfo implements StarlarkValue {
   @Key private String commit;

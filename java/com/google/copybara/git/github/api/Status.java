@@ -25,7 +25,6 @@ import java.time.ZonedDateTime;
 import java.util.EnumSet;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -36,7 +35,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "github_api_status_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Information about a commit status as defined in"
             + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"

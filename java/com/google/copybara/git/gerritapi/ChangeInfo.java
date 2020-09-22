@@ -26,7 +26,6 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.Printer;
@@ -38,7 +37,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "gerritapi.ChangeInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit change information.")
 public class ChangeInfo implements StarlarkValue {
 

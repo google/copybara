@@ -21,7 +21,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
@@ -30,7 +29,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "gerritapi.RevisionInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit revision information.")
 public class RevisionInfo implements StarlarkValue {
 

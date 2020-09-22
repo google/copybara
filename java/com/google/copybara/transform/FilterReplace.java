@@ -38,13 +38,11 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.syntax.Location;
 
 // Module needed because both Transformation and ReversibleFunction are Starlark objects but
 // neither of them extend each other
 @StarlarkBuiltin(name = "filter_replace",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "A core.filter_replace transformation")
 public class FilterReplace implements Transformation, ReversibleFunction<String, String>{
 

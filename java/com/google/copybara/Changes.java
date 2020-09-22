@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableList;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
@@ -27,7 +26,6 @@ import net.starlark.java.eval.StarlarkValue;
 /** Information about the changes being imported */
 @StarlarkBuiltin(
     name = "Changes",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Data about the set of changes that are being migrated. "
             + "Each change includes information like: original author, change message, "

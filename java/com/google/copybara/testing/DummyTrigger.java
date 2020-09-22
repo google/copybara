@@ -19,17 +19,13 @@ package com.google.copybara.testing;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Trigger;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /**
  * A dummy trigger for feedback mechanism.
  *
  * <p>Extends {@link DummyEndpoint} just for convenience for the tests.
  */
-@StarlarkBuiltin(
-    name = "dummy_trigger",
-    doc = "A dummy trigger for feedback mechanism",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "dummy_trigger", doc = "A dummy trigger for feedback mechanism")
 public class DummyTrigger extends DummyEndpoint implements Trigger {
 
   @Override

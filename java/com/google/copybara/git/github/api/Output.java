@@ -20,14 +20,12 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Descriptive details about the run. https://developer.github.com/v3/checks/runs/#output-object */
 @StarlarkBuiltin(
     name = "output_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Descriptive details about the run.")
 public class Output implements StarlarkValue {
 

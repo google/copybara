@@ -22,7 +22,6 @@ import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -33,7 +32,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "github_check_run_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Detail about a check run as defined in "
             + "https://developer.github.com/v3/checks/runs/#create-a-check-run")

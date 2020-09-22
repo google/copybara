@@ -20,7 +20,6 @@ import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
@@ -29,7 +28,6 @@ import net.starlark.java.eval.StarlarkValue;
 
 @StarlarkBuiltin(
     name = "gerritapi.getActionInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit actions information.")
 public class ActionInfo implements StarlarkValue {
 

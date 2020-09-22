@@ -20,7 +20,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.Location;
 
@@ -28,7 +27,6 @@ import net.starlark.java.syntax.Location;
 @StarlarkBuiltin(
     name = "transformation",
     doc = "A transformation to the workdir",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Transformation extends StarlarkValue {
 

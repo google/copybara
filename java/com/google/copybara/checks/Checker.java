@@ -21,14 +21,12 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A generic interface for performing checks on string contents and files. */
 @StarlarkBuiltin(
     name = "checker",
     doc = "A checker to be run on arbitrary data and files",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Checker extends StarlarkValue {
 

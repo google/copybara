@@ -20,7 +20,6 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.time.ZonedDateTime;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -34,7 +33,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "github_api_pull_request_comment_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Information about a pull request comment as defined in"
             + " https://developer.github.com/v3/pulls/comments/. This is a subset of the available"

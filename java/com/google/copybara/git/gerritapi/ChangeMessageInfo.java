@@ -22,7 +22,6 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.time.ZonedDateTime;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
@@ -33,7 +32,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "gerritapi.ChangeMessageInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit change message information.")
 public class ChangeMessageInfo implements StarlarkValue {
 

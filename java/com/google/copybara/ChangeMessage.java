@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckReturnValue;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
@@ -43,7 +42,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "ChangeMessage",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents a well formed parsed change message with its associated labels.")
 @DocSignaturePrefix("message")
 public final class ChangeMessage implements StarlarkValue {

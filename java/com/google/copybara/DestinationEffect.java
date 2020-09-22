@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Sequence;
@@ -33,7 +32,6 @@ import net.starlark.java.eval.StarlarkValue;
 /** An effect happening in the destination as a consequence of the migration */
 @StarlarkBuiltin(
     name = "destination_effect",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents an effect that happened in the destination due to a single migration")
 @SuppressWarnings("unused")
 public class DestinationEffect implements StarlarkValue {
@@ -212,7 +210,6 @@ public class DestinationEffect implements StarlarkValue {
   /** Reference to the change/review read from the origin. */
   @StarlarkBuiltin(
       name = "origin_ref",
-      category = StarlarkDocumentationCategory.BUILTIN,
       doc = "Reference to the change/review in the origin.")
   public static class OriginRef implements StarlarkValue {
     private final String ref;
@@ -261,7 +258,6 @@ public class DestinationEffect implements StarlarkValue {
   /** Reference to the change/review created/updated on the destination. */
   @StarlarkBuiltin(
       name = "destination_ref",
-      category = StarlarkDocumentationCategory.BUILTIN,
       doc = "Reference to the change/review created/updated on the destination.")
   public static class DestinationRef implements StarlarkValue {
     @Nullable private final String url;

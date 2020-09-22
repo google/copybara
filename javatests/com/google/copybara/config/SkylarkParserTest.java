@@ -50,7 +50,6 @@ import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
@@ -366,7 +365,6 @@ public class SkylarkParserTest {
   @StarlarkBuiltin(
       name = "mock_labels_aware_module",
       doc = "LabelsAwareModule for testing purposes",
-      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static final class MockLabelsAwareModule implements LabelsAwareModule, StarlarkValue {
     private ConfigFile configFile;
@@ -393,7 +391,6 @@ public class SkylarkParserTest {
   @StarlarkBuiltin(
       name = "mock",
       doc = "Mock classes for testing SkylarkParser",
-      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static class Mock implements StarlarkValue {
 

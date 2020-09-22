@@ -22,7 +22,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -30,7 +29,6 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "destination_reader",
     doc = "Handle to read from the destination",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = true)
 public abstract class DestinationReader implements StarlarkValue {
 

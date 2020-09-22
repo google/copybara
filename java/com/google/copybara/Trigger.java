@@ -18,7 +18,6 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -26,7 +25,6 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "trigger",
     doc = "Starter of feedback migration executions.",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Trigger extends StarlarkValue {
 

@@ -20,14 +20,12 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.time.ZonedDateTime;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents the current status of a ref, as returned by the git/refs API call */
 @StarlarkBuiltin(
     name = "github_api_commit_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Commit field for GitHub commit information"
             + " https://developer.github.com/v3/git/commits/#get-a-commit."
@@ -54,7 +52,6 @@ public class Commit implements StarlarkValue {
 
   @StarlarkBuiltin(
       name = "github_api_commit_author_obj",
-      category = StarlarkDocumentationCategory.BUILTIN,
       doc =
           "Author/Committer for commit field for GitHub commit information"
               + " https://developer.github.com/v3/git/commits/#get-a-commit."

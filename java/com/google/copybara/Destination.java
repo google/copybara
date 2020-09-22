@@ -28,14 +28,12 @@ import java.nio.file.Path;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A repository which a source of truth can be copied to. */
 @StarlarkBuiltin(
     name = "destination",
     doc = "A repository which a source of truth can be copied to",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Destination<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 

@@ -98,7 +98,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
@@ -2554,12 +2553,7 @@ public class WorkflowTest {
     assertThat(expected).hasMessageThat().contains("Oh noes");
   }
 
-
-  @StarlarkBuiltin(
-      name = "dynamic_test",
-      documented = false,
-      doc = "Just a Test.",
-      category = StarlarkDocumentationCategory.BUILTIN)
+  @StarlarkBuiltin(name = "dynamic_test", documented = false, doc = "Just a Test.")
   public static class ThrowingCallable implements StarlarkValue {
     @SuppressWarnings("unused")
     @StarlarkMethod(

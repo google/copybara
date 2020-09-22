@@ -26,17 +26,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map.Entry;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /**
  * A dummy, not very efficient, checker for tests.
  *
- * TODO(danielromero): Promote to a real transform that uses regex
+ * <p>TODO(danielromero): Promote to a real transform that uses regex
  */
-@StarlarkBuiltin(
-    name = "dummy_checker",
-    doc = "A dummy checker for tests",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "dummy_checker", doc = "A dummy checker for tests")
 public class DummyChecker implements Checker {
 
   private final ImmutableSet<String> badWords;

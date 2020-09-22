@@ -19,14 +19,12 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A user object returned as a field by many GitHub API responses. */
 @StarlarkBuiltin(
     name = "github_api_user_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "An object representing a GitHub user")
 public class User implements StarlarkValue {
 

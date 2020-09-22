@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
@@ -122,7 +121,6 @@ public final class CoreReverseTest {
   @StarlarkBuiltin(
       name = "mock",
       doc = "Mock classes for testing reverse",
-      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static class Mock implements StarlarkValue {
 

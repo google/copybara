@@ -22,7 +22,6 @@ import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
@@ -36,10 +35,7 @@ import net.starlark.java.eval.StarlarkValue;
  * operations on the API.
  */
 @SuppressWarnings("unused")
-@StarlarkBuiltin(
-    name = "endpoint",
-    doc = "An origin or destination API in a feedback migration.",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
+@StarlarkBuiltin(name = "endpoint", doc = "An origin or destination API in a feedback migration.")
 public interface Endpoint extends StarlarkValue {
 
   /**

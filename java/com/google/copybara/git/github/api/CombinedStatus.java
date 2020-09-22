@@ -20,7 +20,6 @@ import com.google.api.client.util.Key;
 import com.google.copybara.git.github.api.Status.State;
 import java.util.List;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
@@ -33,7 +32,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "github_api_combined_status_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Combined Information about a commit status as defined in"
             + " https://developer.github.com/v3/repos/statuses. This is a subset of the available"

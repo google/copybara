@@ -26,7 +26,6 @@ import java.util.List;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -37,8 +36,7 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "buildozer",
     doc =
-        "Module for Buildozer-related functionality such as creating and modifying BUILD targets.",
-    category = StarlarkDocumentationCategory.BUILTIN)
+        "Module for Buildozer-related functionality such as creating and modifying BUILD targets.")
 public final class BuildozerModule implements StarlarkValue {
 
   private final BuildozerOptions buildozerOptions;

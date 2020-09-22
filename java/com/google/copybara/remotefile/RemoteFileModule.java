@@ -28,7 +28,6 @@ import com.google.copybara.exception.ValidationException;
 import java.util.Arrays;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Starlark;
@@ -38,8 +37,7 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "remotefiles",
     doc = "Functions to access remote files not in either repo.",
-    documented = false,
-    category = StarlarkDocumentationCategory.BUILTIN)
+    documented = false)
 @UsesFlags(RemoteFileOptions.class)
 public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
 

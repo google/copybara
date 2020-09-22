@@ -63,7 +63,6 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -90,8 +89,7 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "core",
-    doc = "Core functionality for creating migrations, and basic transformations.",
-    category = StarlarkDocumentationCategory.BUILTIN)
+    doc = "Core functionality for creating migrations, and basic transformations.")
 @UsesFlags({GeneralOptions.class, DebugOptions.class})
 public class Core implements LabelsAwareModule, StarlarkValue {
 

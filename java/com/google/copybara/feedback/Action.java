@@ -21,14 +21,12 @@ import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /** An action that will be executed in a feedback workflow or on finish hook */
 @StarlarkBuiltin(
     name = "feedback.action",
     doc = "An action that will be executed in a feedback workflow or on_finish hook",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Action extends StarlarkValue {
 

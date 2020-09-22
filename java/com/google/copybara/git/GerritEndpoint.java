@@ -40,7 +40,6 @@ import com.google.copybara.util.console.Console;
 import java.util.Map;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -51,7 +50,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 @StarlarkBuiltin(
     name = "gerrit_api_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Gerrit API endpoint implementation for feedback migrations and after migration hooks.")
 public class GerritEndpoint implements Endpoint, StarlarkValue {
 

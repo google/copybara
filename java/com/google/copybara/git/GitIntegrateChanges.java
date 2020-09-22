@@ -43,13 +43,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Integrate changes from a url present in the migrated change label. */
 @StarlarkBuiltin(
     name = "git_integrate",
-    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false,
     doc = "")
 public class GitIntegrateChanges implements StarlarkValue {

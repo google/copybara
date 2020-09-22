@@ -55,7 +55,6 @@ import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -67,7 +66,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "github_api_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "GitHub API endpoint implementation for feedback migrations and after migration hooks.")
 public class GitHubEndPoint implements Endpoint, StarlarkValue {
 

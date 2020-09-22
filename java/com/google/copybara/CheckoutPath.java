@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
@@ -44,7 +43,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "Path",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents a path in the checkout directory")
 @DocSignaturePrefix("path")
 public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {

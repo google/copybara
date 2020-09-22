@@ -81,7 +81,6 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -95,10 +94,7 @@ import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.Location;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
-@StarlarkBuiltin(
-    name = "git",
-    doc = "Set of functions to define Git origins and destinations.",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "git", doc = "Set of functions to define Git origins and destinations.")
 @UsesFlags(GitOptions.class)
 public class GitModule implements LabelsAwareModule, StarlarkValue {
 

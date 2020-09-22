@@ -21,7 +21,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Sequence;
@@ -32,7 +31,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "gerritapi.CommitInfo",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     doc = "Gerrit commit information.")
 public class CommitInfo implements StarlarkValue {
   @Key private String commit;

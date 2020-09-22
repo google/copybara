@@ -30,7 +30,6 @@ import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -51,10 +50,7 @@ import net.starlark.java.eval.StarlarkValue;
  *    ]
  *  </pre>
  */
-@StarlarkBuiltin(
-    name = "metadata",
-    doc = "Core transformations for the change metadata",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "metadata", doc = "Core transformations for the change metadata")
 public class MetadataModule implements StarlarkValue {
 
   @SuppressWarnings("unused")

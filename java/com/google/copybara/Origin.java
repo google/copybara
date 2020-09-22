@@ -41,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -52,7 +51,6 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "origin",
     doc = "A Origin represents a source control repository from which source is copied.",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public interface Origin<R extends Revision> extends ConfigItemDescription, StarlarkValue {
 

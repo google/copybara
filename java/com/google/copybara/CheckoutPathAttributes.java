@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
@@ -29,7 +28,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "PathAttributes",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents a path attributes like size.")
 public class CheckoutPathAttributes implements StarlarkValue {
 

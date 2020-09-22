@@ -23,7 +23,6 @@ import static com.google.copybara.feedback.ActionResult.Result.SUCCESS;
 import com.google.common.base.MoreObjects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
@@ -32,7 +31,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "feedback.action_result",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Gives access to the feedback migration information and utilities.")
 public class ActionResult implements StarlarkValue {
 

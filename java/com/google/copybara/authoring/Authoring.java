@@ -28,7 +28,6 @@ import java.util.Objects;
 import java.util.Set;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -43,8 +42,7 @@ import net.starlark.java.syntax.Location;
  */
 @StarlarkBuiltin(
     name = "authoring_class",
-    doc = "The authors mapping between an origin and a destination",
-    category = StarlarkDocumentationCategory.BUILTIN)
+    doc = "The authors mapping between an origin and a destination")
 public final class Authoring implements StarlarkValue {
 
   private final Author defaultAuthor;
@@ -99,13 +97,10 @@ public final class Authoring implements StarlarkValue {
     }
   }
 
-  /**
-   * Starlark Module for authoring.
-   */
+  /** Starlark Module for authoring. */
   @StarlarkBuiltin(
       name = "authoring",
-      doc = "The authors mapping between an origin and a destination",
-      category = StarlarkDocumentationCategory.BUILTIN)
+      doc = "The authors mapping between an origin and a destination")
   public static final class Module implements StarlarkValue {
 
     public Module(Console console) {}

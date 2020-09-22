@@ -18,15 +18,13 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Wrapper class to prevent arbitrary instantiation of endpoints in starlark. */
 @StarlarkBuiltin(
     name = "endpoint_provider",
-    doc = "An handle for an origin or destination API in a feedback migration.",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
+    doc = "An handle for an origin or destination API in a feedback migration.")
 public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endpoint {
   final T endpoint;
 

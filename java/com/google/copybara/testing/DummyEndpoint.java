@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Sequence;
@@ -31,10 +30,7 @@ import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A dummy endpoint for feedback mechanism */
-@StarlarkBuiltin(
-    name = "dummy_endpoint",
-    doc = "A dummy endpoint for feedback mechanism",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "dummy_endpoint", doc = "A dummy endpoint for feedback mechanism")
 public class DummyEndpoint implements Endpoint, StarlarkValue {
 
   public final List<String> messages = new ArrayList<>();

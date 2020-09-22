@@ -31,7 +31,6 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.util.Map;
 import java.util.stream.Collectors;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -44,7 +43,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "feedback.finish_hook_context",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for 'after_migration' hooks.")
@@ -141,7 +139,6 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
 
   @StarlarkBuiltin(
       name = "feedback.revision_context",
-      category = StarlarkDocumentationCategory.BUILTIN,
       doc = "Information about the revision request/resolved for the migration")
   private static class SkylarkRevision implements StarlarkValue {
 

@@ -19,12 +19,10 @@ package com.google.copybara.transform;
 import com.google.copybara.NonReversibleValidationException;
 import java.util.function.Function;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 @StarlarkBuiltin(
     name = "mapping_function",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "A function that given an object can map to another object")
 public interface ReversibleFunction<T, R> extends Function<T, R>, StarlarkValue {
 

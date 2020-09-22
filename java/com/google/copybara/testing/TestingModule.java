@@ -22,15 +22,11 @@ import com.google.copybara.EndpointProvider;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A Skylark module used by tests */
-@StarlarkBuiltin(
-    name = "testing",
-    doc = "Module to use mock endpoints in tests.",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "testing", doc = "Module to use mock endpoints in tests.")
 public class TestingModule implements StarlarkValue {
 
   private final TestingOptions testingOptions;

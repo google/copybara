@@ -20,14 +20,12 @@ import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a pull request returned by https://api.github.com/repos/REPO_ID/pulls/NUMBER */
 @StarlarkBuiltin(
     name = "github_api_pull_request_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Information about a pull request as defined in"
             + " https://developer.github.com/v3/repos/pulls. This is a subset of the available"

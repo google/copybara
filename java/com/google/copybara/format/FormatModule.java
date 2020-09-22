@@ -33,7 +33,6 @@ import com.google.copybara.format.BuildifierFormat.LintMode;
 import com.google.copybara.util.Glob;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -42,8 +41,7 @@ import net.starlark.java.eval.StarlarkValue;
 /** Skylark module for transforming the code to Google's style/guidelines. */
 @StarlarkBuiltin(
     name = "format",
-    doc = "Module for formatting the code to Google's style/guidelines",
-    category = StarlarkDocumentationCategory.BUILTIN)
+    doc = "Module for formatting the code to Google's style/guidelines")
 public class FormatModule implements StarlarkValue {
 
   private static final ImmutableSet<String> BUILDIFIER_TYPE_VALUES =

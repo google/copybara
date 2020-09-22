@@ -54,7 +54,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -72,7 +71,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "TransformWork",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Data about the set of changes that are being migrated. "
             + "It includes information about changes like: the author to be used for commit, "

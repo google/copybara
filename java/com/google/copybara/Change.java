@@ -33,7 +33,6 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.Sequence;
@@ -43,7 +42,6 @@ import net.starlark.java.eval.StarlarkValue;
 /** Represents a change in a Repository */
 @StarlarkBuiltin(
     name = "change",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "A change metadata. Contains information like author, change message or detected labels")
 public final class Change<R extends Revision> extends OriginRef implements StarlarkValue {
 

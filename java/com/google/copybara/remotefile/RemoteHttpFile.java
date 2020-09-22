@@ -33,18 +33,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * A starlark construct to download remote files via Http.
- */
+/** A starlark construct to download remote files via Http. */
 @StarlarkBuiltin(
     name = "remote_http_file",
     documented = false,
-    doc = "A file loaded via http(s). This is experimental.",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE)
+    doc = "A file loaded via http(s). This is experimental.")
 public abstract class RemoteHttpFile implements StarlarkValue {
   protected final String reference;
    private final HttpStreamFactory transport;

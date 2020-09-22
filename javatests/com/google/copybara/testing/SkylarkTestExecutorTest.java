@@ -25,7 +25,6 @@ import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
@@ -58,7 +57,6 @@ public final class SkylarkTestExecutorTest {
   @StarlarkBuiltin(
       name = "dummy",
       doc = "For testing.",
-      category = StarlarkDocumentationCategory.BUILTIN,
       documented = false)
   public static final class DummyModule implements LabelsAwareModule, StarlarkValue {
     private ConfigFile configFile;

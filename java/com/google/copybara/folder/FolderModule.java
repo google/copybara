@@ -24,16 +24,12 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import java.nio.file.FileSystem;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Main module that groups all the functions related to folders. */
-@StarlarkBuiltin(
-    name = "folder",
-    doc = "Module for dealing with local filesystem folders",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "folder", doc = "Module for dealing with local filesystem folders")
 public class FolderModule implements StarlarkValue {
 
   private static final String DESTINATION_VAR = "destination";

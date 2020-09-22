@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.HasBinary;
 import net.starlark.java.eval.Starlark;
@@ -49,7 +48,6 @@ import net.starlark.java.syntax.TokenKind;
     doc =
         "Glob returns a list of every file in the workdir that matches at least one"
             + " pattern in include and does not match any of the patterns in exclude.",
-    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false)
 public abstract class Glob implements StarlarkValue, HasBinary {
 

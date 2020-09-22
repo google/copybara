@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -34,8 +33,7 @@ import net.starlark.java.eval.StarlarkValue;
     name = "SetReviewInput",
     doc =
         "Input for posting a review to Gerrit. See "
-            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input",
-    category = StarlarkDocumentationCategory.BUILTIN)
+            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input")
 public class SetReviewInput implements StarlarkValue {
 
   @Key String message;

@@ -24,7 +24,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 
 /**
  * A DestinationReader for reading files from a GitDestination.
@@ -32,7 +31,6 @@ import net.starlark.java.annot.StarlarkDocumentationCategory;
 @StarlarkBuiltin(
     name = "git_destination_reader",
     doc = "Handle to read from a git destination",
-    category = StarlarkDocumentationCategory.TOP_LEVEL_TYPE,
     documented = false)
 public class GitDestinationReader extends DestinationReader {
 

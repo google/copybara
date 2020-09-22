@@ -30,7 +30,6 @@ import com.google.copybara.util.Glob;
 import java.io.IOException;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -39,10 +38,7 @@ import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Skylark module that provides a basic transform to apply patchfiles. */
-@StarlarkBuiltin(
-    name = "patch",
-    doc = "Module for applying patches.",
-    category = StarlarkDocumentationCategory.BUILTIN)
+@StarlarkBuiltin(name = "patch", doc = "Module for applying patches.")
 public class PatchModule implements LabelsAwareModule, StarlarkValue {
   private static final Splitter LINES =
       Splitter.onPattern("\\r?\\n").omitEmptyStrings().trimResults();

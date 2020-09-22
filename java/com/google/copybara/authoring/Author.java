@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Starlark;
@@ -34,7 +33,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "author",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc = "Represents the author of a change")
 public final class Author implements StarlarkValue {
 

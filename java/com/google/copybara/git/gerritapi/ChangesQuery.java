@@ -24,7 +24,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -37,8 +36,7 @@ import net.starlark.java.eval.StarlarkValue;
     name = "gerritapi.ChangesQuery",
     doc =
         "Input for listing Gerrit changes. See "
-            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes",
-    category = StarlarkDocumentationCategory.BUILTIN)
+            + "https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes")
 public class ChangesQuery implements StarlarkValue {
 
   private final String query;

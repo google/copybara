@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
 import net.starlark.java.eval.StarlarkValue;
@@ -31,7 +30,6 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = GlobalMigrations.GLOBAL_MIGRATIONS,
     doc = "Global variable that holds the registered migrations in the config files",
-    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false)
 public class GlobalMigrations implements StarlarkValue {
 

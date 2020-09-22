@@ -28,7 +28,6 @@ import com.google.copybara.transform.SkylarkConsole;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.Sequence;
@@ -39,7 +38,6 @@ import net.starlark.java.eval.StarlarkValue;
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
     name = "feedback.context",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for feedback migrations.")

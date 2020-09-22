@@ -28,13 +28,11 @@ import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A tarball for a given ref, downloaded from GitHub */
 @StarlarkBuiltin(
     name = "remote_http_file.GitHubArchive",
-    category = StarlarkDocumentationCategory.BUILTIN,
     documented = false,
     doc = "A GitHub archive that can be downloaded at the given revision. Only exposes the SHA256 "
         + "hash of the archive.")

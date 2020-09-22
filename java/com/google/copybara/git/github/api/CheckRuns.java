@@ -20,7 +20,6 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.util.List;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkDocumentationCategory;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -30,7 +29,6 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @StarlarkBuiltin(
     name = "github_check_runs_obj",
-    category = StarlarkDocumentationCategory.BUILTIN,
     doc =
         "List check runs for a specific ref "
             + "https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref")
