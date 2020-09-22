@@ -25,6 +25,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.exception.ValidationException.retriableException;
 import static java.lang.String.format;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -377,6 +378,18 @@ public enum WorkflowMode {
       changes = filterChanges(
           changesResponse.getChanges(), changesResponse.getConditionalChanges(), migrator);
       if (changes.isEmpty()) {
+        migrator.finishedMigrate(
+            ImmutableList.of(
+                new DestinationEffect(
+                    Type.NOOP,
+                    String.format("Cannot migrate revisions [%s]: %s",
+                        changesResponse.getChanges().isEmpty()
+                            ? "Unknown"
+                            : Joiner.on(", ").join(changesResponse.getChanges().stream()
+                                .map(c -> c.getRevision().asString())
+                                .iterator()), "didn't affect any destination file"),
+                    changesResponse.getChanges(),
+                    /*destinationRef=*/ null)));
         throw new EmptyChangeException(
             format("Change '%s' doesn't include any change for origin_files = %s",
                 runHelper.getResolvedRef(), runHelper.getOriginFiles()));

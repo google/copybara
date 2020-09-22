@@ -451,6 +451,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return effects;
     }
 
+    /**
+     *  Finish a migrate by noticing event monitor with the outcome effects
+     * @param effects The destination effect of the migration
+     */
+    final void finishedMigrate(ImmutableList<DestinationEffect> effects) {
+      workflow.eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+      migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects));
+    }
+
     private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
         throws RepoException, ValidationException {
         if (!workflow.getWorkflowOptions().diffInOrigin

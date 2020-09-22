@@ -1922,13 +1922,19 @@ public class WorkflowTest {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     options.setOutputRootToTmpDir();
-    String config = "core.workflow("
+    String config =
+        "def after_all(ctx):\n"
+        + "  ctx.destination.message('after_all '"
+        + " + str([e.type + ' '+ e.summary for e in ctx.effects]))\n"
+        + "\n"
+        + "core.workflow("
         + "    name = 'default',"
         + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ","
         + "    origin_files = glob(['included/**']),"
         + "    mode = '" + WorkflowMode.CHANGE_REQUEST + "',"
+        + "    after_workflow = [after_all]"
         + ")\n";
 
     Migration workflow = loadConfig(config).getMigration("default");
@@ -1952,6 +1958,9 @@ public class WorkflowTest {
         .hasMessageThat()
         .contains(
             "doesn't include any change for origin_files = glob(include = [\"included/**\"])");
+    assertThat(destination.getEndpoint().messages).hasSize(1);
+    assertThat(destination.getEndpoint().messages.get(0))
+        .containsMatch(".*didn't affect any destination file.*");
   }
 
   @Test
