@@ -127,7 +127,7 @@ public class BuildifierFormat implements Transformation {
 
     try {
       Command cmd = new Command(argv, /*environmentVariables*/ null, checkoutDir.toFile());
-      CommandOutputWithStatus output = new CommandRunner(cmd)
+      CommandOutputWithStatus output = generalOptions.newCommandRunner(cmd)
           .withVerbose(generalOptions.isVerbose())
           .execute();
       if (!output.getStdout().isEmpty()) {

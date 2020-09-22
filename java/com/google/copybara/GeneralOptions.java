@@ -19,8 +19,6 @@ package com.google.copybara;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
@@ -37,10 +35,15 @@ import com.google.copybara.monitor.ConsoleEventMonitor;
 import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.shell.Command;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
+
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -48,6 +51,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.Callable;
+
 import javax.annotation.Nullable;
 
 /**
@@ -278,6 +282,16 @@ public final class GeneralOptions implements Option {
       description = "Fetch timeout",
       converter = DurationConverter.class)
   public Duration fetchTimeout = CommandRunner.DEFAULT_TIMEOUT;
+
+  @Parameter(
+      names = {"--commands-timeout"},
+      description = "Commands timeout",
+      converter = DurationConverter.class)
+  public Duration commandsTimeout = CommandRunner.DEFAULT_TIMEOUT;
+
+  public CommandRunner newCommandRunner(Command cmd) {
+    return new CommandRunner(cmd, commandsTimeout);
+  }
 
   // We don't use JCommander for parsing this flag but we do it manually since
   // the parsing could fail and we need to report errors using one console

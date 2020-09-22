@@ -558,6 +558,7 @@ main_config_path | Location of the config file. This is subject to change
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--commands-timeout`</span> | *duration* | Commands timeout
 <span style="white-space: nowrap;">`--config-root`</span> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
 <span style="white-space: nowrap;">`--console-file-path`</span> | *string* | If set, write the console output also to the given file path.

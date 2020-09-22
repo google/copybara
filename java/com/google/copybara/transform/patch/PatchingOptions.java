@@ -250,7 +250,7 @@ public class PatchingOptions implements Option {
     Command cmd =
         new Command(params.build().toArray(new String[0]), environment, rootDir.toFile());
     try {
-      CommandOutputWithStatus output = new CommandRunner(cmd)
+      CommandOutputWithStatus output = generalOptions.newCommandRunner(cmd)
           .withVerbose(verbose)
           .withInput(diffContents)
           .execute();

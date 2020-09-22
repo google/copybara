@@ -113,7 +113,7 @@ public final class BuildozerOptions implements Option {
       Command cmd =
           new Command(
               args.toArray(new String[0]), /*environmentVariables*/ null, checkoutDir.toFile());
-      CommandOutputWithStatus output = new CommandRunner(cmd)
+      CommandOutputWithStatus output = generalOptions.newCommandRunner(cmd)
           .withVerbose(generalOptions.isVerbose())
           .withInput(Joiner.on('\n').join(commands).getBytes(UTF_8))
           .execute();

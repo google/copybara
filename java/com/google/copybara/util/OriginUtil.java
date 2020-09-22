@@ -52,7 +52,7 @@ public class OriginUtil {
         Command cmd =
             new Command(
                 new String[] {checkoutHook}, generalOptions.getEnvironment(), checkoutDir.toFile());
-        CommandOutputWithStatus result = new CommandRunner(cmd)
+        CommandOutputWithStatus result = generalOptions.newCommandRunner(cmd)
             .withVerbose(generalOptions.isVerbose())
             .execute();
         logLines(generalOptions.console(), getPrefix("Stdout"), result.getStdout());
