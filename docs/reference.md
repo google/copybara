@@ -1271,9 +1271,9 @@ This can be added to the transformations of your core.workflow:
 
 ```python
 def _copy_destination_file(ctx):
-    content = ctx.destination_reader().copy_destination_files(path = 'path/to/**')
+   content = ctx.destination_reader().copy_destination_files(glob(include = ['path/to/**']))
 
-    transforms = [core.dynamic_transform(_copy_destination_file)]
+transforms = [core.dynamic_transform(_copy_destination_file)]
 
 ```
 

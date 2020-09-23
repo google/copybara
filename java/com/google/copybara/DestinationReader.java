@@ -98,9 +98,9 @@ public abstract class DestinationReader implements StarlarkValue {
       before = "This can be added to the transformations of your core.workflow:",
       code =
           "def _copy_destination_file(ctx):\n"
-              + "    content = ctx.destination_reader().copy_destination_files(path = 'path/to/**')"
-              + "\n\n"
-              + "    transforms = [core.dynamic_transform(_copy_destination_file)]\n",
+         + "   content = ctx.destination_reader().copy_destination_files(glob(include = ['path/to/**']))"
+         + "\n\n"
+         + "transforms = [core.dynamic_transform(_copy_destination_file)]\n",
       after =
           "Would copy all files in path/to/ from the destination baseline to the copybara workdir."
               + " The files do not have to be covered by origin_files nor destination_files, but "
