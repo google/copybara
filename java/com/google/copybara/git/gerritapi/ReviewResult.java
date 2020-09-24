@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
-import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
 
 /** https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-result */
@@ -32,27 +32,33 @@ import net.starlark.java.eval.StarlarkValue;
     name = "gerritapi.ReviewResult",
     doc = "Gerrit review result.")
 public class ReviewResult implements StarlarkValue {
+  // These private fields are assigned by reflection magic during JSON decoding.
   @Key private Map<String, Integer> labels;
   @Key private boolean ready;
 
+  // constructor for tests
   public ReviewResult(Map<String, Integer> labels, boolean ready) {
     this.labels = labels;
     this.ready = ready;
   }
 
-  public ReviewResult() {
-  }
+  // constructor for JSON decoder reflection magic
+  public ReviewResult() {}
 
   @StarlarkMethod(
       name = "labels",
       doc = "Map of labels to values after the review was posted.",
-      structField = true,
-      allowReturnNones = true)
-  public Dict<String, Integer> getLabelsForSkylark() {
-    return Dict.copyOf(/*environment*/ null, getLabels());
+      structField = true)
+  public Map<String, StarlarkInt> getLabelsForStarlark() {
+    // Convert Integer (Gson-friendly) to StarlarkInt.
+    ImmutableMap.Builder<String, StarlarkInt> m = ImmutableMap.builder();
+    for (Map.Entry<String, Integer> e : getLabels().entrySet()) {
+      m.put(e.getKey(), StarlarkInt.of(e.getValue()));
+    }
+    return m.build(); // becomes a Starlark dict
   }
 
-  public ImmutableMap<String, Integer> getLabels() {
+  public Map<String, Integer> getLabels() {
     return labels == null ? ImmutableMap.of() : ImmutableMap.copyOf(labels);
   }
 

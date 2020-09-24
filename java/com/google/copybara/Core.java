@@ -70,6 +70,7 @@ import net.starlark.java.eval.Module;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkCallable;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
@@ -1602,8 +1603,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       })
   public String format(String format, net.starlark.java.eval.Sequence<?> args)
       throws EvalException {
+    // This function presumably exists because Starlark-in-Java's 'str % tuple'
+    // operator doesn't support width and precision.
+
+    // Convert StarlarkInt to types known to Java's String.format.
+    Object[] array = args.toArray(new Object[0]);
+    for (int i = 0; i < array.length; i++) {
+      if (array[i] instanceof StarlarkInt) {
+        array[i] = ((StarlarkInt) array[i]).toNumber();
+      }
+    }
+
     try {
-      return String.format(format, args.toArray(new Object[0]));
+      return String.format(format, array);
     } catch (IllegalFormatException e) {
       throw Starlark.errorf("Invalid format: %s: %s", format, e.getMessage());
     }
