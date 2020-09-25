@@ -355,7 +355,7 @@ public enum WorkflowMode {
         WorkflowRunHelper<O, D> runHelper, Optional<Baseline<O>> baseline)
         throws ValidationException, RepoException, IOException {
     checkCondition(baseline.isPresent(),
-        "Cannot find matching parent commit in in the destination. Use '%s' flag to force a"
+        "Cannot find matching parent commit in the destination. Use '%s' flag to force a"
             + " parent commit to use as baseline in the destination.",
         CHANGE_REQUEST_PARENT_FLAG);
     logger.atInfo().log("Found baseline %s", baseline.get().getBaseline());
