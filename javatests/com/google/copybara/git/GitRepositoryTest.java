@@ -76,6 +76,7 @@ public class GitRepositoryTest {
   private GitRepository repository;
   private Path workdir;
   private Path gitDir;
+  private String defaultBranch;
 
   @Before
   public void setup() throws Exception {
@@ -86,6 +87,8 @@ public class GitRepositoryTest {
         .newBareRepo(gitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(workdir);
     repository.init();
+    defaultBranch = repository.simpleCommand("symbolic-ref", "--short", "HEAD")
+        .getStdout().trim();
   }
 
   @Test
@@ -102,7 +105,7 @@ public class GitRepositoryTest {
     repo.simpleCommand("branch", "bar");
     ImmutableMap<String, GitRevision> after = repo.showRef();
 
-    assertThat(after.keySet()).containsExactly("refs/heads/master", "refs/heads/bar");
+    assertThat(after.keySet()).containsExactly("refs/heads/" + defaultBranch, "refs/heads/bar");
 
     // All the refs point to the same commit.
     assertThat(ImmutableSet.of(after.values())).hasSize(1);
@@ -290,19 +293,19 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "branch change");
-    repository.forceCheckout("master");
+    repository.forceCheckout(defaultBranch);
     Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "second");
     repository.simpleCommand("merge", "foo");
 
     ImmutableList<GitLogEntry> log =
-        repository.log("master").includeFiles(true).firstParent(true).includeMergeDiff(true)
+        repository.log(defaultBranch).includeFiles(true).firstParent(true).includeMergeDiff(true)
         .run();
     assertThat(log.get(0).getBody()).contains("Merge");
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
 
-    log = repository.log("master").includeFiles(true).includeMergeDiff(true).run();
+    log = repository.log(defaultBranch).includeFiles(true).includeMergeDiff(true).run();
 
     assertThat(log.get(0).getBody()).contains("Merge");
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
@@ -330,7 +333,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("baz.txt"), "baz baz baz".getBytes(UTF_8));
     repository.add().all().run();
     repository.commit("Bar <bar@bara.com>", date2, "message\n\nand\nparagraph");
-    ImmutableList<GitLogEntry> entries = repository.log("master")
+    ImmutableList<GitLogEntry> entries = repository.log(defaultBranch)
         .includeBody(body)
         .includeFiles(includeFiles)
         .run();
@@ -367,7 +370,7 @@ public class GitRepositoryTest {
   public void testMultipleEntriesForMergeDiff() throws Exception {
     createGraphOfCommits();
 
-    ImmutableList<GitLogEntry> result = repository.log("master")
+    ImmutableList<GitLogEntry> result = repository.log(defaultBranch)
         .includeFiles(true)
         .includeMergeDiff(true)
         .firstParent(false)
@@ -387,7 +390,7 @@ public class GitRepositoryTest {
     repository.commit("Foo <bar@bara.com>", /*amend=*/true,
         ZonedDateTime.now(ZoneId.of("-07:00")).truncatedTo(ChronoUnit.SECONDS), "Merge");
 
-    result = repository.log("master")
+    result = repository.log(defaultBranch)
         .includeFiles(true)
         .includeMergeDiff(true)
         .firstParent(false)
@@ -403,13 +406,13 @@ public class GitRepositoryTest {
   @Test
   public void testPagination() throws Exception {
     createGraphOfCommits();
-    ImmutableList<GitLogEntry> singlePage = repository.log("master")
+    ImmutableList<GitLogEntry> singlePage = repository.log(defaultBranch)
         .firstParent(false)
         .run();
     List<GitLogEntry> paged = new ArrayList<>();
     int skip = 0;
     for (int i = 0; i < 1000; i++) {
-      ImmutableList<GitLogEntry> page = repository.log("master")
+      ImmutableList<GitLogEntry> page = repository.log(defaultBranch)
           .firstParent(false)
           .withLimit(3)
           .withSkip(skip)
@@ -422,7 +425,7 @@ public class GitRepositoryTest {
     }
     assertThat(paged.toString()).isEqualTo(singlePage.toString());
 
-    singlePage = repository.log("master")
+    singlePage = repository.log(defaultBranch)
         .includeFiles(true)
         .includeMergeDiff(true)
         .firstParent(false)
@@ -430,7 +433,7 @@ public class GitRepositoryTest {
     paged = new ArrayList<>();
     skip = 0;
     for (int i = 0; i < 1000; i++) {
-      ImmutableList<GitLogEntry> page = repository.log("master")
+      ImmutableList<GitLogEntry> page = repository.log(defaultBranch)
           .includeFiles(true)
           .includeMergeDiff(true)
           .firstParent(false)
@@ -450,7 +453,7 @@ public class GitRepositoryTest {
 
   private void createGraphOfCommits() throws Exception {
     for (int i = 0; i < 10; i++) {
-      singleFileCommit("master_" + i, "foo.txt", "foo_" + i);
+      singleFileCommit("main_" + i, "foo.txt", "foo_" + i);
     }
     repository.simpleCommand("checkout", "-b", "feature1");
     singleFileCommit("feature1_first", "feature1.txt", "feature1_first");
@@ -471,8 +474,8 @@ public class GitRepositoryTest {
     }
     repository.forceCheckout("feature1");
     singleFileCommit("feature1_last", "feature1.txt", "feature1_last");
-    repository.forceCheckout("master");
-    singleFileCommit("master_last", "foo.txt", "master_last");
+    repository.forceCheckout(defaultBranch);
+    singleFileCommit("main_last", "foo.txt", "main_last");
     repository.simpleCommand("merge", "feature1", "feature2");
   }
 
@@ -493,7 +496,7 @@ public class GitRepositoryTest {
         .truncatedTo(ChronoUnit.SECONDS);
     repository.commit("= Foo = <bar@bara.com>", date, "adding foo");
 
-    ImmutableList<GitLogEntry> entries = repository.log("master").run();
+    ImmutableList<GitLogEntry> entries = repository.log(defaultBranch).run();
     assertThat(entries.get(0).getAuthor()).isEqualTo(new Author("= Foo =", "bar@bara.com"));
   }
 
@@ -517,7 +520,7 @@ public class GitRepositoryTest {
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
     assertThat(result.getInserted().keySet()).containsExactly(
-        "refs/heads/master",
+        "refs/heads/" + defaultBranch,
         "refs/heads/deleted",
         "refs/heads/unchanged");
 
@@ -529,7 +532,7 @@ public class GitRepositoryTest {
         ImmutableList.of("refs/*:refs/*"), false);
 
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
-    assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/master");
+    assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/" + defaultBranch);
     assertThat(result.getInserted()).isEmpty();
   }
 
@@ -584,7 +587,7 @@ public class GitRepositoryTest {
 
     local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
         ImmutableList.of("refs/*:refs/*"), false);
-    local.withWorkTree(localWorkdir).forceCheckout("master", ImmutableSet.of("a"));
+    local.withWorkTree(localWorkdir).forceCheckout(defaultBranch, ImmutableSet.of("a"));
 
     assertThat(Files.exists(localWorkdir.resolve("a/foo.txt"))).isTrue();
     assertThat(Files.exists(localWorkdir.resolve("b/bar.txt"))).isFalse();
@@ -740,7 +743,7 @@ public class GitRepositoryTest {
     assertThat(refsToShas.size()).isEqualTo(3);
     String headSha = refsToShas.get("HEAD");
     assertThat(refsToShas.get("refs/heads/b1")).isEqualTo(headSha);
-    assertThat(refsToShas.get("refs/heads/master")).isEqualTo(headSha);
+    assertThat(refsToShas.get("refs/heads/" + defaultBranch)).isEqualTo(headSha);
 
     repository.simpleCommand("checkout", "b1");
     Files.write(workdir.resolve("boo.txt"), new byte[]{});
@@ -784,7 +787,7 @@ public class GitRepositoryTest {
     String description = descBuilder.toString();
     repository.commit("Foo <foo@bara.com>", date, description);
 
-    ImmutableList<GitLogEntry> entries = repository.log("master")
+    ImmutableList<GitLogEntry> entries = repository.log(defaultBranch)
         .includeBody(true)
         .includeFiles(false)
         .run();
@@ -806,10 +809,11 @@ public class GitRepositoryTest {
 
     // Push the first version. Need to force because destination is empty
     repository.push()
-        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+master:master")))
+        .withRefspecs(remoteUrl, ImmutableList.of(repository
+            .createRefSpec("+" + defaultBranch + ":" + defaultBranch)))
         .run();
 
-    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
         .containsExactly("message\n");
 
     Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
@@ -818,10 +822,11 @@ public class GitRepositoryTest {
 
     // Try a simple push that is fast-forward
     repository.push()
-        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
+        .withRefspecs(remoteUrl, ImmutableList.of(
+            repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
         .run();
 
-    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
         .containsExactly("message2\n", "message\n");
 
     repository.simpleCommand("reset", "--hard", "HEAD~1");
@@ -838,16 +843,18 @@ public class GitRepositoryTest {
                 repository
                     .push()
                     .withRefspecs(
-                        remoteUrl, ImmutableList.of(repository.createRefSpec("master:master")))
+                        remoteUrl, ImmutableList.of(
+                            repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
                     .run());
     assertThat(e).hasMessageThat().contains("[rejected]");
 
     // Now it works because we force the push
     repository.push()
-        .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+master:master")))
+        .withRefspecs(remoteUrl, ImmutableList.of(
+            repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)))
         .run();
 
-    assertThat(Iterables.transform(remote.log("master").run(), GitLogEntry::getBody))
+    assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
         .containsExactly("message3\n", "message\n");
   }
 
@@ -867,7 +874,7 @@ public class GitRepositoryTest {
         .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("+*:*")))
         .run();
 
-    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists(defaultBranch)).isTrue();
     assertThat(remote.refExists("other")).isTrue();
 
     repository.simpleCommand("branch", "-d", "other");
@@ -876,14 +883,14 @@ public class GitRepositoryTest {
         .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("*:*")))
         .run();
 
-    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists(defaultBranch)).isTrue();
     assertThat(remote.refExists("other")).isTrue();
 
     repository.push().prune(true)
         .withRefspecs(remoteUrl, ImmutableList.of(repository.createRefSpec("*:*")))
         .run();
 
-    assertThat(remote.refExists("master")).isTrue();
+    assertThat(remote.refExists(defaultBranch)).isTrue();
     assertThat(remote.refExists("other")).isFalse();
   }
 
@@ -921,7 +928,7 @@ public class GitRepositoryTest {
     new PushCmd(
         origin,
         "file://" + remote.getGitDir(),
-        ImmutableList.of(repository.createRefSpec("+master:master")),
+        ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
         false).run();
   }
 
@@ -961,7 +968,7 @@ public class GitRepositoryTest {
   public void testReadFile() throws Exception {
     Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
     singleFileCommit("test", "foo.txt", "Hello");
-    assertThat(repository.readFile("refs/heads/master", "foo.txt")).isEqualTo("Hello");
+    assertThat(repository.readFile("refs/heads/" + defaultBranch, "foo.txt")).isEqualTo("Hello");
   }
 
   @Test

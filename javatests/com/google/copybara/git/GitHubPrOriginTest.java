@@ -67,6 +67,8 @@ import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
 import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -86,6 +88,7 @@ public class GitHubPrOriginTest {
   private OptionsBuilder options;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
+  private static String sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
@@ -251,6 +254,55 @@ public class GitHubPrOriginTest {
   }
 
   @Test
+  public void gitResolveRequiredStatusContextNamesNotFound() throws Exception {
+    mockPullRequestAndIssue("open", 125, "bar: yes");
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_status_context_names = ['foo/one', 'foo/two']"),
+                    "125",
+                    125));
+
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Cannot migrate http://github.com/google/example/pull/125 because the following "
+                + "ci labels have not been passed: [foo/two]");
+  }
+
+  @Test
+  public void gitResolveRequiredStatusContextNamesNotFound_forceMigrate() throws Exception {
+    options.githubPrOrigin.forceImport = true;
+    mockPullRequestAndIssue("open", 125, "bar: yes");
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_status_context_names = ['foo/one', 'foo/two']"),
+        sha,
+        125);
+  }
+
+  @Test
+  public void gitResolveRequiredStatusContextNamesFound() throws Exception {
+    mockPullRequestAndIssue("open", 125, "bar: yes");
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
+
+    checkResolve(
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'",
+            "required_status_context_names = ['foo/one', 'foo/two']"),
+        sha,
+        125);
+  }
+
+  @Test
   public void testGitResolveRequiredLabelsNotFound_forceMigrate() throws Exception {
     options.githubPrOrigin.forceImport = true;
     mockPullRequestAndIssue("open", 125, "bar: yes");
@@ -264,10 +316,10 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testLimitByBranch() throws Exception {
-    // This should work since it returns a PR for master.
+    // This should work since it returns a PR for main.
     mockPullRequestAndIssue("open", 125, "bar: yes");
     checkResolve(
-        githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'master'"),
+        githubPrOrigin("url = 'https://github.com/google/example'", "branch = 'main'"),
         "125",
         125);
 
@@ -283,13 +335,13 @@ public class GitHubPrOriginTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "because its base branch is 'master', but the workflow is configured to only migrate"
+            "because its base branch is 'main', but the workflow is configured to only migrate"
                 + " changes for branch 'other'");
   }
 
   @Test
   public void testGitResolveRequiredLabelsRetried() throws Exception {
-    mockPullRequest(125, "open", "master");
+    mockPullRequest(125, "open", "main");
 
     mockIssue(
         125,
@@ -396,10 +448,10 @@ public class GitHubPrOriginTest {
             ValidationException.class,
             () ->
                 checkResolve(
-                    githubPrOrigin("url = 'https://github.com/google/example'"), "master", 125));
+                    githubPrOrigin("url = 'https://github.com/google/example'"), "main", 125));
     assertThat(thrown)
         .hasMessageThat()
-        .contains("'master' is not a valid reference for a GitHub Pull Request");
+        .contains("'main' is not a valid reference for a GitHub Pull Request");
   }
 
   @Test
@@ -415,9 +467,9 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // master = base commit.
+    withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // main = base commit.
 
-    addFiles(remote, "master change", ImmutableMap.<String, String>builder()
+    addFiles(remote, "main change", ImmutableMap.<String, String>builder()
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
@@ -460,9 +512,9 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // master = base commit.
+    withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // main = base commit.
 
-    String baselineMerge = addFiles(remote, "master change", ImmutableMap.<String, String>builder()
+    String baselineMerge = addFiles(remote, "main change", ImmutableMap.<String, String>builder()
         .put("other.txt", "").build());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
@@ -473,7 +525,7 @@ public class GitHubPrOriginTest {
         "baseline_from_branch = True");
 
     GitRevision headPrRevision = origin.resolve("123");
-    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "master");
+    assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "main");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH_SHA1, baseline1);
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
     assertThat(headPrRevision.associatedLabels()).containsEntry(GITHUB_PR_TITLE, "test summary");
@@ -518,7 +570,7 @@ public class GitHubPrOriginTest {
 
     GitRevision mergePrRevision = origin.resolve("123");
 
-    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "master");
+    assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_BASE_BRANCH, "main");
     assertThat(mergePrRevision.associatedLabels())
         .containsEntry(GITHUB_BASE_BRANCH_SHA1, baselineMerge);
     assertThat(mergePrRevision.associatedLabels()).containsEntry(GITHUB_PR_NUMBER_LABEL, "123");
@@ -598,6 +650,7 @@ public class GitHubPrOriginTest {
                 + "    name = 'default',\n"
                 + "    origin = git.github_pr_origin(\n"
                 + "        url = 'https://github.com/google/example',\n"
+                + "        branch = 'main',\n"
                 + "    ),\n"
                 + "    authoring = authoring.pass_thru('foo <foo@foo.com>'),\n"
                 + "    destination = git.destination(\n"
@@ -694,6 +747,17 @@ public class GitHubPrOriginTest {
             "origin", "origin = git.github_pr_origin(url = 'http://github.com/google/example')\n");
     assertThat(val.describe(Glob.ALL_FILES).get("url"))
         .contains("https://github.com/google/example");
+  }
+
+  @Test
+  public void requiredStatusContextNames() throws Exception {
+    assertThat(createGitHubPrOrigin(
+                      "required_status_context_names = ['foo', 'bar']"
+    ).describe(Glob.ALL_FILES)).containsExactly(
+        "type", "git.github_pr_origin",
+        "url", "https://github.com/google/example",
+        "required_status_context_names", "foo",
+        "required_status_context_names", "bar");
   }
 
   @Test
@@ -812,8 +876,10 @@ public class GitHubPrOriginTest {
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("primary"));
 
 
-    GitHubPROrigin origin = githubPrOrigin(
+    GitHubPROrigin origin =
+        githubPrOrigin(
         "url = 'https://github.com/google/example'",
+            "branch = 'primary'",
         "use_merge = True");
 
     mockPullRequestAndIssue("open", "primary", 123);
@@ -859,7 +925,7 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    mockPullRequestAndIssue("open", 123, "master");
+    mockPullRequestAndIssue("open", 123, "main");
 
     // Now try with merge ref
     GitHubPROrigin origin = githubPrOrigin(
@@ -899,7 +965,9 @@ public class GitHubPrOriginTest {
   private String addFiles(GitRepository remote, String msg, Map<String, String> files)
       throws IOException, RepoException {
     GitRepository tmpRepo = withTmpWorktree(remote);
-
+    if (!tmpRepo.refExists("main")) {
+      tmpRepo.simpleCommand("checkout", "-b", "main");
+    }
     for (Entry<String, String> entry : files.entrySet()) {
       Path file = tmpRepo.getWorkTree().resolve(entry.getKey());
       Files.createDirectories(file.getParent());
@@ -922,7 +990,7 @@ public class GitHubPrOriginTest {
 
   public void mockPullRequestAndIssue(String state, int prNumber, String... labels)
       throws IOException {
-    mockPullRequestAndIssue(state, "master", prNumber, labels);
+    mockPullRequestAndIssue(state, "main", prNumber, labels);
   }
 
   public void mockPullRequestAndIssue(
@@ -956,6 +1024,7 @@ public class GitHubPrOriginTest {
             + "\",\n"
             + "  \"head\": {\n"
             + "    \"label\": \"googletestuser:example-branch\",\n"
+            + "    \"sha\": \"" + sha + "\",\n"
             + "    \"ref\": \"example-branch\"\n"
             + "   },\n"
             + "  \"base\": {\n"
@@ -978,6 +1047,28 @@ public class GitHubPrOriginTest {
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/" + prNumber),
         mockResponse(content));
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/example/commits/" + sha + "/pulls?per_page=100"),
+        mockResponse("[" + content + "]"));
+  }
+
+  private void mockGetCombinedStatus(String sha, ImmutableMap<String, String> contextToStatus) {
+    JsonObject response = new JsonObject();
+    JsonArray statuses = new JsonArray();
+    for (Map.Entry<String, String> entry : contextToStatus.entrySet()) {
+      JsonObject status = new JsonObject();
+      status.addProperty("state", entry.getValue());
+      status.addProperty("context", entry.getKey());
+      status.addProperty("description", entry.getKey() + " is " + entry.getValue());
+      statuses.add(status);
+    }
+    response.add("statuses", statuses);
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/google/example/commits/" + sha + "/status",
+        mockResponse(response.toString()));
   }
 
   private void mockIssue(int number, LowLevelHttpRequest first, LowLevelHttpRequest... rest)

@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asGithubUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
@@ -50,11 +51,14 @@ import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Review;
+import com.google.copybara.git.github.api.Status;
+import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.User;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
@@ -65,6 +69,7 @@ import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -104,6 +109,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final GitOriginOptions gitOriginOptions;
   private final GitHubOptions gitHubOptions;
   private final Set<String> requiredLabelsField;
+  private final Set<String> requiredStatusContextNames;
   private final Set<String> retryableLabelsField;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
@@ -121,8 +127,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
   GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
       GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
-      GitHubPrOriginOptions gitHubPrOriginOptions,
-      Set<String> requiredLabels, Set<String> retryableLabels, SubmoduleStrategy submoduleStrategy,
+      GitHubPrOriginOptions gitHubPrOriginOptions, Set<String> requiredLabels,
+      Set<String> requiredStatusContextNames, Set<String> retryableLabels,
+      SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch, Boolean firstParent, Boolean partialClone,
       StateFilter requiredState,
       @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
@@ -138,6 +145,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.gitHubOptions = gitHubOptions;
     this.gitHubPrOriginOptions = Preconditions.checkNotNull(gitHubPrOriginOptions);
     this.requiredLabelsField = checkNotNull(requiredLabels);
+    this.requiredStatusContextNames = checkNotNull(requiredStatusContextNames);
     this.retryableLabelsField = checkNotNull(retryableLabels);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
     console = generalOptions.console();
@@ -160,27 +168,35 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         + " Invoke copybara as:\n"
         + "    copybara copy.bara.sky workflow_name 12345");
     console.progress("GitHub PR Origin: Resolving reference " + reference);
+    String configProjectName = getProjectNameFromUrl(url);
+
+    // Only when requiredStatusContextNames is enabled, the reference can potentially be a sha1.
+    if (!requiredStatusContextNames.isEmpty()
+        && GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+      PullRequest pr = getPrToMigrate(configProjectName, reference);
+      return getRevisionForPR(configProjectName, pr);
+    }
 
     // A whole https pull request url
     Optional<GitHubPrUrl> githubPrUrl = GitHubUtil.maybeParseGithubPrUrl(reference);
-    String configProjectName = getProjectNameFromUrl(url);
     if (githubPrUrl.isPresent()) {
       checkCondition(
           githubPrUrl.get().getProject().equals(configProjectName),
           "Project name should be '%s' but it is '%s' instead", configProjectName,
               githubPrUrl.get().getProject());
-
-      return getRevisionForPR(configProjectName, githubPrUrl.get().getPrNumber());
+      return getRevisionForPR(configProjectName,
+          getPr(configProjectName, githubPrUrl.get().getPrNumber()));
     }
     // A Pull request number
     if (CharMatcher.digit().matchesAllOf(reference)) {
-      return getRevisionForPR(getProjectNameFromUrl(url), Integer.parseInt(reference));
+      return getRevisionForPR(getProjectNameFromUrl(url),
+          getPr(configProjectName, Integer.parseInt(reference)));
     }
 
     // refs/pull/12345/head
     Optional<Integer> prNumber = GitHubUtil.maybeParseGithubPrFromHeadRef(reference);
     if (prNumber.isPresent()) {
-      return getRevisionForPR(configProjectName, prNumber.get());
+      return getRevisionForPR(configProjectName, getPr(configProjectName, prNumber.get()));
     }
     String sha1Part = Splitter.on(" ").split(reference).iterator().next();
     Matcher matcher = GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha1Part);
@@ -206,11 +222,38 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         checkNotNull(revisionTo, "revisionTo should not be null").getSha1());
   }
 
-  private GitRevision getRevisionForPR(String project, int prNumber)
+  private PullRequest getPrToMigrate(String project, String sha)
+      throws RepoException, ValidationException {
+    ImmutableList<PullRequest> pullRequests =
+        gitHubOptions.newGitHubApi(project).listPullRequestsAssociatedWithACommit(project, sha);
+    // Only migrate a pr with not-closed state and head being equal to sha
+    ImmutableList<PullRequest> prs =
+        pullRequests.stream()
+            .filter(e -> !e.getState().equals("closed") && e.getHead().getSha().equals(sha))
+            .collect(toImmutableList());
+    if (prs.isEmpty()) {
+      throw new RepoException(
+          String.format("Could not find a pr with not-closed state and head being equal to sha %s",
+              sha));
+    }
+    // Usually, it will return one pr. But there might be an extreme case with multiple prs
+    // available. We temporarily handle one pr now.
+    return prs.get(0);
+  }
+
+  private PullRequest getPr(String project, long prNumber)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
+      return gitHubOptions.newGitHubApi(project).getPullRequest(project, prNumber);
+    }
+  }
+
+  private GitRevision getRevisionForPR(String project, PullRequest prData)
       throws RepoException, ValidationException {
     GitHubApi api = gitHubOptions.newGitHubApi(project);
     Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
     Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
+    int prNumber = (int)prData.getNumber();
 
     if (!gitHubPrOriginOptions.forceImport && !requiredLabels.isEmpty()) {
       int retryCount = 0;
@@ -243,9 +286,25 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
 
-    PullRequest prData;
-    try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      prData = api.getPullRequest(project, prNumber);
+    // check if status context names are ready if applicable
+    if (!gitHubPrOriginOptions.forceImport && !requiredStatusContextNames.isEmpty()) {
+      try (ProfilerTask ignore = generalOptions.profiler()
+          .start("github_api_get_combined_status")) {
+        CombinedStatus combinedStatus = api.getCombinedStatus(project, prData.getHead().getSha());
+        Set<String> requiredButNotPresent = Sets.newHashSet(requiredStatusContextNames);
+        List<Status> successStatuses = combinedStatus.getStatuses().stream()
+            .filter(e -> e.getState() == State.SUCCESS).collect(Collectors.toList());
+        requiredButNotPresent.removeAll(Collections2.transform(successStatuses,
+            Status::getContext));
+        if (!requiredButNotPresent.isEmpty()) {
+          throw new EmptyChangeException(String.format(
+              "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
+                  + "have not been passed: %s",
+              project,
+              prNumber,
+              requiredButNotPresent));
+        }
+      }
     }
 
     if (!gitHubPrOriginOptions.forceImport
@@ -328,9 +387,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         headPrSha1)
         .toString();
 
-    labels.putAll(GITHUB_PR_REQUESTED_REVIEWER, prData.getRequestedReviewers().stream()
-        .map(User::getLogin)
-        .collect(ImmutableList.toImmutableList()));
+    labels.putAll(
+        GITHUB_PR_REQUESTED_REVIEWER,
+        prData.getRequestedReviewers().stream().map(User::getLogin).collect(toImmutableList()));
     labels.put(GITHUB_PR_NUMBER_LABEL, Integer.toString(prNumber));
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
@@ -487,8 +546,11 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     }
     if (reviewState != null) {
       builder.put("review_state", reviewState.name());
-      builder.putAll("review_approvers",
-          reviewApprovers.stream().map(Enum::name).collect(ImmutableList.toImmutableList()));
+      builder.putAll(
+          "review_approvers", reviewApprovers.stream().map(Enum::name).collect(toImmutableList()));
+    }
+    if (!requiredStatusContextNames.isEmpty()) {
+        builder.putAll("required_status_context_names", requiredStatusContextNames);
     }
     return builder.build();
   }
@@ -546,10 +608,11 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
     boolean shouldMigrate(ImmutableList<Review> reviews,
         ImmutableSet<AuthorAssociation> approvers, String sha) {
-      return shouldMigrate(reviews.stream()
+      return shouldMigrate(
+          reviews.stream()
               // Only take into acccount reviews by valid approverTypes
               .filter(e -> approvers.contains(e.getAuthorAssociation()))
-              .collect(ImmutableList.toImmutableList()),
+              .collect(toImmutableList()),
           sha);
     }
 

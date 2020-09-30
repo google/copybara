@@ -62,7 +62,8 @@ public class GitHubApi {
         projectId, MAX_PER_PAGE, params.toParams()),
         "github_api_list_pulls",
         new TypeToken<PaginatedList<PullRequest>>() {
-        }.getType(), "Project");
+        }.getType(), "Project",
+        ImmutableListMultimap.of());
   }
 
   public static class PullRequestListParams {
@@ -181,7 +182,8 @@ public class GitHubApi {
         String.format("repos/%s/pulls/%d/comments?per_page=%d", projectId, prNumber, MAX_PER_PAGE),
         "github_api_get_reviews",
         new TypeToken<PaginatedList<PullRequestComment>>() {}.getType(),
-        "Pull Request Comments");
+        "Pull Request Comments",
+        ImmutableListMultimap.of());
   }
 
   /**
@@ -196,17 +198,19 @@ public class GitHubApi {
         projectId, number, MAX_PER_PAGE),
         "github_api_get_reviews",
         new TypeToken<PaginatedList<Review>>() {
-        }.getType(), "Pull Request or project");
+        }.getType(),
+        "Pull Request or project",
+        ImmutableListMultimap.of());
   }
 
   private <T> ImmutableList<T> paginatedGet(String path, String profilerName, Type type,
-      String entity)
+      String entity, ImmutableListMultimap<String, String> headers)
       throws RepoException, ValidationException {
     ImmutableList.Builder<T> builder = ImmutableList.builder();
     int pages = 0;
     while (path != null && pages < MAX_PAGES) {
       try (ProfilerTask ignore = profiler.start(String.format("%s_page_%d", profilerName, pages))) {
-        PaginatedList<T> page = transport.get(path, type);
+        PaginatedList<T> page = transport.get(path, type, headers);
         builder.addAll(page);
         path = page.getNextUrl();
         pages++;
@@ -237,6 +241,22 @@ public class GitHubApi {
       return transport.post(
           String.format("repos/%s/pulls/%s", projectId, number), request, PullRequest.class);
     }
+  }
+
+  /**
+   * https://developer.github.com/v3/repos/commits/#list-pull-requests-associated-with-a-commit
+   * Listing branches or pull requests for a commit in the Commits API is currently available for
+   * developers to preview.
+   */
+  public ImmutableList<PullRequest> listPullRequestsAssociatedWithACommit(String projectId,
+      String sha) throws RepoException, ValidationException {
+    return paginatedGet(String.format("repos/%s/commits/%s/pulls?per_page=%d",
+        projectId, sha, MAX_PER_PAGE),
+        "github_api_list_pull_request for_sha1",
+        new TypeToken<PaginatedList<PullRequest>>() {
+        }.getType(), "Pull Request or project",
+        ImmutableListMultimap.of("Accept",
+            "application/vnd.github.groot-preview+json"));
   }
 
   /**
@@ -364,7 +384,8 @@ public class GitHubApi {
           projectId, MAX_PER_PAGE),
           "github_api_get_references",
           new TypeToken<PaginatedList<Ref>>() {
-          }.getType(), "Project");
+          }.getType(), "Project",
+          ImmutableListMultimap.of());
     }
   }
 

@@ -89,6 +89,7 @@ public class GitOriginTest {
   private String moreOriginArgs;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
+  private String defaultBranch;
 
   @Before
   public void setup() throws Exception {
@@ -115,6 +116,8 @@ public class GitOriginTest {
     origin = origin();
 
     writeFile(remote, "test.txt", "some content");
+    defaultBranch = repo.simpleCommand("symbolic-ref", "--short", "HEAD")
+        .getStdout().trim();
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", COMMIT_TIME);
     firstCommitRef = repo.parseRef("HEAD");
@@ -152,13 +155,13 @@ public class GitOriginTest {
     origin = skylark.eval("result",
         "result = git.origin(\n"
             + "    url = 'https://my-server.org/copybara',\n"
-            + "    ref = 'master',\n"
+            + "    ref = 'main',\n"
             + ")");
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
                 + "repoUrl=https://my-server.org/copybara, "
-                + "ref=master, "
+                + "ref=main, "
                 + "repoType=GIT"
                 + "}");
   }
@@ -210,13 +213,13 @@ public class GitOriginTest {
     origin = skylark.eval("result",
         "result = git.gerrit_origin(\n"
             + "    url = 'https://gerrit-server.org/copybara',\n"
-            + "    ref = 'master',\n"
+            + "    ref = 'main',\n"
             + ")");
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
                 + "repoUrl=https://gerrit-server.org/copybara, "
-                + "ref=master, "
+                + "ref=main, "
                 + "repoType=GERRIT"
                 + "}");
   }
@@ -226,13 +229,13 @@ public class GitOriginTest {
     origin = skylark.eval("result",
         "result = git.github_origin(\n"
             + "    url = 'https://github.com/copybara',\n"
-            + "    ref = 'master',\n"
+            + "    ref = 'main',\n"
             + ")");
     assertThat(origin.toString())
         .isEqualTo(
             "GitOrigin{"
                 + "repoUrl=https://github.com/copybara, "
-                + "ref=master, "
+                + "ref=main, "
                 + "repoType=GITHUB"
                 + "}");
   }
@@ -247,7 +250,7 @@ public class GitOriginTest {
                     "result",
                     "result = git.github_origin(\n"
                         + "    url = 'https://foo.com/copybara',\n"
-                        + "    ref = 'master',\n"
+                        + "    ref = 'main',\n"
                         + ")"));
     console
         .assertThat()
@@ -264,7 +267,7 @@ public class GitOriginTest {
                     "result",
                     "result = git.github_origin(\n"
                         + "    url = 'https://foo.com/github.com',\n"
-                        + "    ref = 'master',\n"
+                        + "    ref = 'main',\n"
                         + ")"));
     console
         .assertThat()
@@ -273,7 +276,7 @@ public class GitOriginTest {
 
   @Test
   public void testResolveWithUrl() throws Exception {
-    assertThat(origin.resolve("master").getUrl()).isEqualTo(url);
+    assertThat(origin.resolve(defaultBranch).getUrl()).isEqualTo(url);
   }
 
   @Test
@@ -281,15 +284,15 @@ public class GitOriginTest {
     git("tag", "-m", "This is a tag", "0.1");
 
     // The default is to describe
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1");
 
     moreOriginArgs = "describe_version = False";
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .isEmpty();
 
     moreOriginArgs = "describe_version = True";
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1");
 
     writeFile(remote, "test.txt", "updated");
@@ -298,21 +301,21 @@ public class GitOriginTest {
 
     GitRevision head = this.origin.resolve("HEAD");
 
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1-1-g" + head.asString().substring(0, 7));
   }
 
   @Test
   public void getGitRevisionHasShaLabel() throws Exception {
-    GitRevision head = repo.resolveReference("master");
+    GitRevision head = repo.resolveReference(defaultBranch);
     assertThat(head.associatedLabels().get("GIT_SHA1")).containsExactly(head.getSha1());
     assertThat(head.associatedLabels().get("GIT_SHORT_SHA1"))
         .containsExactly(head.getSha1().substring(0, 7));
 
     // Same as above but thru git.origin
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_SHA1"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_SHA1"))
         .containsExactly(head.getSha1());
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_SHORT_SHA1"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_SHORT_SHA1"))
         .containsExactly(head.getSha1().substring(0, 7));
   }
 
@@ -321,14 +324,14 @@ public class GitOriginTest {
     git("tag", "-m", "This is a tag", "0.1");
     options.gitOrigin.gitDescribeDefault = false;
     // The default is disabled
-    assertThat(origin().resolve("master").associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .isEmpty();
   }
 
   @Test
   public void testCheckout() throws Exception {
     // Check that we get can checkout a branch
-    newReader().checkout(origin.resolve("master"), checkoutDir);
+    newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -338,7 +341,7 @@ public class GitOriginTest {
     repo.add().files("test.txt").run();
     git("commit", "-m", "second commit");
 
-    newReader().checkout(origin.resolve("master"), checkoutDir);
+    newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
 
@@ -347,7 +350,7 @@ public class GitOriginTest {
     git("rm", "test.txt");
     git("commit", "-m", "third commit");
 
-    newReader().checkout(origin.resolve("master"), checkoutDir);
+    newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
 
     assertThat(Files.exists(testFile)).isFalse();
   }
@@ -364,7 +367,7 @@ public class GitOriginTest {
     skylark.addConfigFile("some/patch.patch", patch);
 
     moreOriginArgs = "patch = patch.apply(['some/patch.patch'])";
-    origin().newReader(originFiles, authoring).checkout(origin.resolve("master"), checkoutDir);
+    origin().newReader(originFiles, authoring).checkout(origin.resolve(defaultBranch), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
@@ -380,7 +383,7 @@ public class GitOriginTest {
     writeFile(remote, "bar.txt", "");
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", "branch change");
-    repo.forceCheckout("master");
+    repo.forceCheckout(defaultBranch);
     writeFile(remote, "foo.txt", "modified");
     Files.delete(remote.resolve("test.txt"));
     repo.add().all().run();
@@ -388,7 +391,7 @@ public class GitOriginTest {
     repo.simpleCommand("merge", "foo");
 
     ImmutableList<Change<GitRevision>> changes = newReader().changes(/*fromRef=*/null,
-        origin.resolve("master")).getChanges();
+        origin.resolve(defaultBranch)).getChanges();
 
     assertThat(changes.get(2).firstLineMessage()).contains("Merge");
     assertThat(changes.get(2).getChangeFiles()).containsExactly("bar.txt");
@@ -402,13 +405,13 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutBranchWithRebase() throws Exception {
-    // As part of the setup, a first commit created test.txt in master
+    // As part of the setup, a first commit created test.txt in main
 
     // Create branch that will be the ref to use
     createBranch("mybranch");
-    // Checkout master and modify file
-    repo.forceCheckout("master");
-    writeFile(remote, "test.txt", "new content in master");
+    // Checkout main and modify file
+    repo.forceCheckout(defaultBranch);
+    writeFile(remote, "test.txt", "new content in main");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and commit other files
@@ -417,18 +420,18 @@ public class GitOriginTest {
     repo.add().files("foo.txt").run();
     git("commit", "-m", "Branch commit");
 
-    options.gitOrigin.originRebaseRef = "master";
+    options.gitOrigin.originRebaseRef = defaultBranch;
     newReader().checkout(origin.resolve("mybranch"), checkoutDir);
 
     assertThatPath(checkoutDir)
-        .containsFile("test.txt", "new content in master") // Rebased contents
+        .containsFile("test.txt", "new content in main") // Rebased contents
         .containsFile("foo.txt", "Foo bar")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testCheckoutBranchWithInvalidRebaseRef() throws Exception {
-    // As part of the setup, a first commit created test.txt in master
+    // As part of the setup, a first commit created test.txt in main
 
     // Create branch that will be the ref to use
     createBranch("mybranch");
@@ -444,13 +447,13 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutBranchWithRebaseConflict() throws Exception {
-    // As part of the setup, a first commit created test.txt in master
+    // As part of the setup, a first commit created test.txt in main
 
     // Create branch that will be the ref to use
     createBranch("mybranch");
-    // Checkout master and modify file
-    repo.forceCheckout("master");
-    writeFile(remote, "test.txt", "new content in master");
+    // Checkout main and modify file
+    repo.forceCheckout(defaultBranch);
+    writeFile(remote, "test.txt", "new content in main");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and make changes to the same file
@@ -459,7 +462,7 @@ public class GitOriginTest {
     repo.add().files("test.txt").run();
     git("commit", "-m", "Branch commit");
 
-    options.gitOrigin.originRebaseRef = "master";
+    options.gitOrigin.originRebaseRef = defaultBranch;
     assertThrows(
         RebaseConflictException.class,
         () -> newReader().checkout(origin.resolve("mybranch"), checkoutDir));
@@ -467,13 +470,13 @@ public class GitOriginTest {
 
   @Test
   public void testCheckoutBranchNoRebase() throws Exception {
-    // As part of the setup, a first commit created test.txt in master
+    // As part of the setup, a first commit created test.txt in main
 
     // Create branch that will be the ref to use
     createBranch("mybranch");
-    // Checkout master and modify file
-    repo.forceCheckout("master");
-    writeFile(remote, "test.txt", "new content in master");
+    // Checkout main and modify file
+    repo.forceCheckout(defaultBranch);
+    writeFile(remote, "test.txt", "new content in main");
     repo.add().files("test.txt").run();
     git("commit", "-m", "Second version of file");
     // Checkout branch and commit other files
@@ -512,22 +515,22 @@ public class GitOriginTest {
 
     options.gitOrigin.originCheckoutHook = hook.toString();
     origin = origin();
-    newReader().checkout(origin.resolve("master"), checkoutDir);
+    newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
     assertThatPath(checkoutDir).containsFile("hook.txt", "");
   }
 
   @Test
   public void testCheckoutWithLocalModifications() throws Exception {
-    GitRevision master = origin.resolve("master");
+    GitRevision main = origin.resolve(defaultBranch);
     Reader<GitRevision> reader = newReader();
-    reader.checkout(master, checkoutDir);
+    reader.checkout(main, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
     assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
 
     Files.delete(testFile);
 
-    reader.checkout(master, checkoutDir);
+    reader.checkout(main, checkoutDir);
 
     // The deletion in the checkoutDir should not matter, since we should override in the next
     // checkout
@@ -714,8 +717,8 @@ public class GitOriginTest {
     // We don't visit 'feature' branch since the visit is using --first-parent
     assertThat(visited).hasSize(4);
     assertThat(visited.get(0).firstLineMessage()).contains("Merge branch 'feature'");
-    assertThat(visited.get(1).firstLineMessage()).isEqualTo("master2");
-    assertThat(visited.get(2).firstLineMessage()).isEqualTo("master1");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("main2");
+    assertThat(visited.get(2).firstLineMessage()).isEqualTo("main1");
     assertThat(visited.get(3).firstLineMessage()).isEqualTo("first file");
 
     ImmutableList<Change<GitRevision>> changes = reader.changes(/*fromRef=*/null, lastCommitRef)
@@ -743,9 +746,9 @@ public class GitOriginTest {
     List<String> visitedMsgList = Lists.transform(visited, Change::firstLineMessage);
     assertThat(visitedMsgList).hasSize(6);
     assertThat(visitedMsgList.get(0)).contains("Merge branch 'feature'");
-    assertThat(visitedMsgList.get(1)).contains("master2");
+    assertThat(visitedMsgList.get(1)).contains("main2");
     assertThat(visitedMsgList.get(2)).contains("change3");
-    assertThat(visitedMsgList.get(3)).contains("master1");
+    assertThat(visitedMsgList.get(3)).contains("main1");
     assertThat(visitedMsgList.get(4)).contains("change2");
     assertThat(visitedMsgList.get(5)).contains("first file");
 
@@ -800,8 +803,8 @@ public class GitOriginTest {
         .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
 
     assertThat(changes).hasSize(3);
-    assertThat(changes.get(0).getMessage()).isEqualTo("master1\n");
-    assertThat(changes.get(1).getMessage()).isEqualTo("master2\n");
+    assertThat(changes.get(0).getMessage()).isEqualTo("main1\n");
+    assertThat(changes.get(1).getMessage()).isEqualTo("main2\n");
     assertThat(changes.get(2).getMessage()).contains("Merge branch 'feature'");
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");
@@ -818,9 +821,9 @@ public class GitOriginTest {
     git("branch", "feature");
     git("checkout", "feature");
     singleFileCommit(author, "change1", "exclude/test2.txt", "some content2");
-    git("checkout", "master");
-    singleFileCommit(author, "master1", "include/test.txt", "some content2");
-    git("merge", "master", "feature");
+    git("checkout", defaultBranch);
+    singleFileCommit(author, "main1", "include/test.txt", "some content2");
+    git("merge", defaultBranch, "feature");
     // Change merge author
     git("commit", "--amend", "--author=" + author, "--no-edit");
     originFiles = Glob.createGlob(ImmutableList.of("include/**"));
@@ -869,7 +872,7 @@ public class GitOriginTest {
 
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "base", "base.txt", "");
-    options.setLastRevision(repo.parseRef("master"));
+    options.setLastRevision(repo.parseRef(defaultBranch));
     // Don't remove or add an include change before this commit. This allow us to test that we
     // traverse parents and not children:
     singleFileCommit(author, "exclude1", "exclude1", "");
@@ -879,19 +882,19 @@ public class GitOriginTest {
     Thread.sleep(1100); // Make sure one_change is shown before in git log.
     git("checkout", "feature1");
     singleFileCommit(author, "feature1", "feature1.txt", "");
-    git("checkout", "master");
-    git("merge", "master", "feature1");
+    git("checkout", defaultBranch);
+    git("merge", defaultBranch, "feature1");
 
-    String feature1Merge = repo.parseRef("master");
+    String feature1Merge = repo.parseRef(defaultBranch);
 
     Thread.sleep(1100); // Make sure one_change is shown before in git log.
     git("checkout", "feature2");
     singleFileCommit(author, "change1", "base.txt", "base");
     singleFileCommit(author, "change2", "base.txt", ""); // Revert
     singleFileCommit(author, "change3", "exclude.txt", "I should be excluded");
-    git("checkout", "master");
-    git("merge", "master", "feature2");
-    String headSha1 = repo.parseRef("master");
+    git("checkout", defaultBranch);
+    git("merge", defaultBranch, "feature2");
+    String headSha1 = repo.parseRef(defaultBranch);
 
     Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
         + "core.workflow(\n"
@@ -906,7 +909,7 @@ public class GitOriginTest {
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + ")\n").getMigration("default");
 
-    wf.run(checkoutDir, ImmutableList.of("master"));
+    wf.run(checkoutDir, ImmutableList.of(defaultBranch));
 
     String expected = importNoopChanges ? headSha1 : feature1Merge;
     String actual = Iterables.getLast(destination.processed).getOriginRef().asString();
@@ -922,10 +925,10 @@ public class GitOriginTest {
     git("checkout", "feature");
     singleFileCommit(author, "change2", "test2.txt", "some content2");
     singleFileCommit(author, "change3", "test2.txt", "some content3");
-    git("checkout", "master");
-    singleFileCommit(author, "master1", "test.txt", "some content2");
-    singleFileCommit(author, "master2", "test.txt", "some content3");
-    git("merge", "master", "feature");
+    git("checkout", defaultBranch);
+    singleFileCommit(author, "main1", "test.txt", "some content2");
+    singleFileCommit(author, "main2", "test.txt", "some content3");
+    git("merge", defaultBranch, "feature");
     // Change merge author
     git("commit", "--amend", "--author=" + author, "--no-edit");
   }
@@ -935,8 +938,8 @@ public class GitOriginTest {
     writeFile(remote, "test2.txt", "some more content");
     repo.add().files("test2.txt").run();
     git("commit", "-m", "second file", "--date=1400110011");
-    GitRevision master = origin.resolve("master");
-    Instant timestamp = master.readTimestamp().toInstant();
+    GitRevision main = origin.resolve(defaultBranch);
+    Instant timestamp = main.readTimestamp().toInstant();
     assertThat(timestamp).isNotNull();
     assertThat(timestamp).isEqualTo(Instant.ofEpochSecond(1400110011L));
   }
@@ -1068,7 +1071,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("branch-file.txt"), new byte[0]);
     git("add", "branch-file.txt");
     git("commit", "-m", "i hope this is included in the migrated message!");
-    git("checkout", "master");
+    git("checkout", defaultBranch);
 
     // Make a commit on mainline so that Git doesn't turn this into a fast-forward.
     Files.write(remote.resolve("mainline-file.txt"), new byte[0]);
@@ -1109,7 +1112,7 @@ public class GitOriginTest {
     git("add", "include/branch-file.txt");
     git("commit", "-m", "i hope this is included@@@");
 
-    git("checkout", "master");
+    git("checkout", defaultBranch);
 
     // Make a commit on mainline so that Git doesn't turn this into a fast-forward.
     Files.createDirectories(remote.resolve("include"));
@@ -1176,7 +1179,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("include/fileA.txt"), new byte[0]);
     git("add", "include/fileA.txt");
     git("commit", "-m", "not include");
-    git("checkout", "master");
+    git("checkout", defaultBranch);
 
     Files.createDirectories(remote.resolve("include"));
     Files.write(remote.resolve("include/mainline-file.txt"), new byte[0]);

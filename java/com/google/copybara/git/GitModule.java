@@ -672,6 +672,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " to migrate the Pull Request.",
             positional = false),
         @Param(
+            name = "required_status_context_names",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "Required status context names to import the PR. All the status context names "
+                    + "need to be passed in order to migrate the Pull Request."
+                    + "Note: this field is still experimental.",
+            positional = false),
+        @Param(
             name = "retryable_labels",
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
@@ -804,6 +814,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String url,
       Boolean merge,
       Sequence<?> requiredLabels, // <String>
+      Sequence<?> requiredStatusContextNames, // <String>
       Sequence<?> retryableLabels, // <String>
       String submodules,
       Boolean baselineFromBranch,
@@ -855,6 +866,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitHubOptions.class),
         prOpts,
         ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class, "required_labels")),
+        ImmutableSet.copyOf(Sequence.cast(requiredStatusContextNames, String.class,
+            "required_status_context_names")),
         ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class, "retryable_labels")),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
