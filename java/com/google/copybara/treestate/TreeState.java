@@ -16,6 +16,7 @@
 
 package com.google.copybara.treestate;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -60,6 +61,11 @@ public interface TreeState {
     @Override
     public int hashCode() {
       return path.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return path.toString();
     }
   }
 
