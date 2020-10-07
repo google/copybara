@@ -59,6 +59,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -375,7 +376,11 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "update_pull_request",
       doc = "Update Pull Requests for a repo. Returns None if not found",
       parameters = {
-        @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
+        @Param(
+            name = "number",
+            type = StarlarkInt.class,
+            named = true,
+            doc = "Pull Request number"),
         @Param(
             name = "title",
             type = String.class,
@@ -400,7 +405,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       },
       allowReturnNones = true)
   @Nullable
-  public PullRequest updatePullRequest(Integer number, Object title, Object body, Object state)
+  public PullRequest updatePullRequest(StarlarkInt number, Object title, Object body, Object state)
       throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
@@ -409,7 +414,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
           .load(console)
           .updatePullRequest(
               project,
-              number,
+              number.toInt("number"),
               new UpdatePullRequest(
                   convertFromNoneable(title, null),
                   convertFromNoneable(body, null),
@@ -483,14 +488,18 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "get_pull_request_comments",
       doc = "Get all pull request comments",
       parameters = {
-        @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
+        @Param(
+            name = "number",
+            type = StarlarkInt.class,
+            named = true,
+            doc = "Pull Request number"),
       })
-  public Sequence<PullRequestComment> getPullRequestComments(Integer prNumber)
+  public Sequence<PullRequestComment> getPullRequestComments(StarlarkInt prNumber)
       throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(
-          apiSupplier.load(console).getPullRequestComments(project, prNumber));
+          apiSupplier.load(console).getPullRequestComments(project, prNumber.toInt("number")));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_pull_request_comments: %s", e.getMessage());
     }
@@ -508,16 +517,29 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "add_label",
       doc = "Add labels to a PR/issue",
       parameters = {
-          @Param(name = "number", type = Integer.class, named = true, doc = "Pull Request number"),
-          @Param(name = "labels", type = Sequence.class, generic1 = String.class, named = true,
-              doc = "List of labels to add."),
+        @Param(
+            name = "number",
+            type = StarlarkInt.class,
+            named = true,
+            doc = "Pull Request number"),
+        @Param(
+            name = "labels",
+            type = Sequence.class,
+            generic1 = String.class,
+            named = true,
+            doc = "List of labels to add."),
       })
-  public void addLabels(Integer prNumber, Sequence<?> labels) throws EvalException, RepoException {
+  public void addLabels(StarlarkInt prNumber, Sequence<?> labels)
+      throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
       // Swallow response, until a use-case for returning it surfaces.
-      apiSupplier.load(console).addLabels(project, prNumber,
-          SkylarkUtil.convertStringList(labels, "Expected list of GitHub label names."));
+      apiSupplier
+          .load(console)
+          .addLabels(
+              project,
+              prNumber.toInt("number"),
+              SkylarkUtil.convertStringList(labels, "Expected list of GitHub label names."));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling add_label: %s", e.getMessage());
     }
@@ -527,16 +549,18 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "post_issue_comment",
       doc = "Post a comment on a issue.",
       parameters = {
-          @Param(name = "number", type = Integer.class, named = true,
-              doc = "Issue or Pull Request number"),
-          @Param(name = "comment", type = String.class, named = true,
-              doc = "Comment body to post."),
+        @Param(
+            name = "number",
+            type = StarlarkInt.class,
+            named = true,
+            doc = "Issue or Pull Request number"),
+        @Param(name = "comment", type = String.class, named = true, doc = "Comment body to post."),
       })
-  public void postIssueComment(Integer prNumber, String comment)
+  public void postIssueComment(StarlarkInt prNumber, String comment)
       throws EvalException, RepoException {
     try {
       String project = GitHubUtil.getProjectNameFromUrl(url);
-      apiSupplier.load(console).postComment(project, prNumber, comment);
+      apiSupplier.load(console).postComment(project, prNumber.toInt("number"), comment);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling post_issue_comment: %s", e.getMessage());
     }

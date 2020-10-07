@@ -727,7 +727,7 @@ Parameter | Description
 --------- | -----------
 regex | `string`<br><p>A re2 regex to match a substring of the file</p>
 mapping | `object`<br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
-group | `integer`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
+group | `int`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
 paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 reverse | `string`<br><p>A re2 regex used as reverse transformation</p>
 
@@ -2533,7 +2533,7 @@ Add labels to a PR/issue
 
 Parameter | Description
 --------- | -----------
-number | `integer`<br><p>Pull Request number</p>
+number | `int`<br><p>Pull Request number</p>
 labels | `sequence of string`<br><p>List of labels to add.</p>
 
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
@@ -2643,7 +2643,7 @@ Get all pull request comments
 
 Parameter | Description
 --------- | -----------
-number | `integer`<br><p>Pull Request number</p>
+number | `int`<br><p>Pull Request number</p>
 
 <a id="github_api_obj.get_pull_requests" aria-hidden="true"></a>
 ### github_api_obj.get_pull_requests
@@ -2696,7 +2696,7 @@ Post a comment on a issue.
 
 Parameter | Description
 --------- | -----------
-number | `integer`<br><p>Issue or Pull Request number</p>
+number | `int`<br><p>Issue or Pull Request number</p>
 comment | `string`<br><p>Comment body to post.</p>
 
 <a id="github_api_obj.update_pull_request" aria-hidden="true"></a>
@@ -2711,7 +2711,7 @@ Update Pull Requests for a repo. Returns None if not found
 
 Parameter | Description
 --------- | -----------
-number | `integer`<br><p>Pull Request number</p>
+number | `int`<br><p>Pull Request number</p>
 title | `string`<br><p>New Pull Request title</p>
 body | `string`<br><p>New Pull Request body</p>
 state | `string`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
@@ -3397,7 +3397,7 @@ Generate a message that includes a constant prefix text and a list of changes in
 Parameter | Description
 --------- | -----------
 prefix | `string`<br><p>A prefix to be printed before the list of commits.</p>
-max | `integer`<br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
+max | `int`<br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
 compact | `boolean`<br><p>If compact is set, each change will be shown in just one line</p>
 show_ref | `boolean`<br><p>If each change reference should be present in the notes</p>
 show_author | `boolean`<br><p>If each change author should be present in the notes</p>
@@ -3581,7 +3581,7 @@ Parameter | Description
 patches | `object`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
-strip | `integer`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>
+strip | `int`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>
 
 
 

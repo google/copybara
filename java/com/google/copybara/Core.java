@@ -1138,7 +1138,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "group",
             named = true,
-            type = Integer.class,
+            type = StarlarkInt.class,
             doc =
                 "Extract a regex group from the matching text and pass this as parameter to"
                     + " the mapping instead of the whole matching text.",
@@ -1185,7 +1185,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ReversibleFunction<String, String> func = getMappingFunction(mapping);
 
     String afterPattern = convertFromNoneable(reverse, regex);
-    int numGroup = convertFromNoneable(group, 0);
+    int numGroup = convertFromNoneable(group, StarlarkInt.of(0)).toInt("group");
     Pattern before = Pattern.compile(regex);
     check(
         numGroup <= before.groupCount(),

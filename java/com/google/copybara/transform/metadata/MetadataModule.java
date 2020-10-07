@@ -35,6 +35,7 @@ import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -68,7 +69,7 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "'Copybara import of the project:\\n\\n'"),
         @Param(
             name = "max",
-            type = Integer.class,
+            type = StarlarkInt.class,
             named = true,
             doc =
                 "Max number of commits to include in the message. For the rest a comment"
@@ -185,7 +186,7 @@ public class MetadataModule implements StarlarkValue {
               + "```\n")
   public Transformation squashNotes(
       String prefix,
-      Integer max,
+      StarlarkInt max,
       Boolean compact,
       Boolean showRef,
       Boolean showAuthor,
@@ -196,7 +197,7 @@ public class MetadataModule implements StarlarkValue {
       throws EvalException {
     return new MetadataSquashNotes(
         SkylarkUtil.checkNotEmpty(prefix, "prefix"),
-        max,
+        max.toInt("max"),
         compact,
         showRef,
         showAuthor,

@@ -326,6 +326,12 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
     StarlarkBuiltin skyType = element.getAnnotation(StarlarkBuiltin.class);
     if (skyType == null) {
+      // StarlarkInt currently has no StarlarkBuiltin annotation because
+      // skydoc has a bug in which it complains that int is both a
+      // function and a type.
+      if (declared.toString().equals("net.starlark.java.eval.StarlarkInt")) {
+        return "int";
+      }
       return simplerJavaTypes(element.asType());
     }
     if (!(declared instanceof DeclaredType)) {
@@ -452,7 +458,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     String s = typeMirror.toString();
     Matcher m = Pattern.compile("(?:[A-z.]*\\.)*([A-z]+)").matcher(s);
     StringBuilder sb = new StringBuilder();
-    while(m.find()) {
+    while (m.find()) {
       String replacement = deCapitalize(m.group(1));
       m.appendReplacement(sb, replacement);
     }

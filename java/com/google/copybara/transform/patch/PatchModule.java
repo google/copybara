@@ -34,6 +34,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -102,7 +103,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             name = "strip",
             named = true,
             positional = false,
-            type = Integer.class,
+            type = StarlarkInt.class,
             defaultValue = "1",
             doc =
                 "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
@@ -114,9 +115,10 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       Object patches,
       Sequence<?> excludedPaths,
       Object seriesOrNone,
-      Integer strip,
+      StarlarkInt stripI,
       StarlarkThread thread)
       throws EvalException {
+    int strip = stripI.toInt("strip");
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     check(
         !(patches instanceof Glob),
