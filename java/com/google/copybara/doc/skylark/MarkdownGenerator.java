@@ -171,12 +171,14 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   private DocFunction callableFunction(ExecutableElement member,
       AnnotationHelper<StarlarkMethod> callable, @Nullable String prefix) throws ElementException {
 
-    return documentSkylarkSignature(member,
-        prefix != null
-            ? String.format("%s.%s", prefix, callable.ann.name())
-            : callable.ann.name(),
-        /*skipFirstParam=*/false, callable.ann.doc(), callable.getValue("parameters"),
-        callable.ann.parameters(), skylarkTypeName(member.getReturnType()));
+    return documentSkylarkSignature(
+        member,
+        prefix != null ? String.format("%s.%s", prefix, callable.ann.name()) : callable.ann.name(),
+        callable.ann.doc(),
+        callable.ann.parameters(), // actual Param annotations
+        callable.getValue("parameters"), // mirror of Param annotations
+        member.getParameters(), // mirror of parameter variables
+        skylarkTypeName(member.getReturnType()));
   }
 
   private List<? extends Element> findStarlarkMethods(TypeElement module) {
@@ -204,9 +206,15 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
   }
 
-  private DocFunction documentSkylarkSignature(Element member, String functionName,
-      boolean skipFirstParam, String doc, List<AnnotationValue> paramsAnnotations,
-      Param[] parameters, @Nullable String returnType) throws ElementException {
+  private DocFunction documentSkylarkSignature(
+      Element member,
+      String functionName,
+      String doc,
+      Param[] parameters, // actual Param annotations
+      List<AnnotationValue> paramsAnnotations, // mirror of Param annotations
+      List<? extends VariableElement> parameterVars, // mirror of parameter variables
+      @Nullable String returnType)
+      throws ElementException {
 
     ImmutableList.Builder<DocParam> params = ImmutableList.builder();
 
@@ -222,20 +230,59 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       docDefaultsMap.put(docDefault.ann.field(), docDefault.ann.value());
     }
 
-    for (int i = skipFirstParam ? 1 : 0; i < paramsAnnotations.size(); i++) {
-      AnnotationHelper<Param> param = new AnnotationHelper<>(
-          parameters[i], (AnnotationMirror) paramsAnnotations.get(i).getValue(), member);
-      params.add(new DocParam(
-          param.ann.name(),
-          docDefaultsMap.containsKey(param.ann.name())
-              ? docDefaultsMap.get(param.ann.name())
-              : Strings.isNullOrEmpty(param.ann.defaultValue())
-                  ? null
-                  : param.ann.defaultValue(),
-          skylarkTypeNameGeneric(
-              param.getClassValue("type"),
-              param.getClassValue("generic1")),
-          param.ann.doc()));
+    for (int i = 0; i < paramsAnnotations.size(); i++) {
+      Param paramAnnot = parameters[i];
+      VariableElement paramVar = parameterVars.get(i);
+      AnnotationHelper<Param> param =
+          new AnnotationHelper<>(
+              paramAnnot, (AnnotationMirror) paramsAnnotations.get(i).getValue(), paramVar);
+
+      // Compute the list of names of allowed types (e.g. string or bool or NoneType).
+      List<String> allowedTypeNames = new ArrayList<String>();
+
+      // Use allowedTypes if provided.
+      @SuppressWarnings("unchecked")
+      List<AnnotationValue> paramTypeAnnots =
+          (List<AnnotationValue>) param.getValue("allowedTypes");
+      if (!paramTypeAnnots.isEmpty()) {
+        for (AnnotationValue paramTypeAnnot : paramTypeAnnots) {
+          AnnotationHelper<Param> paramType =
+              new AnnotationHelper<>(
+                  /*.ann unneeded here*/ null, (AnnotationMirror) paramTypeAnnot, paramVar);
+
+          String name =
+              skylarkTypeNameGeneric(
+                  paramType.getClassValue("type"), paramType.getClassValue("generic1"));
+          if (name != null) { // skip NoneType
+            allowedTypeNames.add(name);
+          }
+        }
+      } else {
+        // Otherwise use Param.type, if non-Void.
+        String name =
+            skylarkTypeNameGeneric(param.getClassValue("type"), param.getClassValue("generic1"));
+        if (name == null) {
+          // Otherwise use the type of the parameter variable itself.
+          name = skylarkTypeName(paramVar.asType());
+        }
+        allowedTypeNames.add(name);
+      }
+      // Really we should document None just like any other allowed type,
+      // though I notice skylarkTypeName goes out of its way to skip it.
+      // if (paramAnnot.noneable()) {
+      //   allowedTypeNames.add("None");
+      // }
+
+      params.add(
+          new DocParam(
+              param.ann.name(),
+              docDefaultsMap.containsKey(param.ann.name())
+                  ? docDefaultsMap.get(param.ann.name())
+                  : Strings.isNullOrEmpty(param.ann.defaultValue())
+                      ? null
+                      : param.ann.defaultValue(),
+              allowedTypeNames,
+              param.ann.doc()));
     }
 
     AnnotationHelper<Examples> examples = annotationHelper(member, Examples.class);
@@ -267,8 +314,10 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
   @Nullable
   private String skylarkTypeName(TypeMirror declared) {
-    if (declared.toString().equals("net.starlark.java.eval.NoneType")
-        || declared.toString().equals("void")) {
+    String str = declared.toString();
+    if (str.equals("net.starlark.java.eval.NoneType")
+        || str.equals("java.lang.Void")
+        || str.equals("void")) {
       return null;
     }
     Element element = processingEnv.getTypeUtils().asElement(declared);
@@ -470,9 +519,12 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           mdTitle(sb, level + 2, "Parameters:");
           tableHeader(sb, "Parameter", "Description");
           for (DocParam param : func.params) {
-            tableRow(sb,
+            tableRow(
+                sb,
                 param.name,
-                String.format("`%s`<br><p>%s</p>", param.type, param.description));
+                String.format(
+                    "`%s`<br><p>%s</p>",
+                    Joiner.on("` or `").join(param.allowedTypes), param.description));
           }
           sb.append("\n");
         }
@@ -557,13 +609,14 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     private final String name;
     @Nullable
     private final String defaultValue;
-    private final String type;
+    private final List<String> allowedTypes;
     private final String description;
 
-    DocParam(String name, @Nullable String defaultValue, String type, String description) {
+    DocParam(
+        String name, @Nullable String defaultValue, List<String> allowedTypes, String description) {
       this.name = name;
       this.defaultValue = defaultValue;
-      this.type = type;
+      this.allowedTypes = allowedTypes;
       this.description = description;
     }
   }

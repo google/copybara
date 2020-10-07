@@ -365,7 +365,7 @@ A transformation which runs one or more Buildozer commands against a single targ
 
 Parameter | Description
 --------- | -----------
-target | `object`<br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
+target | `string` or `sequence of string`<br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
 commands | `sequence`<br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 
 
@@ -3826,7 +3826,7 @@ Get current date as a string
 Parameter | Description
 --------- | -----------
 format | `string`<br><p>The format to use. See: https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for details.</p>
-zone | `object`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
+zone | `string`<br><p>The timezone id to use. See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default UTC </p>
 
 <a id="ctx.origin_api" aria-hidden="true"></a>
 ### ctx.origin_api
