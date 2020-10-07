@@ -28,21 +28,20 @@ import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Mutability;
 import net.starlark.java.eval.Starlark;
-import net.starlark.java.eval.Starlark.UncheckedEvalException;
 import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkThread;
 
 /**
- * An implementation of {@link Action} that delegates to a Skylark function.
+ * An implementation of {@link Action} that delegates to a Starlark function.
  */
-public class SkylarkAction implements Action {
+public class StarlarkAction implements Action {
 
   private final StarlarkCallable function;
   private final Dict<?, ?> params;
   private final StarlarkThread.PrintHandler printHandler;
 
-  public SkylarkAction(
+  public StarlarkAction(
       StarlarkCallable function, Dict<?, ?> params, StarlarkThread.PrintHandler printHandler) {
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
@@ -60,8 +59,6 @@ public class SkylarkAction implements Action {
           Starlark.call(
               thread, function, ImmutableList.of(actionContext), /*kwargs=*/ ImmutableMap.of());
       context.onFinish(result, actionContext);
-    } catch (UncheckedEvalException e) {
-      throw new ValidationException("Error calling Skylark:", e);
     } catch (EvalException e) {
       Throwable cause = e.getCause();
       String error =

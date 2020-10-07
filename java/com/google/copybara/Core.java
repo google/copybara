@@ -37,7 +37,7 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
-import com.google.copybara.feedback.SkylarkAction;
+import com.google.copybara.feedback.StarlarkAction;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
@@ -1476,7 +1476,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   public Action dynamicFeedback(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
-    return new SkylarkAction(
+    return new StarlarkAction(
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }
 
@@ -1627,7 +1627,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof StarlarkCallable) {
-        actions.add(new SkylarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
+        actions.add(new StarlarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {
