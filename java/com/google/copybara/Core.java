@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -124,8 +125,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "transformations",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
-            generic1 = Transformation.class,
+            allowedTypes = {
+              @ParamType(
+                  type = net.starlark.java.eval.Sequence.class,
+                  generic1 = Transformation.class), // (or callable)
+            },
             doc = "The transformations to reverse"),
       })
   public net.starlark.java.eval.Sequence<Transformation> reverse(
@@ -184,16 +188,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + TransformWork.COPYBARA_AUTHOR
               + ": The author of the change\n",
       parameters = {
-        @Param(
-            name = "name",
-            named = true,
-            type = String.class,
-            doc = "The name of the workflow.",
-            positional = false),
+        @Param(name = "name", named = true, doc = "The name of the workflow.", positional = false),
         @Param(
             name = "origin",
             named = true,
-            type = Origin.class,
             doc =
                 "Where to read from the code to be migrated, before applying the "
                     + "transformations. This is usually a VCS like Git, but can also be a local "
@@ -202,7 +200,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "destination",
             named = true,
-            type = Destination.class,
             doc =
                 "Where to write to the code being migrated, after applying the "
                     + "transformations. This is usually a VCS like Git, but can also be a local "
@@ -211,31 +208,34 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "authoring",
             named = true,
-            type = Authoring.class,
             doc = "The author mapping configuration from origin to destination.",
             positional = false),
         @Param(
             name = "transformations",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
             doc = "The transformations to be run for this workflow. They will run in sequence.",
             positional = false,
             defaultValue = "[]"),
         @Param(
             name = "origin_files",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob relative to the workdir that will be read from the"
                     + " origin during the import. For example glob([\"**.java\"]), all java files,"
                     + " recursively, which excludes all other file types.",
             defaultValue = "None",
-            noneable = true,
             positional = false),
         @Param(
             name = "destination_files",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob relative to the root of the destination repository that matches files that"
                     + " are part of the migration. Files NOT matching this glob will never be"
@@ -246,12 +246,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD"
                     + " files in java/src.",
             defaultValue = "None",
-            noneable = true,
             positional = false),
         @Param(
             name = "mode",
             named = true,
-            type = String.class,
             doc =
                 "Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>:"
                     + " Create a single commit in the destination with new tree"
@@ -269,29 +267,32 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "reversible_check",
             named = true,
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "Indicates if the tool should try to to reverse all the transformations"
                     + " at the end to check that they are reversible.<br/>The default value is"
                     + " True for 'CHANGE_REQUEST' mode. False otherwise",
             defaultValue = "None",
-            noneable = true,
             positional = false),
         @Param(
             name = CHECK_LAST_REV_STATE,
             named = true,
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "If set to true, Copybara will validate that the destination didn't change"
                     + " since last-rev import for destination_files. Note that this"
                     + " flag doesn't work for CHANGE_REQUEST mode.",
             defaultValue = "None",
-            noneable = true,
             positional = false),
         @Param(
             name = "ask_for_confirmation",
             named = true,
-            type = Boolean.class,
             doc =
                 "Indicates that the tool should show the diff and require user's"
                     + " confirmation before making a change in the destination.",
@@ -300,7 +301,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "dry_run",
             named = true,
-            type = Boolean.class,
             doc =
                 "Run the migration in dry-run mode. Some destination implementations might"
                     + " have some side effects (like creating a code review), but never submit to a"
@@ -310,7 +310,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after_migration",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "Run a feedback workflow after one migration happens. This runs once per"
                     + " change in `ITERATIVE` mode and only once for `SQUASH`.",
@@ -319,7 +318,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after_workflow",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "Run a feedback workflow after all the changes for this workflow run are migrated."
                     + " Prefer `after_migration` as it is executed per change (in ITERATIVE mode)."
@@ -330,7 +328,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "change_identity",
             named = true,
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "By default, Copybara hashes several fields so that each change has an unique"
                     + " identifier that at the same time reuses the generated destination change."
@@ -349,12 +350,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " defaults to the default identity (The effect would be no reuse of"
                     + " destination change between workflows)",
             defaultValue = "None",
-            noneable = true,
             positional = false),
         @Param(
             name = "set_rev_id",
             named = true,
-            type = Boolean.class,
             doc =
                 "Copybara adds labels like 'GitOrigin-RevId' in the destination in order to"
                     + " track what was the latest change imported. For `CHANGE_REQUEST` "
@@ -365,7 +364,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "smart_prune",
             named = true,
-            type = Boolean.class,
             doc =
                 "By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does"
                     + " a best-effort approach in restoring the non-affected snippets. For now we"
@@ -376,7 +374,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "migrate_noop_changes",
             named = true,
-            type = Boolean.class,
             doc =
                 "By default, Copybara tries to only migrate changes that affect origin_files or"
                     + " config files. This flag allows to include all the changes. Note that it"
@@ -388,24 +385,27 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "experimental_custom_rev_id",
             named = true,
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "Use this label name instead of the one provided by the origin. This is subject"
                     + " to change and there is no guarantee.",
             defaultValue = "None",
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "description",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            noneable = true,
             positional = false,
             doc = "A description of what this workflow achieves",
             defaultValue = "None"),
         @Param(
             name = "checkout",
-            type = Boolean.class,
             named = true,
             positional = false,
             doc =
@@ -417,10 +417,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "reversible_check_ignore_files",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "Ignore the files matching the glob in the reversible check",
             defaultValue = "None",
-            noneable = true,
             positional = false),
       },
       useStarlarkThread = true)
@@ -592,7 +594,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "before",
             named = true,
-            type = String.class,
             doc =
                 "The name of the file or directory before moving. If this is the empty string and"
                     + " 'after' is a directory, then all files in the workdir will be moved to the"
@@ -600,7 +601,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after",
             named = true,
-            type = String.class,
             doc =
                 "The name of the file or directory after moving. If this is the empty string and"
                     + " 'before' is a directory, then all files in 'before' will be moved to the"
@@ -608,14 +608,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to 'before' if it represents a directory."
                     + " Only files matching the expression will be moved. For example,"
                     + " glob([\"**.java\"]), matches all java files recursively inside"
                     + " 'before' folder. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "overwrite",
             named = true,
@@ -623,7 +625,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "Overwrite destination files if they already exist. Note that this makes the"
                     + " transformation non-reversible, since there is no way to know if the file"
                     + " was overwritten or not in the reverse workflow.",
-            type = Boolean.class,
             defaultValue = "False")
       },
       useStarlarkThread = true)
@@ -669,7 +670,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "before",
             named = true,
-            type = String.class,
             doc =
                 "The name of the file or directory to copy. If this is the empty string and"
                     + " 'after' is a directory, then all files in the workdir will be copied to"
@@ -677,7 +677,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after",
             named = true,
-            type = String.class,
             doc =
                 "The name of the file or directory destination. If this is the empty string and"
                     + " 'before' is a directory, then all files in 'before' will be copied to the"
@@ -685,14 +684,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to 'before' if it represents a directory."
                     + " Only files matching the expression will be copied. For example,"
                     + " glob([\"**.java\"]), matches all java files recursively inside"
                     + " 'before' folder. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "overwrite",
             named = true,
@@ -700,7 +701,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "Overwrite destination files if they already exist. Note that this makes the"
                     + " transformation non-reversible, since there is no way to know if the file"
                     + " was overwritten or not in the reverse workflow.",
-            type = Boolean.class,
             defaultValue = "False")
       },
       useStarlarkThread = true)
@@ -744,7 +744,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + " core.transform for reversing core.copy like transforms**. For regular file"
               + " filtering use origin_files exclude mechanism.",
       parameters = {
-        @Param(name = "paths", named = true, type = Glob.class, doc = "The files to be deleted"),
+        @Param(name = "paths", named = true, doc = "The files to be deleted"),
       },
       useStarlarkThread = true)
   @Example(
@@ -779,7 +779,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "before",
             named = true,
-            type = String.class,
             doc =
                 "The text before the transformation. Can contain references to regex groups. For"
                     + " example \"foo${x}text\".<p>`before` can only contain 1 reference to each"
@@ -792,14 +791,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "after",
             named = true,
-            type = String.class,
             doc =
                 "The text after the transformation. It can also contain references to regex "
                     + "groups, like 'before' field."),
         @Param(
             name = "regex_groups",
             named = true,
-            type = Dict.class,
             doc =
                 "A set of named regexes that can be used to match part of the replaced text."
                     + "Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
@@ -808,17 +805,18 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to the workdir representing the files to apply the"
                     + " transformation. For example, glob([\"**.java\"]), matches all java files"
                     + " recursively. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "first_only",
             named = true,
-            type = Boolean.class,
             doc =
                 "If true, only replaces the first instance rather than all. In single line mode,"
                     + " replaces the first instance on each line. In multiline mode, replaces the"
@@ -827,13 +825,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "multiline",
             named = true,
-            type = Boolean.class,
             doc = "Whether to replace text that spans more than one line.",
             defaultValue = "False"),
         @Param(
             name = "repeated_groups",
             named = true,
-            type = Boolean.class,
             doc =
                 "Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note"
                     + " that this mechanism doesn't use backtracking. In other words, the group"
@@ -843,7 +839,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "ignore",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
             doc =
                 "A set of regexes. Any line that matches any expression in this set, which"
                     + " might otherwise be transformed, will be ignored.",
@@ -973,20 +968,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "tags",
             named = true,
-            type = net.starlark.java.eval.Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = net.starlark.java.eval.Sequence.class, generic1 = String.class)
+            },
             doc = "Prefix tag to look for",
             defaultValue = "['TODO', 'NOTE']"),
         @Param(
             name = "mapping",
             named = true,
-            type = Dict.class,
             doc = "Mapping of users/strings",
             defaultValue = "{}"),
         @Param(
             name = "mode",
             named = true,
-            type = String.class,
             doc =
                 "Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not"
                     + " found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if"
@@ -998,32 +992,38 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to the workdir representing the files to apply the"
                     + " transformation. For example, glob([\"**.java\"]), matches all java files"
                     + " recursively. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "default",
             named = true,
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or"
                     + " 'USE_DEFAULT' modes",
-            noneable = true,
             defaultValue = "None"),
         @Param(
             name = "ignore",
             named = true,
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "If set, elements within TODO (with usernames) that match the regex will be "
                     + "ignored. For example ignore = \"foo\" would ignore \"foo\" in "
                     + "\"TODO(foo,bar)\" but not \"bar\".",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -1125,11 +1125,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "Applies an initial filtering to find a substring to be replaced and then applies"
               + " a `mapping` of replaces for the matched text.",
       parameters = {
-        @Param(
-            name = "regex",
-            named = true,
-            type = String.class,
-            doc = "A re2 regex to match a substring of the file"),
+        @Param(name = "regex", named = true, doc = "A re2 regex to match a substring of the file"),
         @Param(
             name = "mapping",
             named = true,
@@ -1138,29 +1134,35 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "group",
             named = true,
-            type = StarlarkInt.class,
+            allowedTypes = {
+              @ParamType(type = StarlarkInt.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "Extract a regex group from the matching text and pass this as parameter to"
                     + " the mapping instead of the whole matching text.",
-            noneable = true,
             defaultValue = "None"),
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to the workdir representing the files to apply the"
                     + " transformation. For example, glob([\"**.java\"]), matches all java files"
                     + " recursively. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "reverse",
             named = true,
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "A re2 regex used as reverse transformation",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -1234,13 +1236,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "mapping",
-            type = net.starlark.java.eval.Sequence.class,
-            generic1 = Transformation.class,
+            allowedTypes = {
+              @ParamType(
+                  type = net.starlark.java.eval.Sequence.class,
+                  generic1 = Transformation.class),
+            },
             named = true,
             doc = "The list of core.replace transformations"),
         @Param(
             name = "all",
-            type = Boolean.class,
             named = true,
             positional = false,
             doc = "Run all the mappings despite a replace happens.",
@@ -1276,7 +1280,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "regex",
             named = true,
-            type = String.class,
             doc =
                 "The regex pattern to verify. To satisfy the validation, there has to be at"
                     + "least one (or no matches if verify_no_match) match in each of the files "
@@ -1286,23 +1289,23 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             named = true,
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "A glob expression relative to the workdir representing the files to apply the"
                     + " transformation. For example, glob([\"**.java\"]), matches all java files"
                     + " recursively. Defaults to match all the files recursively.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "verify_no_match",
             named = true,
-            type = Boolean.class,
             doc = "If true, the transformation will verify that the RegEx does not match.",
             defaultValue = "False"),
         @Param(
             name = "also_on_reversal",
             named = true,
-            type = Boolean.class,
             doc =
                 "If true, the check will also apply on the reversal. The default behavior is to"
                     + " not verify the pattern on reversal.",
@@ -1341,26 +1344,33 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "transformations",
-            type = net.starlark.java.eval.Sequence.class,
-            generic1 = Transformation.class,
+            allowedTypes = {
+              @ParamType(
+                  type = net.starlark.java.eval.Sequence.class,
+                  generic1 = Transformation.class),
+            },
             named = true,
-            doc =
-                "The list of transformations to run as a result of running this"
-                    + " transformation."),
+            doc = "The list of transformations to run as a result of running this transformation."),
         @Param(
             name = "reversal",
-            type = net.starlark.java.eval.Sequence.class,
-            generic1 = Transformation.class,
+            allowedTypes = {
+              @ParamType(
+                  type = net.starlark.java.eval.Sequence.class,
+                  generic1 = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "The list of transformations to run as a result of running this"
                     + " transformation in reverse.",
             named = true,
             positional = false,
-            noneable = true,
             defaultValue = "None"),
         @Param(
             name = "ignore_noop",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "In case a noop error happens in the group of transformations (Both forward and"
                     + " reverse), it will be ignored, but the rest of the transformations in the"
@@ -1368,7 +1378,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " we will apply the closest parent's ignore_noop.",
             named = true,
             positional = false,
-            noneable = true,
             defaultValue = "None")
       })
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
@@ -1419,12 +1428,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "impl",
             named = true,
-            type = StarlarkCallable.class,
             doc = "The Skylark function to call"),
         @Param(
             name = "params",
             named = true,
-            type = Dict.class,
             doc = "The parameters to the function. Will be available under ctx.params",
             defaultValue = "{}"),
       },
@@ -1465,12 +1472,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "impl",
             named = true,
-            type = StarlarkCallable.class,
             doc = "The Skylark function to call"),
         @Param(
             name = "params",
             named = true,
-            type = Dict.class,
             doc = "The parameters to the function. Will be available under ctx.params",
             defaultValue = "{}"),
       },
@@ -1485,7 +1490,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       name = "fail_with_noop",
       doc = "If invoked, it will fail the current migration as a noop",
       parameters = {
-        @Param(name = "msg", named = true, type = String.class, doc = "The noop message"),
+        @Param(name = "msg", named = true, doc = "The noop message"),
       })
   public Action failWithNoop(String msg) throws EmptyChangeException {
     throw new EmptyChangeException(msg);
@@ -1519,19 +1524,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "name",
-            type = String.class,
             doc = "The name of the feedback workflow.",
             positional = false,
             named = true),
         @Param(
             name = "origin",
-            type = Trigger.class,
             doc = "The trigger of a feedback migration.",
             positional = false,
             named = true),
         @Param(
             name = "destination",
-            type = EndpointProvider.class,
             doc =
                 "Where to write change metadata to. This is usually a code review system like "
                     + "Gerrit or GitHub PR.",
@@ -1539,7 +1541,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true),
         @Param(
             name = "actions",
-            type = net.starlark.java.eval.Sequence.class,
             doc =
                 ""
                     + "A list of feedback actions to perform, with the following semantics:\n"
@@ -1551,9 +1552,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true),
         @Param(
             name = "description",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            noneable = true,
             positional = false,
             doc = "A description of what this workflow achieves",
             defaultValue = "None"),
@@ -1594,12 +1597,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       name = "format",
       doc = "Formats a String using Java format patterns.",
       parameters = {
-        @Param(name = "format", type = String.class, named = true, doc = "The format string"),
-        @Param(
-            name = "args",
-            type = net.starlark.java.eval.Sequence.class,
-            named = true,
-            doc = "The arguments to format"),
+        @Param(name = "format", named = true, doc = "The format string"),
+        @Param(name = "args", named = true, doc = "The arguments to format"),
       })
   public String format(String format, net.starlark.java.eval.Sequence<?> args)
       throws EvalException {

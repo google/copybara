@@ -27,9 +27,11 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
@@ -96,26 +98,28 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return ActionResult.success();
   }
 
-  @StarlarkMethod(name = "noop", doc = "Returns a no op action result with an optional message.",
+  @StarlarkMethod(
+      name = "noop",
+      doc = "Returns a no op action result with an optional message.",
       parameters = {
-          @Param(
-              name = "msg",
-              type = String.class,
-              doc = "The no op message",
-              defaultValue = "None",
-              noneable = true),
+        @Param(
+            name = "msg",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc = "The no op message",
+            defaultValue = "None"),
       })
   public ActionResult noop(Object noopMsg) {
     return ActionResult.noop(convertFromNoneable(noopMsg, /*defaultMsg*/ null));
   }
 
-  @StarlarkMethod(name = "error", doc = "Returns an error action result.",
+  @StarlarkMethod(
+      name = "error",
+      doc = "Returns an error action result.",
       parameters = {
-          @Param(
-              name = "msg",
-              type = String.class,
-              doc = "The error message"
-          ),
+        @Param(name = "msg", doc = "The error message"),
       })
   public ActionResult error(String errorMsg) {
     return ActionResult.error(errorMsg);

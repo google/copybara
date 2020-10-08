@@ -28,6 +28,7 @@ import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
@@ -82,19 +83,16 @@ public final class BuildozerModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "target",
-            type = String.class,
             doc =
                 "Target to create, including the package, e.g. 'foo:bar'. The package can be "
                     + "'.' for the root BUILD file.",
             named = true),
         @Param(
             name = "rule_type",
-            type = String.class,
             doc = "Type of this rule, for instance, java_library.",
             named = true),
         @Param(
             name = "commands",
-            type = Sequence.class,
             doc =
                 "Commands to populate attributes of the target after creating it. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
@@ -102,7 +100,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "before",
-            type = String.class,
             doc =
                 "When supplied, causes this target to be created *before* the target named by"
                     + " 'before'",
@@ -111,7 +108,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "after",
-            type = String.class,
             doc =
                 "When supplied, causes this target to be created *after* the target named by"
                     + " 'after'",
@@ -154,12 +150,10 @@ public final class BuildozerModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "target",
-            type = String.class,
             doc = "Target to create, including the package, e.g. 'foo:bar'",
             named = true),
         @Param(
             name = "rule_type",
-            type = String.class,
             doc =
                 "Type of this rule, for instance, java_library. Supplying this will cause this"
                     + " transformation to be reversible.",
@@ -167,7 +161,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "recreate_commands",
-            type = Sequence.class,
             doc =
                 "Commands to populate attributes of the target after creating it. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
@@ -176,7 +169,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "before",
-            type = String.class,
             doc =
                 "When supplied with rule_type and the transformation is reversed, causes this"
                     + " target to be created *before* the target named by 'before'",
@@ -185,7 +177,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "after",
-            type = String.class,
             doc =
                 "When supplied with rule_type and the transformation is reversed, causes this"
                     + " target to be created *after* the target named by 'after'",
@@ -241,7 +232,6 @@ public final class BuildozerModule implements StarlarkValue {
             named = true),
         @Param(
             name = "commands",
-            type = Sequence.class,
             doc =
                 "Commands to apply to the target(s) specified. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
@@ -283,19 +273,20 @@ public final class BuildozerModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "forward",
-            type = String.class,
             doc = "Specifies the Buildozer command, e.g. 'replace deps :foo :bar'",
             named = true),
         @Param(
             name = "reverse",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "The reverse of the command. This is only required if the given command cannot be"
                     + " reversed automatically and the reversal of this command is required by"
                     + " some workflow or Copybara check. The following commands are automatically"
                     + " reversible:<br><ul><li>add</li><li>remove (when used to remove element"
                     + " from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul>",
-            noneable = true,
             defaultValue = "None",
             named = true),
       })

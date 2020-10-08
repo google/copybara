@@ -29,9 +29,11 @@ import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkInt;
@@ -75,9 +77,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
                     + "be applied in order (patches first). **This field doesn't accept a glob**"),
         @Param(
             name = "excluded_patch_paths",
-            type = Sequence.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
-            generic1 = String.class,
             defaultValue = "[]",
             doc =
                 "The list of paths to exclude from each of the patches. Each of the paths will be"
@@ -87,9 +88,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "series",
             named = true,
-            noneable = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             positional = false,
-            type = String.class,
             defaultValue = "None",
             doc =
                 "The config file that contains a list of patches to apply. "
@@ -103,7 +106,6 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             name = "strip",
             named = true,
             positional = false,
-            type = StarlarkInt.class,
             defaultValue = "1",
             doc =
                 "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."

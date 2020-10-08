@@ -29,10 +29,12 @@ import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkInt;
@@ -63,13 +65,11 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "prefix",
-            type = String.class,
             named = true,
             doc = "A prefix to be printed before the list of commits.",
             defaultValue = "'Copybara import of the project:\\n\\n'"),
         @Param(
             name = "max",
-            type = StarlarkInt.class,
             named = true,
             doc =
                 "Max number of commits to include in the message. For the rest a comment"
@@ -78,31 +78,26 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "100"),
         @Param(
             name = "compact",
-            type = Boolean.class,
             named = true,
             doc = "If compact is set, each change will be shown in just one line",
             defaultValue = "True"),
         @Param(
             name = "show_ref",
-            type = Boolean.class,
             named = true,
             doc = "If each change reference should be present in the notes",
             defaultValue = "True"),
         @Param(
             name = "show_author",
-            type = Boolean.class,
             named = true,
             doc = "If each change author should be present in the notes",
             defaultValue = "True"),
         @Param(
             name = "show_description",
-            type = Boolean.class,
             named = true,
             doc = "If each change description should be present in the notes",
             defaultValue = "True"),
         @Param(
             name = "oldest_first",
-            type = Boolean.class,
             named = true,
             doc =
                 "If set to true, the list shows the oldest changes first. Otherwise"
@@ -110,7 +105,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "use_merge",
-            type = Boolean.class,
             named = true,
             doc = "If true then merge changes are included in the squash notes",
             defaultValue = "True",
@@ -216,7 +210,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "label",
-            type = String.class,
             named = true,
             doc = "The label to use for storing the author",
             defaultValue = "'ORIGINAL_AUTHOR'"),
@@ -242,7 +235,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "authors",
-            type = Dict.class,
             named = true,
             doc =
                 "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
@@ -251,7 +243,6 @@ public class MetadataModule implements StarlarkValue {
                     + " 'Your Name <some@mail>'"),
         @Param(
             name = "reversible",
-            type = Boolean.class,
             named = true,
             doc =
                 "If the transform is automatically reversible. Workflows using the reverse of"
@@ -259,7 +250,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "noop_reverse",
-            type = Boolean.class,
             named = true,
             doc =
                 "If true, the reversal of the transformation doesn't do anything. This is"
@@ -268,7 +258,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "fail_if_not_found",
-            type = Boolean.class,
             named = true,
             doc =
                 "Fail if a mapping cannot be found. Helps discovering early authors that should"
@@ -276,7 +265,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "reverse_fail_if_not_found",
-            type = Boolean.class,
             named = true,
             doc =
                 "Same as fail_if_not_found but when the transform is used in a inverse"
@@ -284,7 +272,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "map_all_changes",
-            type = Boolean.class,
             named = true,
             doc =
                 "If all changes being migrated should be mapped. Useful for getting a mapped"
@@ -332,7 +319,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "author",
-            type = Boolean.class,
             named = true,
             doc =
                 "Replace author with the last change author (Could still be the default"
@@ -341,22 +327,22 @@ public class MetadataModule implements StarlarkValue {
             positional = false),
         @Param(
             name = "message",
-            type = Boolean.class,
             named = true,
             doc = "Replace message with last change message.",
             defaultValue = "True",
             positional = false),
         @Param(
             name = "default_message",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "Replace message with last change message.",
-            noneable = true,
             defaultValue = "None",
             positional = false),
         @Param(
             name = "use_merge",
-            type = Boolean.class,
             named = true,
             doc =
                 "If true then merge changes are taken into account for looking for the last"
@@ -385,29 +371,28 @@ public class MetadataModule implements StarlarkValue {
               + " exposes it in the message. If the label is already present in the message it"
               + " will update it to use the new name and separator.",
       parameters = {
-        @Param(name = "name", type = String.class, doc = "The label to search", named = true),
+        @Param(name = "name", doc = "The label to search", named = true),
         @Param(
             name = "new_name",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "The name to use in the message",
             named = true,
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "separator",
-            type = String.class,
             named = true,
             doc = "The separator to use when" + " adding the label to the message",
             defaultValue = "\"=\""),
         @Param(
             name = "ignore_label_not_found",
-            type = Boolean.class,
             named = true,
             doc = "If a label is not found, ignore the error and continue.",
             defaultValue = "True"),
         @Param(
             name = "all",
-            type = Boolean.class,
             named = true,
             doc =
                 "By default Copybara tries to find the most relevant instance of the label."
@@ -464,7 +449,7 @@ public class MetadataModule implements StarlarkValue {
       name = "remove_label",
       doc = "Remove a label from the message",
       parameters = {
-        @Param(name = "name", type = String.class, doc = "The label name", named = true),
+        @Param(name = "name", doc = "The label name", named = true),
       },
       useStarlarkThread = true)
   @Example(
@@ -487,13 +472,11 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "label",
-            type = String.class,
             named = true,
             doc = "The label to use for restoring the author",
             defaultValue = "'ORIGINAL_AUTHOR'"),
         @Param(
             name = "search_all_changes",
-            type = Boolean.class,
             named = true,
             doc =
                 "By default Copybara only looks in the last current change for the author label."
@@ -519,7 +502,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "text",
-            type = String.class,
             named = true,
             doc =
                 "The header text to include in the message. For example '[Import of foo"
@@ -527,7 +509,6 @@ public class MetadataModule implements StarlarkValue {
                     + " corresponding label."),
         @Param(
             name = "ignore_label_not_found",
-            type = Boolean.class,
             named = true,
             doc =
                 "If a label used in the template is not found, ignore the error and"
@@ -535,7 +516,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "new_line",
-            type = Boolean.class,
             named = true,
             doc =
                 "If a new line should be added between the header and the original message."
@@ -626,7 +606,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "text",
-            type = String.class,
             named = true,
             doc =
                 "The template text to use for the message. For example '[Import of foo ${LABEL}]'."
@@ -634,7 +613,6 @@ public class MetadataModule implements StarlarkValue {
                     + " label."),
         @Param(
             name = "ignore_label_not_found",
-            type = Boolean.class,
             named = true,
             doc =
                 "If a label used in the template is not found, ignore the error and"
@@ -674,21 +652,21 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "regex",
-            type = String.class,
             named = true,
             doc =
                 "Any text matching the regex will be removed. Note that the regex is"
                     + " runs in multiline mode."),
         @Param(
             name = "msg_if_no_match",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "If set, Copybara will use this text when the scrubbing regex doesn't match.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "fail_if_no_match",
-            type = Boolean.class,
             named = true,
             doc =
                 "If set, msg_if_no_match must be None and then fail if the scrubbing "
@@ -696,7 +674,6 @@ public class MetadataModule implements StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "replacement",
-            type = String.class,
             named = true,
             doc =
                 "Text replacement for the matching substrings. References to regex group"
@@ -818,14 +795,12 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "regex",
-            type = String.class,
             named = true,
             doc =
                 "The regex pattern to verify. The re2j pattern will be applied in multiline"
                     + " mode, i.e. '^' refers to the beginning of a file and '$' to its end."),
         @Param(
             name = "verify_no_match",
-            type = Boolean.class,
             named = true,
             doc = "If true, the transformation will verify that the RegEx does not match.",
             defaultValue = "False"),
@@ -855,7 +830,6 @@ public class MetadataModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "before",
-            type = String.class,
             named = true,
             doc =
                 "Template for origin references in the change message. Use a '${reference}'"
@@ -864,7 +838,6 @@ public class MetadataModule implements StarlarkValue {
                     + "'http://changes?${reference}', with reference_regex = '[0-9]+'"),
         @Param(
             name = "after",
-            type = String.class,
             named = true,
             doc =
                 "Format for destination references in the change message. Use a '${reference}'"
@@ -873,7 +846,6 @@ public class MetadataModule implements StarlarkValue {
                     + "'http://changes?${reference}', with reference_regex = '[0-9]+'"),
         @Param(
             name = "regex_groups",
-            type = Dict.class,
             defaultValue = "{}",
             named = true,
             doc =
@@ -884,8 +856,9 @@ public class MetadataModule implements StarlarkValue {
         @Param(
             name = "additional_import_labels",
             named = true,
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             defaultValue = "[]",
             doc =
                 "Meant to be used when migrating from another tool: Per default, copybara will"

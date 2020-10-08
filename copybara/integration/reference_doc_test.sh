@@ -31,7 +31,7 @@ function test_reference_doc_generated() {
    grep "Finds links to commits in change messages" "$doc" > /dev/null 2>&1 \
      || fail "single example not found"
 
-   diff $doc $source_doc || fail "Generate the documentation with scripts/update_docs [-a]"
+   diff -B -u $source_doc $doc || fail "Generate the documentation with scripts/update_docs [-a]"
 }
 
 run_suite "Integration tests for reference documentation generation."

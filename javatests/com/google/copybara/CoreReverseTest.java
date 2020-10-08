@@ -128,8 +128,8 @@ public final class CoreReverseTest {
         name = "transform",
         doc = "A mock Transform",
         parameters = {
-          @Param(name = "field", type = String.class),
-          @Param(name = "reversable", type = Boolean.class, defaultValue = "True"),
+          @Param(name = "field"),
+          @Param(name = "reversable", defaultValue = "True"),
         },
         documented = false)
     public Transformation transform(String field, Boolean reversable) {

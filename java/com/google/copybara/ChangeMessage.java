@@ -137,7 +137,7 @@ public final class ChangeMessage implements StarlarkValue {
       name = "label_values",
       doc = "Returns a list of values associated with the label name.",
       parameters = {
-        @Param(name = "label_name", type = String.class, named = true, doc = "The label name."),
+        @Param(name = "label_name", named = true, doc = "The label name."),
       })
   public Sequence<String> getLabelValues(String labelName) {
     ImmutableListMultimap<String, String> localLabels = labelsAsMultimap();

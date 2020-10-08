@@ -32,9 +32,11 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.format.BuildifierFormat.LintMode;
 import com.google.copybara.util.Glob;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -59,7 +61,6 @@ public class FormatModule implements StarlarkValue {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
-
   // TODO(malcon): Move this to the OSS version
   @StarlarkMethod(
       name = "buildifier",
@@ -67,14 +68,19 @@ public class FormatModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "paths",
-            type = Glob.class,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "Paths of the files to format relative to the workdir.",
             defaultValue = "None",
-            noneable = true,
             named = true),
         @Param(
             name = "type",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that"
                     + " this is not recommended to be set and might break in the future. The"
@@ -83,11 +89,13 @@ public class FormatModule implements StarlarkValue {
                     + " bzl files. Prefer to use those names for BUILD files instead of setting"
                     + " this flag.",
             defaultValue = "'auto'",
-            noneable = true,
             named = true),
         @Param(
             name = "lint",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc =
                 "If buildifier --lint should be used. This fixes several common issues. Note that"
                     + " this transformation is difficult to revert. For example if it removes a"
@@ -95,12 +103,12 @@ public class FormatModule implements StarlarkValue {
                     + " workflow needs to add back the load statement (core.replace or similar). "
                     + " Possible values: `OFF`, `FIX`. Default is `OFF`",
             defaultValue = "None",
-            noneable = true,
             named = true),
         @Param(
             name = "lint_warnings",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             defaultValue = "[]",
             doc = "Warnings used in the lint mode. Default is buildifier default`",
             named = true)

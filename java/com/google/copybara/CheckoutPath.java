@@ -28,6 +28,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
@@ -104,10 +105,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
               + "    path('a/b').relativize('a/b/c/d')<br>"
               + "returns 'c/d'",
       parameters = {
-        @Param(
-            name = "other",
-            type = CheckoutPath.class,
-            doc = "The path to relativize against this path"),
+        @Param(name = "other", doc = "The path to relativize against this path"),
       })
   public CheckoutPath relativize(CheckoutPath other) throws EvalException {
     return create(path.relativize(other.path));
@@ -119,7 +117,10 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       parameters = {
         @Param(
             name = "child",
-            type = Object.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = CheckoutPath.class),
+            },
             doc =
                 "Resolve the given path against this path. The parameter"
                     + " can be a string or a Path.")
@@ -140,7 +141,10 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       parameters = {
         @Param(
             name = "other",
-            type = Object.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = CheckoutPath.class),
+            },
             doc =
                 "Resolve the given path against this path. The parameter can be a string or"
                     + " a Path."),

@@ -47,9 +47,10 @@ public class SkylarkConsole implements Console, StarlarkValue {
     throw new UnsupportedOperationException("Shouldn't be called from skylark");
   }
 
-  @StarlarkMethod(name = "error",
+  @StarlarkMethod(
+      name = "error",
       doc = "Show an error in the log. Note that this will stop Copybara execution.",
-      parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
+      parameters = {@Param(name = "message", doc = "message to log")})
   @Override
   public void error(String message) {
     delegate.error(message);
@@ -61,30 +62,37 @@ public class SkylarkConsole implements Console, StarlarkValue {
     return delegate.isVerbose();
   }
 
-  @StarlarkMethod(name = "warn", doc = "Show a warning in the console",
-      parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
+  @StarlarkMethod(
+      name = "warn",
+      doc = "Show a warning in the console",
+      parameters = {@Param(name = "message", doc = "message to log")})
   @Override
   public void warn(String message) {
     delegate.warn(message);
   }
 
-  @StarlarkMethod(name = "verbose",
+  @StarlarkMethod(
+      name = "verbose",
       doc = "Show an info message in the console if verbose logging is enabled.",
-      parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
+      parameters = {@Param(name = "message", doc = "message to log")})
   @Override
   public void verbose(String message) {
     delegate.verbose(message);
   }
 
-  @StarlarkMethod(name = "info", doc = "Show an info message in the console",
-      parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
+  @StarlarkMethod(
+      name = "info",
+      doc = "Show an info message in the console",
+      parameters = {@Param(name = "message", doc = "message to log")})
   @Override
   public void info(String message) {
     delegate.info(message);
   }
 
-  @StarlarkMethod(name = "progress", doc = "Show a progress message in the console",
-      parameters = {@Param(name = "message", doc = "message to log", type = String.class)})
+  @StarlarkMethod(
+      name = "progress",
+      doc = "Show a progress message in the console",
+      parameters = {@Param(name = "message", doc = "message to log")})
   @Override
   public void progress(String progress) {
     delegate.progress(progress);

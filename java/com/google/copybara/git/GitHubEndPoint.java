@@ -54,9 +54,11 @@ import com.google.copybara.util.console.Console;
 import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkInt;
@@ -90,32 +92,27 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "sha",
-            type = String.class,
             named = true,
             doc = "The SHA-1 for which we want to create or update the status"),
         @Param(
             name = "state",
-            type = String.class,
             named = true,
             doc = "The state of the commit status: 'success', 'error', 'pending' or 'failure'"),
         @Param(
             name = "context",
-            type = String.class,
             doc =
-                "The context for the commit"
-                    + " status. Use a value like 'copybara/import_successful' or similar",
+                "The context for the commit status. Use a value like 'copybara/import_successful'"
+                    + " or similar",
             named = true),
-        @Param(
-            name = "description",
-            type = String.class,
-            named = true,
-            doc = "Description about what happened"),
+        @Param(name = "description", named = true, doc = "Description about what happened"),
         @Param(
             name = "target_url",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "Url with expanded information about the event",
-            noneable = true,
             defaultValue = "None"),
       })
   public Status createStatus(
@@ -147,7 +144,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "sha",
-            type = String.class,
             named = true,
             doc = "The SHA-1 for which we want to get the check runs"),
       })
@@ -168,7 +164,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "ref",
-            type = String.class,
             named = true,
             doc = "The SHA-1 or ref for which we want to get the combined status"),
       },
@@ -192,7 +187,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "ref",
-            type = String.class,
             named = true,
             // Works for refs too but we don't want to publicize since GH API docs refers to sha
             doc = "The SHA-1 for which we want to get the combined status"),
@@ -215,15 +209,10 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "update_reference",
       doc = "Update a reference to point to a new commit. Returns the info of the reference.",
       parameters = {
-        @Param(name = "ref", type = String.class, named = true, doc = "The name of the reference."),
-        @Param(
-            name = "sha",
-            type = String.class,
-            doc = "The id for the commit" + " status.",
-            named = true),
+        @Param(name = "ref", named = true, doc = "The name of the reference."),
+        @Param(name = "sha", doc = "The id for the commit" + " status.", named = true),
         @Param(
             name = "force",
-            type = Boolean.class,
             named = true,
             doc =
                 "Indicates whether to force the update or to make sure the update is a"
@@ -255,7 +244,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "delete_reference",
       doc = "Delete a reference.",
       parameters = {
-        @Param(name = "ref", type = String.class, named = true, doc = "The name of the reference."),
+        @Param(name = "ref", named = true, doc = "The name of the reference."),
       })
   public void deleteReference(String ref) throws EvalException, RepoException {
     try {
@@ -276,7 +265,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "ref",
-            type = String.class,
             named = true,
             doc = "The name of the reference. For example: \"refs/heads/branchName\".")
       },
@@ -301,27 +289,29 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "head_prefix",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "Only return PRs wher the branch name has head_prefix",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "base_prefix",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "Only return PRs where the destination branch name has base_prefix",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "state",
-            type = String.class,
             doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"` or `\"ALL\"`",
             defaultValue = "\"OPEN\"",
             named = true),
         @Param(
             name = "sort",
-            type = String.class,
             doc =
                 "Sort filter for retrieving the Pull Requests. Can be `\"CREATED\"`,"
                     + " `\"UPDATED\"` or `\"POPULARITY\"`",
@@ -329,7 +319,6 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             defaultValue = "\"CREATED\""),
         @Param(
             name = "direction",
-            type = String.class,
             doc = "Direction of the filter. Can be `\"ASC\"` or `\"DESC\"`",
             defaultValue = "\"ASC\"",
             named = true)
@@ -376,31 +365,33 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "update_pull_request",
       doc = "Update Pull Requests for a repo. Returns None if not found",
       parameters = {
-        @Param(
-            name = "number",
-            type = StarlarkInt.class,
-            named = true,
-            doc = "Pull Request number"),
+        @Param(name = "number", named = true, doc = "Pull Request number"),
         @Param(
             name = "title",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "New Pull Request title",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "body",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc = "New Pull Request body",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "state",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "State of the Pull Request. Can be `\"OPEN\"`, `\"CLOSED\"`",
             named = true,
-            noneable = true,
             defaultValue = "None"),
       },
       allowReturnNones = true)
@@ -466,7 +457,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "get_pull_request_comment",
       doc = "Get a pull request comment",
       parameters = {
-        @Param(name = "comment_id", type = String.class, named = true, doc = "Comment identifier"),
+        @Param(name = "comment_id", named = true, doc = "Comment identifier"),
       })
   public PullRequestComment getPullRequestComment(String commentId)
       throws EvalException, RepoException {
@@ -488,11 +479,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "get_pull_request_comments",
       doc = "Get all pull request comments",
       parameters = {
-        @Param(
-            name = "number",
-            type = StarlarkInt.class,
-            named = true,
-            doc = "Pull Request number"),
+        @Param(name = "number", named = true, doc = "Pull Request number"),
       })
   public Sequence<PullRequestComment> getPullRequestComments(StarlarkInt prNumber)
       throws EvalException, RepoException {
@@ -517,15 +504,12 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "add_label",
       doc = "Add labels to a PR/issue",
       parameters = {
-        @Param(
-            name = "number",
-            type = StarlarkInt.class,
-            named = true,
-            doc = "Pull Request number"),
+        @Param(name = "number", named = true, doc = "Pull Request number"),
         @Param(
             name = "labels",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             named = true,
             doc = "List of labels to add."),
       })
@@ -549,12 +533,8 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "post_issue_comment",
       doc = "Post a comment on a issue.",
       parameters = {
-        @Param(
-            name = "number",
-            type = StarlarkInt.class,
-            named = true,
-            doc = "Issue or Pull Request number"),
-        @Param(name = "comment", type = String.class, named = true, doc = "Comment body to post."),
+        @Param(name = "number", named = true, doc = "Issue or Pull Request number"),
+        @Param(name = "comment", named = true, doc = "Comment body to post."),
       })
   public void postIssueComment(StarlarkInt prNumber, String comment)
       throws EvalException, RepoException {

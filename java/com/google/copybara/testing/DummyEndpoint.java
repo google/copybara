@@ -42,8 +42,10 @@ public class DummyEndpoint implements Endpoint, StarlarkValue {
         .build();
   }
 
-  @StarlarkMethod(name = "message", doc = "Add a new message",
-      parameters = { @Param(name = "message", type = String.class) })
+  @StarlarkMethod(
+      name = "message",
+      doc = "Add a new message",
+      parameters = {@Param(name = "message")})
   public void add(String msg) {
     messages.add(msg);
   }

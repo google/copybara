@@ -44,14 +44,9 @@ public class HgModule implements LabelsAwareModule, StarlarkValue {
       name = "origin",
       doc = "<b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            named = true,
-            doc = "Indicates the URL of the Hg repository"),
+        @Param(name = "url", named = true, doc = "Indicates the URL of the Hg repository"),
         @Param(
             name = "ref",
-            type = String.class,
             named = true,
             defaultValue = "\"default\"",
             doc =

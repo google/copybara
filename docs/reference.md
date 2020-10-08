@@ -3642,7 +3642,7 @@ Resolve the given path against this path.
 
 Parameter | Description
 --------- | -----------
-child | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+child | `string` or `Path`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
 
 <a id="path.resolve_sibling" aria-hidden="true"></a>
 ### path.resolve_sibling
@@ -3656,7 +3656,7 @@ Resolve the given path against this path.
 
 Parameter | Description
 --------- | -----------
-other | `object`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+other | `string` or `Path`<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
 
 
 
@@ -3937,5 +3937,3 @@ Parameter | Description
 --------- | -----------
 path | `Path`<br><p>The string representing the path</p>
 content | `string`<br><p>The content of the file</p>
-
-

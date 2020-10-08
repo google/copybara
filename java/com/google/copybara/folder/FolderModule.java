@@ -76,7 +76,6 @@ public class FolderModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "materialize_outside_symlinks",
-            type = Boolean.class,
             doc =
                 "By default folder.origin will refuse any symlink in the migration folder"
                     + " that is an absolute symlink or that refers to a file outside of the folder."

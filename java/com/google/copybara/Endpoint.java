@@ -21,8 +21,10 @@ import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
@@ -67,7 +69,7 @@ public interface Endpoint extends StarlarkValue {
       name = "new_origin_ref",
       doc = "Creates a new origin reference out of this endpoint.",
       parameters = {
-          @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
+        @Param(name = "ref", named = true, doc = "The reference."),
       })
   default OriginRef newOriginRef(String ref) {
     return new OriginRef(ref);
@@ -77,17 +79,15 @@ public interface Endpoint extends StarlarkValue {
       name = "new_destination_ref",
       doc = "Creates a new destination reference out of this endpoint.",
       parameters = {
-        @Param(name = "ref", type = String.class, named = true, doc = "The reference."),
-        @Param(
-            name = "type",
-            type = String.class,
-            named = true,
-            doc = "The type of this reference."),
+        @Param(name = "ref", named = true, doc = "The reference."),
+        @Param(name = "type", named = true, doc = "The type of this reference."),
         @Param(
             name = "url",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            noneable = true,
             doc = "The url associated with this reference, if any.",
             defaultValue = "None"),
       })

@@ -39,6 +39,7 @@ import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.util.console.Console;
 import java.util.Map;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
@@ -67,16 +68,11 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       name = "get_change",
       doc = "Retrieve a Gerrit change.",
       parameters = {
-        @Param(
-            name = "id",
-            type = String.class,
-            named = true,
-            doc = "The change id or change number."),
+        @Param(name = "id", named = true, doc = "The change id or change number."),
         @Param(
             name = "include_results",
             named = true,
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             doc =
                 ""
                     + "What to include in the response. See "
@@ -100,16 +96,8 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       name = "get_actions",
       doc = "Retrieve the actions of a Gerrit change.",
       parameters = {
-          @Param(
-              name = "id",
-              type = String.class,
-              named = true,
-              doc = "The change id or change number."),
-          @Param(
-              name = "revision",
-              type = String.class,
-              named = true,
-              doc = "The revision of the change."),
+        @Param(name = "id", named = true, doc = "The change id or change number."),
+        @Param(name = "revision", named = true, doc = "The revision of the change."),
       })
   public Map<String, ActionInfo> getActions(String id, String revision) throws EvalException {
     try {
@@ -142,21 +130,12 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
           "Post a review to a Gerrit change for a particular revision. The review will be authored "
               + "by the user running the tool, or the role account if running in the service.\n",
       parameters = {
-        @Param(
-            name = "change_id",
-            type = String.class,
-            named = true,
-            doc = "The Gerrit change id."),
+        @Param(name = "change_id", named = true, doc = "The Gerrit change id."),
         @Param(
             name = "revision_id",
-            type = String.class,
             named = true,
             doc = "The revision for which the comment will be posted."),
-        @Param(
-            name = "review_input",
-            type = SetReviewInput.class,
-            doc = "The review to post to Gerrit.",
-            named = true),
+        @Param(name = "review_input", doc = "The review to post to Gerrit.", named = true),
       })
   public ReviewResult postReview(String changeId, String revisionId, SetReviewInput reviewInput)
       throws EvalException {
@@ -180,28 +159,18 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
 
   @StarlarkMethod(
       name = "delete_vote",
-      doc =
-          "Delete a label vote from an account owner on a Gerrit change.\n",
+      doc = "Delete a label vote from an account owner on a Gerrit change.\n",
       parameters = {
-          @Param(
-              name = "change_id",
-              type = String.class,
-              named = true,
-              doc = "The Gerrit change id."),
-          @Param(
-              name = "account_id",
-              type = String.class,
-              named = true,
-              doc = "The account owner who votes on label_id. Use 'me' or 'self' "
-                  + "if the account owner makes this api call"),
-          @Param(
-              name = "label_id",
-              type = String.class,
-              named = true,
-              doc = "The name of the label."),
+        @Param(name = "change_id", named = true, doc = "The Gerrit change id."),
+        @Param(
+            name = "account_id",
+            named = true,
+            doc =
+                "The account owner who votes on label_id. Use 'me' or 'self' "
+                    + "if the account owner makes this api call"),
+        @Param(name = "label_id", named = true, doc = "The name of the label."),
       })
-  public void deleteVote(String changeId, String accountId, String labelId)
-      throws EvalException {
+  public void deleteVote(String changeId, String accountId, String labelId) throws EvalException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
@@ -218,7 +187,6 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       parameters = {
         @Param(
             name = "query",
-            type = String.class,
             named = true,
             doc =
                 "The query string to list changes by. See"
@@ -226,8 +194,7 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
         @Param(
             name = "include_results",
             named = true,
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             doc =
                 ""
                     + "What to include in the response. See "

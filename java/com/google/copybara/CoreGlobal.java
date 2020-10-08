@@ -23,6 +23,7 @@ import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.util.Glob;
 import java.util.List;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -46,14 +47,16 @@ public class CoreGlobal implements StarlarkValue {
       parameters = {
         @Param(
             name = "include",
-            type = Sequence.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             named = true,
-            generic1 = String.class,
             doc = "The list of glob patterns to include"),
         @Param(
             name = "exclude",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             doc = "The list of glob patterns to exclude",
             defaultValue = "[]",
             named = true,
@@ -122,11 +125,7 @@ public class CoreGlobal implements StarlarkValue {
       name = "parse_message",
       doc = "Returns a ChangeMessage parsed from a well formed string.",
       parameters = {
-        @Param(
-            name = "message",
-            named = true,
-            type = String.class,
-            doc = "The contents of the change message"),
+        @Param(name = "message", named = true, doc = "The contents of the change message"),
       })
   public ChangeMessage parseMessage(String changeMessage) throws EvalException {
     try {
@@ -142,7 +141,6 @@ public class CoreGlobal implements StarlarkValue {
       parameters = {
         @Param(
             name = "author_string",
-            type = String.class,
             named = true,
             doc = "A string representation of the author with the form 'name <foo@bar.com>'"),
       })

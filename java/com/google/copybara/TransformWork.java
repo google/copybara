@@ -198,9 +198,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return skylarkTransformParams;
   }
 
-  @StarlarkMethod(name = "set_message", doc = "Update the message to be used in the change",
-      parameters = {@Param(name = "message", type = String.class)}
-  )
+  @StarlarkMethod(
+      name = "set_message",
+      doc = "Update the message to be used in the change",
+      parameters = {@Param(name = "message")})
   public void setMessage(String message) {
     this.metadata = this.metadata.withMessage(message);
   }
@@ -220,13 +221,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
               + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
-          @Param(
-              name = "runnable",
-              type = Object.class,
-              doc = "A glob or a transform (Transforms still not implemented)"),
+        @Param(name = "runnable", doc = "A glob or a transform (Transforms still not implemented)"),
       })
-  public Object run(Object runnable) throws
-      EvalException, IOException, ValidationException, RepoException {
+  public Object run(Object runnable)
+      throws EvalException, IOException, ValidationException, RepoException {
     if (runnable instanceof Glob) {
       PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
 
@@ -256,7 +254,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "new_path",
       doc = "Create a new path",
       parameters = {
-          @Param(name = "path", type = String.class, doc = "The string representing the path"),
+        @Param(name = "path", doc = "The string representing the path"),
       })
   public CheckoutPath newPath(String path) throws EvalException {
     return CheckoutPath.createWithCheckoutDir(
@@ -267,8 +265,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "create_symlink",
       doc = "Create a symlink",
       parameters = {
-          @Param(name = "link", type = CheckoutPath.class, doc = "The link path"),
-          @Param(name = "target", type = CheckoutPath.class, doc = "The target path"),
+        @Param(name = "link", doc = "The link path"),
+        @Param(name = "target", doc = "The target path"),
       })
   public void createSymlink(CheckoutPath link, CheckoutPath target) throws EvalException {
     try {
@@ -311,8 +309,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "write_path",
       doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
-        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
-        @Param(name = "content", type = String.class, doc = "The content of the file"),
+        @Param(name = "path", doc = "The string representing the path"),
+        @Param(name = "content", doc = "The content of the file"),
       })
   public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
     Path fullPath = asCheckoutPath(path);
@@ -326,7 +324,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "read_path",
       doc = "Read the content of path as UTF-8",
       parameters = {
-        @Param(name = "path", type = CheckoutPath.class, doc = "The string representing the path"),
+        @Param(name = "path", doc = "The string representing the path"),
       })
   public String readPath(CheckoutPath path) throws IOException, EvalException {
     return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
@@ -340,16 +338,22 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return normalized;
   }
 
-  @StarlarkMethod(name = "add_label",
+  @StarlarkMethod(
+      name = "add_label",
       doc = "Add a label to the end of the description",
       parameters = {
-          @Param(name = "label", type = String.class, doc = "The label to replace"),
-          @Param(name = "value", type = String.class, doc = "The new value for the label"),
-          @Param(name = "separator", type = String.class,
-              doc = "The separator to use for the label", defaultValue = "\"=\""),
-          @Param(name = "hidden", type = Boolean.class,
-              doc = "Don't show the label in the message but only keep it internally",
-              named = true, positional = false, defaultValue = "False"),
+        @Param(name = "label", doc = "The label to replace"),
+        @Param(name = "value", doc = "The new value for the label"),
+        @Param(
+            name = "separator",
+            doc = "The separator to use for the label",
+            defaultValue = "\"=\""),
+        @Param(
+            name = "hidden",
+            doc = "Don't show the label in the message but only keep it internally",
+            named = true,
+            positional = false,
+            defaultValue = "False"),
       })
   public void addLabel(String label, String value, String separator, Boolean hidden) {
     if (hidden) {
@@ -361,13 +365,16 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     }
   }
 
-  @StarlarkMethod(name = "add_or_replace_label",
+  @StarlarkMethod(
+      name = "add_or_replace_label",
       doc = "Replace an existing label or add it to the end of the description",
       parameters = {
-          @Param(name = "label", type = String.class, doc = "The label to replace"),
-          @Param(name = "value", type = String.class, doc = "The new value for the label"),
-          @Param(name = "separator", type = String.class,
-              doc = "The separator to use for the label", defaultValue = "\"=\""),
+        @Param(name = "label", doc = "The label to replace"),
+        @Param(name = "value", doc = "The new value for the label"),
+        @Param(
+            name = "separator",
+            doc = "The separator to use for the label",
+            defaultValue = "\"=\""),
       })
   public void addOrReplaceLabel(String label, String value, String separator) {
     setMessage(ChangeMessage.parseMessage(getMessage())
@@ -375,24 +382,32 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .toString());
   }
 
-  @StarlarkMethod(name = "add_text_before_labels",
+  @StarlarkMethod(
+      name = "add_text_before_labels",
       doc = "Add a text to the description before the labels paragraph",
-      parameters = {@Param(name = "text", type = String.class)})
+      parameters = {@Param(name = "text")})
   public void addTextBeforeLabels(String text) {
     ChangeMessage message = ChangeMessage.parseMessage(getMessage());
     message = message.withText(message.getText() + '\n' + text);
     setMessage(message.toString());
   }
 
-  @StarlarkMethod(name = "replace_label", doc = "Replace a label if it exist in the message",
+  @StarlarkMethod(
+      name = "replace_label",
+      doc = "Replace a label if it exist in the message",
       parameters = {
-          @Param(name = "label", type = String.class, doc = "The label to replace"),
-          @Param(name = "value", type = String.class, doc = "The new value for the label"),
-          @Param(name = "separator", type = String.class,
-              doc = "The separator to use for the label", defaultValue = "\"=\""),
-          @Param(name = "whole_message", type = Boolean.class,
-              doc = "By default Copybara only looks in the last paragraph for labels. This flag"
-                  + "make it replace labels in the whole message.", defaultValue = "False"),
+        @Param(name = "label", doc = "The label to replace"),
+        @Param(name = "value", doc = "The new value for the label"),
+        @Param(
+            name = "separator",
+            doc = "The separator to use for the label",
+            defaultValue = "\"=\""),
+        @Param(
+            name = "whole_message",
+            doc =
+                "By default Copybara only looks in the last paragraph for labels. This flag"
+                    + "make it replace labels in the whole message.",
+            defaultValue = "False"),
       })
   public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage) {
     setMessage(parseMessage(wholeMessage)
@@ -400,14 +415,18 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .toString());
   }
 
-  @StarlarkMethod(name = "remove_label", doc = "Remove a label from the message if present",
+  @StarlarkMethod(
+      name = "remove_label",
+      doc = "Remove a label from the message if present",
       parameters = {
-          @Param(name = "label", type = String.class, doc = "The label to delete"),
-          @Param(name = "whole_message", type = Boolean.class,
-              doc = "By default Copybara only looks in the last paragraph for labels. This flag"
-                  + "make it replace labels in the whole message.", defaultValue = "False"),
-      }
-  )
+        @Param(name = "label", doc = "The label to delete"),
+        @Param(
+            name = "whole_message",
+            doc =
+                "By default Copybara only looks in the last paragraph for labels. This flag"
+                    + "make it replace labels in the whole message.",
+            defaultValue = "False"),
+      })
   public void removeLabel(String label, Boolean wholeMessage) {
     setMessage(parseMessage(wholeMessage).withRemovedLabelByName(label).toString());
   }
@@ -416,17 +435,25 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     setMessage(parseMessage(wholeMessage).withRemovedLabelByNameAndValue(label, value).toString());
   }
 
-  @StarlarkMethod(name = "now_as_string", doc = "Get current date as a string",
+  @StarlarkMethod(
+      name = "now_as_string",
+      doc = "Get current date as a string",
       parameters = {
-          @Param(name = "format", type = String.class, doc = "The format to use. See:"
-              + " https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html"
-              + " for details.",
-              defaultValue = "\"yyyy-MM-dd\""),
-          @Param(name = "zone", doc = "The timezone id to use. "
-              + "See https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By default"
-              + " UTC ", defaultValue = "\"UTC\"")
-      }
-  )
+        @Param(
+            name = "format",
+            doc =
+                "The format to use. See:"
+                    + " https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html"
+                    + " for details.",
+            defaultValue = "\"yyyy-MM-dd\""),
+        @Param(
+            name = "zone",
+            doc =
+                "The timezone id to use. See"
+                    + " https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html. By"
+                    + " default UTC ",
+            defaultValue = "\"UTC\"")
+      })
   public String formatDate(String format, String zone) {
     return DateTimeFormatter.ofPattern(format).format(ZonedDateTime.now(ZoneId.of(zone)));
   }
@@ -437,11 +464,13 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         : ChangeMessage.parseMessage(getMessage());
   }
 
-  @StarlarkMethod(name = "find_label", doc = ""
-      + "Tries to find a label. First it looks at the generated message (IOW labels that might"
-      + " have been added by previous steps), then looks in all the commit messages being imported"
-      + " and finally in the resolved reference passed in the CLI.",
-      parameters = {@Param(name = "label", type = String.class)},
+  @StarlarkMethod(
+      name = "find_label",
+      doc =
+          "Tries to find a label. First it looks at the generated message (IOW labels that might"
+              + " have been added by previous steps), then looks in all the commit messages being"
+              + " imported and finally in the resolved reference passed in the CLI.",
+      parameters = {@Param(name = "label")},
       allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
@@ -456,7 +485,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + " labels that might have been added by previous steps), then looks in all the"
               + " commit messages being imported and finally in the resolved reference passed in"
               + " the CLI.",
-      parameters = {@Param(name = "message", type = String.class)},
+      parameters = {@Param(name = "message")},
       allowReturnNones = true)
   public Sequence<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
@@ -551,8 +580,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         .filter(label -> label.isLabel(name)).collect(ImmutableList.toImmutableList());
   }
 
-  @StarlarkMethod(name = "set_author", doc = "Update the author to be used in the change",
-      parameters = {@Param(name = "author", type = Author.class)})
+  @StarlarkMethod(
+      name = "set_author",
+      doc = "Update the author to be used in the change",
+      parameters = {@Param(name = "author")})
   public void setAuthor(Author author) {
     this.metadata = this.metadata.withAuthor(author);
   }

@@ -253,25 +253,17 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           String name =
               skylarkTypeNameGeneric(
                   paramType.getClassValue("type"), paramType.getClassValue("generic1"));
-          if (name != null) { // skip NoneType
+          // Really we should document None just like any other allowed type,
+          // but the current behavior is to skip it.
+          if (name != null) {
             allowedTypeNames.add(name);
           }
         }
       } else {
-        // Otherwise use Param.type, if non-Void.
-        String name =
-            skylarkTypeNameGeneric(param.getClassValue("type"), param.getClassValue("generic1"));
-        if (name == null) {
-          // Otherwise use the type of the parameter variable itself.
-          name = skylarkTypeName(paramVar.asType());
-        }
+        // Otherwise use the type of the parameter variable itself.
+        String name = skylarkTypeName(paramVar.asType());
         allowedTypeNames.add(name);
       }
-      // Really we should document None just like any other allowed type,
-      // though I notice skylarkTypeName goes out of its way to skip it.
-      // if (paramAnnot.noneable()) {
-      //   allowedTypeNames.add("None");
-      // }
 
       params.add(
           new DocParam(
@@ -300,6 +292,8 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         docExample.build());
   }
 
+  // Converts a Java type (not class--possibly parametric) into Starlark form for documentation.
+  // Returns null for no value (e.g. a void function result, or NoneType, or a <?> type argument).
   @Nullable
   private String skylarkTypeNameGeneric(DeclaredType declared, @Nullable DeclaredType generic) {
     String name = skylarkTypeName(declared);
@@ -320,6 +314,9 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         || str.equals("void")) {
       return null;
     }
+    if (str.equals("?")) {
+      return str;
+    }
     Element element = processingEnv.getTypeUtils().asElement(declared);
     if (element == null) {
       return simplerJavaTypes(declared);
@@ -338,18 +335,23 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       return skyType.name();
     }
     DeclaredType possibleGeneric = (DeclaredType) declared;
-    if (possibleGeneric.getTypeArguments().isEmpty()) {
+    List<? extends TypeMirror> typeArgs = possibleGeneric.getTypeArguments();
+    List<String> typeArgNames = new ArrayList<>();
+    boolean trivial = true; // all params are <?, Object>
+    for (TypeMirror typeArg : typeArgs) {
+      String name = skylarkTypeName(typeArg);
+      if (!name.equals("?") && !name.equals("object")) {
+        trivial = false;
+      }
+      typeArgNames.add(name);
+    }
+    if (trivial) {
       return skyType.name();
     }
-    if (possibleGeneric.getTypeArguments().size() == 1) {
-      return skyType.name() + " of "
-          + skylarkTypeName(possibleGeneric.getTypeArguments().get(0));
+    if (typeArgs.size() == 1) {
+      return skyType.name() + " of " + typeArgNames.get(0);
     }
-    return skyType.name() + "["
-        + Joiner.on(", ")
-        .join(possibleGeneric.getTypeArguments().stream().map(this::skylarkTypeName).collect(
-            Collectors.toList()))
-        + "]";
+    return skyType.name() + "[" + Joiner.on(", ").join(typeArgNames) + "]";
   }
 
   private ImmutableList<DocFlag> generateFlagsInfo(Element classElement) throws ElementException {

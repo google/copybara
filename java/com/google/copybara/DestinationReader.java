@@ -70,7 +70,7 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "read_file",
       doc = "Read a file from the destination.",
       parameters = {
-          @Param(name = "path", type = String.class, named = true, doc = "Path to the file."),
+        @Param(name = "path", named = true, doc = "Path to the file."),
       })
   @Example(
       title = "Read a file from the destination's baseline",
@@ -90,17 +90,21 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "copy_destination_files",
       doc = "Copy files from the destination into the workdir.",
       parameters = {
-          @Param(name = "glob", type = Glob.class, named = true, doc = "Files to copy to the "
-              + "workdir, potentially overwriting files checked out from the origin."),
+        @Param(
+            name = "glob",
+            named = true,
+            doc =
+                "Files to copy to the "
+                    + "workdir, potentially overwriting files checked out from the origin."),
       })
   @Example(
       title = "Copy files from the destination's baseline",
       before = "This can be added to the transformations of your core.workflow:",
       code =
           "def _copy_destination_file(ctx):\n"
-         + "   content = ctx.destination_reader().copy_destination_files(glob(include = ['path/to/**']))"
-         + "\n\n"
-         + "transforms = [core.dynamic_transform(_copy_destination_file)]\n",
+              + "   content = ctx.destination_reader().copy_destination_files(glob(include ="
+              + " ['path/to/**']))\n\n"
+              + "transforms = [core.dynamic_transform(_copy_destination_file)]\n",
       after =
           "Would copy all files in path/to/ from the destination baseline to the copybara workdir."
               + " The files do not have to be covered by origin_files nor destination_files, but "
@@ -113,7 +117,7 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "file_exists",
       doc = "Checks whether a given file exists in the destination.",
       parameters = {
-          @Param(name = "path", type = String.class, named = true, doc = "Path to the file."),
+        @Param(name = "path", named = true, doc = "Path to the file."),
       })
   @SuppressWarnings("unused")
   public abstract boolean exists(String path);

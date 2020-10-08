@@ -29,6 +29,7 @@ import com.google.copybara.util.console.Console;
 import java.util.ArrayList;
 import java.util.List;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -85,32 +86,23 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
       name = "record_effect",
       doc = "Records an effect of the current action.",
       parameters = {
-        @Param(
-            name = "summary",
-            type = String.class,
-            doc = "The summary of this effect",
-            named = true),
+        @Param(name = "summary", doc = "The summary of this effect", named = true),
         @Param(
             name = "origin_refs",
-            type = Sequence.class,
-            generic1 = OriginRef.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = OriginRef.class),
+            },
             doc = "The origin refs",
             named = true),
-        @Param(
-            name = "destination_ref",
-            type = DestinationRef.class,
-            doc = "The destination ref",
-            named = true),
+        @Param(name = "destination_ref", doc = "The destination ref", named = true),
         @Param(
             name = "errors",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             defaultValue = "[]",
             doc = "An optional list of errors",
             named = true),
         @Param(
             name = "type",
-            type = String.class,
             doc =
                 "The type of migration effect:<br>"
                     + "<ul>"

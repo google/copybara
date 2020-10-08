@@ -49,9 +49,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
 import org.junit.Test;
@@ -398,10 +400,9 @@ public class SkylarkParserTest {
         name = "origin",
         doc = "A mock Origin",
         parameters = {
-          @Param(name = "url", type = String.class, doc = "The origin url", named = true),
+          @Param(name = "url", doc = "The origin url", named = true),
           @Param(
               name = "branch",
-              type = String.class,
               doc = "The origin branch",
               defaultValue = "\"master\"",
               named = true),
@@ -415,7 +416,7 @@ public class SkylarkParserTest {
         name = "destination",
         doc = "A mock Destination",
         parameters = {
-          @Param(name = "folder", type = String.class, doc = "The folder output", named = true),
+          @Param(name = "folder", doc = "The folder output", named = true),
         },
         documented = false)
     public MockDestination mock(String folder) {
@@ -428,20 +429,25 @@ public class SkylarkParserTest {
         parameters = {
           @Param(
               name = "field1",
-              type = String.class,
               defaultValue = "None",
-              noneable = true,
+              allowedTypes = {
+                @ParamType(type = String.class),
+                @ParamType(type = NoneType.class),
+              },
               named = true),
           @Param(
               name = "field2",
-              type = String.class,
               defaultValue = "None",
-              noneable = true,
+              allowedTypes = {
+                @ParamType(type = String.class),
+                @ParamType(type = NoneType.class),
+              },
               named = true),
           @Param(
               name = "list",
-              type = net.starlark.java.eval.Sequence.class,
-              generic1 = String.class,
+              allowedTypes = {
+                @ParamType(type = net.starlark.java.eval.Sequence.class, generic1 = String.class),
+              },
               defaultValue = "[]",
               named = true),
         },

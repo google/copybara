@@ -80,6 +80,7 @@ import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -155,15 +156,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + " copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This"
               + " will use the pull request as the origin URL and reference.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            named = true,
-            doc = "Indicates the URL of the git repository"),
+        @Param(name = "url", named = true, doc = "Indicates the URL of the git repository"),
         @Param(
             name = "ref",
-            type = String.class,
-            noneable = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             doc =
@@ -171,14 +170,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "from the git repository. For example: 'master'"),
         @Param(
             name = "submodules",
-            type = String.class,
             defaultValue = "'NO'",
             named = true,
             positional = false,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
             name = "include_branch_commit_logs",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
@@ -188,7 +185,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " This setting *only* affects merge commits."),
         @Param(
             name = "first_parent",
-            type = Boolean.class,
             defaultValue = "True",
             named = true,
             positional = false,
@@ -198,36 +194,40 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " change of the merged branch."),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = PATCH_FIELD,
-            type = Transformation.class,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc = PATCH_FIELD_DESC),
         @Param(
             name = "describe_version",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = DESCRIBE_VERSION_FIELD_DOC,
-            noneable = true),
+            doc = DESCRIBE_VERSION_FIELD_DOC),
         @Param(
             name = "version_selector",
-            type = LatestVersionSelector.class,
+            allowedTypes = {
+              @ParamType(type = LatestVersionSelector.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'",
-            noneable = true),
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
       },
       useStarlarkThread = true)
   public GitOrigin origin(
@@ -285,13 +285,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "label",
-            type = String.class,
             named = true,
             doc = "The migration label that will contain the url to the change to integrate.",
             defaultValue = "\"" + DEFAULT_INTEGRATE_LABEL + "\""),
         @Param(
             name = "strategy",
-            type = String.class,
             named = true,
             defaultValue = "\"FAKE_MERGE_AND_INCLUDE_FILES\"",
             doc =
@@ -308,7 +306,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " destination_files</li></ul>"),
         @Param(
             name = "ignore_errors",
-            type = Boolean.class,
             named = true,
             doc =
                 "If we should ignore integrate errors and continue the migration without the"
@@ -342,21 +339,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       name = "mirror",
       doc = "Mirror git references between repositories",
       parameters = {
-        @Param(name = "name", type = String.class, named = true, doc = "Migration name"),
+        @Param(name = "name", named = true, doc = "Migration name"),
         @Param(
             name = "origin",
-            type = String.class,
             named = true,
             doc = "Indicates the URL of the origin git repository"),
         @Param(
             name = "destination",
-            type = String.class,
             named = true,
             doc = "Indicates the URL of the destination git repository"),
         @Param(
             name = "refspecs",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             named = true,
             defaultValue = "['refs/heads/*']",
             doc =
@@ -365,23 +361,22 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " inside refs/heads to refs/remotes/origin."),
         @Param(
             name = "prune",
-            type = Boolean.class,
             named = true,
             doc = "Remove remote refs that don't have a origin counterpart",
             defaultValue = "False"),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "description",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            noneable = true,
             positional = false,
             doc = "A description of what this workflow achieves",
             defaultValue = "None"),
@@ -469,27 +464,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + "  - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in"
               + " cc\n",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            named = true,
-            doc = "Indicates the URL of the git repository"),
+        @Param(name = "url", named = true, doc = "Indicates the URL of the git repository"),
         @Param(
             name = "ref",
-            type = String.class,
-            noneable = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             doc = "DEPRECATED. Use git.origin for submitted branches."),
         @Param(
             name = "submodules",
-            type = String.class,
             defaultValue = "'NO'",
             named = true,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
             name = "first_parent",
-            type = Boolean.class,
             defaultValue = "True",
             named = true,
             doc =
@@ -499,51 +490,57 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
             doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "api_checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "A checker for the Gerrit API endpoint provided for after_migration hooks. "
                     + "This field is not required if the workflow hooks don't use the "
                     + "origin/destination endpoints.",
             named = true,
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = PATCH_FIELD,
-            type = Transformation.class,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc = PATCH_FIELD_DESC),
         @Param(
             name = "branch",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc =
                 "Limit the import to"
                     + " changes that are for this branch. By default imports everything."),
         @Param(
             name = "describe_version",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = DESCRIBE_VERSION_FIELD_DOC,
-            noneable = true),
+            doc = DESCRIBE_VERSION_FIELD_DOC),
         @Param(
             name = "ignore_gerrit_noop",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
@@ -655,14 +652,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + " that have participated in the review but cannot approve the import. Only"
               + " populated if `review_state` field is set.\n",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            named = true,
-            doc = "Indicates the URL of the GitHub repository"),
+        @Param(name = "url", named = true, doc = "Indicates the URL of the GitHub repository"),
         @Param(
             name = "use_merge",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
@@ -672,9 +664,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " revision."),
         @Param(
             name = "required_labels",
-            type = Sequence.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
-            generic1 = String.class,
             defaultValue = "[]",
             doc =
                 "Required labels to import the PR. All the labels need to be present in order"
@@ -682,9 +673,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "retryable_labels",
-            type = Sequence.class,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
-            generic1 = String.class,
             defaultValue = "[]",
             doc =
                 "Required labels to import the PR that should be retried. This parameter must"
@@ -692,14 +682,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "submodules",
-            type = String.class,
             defaultValue = "'NO'",
             named = true,
             positional = false,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
             name = "baseline_from_branch",
-            type = Boolean.class,
             named = true,
             doc =
                 "WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>"
@@ -710,7 +698,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "first_parent",
-            type = Boolean.class,
             defaultValue = "True",
             named = true,
             doc =
@@ -720,15 +707,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "state",
-            type = String.class,
             defaultValue = "'OPEN'",
             named = true,
             positional = false,
@@ -737,11 +721,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'"),
         @Param(
             name = "review_state",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc =
                 "Required state of the reviews associated with the Pull Request"
                     + " Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`,"
@@ -753,12 +739,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "` labels populated"),
         @Param(
             name = "review_approvers",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc =
                 "The set of reviewer types that are considered for approvals. In order to"
                     + " have any effect, `review_state` needs to be set. "
@@ -768,39 +755,47 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " https://developer.github.com/v4/enum/commentauthorassociation/"),
         @Param(
             name = "api_checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "A checker for the GitHub API endpoint provided for after_migration hooks. "
                     + "This field is not required if the workflow hooks don't use the "
                     + "origin/destination endpoints.",
             named = true,
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = PATCH_FIELD,
-            type = Transformation.class,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc = PATCH_FIELD_DESC),
         @Param(
             name = "branch",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             positional = false,
             defaultValue = "None",
-            noneable = true,
             doc = "If set, it will only migrate pull requests for this base branch"),
         @Param(
             name = "describe_version",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = DESCRIBE_VERSION_FIELD_DOC,
-            noneable = true)
+            doc = DESCRIBE_VERSION_FIELD_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubPrOriginOptions.class)
@@ -883,15 +878,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + GITHUB_PR_ORIGIN_NAME
               + " for importing Pull Requests.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            named = true,
-            doc = "Indicates the URL of the git repository"),
+        @Param(name = "url", named = true, doc = "Indicates the URL of the git repository"),
         @Param(
             name = "ref",
-            type = String.class,
-            noneable = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             doc =
@@ -899,13 +892,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "from the git repository. For example: 'master'"),
         @Param(
             name = "submodules",
-            type = String.class,
             defaultValue = "'NO'",
             named = true,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
             name = "first_parent",
-            type = Boolean.class,
             defaultValue = "True",
             named = true,
             doc =
@@ -915,36 +906,40 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = PATCH_FIELD,
-            type = Transformation.class,
+            allowedTypes = {
+              @ParamType(type = Transformation.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            noneable = true,
             doc = PATCH_FIELD_DESC),
         @Param(
             name = "describe_version",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = DESCRIBE_VERSION_FIELD_DOC,
-            noneable = true),
+            doc = DESCRIBE_VERSION_FIELD_DOC),
         @Param(
             name = "version_selector",
-            type = LatestVersionSelector.class,
+            allowedTypes = {
+              @ParamType(type = LatestVersionSelector.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'",
-            noneable = true),
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
       },
       useStarlarkThread = true)
   public GitOrigin githubOrigin(
@@ -1002,20 +997,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "url",
-            type = String.class,
             named = true,
             doc =
                 "Indicates the URL to push to as well as the URL from which to get the parent "
                     + "commit"),
         @Param(
             name = "push",
-            type = String.class,
             named = true,
             doc = "Reference to use for pushing the change, for example 'master'",
             defaultValue = "'master'"),
         @Param(
             name = "tag_name",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "A template string that refers to a tag name. If tag_name exists, overwrite "
@@ -1024,11 +1020,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "Usage: Users can use a string or a string with a label. "
                     + "For instance ${label}_tag_name. And the value of label must be "
                     + "in changes' label list. Otherwise, tag won't be created.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "tag_msg",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "A template string that refers to the commit msg of a tag. If set, we will "
@@ -1036,37 +1034,37 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "or a string with a label. For instance ${label}_message. And the value of "
                     + "label must be in changes' label list. Otherwise, tag will be created with "
                     + "sha1's commit msg.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "fetch",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "Indicates the ref from which to get the parent commit. Defaults to push value"
                     + " if None",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "integrates",
-            type = Sequence.class,
             named = true,
-            generic1 = GitIntegrateChanges.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "Integrate changes from a url present in the migrated change"
                     + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                     + " present in the message",
-            positional = false,
-            noneable = true),
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1112,29 +1110,32 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "url",
-            type = String.class,
             named = true,
             doc =
                 "Indicates the URL to push to as well as the URL from which to get the parent "
                     + "commit"),
         @Param(
             name = "push",
-            type = String.class,
             named = true,
             doc = "Reference to use for pushing the change, for example 'master'",
             defaultValue = "'master'"),
         @Param(
             name = "fetch",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "Indicates the ref from which to get the parent commit. Defaults to push value"
                     + " if None",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "pr_branch_to_update",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "A template string that refers to a pull request branch in the same repository"
@@ -1146,48 +1147,50 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " Usage: Users can use a string or a string with a label. For instance"
                     + " ${label}_pr_branch_name. And the value of label must be in changes' label"
                     + " list. Otherwise, nothing will happen.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "delete_pr_branch",
-            type = Boolean.class,
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 "When `pr_branch_to_update` is enabled, it will delete the branch reference"
                     + " after the push to the branch and main branch (i.e master) happens. This"
                     + " allows to cleanup temporary branches created for testing.",
-            noneable = true,
             defaultValue = "None"),
         @Param(
             name = "integrates",
-            type = Sequence.class,
             named = true,
-            generic1 = GitIntegrateChanges.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "Integrate changes from a url present in the migrated change"
                     + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                     + " present in the message",
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "api_checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "A checker for the Gerrit API endpoint provided for after_migration hooks. "
                     + "This field is not required if the workflow hooks don't use the "
                     + "origin/destination endpoints.",
             named = true,
-            positional = false,
-            noneable = true),
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1264,22 +1267,22 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "url",
-            type = String.class,
             named = true,
             doc =
                 "Url of the GitHub project. For example"
                     + " \"https://github.com/google/copybara'\""),
         @Param(
             name = "destination_ref",
-            type = String.class,
             named = true,
             doc = "Destination reference for the change. By default 'master'",
             defaultValue = "\"master\""),
         @Param(
             name = "pr_branch",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
-            noneable = true,
             named = true,
             positional = false,
             doc =
@@ -1288,17 +1291,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "reference (head, PR number, Gerrit change number, etc.)."),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "title",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
-            noneable = true,
             named = true,
             positional = false,
             doc =
@@ -1307,9 +1310,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "body",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
-            noneable = true,
             named = true,
             positional = false,
             doc =
@@ -1318,30 +1323,32 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
         @Param(
             name = "integrates",
-            type = Sequence.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            generic1 = GitIntegrateChanges.class,
             defaultValue = "None",
             doc =
                 "Integrate changes from a url present in the migrated change"
                     + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                     + " present in the message",
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "api_checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "A checker for the GitHub API endpoint provided for after_migration hooks. "
                     + "This field is not required if the workflow hooks don't use the "
                     + "origin/destination endpoints.",
             named = true,
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "update_description",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
             positional = false,
@@ -1438,29 +1445,28 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "url",
-            type = String.class,
             named = true,
             doc =
                 "Indicates the URL to push to as well as the URL from which to get the parent "
                     + "commit"),
         @Param(
             name = "fetch",
-            type = String.class,
             named = true,
             doc = "Indicates the ref from which to get the parent commit"),
         @Param(
             name = "push_to_refs_for",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             named = true,
-            noneable = true,
             doc =
                 "Review branch to push the change to, for example setting this to 'feature_x'"
                     + " causes the destination to push to 'refs/for/feature_x'. It defaults to "
                     + "'fetch' value."),
         @Param(
             name = "submit",
-            type = Boolean.class,
             named = true,
             doc =
                 "If true, skip the push thru Gerrit refs/for/branch and directly push to branch."
@@ -1468,24 +1474,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False"),
         @Param(
             name = "partial_fetch",
-            type = Boolean.class,
             defaultValue = "False",
             named = true,
-            doc =
-                "Please DO NOT set it to True. This feature is not ready."),
+            doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "notify",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
             doc =
                 ""
                     + "Type of Gerrit notify option (https://gerrit-review.googlesource.com/Docum"
                     + "entation/user-upload.html#notify). Sends notifications by default.",
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "change_id_policy",
-            type = String.class,
             defaultValue = "'FAIL_IF_PRESENT'",
             named = true,
             doc =
@@ -1499,7 +1504,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "</ul>"),
         @Param(
             name = "allow_empty_diff_patchset",
-            type = Boolean.class,
             named = true,
             doc =
                 "By default Copybara will upload a new PatchSet to Gerrit without checking the"
@@ -1508,7 +1512,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "True"),
         @Param(
             name = "reviewers",
-            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1518,7 +1521,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " assuming that users have registered to gerrit repos"),
         @Param(
             name = "cc",
-            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1526,7 +1528,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " use labels as the `reviewers` field."),
         @Param(
             name = "labels",
-            type = Sequence.class,
             named = true,
             defaultValue = "[]",
             doc =
@@ -1534,32 +1535,37 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "along with the associated value. For example: Run-Presubmit+1"),
         @Param(
             name = "api_checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc =
                 "A checker for the Gerrit API endpoint provided for after_migration hooks. "
                     + "This field is not required if the workflow hooks don't use the "
                     + "origin/destination endpoints.",
             named = true,
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "integrates",
-            type = Sequence.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+              @ParamType(type = NoneType.class),
+            },
             named = true,
-            generic1 = GitIntegrateChanges.class,
             defaultValue = "None",
             doc =
                 "Integrate changes from a url present in the migrated change"
                     + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                     + " present in the message",
-            positional = false,
-            noneable = true),
+            positional = false),
         @Param(
             name = "topic",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
-            noneable = true,
             named = true,
             positional = false,
             doc =
@@ -1567,16 +1573,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "Sets the topic of the Gerrit change created.<br><br>"
                     + "By default it sets no topic. This field accepts a template with labels. "
                     + "For example: `\"topic_${CONTEXT_REFERENCE}\"`"),
-          @Param(
-              name = "gerrit_submit",
-              type = Boolean.class,
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc =
-                  "By default, Copybara uses git commit/push to the main branch when submit = True."
-                      + "  If this flag is enabled, it will update the Gerrit change with the "
-                      + "latest commit and submit using Gerrit."),
+        @Param(
+            name = "gerrit_submit",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "By default, Copybara uses git commit/push to the main branch when submit = True."
+                    + "  If this flag is enabled, it will update the Gerrit change with the "
+                    + "latest commit and submit using Gerrit."),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1654,24 +1659,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           "Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API"
               + " operations.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            doc = "Indicates the GitHub repo URL.",
-            named = true),
+        @Param(name = "url", doc = "Indicates the GitHub repo URL.", named = true),
         @Param(
             name = "checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc = "A checker for the GitHub API transport.",
-            named = true,
-            noneable = true),
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubOptions.class)
-  public EndpointProvider<GitHubEndPoint>
-  githubApi(String url, Object checkerObj, StarlarkThread thread)
-      throws EvalException {
+  public EndpointProvider<GitHubEndPoint> githubApi(
+      String url, Object checkerObj, StarlarkThread thread) throws EvalException {
     checkNotEmpty(url, "url");
     String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
@@ -1690,18 +1692,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + "Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API "
               + "operations.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            doc = "Indicates the Gerrit repo URL.",
-            named = true),
+        @Param(name = "url", doc = "Indicates the Gerrit repo URL.", named = true),
         @Param(
             name = "checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc = "A checker for the Gerrit API transport.",
-            named = true,
-            noneable = true),
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
@@ -1726,18 +1726,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       name = GERRIT_TRIGGER,
       doc = "Defines a feedback trigger based on updates on a Gerrit change.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            doc = "Indicates the Gerrit repo URL.",
-            named = true),
+        @Param(name = "url", doc = "Indicates the Gerrit repo URL.", named = true),
         @Param(
             name = "checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc = "A checker for the Gerrit API transport provided by this trigger.",
-            named = true,
-            noneable = true),
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
@@ -1757,22 +1755,21 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       name = GITHUB_TRIGGER,
       doc = "Defines a feedback trigger based on updates on a GitHub PR.",
       parameters = {
-        @Param(
-            name = "url",
-            type = String.class,
-            doc = "Indicates the GitHub repo URL.",
-            named = true),
+        @Param(name = "url", doc = "Indicates the GitHub repo URL.", named = true),
         @Param(
             name = "checker",
-            type = Checker.class,
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
             defaultValue = "None",
             doc = "A checker for the GitHub API transport provided by this trigger.",
-            named = true,
-            noneable = true),
+            named = true),
         @Param(
             name = "events",
-            type = Sequence.class,
-            generic1 = String.class,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
             named = true,
             defaultValue = "[]",
             doc =
@@ -1815,26 +1812,25 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       name = "review_input",
       doc = "Creates a review to be posted on Gerrit.",
       parameters = {
-        @Param(
-            name = "labels",
-            type = Dict.class,
-            doc = "The labels to post.",
-            named = true,
-            defaultValue = "{}"),
+        @Param(name = "labels", doc = "The labels to post.", named = true, defaultValue = "{}"),
         @Param(
             name = "message",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "The message to be added as review comment.",
             named = true,
-            defaultValue = "None",
-            noneable = true),
+            defaultValue = "None"),
         @Param(
             name = "tag",
-            type = String.class,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
             doc = "Tag to be applied to the review, for instance 'autogenerated:copybara'.",
             named = true,
-            defaultValue = "None",
-            noneable = true)
+            defaultValue = "None")
       })
   @UsesFlags(GerritOptions.class)
   public SetReviewInput reviewInput(
@@ -1878,14 +1874,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "refspec_format",
-            type = String.class,
             doc = "The format of the branch/tag",
             named = true,
             defaultValue = "\"refs/tags/${n0}.${n1}.${n2}\""),
         @Param(
             name = "refspec_groups",
             named = true,
-            type = Dict.class,
             doc =
                 "A set of named regexes that can be used to match part of the versions. Copybara"
                     + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"

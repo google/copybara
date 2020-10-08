@@ -55,22 +55,17 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
           @Param(
               name = "project",
-              type = String.class,
               named = true,
               defaultValue = "[]",
               doc = "The GitHub project from which to load the file, e.g. google/copybara"),
           @Param(
               name = "revision",
-              type = String.class,
               named = true,
-              generic1 = String.class,
               defaultValue = "[]",
               doc = "The revision to download from the project, typically a commit SHA1."),
           @Param(
               name = "type",
-              type = String.class,
               named = true,
-              generic1 = String.class,
               defaultValue = "'TARBALL'",
               doc = "Archive type to download, options are 'TARBALL' or 'ZIP'."),
           })

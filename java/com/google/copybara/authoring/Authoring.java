@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
@@ -114,7 +115,6 @@ public final class Authoring implements StarlarkValue {
         parameters = {
           @Param(
               name = "default",
-              type = String.class,
               named = true,
               doc = "The default author for commits in the destination"),
         })
@@ -139,7 +139,6 @@ public final class Authoring implements StarlarkValue {
         parameters = {
           @Param(
               name = "default",
-              type = String.class,
               named = true,
               doc =
                   "The default author for commits in the destination. This is used"
@@ -156,18 +155,17 @@ public final class Authoring implements StarlarkValue {
         parameters = {
           @Param(
               name = "default",
-              type = String.class,
               named = true,
               doc =
                   "The default author for commits in the destination. This is used"
                       + " in squash mode workflows or when users are not on the list."),
           @Param(
               name = "allowlist",
-              type = Sequence.class,
-              generic1 = String.class,
+              allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
               named = true,
-              doc = "List of  authors in the origin that are allowed to contribute code. The "
-                  + "authors must be unique"),
+              doc =
+                  "List of  authors in the origin that are allowed to contribute code. The "
+                      + "authors must be unique"),
         })
     @Example(
         title = "Only pass thru allowed users",
