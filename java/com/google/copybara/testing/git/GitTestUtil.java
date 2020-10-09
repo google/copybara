@@ -67,7 +67,7 @@ public class GitTestUtil {
 
   private static final Author DEFAULT_AUTHOR = new Author("Authorbara", "author@example.com");
   private static final Author COMMITER = new Author("Commit Bara", "commitbara@example.com");
-  static final MockRequestAssertion ALWAYS_TRUE =
+  public static final MockRequestAssertion ALWAYS_TRUE =
       new MockRequestAssertion("Always true", any -> true);
 
   protected MockHttpTransport mockHttpTransport = null;

@@ -44,7 +44,6 @@ import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
-import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
@@ -114,23 +113,31 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             named = true,
             doc = "Url with expanded information about the event",
             defaultValue = "None"),
-      })
-  public Status createStatus(
+      }
+  )
+  public Object createStatus(
       String sha, String state, String context, String description, Object targetUrl)
-      throws EvalException, RepoException {
+      throws EvalException, RepoException, ValidationException {
     try {
       checkCondition(State.VALID_VALUES.contains(state),
-                     "Invalid value for state. Valid values: %s", State.VALID_VALUES);
+          "Invalid value for state. Valid values: %s", State.VALID_VALUES);
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
-                     "Not a valid complete SHA-1: %s", sha);
+          "Not a valid complete SHA-1: %s", sha);
       checkCondition(!Strings.isNullOrEmpty(description), "description cannot be empty");
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
 
       String project = GitHubUtil.getProjectNameFromUrl(url);
       return apiSupplier.load(console).createStatus(
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
-                                                 convertFromNoneable(targetUrl, null),
-                                                 description, context));
+              convertFromNoneable(targetUrl, null),
+              description, context));
+    } catch (GitHubApiException gae) {
+      if (gae.getRawError()
+          .contains("This SHA and context has reached the maximum number of statuses")) {
+        throw new ValidationException(
+            "This SHA and context has reached the maximum number of statuses", gae);
+      }
+      throw gae;
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling create_status: %s", e.getMessage());
     }

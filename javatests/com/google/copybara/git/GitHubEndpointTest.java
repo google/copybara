@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.git.GitTestUtil.ALWAYS_TRUE;
 import static com.google.copybara.testing.git.GitTestUtil.mockGitHubNotFound;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -104,7 +105,7 @@ public class GitHubEndpointTest {
             + "    author : { login : 'github_author'}\n"
             + "}"));
 
-    gitUtil.mockApi(eq("POST"), contains("/status"),
+    gitUtil.mockApi(eq("POST"), contains("/statuses/e59774"),
         mockResponse("{\n"
             + "    state : 'success',\n"
             + "    target_url : 'https://github.com/google/example',\n"
@@ -291,6 +292,24 @@ public class GitHubEndpointTest {
         .addAll(checkFieldStarLark("res", "description", "'Observed foo'"))
         .addAll(checkFieldStarLark("res", "context", "'test'"))
         .build());
+  }
+
+
+  @Test
+  public void testCreateStatusLimitReached() throws Exception {
+    gitUtil.mockApi(eq("POST"), contains("/statuses/c59774"),
+       mockResponseWithStatus(
+        "{\n"
+            + "\"message\" : \"This SHA and context has reached the maximum number of statuses\",\n"
+            + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+            + "}", 422, ALWAYS_TRUE));
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> runFeedback(ImmutableList.<String>builder()
+        .add("ctx.destination.create_status("
+            + "sha = 'c597746de9c1704e648ddc3ffa0d2096b146d600',"
+            + " state = 'success', context = 'test', description = 'Observed foo')").build()));
+    assertThat(expected).hasMessageThat()
+        .contains("This SHA and context has reached the maximum number of statuses");
   }
 
   @Test
