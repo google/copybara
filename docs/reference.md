@@ -2542,7 +2542,7 @@ labels | `sequence of string`<br><p>List of labels to add.</p>
 
 Create or update a status for a commit. Returns the status created.
 
-`object github_api_obj.create_status(sha, state, context, description, target_url=None)`
+`github_api_status_obj github_api_obj.create_status(sha, state, context, description, target_url=None)`
 
 
 #### Parameters:

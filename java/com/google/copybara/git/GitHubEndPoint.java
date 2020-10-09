@@ -44,6 +44,7 @@ import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
+import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
@@ -115,7 +116,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             defaultValue = "None"),
       }
   )
-  public Object createStatus(
+  public Status createStatus(
       String sha, String state, String context, String description, Object targetUrl)
       throws EvalException, RepoException, ValidationException {
     try {
@@ -132,10 +133,9 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
               convertFromNoneable(targetUrl, null),
               description, context));
     } catch (GitHubApiException gae) {
-      if (gae.getRawError()
-          .contains("This SHA and context has reached the maximum number of statuses")) {
+      if (gae.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
         throw new ValidationException(
-            "This SHA and context has reached the maximum number of statuses", gae);
+            "GitHub was unable to process the request " + gae.getError(), gae);
       }
       throw gae;
     } catch (ValidationException | RuntimeException e) {
@@ -503,6 +503,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       name = "url",
       doc = "Return the URL of this endpoint.",
       structField = true)
+  @Override
   public String getUrl() {
     return url;
   }
