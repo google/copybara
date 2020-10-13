@@ -92,7 +92,8 @@ public class GitDestinationTest {
   private String tagName;
   private String tagMsg;
   private String partialClone;
-
+  private String primaryBranch;
+  
   private Path workdir;
 
   @Before
@@ -112,6 +113,7 @@ public class GitDestinationTest {
     force = false;
     tagName = "test_v1";
     tagMsg = "foo_tag";
+    primaryBranch = repo().getPrimaryBranch();
   }
 
   public OptionsBuilder getOptionsBuilder(
@@ -145,7 +147,9 @@ public class GitDestinationTest {
   @Test
   public void errorIfUrlMissing() {
     skylark.evalFails(
-        "" + "git.destination(\n" + "    fetch = 'master',\n" + "    push = 'master',\n" + ")",
+        "" + "git.destination(\n"
+            + String.format("    fetch = '%s',\n", primaryBranch)
+            + String.format("    push = '%s',\n", primaryBranch) + ")",
         "missing 1 required positional argument: url");
   }
 
@@ -300,8 +304,8 @@ public class GitDestinationTest {
 
   @Test
   public void testNoSetRevId() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
         .withSetRevId(false);
@@ -311,20 +315,20 @@ public class GitDestinationTest {
     assertThat(destinationResult).hasSize(1);
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    assertFilesInDir(1, "master", ".");
-    assertCommitCount(1, "master");
+    assertFilesInDir(1, primaryBranch, ".");
+    assertCommitCount(1, primaryBranch);
 
-    assertThat(parseMessage(lastCommit("master").getBody())
+    assertThat(parseMessage(lastCommit(primaryBranch).getBody())
         .labelsAsMultimap()).doesNotContainKey(DummyOrigin.LABEL_NAME);
   }
 
   @Test
   public void testTag() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.setForce(true);
     WriterContext writerContext =
@@ -350,8 +354,8 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithLabel() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     tagName = "tag_${my_tag}";
     tagMsg = "msg_${my_msg}";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -373,8 +377,8 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithLabelNotFound() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     tagName = "tag_${my_tag}";
     tagMsg = "msg_${my_msg}";
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -395,8 +399,8 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithExisting() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.setForce(true);
     WriterContext writerContext =
@@ -459,8 +463,8 @@ public class GitDestinationTest {
 
   @Test
   public void testTagWithMsg() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.setForce(true);
     WriterContext writerContext =
@@ -485,8 +489,8 @@ public class GitDestinationTest {
   public void processUserAborts() throws Exception {
     console = new TestingConsole()
         .respondNo();
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     ValidationException thrown =
         assertThrows(
@@ -506,8 +510,8 @@ public class GitDestinationTest {
   @Test
   public void processEmptyDiff() throws Exception {
     console = new TestingConsole().respondYes();
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     processWithBaselineAndConfirmation(
         firstCommitWriter(),
@@ -531,8 +535,8 @@ public class GitDestinationTest {
   public void processUserConfirms() throws Exception {
     console = new TestingConsole()
         .respondYes();
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     processWithBaselineAndConfirmation(
         firstCommitWriter(),
@@ -544,10 +548,10 @@ public class GitDestinationTest {
     // Validate that we really have pushed the commit.
     assertThat(change).contains("test summary");
     console.assertThat()
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching: file:.* refs/heads/master")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Fetching: file:.* refs/heads/.*")
         .matchesNext(MessageType.WARNING,
-            "Git Destination: 'refs/heads/master' doesn't exist in 'file://.*")
-        .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out master")
+            "Git Destination: 'refs/heads/.*' doesn't exist in 'file://.*")
+        .matchesNext(MessageType.PROGRESS, "Git Destination: Checking out .*")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Adding all files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Excluding files")
         .matchesNext(MessageType.PROGRESS, "Git Destination: Creating a local commit")
@@ -569,8 +573,8 @@ public class GitDestinationTest {
 
   @Test
   public void processEmptyCommit() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     DummyRevision ref = new DummyRevision("origin_ref");
     process(firstCommitWriter(), ref);
@@ -589,8 +593,8 @@ public class GitDestinationTest {
    */
   @Test
   public void getDestinationStatusForFakeMergeAndNonEmptyRoots() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.createDirectories(workdir.resolve("dir"));
     Files.write(workdir.resolve("dir/file"), "".getBytes());
@@ -610,7 +614,7 @@ public class GitDestinationTest {
     repo.add().files("dir/file").run();
     repo.simpleCommand("commit", "-m", "first commit");
 
-    repo.forceCheckout("master");
+    repo.forceCheckout(primaryBranch);
 
     // Fake merge
     repo.simpleCommand("merge", "-Xours", "foo", "-m",
@@ -629,8 +633,8 @@ public class GitDestinationTest {
 
   @Test
   public void processEmptyCommitWithExcludes() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("excluded"), "some content".getBytes());
     repo().withWorkTree(workdir)
         .add().files("excluded").run();
@@ -684,8 +688,8 @@ public class GitDestinationTest {
 
   @Test
   public void doNotDeleteIncludedFilesInNonMatchingSubdir() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.createDirectories(workdir.resolve("foo"));
     Files.write(workdir.resolve("foo/bar"), "content".getBytes(UTF_8));
@@ -700,7 +704,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("foo/**"));
     process(newWriter(), new DummyRevision("origin_ref"));
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/bar", "content")
         .containsFile("foo/baz", "content")
         .containsNoMoreFiles();
@@ -708,8 +712,8 @@ public class GitDestinationTest {
 
   @Test
   public void emptyRebaseTest() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     GitRepository destRepo = repo().withWorkTree(workdir);
 
     writeFile(workdir, "foo", "");
@@ -720,7 +724,7 @@ public class GitDestinationTest {
 
     writeFile(workdir, "foo", "updated");
     destRepo.add().files("foo").run();
-    destRepo.simpleCommand("commit", "-m", "master head");
+    destRepo.simpleCommand("commit", "-m", "main head");
 
     writeFile(workdir, "foo", "updated");
 
@@ -739,8 +743,8 @@ public class GitDestinationTest {
 
   @Test
   public void previousRebaseFailureDoesNotAffectNextOne() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     GitRepository destRepo = repo().withWorkTree(workdir);
 
     writeFile(workdir, "foo", "");
@@ -751,7 +755,7 @@ public class GitDestinationTest {
 
     writeFile(workdir, "foo", "conflict");
     destRepo.add().files("foo").run();
-    destRepo.simpleCommand("commit", "-m", "master head");
+    destRepo.simpleCommand("commit", "-m", "primary head");
 
     writeFile(workdir, "foo", "updated");
 
@@ -784,8 +788,8 @@ public class GitDestinationTest {
 
   @Test
   public void emptyRebaseEmptyDescription() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     GitRepository destRepo = repo().withWorkTree(workdir);
 
     writeFile(workdir, "foo", "");
@@ -796,7 +800,7 @@ public class GitDestinationTest {
 
     writeFile(workdir, "foo", "updated");
     destRepo.add().files("foo").run();
-    destRepo.simpleCommand("commit", "-m", "master head");
+    destRepo.simpleCommand("commit", "-m", "primary head");
 
     writeFile(workdir, "foo", "updated");
 
@@ -815,8 +819,8 @@ public class GitDestinationTest {
 
   @Test
   public void lastRevOnlyForAffectedRoots() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.createDirectories(workdir.resolve("foo"));
     Files.createDirectories(workdir.resolve("bar"));
@@ -858,8 +862,8 @@ public class GitDestinationTest {
    */
   @Test
   public void multipleMigrationsToOneDestination_separateRoots() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.createDirectories(workdir.resolve("foo"));
     Files.createDirectories(workdir.resolve("bar"));
@@ -881,7 +885,7 @@ public class GitDestinationTest {
     DummyRevision repoAfirstRev = new DummyRevision("Foo first");
     process(writer1, repoAglob, repoAfirstRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Second version")
         .containsFile("bar/one", "First version")
         .containsFile("baz/one", "First version")
@@ -894,7 +898,7 @@ public class GitDestinationTest {
     DummyRevision repoBfirstRev = new DummyRevision("Bar first");
     process(writer2, repoBglob, repoBfirstRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Second version")
         .containsFile("bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -908,7 +912,7 @@ public class GitDestinationTest {
     DummyRevision repoASecondRev = new DummyRevision("Foo second");
     process(writer3, repoAglob, repoASecondRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Third version")
         .containsFile("bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -929,8 +933,8 @@ public class GitDestinationTest {
    */
   @Test
   public void multipleMigrationsToOneDestination_withComplexGlobs() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.createDirectories(workdir.resolve("foo"));
     Files.createDirectories(workdir.resolve("foo/bar"));
@@ -952,7 +956,7 @@ public class GitDestinationTest {
     DummyRevision repoAfirstRev = new DummyRevision("Foo first");
     process(writer1, repoAglob, repoAfirstRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Second version")
         .containsFile("foo/bar/one", "First version")
         .containsFile("baz/one", "First version")
@@ -965,7 +969,7 @@ public class GitDestinationTest {
     DummyRevision repoBfirstRev = new DummyRevision("Bar first");
     process(writer2, repoBglob, repoBfirstRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Second version")
         .containsFile("foo/bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -979,7 +983,7 @@ public class GitDestinationTest {
     DummyRevision repoASecondRev = new DummyRevision("Foo second");
     process(writer3, repoAglob, repoASecondRev);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo/one", "Third version")
         .containsFile("foo/bar/one", "Second version")
         .containsFile("baz/one", "First version")
@@ -996,7 +1000,7 @@ public class GitDestinationTest {
 
   @Test
   public void test_force_rewrite_history() throws Exception {
-    fetch = "master";
+    fetch = primaryBranch;
     push = "feature";
 
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
@@ -1004,7 +1008,7 @@ public class GitDestinationTest {
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.write(scratchTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
     repo().withWorkTree(scratchTree).add().files("excluded.txt").run();
-    repo().withWorkTree(scratchTree).simpleCommand("commit", "-m", "master change");
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-m", "primary change");
 
     Path file = workdir.resolve("test.txt");
 
@@ -1034,13 +1038,13 @@ public class GitDestinationTest {
     process(writer, new DummyRevision("second_commit_2"));
     assertCommitHasOrigin("feature", "second_commit_2");
 
-    assertThat(repo().log("master..feature").run()).hasSize(2);
+    assertThat(repo().log(primaryBranch + "..feature").run()).hasSize(2);
   }
 
   private void checkPreviousImportReference()
       throws IOException, ValidationException, RepoException {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Path file = workdir.resolve("test.txt");
 
@@ -1049,27 +1053,27 @@ public class GitDestinationTest {
         firstCommitWriter();
     assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME)).isNull();
     process(writer, new DummyRevision("first_commit"));
-    assertCommitHasOrigin("master", "first_commit");
+    assertCommitHasOrigin(primaryBranch, "first_commit");
 
     Files.write(file, "some other content".getBytes());
     writer = newWriter();
     assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("first_commit");
     process(writer, new DummyRevision("second_commit"));
-    assertCommitHasOrigin("master", "second_commit");
+    assertCommitHasOrigin(primaryBranch, "second_commit");
 
     Files.write(file, "just more text".getBytes());
     writer = newWriter();
     assertThat(writer.getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME).getBaseline())
         .isEqualTo("second_commit");
     process(writer, new DummyRevision("third_commit"));
-    assertCommitHasOrigin("master", "third_commit");
+    assertCommitHasOrigin(primaryBranch, "third_commit");
   }
 
   @Test
   public void previousImportReference_nonCopybaraCommitsSinceLastMigrate() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(firstCommitWriter(), new DummyRevision("first_commit"));
@@ -1116,10 +1120,10 @@ public class GitDestinationTest {
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
 
-    Files.write(scratchTree.resolve("master" + ".file"), ("master\n\n"
+    Files.write(scratchTree.resolve(primaryBranch + ".file"), (primaryBranch + "\n\n"
         + DummyOrigin.LABEL_NAME + ": should_not_happen").getBytes(UTF_8));
-    scratchRepo.add().files("master" + ".file").run();
-    scratchRepo.simpleCommand("commit", "-m", "master\n\n"
+    scratchRepo.add().files(primaryBranch + ".file").run();
+    scratchRepo.simpleCommand("commit", "-m", primaryBranch + "\n\n"
         + DummyOrigin.LABEL_NAME + ": should_not_happen");
 
     scratchRepo.simpleCommand("branch", "b1");
@@ -1146,33 +1150,33 @@ public class GitDestinationTest {
 
   @Test
   public void writesOriginTimestampToAuthorField() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(firstCommitWriter(),
         new DummyRevision("first_commit").withTimestamp(timeFromEpoch(1414141414))
     );
-    GitTesting.assertAuthorTimestamp(repo(), "master", timeFromEpoch(1414141414));
+    GitTesting.assertAuthorTimestamp(repo(), primaryBranch, timeFromEpoch(1414141414));
 
     Files.write(workdir.resolve("test2.txt"), "some more content".getBytes());
     process(newWriter(), new DummyRevision("second_commit").withTimestamp(timeFromEpoch(1515151515))
     );
-    GitTesting.assertAuthorTimestamp(repo(), "master", timeFromEpoch(1515151515));
+    GitTesting.assertAuthorTimestamp(repo(), primaryBranch, timeFromEpoch(1515151515));
   }
 
   @Test
   public void canOverrideUrl() throws Exception {
     Path newDestination = Files.createTempDirectory("canOverrideUrl");
     git("init", "--bare", newDestination.toString());
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     options.gitDestination.url = "file://" + newDestination.toAbsolutePath();
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     process(firstCommitWriter(), new DummyRevision("first_commit"));
     GitTesting.assertCommitterLineMatches(repoForPath(newDestination),
-        "master", "Bara Kopi <.*> [-+ 0-9]+");
+        primaryBranch, "Bara Kopi <.*> [-+ 0-9]+");
     // No branches were created in the config file url.
     assertThat(repo().simpleCommand("branch").getStdout()).isEqualTo("");
   }
@@ -1222,8 +1226,8 @@ public class GitDestinationTest {
   public void gitUserNameMustBeConfigured() throws Exception {
     options.gitDestination.committerName = "";
     options.gitDestination.committerEmail = "foo@bara";
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     ValidationException thrown =
         assertThrows(
@@ -1238,8 +1242,8 @@ public class GitDestinationTest {
   public void gitUserEmailMustBeConfigured() throws Exception {
     options.gitDestination.committerName = "Foo Bara";
     options.gitDestination.committerEmail = "";
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     ValidationException thrown =
         assertThrows(
@@ -1252,8 +1256,8 @@ public class GitDestinationTest {
 
   @Test
   public void authorPropagated() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -1262,7 +1266,7 @@ public class GitDestinationTest {
         .withTimestamp(timeFromEpoch(1414141414));
     process(firstCommitWriter(), firstCommit);
 
-    assertCommitHasAuthor("master", new Author("Foo Bar", "foo@bar.com"));
+    assertCommitHasAuthor(primaryBranch, new Author("Foo Bar", "foo@bar.com"));
   }
 
   /**
@@ -1272,8 +1276,8 @@ public class GitDestinationTest {
    */
   @Test
   public void authorDateWithSubsecondsCorrectlyPopulated() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -1291,8 +1295,8 @@ public class GitDestinationTest {
 
   @Test
   public void canExcludeDestinationPathFromWorkflow() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.write(scratchTree.resolve("excluded.txt"), "some content".getBytes(UTF_8));
@@ -1304,7 +1308,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("normal_file.txt"), "some more content".getBytes(UTF_8));
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     process(newWriter(), new DummyRevision("ref"));
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
@@ -1312,8 +1316,8 @@ public class GitDestinationTest {
 
   @Test
   public void excludedDestinationPathsIgnoreGitTreeFiles() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-scratchTree");
     Files.createDirectories(scratchTree.resolve("notgit"));
@@ -1329,7 +1333,7 @@ public class GitDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("**/HEAD"));
 
     process(newWriter(), new DummyRevision("ref"));
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("notgit/HEAD", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
@@ -1337,8 +1341,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaseline() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -1357,7 +1361,7 @@ public class GitDestinationTest {
     Files.write(workdir.resolve("other.txt"), "other file".getBytes());
     processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "new content")
         .containsFile("other.txt", "other file")
         .containsFile("excluded", "some content")
@@ -1368,13 +1372,13 @@ public class GitDestinationTest {
   public void processWithBaseline_noRebase() throws Exception {
     options.gitDestination.noRebase = true;
     options.setForce(true);
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     DummyRevision ref = new DummyRevision("origin_ref");
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve("excluded"), "some content".getBytes());
     process(firstCommitWriter(), ref);
-    String firstCommit = repo().parseRef("master");
+    String firstCommit = repo().parseRef(primaryBranch);
     Files.write(workdir.resolve("test.txt"), "new content".getBytes());
     process(newWriter(), ref);
 
@@ -1397,8 +1401,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaselineSameFileConflict() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -1417,8 +1421,8 @@ public class GitDestinationTest {
 
   @Test
   public void processWithBaselineSameFileNoConflict() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     String text = "";
     for (int i = 0; i < 1000; i++) {
       text += "Line " + i + "\n";
@@ -1437,15 +1441,15 @@ public class GitDestinationTest {
 
     processWithBaseline(newWriter(), destinationFiles, ref, firstCommit);
 
-    assertThatCheckout(repo(), "master").containsFile("test.txt",
+    assertThatCheckout(repo(), primaryBranch).containsFile("test.txt",
         text.replace("Line 200", "Line 200 Modified")
             .replace("Line 500", "Line 500 Modified")).containsNoMoreFiles();
   }
 
   @Test
   public void processWithBaselineNotFound() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     DummyRevision ref = new DummyRevision("origin_ref");
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
@@ -1458,13 +1462,13 @@ public class GitDestinationTest {
             () -> processWithBaseline(newWriter(), destinationFiles, ref, "I_dont_exist"));
     assertThat(thrown)
         .hasMessageThat()
-        .contains("Cannot find baseline 'I_dont_exist' from fetch reference 'master'");
+        .contains("Cannot find baseline 'I_dont_exist' from fetch reference '");
   }
 
   @Test
-  public void processWithBaselineNotFoundMasterNotFound() throws Exception {
+  public void processWithBaselineNotFoundPrimaryNotFound() throws Exception {
     fetch = "test_test_test";
-    push = "master";
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "more content".getBytes());
     RepoException thrown =
@@ -1483,8 +1487,8 @@ public class GitDestinationTest {
 
   @Test
   public void pushSequenceOfChangesToReviewBranch() throws Exception {
-    fetch = "master";
-    push = "refs_for_master";
+    fetch = primaryBranch;
+    push = "refs_for_primary";
 
     Writer<GitRevision> writer = firstCommitWriter();
 
@@ -1498,7 +1502,7 @@ public class GitDestinationTest {
     assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
     assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
-    String firstCommitHash = repo().parseRef("refs_for_master");
+    String firstCommitHash = repo().parseRef("refs_for_primary");
 
     Files.write(workdir.resolve("test99"), "99".getBytes(UTF_8));
     result = writer.write(TransformResults.of(
@@ -1510,13 +1514,13 @@ public class GitDestinationTest {
     assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
     // Make sure parent of second commit is the first commit.
-    assertThat(repo().parseRef("refs_for_master~1")).isEqualTo(firstCommitHash);
+    assertThat(repo().parseRef("refs_for_primary~1")).isEqualTo(firstCommitHash);
 
     // Make sure commits have correct file content.
-    assertThatCheckout(repo(), "refs_for_master~1")
+    assertThatCheckout(repo(), "refs_for_primary~1")
         .containsFile("test42", "42")
         .containsNoMoreFiles();
-    assertThatCheckout(repo(), "refs_for_master")
+    assertThatCheckout(repo(), "refs_for_primary")
         .containsFile("test42", "42")
         .containsFile("test99", "99")
         .containsNoMoreFiles();
@@ -1524,13 +1528,13 @@ public class GitDestinationTest {
 
   @Test
   public void testGitIgnoreIncluded() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Files.write(workdir.resolve(".gitignore"), ".gitignore\n".getBytes());
     DummyRevision ref = new DummyRevision("origin_ref");
     process(firstCommitWriter(), ref);
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile(".gitignore", ".gitignore\n")
         .containsNoMoreFiles();
@@ -1538,8 +1542,8 @@ public class GitDestinationTest {
 
   @Test
   public void testGitIgnoreExcluded() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-testGitIgnoreExcluded");
     Files.write(scratchTree.resolve(".gitignore"), ".gitignore\n".getBytes(UTF_8));
@@ -1550,7 +1554,7 @@ public class GitDestinationTest {
 
     DummyRevision ref = new DummyRevision("origin_ref");
     process(newWriter(), ref);
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile(".gitignore", ".gitignore\n")
         .containsNoMoreFiles();
@@ -1560,15 +1564,15 @@ public class GitDestinationTest {
   public void testLocalRepo() throws Exception {
     checkLocalRepo(false);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testDryRun() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -1582,7 +1586,7 @@ public class GitDestinationTest {
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo", "foo\n")
         .containsNoMoreFiles();
 
@@ -1590,15 +1594,15 @@ public class GitDestinationTest {
     writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
 
   @Test
   public void testChangeDescriptionEmpty() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
     Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
     repo().withWorkTree(scratchTree).add().force().files("foo").run();
@@ -1623,14 +1627,14 @@ public class GitDestinationTest {
   public void testLocalRepoSkipPushFlag() throws Exception {
     GitRepository localRepo = checkLocalRepo(true);
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("foo", "foo\n")
         .containsNoMoreFiles();
 
     // A simple push without origin is able to update the correct destination reference
     localRepo.push().run();
 
-    assertThatCheckout(repo(), "master")
+    assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
   }
@@ -1642,17 +1646,17 @@ public class GitDestinationTest {
     repo().withWorkTree(scratchTree).add().force().files("base").run();
     repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "base");
 
-    GitRevision master = repo().resolveReference("master");
+    GitRevision primary = repo().resolveReference(primaryBranch);
 
-    repo().simpleCommand("update-ref", "refs/other/master", master.getSha1());
+    repo().simpleCommand("update-ref", "refs/other/" + primaryBranch, primary.getSha1());
 
     checkLocalRepo(true);
   }
 
   private GitRepository checkLocalRepo(boolean dryRun)
       throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
 
@@ -1672,14 +1676,14 @@ public class GitDestinationTest {
     //    Path localPath = Files.createTempDirectory("local_repo");
     GitRepository localRepo = GitRepository.newRepo(/*verbose*/ true, localPath, getEnv()).init();
 
-    assertThatCheckout(localRepo, "master")
+    assertThatCheckout(localRepo, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
 
     Files.write(workdir.resolve("test.txt"), "another content".getBytes());
     processWithBaseline(writer, destinationFiles, new DummyRevision("origin_ref2"), baseline);
 
-    assertThatCheckout(localRepo, "master")
+    assertThatCheckout(localRepo, primaryBranch)
         .containsFile("test.txt", "another content")
         .containsNoMoreFiles();
 
@@ -1702,8 +1706,8 @@ public class GitDestinationTest {
 
   @Test
   public void testLabelInSameLabelGroupGroup() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Writer<GitRevision> writer = firstCommitWriter();
     Files.write(workdir.resolve("test.txt"), "".getBytes());
     DummyRevision rev = new DummyRevision("first_commit");
@@ -1767,8 +1771,8 @@ public class GitDestinationTest {
 
   @Test
   public void testVisit() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     DummyRevision ref1 = new DummyRevision("origin_ref1");
     DummyRevision ref2 = new DummyRevision("origin_ref2");
     Files.write(workdir.resolve("test.txt"), "Visit me".getBytes());
@@ -1845,8 +1849,8 @@ public class GitDestinationTest {
   }
 
   private WriterContext setUpForTestingTag() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     options.setForce(true);
 
@@ -1886,8 +1890,8 @@ public class GitDestinationTest {
 
   @Test
   public void testDestinationReader() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     Path file = workdir.resolve("test.txt");
     Files.write(file, "some content".getBytes());
     Writer<GitRevision> writer = firstCommitWriter();

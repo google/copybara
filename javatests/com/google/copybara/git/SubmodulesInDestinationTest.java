@@ -47,6 +47,8 @@ public final class SubmodulesInDestinationTest {
   private String url;
   private String fetch;
   private String push;
+  private String primaryBranch;
+
 
   private Path repoGitDir;
   private OptionsBuilder options;
@@ -79,7 +81,7 @@ public final class SubmodulesInDestinationTest {
             DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(Files.createTempDirectory("worktree"))
         .init();
-
+    primaryBranch = submodule.getPrimaryBranch();
     Files.write(submodule.getWorkTree().resolve("foo"), new byte[] {1});
     submodule.add().files("foo").run();
     submodule.simpleCommand("commit", "-m", "dummy commit");
@@ -106,8 +108,8 @@ public final class SubmodulesInDestinationTest {
   }
 
   private void writeWithSubmoduleInDestination() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Path scratchTree = Files.createTempDirectory("SubmodulesInDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
@@ -135,7 +137,7 @@ public final class SubmodulesInDestinationTest {
     destinationFiles =
         Glob.createGlob(ImmutableList.of("**"), ImmutableList.of(".gitmodules", "submodule"));
     writeWithSubmoduleInDestination();
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFiles(".gitmodules", "submodule", "test42");
   }
 
@@ -143,7 +145,7 @@ public final class SubmodulesInDestinationTest {
   public void submoduleInDestination_positiveDestinationFilesGlob() throws Exception {
     destinationFiles = Glob.createGlob(ImmutableList.of("test42"));
     writeWithSubmoduleInDestination();
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFiles(".gitmodules", "submodule", "test42");
   }
 
@@ -151,7 +153,7 @@ public final class SubmodulesInDestinationTest {
   public void submoduleInDestination_deletesIfMatchesDestinationFilesGlob() throws Exception {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     writeWithSubmoduleInDestination();
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFiles("test42")
         .containsNoFiles("submodule");
   }
@@ -159,8 +161,8 @@ public final class SubmodulesInDestinationTest {
   @Test
   public void submoduleInSubdirectoryWithSiblingFiles() throws Exception {
     destinationFiles = Glob.createGlob(ImmutableList.of("foo/a", "foo/c"));
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
 
     Path scratchTree = Files.createTempDirectory("SubmodulesInDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
@@ -186,7 +188,7 @@ public final class SubmodulesInDestinationTest {
     assertThat(result.get(0).getDestinationRef().getType()).isEqualTo("commit");
     assertThat(result.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
     
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFiles("foo/c", "foo/b")
         .containsNoFiles("foo/a");
   }

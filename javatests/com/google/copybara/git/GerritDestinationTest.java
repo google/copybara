@@ -1373,7 +1373,7 @@ public class GerritDestinationTest {
 
   @Test
   public void canExcludeDestinationPathFromWorkflow() throws Exception {
-    fetch = "master";
+    fetch = repo().getPrimaryBranch();
 
     Path scratchWorkTree = Files.createTempDirectory("GitDestinationTest-scratchWorkTree");
     writeFile(scratchWorkTree, "excluded.txt", "some content");
@@ -1385,7 +1385,7 @@ public class GerritDestinationTest {
     writeFile(workdir, "normal_file.txt", "some more content");
     excludedDestinationPaths = ImmutableList.of("excluded.txt");
     process(new DummyRevision("ref"));
-    assertThatGerritCheckout(repo(), "refs/for/master")
+    assertThatGerritCheckout(repo(), "refs/for/" + fetch)
         .containsFile("excluded.txt", "some content")
         .containsFile("normal_file.txt", "some more content")
         .containsNoMoreFiles();
@@ -1460,17 +1460,18 @@ public class GerritDestinationTest {
 
     runAllowEmptyPatchSetFalse(oldParent.getSha1());
 
-    assertThatGerritCheckout(repo(), "refs/for/master")
+    String primaryBranch = repo.getPrimaryBranch();
+    assertThatGerritCheckout(repo(), "refs/for/" + primaryBranch)
         .containsFile("non_relevant.txt", "foo")
         .containsFile("foo.txt", firstChange)
         .containsNoMoreFiles();
 
-    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/master"));
+    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
     repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
     // To avoid the non-fastforward. In real Gerrit this is not a problem
-    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/master"));
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
 
-    repo.forceCheckout("master");
+    repo.forceCheckout(primaryBranch);
 
     writeFile(workTree, "foo.txt", ""
         + "Base file modified\n"
@@ -1513,7 +1514,7 @@ public class GerritDestinationTest {
             "Skipping creating a new Gerrit PatchSet for change 12310 since the diff is the same"
                 + " from the previous PatchSet");
     // No push happened
-    assertThat(repo().refExists("refs/for/master")).isFalse();
+    assertThat(repo().refExists("refs/for/" + primaryBranch)).isFalse();
 
     String thirdChange = ""
         + "Base file modified\n"
@@ -1529,7 +1530,7 @@ public class GerritDestinationTest {
     writeFile(workdir, "non_relevant.txt", "bar");
     runAllowEmptyPatchSetFalse(newParent.getSha1());
 
-    assertThatGerritCheckout(repo(), "refs/for/master")
+    assertThatGerritCheckout(repo(), "refs/for/" + primaryBranch)
         .containsFile("non_relevant.txt", "bar")
         .containsFile("foo.txt", thirdChange)
         .containsNoMoreFiles();
@@ -1556,7 +1557,7 @@ public class GerritDestinationTest {
 
   private void runAllowEmptyPatchSetFalse(String baseline)
       throws ValidationException, RepoException, IOException {
-    fetch = "master";
+    fetch = repo().getPrimaryBranch();
     DummyRevision originRef = new DummyRevision("origin_ref");
     WriterContext writerContext =
         new WriterContext("GerritDestinationTest", "test", false, originRef,

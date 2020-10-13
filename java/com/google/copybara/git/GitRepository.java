@@ -2061,4 +2061,11 @@ public class GitRepository {
       repo.simpleCommand(cmd.toArray(new String[0]));
     }
   }
+
+  /**
+   * Returns the repo's primary branch, e.g. "main". Primarily intended for testing.
+   */
+  public String getPrimaryBranch() throws RepoException {
+    return simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+  }
 }

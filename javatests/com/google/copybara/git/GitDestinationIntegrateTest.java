@@ -74,6 +74,7 @@ public class GitDestinationIntegrateTest {
 
   private Path workdir;
   private GitTestUtil gitUtil;
+  private String primaryBranch;
 
   @Before
   public void setup() throws Exception {
@@ -99,6 +100,7 @@ public class GitDestinationIntegrateTest {
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options);
+    primaryBranch = repo().getPrimaryBranch();
   }
 
   @Test
@@ -106,15 +108,17 @@ public class GitDestinationIntegrateTest {
     migrateOriginChange(
         destination(
             "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
             "integrates = []"),
         "Test change\n\n"
             + GitModule.DEFAULT_INTEGRATE_LABEL + "=http://should_not_be_used\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
@@ -130,7 +134,7 @@ public class GitDestinationIntegrateTest {
 
     GitDestination destination = destinationWithDefaultIntegrates();
     migrateOriginChange(destination, "Base change\n", "not important");
-    GitLogEntry previous = getLastMigratedChange("master");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -140,16 +144,16 @@ public class GitDestinationIntegrateTest {
         + " feature2\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master^1");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch + "^1");
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile("ignore_me", "")
         .containsFile("ignore_me2", "")
         .containsNoMoreFiles();
 
-    GitLogEntry feature1Merge = getLastMigratedChange("master^1");
+    GitLogEntry feature1Merge = getLastMigratedChange(primaryBranch + "^1");
 
     assertThat(feature1Merge.getFiles()).containsExactly("test.txt", "ignore_me");
 
@@ -160,7 +164,7 @@ public class GitDestinationIntegrateTest {
     assertThat(Lists.transform(feature1Merge.getParents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), feature1.getSha1()));
 
-    GitLogEntry feature2Merge = getLastMigratedChange("master");
+    GitLogEntry feature2Merge = getLastMigratedChange(primaryBranch);
     assertThat(feature2Merge.getBody()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
@@ -190,19 +194,19 @@ public class GitDestinationIntegrateTest {
     repo.simpleCommand("branch", "feature1");
     repo.forceCheckout("feature1");
     GitRevision feature = singleChange(repoPath, repo, "foo/a", "Feature 1 change");
-    repo.forceCheckout("master");
+    repo.forceCheckout(primaryBranch);
 
     // Just so that the migration doesn't fail since the git repo is a non-bare repo.
     repo.forceCheckout("feature1");
 
-    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'");
+    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'", String.format("push='%s'", primaryBranch));
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
         + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getGitDir().toString()
         + " feature1\n", "foo/a", "", "the_rev");
 
-    GitLogEntry featureMerge = getLastMigratedChange("master", repo);
+    GitLogEntry featureMerge = getLastMigratedChange(primaryBranch, repo);
 
     assertThat(featureMerge.getBody()).isEqualTo("Merge of " + feature.getSha1() + "\n"
         + "\n"
@@ -226,7 +230,7 @@ public class GitDestinationIntegrateTest {
 
     GitDestination destination = destination(FAKE_MERGE);
     migrateOriginChange(destination, "Base change\n", "not important");
-    GitLogEntry previous = getLastMigratedChange("master");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -236,14 +240,14 @@ public class GitDestinationIntegrateTest {
         + " feature2\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master^1");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch + "^1");
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
 
-    GitLogEntry feature1Merge = getLastMigratedChange("master^1");
+    GitLogEntry feature1Merge = getLastMigratedChange(primaryBranch + "^1");
     assertThat(feature1Merge.getBody()).isEqualTo("Merge of " + feature1.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
@@ -251,7 +255,7 @@ public class GitDestinationIntegrateTest {
     assertThat(Lists.transform(feature1Merge.getParents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), feature1.getSha1()));
 
-    GitLogEntry feature2Merge = getLastMigratedChange("master");
+    GitLogEntry feature2Merge = getLastMigratedChange(primaryBranch);
     assertThat(feature2Merge.getBody()).isEqualTo("Merge of " + feature2.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
@@ -264,7 +268,7 @@ public class GitDestinationIntegrateTest {
 
   private GitDestination destination(Strategy strategy) throws ValidationException {
     return destination(
-        "url = '" + url + "'",
+        "url = '" + url + "'", String.format("push='%s'", primaryBranch),
         "integrates = [git.integrate("
             + "         ignore_errors = False,"
             + "         strategy = '" + strategy + "',"
@@ -283,7 +287,7 @@ public class GitDestinationIntegrateTest {
 
     GitDestination destination = destination(INCLUDE_FILES);
     migrateOriginChange(destination, "Base change\n", "not important");
-    GitLogEntry previous = getLastMigratedChange("master");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -293,16 +297,16 @@ public class GitDestinationIntegrateTest {
         + " feature2\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile("ignore_me", "")
         .containsFile("ignore_me2", "")
         .containsNoMoreFiles();
 
-    GitLogEntry afterChange = getLastMigratedChange("master");
+    GitLogEntry afterChange = getLastMigratedChange(primaryBranch);
     assertThat(afterChange.getBody()).isEqualTo("Test change\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
@@ -325,7 +329,7 @@ public class GitDestinationIntegrateTest {
 
     GitDestination destination = destination(FAKE_MERGE_AND_INCLUDE_FILES);
     migrateOriginChange(destination, "Base change\n", "test.txt", "not important", "test");
-    GitLogEntry previous = getLastMigratedChange("master");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -333,17 +337,17 @@ public class GitDestinationIntegrateTest {
         + " feature\n", "feature_file.txt", "feature modified", "test");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("Merge of ");
 
-    GitTesting.assertThatCheckout(repo, "master")
+    GitTesting.assertThatCheckout(repo, primaryBranch)
         .containsFile("test.txt", "not important")
         .containsFile("ignore_base.txt", "modified")
         .containsFile("ignore_but_changed.txt", "feature")
         .containsFile("feature_file.txt", "feature modified")
         .containsNoMoreFiles();
 
-    GitLogEntry afterChange = getLastMigratedChange("master");
+    GitLogEntry afterChange = getLastMigratedChange(primaryBranch);
     assertThat(afterChange.getBody()).isEqualTo("Merge of " + prHead.getSha1() + "\n"
         + "\n"
         + DummyOrigin.LABEL_NAME + ": test\n");
@@ -387,16 +391,16 @@ public class GitDestinationIntegrateTest {
         + "\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile("ignore_me", "")
         .containsFile("ignore_me2", "")
         .containsNoMoreFiles();
 
-    GitLogEntry merge = getLastMigratedChange("master");
+    GitLogEntry merge = getLastMigratedChange(primaryBranch);
     assertThat(merge.getBody()).isEqualTo(
         "Merge pull request #20 from some_user:1234-foo.bar.baz%3\n"
         + "\n"
@@ -454,15 +458,15 @@ public class GitDestinationIntegrateTest {
         + "\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsFile("ignore_me", "")
         .containsNoMoreFiles();
 
-    GitLogEntry merge = getLastMigratedChange("master");
+    GitLogEntry merge = getLastMigratedChange(primaryBranch);
     assertThat(merge.getBody()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
         + "\n"
         + "DummyOrigin-RevId: test\n"
@@ -504,14 +508,14 @@ public class GitDestinationIntegrateTest {
         + "\n", "some content");
 
     // Make sure commit adds new text
-    String showResult = git("--git-dir", repoGitDir.toString(), "show", "master");
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
     assertThat(showResult).contains("some content");
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
 
-    GitLogEntry merge = getLastMigratedChange("master");
+    GitLogEntry merge = getLastMigratedChange(primaryBranch);
     assertThat(merge.getBody()).isEqualTo("Merge Gerrit change 1020 Patch Set 1\n"
         + "\n"
         + "DummyOrigin-RevId: test\n");
@@ -528,14 +532,16 @@ public class GitDestinationIntegrateTest {
   private GitLogEntry createBaseDestinationChange(GitDestination destination)
       throws IOException, RepoException, ValidationException {
     migrateOriginChange(destination, "Base change\n", "not important");
-    GitLogEntry previous = getLastMigratedChange("master");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     console.clearMessages();
     return previous;
   }
 
   private GitDestination destinationWithDefaultIntegrates() throws ValidationException {
-    return destination("url = '" + url + "'");
+    return destination("url = '" + url + "'",
+        String.format("push = '%s'", primaryBranch),
+        String.format("fetch = '%s'", primaryBranch));
   }
 
   private GitRevision singleChange(Path workTree, GitRepository repo, String file, String msg)
@@ -577,7 +583,7 @@ public class GitDestinationIntegrateTest {
   public void testBadLabel_ignoreErrors() throws ValidationException, IOException, RepoException {
     runBadLabel(/*ignoreErrors=*/true);
 
-    GitTesting.assertThatCheckout(repo(), "master")
+    GitTesting.assertThatCheckout(repo(), primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
@@ -586,6 +592,8 @@ public class GitDestinationIntegrateTest {
       throws ValidationException, IOException, RepoException {
     GitDestination destination = destination(
         "url = '" + url + "'",
+        String.format("fetch = '%s'", primaryBranch),
+        String.format("push = '%s'", primaryBranch),
         "integrates = [git.integrate( "
             + "        ignore_errors = " + (ignoreErrors ? "True" : "False")
             + "    ),]");

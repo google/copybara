@@ -129,8 +129,9 @@ public class GitRepoTypeTest {
   public void testResolveRef() throws Exception {
     disableFetchMocks();
     String sha1 = fileRepo.parseRef("HEAD");
-    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, "master", generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+    assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileRepo.getPrimaryBranch(),
+        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false)
+        .asString())
         .isEqualTo(sha1);
     console.assertThat()
         .containsNoMoreMessages();

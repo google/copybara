@@ -51,6 +51,7 @@ public class GitMirrorTest {
   private GitRepository originRepo;
   private GitRepository destRepo;
   private Path workdir;
+  private String primaryBranch;
 
   @Before
   public void setup() throws Exception {
@@ -74,6 +75,7 @@ public class GitMirrorTest {
     originRepo.add().files("test.txt").run();
     originRepo.simpleCommand("commit", "-m", "first file");
     originRepo.simpleCommand("branch", "other");
+    primaryBranch = originRepo.getPrimaryBranch();
   }
 
   @Test
@@ -246,17 +248,17 @@ public class GitMirrorTest {
         + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
         + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
         + "    refspecs = ["
-        + "        'refs/heads/master:refs/heads/origin_master'"
+        + String.format("        'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
         + "    ]"
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
-    String origMaster = originRepo.git(originRepo.getGitDir(), "show-ref", "master", "-s")
+    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
         .getStdout();
-    String destMaster = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_master", "-s")
+    String dest = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_primary", "-s")
         .getStdout();
-    assertThat(destMaster).isEqualTo(origMaster);
-    checkRefDoesntExist("refs/heads/master");
+    assertThat(dest).isEqualTo(origPrimary);
+    checkRefDoesntExist("refs/heads/" + primaryBranch);
     checkRefDoesntExist("refs/heads/other");
   }
 

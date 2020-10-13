@@ -55,6 +55,7 @@ public class GitDestinationReaderTest {
 
   private DummyOrigin origin;
   private GitRepository repo;
+  private String primaryBranch;
 
   @Before
   public void setup() throws Exception {
@@ -68,6 +69,7 @@ public class GitDestinationReaderTest {
     options.testingOptions.origin = origin;
     repo = GitRepository.newBareRepo(destinationPath, getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(gitDir).init();
+    primaryBranch = repo.getPrimaryBranch();
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     workDir = Files.createTempDirectory("workdir");
@@ -147,6 +149,8 @@ public class GitDestinationReaderTest {
             + "    name = 'default',\n"
             + "    origin = testing.origin(),\n"
             + "    destination = git.destination(\n"
+            + "      fetch = '" + primaryBranch + "', \n"
+            + "      push = '" + primaryBranch + "', \n"
             + "      url = 'file://" + destinationPath + "', \n"
             + "    ),\n"
             + "    origin_files = glob(['**']),\n"

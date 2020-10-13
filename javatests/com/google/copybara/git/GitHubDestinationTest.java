@@ -81,12 +81,15 @@ public class GitHubDestinationTest {
   private String url;
   private String fetch;
   private String push;
+  private String primaryBranch;
+
   private boolean force;
 
   private Glob destinationFiles;
   private Path workdir;
   private GitTestUtil gitUtil;
   private GitRepository remote;
+  
   @Before
   public void setup() throws Exception {
     console = new TestingConsole();
@@ -100,7 +103,7 @@ public class GitHubDestinationTest {
     gitUtil = new GitTestUtil(options);
     gitUtil.mockRemoteGitRepos(new CompleteRefValidator());
     remote = gitUtil.mockRemoteRepo("github.com/foo");
-
+    primaryBranch = remote.getPrimaryBranch();
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
     options.git.credentialHelperStorePath = credentialsFile.toString();
@@ -110,18 +113,18 @@ public class GitHubDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     url = "https://github.com/foo";
     force = false;
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
   public void testDryRun() throws Exception {
-    fetch = "master";
-    push = "master";
+    fetch = primaryBranch;
+    push = primaryBranch;
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     remote.simpleCommand("branch", "other");
@@ -131,14 +134,14 @@ public class GitHubDestinationTest {
     Writer<GitRevision> writer = destination().newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
 
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
     Files.write(workdir.resolve("test.txt"), "some content".getBytes());
     // Run again without dry run
     writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
   }
@@ -184,7 +187,7 @@ public class GitHubDestinationTest {
 
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     WriterContext writerContext =
@@ -214,7 +217,7 @@ public class GitHubDestinationTest {
 
     // This is a migration of two changes (use the same ref because mocks)
     verifyZeroInteractions(gitUtil.httpTransport());
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
 
@@ -246,11 +249,11 @@ public class GitHubDestinationTest {
                 + "}"));
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     remote.simpleCommand("branch", "other");
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
     GitTesting.assertThatCheckout(remote, "other")
@@ -286,7 +289,7 @@ public class GitHubDestinationTest {
     verify(gitUtil.httpTransport(), times(expectDeletePrBranch ? 2 : 0)).buildRequest(eq("DELETE"),
         contains("refs/heads/other"));
 
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
     GitTesting.assertThatCheckout(remote, "other")
@@ -330,12 +333,12 @@ public class GitHubDestinationTest {
                 + "}"));
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     remote.simpleCommand("branch", "other_12345");
     remote.simpleCommand("branch", "other_6789");
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
     GitTesting.assertThatCheckout(remote, "other_12345")
@@ -352,7 +355,7 @@ public class GitHubDestinationTest {
     Writer<GitRevision> writer = destinationWithExistingPrBranch(
         "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
     GitTesting.assertThatCheckout(remote, "other_12345")
@@ -388,10 +391,10 @@ public class GitHubDestinationTest {
   private void checkRefNotFound() throws IOException, RepoException, ValidationException {
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
     writeFile(this.workdir, "test.txt", "some content");
@@ -401,7 +404,7 @@ public class GitHubDestinationTest {
     Writer<GitRevision> writer = destinationWithExistingPrBranch(
         "other_${my_label}", /*deletePrBranch=*/"None").newWriter(writerContext);
     process(writer, new DummyRevision("origin_ref1"));
-    GitTesting.assertThatCheckout(remote, "master")
+    GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
     console.assertThat().onceInLog(MessageType.VERBOSE, "Branch other_12345 does not exist");
@@ -436,7 +439,7 @@ public class GitHubDestinationTest {
         mockResponseWithStatus("", 403));
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     WriterContext writerContext =
@@ -459,7 +462,7 @@ public class GitHubDestinationTest {
   public void testWithLabelNotFound() throws Exception {
     addFiles(
         remote,
-        "master",
+        primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
     WriterContext writerContext =
@@ -486,7 +489,7 @@ public class GitHubDestinationTest {
     if (branch != null) {
       if (tmpRepo.refExists(branch)) {
         tmpRepo.simpleCommand("checkout", branch);
-      } else if (!branch.equals("master")) {
+      } else if (!branch.equals(primaryBranch)) {
         tmpRepo.simpleCommand("branch", branch);
         tmpRepo.simpleCommand("checkout", branch);
       }

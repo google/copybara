@@ -226,7 +226,8 @@ public class GerritOriginTest {
     // Doesn't have any context as we passed a SHA-1
     assertThat(origin.resolve(firstRevision.asString()).contextReference()).isNull();
     // The context reference defaults to regular git one
-    assertThat(origin.resolve("master").contextReference()).isEqualTo("master");
+    assertThat(origin.resolve(origin.getRepository().getPrimaryBranch()).contextReference())
+        .isEqualTo(origin.getRepository().getPrimaryBranch());
   }
 
   private void mockChange(int changeNumber) throws IOException {

@@ -68,17 +68,17 @@ public class GitOriginSubmodulesTest {
     checkoutDir = Files.createTempDirectory("checkout");
   }
 
-  private GitOrigin origin(String url, String master) throws ValidationException {
+  private GitOrigin origin(String url, String primary) throws ValidationException {
     return skylark.eval("result",
         String.format("result = git.origin(\n"
             + "    url = '%s',\n"
             + "    ref = '%s',\n"
             + "    submodules = 'RECURSIVE',\n"
-            + ")", url, master));
+            + ")", url, primary));
   }
 
   /**
-   * Test basic cases: Absolute urls, sibling relative url, default (master) branch and an
+   * Test basic cases: Absolute urls, sibling relative url, default branch and an
    * specific branch.
    */
   @Test
@@ -91,7 +91,7 @@ public class GitOriginSubmodulesTest {
         r2.getWorkTree().toString(), "../r1");
     commit(r2, "adding r1 submodule");
     r2.simpleCommand("branch", "for_submodule");
-    // This commit shouldn't be read, since it is in master and r3 depends on 'for_submodule' branch:
+    // This commit shouldn't be read, since it is in main and r3 depends on 'for_submodule' branch:
     commitAdd(r2, ImmutableMap.of("foo", "2"));
 
     GitRepository r3 = createRepoWithFoo(base, "r3");
@@ -100,9 +100,11 @@ public class GitOriginSubmodulesTest {
         "file://" + r2.getWorkTree(), "r2");
     commit(r3, "adding r2 submodule");
 
-    GitOrigin origin = origin("file://" + r3.getGitDir(), "master");
-    GitRevision master = origin.resolve("master");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    String primary = r2.getPrimaryBranch();
+
+    GitOrigin origin = origin("file://" + r3.getGitDir(), primary);
+    GitRevision main = origin.resolve(primary);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES, "r2/" + GITMODULES)
@@ -113,13 +115,13 @@ public class GitOriginSubmodulesTest {
   }
 
   /**
-   * Test case where parent points to a submodule sha1 that is not reachable from master (branch
+   * Test case where parent points to a submodule sha1 that is not reachable from primary (branch
    * only).
    */
   @Test
-  public void testSubmoduleRevNotInMaster() throws Exception {
+  public void testSubmoduleRevNotInPrimary() throws Exception {
     Path base = Files.createTempDirectory("base");
-    // Create first child repo with one commit that is not reachable from master
+    // Create first child repo with one commit that is not reachable from primary
     Files.createDirectories(base.resolve("childRepo1"));
     GitRepository childRepo1 =
         GitRepository.newRepo(/*verbose*/ false, base.resolve("childRepo1"), getGitEnv()).init();
@@ -134,10 +136,11 @@ public class GitOriginSubmodulesTest {
     rootRepo.simpleCommand("submodule", "add", "-f", "--name", "childRepo1", "--reference",
         rootRepo.getWorkTree().toString(), "../childRepo1");
     commit(rootRepo, "adding childRepo1 submodule");
+    String primary = rootRepo.getPrimaryBranch();
 
-    GitOrigin origin = origin("file://" + rootRepo.getGitDir(), "master");
-    GitRevision master = origin.resolve("master");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    GitOrigin origin = origin("file://" + rootRepo.getGitDir(), primary);
+    GitRevision main = origin.resolve(primary);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
@@ -164,19 +167,20 @@ public class GitOriginSubmodulesTest {
     Path base = Files.createTempDirectory("base");
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
+    String primary = r1.getPrimaryBranch();
     // Build a relative url submodule
-    r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
+    r2.simpleCommand("submodule", "add", "-f", "--branch", primary, "--name", "r1",
         "file://" + r1.getWorkTree());
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
-    // Replace master with '.'. This is a valid branch reference but I haven't found a way of
+    // Replace main with '.'. This is a valid branch reference but I haven't found a way of
     // adding it with the submodule command.
-    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace("master", ".")
+    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace(primary, ".")
         .getBytes());
     commit(r2, "adding r1 submodule");
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
-    GitRevision master = origin.resolve("master");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    GitOrigin origin = origin("file://" + r2.getGitDir(), primary);
+    GitRevision main = origin.resolve(primary);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
@@ -190,19 +194,20 @@ public class GitOriginSubmodulesTest {
     Path base = Files.createTempDirectory("base");
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
+    String primaryBranch = r1.getPrimaryBranch();
 
-    r2.simpleCommand("submodule", "add", "-f", "--branch", "master", "--name", "r1",
+    r2.simpleCommand("submodule", "add", "-f", "--branch", primaryBranch, "--name", "r1",
         "file://" + r1.getWorkTree(), "subfolder/r1");
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
-    // Replace master with '.'. This is a valid branch reference but I haven't found a way of
+    // Replace main with '.'. This is a valid branch reference but I haven't found a way of
     // adding it with the submodule command.
-    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace("master", ".")
+    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace(primaryBranch, ".")
         .getBytes());
     commit(r2, "adding r1 submodule");
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
-    GitRevision master = origin.resolve("master");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);
+    GitRevision primary = origin.resolve(primaryBranch);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(primary, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
@@ -212,7 +217,7 @@ public class GitOriginSubmodulesTest {
   }
 
   /**
-   * Test that even if submodules config are tracking a moving ref (master, etc.), each
+   * Test that even if submodules config are tracking a moving ref, each
    * commit is associated with an specific SHA-1.
    */
   @Test
@@ -220,11 +225,12 @@ public class GitOriginSubmodulesTest {
     Path base = Files.createTempDirectory("base");
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
+    String primaryBranch = r1.getPrimaryBranch();
 
-    r2.simpleCommand("submodule", "add", "--branch", "master", "--name", "r1",
+    r2.simpleCommand("submodule", "add", "--branch", primaryBranch, "--name", "r1",
         "file://" + r1.getWorkTree());
     commit(r2, "adding r1 submodule");
-    GitRevision r2FirstSha1 = r2.showRef().get("refs/heads/master");
+    GitRevision r2FirstSha1 = r2.showRef().get("refs/heads/" + primaryBranch);
 
     addFile(r1, "bar", "bar");
     addFile(r1, "foo", "foo");
@@ -234,9 +240,9 @@ public class GitOriginSubmodulesTest {
     r2.add().all().run();
     commit(r2, "updating r1 submodule");
 
-    GitRevision r2SecondSha1 = r2.showRef().get("refs/heads/master");
+    GitRevision r2SecondSha1 = r2.showRef().get("refs/heads/" + primaryBranch);
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), "refs/heads/master");
+    GitOrigin origin = origin("file://" + r2.getGitDir(), "refs/heads/" + primaryBranch);
     origin.resolve(r2FirstSha1.getSha1());
     origin.newReader(Glob.ALL_FILES, authoring).checkout(r2FirstSha1, checkoutDir);
 
@@ -262,6 +268,8 @@ public class GitOriginSubmodulesTest {
     Path base = Files.createTempDirectory("base");
     createRepoWithFoo(base, "r1.with.dot");
     GitRepository r2 = createRepoWithFoo(base, "r2");
+    String primaryBranch = r2.getPrimaryBranch();
+
     // Build a relative url submodule
     r2.simpleCommand("submodule", "add", "-f", "--name", "r1.with.dot", "--reference",
         r2.getWorkTree().toString(), "../r1.with.dot");
@@ -269,9 +277,9 @@ public class GitOriginSubmodulesTest {
     r2.simpleCommand("branch", "for_submodule");
 
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), "master");
-    GitRevision master = origin.resolve("master");
-    origin.newReader(Glob.ALL_FILES, authoring).checkout(master, checkoutDir);
+    GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);
+    GitRevision main = origin.resolve(primaryBranch);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
