@@ -137,7 +137,7 @@ public class GitHubDestinationTest {
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
-    Files.write(workdir.resolve("test.txt"), "some content".getBytes());
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
     // Run again without dry run
     writer = newWriter();
     process(writer, new DummyRevision("origin_ref1"));

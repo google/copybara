@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.ChangeMessage.parseMessage;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -83,7 +84,7 @@ public class HgDestinationTest {
     remoteRepo = new HgRepository(hgDestPath, /*verbose*/ false, CommandRunner.DEFAULT_TIMEOUT);
     remoteRepo.init();
 
-    Files.write(hgDestPath.resolve("file.txt"), "first write".getBytes());
+    Files.write(hgDestPath.resolve("file.txt"), "first write".getBytes(UTF_8));
     remoteRepo.hg(hgDestPath, "add");
     remoteRepo.hg(hgDestPath, "commit", "-m", "first commit");
 
@@ -95,8 +96,8 @@ public class HgDestinationTest {
 
   @Test
   public void testWrite() throws Exception {
-    Files.write(workdir.resolve("file.txt"), "first write".getBytes());
-    Files.write(workdir.resolve("test.txt"), "test".getBytes());
+    Files.write(workdir.resolve("file.txt"), "first write".getBytes(UTF_8));
+    Files.write(workdir.resolve("test.txt"), "test".getBytes(UTF_8));
 
     ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(
         Instant.ofEpochMilli(1496333940000L), ZoneId.of("-04:00"));
@@ -143,13 +144,13 @@ public class HgDestinationTest {
 
   @Test
   public void testWriteDeletesAndAddsFiles() throws Exception {
-    Files.write(workdir.resolve("delete_me.txt"), "deleted content".getBytes());
+    Files.write(workdir.resolve("delete_me.txt"), "deleted content".getBytes(UTF_8));
     DummyRevision deletedRef = new DummyRevision("delete_ref");
     TransformResult result = TransformResults.of(workdir, deletedRef);
     writer.write(result, destinationFiles, console);
 
     workdir = options.general.getDirFactory().newTempDir("testWriteDeletesAndAddsFiles-workdir");
-    Files.write(workdir.resolve("add_me.txt"), "added content".getBytes());
+    Files.write(workdir.resolve("add_me.txt"), "added content".getBytes(UTF_8));
     createRevisionAndWrite("add_ref");
 
     remoteRepo.cleanUpdate("tip");
@@ -172,7 +173,7 @@ public class HgDestinationTest {
 
   @Test
   public void testWriteModifyFiles() throws Exception {
-    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes(UTF_8));
     createRevisionAndWrite("modified_ref");
 
     remoteRepo.cleanUpdate("tip");
@@ -187,8 +188,8 @@ public class HgDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("file.txt"));
     writer = newWriter();
 
-    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
-    Files.write(workdir.resolve("other.txt"), "other content".getBytes());
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes(UTF_8));
+    Files.write(workdir.resolve("other.txt"), "other content".getBytes(UTF_8));
     createRevisionAndWrite("origin_ref");
 
     remoteRepo.cleanUpdate("tip");
@@ -204,8 +205,8 @@ public class HgDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     writer = newWriter();
 
-    Files.write(workdir.resolve("file.txt"), "modified content".getBytes());
-    Files.write(workdir.resolve("excluded.txt"), "excluded content".getBytes());
+    Files.write(workdir.resolve("file.txt"), "modified content".getBytes(UTF_8));
+    Files.write(workdir.resolve("excluded.txt"), "excluded content".getBytes(UTF_8));
     createRevisionAndWrite("origin_ref");
 
     remoteRepo.cleanUpdate("tip");
@@ -224,7 +225,7 @@ public class HgDestinationTest {
     destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded.txt"));
     writer = newWriter();
 
-    Files.write(workdir.resolve("file.txt"), "file".getBytes());
+    Files.write(workdir.resolve("file.txt"), "file".getBytes(UTF_8));
     createRevisionAndWrite("origin_ref");
 
     remoteRepo.cleanUpdate("tip");

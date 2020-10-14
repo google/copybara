@@ -849,9 +849,12 @@ public class GitHubPrOriginTest {
 
   @SuppressWarnings("unchecked")
   private Workflow<GitRevision, ?> workflow(String config) throws IOException, ValidationException {
-    return (Workflow<GitRevision, ?>) skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", config.getBytes()), "copy.bara.sky"))
-        .getMigration("default");
+    return (Workflow<GitRevision, ?>)
+        skylark
+            .loadConfig(
+                new MapConfigFile(
+                    ImmutableMap.of("copy.bara.sky", config.getBytes(UTF_8)), "copy.bara.sky"))
+            .getMigration("default");
   }
 
   @Test

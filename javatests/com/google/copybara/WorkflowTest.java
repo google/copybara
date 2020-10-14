@@ -2195,16 +2195,20 @@ public class WorkflowTest {
   @Test
   public void customIdentity_customPathIncluded() throws Exception {
     options.workflowOptions.initHistory = true;
-    byte[] cfgContent = (""
-        + "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    authoring = " + authoring + "\n,"
-        + "    origin = testing.origin(),\n"
-        + "    destination = testing.destination(),\n"
-        + "    change_identity = '${copybara_config_path}foo${label:some_label}',\n"
-        + "    mode = 'ITERATIVE',\n"
-        + ")\n\n"
-        + "").getBytes();
+    byte[] cfgContent =
+        (""
+                + "core.workflow(\n"
+                + "    name = 'default',\n"
+                + "    authoring = "
+                + authoring
+                + "\n,"
+                + "    origin = testing.origin(),\n"
+                + "    destination = testing.destination(),\n"
+                + "    change_identity = '${copybara_config_path}foo${label:some_label}',\n"
+                + "    mode = 'ITERATIVE',\n"
+                + ")\n\n"
+                + "")
+            .getBytes(UTF_8);
     Config config1 = skylark.loadConfig(
         new MapConfigFile(ImmutableMap.of("foo/copy.bara.sky", cfgContent), "foo/copy.bara.sky"));
 
@@ -2254,7 +2258,8 @@ public class WorkflowTest {
 
   private Config loadConfig(String content) throws IOException, ValidationException {
     return skylark.loadConfig(
-        new MapConfigFile(ImmutableMap.of("copy.bara.sky", content.getBytes()), "copy.bara.sky"));
+        new MapConfigFile(
+            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"));
   }
 
   @Test

@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GerritChange.GERRIT_OWNER_EMAIL_LABEL;
 import static com.google.copybara.git.GitModule.DEFAULT_INTEGRATE_LABEL;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -114,7 +115,7 @@ public class GerritOriginTest {
 
     git("commit", "-m", "baseline", "--date", commitTime);
     baseline = repo.parseRef("HEAD");
-    Files.write(remote.resolve("test.txt"), "some content".getBytes());
+    Files.write(remote.resolve("test.txt"), "some content".getBytes(UTF_8));
     repo.add().files("test.txt").run();
 
     git("commit", "-m", "first change", "--date", commitTime);
@@ -142,7 +143,7 @@ public class GerritOriginTest {
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
 
-    Files.write(remote.resolve("foo.md"), "some content".getBytes());
+    Files.write(remote.resolve("foo.md"), "some content".getBytes(UTF_8));
     repo.add().files("foo.md").run();
 
     secondRevision =

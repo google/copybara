@@ -20,6 +20,7 @@ import static com.google.copybara.util.console.AnsiColor.BLUE;
 import static com.google.copybara.util.console.AnsiColor.GREEN;
 import static com.google.copybara.util.console.AnsiColor.RED;
 import static com.google.copybara.util.console.AnsiColor.YELLOW;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
@@ -96,7 +97,7 @@ public final class AnsiConsole implements Console {
   public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
       throws IOException {
 
-    Scanner scanner = new Scanner(input);
+    Scanner scanner = new Scanner(input, UTF_8.name());
     output.print(BLUE.write("Question: ") + msg);
     while (scanner.hasNextLine()) {
       String answer = scanner.nextLine().trim();

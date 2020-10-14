@@ -23,6 +23,7 @@ import static com.google.copybara.git.GitIntegrateChanges.Strategy.FAKE_MERGE_AN
 import static com.google.copybara.git.GitIntegrateChanges.Strategy.INCLUDE_FILES;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
@@ -621,7 +622,7 @@ public class GitDestinationIntegrateTest {
     Writer<GitRevision> writer = destination.newWriter(writerContext);
 
     Files.createDirectories(workdir.resolve(file).getParent());
-    Files.write(workdir.resolve(file), content.getBytes());
+    Files.write(workdir.resolve(file), content.getBytes(UTF_8));
     TransformResult result = TransformResults.of(workdir, new DummyRevision(originRef))
         .withSummary(summary);
 

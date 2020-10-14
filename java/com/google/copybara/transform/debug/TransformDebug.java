@@ -214,7 +214,7 @@ public final class TransformDebug implements Transformation {
       throws IOException {
     TreeMap<String, byte[]> result = new TreeMap<>();
 
-    result.put(COPYBARA_METADATA_FAKE_FILE, work.getMetadata().toString().getBytes());
+    result.put(COPYBARA_METADATA_FAKE_FILE, work.getMetadata().toString().getBytes(UTF_8));
 
     if (filesNeeded) {
       Iterable<FileState> files = treeState.find(

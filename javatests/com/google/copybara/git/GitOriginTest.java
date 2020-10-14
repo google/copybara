@@ -334,7 +334,7 @@ public class GitOriginTest {
     newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("some content");
 
     // Check that we track new commits that modify files
     writeFile(remote, "test.txt", "new content");
@@ -343,7 +343,7 @@ public class GitOriginTest {
 
     newReader().checkout(origin.resolve(defaultBranch), checkoutDir);
 
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("new content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("new content");
 
     // Check that we track commits that delete files
     Files.delete(remote.resolve("test.txt"));
@@ -370,10 +370,10 @@ public class GitOriginTest {
     origin().newReader(originFiles, authoring).checkout(origin.resolve(defaultBranch), checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("some content");
 
-    assertThat(
-        new String(Files.readAllBytes(checkoutDir.resolve("foo.txt")))).isEqualTo("some test\n");
+    assertThat(new String(Files.readAllBytes(checkoutDir.resolve("foo.txt")), UTF_8))
+        .isEqualTo("some test\n");
   }
 
   @Test
@@ -526,7 +526,7 @@ public class GitOriginTest {
     reader.checkout(main, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("some content");
 
     Files.delete(testFile);
 
@@ -534,7 +534,7 @@ public class GitOriginTest {
 
     // The deletion in the checkoutDir should not matter, since we should override in the next
     // checkout
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("some content");
   }
 
   @Test
@@ -543,7 +543,7 @@ public class GitOriginTest {
     newReader().checkout(reference, checkoutDir);
     Path testFile = checkoutDir.resolve("test.txt");
 
-    assertThat(new String(Files.readAllBytes(testFile))).isEqualTo("some content");
+    assertThat(new String(Files.readAllBytes(testFile), UTF_8)).isEqualTo("some content");
   }
 
   @Test

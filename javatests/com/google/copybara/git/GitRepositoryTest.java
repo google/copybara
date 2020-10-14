@@ -45,12 +45,6 @@ import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -65,6 +59,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GitRepositoryTest {
@@ -1026,7 +1024,7 @@ public class GitRepositoryTest {
 
     // mock the same sha1 at remote and local
     for (GitRepository repo : ImmutableList.of(localRepo, mockRemoteRepo)){
-      Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes());
+      Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes(UTF_8));
       repo.simpleCommand("commit", "foo.txt", "-m", "update msg");
     }
 

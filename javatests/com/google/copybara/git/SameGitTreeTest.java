@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
@@ -76,7 +77,7 @@ public class SameGitTreeTest {
 
       // mock the same sha1 at remote and local
       for (GitRepository repo : ImmutableList.of(localRepo, mockRemoteRepo)){
-        Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes());
+      Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes(UTF_8));
         repo.simpleCommand("commit", "foo.txt", "-m", "update msg");
       }
 
