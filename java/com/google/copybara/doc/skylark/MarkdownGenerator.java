@@ -171,6 +171,11 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
   private DocFunction callableFunction(ExecutableElement member,
       AnnotationHelper<StarlarkMethod> callable, @Nullable String prefix) throws ElementException {
 
+    String returnType = skylarkTypeName(member.getReturnType());
+    if (returnType.equals("void") || returnType.equals("NoneType")) {
+      returnType = null;
+    }
+
     return documentSkylarkSignature(
         member,
         prefix != null ? String.format("%s.%s", prefix, callable.ann.name()) : callable.ann.name(),
@@ -178,7 +183,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         callable.ann.parameters(), // actual Param annotations
         callable.getValue("parameters"), // mirror of Param annotations
         member.getParameters(), // mirror of parameter variables
-        skylarkTypeName(member.getReturnType()));
+        returnType);
   }
 
   private List<? extends Element> findStarlarkMethods(TypeElement module) {
@@ -250,14 +255,12 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
               new AnnotationHelper<>(
                   /*.ann unneeded here*/ null, (AnnotationMirror) paramTypeAnnot, paramVar);
 
-          String name =
-              skylarkTypeNameGeneric(
-                  paramType.getClassValue("type"), paramType.getClassValue("generic1"));
-          // Really we should document None just like any other allowed type,
-          // but the current behavior is to skip it.
-          if (name != null) {
-            allowedTypeNames.add(name);
+          String typeName = skylarkTypeName(paramType.getClassValue("type"));
+          DeclaredType generic1 = paramType.getClassValue("generic1");
+          if (!generic1.toString().equals("java.lang.Object")) {
+            typeName += " of " + skylarkTypeName(generic1);
           }
+          allowedTypeNames.add(typeName);
         }
       } else {
         // Otherwise use the type of the parameter variable itself.
@@ -292,49 +295,25 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         docExample.build());
   }
 
-  // Converts a Java type (not class--possibly parametric) into Starlark form for documentation.
-  // Returns null for no value (e.g. a void function result, or NoneType, or a <?> type argument).
-  @Nullable
-  private String skylarkTypeNameGeneric(DeclaredType declared, @Nullable DeclaredType generic) {
-    String name = skylarkTypeName(declared);
-    if (name == null) {
-      return null;
-    }
-    if (generic == null || generic.toString().equals("java.lang.Object")) {
-      return name;
-    }
-    return name + " of " + skylarkTypeName(generic);
-  }
-
-  @Nullable
   private String skylarkTypeName(TypeMirror declared) {
+    // TODO(b/171491425): This function is very fragile.
+    // Mapping from a StarlarkValue subclass to its official name is the
+    // job of Starlark.classType(cls)---not a trivial function---but it
+    // requires loaded Java classes, so it can't be used here.
+    // Perhaps the annotation processor could simply gather the names
+    // of classes, and the Copybara binary (in --doc mode) could load
+    // the classes and process them directly.
+
     String str = declared.toString();
-    if (str.equals("net.starlark.java.eval.NoneType")
-        || str.equals("java.lang.Void")
-        || str.equals("void")) {
-      return null;
-    }
-    if (str.equals("?")) {
+    if (str.equals("?") || str.equals("void") || str.equals("int")) {
       return str;
     }
-    Element element = processingEnv.getTypeUtils().asElement(declared);
-    if (element == null) {
-      return simplerJavaTypes(declared);
+    if (str.equals("boolean")) {
+      return "bool";
     }
-    StarlarkBuiltin skyType = element.getAnnotation(StarlarkBuiltin.class);
-    if (skyType == null) {
-      // StarlarkInt currently has no StarlarkBuiltin annotation because
-      // skydoc has a bug in which it complains that int is both a
-      // function and a type.
-      if (declared.toString().equals("net.starlark.java.eval.StarlarkInt")) {
-        return "int";
-      }
-      return simplerJavaTypes(element.asType());
-    }
-    if (!(declared instanceof DeclaredType)) {
-      return skyType.name();
-    }
+    // Valid primitive types have all been dispatched.
     DeclaredType possibleGeneric = (DeclaredType) declared;
+
     List<? extends TypeMirror> typeArgs = possibleGeneric.getTypeArguments();
     List<String> typeArgNames = new ArrayList<>();
     boolean trivial = true; // all params are <?, Object>
@@ -345,13 +324,54 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       }
       typeArgNames.add(name);
     }
+
+    String simpleName = skylarkTypeNameForClass(declared);
     if (trivial) {
-      return skyType.name();
+      return simpleName;
     }
     if (typeArgs.size() == 1) {
-      return skyType.name() + " of " + typeArgNames.get(0);
+      return simpleName + " of " + typeArgNames.get(0);
     }
-    return skyType.name() + "[" + Joiner.on(", ").join(typeArgNames) + "]";
+    return simpleName + "[" + Joiner.on(", ").join(typeArgNames) + "]";
+  }
+
+  private String skylarkTypeNameForClass(TypeMirror declared) {
+    String str = declared.toString();
+
+    // Hard-code important non-annotated types
+    // that Starklark.classType maps to Starlark names.
+    // Add to this list if the assertion below fails.
+    //
+    // We use startsWith where the type may have a <..> suffix.
+    // Starlark.classType uses subclass tests on Map, List.
+    if (str.startsWith("net.starlark.java.eval.Sequence")) {
+      return "sequence";
+    } else if (str.equals("net.starlark.java.eval.StarlarkCallable")) {
+      return "callable";
+    } else if (str.equals("net.starlark.java.eval.StarlarkIterable")) {
+      return "iterable";
+    } else if (str.startsWith("java.util.Map")) {
+      return "dict";
+    } else if (str.startsWith("com.google.common.collect.ImmutableList")) {
+      return "list";
+    } else if (str.equals("java.lang.Boolean")) {
+      return "bool";
+    }
+
+    // has Starlark annotation?
+    Element element = processingEnv.getTypeUtils().asElement(declared);
+    if (element != null) {
+      StarlarkBuiltin annot = element.getAnnotation(StarlarkBuiltin.class);
+      if (annot != null) {
+        return annot.name();
+      }
+
+      // e.g. String, Copybara types, and Starlark interfaces:
+      // Sequence<CopybaraType>, StarlarkCallable, StarlarkIterable.
+      return simplerJavaTypes(element.asType().toString());
+    }
+
+    throw new IllegalArgumentException("need more heuristics for: " + str);
   }
 
   private ImmutableList<DocFlag> generateFlagsInfo(Element classElement) throws ElementException {
@@ -369,8 +389,11 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
             || flagAnnotation.hidden()) {
           continue;
         }
-        result.add(new DocFlag(Joiner.on(", ").join(flagAnnotation.names()),
-            simplerJavaTypes(member.asType()), flagAnnotation.description()));
+        result.add(
+            new DocFlag(
+                Joiner.on(", ").join(flagAnnotation.names()),
+                simplerJavaTypes(member.asType().toString()),
+                flagAnnotation.description()));
       }
     }
     return result.build();
@@ -456,8 +479,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
     }
   }
 
-  private String simplerJavaTypes(TypeMirror typeMirror) {
-    String s = typeMirror.toString();
+  private String simplerJavaTypes(String s) {
     Matcher m = Pattern.compile("(?:[A-z.]*\\.)*([A-z]+)").matcher(s);
     StringBuilder sb = new StringBuilder();
     while (m.find()) {

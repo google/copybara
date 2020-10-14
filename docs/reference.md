@@ -315,7 +315,7 @@ Creates a Buildozer command. You can specify the reversal with the 'reverse' arg
 Parameter | Description
 --------- | -----------
 forward | `string`<br><p>Specifies the Buildozer command, e.g. 'replace deps :foo :bar'</p>
-reverse | `string`<br><p>The reverse of the command. This is only required if the given command cannot be reversed automatically and the reversal of this command is required by some workflow or Copybara check. The following commands are automatically reversible:<br><ul><li>add</li><li>remove (when used to remove element from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul></p>
+reverse | `string` or `NoneType`<br><p>The reverse of the command. This is only required if the given command cannot be reversed automatically and the reversal of this command is required by some workflow or Copybara check. The following commands are automatically reversible:<br><ul><li>add</li><li>remove (when used to remove element from list i.e. 'remove srcs foo.cc'</li><li>replace</li></ul></p>
 
 <a id="buildozer.create" aria-hidden="true"></a>
 ### buildozer.create
@@ -592,8 +592,8 @@ Parameter | Description
 --------- | -----------
 before | `string`<br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
 after | `string`<br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
-paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+overwrite | `bool`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
 #### Examples:
@@ -634,7 +634,7 @@ Create a dynamic Skylark feedback migration. This should only be used by librari
 
 Parameter | Description
 --------- | -----------
-impl | `starlarkCallable`<br><p>The Skylark function to call</p>
+impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.dynamic_transform" aria-hidden="true"></a>
@@ -649,7 +649,7 @@ Create a dynamic Skylark transformation. This should only be used by libraries d
 
 Parameter | Description
 --------- | -----------
-impl | `starlarkCallable`<br><p>The Skylark function to call</p>
+impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 
@@ -711,7 +711,7 @@ name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
 destination | `endpoint_provider`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
-description | `string`<br><p>A description of what this workflow achieves</p>
+description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 
 <a id="core.filter_replace" aria-hidden="true"></a>
 ### core.filter_replace
@@ -727,9 +727,9 @@ Parameter | Description
 --------- | -----------
 regex | `string`<br><p>A re2 regex to match a substring of the file</p>
 mapping | `object`<br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
-group | `int`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-reverse | `string`<br><p>A re2 regex used as reverse transformation</p>
+group | `int` or `NoneType`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+reverse | `string` or `NoneType`<br><p>A re2 regex used as reverse transformation</p>
 
 
 #### Examples:
@@ -805,8 +805,8 @@ Parameter | Description
 --------- | -----------
 before | `string`<br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
 after | `string`<br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
-paths | `glob`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
-overwrite | `boolean`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+overwrite | `bool`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 
 
 #### Examples:
@@ -903,10 +903,10 @@ Parameter | Description
 before | `string`<br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'. [Note this argument is a string. If you want to match a regular expression it must be encoded as a regex_group.]</p>
 after | `string`<br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
 regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-first_only | `boolean`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
-multiline | `boolean`<br><p>Whether to replace text that spans more than one line.</p>
-repeated_groups | `boolean`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+first_only | `bool`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
+multiline | `bool`<br><p>Whether to replace text that spans more than one line.</p>
+repeated_groups | `bool`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
 ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
 
 
@@ -1035,7 +1035,7 @@ A mapping function that applies a list of replaces until one replaces the text (
 Parameter | Description
 --------- | -----------
 mapping | `sequence of transformation`<br><p>The list of core.replace transformations</p>
-all | `boolean`<br><p>Run all the mappings despite a replace happens.</p>
+all | `bool`<br><p>Run all the mappings despite a replace happens.</p>
 
 <a id="core.reverse" aria-hidden="true"></a>
 ### core.reverse
@@ -1066,9 +1066,9 @@ Parameter | Description
 tags | `sequence of string`<br><p>Prefix tag to look for</p>
 mapping | `dict`<br><p>Mapping of users/strings</p>
 mode | `string`<br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-default | `string`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
-ignore | `string`<br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+default | `string` or `NoneType`<br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
+ignore | `string` or `NoneType`<br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
 
 
 #### Examples:
@@ -1130,8 +1130,8 @@ Groups some transformations in a transformation that can contain a particular, m
 Parameter | Description
 --------- | -----------
 transformations | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
-reversal | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-ignore_noop | `boolean`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
+reversal | `sequence of transformation` or `NoneType`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
+ignore_noop | `bool` or `NoneType`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
 
 <a id="core.verify_match" aria-hidden="true"></a>
 ### core.verify_match
@@ -1146,9 +1146,9 @@ Verifies that a RegEx matches (or not matches) the specified files. Does not tra
 Parameter | Description
 --------- | -----------
 regex | `string`<br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
-paths | `glob`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
-verify_no_match | `boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
-also_on_reversal | `boolean`<br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
+paths | `glob` or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+verify_no_match | `bool`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+also_on_reversal | `bool`<br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
 
 <a id="core.workflow" aria-hidden="true"></a>
 ### core.workflow
@@ -1178,23 +1178,23 @@ origin | `origin`<br><p>Where to read from the code to be migrated, before apply
 destination | `destination`<br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 authoring | `authoring_class`<br><p>The author mapping configuration from origin to destination.</p>
 transformations | `sequence`<br><p>The transformations to be run for this workflow. They will run in sequence.</p>
-origin_files | `glob`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
-destination_files | `glob`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
+origin_files | `glob` or `NoneType`<br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
+destination_files | `glob` or `NoneType`<br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 mode | `string`<br><p>Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change in the SoT (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
-reversible_check | `boolean`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
-check_last_rev_state | `boolean`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
-ask_for_confirmation | `boolean`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
-dry_run | `boolean`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
+reversible_check | `bool` or `NoneType`<br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
+check_last_rev_state | `bool` or `NoneType`<br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
+ask_for_confirmation | `bool`<br><p>Indicates that the tool should show the diff and require user's confirmation before making a change in the destination.</p>
+dry_run | `bool`<br><p>Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.</p>
 after_migration | `sequence`<br><p>Run a feedback workflow after one migration happens. This runs once per change in `ITERATIVE` mode and only once for `SQUASH`.</p>
 after_workflow | `sequence`<br><p>Run a feedback workflow after all the changes for this workflow run are migrated. Prefer `after_migration` as it is executed per change (in ITERATIVE mode). Tasks in this hook shouldn't be critical to execute. These actions shouldn't record effects (They'll be ignored).</p>
-change_identity | `string`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
-set_rev_id | `boolean`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
-smart_prune | `boolean`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
-migrate_noop_changes | `boolean`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
-experimental_custom_rev_id | `string`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
-description | `string`<br><p>A description of what this workflow achieves</p>
-checkout | `boolean`<br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
-reversible_check_ignore_files | `glob`<br><p>Ignore the files matching the glob in the reversible check</p>
+change_identity | `string` or `NoneType`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
+set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
+smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
+migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
+experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
+description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
+checkout | `bool`<br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
+reversible_check_ignore_files | `glob` or `NoneType`<br><p>Ignore the files matching the glob in the reversible check</p>
 
 
 
@@ -1285,7 +1285,7 @@ Would copy all files in path/to/ from the destination baseline to the copybara w
 
 Checks whether a given file exists in the destination.
 
-`boolean destination_reader.file_exists(path)`
+`bool destination_reader.file_exists(path)`
 
 
 #### Parameters:
@@ -1370,7 +1370,7 @@ Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The reference.</p>
 type | `string`<br><p>The type of this reference.</p>
-url | `string`<br><p>The url associated with this reference, if any.</p>
+url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
 
 <a id="endpoint.new_origin_ref" aria-hidden="true"></a>
 ### endpoint.new_origin_ref
@@ -1458,7 +1458,7 @@ Returns a no op action result with an optional message.
 
 Parameter | Description
 --------- | -----------
-msg | `string`<br><p>The no op message</p>
+msg | `string` or `NoneType`<br><p>The no op message</p>
 
 <a id="feedback.context.record_effect" aria-hidden="true"></a>
 ### feedback.context.record_effect
@@ -1574,7 +1574,7 @@ A folder origin is a origin that uses a folder as input. The folder is specified
 
 Parameter | Description
 --------- | -----------
-materialize_outside_symlinks | `boolean`<br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
+materialize_outside_symlinks | `bool`<br><p>By default folder.origin will refuse any symlink in the migration folder that is an absolute symlink or that refers to a file outside of the folder. If this flag is set, it will materialize those symlinks as regular files in the checkout directory.</p>
 
 
 
@@ -1604,9 +1604,9 @@ Formats the BUILD files using buildifier.
 
 Parameter | Description
 --------- | -----------
-paths | `glob`<br><p>Paths of the files to format relative to the workdir.</p>
-type | `string`<br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
-lint | `string`<br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
+paths | `glob` or `NoneType`<br><p>Paths of the files to format relative to the workdir.</p>
+type | `string` or `NoneType`<br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
+lint | `string` or `NoneType`<br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
 lint_warnings | `sequence of string`<br><p>Warnings used in the lint mode. Default is buildifier default`</p>
 
 
@@ -1891,7 +1891,7 @@ label_id | `string`<br><p>The name of the label.</p>
 
 Retrieve the actions of a Gerrit change.
 
-`map&lt;k,v&gt; gerrit_api_obj.get_actions(id, revision)`
+`dict[string, gerritapi.getActionInfo] gerrit_api_obj.get_actions(id, revision)`
 
 
 #### Parameters:
@@ -1982,11 +1982,11 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
-tag_name | `string`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
-tag_msg | `string`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
-fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+tag_name | `string` or `NoneType`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
+tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
+fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
 
@@ -2018,7 +2018,7 @@ Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API ope
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
-checker | `checker`<br><p>A checker for the Gerrit API transport.</p>
+checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport.</p>
 
 
 
@@ -2044,19 +2044,19 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit</p>
-push_to_refs_for | `string`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
-submit | `boolean`<br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-notify | `string`<br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
+push_to_refs_for | `string` or `NoneType`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
+submit | `bool`<br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+notify | `string` or `NoneType`<br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
 change_id_policy | `string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
-allow_empty_diff_patchset | `boolean`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
+allow_empty_diff_patchset | `bool`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
 reviewers | `sequence`<br><p>The list of the reviewers will be added to gerrit change reviewer listThe element in the list is: an email, for example: "foo@example.com" or label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of assuming that users have registered to gerrit repos</p>
 cc | `sequence`<br><p>The list of the email addresses or users that will be CCed in the review. Can use labels as the `reviewers` field.</p>
 labels | `sequence`<br><p>The list of labels to be pushed with the change. The format is the label along with the associated value. For example: Run-Presubmit+1</p>
-api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-topic | `string`<br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
-gerrit_submit | `boolean`<br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
+api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+topic | `string` or `NoneType`<br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
+gerrit_submit | `bool`<br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
 
 
 
@@ -2102,15 +2102,15 @@ Implicit labels that can be used/exposed:
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the git repository</p>
-ref | `string`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
+ref | `string` or `NoneType`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-branch | `string`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
-describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
-ignore_gerrit_noop | `boolean`<br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
+first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+branch | `string` or `NoneType`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
+describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+ignore_gerrit_noop | `bool`<br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger
@@ -2125,7 +2125,7 @@ Defines a feedback trigger based on updates on a Gerrit change.
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
-checker | `checker`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
+checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
 
 
 
@@ -2150,7 +2150,7 @@ Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API ope
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the GitHub repo URL.</p>
-checker | `checker`<br><p>A checker for the GitHub API transport.</p>
+checker | `checker` or `NoneType`<br><p>A checker for the GitHub API transport.</p>
 
 
 
@@ -2174,12 +2174,12 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
 push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
-fetch | `string`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-pr_branch_to_update | `string`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-delete_pr_branch | `boolean`<br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
-integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-api_checker | `checker`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
+pr_branch_to_update | `string` or `NoneType`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+delete_pr_branch | `bool` or `NoneType`<br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
+integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 
 
 
@@ -2211,13 +2211,13 @@ Defines a Git origin for a Github repository. This origin should be used for pub
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the git repository</p>
-ref | `string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+ref | `string` or `NoneType`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
-version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+version_selector | `latestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
@@ -2233,14 +2233,14 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
-pr_branch | `string`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-allow_empty_diff | `boolean`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
-title | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
-body | `string`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
-integrates | `sequence of git_integrate`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-update_description | `boolean`<br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
+pr_branch | `string` or `NoneType`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+allow_empty_diff | `bool`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
+title | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
+body | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
+integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
+api_checker | `checker` or `NoneType`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+update_description | `bool`<br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
 
 
 #### Examples:
@@ -2332,21 +2332,21 @@ Implicit labels that can be used/exposed:
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the GitHub repository</p>
-use_merge | `boolean`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
+use_merge | `bool`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
 required_labels | `sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
 required_status_context_names | `sequence of string`<br><p>Required status context names to import the PR. All the status context names need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
 retryable_labels | `sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-baseline_from_branch | `boolean`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
-first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+baseline_from_branch | `bool`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
+first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 state | `string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
-review_state | `string`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
-review_approvers | `sequence of string`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
-api_checker | `checker`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
-patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-branch | `string`<br><p>If set, it will only migrate pull requests for this base branch</p>
-describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+review_state | `string` or `NoneType`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
+review_approvers | `sequence of string` or `NoneType`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
+api_checker | `checker` or `NoneType`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+branch | `string` or `NoneType`<br><p>If set, it will only migrate pull requests for this base branch</p>
+describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
 
 
 
@@ -2373,7 +2373,7 @@ Defines a feedback trigger based on updates on a GitHub PR.
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the GitHub repo URL.</p>
-checker | `checker`<br><p>A checker for the GitHub API transport provided by this trigger.</p>
+checker | `checker` or `NoneType`<br><p>A checker for the GitHub API transport provided by this trigger.</p>
 events | `sequence of string`<br><p>Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, </p>
 
 
@@ -2398,7 +2398,7 @@ Parameter | Description
 --------- | -----------
 label | `string`<br><p>The migration label that will contain the url to the change to integrate.</p>
 strategy | `string`<br><p>How to integrate the change:<br><ul> <li><b>'FAKE_MERGE'</b>: Add the url revision/reference as parent of the migration change but ignore all the files from the url. The commit message will be a standard merge one but will include the corresponding RevId label</li> <li><b>'FAKE_MERGE_AND_INCLUDE_FILES'</b>: Same as 'FAKE_MERGE' but any change to files that doesn't match destination_files will be included as part of the merge commit. So it will be a semi fake merge: Fake for destination_files but merge for non destination files.</li> <li><b>'INCLUDE_FILES'</b>: Same as 'FAKE_MERGE_AND_INCLUDE_FILES' but it it doesn't create a merge but only include changes not matching destination_files</li></ul></p>
-ignore_errors | `boolean`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
+ignore_errors | `bool`<br><p>If we should ignore integrate errors and continue the migration without the integrate</p>
 
 
 #### Example:
@@ -2450,9 +2450,9 @@ name | `string`<br><p>Migration name</p>
 origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
 refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
-prune | `boolean`<br><p>Remove remote refs that don't have a origin counterpart</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-description | `string`<br><p>A description of what this workflow achieves</p>
+prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 
 
 
@@ -2475,14 +2475,14 @@ Defines a standard Git origin. For Git specific origins use: `github_origin` or 
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the git repository</p>
-ref | `string`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
+ref | `string` or `NoneType`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
-include_branch_commit_logs | `boolean`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
-first_parent | `boolean`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-patch | `transformation`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
-describe_version | `boolean`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
-version_selector | `latestVersionSelector`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+include_branch_commit_logs | `bool`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
+first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
+describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br></p>
+version_selector | `latestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input
@@ -2497,8 +2497,8 @@ Creates a review to be posted on Gerrit.
 Parameter | Description
 --------- | -----------
 labels | `dict`<br><p>The labels to post.</p>
-message | `string`<br><p>The message to be added as review comment.</p>
-tag | `string`<br><p>Tag to be applied to the review, for instance 'autogenerated:copybara'.</p>
+message | `string` or `NoneType`<br><p>The message to be added as review comment.</p>
+tag | `string` or `NoneType`<br><p>Tag to be applied to the review, for instance 'autogenerated:copybara'.</p>
 
 
 
@@ -2554,7 +2554,7 @@ sha | `string`<br><p>The SHA-1 for which we want to create or update the status<
 state | `string`<br><p>The state of the commit status: 'success', 'error', 'pending' or 'failure'</p>
 context | `string`<br><p>The context for the commit status. Use a value like 'copybara/import_successful' or similar</p>
 description | `string`<br><p>Description about what happened</p>
-target_url | `string`<br><p>Url with expanded information about the event</p>
+target_url | `string` or `NoneType`<br><p>Url with expanded information about the event</p>
 
 <a id="github_api_obj.delete_reference" aria-hidden="true"></a>
 ### github_api_obj.delete_reference
@@ -2652,15 +2652,15 @@ number | `int`<br><p>Pull Request number</p>
 
 Get Pull Requests for a repo
 
-`immutableList&lt;e&gt; github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
+`list of github_api_pull_request_obj github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-head_prefix | `string`<br><p>Only return PRs wher the branch name has head_prefix</p>
-base_prefix | `string`<br><p>Only return PRs where the destination branch name has base_prefix</p>
+head_prefix | `string` or `NoneType`<br><p>Only return PRs wher the branch name has head_prefix</p>
+base_prefix | `string` or `NoneType`<br><p>Only return PRs where the destination branch name has base_prefix</p>
 state | `string`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"` or `"ALL"`</p>
 sort | `string`<br><p>Sort filter for retrieving the Pull Requests. Can be `"CREATED"`, `"UPDATED"` or `"POPULARITY"`</p>
 direction | `string`<br><p>Direction of the filter. Can be `"ASC"` or `"DESC"`</p>
@@ -2714,9 +2714,9 @@ Update Pull Requests for a repo. Returns None if not found
 Parameter | Description
 --------- | -----------
 number | `int`<br><p>Pull Request number</p>
-title | `string`<br><p>New Pull Request title</p>
-body | `string`<br><p>New Pull Request body</p>
-state | `string`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
+title | `string` or `NoneType`<br><p>New Pull Request title</p>
+body | `string` or `NoneType`<br><p>New Pull Request body</p>
+state | `string` or `NoneType`<br><p>State of the Pull Request. Can be `"OPEN"`, `"CLOSED"`</p>
 
 <a id="github_api_obj.update_reference" aria-hidden="true"></a>
 ### github_api_obj.update_reference
@@ -2732,7 +2732,7 @@ Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The name of the reference.</p>
 sha | `string`<br><p>The id for the commit status.</p>
-force | `boolean`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
+force | `bool`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
 
 
 
@@ -2911,8 +2911,8 @@ Adds a header line to the commit message. Any variable present in the message in
 Parameter | Description
 --------- | -----------
 text | `string`<br><p>The header text to include in the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
-ignore_label_not_found | `boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
-new_line | `boolean`<br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
+ignore_label_not_found | `bool`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+new_line | `bool`<br><p>If a new line should be added between the header and the original message. This allows to create messages like `HEADER: ORIGINAL_MESSAGE`</p>
 
 
 #### Examples:
@@ -3020,10 +3020,10 @@ Certain labels are present in the internal metadata but are not exposed in the m
 Parameter | Description
 --------- | -----------
 name | `string`<br><p>The label to search</p>
-new_name | `string`<br><p>The name to use in the message</p>
+new_name | `string` or `NoneType`<br><p>The name to use in the message</p>
 separator | `string`<br><p>The separator to use when adding the label to the message</p>
-ignore_label_not_found | `boolean`<br><p>If a label is not found, ignore the error and continue.</p>
-all | `boolean`<br><p>By default Copybara tries to find the most relevant instance of the label. First looking into the message and then looking into the changes in order. If this field is true it exposes all the matches instead.</p>
+ignore_label_not_found | `bool`<br><p>If a label is not found, ignore the error and continue.</p>
+all | `bool`<br><p>By default Copybara tries to find the most relevant instance of the label. First looking into the message and then looking into the changes in order. If this field is true it exposes all the matches instead.</p>
 
 
 #### Examples:
@@ -3086,11 +3086,11 @@ Map the author name and mail to another author. The mapping can be done by both 
 Parameter | Description
 --------- | -----------
 authors | `dict`<br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name <some@mail>'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name <some@mail>'</p>
-reversible | `boolean`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
-noop_reverse | `boolean`<br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
-fail_if_not_found | `boolean`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
-reverse_fail_if_not_found | `boolean`<br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
-map_all_changes | `boolean`<br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
+reversible | `bool`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
+noop_reverse | `bool`<br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
+fail_if_not_found | `bool`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
+reverse_fail_if_not_found | `bool`<br><p>Same as fail_if_not_found but when the transform is used in a inverse workflow.</p>
+map_all_changes | `bool`<br><p>If all changes being migrated should be mapped. Useful for getting a mapped metadata.squash_notes. By default we only map the current author.</p>
 
 
 #### Example:
@@ -3189,7 +3189,7 @@ Replace the change message with a template text. Any variable present in the mes
 Parameter | Description
 --------- | -----------
 text | `string`<br><p>The template text to use for the message. For example '[Import of foo ${LABEL}]'. This would construct a message resolving ${LABEL} to the corresponding label.</p>
-ignore_label_not_found | `boolean`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
+ignore_label_not_found | `bool`<br><p>If a label used in the template is not found, ignore the error and don't add the header. By default it will stop the migration and fail.</p>
 
 
 #### Example:
@@ -3226,7 +3226,7 @@ For a given change, restore the author present in the ORIGINAL_AUTHOR label as t
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to use for restoring the author</p>
-search_all_changes | `boolean`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
+search_all_changes | `bool`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
 
 <a id="metadata.save_author" aria-hidden="true"></a>
 ### metadata.save_author
@@ -3255,8 +3255,8 @@ Removes part of the change message using a regex
 Parameter | Description
 --------- | -----------
 regex | `string`<br><p>Any text matching the regex will be removed. Note that the regex is runs in multiline mode.</p>
-msg_if_no_match | `string`<br><p>If set, Copybara will use this text when the scrubbing regex doesn't match.</p>
-fail_if_no_match | `boolean`<br><p>If set, msg_if_no_match must be None and then fail if the scrubbing regex doesn't match. </p>
+msg_if_no_match | `string` or `NoneType`<br><p>If set, Copybara will use this text when the scrubbing regex doesn't match.</p>
+fail_if_no_match | `bool`<br><p>If set, msg_if_no_match must be None and then fail if the scrubbing regex doesn't match. </p>
 replacement | `string`<br><p>Text replacement for the matching substrings. References to regex group numbers can be used in the form of $1, $2, etc.</p>
 
 
@@ -3400,12 +3400,12 @@ Parameter | Description
 --------- | -----------
 prefix | `string`<br><p>A prefix to be printed before the list of commits.</p>
 max | `int`<br><p>Max number of commits to include in the message. For the rest a comment like (and x more) will be included. By default 100 commits are included.</p>
-compact | `boolean`<br><p>If compact is set, each change will be shown in just one line</p>
-show_ref | `boolean`<br><p>If each change reference should be present in the notes</p>
-show_author | `boolean`<br><p>If each change author should be present in the notes</p>
-show_description | `boolean`<br><p>If each change description should be present in the notes</p>
-oldest_first | `boolean`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
-use_merge | `boolean`<br><p>If true then merge changes are included in the squash notes</p>
+compact | `bool`<br><p>If compact is set, each change will be shown in just one line</p>
+show_ref | `bool`<br><p>If each change reference should be present in the notes</p>
+show_author | `bool`<br><p>If each change author should be present in the notes</p>
+show_description | `bool`<br><p>If each change description should be present in the notes</p>
+oldest_first | `bool`<br><p>If set to true, the list shows the oldest changes first. Otherwise it shows the changes in descending order.</p>
+use_merge | `bool`<br><p>If true then merge changes are included in the squash notes</p>
 
 
 #### Examples:
@@ -3516,10 +3516,10 @@ Use metadata (message or/and author) from the last change being migrated. Useful
 
 Parameter | Description
 --------- | -----------
-author | `boolean`<br><p>Replace author with the last change author (Could still be the default author if not on the allowlist or using `authoring.overwrite`.)</p>
-message | `boolean`<br><p>Replace message with last change message.</p>
-default_message | `string`<br><p>Replace message with last change message.</p>
-use_merge | `boolean`<br><p>If true then merge changes are taken into account for looking for the last change.</p>
+author | `bool`<br><p>Replace author with the last change author (Could still be the default author if not on the allowlist or using `authoring.overwrite`.)</p>
+message | `bool`<br><p>Replace message with last change message.</p>
+default_message | `string` or `NoneType`<br><p>Replace message with last change message.</p>
+use_merge | `bool`<br><p>If true then merge changes are taken into account for looking for the last change.</p>
 
 <a id="metadata.verify_match" aria-hidden="true"></a>
 ### metadata.verify_match
@@ -3534,7 +3534,7 @@ Verifies that a RegEx matches (or not matches) the change message. Does not tran
 Parameter | Description
 --------- | -----------
 regex | `string`<br><p>The regex pattern to verify. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end.</p>
-verify_no_match | `boolean`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
+verify_no_match | `bool`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
 
 
 #### Example:
@@ -3582,7 +3582,7 @@ Parameter | Description
 --------- | -----------
 patches | `object`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
-series | `string`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
+series | `string` or `NoneType`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
 strip | `int`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>
 
 
@@ -3712,7 +3712,7 @@ Parameter | Description
 label | `string`<br><p>The label to replace</p>
 value | `string`<br><p>The new value for the label</p>
 separator | `string`<br><p>The separator to use for the label</p>
-hidden | `boolean`<br><p>Don't show the label in the message but only keep it internally</p>
+hidden | `bool`<br><p>Don't show the label in the message but only keep it internally</p>
 
 <a id="ctx.add_or_replace_label" aria-hidden="true"></a>
 ### ctx.add_or_replace_label
@@ -3864,7 +3864,7 @@ Remove a label from the message if present
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to delete</p>
-whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+whole_message | `bool`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
 
 <a id="ctx.replace_label" aria-hidden="true"></a>
 ### ctx.replace_label
@@ -3881,7 +3881,7 @@ Parameter | Description
 label | `string`<br><p>The label to replace</p>
 value | `string`<br><p>The new value for the label</p>
 separator | `string`<br><p>The separator to use for the label</p>
-whole_message | `boolean`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
+whole_message | `bool`<br><p>By default Copybara only looks in the last paragraph for labels. This flagmake it replace labels in the whole message.</p>
 
 <a id="ctx.run" aria-hidden="true"></a>
 ### ctx.run
