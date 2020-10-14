@@ -35,6 +35,7 @@ import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -51,6 +52,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
   private final boolean deletePrBranch;
   private final Console console;
   @Nullable private final Checker endpointChecker;
+  private final GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
@@ -61,7 +63,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
       @Nullable String prBranchToUpdate,
       boolean deletePrBranch,
       Console console,
-      @Nullable Checker endpointChecker) {
+      @Nullable Checker endpointChecker,
+      GitHubHost ghHost) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
@@ -69,6 +72,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     this.deletePrBranch = deletePrBranch;
     this.console = console;
     this.endpointChecker = endpointChecker;
+    this.ghHost = ghHost;
   }
 
   @Override
@@ -81,7 +85,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     if (skipPush || prBranchToUpdate == null) {
       return;
     }
-    String configProjectName = GitHubUtil.getProjectNameFromUrl(repoUrl);
+    String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
     GitHubApi api = gitHubOptions.newGitHubApi(configProjectName);
 
     for (Change<?> change : originChanges) {
@@ -123,7 +127,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     if (prBranchToUpdate == null || !deletePrBranch) {
       return baseEffects.build();
     }
-    String projectId = GitHubUtil.getProjectNameFromUrl(repoUrl);
+    String projectId = ghHost.getProjectNameFromUrl(repoUrl);
     GitHubApi api = gitHubOptions.newGitHubApi(projectId);
 
     for (Change<?> change : originChanges) {
@@ -157,7 +161,10 @@ public class GitHubWriteHook extends DefaultWriteHook {
   public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
     gitHubOptions.validateEndpointChecker(endpointChecker);
     return new GitHubEndPoint(
-        gitHubOptions.newGitHubApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+        gitHubOptions.newGitHubApiSupplier(repoUrl, endpointChecker, ghHost),
+        repoUrl,
+        console,
+        ghHost);
   }
 
   @Override

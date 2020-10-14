@@ -16,8 +16,6 @@
 
 package com.google.copybara.git;
 
-import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
@@ -32,7 +30,7 @@ import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.PullRequest;
-import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -45,6 +43,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   private final GitHubOptions gitHubOptions;
   private final boolean partialFetch;
   private final Console console;
+  private GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
   private  final boolean allowEmptyDiff;
 
@@ -55,14 +54,16 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       @Nullable String prBranchToUpdate,
       boolean partialFetch,
       boolean allowEmptyDiff,
-      Console console) {
+      Console console,
+      GitHubHost ghHost) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.prBranchToUpdate = prBranchToUpdate;
     this.partialFetch = partialFetch;
     this.allowEmptyDiff = allowEmptyDiff;
-    this.console = console;
+    this.console = Preconditions.checkNotNull(console);
+    this.ghHost = Preconditions.checkNotNull(ghHost);
   }
 
   @Override
@@ -76,15 +77,16 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       return;
     }
     for (Change<?> originalChange : originChanges) {
-      String configProjectName = GitHubUtil.getProjectNameFromUrl(repoUrl);
+      String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
       GitHubApi api = gitHubOptions.newGitHubApi(configProjectName);
 
       try {
-        ImmutableList<PullRequest> pullRequests = api.getPullRequests(
-            configProjectName,
-            PullRequestListParams.DEFAULT
-                .withHead(
-                    String.format("%s:%s", getUserNameFromUrl(repoUrl), this.prBranchToUpdate)));
+        ImmutableList<PullRequest> pullRequests =
+            api.getPullRequests(
+                configProjectName,
+                PullRequestListParams.DEFAULT.withHead(
+                    String.format(
+                        "%s:%s", ghHost.getUserNameFromUrl(repoUrl), this.prBranchToUpdate)));
         // Just ignore empt-diff check when the size of prs is not equal to 1.
         // If the list size is empty, no pr has been created before.
         // If the list size is greater than 1, there might be something wrong.
@@ -112,13 +114,14 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   }
 
   protected GitHubPrWriteHook withUpdatedPrBranch(String prBranchToUpdate) {
-    return new  GitHubPrWriteHook(
+    return new GitHubPrWriteHook(
         this.generalOptions,
         this.repoUrl,
         this.gitHubOptions,
         prBranchToUpdate,
         this.partialFetch,
         this.allowEmptyDiff,
-        this.console);
+        this.console,
+        this.ghHost);
   }
 }

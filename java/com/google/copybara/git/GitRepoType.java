@@ -23,8 +23,9 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.doc.annotations.DocField;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.git.github.util.GitHubHost.GitHubPrUrl;
 import com.google.copybara.git.github.util.GitHubUtil;
-import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.Optional;
@@ -152,7 +153,8 @@ public enum GitRepoType {
   protected static GitRevision maybeFetchGithubPullRequest(GitRepository repository,
       String repoUrl, String ref, boolean describeVersion, boolean partialFetch)
       throws RepoException, ValidationException {
-    Optional<GitHubPrUrl> githubPrUrl = GitHubUtil.maybeParseGithubPrUrl(ref);
+    // TODO(malcon): This only supports github.com PRs, not enterprise.
+    Optional<GitHubPrUrl> githubPrUrl = GitHubHost.GITHUB_COM.maybeParseGithubPrUrl(ref);
     if (githubPrUrl.isPresent()) {
       // TODO(malcon): Support merge ref too once we have github pr origin.
       String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());

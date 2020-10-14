@@ -18,13 +18,9 @@ package com.google.copybara.git.github.util;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-import java.net.URI;
 import java.util.Optional;
 
 /**
@@ -32,63 +28,7 @@ import java.util.Optional;
  */
 public class GitHubUtil {
 
-  private static final Pattern GITHUB_PULL_REQUEST =
-      Pattern.compile("https://github[.]com/(.+)/pull/([0-9]+)");
-  private static final String GIT_GITHUB_PROTOCOL = "git@github.com:";
-  private static final ImmutableSet<String> GITHUB_HOSTS =
-      ImmutableSet.of("www.github.com", "github.com");
-
-  private GitHubUtil() {
-  }
-
-  /**
-   * Return the username part of a github url. For example in
-   * https://github.com/foo/bar/baz, 'foo' would be the user.
-   */
-  public static String getUserNameFromUrl(String url) throws ValidationException {
-    String project = getProjectNameFromUrl(url);
-    int i = project.indexOf("/");
-    return i == -1 ? project : project.substring(0, i);
-  }
-
-  /**
-   * Given a url that represents a GitHub repository, return the project name.
-   */
-  public static String getProjectNameFromUrl(String url) throws ValidationException {
-    checkCondition(!Strings.isNullOrEmpty(url), "Empty url");
-
-    if (url.startsWith(GIT_GITHUB_PROTOCOL)) {
-      return url.substring(GIT_GITHUB_PROTOCOL.length()).replaceAll("([.]git|/)$", "");
-    }
-    URI uri;
-    try {
-      uri = URI.create(url);
-    } catch (IllegalArgumentException e) {
-      throw new ValidationException("Cannot find project name from url " + url);
-    }
-    if (uri.getScheme() == null) {
-      uri = URI.create("notimportant://" + url);
-    }
-    checkCondition(GITHUB_HOSTS.contains(uri.getHost()), "Not a github url: %s", url);
-    String name = uri.getPath()
-        .replaceAll("^/", "")
-        .replaceAll("([.]git|/)$", "");
-
-    checkCondition(!Strings.isNullOrEmpty(name), "Cannot find project name from url %s", url);
-    return name;
-  }
-
-  /**
-   * Returns true if url is a GitHub url.
-   */
-  public static boolean isGitHubUrl(String url) {
-    try {
-      GitHubUtil.getProjectNameFromUrl(url);
-      return true;
-    } catch (ValidationException e) {
-      return false;
-    }
-  }
+  private GitHubUtil() {}
 
   /**
    * Returns a valid branch name by replacing invalid character with "_"
@@ -99,13 +39,6 @@ public class GitHubUtil {
     checkCondition(!branchName.startsWith("/") && !branchName.startsWith("refs/"),
         "Branch name has invalid prefix: \"/\" or \"refs/\"");
     return branchName.replaceAll("[^A-Za-z0-9/_-]", "_");
-  }
-
-  /**
-   * Given a project name, like copybara/google, return the GitHub https url of it.
-   */
-  public static String asGithubUrl(String project) {
-    return "https://github.com/" + project;
   }
 
   private static final Pattern GITHUB_PULL_REQUEST_REF =
@@ -129,13 +62,6 @@ public class GitHubUtil {
     return matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
   }
 
-  public static Optional<GitHubPrUrl> maybeParseGithubPrUrl(String ref) {
-    Matcher matcher = GITHUB_PULL_REQUEST.matcher(ref);
-    return matcher.matches()
-           ? Optional.of(new GitHubPrUrl(matcher.group(1), Integer.parseInt(matcher.group(2))))
-           : Optional.empty();
-  }
-
   /**
    * Given a prNumber return a git reference like 'refs/pull/12345/head'
    */
@@ -150,33 +76,4 @@ public class GitHubUtil {
     return "refs/pull/" + prNumber + "/merge";
   }
 
-  /**
-   * A GitHub PR project and number
-   */
-  public static class GitHubPrUrl {
-
-    private final String project;
-    private final int prNumber;
-
-    GitHubPrUrl(String project, int prNumber) {
-      this.project = project;
-      this.prNumber = prNumber;
-    }
-
-    public String getProject() {
-      return project;
-    }
-
-    public int getPrNumber() {
-      return prNumber;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("project", project)
-          .add("prNumber", prNumber)
-          .toString();
-    }
-  }
 }

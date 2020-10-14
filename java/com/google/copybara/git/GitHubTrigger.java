@@ -26,6 +26,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubEventType;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 
 /**
@@ -35,14 +36,19 @@ public class GitHubTrigger implements Trigger {
 
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
+  private GitHubHost ghHost;
   private final ImmutableSet<GitHubEventType> events;
   private final Console console;
 
-  GitHubTrigger(LazyResourceLoader<GitHubApi> apiSupplier, String url,
+  GitHubTrigger(
+      LazyResourceLoader<GitHubApi> apiSupplier,
+      String url,
       ImmutableSet<GitHubEventType> events,
-      Console console) {
+      Console console,
+      GitHubHost ghHost) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.ghHost = Preconditions.checkNotNull(ghHost);
     Preconditions.checkArgument(!events.isEmpty());
     this.events = events;
     this.console = Preconditions.checkNotNull(console);
@@ -50,7 +56,7 @@ public class GitHubTrigger implements Trigger {
 
   @Override
   public Endpoint getEndpoint() {
-    return new GitHubEndPoint(apiSupplier, url, console);
+    return new GitHubEndPoint(apiSupplier, url, console, ghHost);
   }
 
   @Override

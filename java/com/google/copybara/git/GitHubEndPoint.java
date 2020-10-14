@@ -49,7 +49,7 @@ import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
 import com.google.copybara.git.github.api.UpdateReferenceRequest;
 import com.google.copybara.git.github.api.User;
-import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Pattern;
 import javax.annotation.Nullable;
@@ -75,15 +75,17 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
   private final Console console;
+  private GitHubHost ghHost;
   // This might not be complete but it is only used for filtering get_pull_requests. We can
   // add more chars on demand.
   private static final Pattern SAFE_BRANCH_NAME_PREFIX = Pattern.compile("[\\w_.-][\\w/_.-]*");
 
-
-  GitHubEndPoint(LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console) {
+  GitHubEndPoint(
+      LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console, GitHubHost ghHost) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);
+    this.ghHost = ghHost;
   }
 
   @StarlarkMethod(
@@ -127,7 +129,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       checkCondition(!Strings.isNullOrEmpty(description), "description cannot be empty");
       checkCondition(!Strings.isNullOrEmpty(context), "context cannot be empty");
 
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).createStatus(
           project, sha, new CreateStatusRequest(State.valueOf(state.toUpperCase()),
               convertFromNoneable(targetUrl, null),
@@ -158,7 +160,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_check_runs: %s", e.getMessage());
@@ -179,7 +181,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public CombinedStatus getCombinedStatus(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCombinedStatus(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
@@ -203,7 +205,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public GitHubCommit getCommit(String ref) throws EvalException, RepoException {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Empty reference not allowed");
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getCommit(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
@@ -239,7 +241,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             "Non-complete ref passed to update_reference '%s'. Assuming refs/heads/%s", ref, ref);
         ref = "refs/heads/" + ref;
       }
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).updateReference(
           project, ref, new UpdateReferenceRequest(sha, force));
     } catch (ValidationException | RuntimeException e) {
@@ -259,7 +261,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       checkCondition(ref.startsWith("refs/"), "ref needs to be a complete reference."
           + " Example: refs/heads/foo");
 
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       apiSupplier.load(console).deleteReference(project, ref);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling delete_reference: %s", e.getMessage());
@@ -281,7 +283,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       checkCondition(!Strings.isNullOrEmpty(ref), "Ref cannot be empty");
 
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getReference(project, ref);
     } catch (GitHubApiException e) {
       return returnNullOnNotFound(e);
@@ -336,7 +338,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       Object headPrefixParam, Object basePrefixParam, String state, String sort, String direction)
       throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       PullRequestListParams request = PullRequestListParams.DEFAULT;
       String headPrefix = convertFromNoneable(headPrefixParam, null);
       String basePrefix = convertFromNoneable(basePrefixParam, null);
@@ -406,7 +408,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public PullRequest updatePullRequest(StarlarkInt number, Object title, Object body, Object state)
       throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
 
       return apiSupplier
           .load(console)
@@ -453,7 +455,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
               + "number of 500.")
   public Sequence<Ref> getReferences() throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(apiSupplier.load(console).getReferences(project));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_references: %s", e.getMessage());
@@ -475,7 +477,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       } catch (NumberFormatException e) {
         throw Starlark.errorf("Invalid comment id %s: %s", commentId, e.getMessage());
       }
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return apiSupplier.load(console).getPullRequestComment(project, commentIdLong);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_pull_request_comment: %s", e.getMessage());
@@ -491,7 +493,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public Sequence<PullRequestComment> getPullRequestComments(StarlarkInt prNumber)
       throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return StarlarkList.immutableCopyOf(
           apiSupplier.load(console).getPullRequestComments(project, prNumber.toInt("number")));
     } catch (ValidationException | RuntimeException e) {
@@ -524,7 +526,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public void addLabels(StarlarkInt prNumber, Sequence<?> labels)
       throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       // Swallow response, until a use-case for returning it surfaces.
       apiSupplier
           .load(console)
@@ -547,7 +549,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   public void postIssueComment(StarlarkInt prNumber, String comment)
       throws EvalException, RepoException {
     try {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       apiSupplier.load(console).postComment(project, prNumber.toInt("number"), comment);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling post_issue_comment: %s", e.getMessage());
@@ -556,7 +558,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
 
   @Override
   public GitHubEndPoint withConsole(Console console) {
-    return new GitHubEndPoint(this.apiSupplier, this.url, console);
+    return new GitHubEndPoint(this.apiSupplier, this.url, console, ghHost);
   }
 
   @Override

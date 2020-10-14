@@ -33,6 +33,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.NUMERIC;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
+import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -64,7 +65,6 @@ import com.google.copybara.git.LatestVersionSelector.VersionElementType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubEventType;
-import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -830,7 +830,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
-    check(url.contains("github.com"), "Invalid Github URL: %s", url);
+    check(GITHUB_COM.isGitHubUrl(url), "Invalid Github URL: %s", url);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     String reviewStateString = convertFromNoneable(reviewStateParam, null);
@@ -866,8 +866,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitHubOptions.class),
         prOpts,
         ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class, "required_labels")),
-        ImmutableSet.copyOf(Sequence.cast(requiredStatusContextNames, String.class,
-            "required_status_context_names")),
+        ImmutableSet.copyOf(
+            Sequence.cast(
+                requiredStatusContextNames, String.class, "required_status_context_names")),
         ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class, "retryable_labels")),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
@@ -879,7 +880,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(checkerObj, null),
         patchTransformation,
         convertFromNoneable(branch, null),
-        convertDescribeVersion(describeVersion));
+        convertDescribeVersion(describeVersion),
+        GITHUB_COM);
   }
 
   @SuppressWarnings("unused")
@@ -966,7 +968,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object versionSelector,
       StarlarkThread thread)
       throws EvalException {
-    check(GitHubUtil.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
+    check(GITHUB_COM.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
 
     if (versionSelector != Starlark.NONE) {
       check(
@@ -1267,7 +1269,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectivePrBranchToUpdate,
             effectiveDeletePrBranch,
             getGeneralConsole(),
-            convertFromNoneable(checker, null)),
+            convertFromNoneable(checker, null),
+            GITHUB_COM),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
@@ -1424,7 +1427,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     // This restricts to github.com, we will have to revisit this to support setups like GitHub
     // Enterprise.
-    check(GitHubUtil.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
+    check(GITHUB_COM.isGitHubUrl(url), "'%s' is not a valid GitHub url", url);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     String destinationPrBranch = convertFromNoneable(prBranch, null);
@@ -1447,7 +1450,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             destinationPrBranch,
             partialFetch,
             allowEmptyDiff,
-            getGeneralConsole()),
+            getGeneralConsole(),
+            GITHUB_COM),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
@@ -1455,7 +1459,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(body, null),
         mainConfigFile,
         convertFromNoneable(checkerObj, null),
-        updateDescription);
+        updateDescription,
+        GITHUB_COM);
   }
 
   private static String firstNotNull(String... values) {
@@ -1713,8 +1718,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     validateEndpointChecker(checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return EndpointProvider.wrap(
-        new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(cleanedUrl, checker), cleanedUrl,
-            getGeneralConsole()));
+        new GitHubEndPoint(
+            gitHubOptions.newGitHubApiSupplier(cleanedUrl, checker, GITHUB_COM),
+            cleanedUrl,
+            getGeneralConsole(),
+            GITHUB_COM));
   }
 
   @SuppressWarnings("unused")
@@ -1836,8 +1844,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableSet<GitHubEventType> parsedEvents = ImmutableSet.copyOf(eventBuilder);
     validateEndpointChecker(checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
-    return new GitHubTrigger(gitHubOptions.newGitHubApiSupplier(url, checker), url,
-        parsedEvents, getGeneralConsole());
+    return new GitHubTrigger(
+        gitHubOptions.newGitHubApiSupplier(url, checker, GITHUB_COM),
+        url,
+        parsedEvents,
+        getGeneralConsole(),
+        GITHUB_COM);
   }
 
   @SuppressWarnings("unused")

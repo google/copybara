@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -28,7 +30,6 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.io.IOException;
@@ -105,9 +106,9 @@ public class Mirror implements Migration {
   }
 
   private static String getOriginDestinationRef(String url) throws ValidationException {
-    return GitHubUtil.isGitHubUrl(url)
-        ? GitHubUtil.asGithubUrl(GitHubUtil.getProjectNameFromUrl(url))
-        : url;
+    // TODO(copybara-team): This is used just for normalization. We should be able to do it without
+    // knowing the host.
+    return GITHUB_COM.isGitHubUrl(url) ? GITHUB_COM.normalizeUrl(url) : url;
   }
 
   @VisibleForTesting

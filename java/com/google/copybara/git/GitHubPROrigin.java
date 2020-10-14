@@ -19,10 +19,8 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.git.github.util.GitHubUtil.asGithubUrl;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
 import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
-import static com.google.copybara.git.github.util.GitHubUtil.getProjectNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
@@ -60,8 +58,9 @@ import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.User;
+import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.git.github.util.GitHubHost.GitHubPrUrl;
 import com.google.copybara.git.github.util.GitHubUtil;
-import com.google.copybara.git.github.util.GitHubUtil.GitHubPrUrl;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
@@ -123,20 +122,32 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   @Nullable private final PatchTransformation patchTransformation;
   @Nullable private final String branch;
   private final boolean describeVersion;
+  private final GitHubHost ghHost;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
 
-  GitHubPROrigin(String url, boolean useMerge, GeneralOptions generalOptions,
-      GitOptions gitOptions, GitOriginOptions gitOriginOptions, GitHubOptions gitHubOptions,
-      GitHubPrOriginOptions gitHubPrOriginOptions, Set<String> requiredLabels,
-      Set<String> requiredStatusContextNames, Set<String> retryableLabels,
+  GitHubPROrigin(
+      String url,
+      boolean useMerge,
+      GeneralOptions generalOptions,
+      GitOptions gitOptions,
+      GitOriginOptions gitOriginOptions,
+      GitHubOptions gitHubOptions,
+      GitHubPrOriginOptions gitHubPrOriginOptions,
+      Set<String> requiredLabels,
+      Set<String> requiredStatusContextNames,
+      Set<String> retryableLabels,
       SubmoduleStrategy submoduleStrategy,
-      boolean baselineFromBranch, Boolean firstParent, Boolean partialClone,
+      boolean baselineFromBranch,
+      Boolean firstParent,
+      Boolean partialClone,
       StateFilter requiredState,
-      @Nullable ReviewState reviewState, ImmutableSet<AuthorAssociation> reviewApprovers,
+      @Nullable ReviewState reviewState,
+      ImmutableSet<AuthorAssociation> reviewApprovers,
       @Nullable Checker endpointChecker,
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
-      boolean describeVersion) {
+      boolean describeVersion,
+      GitHubHost ghHost) {
     this.url = checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = checkNotNull(generalOptions);
@@ -159,6 +170,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.patchTransformation = patchTransformation;
     this.branch = branch;
     this.describeVersion = describeVersion;
+    this.ghHost = ghHost;
   }
 
   @Override
@@ -168,7 +180,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         + " Invoke copybara as:\n"
         + "    copybara copy.bara.sky workflow_name 12345");
     console.progress("GitHub PR Origin: Resolving reference " + reference);
-    String configProjectName = getProjectNameFromUrl(url);
+    String configProjectName = ghHost.getProjectNameFromUrl(url);
 
     // Only when requiredStatusContextNames is enabled, the reference can potentially be a sha1.
     if (!requiredStatusContextNames.isEmpty()
@@ -178,7 +190,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     }
 
     // A whole https pull request url
-    Optional<GitHubPrUrl> githubPrUrl = GitHubUtil.maybeParseGithubPrUrl(reference);
+    Optional<GitHubPrUrl> githubPrUrl = ghHost.maybeParseGithubPrUrl(reference);
     if (githubPrUrl.isPresent()) {
       checkCondition(
           githubPrUrl.get().getProject().equals(configProjectName),
@@ -189,8 +201,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     }
     // A Pull request number
     if (CharMatcher.digit().matchesAllOf(reference)) {
-      return getRevisionForPR(getProjectNameFromUrl(url),
-          getPr(configProjectName, Integer.parseInt(reference)));
+      return getRevisionForPR(
+          ghHost.getProjectNameFromUrl(url), getPr(configProjectName, Integer.parseInt(reference)));
     }
 
     // refs/pull/12345/head
@@ -363,8 +375,13 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       }
       ImmutableList<String> refspec = refSpecBuilder.build();
-      getRepository().fetch(asGithubUrl(project),/*prune=*/false,/*force=*/true, refspec,
-          partialFetch);
+      getRepository()
+          .fetch(
+              ghHost.projectAsUrl(project),
+              /*prune=*/ false,
+              /*force=*/ true,
+              refspec,
+              partialFetch);
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(
@@ -426,17 +443,24 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring)
       throws ValidationException {
-    return new ReaderImpl(url, originFiles, authoring, gitOptions, gitOriginOptions,
-        generalOptions, /*includeBranchCommitLogs=*/false, submoduleStrategy, firstParent,
-        partialFetch, patchTransformation, describeVersion) {
+    return new ReaderImpl(
+        url,
+        originFiles,
+        authoring,
+        gitOptions,
+        gitOriginOptions,
+        generalOptions,
+        /*includeBranchCommitLogs=*/ false,
+        submoduleStrategy,
+        firstParent,
+        partialFetch,
+        patchTransformation,
+        describeVersion) {
 
-      /**
-       * Disable rebase since this is controlled by useMerge field.
-       */
+      /** Disable rebase since this is controlled by useMerge field. */
       @Override
       protected void maybeRebase(GitRepository repo, GitRevision ref, Path workdir)
-          throws RepoException, CannotResolveRevisionException {
-      }
+          throws RepoException, CannotResolveRevisionException {}
 
       @Override
       public Optional<Baseline<GitRevision>> findBaseline(GitRevision startRevision, String label)
@@ -444,19 +468,18 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         if (!baselineFromBranch) {
           return super.findBaseline(startRevision, label);
         }
-        return findBaselinesWithoutLabel(startRevision, /*limit=*/1).stream()
+        return findBaselinesWithoutLabel(startRevision, /*limit=*/ 1).stream()
             .map(e -> new Baseline<>(e.getSha1(), e))
             .findFirst();
       }
 
       @Override
-      public ImmutableList<GitRevision> findBaselinesWithoutLabel(GitRevision startRevision,
-          int limit)
-          throws RepoException, ValidationException {
-        String baseline = Iterables.getLast(
-            startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1), null);
-        checkNotNull(baseline, "%s label should be present in %s",
-                                   GITHUB_BASE_BRANCH_SHA1, startRevision);
+      public ImmutableList<GitRevision> findBaselinesWithoutLabel(
+          GitRevision startRevision, int limit) throws RepoException, ValidationException {
+        String baseline =
+            Iterables.getLast(startRevision.associatedLabels().get(GITHUB_BASE_BRANCH_SHA1), null);
+        checkNotNull(
+            baseline, "%s label should be present in %s", GITHUB_BASE_BRANCH_SHA1, startRevision);
 
         GitRevision baselineRev = getRepository().resolveReference(baseline);
         // Don't skip the first change as it is already the baseline
@@ -469,8 +492,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       @Override
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
-        return new GitHubEndPoint(gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url,
-            console);
+        return new GitHubEndPoint(
+            gitHubOptions.newGitHubApiSupplier(url, endpointChecker, ghHost), url, console, ghHost);
       }
 
       /**
@@ -478,15 +501,13 @@ public class GitHubPROrigin implements Origin<GitRevision> {
        * commit doesn't work for this case.
        */
       @Override
-      public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef,
-          GitRevision toRef) throws RepoException, ValidationException {
+      public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
+          throws RepoException, ValidationException {
         if (!useMerge) {
           return super.changes(fromRef, toRef);
         }
-        GitLogEntry merge = Iterables.getOnlyElement(getRepository()
-            .log(toRef.getSha1())
-            .withLimit(1)
-            .run());
+        GitLogEntry merge =
+            Iterables.getOnlyElement(getRepository().log(toRef.getSha1()).withLimit(1).run());
         // Fast-forward merge
         if (merge.getParents().size() == 1) {
           return super.changes(fromRef, toRef);
@@ -496,8 +517,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         ChangesResponse<GitRevision> prChanges = super.changes(fromRef, gitRevision);
         // Merge might have an effect, but we are not interested on it if the PR doesn't touch
         // origin_files
-        if (prChanges.isEmpty()){
-            return prChanges;
+        if (prChanges.isEmpty()) {
+          return prChanges;
         }
         try {
           return ChangesResponse.forChanges(

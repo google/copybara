@@ -32,7 +32,7 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
 import com.google.copybara.git.github.api.GitHubApiTransportWithChecker;
-import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
 
@@ -49,13 +49,11 @@ public class GitHubOptions implements Option {
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
   }
 
-  /**
-   * Returns a lazy supplier of {@link GitHubApi}.
-   */
+  /** Returns a lazy supplier of {@link GitHubApi}. */
   public LazyResourceLoader<GitHubApi> newGitHubApiSupplier(
-      String url, @Nullable Checker checker) {
+      String url, @Nullable Checker checker, GitHubHost ghHost) {
     return (console) -> {
-      String project = GitHubUtil.getProjectNameFromUrl(url);
+      String project = ghHost.getProjectNameFromUrl(url);
       return checker == null ? newGitHubApi(project) : newGitHubApi(project, checker, console);
     };
   }

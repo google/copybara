@@ -19,7 +19,6 @@ package com.google.copybara.git;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.api.UpdatePullRequest.State.OPEN;
-import static com.google.copybara.git.github.util.GitHubUtil.getUserNameFromUrl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -47,6 +46,7 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.UpdatePullRequest;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -76,6 +76,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @Nullable private final String title;
   @Nullable private final String body;
   private final boolean updateDescription;
+  private GitHubHost ghHost;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
@@ -96,7 +97,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable String body,
       ConfigFile mainConfigFile,
       @Nullable Checker endpointChecker,
-      boolean updateDescription) {
+      boolean updateDescription,
+      GitHubHost ghHost) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
@@ -111,6 +113,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.title = title;
     this.body = body;
     this.updateDescription = updateDescription;
+    this.ghHost = Preconditions.checkNotNull(ghHost);
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
@@ -158,8 +161,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         destinationRef,
         prBranch,
         partialFetch,
-        /*tagName*/null,
-        /*tagMsg*/null,
+        /*tagName*/ null,
+        /*tagMsg*/ null,
         generalOptions,
         gitHubPrWriteHook,
         state,
@@ -195,23 +198,25 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
         GitHubApi api = gitHubOptions.newGitHubApi(getProjectName());
 
-        ImmutableList<PullRequest> pullRequests = api.getPullRequests(
-            getProjectName(),
-            PullRequestListParams.DEFAULT
-                .withHead(String.format("%s:%s", getUserNameFromUrl(url), prBranch)));
+        ImmutableList<PullRequest> pullRequests =
+            api.getPullRequests(
+                getProjectName(),
+                PullRequestListParams.DEFAULT.withHead(
+                    String.format("%s:%s", ghHost.getUserNameFromUrl(url), prBranch)));
 
         ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary().trim());
 
-        String title = GitHubPrDestination.this.title == null
-            ? msg.firstLine()
-            : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
-                GitHubPrDestination.this.title, "title");
+        String title =
+            GitHubPrDestination.this.title == null
+                ? msg.firstLine()
+                : SkylarkUtil.mapLabels(
+                    transformResult.getLabelFinder(), GitHubPrDestination.this.title, "title");
 
         String prBody =
             GitHubPrDestination.this.body == null
                 ? msg.toString()
-                : SkylarkUtil.mapLabels(transformResult.getLabelFinder(),
-                    GitHubPrDestination.this.body, "body");
+                : SkylarkUtil.mapLabels(
+                    transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
 
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {
@@ -220,8 +225,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   "Pull request for branch %s already exists as %s/pull/%s, but is closed - "
                       + "reopening.",
                   prBranch, asHttpsUrl(), pr.getNumber());
-              api.updatePullRequest(getProjectName(), pr.getNumber(),
-                  new UpdatePullRequest(null, null, OPEN));
+              api.updatePullRequest(
+                  getProjectName(), pr.getNumber(), new UpdatePullRequest(null, null, OPEN));
             } else {
               console.infoFmt(
                   "Pull request for branch %s already exists as %s/pull/%s",
@@ -238,9 +243,10 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   !Strings.isNullOrEmpty(title),
                   "Pull Request title cannot be empty. Either use 'title' field in"
                       + " git.github_pr_destination or modify the message to not be empty");
-              api.updatePullRequest(getProjectName(), pr.getNumber(),
-                  new UpdatePullRequest(title, prBody, /*state=*/null));
-
+              api.updatePullRequest(
+                  getProjectName(),
+                  pr.getNumber(),
+                  new UpdatePullRequest(title, prBody, /*state=*/ null));
             }
             result.add(
                 new DestinationEffect(
@@ -260,9 +266,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
         PullRequest pr =
             api.createPullRequest(
-                getProjectName(),
-                new CreatePullRequest(
-                    title, prBody, prBranch, destinationRef));
+                getProjectName(), new CreatePullRequest(title, prBody, prBranch, destinationRef));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);
@@ -281,7 +285,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
         return new GitHubEndPoint(
-            gitHubOptions.newGitHubApiSupplier(url, endpointChecker), url, console);
+            gitHubOptions.newGitHubApiSupplier(url, endpointChecker, ghHost), url, console, ghHost);
       }
     };
   }
@@ -292,7 +296,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
 
   @VisibleForTesting
   String getProjectName() throws ValidationException {
-    return GitHubUtil.getProjectNameFromUrl(url);
+    return ghHost.getProjectNameFromUrl(url);
   }
 
   @VisibleForTesting
