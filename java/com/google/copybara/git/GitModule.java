@@ -1310,7 +1310,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "Please DO NOT set it to True. This feature is not ready."),
         @Param(
             name = "allow_empty_diff",
-            type = Boolean.class,
             defaultValue = "True",
             named = true,
             positional = false,
