@@ -37,8 +37,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
+import net.starlark.java.annot.StarlarkAnnotations;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkInterfaceUtils;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
 import net.starlark.java.eval.Mutability;
@@ -330,7 +330,7 @@ public class SkylarkParser {
       // Create the module object and associate it with the functions
       ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
       try {
-        if (StarlarkInterfaceUtils.getStarlarkBuiltin(module) != null) {
+        if (StarlarkAnnotations.getStarlarkBuiltin(module) != null) {
           Starlark.addModule(envBuilder, module.getConstructor().newInstance());
         } else if (module.isAnnotationPresent(Library.class)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
