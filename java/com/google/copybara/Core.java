@@ -1170,7 +1170,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
-  @DocDefault(field = "reverse", value = "`regex`")
+  @DocDefault(field = "reverse", value = "regex")
   @DocDefault(field = "group", value = "Whole text")
   @DocDefault(field = "regex", allowedTypes = {"string"})
   @Example(

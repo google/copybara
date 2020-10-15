@@ -744,7 +744,7 @@ description | `string` or `NoneType`<br><p>A description of what this workflow a
 
 Applies an initial filtering to find a substring to be replaced and then applies a `mapping` of replaces for the matched text.
 
-`filter_replace core.filter_replace(regex=, mapping={}, group=Whole text, paths=glob(["**"]), reverse=`regex`)`
+`filter_replace core.filter_replace(regex=, mapping={}, group=Whole text, paths=glob(["**"]), reverse=regex)`
 
 
 #### Parameters:
