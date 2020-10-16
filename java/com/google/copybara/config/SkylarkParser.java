@@ -274,10 +274,6 @@ public class SkylarkParser {
 
   private static final FileOptions STARLARK_LOOSE_FILE_OPTIONS =
       STARLARK_STRICT_FILE_OPTIONS.toBuilder()
-          // TODO(malcon): stop allowing invalid escapes such as "[\s\S]",
-          // which appears in devtools/blaze/bazel/admin/copybara/docs.bara.sky.
-          // This is a breaking change but trivially fixed.
-          .restrictStringEscapes(false)
           .requireLoadStatementsFirst(false)
           .build();
 
