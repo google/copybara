@@ -127,7 +127,8 @@ public final class Replace implements Transformation {
 
     Iterable<FileState> files = work.getTreeState().find(
         paths.relativeTo(checkoutDir));
-    BatchReplace batchReplace = new BatchReplace(this::createReplacer);
+    BatchReplace batchReplace = new BatchReplace(this::createReplacer,
+        before.getBefore().toString());
     workflowOptions.parallelizer().run(files, batchReplace);
     List<FileState> changed = batchReplace.getChanged();
     boolean matchedFile = batchReplace.isMatchedFile();
@@ -222,9 +223,11 @@ public final class Replace implements Transformation {
 
     private final List<FileState> changed = new ArrayList<>();
     private boolean matchedFile = false;
+    private final boolean emptyBefore;
 
-    BatchReplace(Supplier<Replacer> replacerSupplier) {
+    BatchReplace(Supplier<Replacer> replacerSupplier, String before) {
       this.replacerSupplier = checkNotNull(replacerSupplier);
+      emptyBefore = before.equals("");
     }
 
     public List<FileState> getChanged() {
@@ -236,7 +239,7 @@ public final class Replace implements Transformation {
     }
 
     @Override
-    public Boolean run(Iterable<FileState> elements) throws IOException {
+    public Boolean run(Iterable<FileState> elements) throws IOException, ValidationException {
       Replacer replacer = replacerSupplier.get();
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
@@ -246,6 +249,21 @@ public final class Replace implements Transformation {
         }
         matchedFile = true;
         String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
+
+        if (emptyBefore && originalFileContent.length() > 10_000) {
+          throw new ValidationException(
+              "Error trying to replace empty string with text on a big file, this usually"
+                  + " happens if you use the transform"
+                  + " core.replace(before = '', after = 'some text') or ,more commonly, when"
+                  + " a you have a transform like core.replace(before = 'some text', after = '')"
+                  + " and is reversed in another workflow. The effect of this transform is not"
+                  + " what you want, as it will replace every single character with 'some text'."
+                  + " In the case of the reverse, the fix is to either wrap the core.replace in:"
+                  + " core.transform([core.replace(...)], reversal =[]) so that it doesn't do"
+                  + " anything on the reversal or, even better, to use a reversible scrubber like"
+                  + " core.replace(before = 'confidential text', after = 'some text that is safe"
+                  + " to be public')");
+        }
         String transformed = replacer.replace(originalFileContent);
         if (!originalFileContent.equals(transformed)) {
           synchronized (this) {
