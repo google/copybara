@@ -331,11 +331,12 @@ public class WorkflowTest {
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
         DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     remote.add().files("foo.txt").run();
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    GitRevision lastRev = remote.resolveReference("master");
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
 
     Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
     remote.add().files("bar.txt").run();
@@ -352,7 +353,9 @@ public class WorkflowTest {
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
             "core.workflow(\n"
                 + "    name = 'foo',\n"
-                + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
+                + "    origin = git.origin(url='" + remote.getGitDir() + "',\n"
+                + "                        ref = '" + primaryBranch + "'\n"
+                + "    ),\n"
                 + "    destination = folder.destination(),\n"
                 + "    mode = 'ITERATIVE',\n"
                 + "    authoring = " + authoring + ",\n"
@@ -360,7 +363,7 @@ public class WorkflowTest {
                 + ")\n")
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
-    workflow.run(workdir, ImmutableList.of("master"));
+    workflow.run(workdir, ImmutableList.of(primaryBranch));
     testingConsole.assertThat()
         .onceInLog(MessageType.WARNING, "Change 1 of 1 \\(.*\\)\\: Continue to migrate with '"
             + workflow.getMode() + "'" + " to " + workflow.getDestination().getType() + "\\?");
@@ -372,11 +375,12 @@ public class WorkflowTest {
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
         DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     remote.add().files("foo.txt").run();
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    GitRevision lastRev = remote.resolveReference("master");
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
 
     Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
     remote.add().files("bar.txt").run();
@@ -402,8 +406,8 @@ public class WorkflowTest {
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
     ChangeRejectedException e =
-        assertThrows(
-            ChangeRejectedException.class, () -> workflow.run(workdir, ImmutableList.of("master")));
+        assertThrows(ChangeRejectedException.class,
+            () -> workflow.run(workdir, ImmutableList.of(primaryBranch)));
     assertThat(e.getMessage())
         .contains("User aborted execution: did not confirm diff in origin changes.");
   }
@@ -1185,11 +1189,12 @@ public class WorkflowTest {
         Files.createTempDirectory("gitdir"), getGitEnv(), /*verbose=*/true,
         DEFAULT_TIMEOUT, /*noVerify=*/ false).withWorkTree(workdir);
     remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
 
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     remote.add().files("foo.txt").run();
     remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    GitRevision lastRev = remote.resolveReference("master");
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
 
     Files.write(workdir.resolve("foo.txt"), "change content".getBytes(UTF_8));
     remote.add().files("foo.txt").run();
@@ -1211,7 +1216,8 @@ public class WorkflowTest {
         (Workflow<?, ?>) new SkylarkTestExecutor(options).loadConfig(
             "core.workflow(\n"
                 + "    name = 'foo',\n"
-                + "    origin = git.origin(url='" + remote.getGitDir() + "'),\n"
+                + String.format("    origin = git.origin(url='%s', ref='%s'),\n",
+                    remote.getGitDir(), primaryBranch)
                 + "    destination = folder.destination(),\n"
                 + "    mode = 'ITERATIVE',\n"
                 + "    authoring = " + authoring + ",\n"
@@ -1219,7 +1225,7 @@ public class WorkflowTest {
                 + ")\n")
             .getMigration("foo");
     workflow.getWorkflowOptions().diffInOrigin = true;
-    workflow.run(workdir, ImmutableList.of("master"));
+    workflow.run(workdir, ImmutableList.of(primaryBranch));
 
     testingConsole.assertThat()
         .onceInLog(MessageType.WARNING, ".*No difference at diff_in_origin.*");
@@ -1633,15 +1639,18 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination = GitRepository.newBareRepo(destinationPath, getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false).init();
+    String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow("
         + "    name = 'default',\n"
         + "    origin = git.origin(\n"
         + "        url = 'file://" + origin.getWorkTree() + "',\n"
-        + "        ref = 'master',\n"
+        + "        ref = '" + primaryBranch + "'\n"
         + "    ),\n"
         + "    destination = git.destination("
         + "        url = 'file://" + destination.getGitDir() + "',\n"
+        + "        push = '" + primaryBranch + "',\n"
+        + "        fetch = '" + primaryBranch + "'\n"
         + "    ),\n"
         + "    authoring = " + authoring + ",\n"
         + "    mode = 'SQUASH',\n"
@@ -1921,6 +1930,8 @@ public class WorkflowTest {
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
     options.setOutputRootToTmpDir();
     String config =
         "def after_all(ctx):\n"
@@ -1929,7 +1940,8 @@ public class WorkflowTest {
         + "\n"
         + "core.workflow("
         + "    name = 'default',"
-        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+            origin.getWorkTree(), primaryBranch)
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ","
         + "    origin_files = glob(['included/**']),"
@@ -1970,10 +1982,13 @@ public class WorkflowTest {
     Files.createDirectories(originPath);
 
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
     options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
-        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+            origin.getWorkTree(),  primaryBranch)
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ",\n"
         + "    origin_files = glob(['included/**']),\n"
@@ -2013,10 +2028,13 @@ public class WorkflowTest {
     Files.createDirectories(originPath);
 
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
     options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
-        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+            origin.getWorkTree(),  primaryBranch)
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ",\n"
         + "    reversible_check = True,\n"
@@ -2093,11 +2111,14 @@ public class WorkflowTest {
     Files.createDirectories(originPath);
 
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
     options.setOutputRootToTmpDir();
 
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
-        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "', ref = 'master'),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+            origin.getWorkTree(),  primaryBranch)
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ",\n"
         + "    origin_files = glob(['included/**']),\n"
@@ -3060,13 +3081,12 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination =
         GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
-        + "    origin = git.origin("
-        + "        url = 'file://" + origin.getWorkTree() + "',\n"
-        + "        ref = 'master',\n"
-        + "    ),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+            origin.getWorkTree(),  primaryBranch)
         + "    destination = git.destination("
         + "        url = 'file://" + destination.getWorkTree() + "',\n"
         + "    ),\n"
@@ -3114,13 +3134,12 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     GitRepository destination =
         GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
-        + "    origin = git.origin("
-        + "        url = 'file://" + origin.getWorkTree() + "',\n"
-        + "        ref = 'master',\n"
-        + "    ),\n"
+        + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+           origin.getWorkTree(),  primaryBranch)
         + "    destination = git.destination("
         + "        url = 'file://" + destination.getWorkTree() + "',\n"
         + "    ),\n"
@@ -3168,11 +3187,16 @@ public class WorkflowTest {
     GitRepository destRepo = GitRepository
         .newBareRepo(destinationPath, getGitEnv(), true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init();
+    String primaryBranch = destRepo.getPrimaryBranch();
 
     String config = "core.workflow("
         + "    name = 'default',"
         + "    origin = hg.origin( url = 'file://" + origin.getHgDir() + "', ref = 'default'),\n"
-        + "    destination = git.destination( url = 'file://" + destRepo.getGitDir() + "'),\n"
+        + "    destination = git.destination("
+        + "                                  url = 'file://" + destRepo.getGitDir() + "',\n"
+        + "                                  fetch = '" + primaryBranch + "',\n"
+        + "                                  push = '" + primaryBranch + "',\n"
+        + "    ),\n"
         + "    authoring = " + authoring + ","
         + "    mode = '" + WorkflowMode.ITERATIVE + "',"
         + ")\n";
@@ -3338,6 +3362,8 @@ public class WorkflowTest {
   public void testFirstParentAlreadyImportedInNoFirstParent() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
     options.setOutputRootToTmpDir();
     options.setForce(false);
     options.workflowOptions.initHistory = true;
@@ -3345,7 +3371,7 @@ public class WorkflowTest {
     String config = "core.workflow("
         + "    name = 'default',"
         + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "',\n"
-        + "                         ref = 'master',\n"
+        + "                         ref = '" + primaryBranch + "',\n"
         + "                         first_parent = False),\n"
         + "    destination = testing.destination(),\n"
         + "    authoring = " + authoring + ","
@@ -3361,12 +3387,12 @@ public class WorkflowTest {
     assertThat(destination.processed.get(0).getOriginRef()).isEqualTo(lastRev);
 
     origin.simpleCommand("checkout", "-b", "feature");
-    addGitFile(originPath, origin, "included/foo.txt", "SHOULD NOT BE IN MASTER");
+    addGitFile(originPath, origin, "included/foo.txt", "SHOULD NOT BE IN PRIMARY");
     commit(origin, "feature commit");
     origin.simpleCommand("revert", "HEAD");
     addGitFile(originPath, origin, "excluded/bar.txt", "don't migrate!");
     commit(origin, "excluded commit");
-    origin.simpleCommand("checkout", "master");
+    origin.simpleCommand("checkout", primaryBranch);
     origin.simpleCommand("merge", "-s", "ours", "feature");
     EmptyChangeException e =
         assertThrows(EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of()));
@@ -3393,6 +3419,7 @@ public class WorkflowTest {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationWorkdir = Files.createTempDirectory("destination_workdir");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+
     GitRepository destinationBare =
         newBareRepo(
             Files.createTempDirectory("destination"),
@@ -3402,11 +3429,19 @@ public class WorkflowTest {
             /*noVerify=*/ false);
     destinationBare.init();
     GitRepository destination = destinationBare.withWorkTree(destinationWorkdir);
+    String primaryBranch = destination.getPrimaryBranch();
 
     String config = "core.workflow("
         + "    name = '" + "default" + "',"
-        + "    origin = git.origin( url = 'file://" + origin.getWorkTree() + "'),\n"
-        + "    destination = git.destination( url = 'file://" + destinationBare.getGitDir() + "'),"
+        + "    origin = git.origin("
+        + "                        url = 'file://" + origin.getWorkTree() + "'\n,"
+        + "                        ref = '" + primaryBranch + "'\n,"
+        + "                        ),\n"
+        + "    destination = git.destination("
+        + "        url = 'file://" + destinationBare.getGitDir() + "',\n"
+        + "        push = '" + primaryBranch + "',\n"
+        + "        fetch = '" + primaryBranch + "'\n"
+        + "    ),"
         + "    authoring = " + authoring + ","
         + "    mode = '" + mode + "',"
         + ")\n";
