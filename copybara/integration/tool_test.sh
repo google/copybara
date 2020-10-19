@@ -92,9 +92,10 @@ function copybara_with_exit_code() {
 
 function check_copybara_rev_id() {
    local repo="$1"
+   local primary=$(get_primary_branch $repo)
    local origin_id="$2"
    ( cd $repo || return
-     run_git log master -1 > $TEST_log
+     run_git log $primary -1 > $TEST_log
      expect_log "GitOrigin-RevId: $origin_id"
    )
 }
@@ -112,18 +113,19 @@ function test_git_tracking() {
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
   popd || return
+  primary=$(get_primary_branch $remote)
 
     cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [
@@ -175,7 +177,7 @@ EOF
   check_copybara_rev_id "$destination" "$second_commit"
 
   ( cd $destination || return
-    run_git show master > $TEST_log
+    run_git show $primary > $TEST_log
   )
 
   expect_log "-first version for drink"
@@ -190,6 +192,7 @@ function test_git_iterative() {
 
   pushd $remote || return
   run_git init .
+  primary=$(get_primary_branch $remote)
   commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
   commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
   commit_three=$(single_file_commit "commit three" file.txt "food fooooo content3")
@@ -202,12 +205,12 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     mode = "ITERATIVE",
@@ -219,7 +222,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_three"
 
   ( cd $destination || return
-    run_git log master~1..master > $TEST_log
+    run_git log "${primary}~1..${primary}" > $TEST_log
   )
   expect_not_log "commit two"
   expect_log "commit three"
@@ -229,12 +232,12 @@ EOF
   check_copybara_rev_id "$destination" "$commit_five"
 
   ( cd $destination || return
-    run_git log master~2..master~1 > $TEST_log
+    run_git log "${primary}~2..${primary}~1" > $TEST_log
   )
   expect_log "commit four"
 
   ( cd $destination || return
-    run_git log master~1..master > $TEST_log
+    run_git log "${primary}~1..${primary}" > $TEST_log
   )
   expect_log "commit five"
 
@@ -265,18 +268,19 @@ function test_get_git_changes() {
   commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
   commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
   popd || return
+  primary=$(get_primary_branch $remote)
 
     cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [
@@ -308,7 +312,7 @@ EOF
   expect_log ".*${commit_five:0:10}.*commit five.*Bara Kopi <bara@kopi.com>.*"
 
   ( cd $destination || return
-    run_git log master~1..master > $TEST_log
+    run_git "log" "${primary}~1..${primary}" > $TEST_log
   )
   # By default we include the whole history if last_rev cannot be found. --squash-without-history
   # can be used for disabling this.
@@ -324,7 +328,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_four"
 
   ( cd $destination || return
-    run_git log master~1..master > $TEST_log
+    run_git log "${primary}~1..${primary}" > $TEST_log
   )
   # "commit one" should not be included because it was migrated before
   expect_not_log "commit one"
@@ -338,7 +342,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_five"
 
   ( cd $destination || return
-    run_git log master~1..master > $TEST_log
+    run_git log "${primary}~1..${primary}" > $TEST_log
   )
   # We are forcing to use commit_three as the last migration. This has
   # no effect in squash workflow but it changes the release notes.
@@ -355,7 +359,9 @@ function test_can_skip_excluded_commit() {
 
   pushd $remote || return
   run_git init .
-  commit_master=$(single_file_commit "last rev commit" file2.txt "origin")
+  primary=$(get_primary_branch $remote)
+
+  commit_primary=$(single_file_commit "last rev commit" file2.txt "origin")
   commit_one=$(single_file_commit "commit one" file.txt "foooo")
   # Because we exclude file2.txt this is effectively an empty commit in the destination
   commit_two=$(single_file_commit "commit two" file2.txt "bar")
@@ -367,20 +373,20 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     mode = "ITERATIVE",
 )
 EOF
 
-  copybara copy.bara.sky default $commit_three --last-rev $commit_master --force
+  copybara copy.bara.sky default $commit_three --last-rev $commit_primary --force
 
   check_copybara_rev_id "$destination" "$commit_three"
 
@@ -399,6 +405,13 @@ function empty_git_bare_repo() {
   run_git --work-tree="$(mktemp -d)" commit --allow-empty -m "Empty repo" \
     > $TEST_log 2>&1 || fail "Cannot commit to empty repo"
   echo $repo
+}
+
+function get_primary_branch() {
+  local repo=$1
+  cd $repo || return
+  local primary=$(git symbolic-ref --short HEAD)
+  echo "$primary"
 }
 
 function prepare_glob_tree() {
@@ -421,18 +434,19 @@ function prepare_glob_tree() {
 
 function test_regex_with_path() {
   prepare_glob_tree
+  primary=$(get_primary_branch $remote)
 
   cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "${primary}",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "${primary}",
+      push = "${primary}",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [
@@ -459,38 +473,6 @@ EOF
 function git_pull_request() {
   sot=$(empty_git_bare_repo)
   public=$(empty_git_bare_repo)
-
-  cat > copy.bara.sky <<EOF
-core.workflow(
-    name = "export",
-    origin = git.origin(
-      url = "file://$sot",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$public",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-)
-
-core.workflow(
-    name = "import_change",
-    origin = git.origin(
-      url = "file://$public",
-      ref = "master",
-    ),
-    destination = git.destination(
-      url = "file://$sot",
-      fetch = "master",
-      push = "master",
-    ),
-    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
-    mode = "CHANGE_REQUEST",
-)
-EOF
-
   # Create the SoT repo
   pushd "$(mktemp -d)" || return
   run_git clone $sot .
@@ -499,6 +481,39 @@ EOF
   commit_three=$(single_file_commit "commit three" three.txt "content")
   run_git push
   popd || return
+  primary=$(get_primary_branch $remote)
+
+  cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "export",
+    origin = git.origin(
+      url = "file://$sot",
+      ref = "$primary",
+    ),
+    destination = git.destination(
+      url = "file://$public",
+      fetch = "$primary",
+      push = "$primary",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+)
+
+core.workflow(
+    name = "import_change",
+    origin = git.origin(
+      url = "file://$public",
+      ref = "$primary",
+    ),
+    destination = git.destination(
+      url = "file://$sot",
+      fetch = "$primary",
+      push = "$primary",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "CHANGE_REQUEST",
+)
+EOF
+
 
   copybara copy.bara.sky export $commit_two
 
@@ -543,18 +558,19 @@ function test_git_delete() {
     run_git add -A
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
 
   cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     origin_files = glob(include = ["**"], exclude = ['**/*.java', 'subdir/**']),
@@ -584,6 +600,7 @@ function test_reverse_sequence() {
     run_git add -A
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
 
   cat > copy.bara.sky <<EOF
 forward_transforms = [
@@ -594,12 +611,12 @@ core.workflow(
     name = "forward",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = forward_transforms,
@@ -609,7 +626,7 @@ core.workflow(
     name = "reverse",
     origin = git.origin(
       url = "file://$destination",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$remote",
@@ -647,6 +664,8 @@ function test_local_dir_destination() {
     run_git add test.txt
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
+
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
@@ -654,7 +673,7 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination_files = glob(include = ["**"], exclude = ["copy.bara.sky", "**.keep"]),
     destination = folder.destination(),
@@ -686,6 +705,7 @@ function test_choose_non_default_workflow() {
     run_git add test.txt
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
@@ -693,7 +713,7 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -703,7 +723,7 @@ core.workflow(
     name = "choochoochoose_me",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -725,6 +745,7 @@ function test_file_move() {
     run_git add test1.txt test2.txt
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
@@ -732,7 +753,7 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -760,6 +781,8 @@ function test_profile() {
     run_git add test.txt
     run_git commit -m "first commit"
   )
+  primary=$(get_primary_branch $remote)
+
   mkdir destination
 
   cat > destination/copy.bara.sky <<EOF
@@ -767,7 +790,7 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -799,7 +822,7 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://foo/bar",
-      ref = "master",
+      ref = "primary",
     ),
     destination = folder.destination(),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
@@ -838,6 +861,8 @@ function setup_reversible_check_workflow() {
   run_git add test.txt
   run_git commit -m "first commit"
   first_commit=$(run_git rev-parse HEAD)
+  primary=$(get_primary_branch $remote)
+
   popd || return
 
     cat > copy.bara.sky <<EOF
@@ -845,12 +870,12 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     reversible_check = True,
@@ -909,7 +934,7 @@ EOF
 }
 
 function test_config_not_found() {
-  copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky origin/master
+  copybara_with_exit_code $COMMAND_LINE_ERROR copy.bara.sky origin/primary
   expect_log "Configuration file not found: copy.bara.sky"
 }
 
@@ -930,18 +955,18 @@ function test_log_console_is_write_only() {
     run_git add -A
     run_git commit -m "first commit"
   )
-
+  primary=$(get_primary_branch $remote)
   cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     ask_for_confirmation = True,
@@ -960,6 +985,7 @@ function run_multifile() {
 
   pushd $remote || return
   run_git init .
+  primary=$(get_primary_branch $remote)
   echo "first version for food and foooooo" > test.txt
   mkdir subdir
   echo "first version" > subdir/test.txt
@@ -978,7 +1004,7 @@ remote_var="file://$remote"
 EOF
   cat > $config_folder/foo/bar/baz/origin.bara.sky <<EOF
 load("//foo/remote", "remote_var")
-remote_origin=git.origin( url = remote_var, ref = "master",)
+remote_origin=git.origin( url = remote_var, ref = "$primary")
 EOF
   cat > $config_folder/foo/bar/copy.bara.sky <<EOF
 load("baz/origin", "remote_origin")
@@ -988,8 +1014,8 @@ core.workflow(
     origin = remote_origin,
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary"
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
 )
@@ -1025,18 +1051,19 @@ function test_multifile_root_cfg_flag_symlink() {
 
 function test_verify_match() {
   prepare_glob_tree
+  primary=$(get_primary_branch $remote)
 
   cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [
@@ -1106,12 +1133,12 @@ core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://foo/bar",
-      ref = "master",
+      ref = "primary",
     ),
     destination = git.destination(
       url = "file://bar/foo",
-      fetch = "master",
-      push = "master",
+      fetch = "primary",
+      push = "primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     mode = "ITERATIVE",
@@ -1160,17 +1187,19 @@ function test_apply_patch() {
     run_git reset --hard
     expect_in_file "foo" folder/subfolder/test.java
   )
+  primary=$(get_primary_branch $remote)
+
   cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     transformations = [
@@ -1196,23 +1225,24 @@ function test_description_migrator() {
   pushd $remote || return
     run_git init .
     commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
-    commit_master=$(single_file_commit "last rev commit" file23.txt "origin")
-    commit_one=$(single_file_commit "c1 foooo origin/${commit_master} bar" file.txt "one")
+    commit_primary=$(single_file_commit "last rev commit" file23.txt "origin")
+    commit_one=$(single_file_commit "c1 foooo origin/${commit_primary} bar" file.txt "one")
 
   popd || return
+  primary=$(get_primary_branch $remote)
 
     cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
      transformations = [
@@ -1229,8 +1259,8 @@ core.workflow(
 )
 EOF
 
-  copybara copy.bara.sky default $commit_master --last-rev $commit_initial
-  copybara copy.bara.sky default $commit_one --last-rev $commit_master
+  copybara copy.bara.sky default $commit_primary --last-rev $commit_initial
+  copybara copy.bara.sky default $commit_one --last-rev $commit_primary
 
   check_copybara_rev_id "$destination" "$commit_one"
 
@@ -1248,19 +1278,20 @@ function test_invalid_last_rev() {
     run_git init .
     commit_initial=$(single_file_commit "initial rev commit" file2.txt "initial")
   popd || return
+  primary=$(get_primary_branch $remote)
 
     cat > copy.bara.sky <<EOF
 core.workflow(
     name = "default",
     origin = git.origin(
       url = "file://$remote",
-      ref = "master",
+      ref = "$primary",
     ),
     origin_files = glob(include = ["**"], exclude = ["file2.txt"]),
     destination = git.destination(
       url = "file://$destination",
-      fetch = "master",
-      push = "master",
+      fetch = "$primary",
+      push = "$primary",
     ),
     authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
     mode = "ITERATIVE",
