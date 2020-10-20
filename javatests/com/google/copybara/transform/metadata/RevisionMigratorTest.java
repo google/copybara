@@ -167,10 +167,10 @@ public class RevisionMigratorTest {
   public void testMigratorParses() throws Exception {
     ReferenceMigrator migrator = skylark.eval("result", ""
         + "result = metadata.map_references(\n"
-        + "    before = \"origin/\\${reference}\",\n"
-        + "    after = \"destination/\\${reference}\",\n"
+        + "    before = r'origin/\\${reference}',\n"
+        + "    after =  r'destination/\\${reference}',\n"
         + "    regex_groups = {"
-        + "        \"before_ref\": \"[0-9a-f]+\",\n"
+        + "        'before_ref': '[0-9a-f]+',\n"
         + "    },\n"
         + ")");
     assertThat(migrator).isNotNull();
@@ -180,10 +180,10 @@ public class RevisionMigratorTest {
   public void testBeforeRefRequired() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${other}\",\n"
-            + "    after = \"destination/\\${reference}\",\n"
+            + "    before = r'origin/\\${other}',\n"
+            + "    after = r'destination/\\${reference}',\n"
             + "    regex_groups = {"
-            + "        \"after_ref\": \"[0-9a-f]+\",\n"
+            + "        'after_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Invalid 'regex_groups' - Should only contain 'before_ref' and optionally 'after_ref'. "
@@ -194,11 +194,11 @@ public class RevisionMigratorTest {
   public void testAfterRefParses() throws Exception {
     ReferenceMigrator migrator = skylark.eval("result", ""
         + "result = metadata.map_references(\n"
-        + "    before = \"origin/\\${reference}\",\n"
-        + "    after = \"destination/\\${reference}\",\n"
+        + "    before = r'origin/\\${reference}',\n"
+        + "    after = r'destination/\\${reference}',\n"
         + "    regex_groups = {"
-        + "        \"before_ref\": \"[0-9a-f]+\",\n"
-        + "        \"after_ref\": \"[0-9a-f]+\",\n"
+        + "        'before_ref': '[0-9a-f]+',\n"
+        + "        'after_ref': '[0-9a-f]+',\n"
         + "    },\n"
         + ")");
     assertThat(migrator).isNotNull();
@@ -208,11 +208,11 @@ public class RevisionMigratorTest {
   public void testAdditionalGroupFails() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${other}\",\n"
-            + "    after = \"destination/\\${reference}\",\n"
+            + "    before = r'origin/\\${other}',\n"
+            + "    after = r'destination/\\${reference}',\n"
             + "    regex_groups = {"
-            + "        \"after_ref\": \"[0-9a-f]+\",\n"
-            + "        \"I_do_not_belong_here\": \"[0-9a-f]+\",\n"
+            + "        'after_ref': '[0-9a-f]+',\n"
+            + "        'I_do_not_belong_here': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Should only contain 'before_ref' and optionally 'after_ref'. "
@@ -223,10 +223,10 @@ public class RevisionMigratorTest {
   public void testOriginPatternNeedsGroup() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${other}\",\n"
-            + "    after = \"destination/\\${reference}\",\n"
+            + "    before = r'origin/\\${other}',\n"
+            + "    after = r'destination/\\${reference}',\n"
             + "    regex_groups = {"
-            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "        'before_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Interpolation is used but not defined: other");
@@ -236,10 +236,10 @@ public class RevisionMigratorTest {
   public void testOriginPatternHasMultipleGroup() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${reference}${other}\",\n"
-            + "    after = \"destination/\\${reference}\",\n"
+            + "    before = r'origin/\\${reference}${other}',\n"
+            + "    after = r'destination/\\${reference}',\n"
             + "    regex_groups = {"
-            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "        'before_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Interpolation is used but not defined.");
@@ -249,10 +249,10 @@ public class RevisionMigratorTest {
   public void testDestinationFormatFailsMultipleGroup() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${reference}\",\n"
-            + "    after = \"destination/\\${reference}\\${other}\",\n"
+            + "    before = r'origin/\\${reference}',\n"
+            + "    after = r'destination/\\${reference}\\${other}',\n"
             + "    regex_groups = {"
-            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "        'before_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Interpolation is used but not defined: other");
@@ -262,10 +262,10 @@ public class RevisionMigratorTest {
   public void testDestinationFormatNeedsGroup() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${reference}\\${other}\",\n"
-            + "    after = \"destination/\\${other}\",\n"
+            + "    before = r'origin/\\${reference}\\${other}',\n"
+            + "    after = r'destination/\\${other}',\n"
             + "    regex_groups = {"
-            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "        'before_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         "Interpolation is used but not defined: other");
@@ -275,10 +275,10 @@ public class RevisionMigratorTest {
   public void testDestinationFormatBannedToken() throws Exception {
     skylark.evalFails(""
             + "metadata.map_references(\n"
-            + "    before = \"origin/\\${reference}\",\n"
-            + "    after = \"destination/\\${reference}$$1\",\n"
+            + "    before = r'origin/\\${reference}',\n"
+            + "    after = r'destination/\\${reference}$$1',\n"
             + "    regex_groups = {"
-            + "        \"before_ref\": \"[0-9a-f]+\",\n"
+            + "        'before_ref': '[0-9a-f]+',\n"
             + "    },\n"
             + ")",
         " uses the reserved token");

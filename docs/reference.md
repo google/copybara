@@ -756,7 +756,7 @@ This replace is similar to what it can be achieved with core.todo_replace:
 
 ```python
 core.filter_replace(
-    regex = 'TODO\((.*?)\)',
+    regex = 'TODO\\((.*?)\\)',
     group = 1,
         mapping = core.replace_mapper([
             core.replace(
@@ -935,7 +935,7 @@ core.replace(
    before = '${end}',
    after  = 'Text to be added at the end',
    multiline = True,
-   regex_groups = { 'end' : '\z'},
+   regex_groups = { 'end' : '\\z'},
 )
 ```
 
@@ -950,7 +950,7 @@ core.transform([
        before = '${end}',
        after  = 'some append',
        multiline = True,
-       regex_groups = { 'end' : '\z'},
+       regex_groups = { 'end' : r'\z'},
     )
 ],
 reversal = [
@@ -958,7 +958,7 @@ reversal = [
        before = 'some append${end}',
        after = '',
        multiline = True,
-       regex_groups = { 'end' : '\z'},
+       regex_groups = { 'end' : r'\z'},
     )])
 ```
 

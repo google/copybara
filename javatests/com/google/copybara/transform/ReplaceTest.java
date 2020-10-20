@@ -120,7 +120,7 @@ public final class ReplaceTest {
             + "       before = '${end}',\n"
             + "       after  = 'some append',\n"
             + "       multiline = True,\n"
-            + "       regex_groups = { 'end' : '\\z'},\n"
+            + "       regex_groups = { 'end' : r'\\z'},\n"
             + "    )\n"
             + "],\n"
             + "reversal = [\n"
@@ -128,7 +128,7 @@ public final class ReplaceTest {
             + "       before = 'some append${end}',\n"
             + "       after = '',\n"
             + "       multiline = True,\n"
-            + "       regex_groups = { 'end' : '\\z'},\n"
+            + "       regex_groups = { 'end' : r'\\z'},\n"
             + "    )"
             + "])");
 
@@ -772,7 +772,7 @@ public final class ReplaceTest {
         + "  before = '${x}',"
         + "  after = '',"
         + "  multiline = True,"
-        + "  regex_groups = {'x': '(?m)^.*BEGIN SCRUB[\\w\\W]*?END SCRUB.*$\\n'},"
+        + "  regex_groups = {'x': '(?m)^.*BEGIN SCRUB[\\\\w\\\\W]*?END SCRUB.*$\\n'},"
         + ")");
 
     writeFile(checkoutDir.resolve("file"), ""

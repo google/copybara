@@ -863,7 +863,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "   before = '${end}',\n"
               + "   after  = 'Text to be added at the end',\n"
               + "   multiline = True,\n"
-              + "   regex_groups = { 'end' : '\\z'},\n"
+              + "   regex_groups = { 'end' : '\\\\z'},\n"
               + ")")
   @Example(
       title = "Append some text at the end of files reversible",
@@ -874,7 +874,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "       before = '${end}',\n"
               + "       after  = 'some append',\n"
               + "       multiline = True,\n"
-              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "       regex_groups = { 'end' : r'\\z'},\n"
               + "    )\n"
               + "],\n"
               + "reversal = [\n"
@@ -882,7 +882,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "       before = 'some append${end}',\n"
               + "       after = '',\n"
               + "       multiline = True,\n"
-              + "       regex_groups = { 'end' : '\\z'},\n"
+              + "       regex_groups = { 'end' : r'\\z'},\n"
               + "    )"
               + "])")
   @Example(
@@ -1091,7 +1091,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
 
   public static final String TODO_FILTER_REPLACE_EXAMPLE = ""
       + "core.filter_replace(\n"
-      + "    regex = 'TODO\\((.*?)\\)',\n"
+      + "    regex = 'TODO\\\\((.*?)\\\\)',\n"
       + "    group = 1,\n"
       + "        mapping = core.replace_mapper([\n"
       + "            core.replace(\n"
