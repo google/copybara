@@ -111,6 +111,7 @@ public final class Replace implements Transformation {
         .add("multiline", multiline)
         .add("path", paths)
         .add("patternsToIgnore", patternsToIgnore)
+        .add("location", location)
         .toString();
   }
 
@@ -254,7 +255,7 @@ public final class Replace implements Transformation {
           throw new ValidationException(
               "Error trying to replace empty string with text on a big file, this usually"
                   + " happens if you use the transform"
-                  + " core.replace(before = '', after = 'some text') or ,more commonly, when"
+                  + " core.replace(before = '', after = 'some text') or, more commonly, when"
                   + " a you have a transform like core.replace(before = 'some text', after = '')"
                   + " and is reversed in another workflow. The effect of this transform is not"
                   + " what you want, as it will replace every single character with 'some text'."
@@ -262,7 +263,7 @@ public final class Replace implements Transformation {
                   + " core.transform([core.replace(...)], reversal =[]) so that it doesn't do"
                   + " anything on the reversal or, even better, to use a reversible scrubber like"
                   + " core.replace(before = 'confidential text', after = 'some text that is safe"
-                  + " to be public')");
+                  + " to be public'): " + this);
         }
         String transformed = replacer.replace(originalFileContent);
         if (!originalFileContent.equals(transformed)) {
