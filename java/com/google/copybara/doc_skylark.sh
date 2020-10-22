@@ -15,6 +15,7 @@
 # limitations under the License.
 
 output=$1
+class_list_output=$2
 shift
 echo "Generating documentation for $# transitive jars"
 printf '## Table of Contents\n\n\n' >> "$output"
@@ -22,11 +23,13 @@ printf '## Table of Contents\n\n\n' >> "$output"
 for jar in "$@";do
     # Continue if no md file is found
     unzip -q -t "$jar" "*.copybara.md"  2>&1 > /dev/null || continue
+    unzip -q -t "$jar" "starlark_class_list.txt"  2>&1 > /dev/null || continue
     mkdir -p temp_dir
     rm -f temp_dir/*
     cd temp_dir
     unzip -q "../$jar" "*.copybara.md" || continue
     cd ..
+    unzip -p "$jar" "starlark_class_list.txt" >> ${jar//\//_}_class_list.txt || continue
     for file in temp_dir/*; do
       # Find module name and create a .md file. Not nice but should work for now
       name="$(cat $file | grep "^## " | head -1 | sed 's/## //g').md"
@@ -52,3 +55,5 @@ find *.md | sort -f | xargs cat > result
   printf '\n\n'
   cat result
 } >> "$output"
+
+find *_class_list.txt | xargs cat >> "$class_list_output"

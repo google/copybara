@@ -23,11 +23,11 @@ def _doc_impl(ctx):
     ctx.actions.run(
         tools = [ctx.executable._doc_tool],
         inputs = jars,
-        outputs = [tmp],
+        outputs = [tmp, ctx.outputs.class_list],
         progress_message = "Generating reference documentation for %s" % ctx.label,
         use_default_shell_env = True,
         executable = ctx.executable._doc_tool.path,
-        arguments = [tmp.path] + [f.path for f in jars],
+        arguments = [tmp.path, ctx.outputs.class_list.path] + [f.path for f in jars],
     )
 
     # If suffix file exists, concat, copy otherwise
@@ -61,6 +61,6 @@ doc_generator = rule(
         ),
         "template_file": attr.label(mandatory = False, allow_single_file = True),
     },
-    outputs = {"out": "%{name}.md"},
+    outputs = {"out": "%{name}.md", "class_list": "%{name}_class_list.txt"},
     implementation = _doc_impl,
 )
