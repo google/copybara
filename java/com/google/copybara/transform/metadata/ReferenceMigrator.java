@@ -80,10 +80,10 @@ public class ReferenceMigrator implements Transformation {
       ImmutableList<String> additionalLabels, Location location) throws EvalException {
     Map<String, Pattern> patterns = ImmutableMap.of("reference", forward);
     RegexTemplateTokens beforeTokens =
-        new RegexTemplateTokens(before, patterns, /* repeatedGroups= */ false);
+        new RegexTemplateTokens(before, patterns, /* repeatedGroups= */ false, location);
     beforeTokens.validateUnused();
     RegexTemplateTokens afterTokens =
-        new RegexTemplateTokens(after, patterns, /* repeatedGroups= */ false);
+        new RegexTemplateTokens(after, patterns, /* repeatedGroups= */ false, location);
     afterTokens.validateUnused();
     check(
         after.lastIndexOf("$1") == -1,

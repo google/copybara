@@ -41,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.syntax.Location;
 
 /**
  * A string which is interpolated with named variables. The string is composed of interpolated and
@@ -53,13 +54,16 @@ public final class RegexTemplateTokens {
   private final ArrayListMultimap<String, Integer> groupIndexes = ArrayListMultimap.create();
   private final ImmutableList<Token> tokens;
   private final Set<String> unusedGroups;
+  private final Location location;
 
   public RegexTemplateTokens(
-      String template, Map<String, Pattern> regexGroups, boolean repeatedGroups)
+      String template, Map<String, Pattern> regexGroups, boolean repeatedGroups,
+      Location location)
       throws EvalException {
     this.template = Preconditions.checkNotNull(template);
 
     this.tokens = ImmutableList.copyOf(new Parser().parse(template));
+    this.location = Preconditions.checkNotNull(location);
     this.before = buildBefore(regexGroups, repeatedGroups);
 
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
@@ -82,7 +86,7 @@ public final class RegexTemplateTokens {
       List<Pattern> patternsToIgnore) {
     // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
     return new Replacer(Pattern.compile(before.pattern(), before.flags()), after, null, firstOnly,
-                        multiline, patternsToIgnore);
+                        multiline, patternsToIgnore, location);
   }
 
   public Replacer callbackReplacer(
@@ -90,7 +94,7 @@ public final class RegexTemplateTokens {
       boolean multiline,
       @Nullable List<Pattern> patternsToIgnore) {
     return new Replacer(Pattern.compile(before.pattern()), after, callback, firstOnly, multiline,
-                        patternsToIgnore);
+                        patternsToIgnore, location);
   }
 
   public class Replacer {
@@ -101,6 +105,7 @@ public final class RegexTemplateTokens {
     private final boolean multiline;
     private final String afterReplaceTemplate;
     private final Multimap<String, Integer> repeatedGroups = ArrayListMultimap.create();
+    private final Location location;
 
     @Nullable
     private final List<Pattern> patternsToIgnore;
@@ -111,7 +116,8 @@ public final class RegexTemplateTokens {
 
     private Replacer(Pattern before, RegexTemplateTokens after,
         @Nullable AlterAfterTemplate callback,
-        boolean firstOnly, boolean multiline, @Nullable List<Pattern> patternsToIgnore) {
+        boolean firstOnly, boolean multiline, @Nullable List<Pattern> patternsToIgnore,
+        Location location) {
       this.before = before;
       this.after = after;
       afterReplaceTemplate = this.after.after(RegexTemplateTokens.this);
@@ -126,6 +132,7 @@ public final class RegexTemplateTokens {
       this.multiline = multiline;
       this.callback = callback;
       this.patternsToIgnore = patternsToIgnore;
+      this.location = location;
     }
 
     public String replace(String content) {
@@ -186,6 +193,10 @@ public final class RegexTemplateTokens {
     @Override
     public String toString() {
       return String.format("s/%s/%s/%s", RegexTemplateTokens.this, after, firstOnly ? "" : "g");
+    }
+
+    public Location getLocation() {
+      return location;
     }
   }
 

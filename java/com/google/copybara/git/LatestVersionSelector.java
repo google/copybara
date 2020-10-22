@@ -40,6 +40,7 @@ import java.util.TreeMap;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
+import net.starlark.java.syntax.Location;
 
 public class LatestVersionSelector implements VersionSelector {
 
@@ -48,11 +49,12 @@ public class LatestVersionSelector implements VersionSelector {
   private final RegexTemplateTokens template;
 
   LatestVersionSelector(
-      String refspec, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes)
+      String refspec, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes,
+      Location location)
       throws EvalException {
     this.refspec = Preconditions.checkNotNull(refspec);
     this.groupTypes = Preconditions.checkNotNull(groupTypes);
-    template = new RegexTemplateTokens(refspec, groups, true);
+    template = new RegexTemplateTokens(refspec, groups, true, location);
   }
 
   @Override

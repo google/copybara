@@ -177,8 +177,9 @@ public final class Replace implements Transformation {
     Map<String, Pattern> parsedGroups = parsePatterns(regexGroups);
 
     RegexTemplateTokens beforeTokens =
-        new RegexTemplateTokens(before, parsedGroups, repeatedGroups);
-    RegexTemplateTokens afterTokens = new RegexTemplateTokens(after, parsedGroups, repeatedGroups);
+        new RegexTemplateTokens(before, parsedGroups, repeatedGroups, location);
+    RegexTemplateTokens afterTokens = new RegexTemplateTokens(after, parsedGroups, repeatedGroups,
+        location);
 
     beforeTokens.validateUnused();
 
@@ -263,7 +264,7 @@ public final class Replace implements Transformation {
                   + " core.transform([core.replace(...)], reversal =[]) so that it doesn't do"
                   + " anything on the reversal or, even better, to use a reversible scrubber like"
                   + " core.replace(before = 'confidential text', after = 'some text that is safe"
-                  + " to be public'): " + this);
+                  + " to be public'): " + replacer.getLocation());
         }
         String transformed = replacer.replace(originalFileContent);
         if (!originalFileContent.equals(transformed)) {

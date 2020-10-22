@@ -1935,9 +1935,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " order is not important, use s(N+1) where N ist he latest sorted field."
                     + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
             defaultValue = "{'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'}"),
-      })
+      },
+  useStarlarkThread = true)
   public LatestVersionSelector versionSelector(
-      String refspec, Dict<?, ?> groups) // <String, String>
+      String refspec, Dict<?, ?> groups,
+      StarlarkThread thread) // <String, String>
       throws EvalException {
     Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "refspec_groups");
     check(
@@ -1977,8 +1979,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       }
     }
 
-    LatestVersionSelector versionPicker =
-        new LatestVersionSelector(refspec, Replace.parsePatterns(groupsMap), elements);
+    LatestVersionSelector versionPicker = new LatestVersionSelector(
+        refspec, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
     ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
     check(extraGroups.isEmpty(), "Extra refspec_groups not used in pattern: %s", extraGroups);
     return versionPicker;
