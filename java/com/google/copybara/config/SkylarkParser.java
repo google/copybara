@@ -330,8 +330,9 @@ public class SkylarkParser {
       // Create the module object and associate it with the functions
       ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
       try {
-        if (StarlarkAnnotations.getStarlarkBuiltin(module) != null) {
-          Starlark.addModule(envBuilder, module.getConstructor().newInstance());
+        StarlarkBuiltin annot = StarlarkAnnotations.getStarlarkBuiltin(module);
+        if (annot != null) {
+          envBuilder.put(annot.name(), module.getConstructor().newInstance());
         } else if (module.isAnnotationPresent(Library.class)) {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
