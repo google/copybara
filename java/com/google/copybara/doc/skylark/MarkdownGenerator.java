@@ -118,12 +118,14 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       throws ElementException, IOException {
 
     LinkedList<DocModule> modules = new LinkedList<>();
+    List<String> moduleClasses = new ArrayList<>();
     Set<Element> globalModules = elementsByAnnotation.get(Library.class);
     if (!globalModules.isEmpty()) {
       DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
       modules.add(docModule);
       for (Element element : globalModules) {
         TypeElement module = (TypeElement) element;
+        moduleClasses.add(module.getQualifiedName().toString());
         for (Element member : findStarlarkMethods(module)) {
           docModule.functions.add(callableFunction((ExecutableElement) member,
               annotationHelper(member, StarlarkMethod.class), /*prefix=*/null));
@@ -133,6 +135,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
     for (Element element : elementsByAnnotation.get(StarlarkBuiltin.class)) {
       TypeElement module = (TypeElement) element;
+      moduleClasses.add(module.getQualifiedName().toString());
 
       StarlarkBuiltin skyModule = module.getAnnotation(StarlarkBuiltin.class);
       if (!skyModule.documented()) {
@@ -156,6 +159,14 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
       }
 
       docModule.flags.addAll(generateFlagsInfo(module));
+    }
+
+
+    FileObject res = processingEnv.getFiler().createResource(
+        StandardLocation.SOURCE_OUTPUT, "", "starlark_class_list.txt");
+
+    try (Writer writer = res.openWriter()) {
+      writer.append(Joiner.on("\n").join(moduleClasses)).append("\n");
     }
 
     for (DocModule module : modules) {
