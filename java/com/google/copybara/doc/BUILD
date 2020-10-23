@@ -41,6 +41,27 @@ java_plugin(
     ],
 )
 
+java_binary(
+    name = "generator",
+    main_class = "com.google.copybara.doc.Generator",
+    runtime_deps = [":generator-lib"],
+)
+
+java_library(
+    name = "generator-lib",
+    srcs = ["Generator.java"],
+    deps = [
+        ":annotations",
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara:copybara_main",
+        "//java/com/google/copybara/util/console",
+        "//third_party:jsr305",
+        "//third_party:guava",
+        "//third_party:starlark",
+    ],
+)
+
 java_library(
     name = "annotations",
     srcs = glob(["annotations/**/*.java"]),
