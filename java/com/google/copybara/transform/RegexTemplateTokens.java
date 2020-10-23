@@ -198,6 +198,10 @@ public final class RegexTemplateTokens {
     public Location getLocation() {
       return location;
     }
+
+    public boolean isFirstOnly() {
+      return firstOnly;
+    }
   }
 
   /**

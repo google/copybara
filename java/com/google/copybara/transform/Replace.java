@@ -252,7 +252,7 @@ public final class Replace implements Transformation {
         matchedFile = true;
         String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
 
-        if (emptyBefore && originalFileContent.length() > 10_000) {
+        if (!replacer.isFirstOnly() && emptyBefore && originalFileContent.length() > 10_000) {
           throw new ValidationException(
               "Error trying to replace empty string with text on a big file, this usually"
                   + " happens if you use the transform"
