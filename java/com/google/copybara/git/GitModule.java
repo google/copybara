@@ -65,6 +65,7 @@ import com.google.copybara.git.LatestVersionSelector.VersionElementType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubEventType;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -663,7 +664,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
                     + " revision."),
         @Param(
-            name = "required_labels",
+            name = GitHubUtil.REQUIRED_LABELS,
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
             defaultValue = "[]",
@@ -672,7 +673,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " to migrate the Pull Request.",
             positional = false),
         @Param(
-            name = "required_status_context_names",
+            name = GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES,
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
             defaultValue = "[]",
@@ -681,8 +682,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "need to be passed in order to migrate the Pull Request."
                     + "Note: this field is still experimental.",
             positional = false),
+          @Param(
+              name = GitHubUtil.REQUIRED_CHECK_RUNS,
+              allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+              named = true,
+              defaultValue = "[]",
+              doc =
+                  "Required check runs to import the PR. All the check runs "
+                      + "need to be passed in order to migrate the Pull Request."
+                      + "Note: this field is still experimental.",
+              positional = false),
         @Param(
-            name = "retryable_labels",
+            name = GitHubUtil.RETRYABLE_LABELS,
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             named = true,
             defaultValue = "[]",
@@ -815,6 +826,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean merge,
       Sequence<?> requiredLabels, // <String>
       Sequence<?> requiredStatusContextNames, // <String>
+      Sequence<?> requiredCheckRuns, // <String>
       Sequence<?> retryableLabels, // <String>
       String submodules,
       Boolean baselineFromBranch,
@@ -865,11 +877,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
         prOpts,
-        ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class, "required_labels")),
+        ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class,
+            GitHubUtil.RETRYABLE_LABELS)),
         ImmutableSet.copyOf(
             Sequence.cast(
-                requiredStatusContextNames, String.class, "required_status_context_names")),
-        ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class, "retryable_labels")),
+                requiredStatusContextNames, String.class,
+                GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES)),
+        ImmutableSet.copyOf(
+            Sequence.cast(
+                requiredCheckRuns, String.class, GitHubUtil.REQUIRED_CHECK_RUNS)),
+        ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class,
+            GitHubUtil.RETRYABLE_LABELS)),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
         firstParent,

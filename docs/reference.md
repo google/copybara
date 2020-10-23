@@ -2324,7 +2324,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
+`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], required_check_runs=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -2335,6 +2335,7 @@ url | `string`<br><p>Indicates the URL of the GitHub repository</p>
 use_merge | `bool`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
 required_labels | `sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
 required_status_context_names | `sequence of string`<br><p>Required status context names to import the PR. All the status context names need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
+required_check_runs | `sequence of string`<br><p>Required check runs to import the PR. All the check runs need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
 retryable_labels | `sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch | `bool`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>

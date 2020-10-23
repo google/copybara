@@ -254,52 +254,80 @@ public class GitHubPrOriginTest {
   }
 
   @Test
-  public void gitResolveRequiredStatusContextNamesNotFound() throws Exception {
-    mockPullRequestAndIssue("open", 125, "bar: yes");
+  public void gitResolveRequiredStatusContextNamesFail() throws Exception {
     mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
+
+    labelTestNotPass("required_status_context_names = ['foo/one', 'foo/two']", "ci labels");
+  }
+
+  @Test
+  public void gitResolveRequiredCheckRunsFail() throws Exception {
+    mockGetCheckRun(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
+
+    labelTestNotPass("required_check_runs = ['foo/one', 'foo/two']", "check runs");
+  }
+
+  private void labelTestNotPass(String labelConfig, String errorMsg) throws Exception {
+    mockPullRequestAndIssue("open", 125, "bar: yes");
+
     EmptyChangeException thrown =
         assertThrows(
             EmptyChangeException.class,
             () ->
                 checkResolve(
                     githubPrOrigin(
-                        "url = 'https://github.com/google/example'",
-                        "required_status_context_names = ['foo/one', 'foo/two']"),
-                    "125",
+                        "url = 'https://github.com/google/example'", labelConfig),
+                    sha,
                     125));
 
     assertThat(thrown)
         .hasMessageThat()
         .contains(
             "Cannot migrate http://github.com/google/example/pull/125 because the following "
-                + "ci labels have not been passed: [foo/two]");
+                + errorMsg + " have not been passed: [foo/two]");
   }
 
   @Test
-  public void gitResolveRequiredStatusContextNamesNotFound_forceMigrate() throws Exception {
-    options.githubPrOrigin.forceImport = true;
-    mockPullRequestAndIssue("open", 125, "bar: yes");
+  public void gitResolveRequiredStatusContextNamesFail_forceMigrate() throws Exception {
     mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
 
-    checkResolve(
-        githubPrOrigin(
-            "url = 'https://github.com/google/example'",
-            "required_status_context_names = ['foo/one', 'foo/two']"),
-        sha,
-        125);
+    labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']", true);
   }
 
   @Test
-  public void gitResolveRequiredStatusContextNamesFound() throws Exception {
+  public void gitResolveRequiredCheckRunsFail_forceMigrate() throws Exception {
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
+
+    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']", true);
+  }
+
+  private void labelTestWithForceMigrate(String labelConfig, boolean forceImport)
+      throws Exception {
+    options.githubPrOrigin.forceImport = true;
     mockPullRequestAndIssue("open", 125, "bar: yes");
-    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
 
     checkResolve(
         githubPrOrigin(
-            "url = 'https://github.com/google/example'",
-            "required_status_context_names = ['foo/one', 'foo/two']"),
+            "url = 'https://github.com/google/example'", labelConfig),
         sha,
         125);
+
+  }
+
+  @Test
+  public void gitResolveRequiredStatusContextNamesPass() throws Exception {
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
+
+    labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']",
+        false);
+  }
+
+  @Test
+  public void gitResolveRequiredCheckRunsPass() throws Exception {
+    mockGetCheckRun(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
+
+    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']",
+        false);
   }
 
   @Test
@@ -761,6 +789,17 @@ public class GitHubPrOriginTest {
   }
 
   @Test
+  public void requiredCheckRuns() throws Exception {
+    assertThat(createGitHubPrOrigin(
+        "required_check_runs = ['foo', 'bar']"
+    ).describe(Glob.ALL_FILES)).containsExactly(
+        "type", "git.github_pr_origin",
+        "url", "https://github.com/google/example",
+        "required_check_runs", "foo",
+        "required_check_runs", "bar");
+  }
+
+  @Test
   public void testDescribeBranch() throws Exception {
     GitHubPROrigin val =
         skylark.eval(
@@ -1057,21 +1096,34 @@ public class GitHubPrOriginTest {
   }
 
   private void mockGetCombinedStatus(String sha, ImmutableMap<String, String> contextToStatus) {
-    JsonObject response = new JsonObject();
-    JsonArray statuses = new JsonArray();
-    for (Map.Entry<String, String> entry : contextToStatus.entrySet()) {
-      JsonObject status = new JsonObject();
-      status.addProperty("state", entry.getValue());
-      status.addProperty("context", entry.getKey());
-      status.addProperty("description", entry.getKey() + " is " + entry.getValue());
-      statuses.add(status);
-    }
-    response.add("statuses", statuses);
-
+    JsonObject response = mockTestLabelResponse(contextToStatus, "statuses", "context", "state");
     gitUtil.mockApi(
         "GET",
         "https://api.github.com/repos/google/example/commits/" + sha + "/status",
         mockResponse(response.toString()));
+  }
+
+  private void mockGetCheckRun(String sha, ImmutableMap<String, String> contextToCheckRuns) {
+    JsonObject response = mockTestLabelResponse(contextToCheckRuns,
+        "check_runs", "name", "conclusion");
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/google/example/commits/" + sha + "/check-runs",
+        mockResponse(response.toString()));
+  }
+
+  private JsonObject mockTestLabelResponse(ImmutableMap<String, String> contextToCheck,
+      String testListParam, String testNameParam, String testStatusParam) {
+    JsonObject response = new JsonObject();
+    JsonArray testStatuses = new JsonArray();
+    for (Map.Entry<String, String> entry : contextToCheck.entrySet()) {
+      JsonObject status = new JsonObject();
+      status.addProperty(testStatusParam, entry.getValue());
+      status.addProperty(testNameParam, entry.getKey());
+      testStatuses.add(status);
+    }
+    response.add(testListParam, testStatuses);
+    return response;
   }
 
   private void mockIssue(int number, LowLevelHttpRequest first, LowLevelHttpRequest... rest)

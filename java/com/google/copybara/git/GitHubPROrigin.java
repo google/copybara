@@ -49,6 +49,8 @@ import com.google.copybara.git.GitOrigin.ReaderImpl;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.Issue;
@@ -109,6 +111,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final GitHubOptions gitHubOptions;
   private final Set<String> requiredLabelsField;
   private final Set<String> requiredStatusContextNames;
+  private final Set<String> requiredCheckRuns;
   private final Set<String> retryableLabelsField;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
@@ -135,6 +138,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       GitHubPrOriginOptions gitHubPrOriginOptions,
       Set<String> requiredLabels,
       Set<String> requiredStatusContextNames,
+      Set<String> requiredCheckRuns,
       Set<String> retryableLabels,
       SubmoduleStrategy submoduleStrategy,
       boolean baselineFromBranch,
@@ -157,6 +161,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     this.gitHubPrOriginOptions = Preconditions.checkNotNull(gitHubPrOriginOptions);
     this.requiredLabelsField = checkNotNull(requiredLabels);
     this.requiredStatusContextNames = checkNotNull(requiredStatusContextNames);
+    this.requiredCheckRuns = checkNotNull(requiredCheckRuns);
     this.retryableLabelsField = checkNotNull(retryableLabels);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
     console = generalOptions.console();
@@ -183,7 +188,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     String configProjectName = ghHost.getProjectNameFromUrl(url);
 
     // Only when requiredStatusContextNames is enabled, the reference can potentially be a sha1.
-    if (!requiredStatusContextNames.isEmpty()
+    if (!requiredStatusContextNames.isEmpty() || !requiredCheckRuns.isEmpty()
         && GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
       PullRequest pr = getPrToMigrate(configProjectName, reference);
       return getRevisionForPR(configProjectName, pr);
@@ -299,26 +304,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
 
     // check if status context names are ready if applicable
-    if (!gitHubPrOriginOptions.forceImport && !requiredStatusContextNames.isEmpty()) {
-      try (ProfilerTask ignore = generalOptions.profiler()
-          .start("github_api_get_combined_status")) {
-        CombinedStatus combinedStatus = api.getCombinedStatus(project, prData.getHead().getSha());
-        Set<String> requiredButNotPresent = Sets.newHashSet(requiredStatusContextNames);
-        List<Status> successStatuses = combinedStatus.getStatuses().stream()
-            .filter(e -> e.getState() == State.SUCCESS).collect(Collectors.toList());
-        requiredButNotPresent.removeAll(Collections2.transform(successStatuses,
-            Status::getContext));
-        if (!requiredButNotPresent.isEmpty()) {
-          throw new EmptyChangeException(String.format(
-              "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
-                  + "have not been passed: %s",
-              project,
-              prNumber,
-              requiredButNotPresent));
-        }
-      }
-    }
+    checkRequiredStatusContextNames(api, project, prData);
 
+    // check if check runs are ready if applicable
+    checkRequiredCheckRuns(api, project, prData);
     if (!gitHubPrOriginOptions.forceImport
         && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
       throw new EmptyChangeException(String.format(
@@ -433,6 +422,54 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         url);
 
     return describeVersion ? getRepository().addDescribeVersion(result) : result;
+  }
+
+  private void checkRequiredCheckRuns(GitHubApi api, String project, PullRequest prData)
+      throws ValidationException, RepoException {
+    if (gitHubPrOriginOptions.forceImport || requiredCheckRuns.isEmpty()) {
+      return;
+    }
+    try (ProfilerTask ignore = generalOptions.profiler()
+        .start("github_api_get_combined_status")) {
+      CheckRuns checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
+      Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
+      List<CheckRun> passedCheckRuns = checkRuns.getCheckRuns().stream()
+          .filter(e -> e.getConclusion().equals("success")).collect(Collectors.toList());
+      requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns,
+          CheckRun::getName));
+      if (!requiredButNotPresent.isEmpty()) {
+        throw new EmptyChangeException(String.format(
+            "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
+                + "have not been passed: %s",
+            project,
+            prData.getNumber(),
+            requiredButNotPresent));
+      }
+    }
+  }
+
+  private void checkRequiredStatusContextNames(GitHubApi api, String project, PullRequest prData)
+      throws ValidationException, RepoException {
+    if (gitHubPrOriginOptions.forceImport || requiredStatusContextNames.isEmpty()) {
+      return;
+    }
+    try (ProfilerTask ignore = generalOptions.profiler()
+        .start("github_api_get_combined_status")) {
+      CombinedStatus combinedStatus = api.getCombinedStatus(project, prData.getHead().getSha());
+      Set<String> requiredButNotPresent = Sets.newHashSet(requiredStatusContextNames);
+      List<Status> successStatuses = combinedStatus.getStatuses().stream()
+          .filter(e -> e.getState() == State.SUCCESS).collect(Collectors.toList());
+      requiredButNotPresent.removeAll(Collections2.transform(successStatuses,
+          Status::getContext));
+      if (!requiredButNotPresent.isEmpty()) {
+        throw new EmptyChangeException(String.format(
+            "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
+                + "have not been passed: %s",
+            project,
+            prData.getNumber(),
+            requiredButNotPresent));
+      }
+    }
   }
 
   @VisibleForTesting
@@ -571,7 +608,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
           "review_approvers", reviewApprovers.stream().map(Enum::name).collect(toImmutableList()));
     }
     if (!requiredStatusContextNames.isEmpty()) {
-        builder.putAll("required_status_context_names", requiredStatusContextNames);
+        builder.putAll(GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES, requiredStatusContextNames);
+    }
+    if (!requiredCheckRuns.isEmpty()) {
+      builder.putAll(GitHubUtil.REQUIRED_CHECK_RUNS, requiredCheckRuns);
     }
     return builder.build();
   }
