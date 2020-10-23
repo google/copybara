@@ -103,7 +103,7 @@ public class GitDestinationReaderTest {
     FileSubjects.assertThatPath(workDir).containsNoMoreFiles();
     runWorkflow(ImmutableList.of(
         "ctx.destination_reader().copy_destination_files(glob = glob(include = ['**']))"));
-    FileSubjects.assertThatPath(workDir).containsFile("destination.txt", "foo");
+    FileSubjects.assertThatPath(workDir).containsFile("checkout/destination.txt", "foo");
   }
 
   @Test

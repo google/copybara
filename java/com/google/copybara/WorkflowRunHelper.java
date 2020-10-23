@@ -540,7 +540,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       LazyResourceLoader<Endpoint> originApi = c -> reader.getFeedbackEndPoint(c);
       LazyResourceLoader<Endpoint> destinationApi = c-> writer.getFeedbackEndPoint(c);
       ResourceSupplier<DestinationReader> destinationReader = () ->
-          writer.getDestinationReader(workflow.getConsole(), destinationBaseline, workdir);
+          writer.getDestinationReader(workflow.getConsole(), destinationBaseline, checkoutDir);
 
       TransformWork transformWork =
           new TransformWork(
