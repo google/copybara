@@ -58,8 +58,10 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
@@ -132,10 +134,16 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         }
       }
     }
-
     for (Element element : elementsByAnnotation.get(StarlarkBuiltin.class)) {
       TypeElement module = (TypeElement) element;
-      moduleClasses.add(module.getQualifiedName().toString());
+      if (module.getNestingKind() != NestingKind.TOP_LEVEL) {
+        // foo.SomeClass.Nested -> foo.SomeClass$Nested. Doesn't work for multi-nested, but we
+        // don't care for now.
+        moduleClasses.add(module.getQualifiedName().toString()
+            .replaceFirst("\\.([^.]+)$","\\$$1"));
+      } else {
+        moduleClasses.add(module.getQualifiedName().toString());
+      }
 
       StarlarkBuiltin skyModule = module.getAnnotation(StarlarkBuiltin.class);
       if (!skyModule.documented()) {
@@ -160,7 +168,6 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
 
       docModule.flags.addAll(generateFlagsInfo(module));
     }
-
 
     FileObject res = processingEnv.getFiler().createResource(
         StandardLocation.SOURCE_OUTPUT, "", "starlark_class_list.txt");
