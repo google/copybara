@@ -41,6 +41,9 @@ public class GitHubUtil {
     return branchName.replaceAll("[^A-Za-z0-9/_-]", "_");
   }
 
+  public static final String REQUIRED_STATUS_CONTEXT_NAMES = "required_status_context_names";
+  public static final String REQUIRED_CHECK_RUNS = "required_check_runs";
+
   private static final Pattern GITHUB_PULL_REQUEST_REF =
       Pattern.compile("refs/pull/([0-9]+)/(head|merge)");
 
