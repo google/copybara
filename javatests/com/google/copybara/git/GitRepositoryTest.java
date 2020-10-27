@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
 import static com.google.copybara.git.GitRepository.StatusCode.RENAMED;
@@ -532,6 +531,21 @@ public class GitRepositoryTest {
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/" + defaultBranch);
     assertThat(result.getInserted()).isEmpty();
+  }
+
+  @Test
+  public void testFetchPrune() throws Exception {
+    GitRepository local =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("localDir"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT,
+            /*noVerify=*/ false);
+    local.init();
+    local.setLocalConfigField("fetch","prune", "false");
+    CommandOutput commandOutput = local.simpleCommand("config", "--get", "fetch.prune");
+    assertThat(commandOutput.getStdout().contains("false")).isTrue();
   }
 
   @Test

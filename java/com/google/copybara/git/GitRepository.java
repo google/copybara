@@ -59,7 +59,6 @@ import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -85,7 +84,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -1081,6 +1079,11 @@ public class GitRepository {
     git(gitDir, ImmutableList.of("config", "--local", "credential.helper",
         checkNotNull(credentialHelper)));
     return this;
+  }
+
+  public void setLocalConfigField(String category, String field, String value)
+      throws RepoException {
+    this.simpleCommand("config", String.format("%s.%s", category, field), value, "--local");
   }
 
   public GitRepository withPartialClone() {
