@@ -23,15 +23,32 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.html.HtmlEscapers;
+import com.google.copybara.doc.annotations.DocDefault;
+import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Library;
+import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
+import com.beust.jcommander.Parameter;
+
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -73,13 +91,32 @@ public class Generator {
         Class<?> cls = Generator.class.getClassLoader().loadClass(clsName);
 
         getAnnotation(cls, Library.class)
-            .ifPresent(library -> docModule.functions.addAll(processLibrary(cls)));
+            .ifPresent(library -> docModule.functions.addAll(processFunctions(cls, null)));
+
+        getAnnotation(cls, StarlarkBuiltin.class)
+            .ifPresent(library -> {
+              if (!library.documented()) {
+                return;
+              }
+              DocSignaturePrefix prefixAnn = cls.getAnnotation(DocSignaturePrefix.class);
+              String prefix = prefixAnn != null ? prefixAnn.value() : library.name();
+
+              DocModule mod = new DocModule(library.name(), library.doc());
+              mod.functions.addAll(processFunctions(cls, prefix));
+              mod.fields.addAll(processFields(cls));
+              modules.add(mod);
+            });
 
       } catch (ClassNotFoundException e) {
         throw new IllegalStateException("Cannot generate documentation for " + clsName, e);
       }
     }
 
+    writeMarkdown(outputFile, orderAsOldGenerator(modules));
+  }
+
+
+  private void writeMarkdown(Path outputFile, Iterable<DocModule> modules) throws IOException {
     StringBuilder sb = new StringBuilder("## Table of Contents\n\n");
     for (DocModule module : modules) {
       sb.append("  - [");
@@ -87,6 +124,13 @@ public class Generator {
       sb.append("](#");
       sb.append(module.name.toLowerCase());
       sb.append(")\n");
+      for (DocFunction f : module.functions) {
+        sb.append("    - [");
+        sb.append(f.name);
+        sb.append("](#");
+        sb.append(f.name.toLowerCase());
+        sb.append(")\n");
+      }
     }
     sb.append("\n");
     for (DocModule module : modules) {
@@ -95,19 +139,152 @@ public class Generator {
     Files.write(outputFile, sb.toString().getBytes(StandardCharsets.UTF_8));
   }
 
-  private ImmutableList<DocFunction> processLibrary(Class<?> cls) {
-    ImmutableList.Builder<DocFunction> result = ImmutableList.builder();
-    for (Method method : cls.getMethods()) {
-      getAnnotation(method, StarlarkMethod.class)
-          .ifPresent(sMethod -> result.add(processStarlarkMethod(cls, method, sMethod)));
+  private ImmutableList<DocField> processFields(Class<?> cls) {
+    return Starlark.getMethodAnnotations(cls).entrySet().stream()
+        .filter(e -> e.getValue().structField())
+        .map(e -> processStarlarkMethod(cls, e.getKey(), e.getValue(), null))
+        .map(m -> new DocField(m.name, m.description))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private ImmutableList<DocFunction> processFunctions(Class<?> cls, String prefix) {
+    return Starlark.getMethodAnnotations(cls).entrySet().stream()
+        .filter(e -> !e.getValue().structField())
+        .map(e -> processStarlarkMethod(cls, e.getKey(), e.getValue(), prefix))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private DocFunction processStarlarkMethod(Class<?> cls, Method method,
+      StarlarkMethod annotation, @Nullable String prefix) {
+
+    Type[] genericParameterTypes = method.getGenericParameterTypes();
+
+    Param[] starlarkParams = annotation.parameters();
+
+    if (genericParameterTypes.length < starlarkParams.length) {
+      throw new IllegalStateException(String.format("Missing java parameters for: %s\n"
+          + "%s\n"
+          + "%s", method, Arrays.toString(genericParameterTypes), Arrays.toString(starlarkParams)));
     }
+    ImmutableList.Builder<DocParam> params = ImmutableList.builder();
+
+    Map<String, String> docDefaultsMap = Arrays
+        .stream(method.getAnnotationsByType(DocDefault.class))
+        .collect(Collectors.toMap(DocDefault::field, DocDefault::value, (f, v) -> v));
+
+    for (int i = 0; i < starlarkParams.length; i++) {
+      Type parameterType = genericParameterTypes[i];
+      Param starlarkParam = starlarkParams[i];
+
+      // Compute the list of names of allowed types (e.g. string or bool or NoneType).
+      List<String> allowedTypeNames = new ArrayList<String>();
+      if (starlarkParam.allowedTypes().length > 0) {
+        for (ParamType param : starlarkParam.allowedTypes()) {
+          allowedTypeNames.add(skylarkTypeName(param.type()) + (
+              param.generic1() != Object.class ? " of " + skylarkTypeName(param.generic1()) : ""));
+        }
+      } else {
+        // Otherwise use the type of the parameter variable itself.
+        allowedTypeNames.add(skylarkTypeName(parameterType));
+      }
+      params.add(
+          new DocParam(
+              starlarkParam.name(),
+              docDefaultsMap.containsKey(starlarkParam.name())
+                  ? docDefaultsMap.get(starlarkParam.name())
+                  : Strings.isNullOrEmpty(starlarkParam.defaultValue())
+                      ? null
+                      : starlarkParam.defaultValue(),
+              allowedTypeNames,
+              starlarkParam.doc()));
+    }
+
+    String returnType = method.getGenericReturnType().equals(NoneType.class)
+        || method.getGenericReturnType().equals(void.class)
+        ? null
+        : skylarkTypeName(method.getGenericReturnType());
+
+    return new DocFunction(
+        prefix != null ? prefix + "." + annotation.name() : annotation.name(),
+        annotation.doc(),
+        returnType,
+        params.build(),
+        generateFlagsInfo(method),
+        Arrays.stream(method.getAnnotationsByType(Example.class))
+            .map(DocExample::new)
+            .collect(ImmutableList.toImmutableList()));
+  }
+
+  private Iterable<DocFlag> generateFlagsInfo(Method method) {
+    UsesFlags annotation = method.getAnnotation(UsesFlags.class);
+
+    if (annotation == null) {
+      return ImmutableList.of();
+    }
+
+    ImmutableList.Builder<DocFlag> result = ImmutableList.builder();
+    for (Class<?> c : annotation.value()) {
+      for (Field f : c.getFields()) {
+        for (Parameter p : f.getAnnotationsByType(Parameter.class)) {
+          if (p.hidden()) {
+            continue;
+          }
+          result.add(new DocFlag(
+              Joiner.on(", ").join(p.names()),
+              simplerJavaTypes(f.getType().getName()),
+              p.description()));
+        }
+      }
+    }
+
     return result.build();
   }
 
-  private DocFunction processStarlarkMethod(Class<?> cls, Method method, StarlarkMethod sMethod) {
-    // TODO(malcon): Implement starlark method.
-    return new DocFunction(sMethod.name(), sMethod.doc(), "TBD", ImmutableList.of(),
-        ImmutableList.of(), ImmutableList.of());
+  private String simplerJavaTypes(String s) {
+    Matcher m = Pattern.compile("(?:[A-z.]*\\.)*([A-z]+)").matcher(s);
+    StringBuilder sb = new StringBuilder();
+    while (m.find()) {
+      String replacement = deCapitalize(m.group(1));
+      m.appendReplacement(sb, replacement);
+    }
+    m.appendTail(sb);
+
+    return HtmlEscapers.htmlEscaper().escape(sb.toString());
+  }
+
+  private String deCapitalize(String substring) {
+    return Character.toLowerCase(substring.charAt(0)) + substring.substring(1);
+  }
+
+  // TODO(malcon): Simplify this method when Starlark provides better type introspection.
+  private String skylarkTypeName(Type type) {
+    if (type instanceof WildcardType) {
+      WildcardType wild = (WildcardType) type;
+      // Assume "? extends Foo" and ignore "? super Bar" for now.
+      type = wild.getUpperBounds()[0];
+    }
+
+    if (type instanceof ParameterizedType) {
+      ParameterizedType pType = (ParameterizedType) type;
+      if (Iterable.class.isAssignableFrom((Class<?>) pType.getRawType())) {
+        return String.format("sequence of %s",
+            skylarkTypeName(pType.getActualTypeArguments()[0]));
+      }
+
+      if (Map.class.isAssignableFrom((Class<?>) pType.getRawType())) {
+        return String.format("dict of %s to %s",
+            skylarkTypeName(pType.getActualTypeArguments()[0]),
+            skylarkTypeName(pType.getActualTypeArguments()[1]));
+
+      }
+      return Starlark.classType((Class<?>) pType.getRawType());
+    }
+
+    if (type instanceof Class<?>) {
+      return Starlark.classType((Class<?>) type);
+    }
+
+    throw new RuntimeException("Unsupported type " + type + " " + type.getClass());
   }
 
   @SuppressWarnings("unchecked")
@@ -309,4 +486,71 @@ public class Generator {
     }
   }
 
+  // TODO(malcon): Remove this once the old generator is deleted and we commit
+  // the first version with the new generator.
+  private List<DocModule> orderAsOldGenerator(Collection<DocModule> modules) {
+    Map<String, DocModule> asMap = modules.stream()
+        .collect(Collectors.toMap(v -> v.name, v -> v));
+    List<DocModule> result = new ArrayList<>();
+    for (String old : createOldList()) {
+      DocModule remove = asMap.remove(old);
+      if (remove != null) {
+        result.add(remove);
+      }
+    }
+    result.addAll(asMap.values());
+    return result;
+  }
+
+  // Generated from the current documentation
+  private List<String> createOldList() {
+    List<String> oldOrder = new ArrayList<>();
+    oldOrder.add("author");
+    oldOrder.add("authoring");
+    oldOrder.add("authoring_class");
+    oldOrder.add("buildozer");
+    oldOrder.add("change");
+    oldOrder.add("ChangeMessage");
+    oldOrder.add("Changes");
+    oldOrder.add("Console");
+    oldOrder.add("core");
+    oldOrder.add("destination_effect");
+    oldOrder.add("destination_reader");
+    oldOrder.add("destination_ref");
+    oldOrder.add("endpoint");
+    oldOrder.add("endpoint_provider");
+    oldOrder.add("feedback.action_result");
+    oldOrder.add("feedback.context");
+    oldOrder.add("feedback.finish_hook_context");
+    oldOrder.add("feedback.revision_context");
+    oldOrder.add("filter_replace");
+    oldOrder.add("folder");
+    oldOrder.add("format");
+    oldOrder.add("gerritapi.AccountInfo");
+    oldOrder.add("gerritapi.ApprovalInfo");
+    oldOrder.add("gerritapi.ChangeInfo");
+    oldOrder.add("gerritapi.ChangeMessageInfo");
+    oldOrder.add("gerritapi.ChangesQuery");
+    oldOrder.add("gerritapi.CommitInfo");
+    oldOrder.add("gerritapi.getActionInfo");
+    oldOrder.add("gerritapi.GitPersonInfo");
+    oldOrder.add("gerritapi.LabelInfo");
+    oldOrder.add("gerritapi.ParentCommitInfo");
+    oldOrder.add("gerritapi.ReviewResult");
+    oldOrder.add("gerritapi.RevisionInfo");
+    oldOrder.add("gerrit_api_obj");
+    oldOrder.add("git");
+    oldOrder.add("github_api_obj");
+    oldOrder.add("Globals");
+    oldOrder.add("hg");
+    oldOrder.add("mapping_function");
+    oldOrder.add("metadata");
+    oldOrder.add("origin_ref");
+    oldOrder.add("patch");
+    oldOrder.add("Path");
+    oldOrder.add("PathAttributes");
+    oldOrder.add("SetReviewInput");
+    oldOrder.add("TransformWork");
+    return oldOrder;
+  }
 }
