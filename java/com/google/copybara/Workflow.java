@@ -640,7 +640,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return smartPrune;
   }
 
-  boolean isMigrateNoopChanges() {
+  public boolean isMigrateNoopChanges() {
     return migrateNoopChanges;
   }
 
