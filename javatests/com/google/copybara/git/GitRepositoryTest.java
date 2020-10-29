@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.CannotResolveRevisionException;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
@@ -981,6 +982,16 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
     singleFileCommit("test", "foo.txt", "Hello");
     assertThat(repository.readFile("refs/heads/" + defaultBranch, "foo.txt")).isEqualTo("Hello");
+  }
+
+  @Test
+  public void testEmptyCommitNoBaseline() throws Exception {
+    GitRepository bare = GitRepository
+        .newBareRepo(gitDir, getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
+    EmptyChangeException expected = assertThrows(EmptyChangeException.class, () ->
+        bare.commit("Copybara", ZonedDateTime.now(ZoneId.of("-07:00")), "this should be empty"));
+    assertThat(expected).hasMessageThat()
+        .contains("Migration of the revision resulted in an empty change from baseline 'unknown'.");
   }
 
   @Test

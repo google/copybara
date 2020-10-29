@@ -867,10 +867,16 @@ public class GitRepository {
       String message)
       throws RepoException, ValidationException {
     if (isEmptyStaging() && !amend) {
+      String baseline = "unknown";
+      try {
+        baseline = parseRef("HEAD");
+      } catch (CannotResolveRevisionException | RepoException e) {
+        logger.atWarning().withCause(e).log("Cannot find baseline.");
+      }
       throw new EmptyChangeException(
           String.format(
               "Migration of the revision resulted in an empty change from baseline '%s'.\n"
-                  + "Is the change already migrated?", parseRef("HEAD")));
+                  + "Is the change already migrated?", baseline));
     }
 
     ImmutableList.Builder<String> params = ImmutableList.<String>builder().add("commit");
