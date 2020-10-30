@@ -22,7 +22,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -130,9 +129,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
               + " include things that are not labels.",
       structField = true)
   public Dict<String, String> getLabelsForSkylark() {
-    return Dict.copyOf(
-        /* mu= */ null,
-        ImmutableMap.copyOf(Maps.transformValues(labels.asMap(), Iterables::getLast)));
+    return Dict.immutableCopyOf(Maps.transformValues(labels.asMap(), Iterables::getLast));
   }
 
   @StarlarkMethod(
@@ -144,8 +141,8 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
               + " it could include things that are not labels.",
       structField = true)
   public Dict<String, Sequence<String>> getLabelsAllForSkylark() {
-    return Dict.copyOf(
-        /* mu= */ null, Maps.transformValues(labels.asMap(), StarlarkList::immutableCopyOf));
+    return Dict.immutableCopyOf(
+        Maps.transformValues(labels.asMap(), StarlarkList::immutableCopyOf));
   }
 
   /**

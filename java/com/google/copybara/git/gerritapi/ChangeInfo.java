@@ -212,7 +212,7 @@ public class ChangeInfo implements StarlarkValue {
               + "Only set if labels or detailed labels are requested.",
       structField = true)
   public Dict<String, LabelInfo> getLabelsForSkylark() {
-    return Dict.copyOf(/*environment*/ null, getLabels());
+    return Dict.immutableCopyOf(getLabels());
   }
 
   public List<ChangeMessageInfo> getMessages() {
@@ -253,7 +253,7 @@ public class ChangeInfo implements StarlarkValue {
               + "a key for the current revision) or if all revisions are requested.",
       structField = true)
   public Dict<String, RevisionInfo> getAllRevisionsForSkylark() {
-    return Dict.copyOf(/*environment*/ null, getAllRevisions());
+    return Dict.immutableCopyOf(getAllRevisions());
   }
 
   public ImmutableMap<String, List<AccountInfo>> getReviewers() {

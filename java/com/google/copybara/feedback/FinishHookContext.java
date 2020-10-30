@@ -153,8 +153,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
         doc = "A dictionary with the labels detected for the" + " requested/resolved revision.",
         structField = true)
     public Dict<String, Sequence<String>> getLabels() {
-      return Dict.copyOf(
-          /*mu=*/ null,
+      return Dict.immutableCopyOf(
           revision.associatedLabels().asMap().entrySet().stream()
               .collect(
                   Collectors.toMap(
