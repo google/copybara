@@ -280,28 +280,72 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testDescribeFirstParent() throws Exception {
+    Files.write(remote.resolve("foo.txt"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "first");
+    repo.simpleCommand("branch", "foo");
+    git("tag", "-m", "This is a tag", "0.1");
+    repo.forceCheckout("foo");
+    Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    git("tag", "-m", "This is a tag", "0.2");
+    repo.simpleCommand("commit", "-m", "branch change");
+    repo.forceCheckout(defaultBranch);
+    Files.write(remote.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "second");
+    repo.simpleCommand("merge", "foo");
+
+    ImmutableMultimap<String, String> labels = origin().resolve(defaultBranch).associatedLabels();
+    assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT"))
+        .isNotEqualTo(labels.get("GIT_DESCRIBE_REQUESTED_VERSION"));
+    assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT").stream().anyMatch(x -> x.contains("0.1")))
+        .isTrue();
+  }
+
+  @Test
   public void testResolveWithGitDescribe() throws Exception {
     git("tag", "-m", "This is a tag", "0.1");
 
     // The default is to describe
-    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    ImmutableMultimap<String, String> foo = origin().resolve(defaultBranch).associatedLabels();
+    assertThat(
+            origin()
+                .resolve(defaultBranch)
+                .associatedLabels()
+                .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1");
 
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_FIRST_PARENT"))
+        .contains("0.1");
+
     moreOriginArgs = "describe_version = False";
-    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(
+            origin()
+                .resolve(defaultBranch)
+                .associatedLabels()
+                .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .isEmpty();
 
     moreOriginArgs = "describe_version = True";
-    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(
+            origin()
+                .resolve(defaultBranch)
+                .associatedLabels()
+                .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1");
-
     writeFile(remote, "test.txt", "updated");
     repo.add().files("test.txt").run();
     git("commit", "-m", "first file", "--date", COMMIT_TIME);
 
     GitRevision head = this.origin.resolve("HEAD");
 
-    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(
+            origin()
+                .resolve(defaultBranch)
+                .associatedLabels()
+                .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1-1-g" + head.asString().substring(0, 7));
   }
 
@@ -324,7 +368,11 @@ public class GitOriginTest {
     git("tag", "-m", "This is a tag", "0.1");
     options.gitOrigin.gitDescribeDefault = false;
     // The default is disabled
-    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_REQUESTED_VERSION"))
+    assertThat(
+            origin()
+                .resolve(defaultBranch)
+                .associatedLabels()
+                .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .isEmpty();
   }
 

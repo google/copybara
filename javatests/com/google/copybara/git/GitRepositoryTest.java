@@ -31,6 +31,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Author;
@@ -43,6 +44,8 @@ import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
@@ -1057,6 +1060,28 @@ public class GitRepositoryTest {
 
     assertThat(localRepo.hasSameTree(remoteHeadSha1)).isTrue();
   }
+
+  @Test
+  public void testDescribeFirstParent() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    repository.simpleCommand("branch", "foo");
+    repository.tag("main_tag").withAnnotatedTag("message").run();
+    repository.forceCheckout("foo");
+    Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.tag("branch_tag").withAnnotatedTag("message").run();
+    repository.simpleCommand("commit", "-m", "branch change");
+    repository.forceCheckout(defaultBranch);
+    Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    repository.simpleCommand("merge", "foo");
+    GitRevision head = repository.resolveReference("HEAD");
+
+    assertThat(repository.describe(head, false)).isNotEqualTo(repository.describe(head, true));
+}
 
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
     GitRepository repository = GitRepository.newBareRepo(gitDir,

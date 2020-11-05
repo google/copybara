@@ -33,8 +33,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
-import com.google.copybara.Origin.Reader.ChangesResponse;
-import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -136,9 +134,12 @@ public class GerritOriginTest {
                 .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID)
-                .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
-                    repo.parseRef("HEAD").substring(0,7))
-                .build(), url);
+                .put(
+                    GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
+                    repo.parseRef("HEAD").substring(0, 7))
+                .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
+                .build(),
+            url);
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
 
     git("commit", "-m", "second change", "--date", commitTime, "--amend");
@@ -162,10 +163,13 @@ public class GerritOriginTest {
                 .put("GERRIT_REVIEWER_EMAIL", "bar@example.com")
                 .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
-                .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
-                    repo.parseRef("HEAD").substring(0,7))
+                .put(
+                    GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
+                    repo.parseRef("HEAD").substring(0, 7))
+                .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID)
-                .build(), url);
+                .build(),
+            url);
     git("update-ref", "refs/changes/45/12345/2", secondRevision.getSha1());
 
     git("commit", "-m", "third change", "--date", commitTime, "--amend");
@@ -185,11 +189,13 @@ public class GerritOriginTest {
                 .put("GERRIT_CC_EMAIL", "baz@example.com")
                 .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
                 .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
-                .put(GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
-                    repo.parseRef("HEAD").substring(0,7))
+                .put(
+                    GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
+                    repo.parseRef("HEAD").substring(0, 7))
+                .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID)
-                .build()
-            , url);
+                .build(),
+            url);
     git("update-ref", "refs/changes/45/12345/3", thirdRevision.getSha1());
 
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 12345, CHANGE_ID);

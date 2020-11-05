@@ -154,6 +154,7 @@ public class GitRepository {
   private static final int DEFAULT_MAX_LOG_LINES = 4_000;
   public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
   public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
+  public static final String GIT_DESCRIBE_FIRST_PARENT = "GIT_DESCRIBE_FIRST_PARENT";
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -289,8 +290,12 @@ public class GitRepository {
     }
 
     if (fetchTags) {
-      fetch(url, /*prune=*/false, /*force=*/true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"), partialFetch);
+      fetch(
+          url,
+          /*prune=*/ false,
+          /*force=*/ true,
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"),
+          partialFetch);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
       fetch(
@@ -303,12 +308,23 @@ public class GitRepository {
   }
 
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
-    return rev.withLabels(ImmutableListMultimap.of(GIT_DESCRIBE_REQUESTED_VERSION, describe(rev)));
+    return rev.withLabels(
+        ImmutableListMultimap.of(
+            GIT_DESCRIBE_REQUESTED_VERSION,
+            describe(rev, false),
+            GIT_DESCRIBE_FIRST_PARENT,
+            describe(rev, true)));
   }
 
-  public String describe(GitRevision rev) throws RepoException {
+  public String describe(GitRevision rev, boolean firstParent) throws RepoException {
     try {
-      return simpleCommand("describe", "--", rev.getSha1()).getStdout().trim();
+      ImmutableList.Builder<String> args = ImmutableList.builder();
+      args.add("describe");
+      if (firstParent) {
+        args.add("--first-parent");
+      }
+      args.add("--").add(rev.getSha1());
+      return simpleCommand(args.build()).getStdout().trim();
     } catch (RepoException e) {
       logger.atWarning()
           .withCause(e).log("Cannot get describe version for commit " + rev.getSha1());

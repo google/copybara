@@ -118,7 +118,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           + " migrated change in `SQUASH` (In other words, doesn't include excluded changes). this"
           + " is normally what users want to use.<br>"
           + "   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version."
-          + " Constant in `ITERATIVE` mode and includes filtered changes.<br>";
+          + " Constant in `ITERATIVE` mode and includes filtered changes.<br>"
+          + "`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>";
 
   protected final Options options;
   private ConfigFile mainConfigFile;

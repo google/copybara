@@ -192,7 +192,7 @@ public final class GitRevision implements Revision {
   private synchronized ImmutableList<String> populateDescribe() {
     if (describe == null) {
       try {
-        describe = repository.describe(this);
+        describe = repository.describe(this, false);
       } catch (RepoException e) {
         logger.atWarning().withCause(e).log(
             "Cannot describe version for %s. Using short sha", sha1);
