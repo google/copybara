@@ -160,8 +160,8 @@ public class InfoCmd implements CopybaraCmd {
             "Use %s to limit the output of the command.", GeneralOptions.OUTPUT_LIMIT_FLAG);
       }
     }
-    options.get(GeneralOptions.class).eventMonitor().onInfoFinished(
-        new InfoFinishedEvent(info, context));
+    options.get(GeneralOptions.class).eventMonitors()
+        .dispatchEvent(e -> e.onInfoFinished(new InfoFinishedEvent(info, context)));
   }
 
   /** Returns the {@link Info} of the {@code migrationName}. */

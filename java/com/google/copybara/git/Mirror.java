@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
-import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
@@ -89,20 +88,21 @@ public class Mirror implements Migration {
     }
 
     // More fine grain events based on the references created/updated/deleted:
-    generalOptions
-        .eventMonitor()
-        .onChangeMigrationFinished(
-            new ChangeMigrationFinishedEvent(
-                ImmutableList.of(
-                    new DestinationEffect(
-                        generalOptions.dryRunMode ? Type.NOOP : Type.UPDATED,
-                        generalOptions.dryRunMode
-                            ? "Refspecs " + refspec + " can be mirrored"
-                            : "Refspecs " + refspec + " mirrored successfully",
-                        // TODO(danielromero): Populate OriginRef here
-                        ImmutableList.of(),
-                        new DestinationRef(
-                            getOriginDestinationRef(destination), "mirror", /*url=*/ null)))));
+    ChangeMigrationFinishedEvent event =
+        new ChangeMigrationFinishedEvent(
+            ImmutableList.of(
+                new DestinationEffect(
+                    generalOptions.dryRunMode
+                        ? DestinationEffect.Type.NOOP
+                        : DestinationEffect.Type.UPDATED,
+                    generalOptions.dryRunMode
+                        ? "Refspecs " + refspec + " can be mirrored"
+                        : "Refspecs " + refspec + " mirrored successfully",
+                    // TODO(danielromero): Populate OriginRef here
+                    ImmutableList.of(),
+                    new DestinationRef(
+                        getOriginDestinationRef(destination), "mirror", /*url=*/ null))));
+    generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
   }
 
   private static String getOriginDestinationRef(String url) throws ValidationException {

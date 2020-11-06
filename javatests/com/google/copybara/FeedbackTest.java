@@ -64,7 +64,7 @@ public class FeedbackTest {
     eventMonitor = new TestingEventMonitor();
     OptionsBuilder options = new OptionsBuilder();
     options.setConsole(console);
-    options.general.withEventMonitor(eventMonitor);
+    options.general.enableEventMonitor("justTesting", eventMonitor);
     dummyTrigger = new DummyTrigger();
     options.testingOptions.feedbackTrigger = dummyTrigger;
     skylark = new SkylarkTestExecutor(options);

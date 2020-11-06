@@ -153,4 +153,30 @@ public interface EventMonitor {
     }
 
   }
+
+  /**
+   * Holder for all active event monitors
+   */
+  class EventMonitors {
+    private final List<EventMonitor> monitors;
+
+    public EventMonitors(List<EventMonitor> monitors) {
+      this.monitors = monitors;
+    }
+
+    /** Accepts a functional to apply to all active monitors */
+    public void dispatchEvent(Dispatch event) {
+      for (EventMonitor monitor : monitors) {
+        event.dispatch(monitor);
+      }
+    }
+
+  }
+
+  /**
+   * A functional to dispatch an event to monitors.
+   */
+  interface Dispatch {
+    void dispatch(EventMonitor monitor);
+  }
 }

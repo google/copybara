@@ -32,13 +32,14 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.ActionResult.Result;
-import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
+import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import javax.annotation.Nullable;
 
 /**
@@ -79,14 +80,15 @@ public class Feedback implements Migration {
     String root = "run/" + name + "/" + suffix.substring(0, Math.min(suffix.length(), 20));
     try (ProfilerTask ignore = profiler().start(root)) {
       for (Action action : actions) {
-        ImmutableList<DestinationEffect> effects = ImmutableList.of();
+        ArrayList<DestinationEffect> effects = new ArrayList<>();
         try (ProfilerTask ignore2 = profiler().start(action.getName())) {
           SkylarkConsole console = new SkylarkConsole(generalOptions.console());
-          eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+          eventMonitors().dispatchEvent(
+              m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
           FeedbackMigrationContext context =
               new FeedbackMigrationContext(this, action, sourceRefs, console);
           action.run(context);
-          effects = context.getNewDestinationEffects();
+          effects.addAll(context.getNewDestinationEffects());
           ActionResult actionResult = context.getActionResult();
           allResultsBuilder.add(actionResult);
           // First error aborts the execution of the other actions
@@ -95,7 +97,8 @@ public class Feedback implements Migration {
               "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
               name, action.getName(), actionResult.getMsg());
         } finally {
-          eventMonitor().onChangeMigrationFinished(new ChangeMigrationFinishedEvent(effects));
+          eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(
+              new ChangeMigrationFinishedEvent(ImmutableList.copyOf(effects))));
         }
       }
     }
@@ -179,7 +182,7 @@ public class Feedback implements Migration {
     return generalOptions.profiler();
   }
 
-  private EventMonitor eventMonitor() {
-    return generalOptions.eventMonitor();
+  private EventMonitors eventMonitors() {
+    return generalOptions.eventMonitors();
   }
 }

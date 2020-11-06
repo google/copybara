@@ -17,14 +17,19 @@
 package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.flogger.FluentLogger;
 import com.google.common.flogger.StackSize;
 import com.google.copybara.exception.RepoException;
@@ -33,25 +38,23 @@ import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.jcommander.MapConverter;
 import com.google.copybara.monitor.ConsoleEventMonitor;
 import com.google.copybara.monitor.EventMonitor;
+import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-import com.google.copybara.shell.Command;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
-
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-
+import com.google.copybara.shell.Command;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-
 import javax.annotation.Nullable;
 
 /**
@@ -70,11 +73,12 @@ public final class GeneralOptions implements Option {
   public static final String DRY_RUN_FLAG = "--dry-run";
   public static final String SQUASH_FLAG = "--squash";
   static final Duration DEFAULT_CONSOLE_FILE_FLUSH_INTERVAL = Duration.ofSeconds(30);
+  private static final String DEFAULT_MONITOR = "default";
 
   private Map<String, String> environment;
   private FileSystem fileSystem;
   private Console console;
-  private EventMonitor eventMonitor;
+  private final HashMap<String, EventMonitor> eventMonitors;
   private Path configRootPath;
   private Path outputRootPath;
 
@@ -84,17 +88,15 @@ public final class GeneralOptions implements Option {
     this.environment = environment;
     this.fileSystem = Preconditions.checkNotNull(fileSystem);
     this.console = Preconditions.checkNotNull(console);
-    this.eventMonitor = new ConsoleEventMonitor(console, EventMonitor.EMPTY_MONITOR);
+    this.eventMonitors = Maps.newHashMap(ImmutableMap.of(
+        DEFAULT_MONITOR, new ConsoleEventMonitor(console, EventMonitor.EMPTY_MONITOR)));
   }
 
   @VisibleForTesting
   public GeneralOptions(Map<String, String> environment, FileSystem fileSystem, boolean verbose,
       Console console, @Nullable Path configRoot, @Nullable Path outputRoot,
       boolean noCleanup, boolean disableReversibleCheck, boolean force, int outputLimit) {
-    this.environment = ImmutableMap.copyOf(Preconditions.checkNotNull(environment));
-    this.console = Preconditions.checkNotNull(console);
-    this.eventMonitor = new ConsoleEventMonitor(console, EventMonitor.EMPTY_MONITOR);
-    this.fileSystem = Preconditions.checkNotNull(fileSystem);
+    this(environment, fileSystem, console);
     this.verbose = verbose;
     this.configRootPath = configRoot;
     this.outputRootPath = outputRoot;
@@ -190,8 +192,15 @@ public final class GeneralOptions implements Option {
     return profiler;
   }
 
-  public EventMonitor eventMonitor() {
-    return eventMonitor;
+  /**
+   * Returns the active event monitors
+   */
+  public EventMonitors eventMonitors() {
+    return new EventMonitors(
+        eventMonitors.entrySet().stream()
+            .filter(e -> enabledEventMonitors.contains(e.getKey()))
+            .map(Map.Entry::getValue)
+            .collect(toImmutableList()));
   }
 
   /**
@@ -267,8 +276,36 @@ public final class GeneralOptions implements Option {
     return this;
   }
 
-  public GeneralOptions withEventMonitor(EventMonitor eventMonitor) {
-    this.eventMonitor = new ConsoleEventMonitor(console(), eventMonitor);
+  /**
+   * Add an EventMonitor to the list of available monitors without activating it. Use this to make
+   * a monitor available via the --event-monitor flag
+   */
+  public GeneralOptions addEventMonitor(String name, EventMonitor eventMonitor) {
+    this.eventMonitors.put(name, eventMonitor);
+    return this;
+  }
+
+  /** Enable an event monitor already on the list of available monitors. */
+  public GeneralOptions enableEventMonitor(String name) {
+    Preconditions.checkArgument(
+        eventMonitors.containsKey(name), "%s is not a known EventMonitor.", name);
+    this.enabledEventMonitors.add(name);
+    return this;
+  }
+
+  /**
+   * Add an EventMonitor to the list of available monitors and enable it. Use this to inject new
+   * default monitors as required.
+   */
+  public GeneralOptions enableEventMonitor(String name, EventMonitor eventMonitor) {
+    addEventMonitor(name, eventMonitor);
+    enableEventMonitor(name);
+    return this;
+  }
+
+  /** Clear the list of enabled event monitors for changing default behavior.. */
+  public GeneralOptions clearEventMonitor() {
+    this.enabledEventMonitors.clear();
     return this;
   }
 
@@ -447,4 +484,10 @@ public final class GeneralOptions implements Option {
       description =
           "When set, the INFO command will print a list of workflows defined in the file.")
   boolean infoListOnly = false;
+
+  @Parameter(
+      names = {"--event-monitor"},
+      description = "Eventmonitors to enable. These must be in the list of available monitors.")
+  public ArrayList<String> enabledEventMonitors =
+      new ArrayList<>(ImmutableList.of(DEFAULT_MONITOR));
 }

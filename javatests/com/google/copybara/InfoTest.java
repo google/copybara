@@ -77,7 +77,7 @@ public class InfoTest {
     optionsBuilder.setWorkdirToRealTempDir();
     skylark = new SkylarkTestExecutor(optionsBuilder);
     eventMonitor = new TestingEventMonitor();
-    optionsBuilder.general.withEventMonitor(eventMonitor);
+    optionsBuilder.general.enableEventMonitor("just testing", eventMonitor);
     optionsBuilder.general.starlarkMode = StarlarkMode.STRICT.name();
     migration = mock(Migration.class);
     config = new Config(ImmutableMap.of("workflow", migration),

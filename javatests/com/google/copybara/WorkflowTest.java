@@ -165,7 +165,7 @@ public class WorkflowTest {
     options.setForce(true); // Force by default unless we are testing the flag.
     skylark = new SkylarkTestExecutor(options);
     eventMonitor = new TestingEventMonitor();
-    options.general.withEventMonitor(eventMonitor);
+    options.general.enableEventMonitor("test", eventMonitor);
     transformWork = TransformWorks.of(workdir, "example", console);
     setRevId = true;
     smartPrune = false;
@@ -213,7 +213,7 @@ public class WorkflowTest {
   private Workflow<?, ?> iterativeWorkflow(String workflowName, @Nullable String previousRef)
       throws ValidationException, IOException {
     options.workflowOptions.lastRevision = previousRef;
-    options.general.withEventMonitor(eventMonitor);
+    options.general.enableEventMonitor("test", eventMonitor);
     options.general.setConsoleForTest(console());
     return skylarkWorkflow(workflowName, WorkflowMode.ITERATIVE);
   }
@@ -3342,7 +3342,7 @@ public class WorkflowTest {
   @Test
   public void changeRequestInitHistory() throws Exception {
     options.workflowOptions.initHistory = true;
-    options.general.withEventMonitor(eventMonitor);
+    options.general.enableEventMonitor("test", eventMonitor);
     options.general.setConsoleForTest(console());
     ValidationException e =
         assertThrows(

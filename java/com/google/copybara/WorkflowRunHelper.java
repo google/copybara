@@ -39,9 +39,9 @@ import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
+import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
@@ -396,7 +396,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         throws IOException, RepoException, ValidationException {
       ImmutableList<DestinationEffect> effects = ImmutableList.of();
       try {
-        workflow.eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+        workflow.eventMonitors().dispatchEvent(
+            m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
         effects =
             doMigrate(
                 rev, lastRev, processConsole, metadata, changes, destinationBaseline,
@@ -456,7 +457,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param effects The destination effect of the migration
      */
     final void finishedMigrate(ImmutableList<DestinationEffect> effects) {
-      workflow.eventMonitor().onChangeMigrationStarted(new ChangeMigrationStartedEvent());
+      workflow.eventMonitors().dispatchEvent(
+          m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
       migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects));
     }
 
@@ -805,8 +807,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     return workflow.getOrigin().resolveLastRev(revStr);
   }
 
-  public EventMonitor eventMonitor() {
-    return workflow.eventMonitor();
+  public EventMonitors eventMonitors() {
+    return workflow.eventMonitors();
   }
 
 }

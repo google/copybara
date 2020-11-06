@@ -567,6 +567,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
+<span style="white-space: nowrap;">`--event-monitor`</span> | *arrayList&lt;string&gt;* | Eventmonitors to enable. These must be in the list of available monitors.
 <span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout
 <span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.

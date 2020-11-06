@@ -39,8 +39,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.FinishHookContext;
-import com.google.copybara.monitor.EventMonitor;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.templatetoken.Token;
@@ -273,7 +273,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       WorkflowRunHelper<O, D> helper = newRunHelper(workdir, resolvedRef, sourceRef,
           event -> {
             allEffects.addAll(event.getDestinationEffects());
-            eventMonitor().onChangeMigrationFinished(event);
+            eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
           });
       try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
         mode.run(helper);
@@ -577,8 +577,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return generalOptions.profiler();
   }
 
-  public EventMonitor eventMonitor() {
-    return generalOptions.eventMonitor();
+  public EventMonitors eventMonitors() {
+    return generalOptions.eventMonitors();
   }
 
   Supplier<ImmutableMap<String, ConfigFile>> getAllConfigFiles() {
