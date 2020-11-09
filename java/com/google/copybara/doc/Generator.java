@@ -17,6 +17,7 @@
 package com.google.copybara.doc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.function.Function.identity;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -85,7 +86,6 @@ public class Generator {
     List<DocModule> modules = new ArrayList<>();
     DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
     modules.add(docModule);
-
     for (String clsName : classes) {
       try {
         Class<?> cls = Generator.class.getClassLoader().loadClass(clsName);
@@ -104,6 +104,7 @@ public class Generator {
               DocModule mod = new DocModule(library.name(), library.doc());
               mod.functions.addAll(processFunctions(cls, prefix));
               mod.fields.addAll(processFields(cls));
+              mod.flags.addAll(generateFlagsInfo(cls));
               modules.add(mod);
             });
 
@@ -117,7 +118,7 @@ public class Generator {
 
 
   private void writeMarkdown(Path outputFile, Iterable<DocModule> modules) throws IOException {
-    StringBuilder sb = new StringBuilder("## Table of Contents\n\n");
+    StringBuilder sb = new StringBuilder("## Table of Contents\n\n\n");
     for (DocModule module : modules) {
       sb.append("  - [");
       sb.append(module.name);
@@ -134,6 +135,7 @@ public class Generator {
     }
     sb.append("\n");
     for (DocModule module : modules) {
+      sb.append("\n");
       sb.append(module.toMarkdown(2));
     }
     Files.write(outputFile, sb.toString().getBytes(StandardCharsets.UTF_8));
@@ -168,9 +170,9 @@ public class Generator {
     }
     ImmutableList.Builder<DocParam> params = ImmutableList.builder();
 
-    Map<String, String> docDefaultsMap = Arrays
+    Map<String, DocDefault> docDefaultsMap = Arrays
         .stream(method.getAnnotationsByType(DocDefault.class))
-        .collect(Collectors.toMap(DocDefault::field, DocDefault::value, (f, v) -> v));
+        .collect(Collectors.toMap(DocDefault::field, identity(), (f, v) -> v));
 
     for (int i = 0; i < starlarkParams.length; i++) {
       Type parameterType = genericParameterTypes[i];
@@ -187,11 +189,15 @@ public class Generator {
         // Otherwise use the type of the parameter variable itself.
         allowedTypeNames.add(skylarkTypeName(parameterType));
       }
+      DocDefault fieldInfo = docDefaultsMap.get(starlarkParam.name());
+      if (fieldInfo != null && fieldInfo.allowedTypes().length > 0) {
+        allowedTypeNames = Arrays.asList(fieldInfo.allowedTypes());
+      }
       params.add(
           new DocParam(
               starlarkParam.name(),
-              docDefaultsMap.containsKey(starlarkParam.name())
-                  ? docDefaultsMap.get(starlarkParam.name())
+              fieldInfo != null
+                  ? fieldInfo.value()
                   : Strings.isNullOrEmpty(starlarkParam.defaultValue())
                       ? null
                       : starlarkParam.defaultValue(),
@@ -215,29 +221,27 @@ public class Generator {
             .collect(ImmutableList.toImmutableList()));
   }
 
-  private Iterable<DocFlag> generateFlagsInfo(Method method) {
-    UsesFlags annotation = method.getAnnotation(UsesFlags.class);
+  private Collection<DocFlag> generateFlagsInfo(AnnotatedElement el) {
 
-    if (annotation == null) {
-      return ImmutableList.of();
-    }
-
-    ImmutableList.Builder<DocFlag> result = ImmutableList.builder();
-    for (Class<?> c : annotation.value()) {
-      for (Field f : c.getFields()) {
-        for (Parameter p : f.getAnnotationsByType(Parameter.class)) {
-          if (p.hidden()) {
-            continue;
+    List<DocFlag> result = new ArrayList<>();
+    getAnnotation(el, UsesFlags.class).ifPresent(cls ->
+    {
+      for (Class<?> c : cls.value()) {
+        for (Field f : c.getDeclaredFields()) {
+          for (Parameter p : f.getAnnotationsByType(Parameter.class)) {
+            if (p.hidden()) {
+              continue;
+            }
+            result.add(new DocFlag(
+                Joiner.on(", ").join(p.names()),
+                simplerJavaTypes(f.getType().getName()),
+                p.description()));
           }
-          result.add(new DocFlag(
-              Joiner.on(", ").join(p.names()),
-              simplerJavaTypes(f.getType().getName()),
-              p.description()));
         }
       }
-    }
+    });
 
-    return result.build();
+    return result;
   }
 
   private String simplerJavaTypes(String s) {
@@ -266,17 +270,22 @@ public class Generator {
 
     if (type instanceof ParameterizedType) {
       ParameterizedType pType = (ParameterizedType) type;
-      if (Iterable.class.isAssignableFrom((Class<?>) pType.getRawType())) {
-        return String.format("sequence of %s",
-            skylarkTypeName(pType.getActualTypeArguments()[0]));
-      }
-
       if (Map.class.isAssignableFrom((Class<?>) pType.getRawType())) {
-        return String.format("dict of %s to %s",
-            skylarkTypeName(pType.getActualTypeArguments()[0]),
-            skylarkTypeName(pType.getActualTypeArguments()[1]));
-
+        Type first = pType.getActualTypeArguments()[0];
+        Type second = pType.getActualTypeArguments()[1];
+        return isObject(first) || isObject(second)
+            ? "dict"
+            : String.format("dict[%s, %s]",
+                skylarkTypeName(first),
+                skylarkTypeName(second));
       }
+
+      if (Iterable.class.isAssignableFrom((Class<?>) pType.getRawType())) {
+        Type first = pType.getActualTypeArguments()[0];
+        return isObject(first) ? "sequence"
+            : String.format("sequence of %s", skylarkTypeName(first));
+      }
+
       return Starlark.classType((Class<?>) pType.getRawType());
     }
 
@@ -287,9 +296,20 @@ public class Generator {
     throw new RuntimeException("Unsupported type " + type + " " + type.getClass());
   }
 
+  private boolean isObject(Type type) {
+    if (type == Object.class) {
+      return true;
+    }
+    if (type instanceof WildcardType) {
+      WildcardType wildcard = (WildcardType) type;
+      return wildcard.getUpperBounds()[0].equals(Object.class);
+    }
+    return false;
+  }
+
   @SuppressWarnings("unchecked")
-  private <T extends Annotation> Optional<T> getAnnotation(AnnotatedElement cls, Class<T> annCls) {
-    for (Annotation ann : cls.getAnnotations()) {
+  private <T extends Annotation> Optional<T> getAnnotation(AnnotatedElement el, Class<T> annCls) {
+    for (Annotation ann : el.getAnnotations()) {
       if (ann.annotationType().equals(annCls)) {
         return Optional.of((T) ann);
       }

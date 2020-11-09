@@ -1168,6 +1168,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @DocDefault(field = "reverse", value = "`regex`")
   @DocDefault(field = "group", value = "Whole text")
+  @DocDefault(field = "regex", allowedTypes = {"dict[string, string]"})
   @Example(
       title = "Simple replace with mapping",
       before = "Simplest mapping",

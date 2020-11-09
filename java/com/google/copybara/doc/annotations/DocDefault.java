@@ -23,13 +23,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation for documenting the defaults for a @Param.
- * TODO(malcon): Remove once b/79769618 is resolved
+ * Annotation for documenting fields for a @Param or return types
+ *
+ * TODO(malcon): Rename this to DocParam
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE_USE})
 @Repeatable(DocDefaults.class)
 public @interface DocDefault {
   String field();
-  String value();
+  // TODO(malcon): Rename to defaultValue
+  String value() default "";
+  String[] allowedTypes() default {};
 }

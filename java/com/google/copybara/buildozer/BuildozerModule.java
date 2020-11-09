@@ -18,6 +18,7 @@ package com.google.copybara.buildozer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.CheckoutPath;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
@@ -97,6 +98,10 @@ public final class BuildozerModule implements StarlarkValue {
                 "Commands to populate attributes of the target after creating it. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
             defaultValue = "[]",
+            allowedTypes = {
+                @ParamType(type = Sequence.class, generic1 = String.class),
+                @ParamType(type = Sequence.class, generic1 = Command.class),
+            },
             named = true),
         @Param(
             name = "before",
@@ -166,6 +171,10 @@ public final class BuildozerModule implements StarlarkValue {
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
             positional = false,
             defaultValue = "[]",
+            allowedTypes = {
+                @ParamType(type = Sequence.class, generic1 = String.class),
+                @ParamType(type = Sequence.class, generic1 = Command.class),
+            },
             named = true),
         @Param(
             name = "before",
@@ -235,6 +244,10 @@ public final class BuildozerModule implements StarlarkValue {
             doc =
                 "Commands to apply to the target(s) specified. Elements can"
                     + " be strings such as 'add deps :foo' or objects returned by buildozer.cmd.",
+            allowedTypes = {
+                @ParamType(type = Sequence.class, generic1 = String.class),
+                @ParamType(type = Sequence.class, generic1 = Command.class),
+            },
             named = true),
       })
   @Example(

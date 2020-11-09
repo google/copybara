@@ -23,6 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * A field documentation for a {@link DocElement} type.
+ * TODO(malcon): Rename to DocEnum or similar (only used in enums...)
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.FIELD})

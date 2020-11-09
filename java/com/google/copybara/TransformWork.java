@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -53,6 +54,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -221,7 +223,11 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
               + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
-        @Param(name = "runnable", doc = "A glob or a transform (Transforms still not implemented)"),
+        @Param(name = "runnable", doc = "A glob or a transform (Transforms still not implemented)",
+        allowedTypes = {
+            @ParamType(type = Glob.class),
+            @ParamType(type = Transformation.class),
+        }),
       })
   public Object run(Object runnable)
       throws EvalException, IOException, ValidationException, RepoException {
