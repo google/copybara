@@ -567,7 +567,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
-<span style="white-space: nowrap;">`--event-monitor`</span> | *arrayList&lt;string&gt;* | Eventmonitors to enable. These must be in the list of available monitors.
+<span style="white-space: nowrap;">`--event-monitor`</span> | *list&lt;string&gt;* | Eventmonitors to enable. These must be in the list of available monitors.
 <span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout
 <span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
@@ -3582,7 +3582,7 @@ A transformation that applies the given patch files. If a path does not exist in
 
 Parameter | Description
 --------- | -----------
-patches | `object`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
+patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string` or `NoneType`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
 strip | `int`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>

@@ -69,6 +69,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             name = "patches",
             named = true,
             defaultValue = "[]",
+            allowedTypes = {
+                @ParamType(type = Sequence.class, generic1 =  String.class)
+            },
             doc =
                 "The list of patchfiles to apply, relative to the current config file."
                     + "The files will be applied relative to the checkout dir and the leading path"
@@ -122,9 +125,6 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException {
     int strip = stripI.toInt("strip");
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
-    check(
-        !(patches instanceof Glob),
-        "'patches' cannot be a glob, only an explicit list of patches are accepted");
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
       builder.add(resolve(patch));
     }

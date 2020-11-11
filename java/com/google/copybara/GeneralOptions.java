@@ -53,6 +53,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import javax.annotation.Nullable;
@@ -488,6 +489,5 @@ public final class GeneralOptions implements Option {
   @Parameter(
       names = {"--event-monitor"},
       description = "Eventmonitors to enable. These must be in the list of available monitors.")
-  public ArrayList<String> enabledEventMonitors =
-      new ArrayList<>(ImmutableList.of(DEFAULT_MONITOR));
+  public List<String> enabledEventMonitors = new ArrayList<>(ImmutableList.of(DEFAULT_MONITOR));
 }

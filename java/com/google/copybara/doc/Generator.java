@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.function.Function.identity;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -35,6 +36,8 @@ import com.google.re2j.Pattern;
 
 import com.beust.jcommander.Parameter;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -66,21 +69,32 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+/**
+ * Given a file with list of classes, an output file, and an optional template file, generates
+ * a Markdown document with Copybara reference guide.
+ */
 public class Generator {
+
+  private static final String TEMPLATE_REPLACEMENT = "<!-- Generated reference here -->";
 
   private Generator() {
   }
 
   public static void main(String[] args) throws IOException {
-    new Generator().generate(Paths.get(args[0]), Paths.get(args[1]));
+    List<DocModule> modules = new Generator().generate(Paths.get(args[0]));
+    writeMarkdown(
+        Paths.get(args[1]),
+        modules,
+        args.length > 2
+            ? new String(Files.readAllBytes(Paths.get(args[2])), StandardCharsets.UTF_8)
+            : TEMPLATE_REPLACEMENT);
   }
 
   private static void mdTitle(StringBuilder sb, int level, String name) {
     sb.append("\n").append(Strings.repeat("#", level)).append(' ').append(name).append("\n\n");
   }
 
-  private void generate(Path classListFile, Path outputFile)
-      throws IOException {
+  private List<DocModule> generate(Path classListFile) throws IOException {
     List<String> classes = Files.readAllLines(classListFile, StandardCharsets.UTF_8);
 
     List<DocModule> modules = new ArrayList<>();
@@ -113,11 +127,11 @@ public class Generator {
       }
     }
 
-    writeMarkdown(outputFile, orderAsOldGenerator(modules));
+    return orderAsOldGenerator(modules);
   }
 
-
-  private void writeMarkdown(Path outputFile, Iterable<DocModule> modules) throws IOException {
+  private static void writeMarkdown(Path outputFile, Iterable<DocModule> modules, String template)
+      throws IOException {
     StringBuilder sb = new StringBuilder("## Table of Contents\n\n\n");
     for (DocModule module : modules) {
       sb.append("  - [");
@@ -138,7 +152,11 @@ public class Generator {
       sb.append("\n");
       sb.append(module.toMarkdown(2));
     }
-    Files.write(outputFile, sb.toString().getBytes(StandardCharsets.UTF_8));
+    Files.write(
+        outputFile,
+        template
+            .replace(TEMPLATE_REPLACEMENT, TEMPLATE_REPLACEMENT + "\n" + sb.toString())
+            .getBytes(StandardCharsets.UTF_8));
   }
 
   private ImmutableList<DocField> processFields(Class<?> cls) {
@@ -224,28 +242,33 @@ public class Generator {
   private Collection<DocFlag> generateFlagsInfo(AnnotatedElement el) {
 
     List<DocFlag> result = new ArrayList<>();
-    getAnnotation(el, UsesFlags.class).ifPresent(cls ->
-    {
-      for (Class<?> c : cls.value()) {
-        for (Field f : c.getDeclaredFields()) {
-          for (Parameter p : f.getAnnotationsByType(Parameter.class)) {
-            if (p.hidden()) {
-              continue;
-            }
-            result.add(new DocFlag(
-                Joiner.on(", ").join(p.names()),
-                simplerJavaTypes(f.getType().getName()),
-                p.description()));
-          }
-        }
-      }
-    });
+    getAnnotation(el, UsesFlags.class)
+        .ifPresent(
+            cls -> {
+              for (Class<?> c : cls.value()) {
+                for (Field f : c.getDeclaredFields()) {
+                  for (Parameter p : f.getAnnotationsByType(Parameter.class)) {
+                    if (p.hidden()) {
+                      continue;
+                    }
+                    result.add(
+                        new DocFlag(
+                            Joiner.on(", ").join(p.names()),
+                            simplerJavaTypes(f.getType()),
+                            p.description()));
+                  }
+                }
+              }
+            });
 
     return result;
   }
 
-  private String simplerJavaTypes(String s) {
-    Matcher m = Pattern.compile("(?:[A-z.]*\\.)*([A-z]+)").matcher(s);
+  private String simplerJavaTypes(Class<?> s) {
+    if (s.isEnum()) {
+      return "`" + Joiner.on("`<br>or `").join(s.getEnumConstants()) + "`";
+    }
+    Matcher m = Pattern.compile("(?:[A-z.]*\\.)*([A-z]+)").matcher(s.getName());
     StringBuilder sb = new StringBuilder();
     while (m.find()) {
       String replacement = deCapitalize(m.group(1));
@@ -441,6 +464,11 @@ public class Generator {
       return sb;
     }
 
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).add("name", name).toString();
+    }
+
     private void printExample(StringBuilder sb, int level, Example example) {
       mdTitle(sb, level, example.title() + ":");
       sb.append(example.before()).append("\n\n");
@@ -506,11 +534,20 @@ public class Generator {
     }
   }
 
-  // TODO(malcon): Remove this once the old generator is deleted and we commit
-  // the first version with the new generator.
+  // TODO(malcon): Remove the oldGenerator part and keep the deduping code once we generate the docs
+  // the first time.
   private List<DocModule> orderAsOldGenerator(Collection<DocModule> modules) {
-    Map<String, DocModule> asMap = modules.stream()
-        .collect(Collectors.toMap(v -> v.name, v -> v));
+    Map<String, DocModule> asMap = new LinkedHashMap<>();
+    for (DocModule module : modules) {
+      DocModule existing = asMap.get(module.name);
+      if (existing == null
+          || existing.functions.size() < module.functions.size()
+          || existing.fields.size() < module.fields.size()
+          || existing.flags.size() < module.flags.size()) {
+        asMap.put(module.name, module);
+      }
+    }
+
     List<DocModule> result = new ArrayList<>();
     for (String old : createOldList()) {
       DocModule remove = asMap.remove(old);

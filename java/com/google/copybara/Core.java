@@ -1125,7 +1125,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "Applies an initial filtering to find a substring to be replaced and then applies"
               + " a `mapping` of replaces for the matched text.",
       parameters = {
-        @Param(name = "regex", named = true, doc = "A re2 regex to match a substring of the file"),
+        @Param(name = "regex", named = true, doc = "A re2 regex to match a substring of the file",
+        allowedTypes = {
+            @ParamType(type = String.class)
+        }),
         @Param(
             name = "mapping",
             named = true,
@@ -1168,7 +1171,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @DocDefault(field = "paths", value = "glob([\"**\"])")
   @DocDefault(field = "reverse", value = "`regex`")
   @DocDefault(field = "group", value = "Whole text")
-  @DocDefault(field = "regex", allowedTypes = {"dict[string, string]"})
+  @DocDefault(field = "regex", allowedTypes = {"string"})
   @Example(
       title = "Simple replace with mapping",
       before = "Simplest mapping",
