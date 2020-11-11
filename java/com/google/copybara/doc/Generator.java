@@ -19,6 +19,7 @@ package com.google.copybara.doc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.function.Function.identity;
 
+import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -33,18 +34,6 @@ import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
-import com.beust.jcommander.Parameter;
-
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import net.starlark.java.annot.Param;
-import net.starlark.java.annot.ParamType;
-import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkMethod;
-import net.starlark.java.eval.NoneType;
-import net.starlark.java.eval.Starlark;
-
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -60,14 +49,20 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
 
 /**
  * Given a file with list of classes, an output file, and an optional template file, generates
@@ -83,10 +78,9 @@ public class Generator {
   public static void main(String[] args) throws IOException {
     List<DocModule> modules = new Generator().generate(Paths.get(args[0]));
     writeMarkdown(
-        Paths.get(args[1]),
         modules,
-        args.length > 2
-            ? new String(Files.readAllBytes(Paths.get(args[2])), StandardCharsets.UTF_8)
+        args.length > 1
+            ? new String(Files.readAllBytes(Paths.get(args[1])), StandardCharsets.UTF_8)
             : TEMPLATE_REPLACEMENT);
   }
 
@@ -130,8 +124,7 @@ public class Generator {
     return orderAsOldGenerator(modules);
   }
 
-  private static void writeMarkdown(Path outputFile, Iterable<DocModule> modules, String template)
-      throws IOException {
+  private static void writeMarkdown(Iterable<DocModule> modules, String template) {
     StringBuilder sb = new StringBuilder("## Table of Contents\n\n\n");
     for (DocModule module : modules) {
       sb.append("  - [");
@@ -152,11 +145,8 @@ public class Generator {
       sb.append("\n");
       sb.append(module.toMarkdown(2));
     }
-    Files.write(
-        outputFile,
-        template
-            .replace(TEMPLATE_REPLACEMENT, TEMPLATE_REPLACEMENT + "\n" + sb.toString())
-            .getBytes(StandardCharsets.UTF_8));
+    System.out.println(
+        template.replace(TEMPLATE_REPLACEMENT, TEMPLATE_REPLACEMENT + "\n" + sb.toString()));
   }
 
   private ImmutableList<DocField> processFields(Class<?> cls) {

@@ -69,6 +69,15 @@ doc_generator(
     deps = [":copybara"],
 )
 
+genrule(
+    name = "generate_reference",
+    srcs = ["//java/com/google/copybara:docs_class_list.txt"],
+    outs = ["reference.md"],
+    cmd = """absolutify() { [[ "$$1" =~ ^/ ]] && echo "$$1" || echo "$$PWD/$$1"; };
+        `absolutify $(location //java/com/google/copybara/doc:generator)` $(location //java/com/google/copybara:docs_class_list.txt) > $@""",
+    tools = ["//java/com/google/copybara/doc:generator"],
+)
+
 BASE_SRCS = [
     "BaselinesWithoutLabelVisitor.java",
     "Change.java",
