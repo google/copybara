@@ -40,12 +40,7 @@ public class Output implements StarlarkValue {
   @Nullable
   private String text;
 
-  @StarlarkMethod(
-      name = "title",
-      doc = "The title of the check run.",
-      structField = true,
-      allowReturnNones = true
-  )
+  @StarlarkMethod(name = "title", doc = "The title of the check run.", structField = true)
   public String getTitle() {
     return title;
   }
@@ -53,8 +48,9 @@ public class Output implements StarlarkValue {
   @StarlarkMethod(
       name = "summary",
       doc = "The summary of the check run.",
-      structField = true
-  )
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
   public String getSummary() {
     return summary;
   }
@@ -63,8 +59,8 @@ public class Output implements StarlarkValue {
       name = "text",
       doc = "The details of the check run.",
       structField = true,
-      allowReturnNones = true
-  )
+      allowReturnNones = true)
+  @Nullable
   public String getText() {
     return text;
   }

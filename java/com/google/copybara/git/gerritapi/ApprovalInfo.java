@@ -19,6 +19,7 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.ZonedDateTime;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -38,8 +39,7 @@ public class ApprovalInfo extends AccountInfo implements StarlarkValue {
           "The vote that the user has given for the label. If present and zero, the user "
               + "is permitted to vote on the label. If absent, the user is not permitted to vote "
               + "on that label.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public int getValue() {
     return value;
   }
@@ -53,6 +53,7 @@ public class ApprovalInfo extends AccountInfo implements StarlarkValue {
       doc = "The time and date describing when the approval was made.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getDateForSkylark() {
     return date;
   }

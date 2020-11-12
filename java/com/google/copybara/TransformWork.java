@@ -31,7 +31,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -491,8 +490,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + " labels that might have been added by previous steps), then looks in all the"
               + " commit messages being imported and finally in the resolved reference passed in"
               + " the CLI.",
-      parameters = {@Param(name = "message")},
-      allowReturnNones = true)
+      parameters = {@Param(name = "message")})
   public Sequence<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
   }

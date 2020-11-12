@@ -20,6 +20,7 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -51,6 +52,7 @@ public class RevisionInfo implements StarlarkValue {
               + "NO_CODE_CHANGE, and NO_CHANGE.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getKindAsString() {
     return kind;
   }
@@ -58,8 +60,7 @@ public class RevisionInfo implements StarlarkValue {
   @StarlarkMethod(
       name = "patchset_number",
       doc = "The patch set number, or edit if the patch set is an edit.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public int getPatchsetNumber() {
     return patchsetNumber;
   }
@@ -69,6 +70,7 @@ public class RevisionInfo implements StarlarkValue {
       doc = "The timestamp of when the patch set was created.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getCreated() {
     return created;
   }
@@ -78,6 +80,7 @@ public class RevisionInfo implements StarlarkValue {
       doc = "The uploader of the patch set as an AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getUploader() {
     return uploader;
   }
@@ -87,6 +90,7 @@ public class RevisionInfo implements StarlarkValue {
       doc = "The Git reference for the patch set.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getRef() {
     return ref;
   }
@@ -100,6 +104,7 @@ public class RevisionInfo implements StarlarkValue {
       doc = "The commit of the patch set as CommitInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public CommitInfo getCommit() {
     return commit;
   }

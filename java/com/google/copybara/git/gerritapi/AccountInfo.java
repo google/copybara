@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -51,11 +52,7 @@ public class AccountInfo implements StarlarkValue {
     return accountId;
   }
 
-  @StarlarkMethod(
-      name = "account_id",
-      doc = "The numeric ID of the account.",
-      structField = true,
-      allowReturnNones = true)
+  @StarlarkMethod(name = "account_id", doc = "The numeric ID of the account.", structField = true)
   public String getAccountIdAsString() {
     return Long.toString(accountId);
   }
@@ -69,6 +66,7 @@ public class AccountInfo implements StarlarkValue {
               + "and option DETAILS for account queries.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getName() {
     return name;
   }
@@ -82,6 +80,7 @@ public class AccountInfo implements StarlarkValue {
               + "and options DETAILS and ALL_EMAILS for account queries.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getEmail() {
     return email;
   }
@@ -94,8 +93,7 @@ public class AccountInfo implements StarlarkValue {
               + "parameter is set.\n"
               + "Secondary emails are only included if the calling user has the Modify Account, "
               + "and hence is allowed to see secondary emails of other users.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public ImmutableList<String> getSecondaryEmails() {
     return ImmutableList.copyOf(secondaryEmails);
   }
@@ -109,6 +107,7 @@ public class AccountInfo implements StarlarkValue {
               + "and option DETAILS for account queries.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getUsername() {
     return username;
   }

@@ -23,6 +23,7 @@ import com.google.common.base.MoreObjects;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -45,6 +46,7 @@ public class GitPersonInfo implements StarlarkValue {
       doc = "The name of the author/committer.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getName() {
     return name;
   }
@@ -54,6 +56,7 @@ public class GitPersonInfo implements StarlarkValue {
       doc = "The email address of the author/committer.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getEmail() {
     return email;
   }
@@ -68,6 +71,7 @@ public class GitPersonInfo implements StarlarkValue {
       doc = "The timestamp of when this identity was constructed.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getDateForSkylark() {
     return date;
   }

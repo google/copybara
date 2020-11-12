@@ -99,11 +99,11 @@ public class Status implements StarlarkValue {
   }
 
   @StarlarkMethod(
-    name = "context",
-    doc = "Context of the commit status. This is a relatively stable id",
-    structField = true,
-    allowReturnNones = true
-  )
+      name = "context",
+      doc = "Context of the commit status. This is a relatively stable id",
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
   public String getContext() {
     return context;
   }

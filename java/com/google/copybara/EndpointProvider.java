@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -54,6 +55,7 @@ public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endp
       doc = "Return the URL of this endpoint, if any.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getUrl() {
     return endpoint.getUrl();
   }

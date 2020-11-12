@@ -21,6 +21,7 @@ import static com.google.copybara.git.gerritapi.GerritApiUtil.parseTimestamp;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.time.ZonedDateTime;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -48,6 +49,7 @@ public class ChangeMessageInfo implements StarlarkValue {
       doc = "The ID of the message.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getId() {
     return id;
   }
@@ -59,6 +61,7 @@ public class ChangeMessageInfo implements StarlarkValue {
               + "Unset if written by the Gerrit system.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getAuthor() {
     return author;
   }
@@ -70,6 +73,7 @@ public class ChangeMessageInfo implements StarlarkValue {
               + "Set if the message was posted on behalf of another user.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getRealAuthor() {
     return realAuthor;
   }
@@ -83,6 +87,7 @@ public class ChangeMessageInfo implements StarlarkValue {
       doc = "The timestamp of when this identity was constructed.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getDateForSkylark() {
     return date;
   }
@@ -92,17 +97,20 @@ public class ChangeMessageInfo implements StarlarkValue {
       doc = "The text left by the user.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getMessage() {
     return message;
   }
 
   @StarlarkMethod(
       name = "tag",
-      doc = "Value of the tag field from ReviewInput set while posting the review. "
-          + "NOTE: To apply different tags on on different votes/comments multiple "
-          + "invocations of the REST call are required.",
+      doc =
+          "Value of the tag field from ReviewInput set while posting the review. "
+              + "NOTE: To apply different tags on on different votes/comments multiple "
+              + "invocations of the REST call are required.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getTag() {
     return tag;
   }
@@ -110,8 +118,7 @@ public class ChangeMessageInfo implements StarlarkValue {
   @StarlarkMethod(
       name = "revision_number",
       doc = "Which patchset (if any) generated this message.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public int getRevisionNumber() {
     return revisionNumber;
   }

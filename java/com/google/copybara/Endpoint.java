@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.util.console.Console;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -101,6 +102,7 @@ public interface Endpoint extends StarlarkValue {
       doc = "Return the URL of this endpoint.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   default String getUrl() {
     return null;
   }

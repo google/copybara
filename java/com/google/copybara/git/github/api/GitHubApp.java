@@ -18,6 +18,7 @@ package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -34,12 +35,7 @@ public class GitHubApp implements StarlarkValue {
 
   @Key private String name;
 
-  @StarlarkMethod(
-      name = "id",
-      doc = "The GitHub App's Id",
-      structField = true,
-      allowReturnNones = true
-  )
+  @StarlarkMethod(name = "id", doc = "The GitHub App's Id", structField = true)
   public int getId() {
     return id;
   }
@@ -52,13 +48,13 @@ public class GitHubApp implements StarlarkValue {
   public String getSlug() {
     return slug;
   }
-  
+
   @StarlarkMethod(
       name = "name",
       doc = "The GitHub App's name",
       structField = true,
-      allowReturnNones = true
-  )
+      allowReturnNones = true)
+  @Nullable
   public String getName() {
     return name;
   }

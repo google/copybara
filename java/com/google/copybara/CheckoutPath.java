@@ -82,11 +82,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return path.getFileName().toString();
   }
 
-  @StarlarkMethod(
-      name = "parent",
-      doc = "Get the parent path",
-      structField = true,
-      allowReturnNones = true)
+  @StarlarkMethod(name = "parent", doc = "Get the parent path", structField = true)
   public Object parent() throws EvalException {
     Path parent = path.getParent();
     if (parent == null) {

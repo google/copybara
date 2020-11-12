@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -68,6 +69,7 @@ public class ChangeInfo implements StarlarkValue {
               + "refs/heads/ prefix is omitted.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getId() {
     return id;
   }
@@ -77,6 +79,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The name of the project.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getProject() {
     return project;
   }
@@ -86,6 +89,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The name of the target branch.\n" + "The refs/heads/ prefix is omitted.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getBranch() {
     return branch;
   }
@@ -95,6 +99,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The topic to which this change belongs.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getTopic() {
     return topic;
   }
@@ -104,6 +109,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The Change-Id of the change.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getChangeId() {
     return changeId;
   }
@@ -113,6 +119,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The subject of the change (header line of the commit message).",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getSubject() {
     return subject;
   }
@@ -126,6 +133,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The status of the change (NEW, MERGED, ABANDONED).",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getStatusAsString() {
     return status;
   }
@@ -139,6 +147,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The timestamp of when the change was created.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getCreatedForSkylark() {
     return created;
   }
@@ -152,6 +161,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The timestamp of when the change was last updated.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getUpdatedForSkylark() {
     return updated;
   }
@@ -165,16 +175,17 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The timestamp of when the change was submitted.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getSubmittedForSkylark() {
     return submitted;
   }
 
   @StarlarkMethod(
       name = "submittable",
-      doc = "Whether the change has been approved by the project submit rules. Only set if "
-          + "requested via additional field SUBMITTABLE.",
-      structField = true,
-      allowReturnNones = true)
+      doc =
+          "Whether the change has been approved by the project submit rules. Only set if "
+              + "requested via additional field SUBMITTABLE.",
+      structField = true)
   public boolean isSubmittable() {
     return submittable;
   }
@@ -183,11 +194,7 @@ public class ChangeInfo implements StarlarkValue {
     return number;
   }
 
-  @StarlarkMethod(
-      name = "number",
-      doc = "The legacy numeric ID of the change.",
-      structField = true,
-      allowReturnNones = true)
+  @StarlarkMethod(name = "number", doc = "The legacy numeric ID of the change.", structField = true)
   public String getNumberAsString() {
     return Long.toString(number);
   }
@@ -197,6 +204,7 @@ public class ChangeInfo implements StarlarkValue {
       doc = "The owner of the change as an AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getOwner() {
     return owner;
   }
@@ -236,6 +244,7 @@ public class ChangeInfo implements StarlarkValue {
               + "Only set if the current revision is requested or if all revisions are requested.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getCurrentRevision() {
     return currentRevision;
   }

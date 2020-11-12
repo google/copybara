@@ -20,6 +20,7 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -47,6 +48,7 @@ public class CommitInfo implements StarlarkValue {
               + "in a map which has the commit ID as key.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getCommit() {
     return commit;
   }
@@ -70,6 +72,7 @@ public class CommitInfo implements StarlarkValue {
       doc = "The author of the commit as a GitPersonInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public GitPersonInfo getAuthor() {
     return author;
   }
@@ -79,6 +82,7 @@ public class CommitInfo implements StarlarkValue {
       doc = "The committer of the commit as a GitPersonInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public GitPersonInfo getCommitter() {
     return committer;
   }
@@ -88,6 +92,7 @@ public class CommitInfo implements StarlarkValue {
       doc = "The subject of the commit (header line of the commit message).",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getSubject() {
     return subject;
   }
@@ -97,6 +102,7 @@ public class CommitInfo implements StarlarkValue {
       doc = "The commit message.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getMessage() {
     return message;
   }

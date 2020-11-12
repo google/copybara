@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -55,6 +56,7 @@ public class LabelInfo implements StarlarkValue {
               + "AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getApproved() {
     return approved;
   }
@@ -66,6 +68,7 @@ public class LabelInfo implements StarlarkValue {
               + "AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getRejected() {
     return rejected;
   }
@@ -77,6 +80,7 @@ public class LabelInfo implements StarlarkValue {
               + "maximum value) as an AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getRecommended() {
     return recommended;
   }
@@ -88,6 +92,7 @@ public class LabelInfo implements StarlarkValue {
               + "minimum value) as an AccountInfo entity.",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public AccountInfo getDisliked() {
     return disliked;
   }
@@ -95,8 +100,7 @@ public class LabelInfo implements StarlarkValue {
   @StarlarkMethod(
       name = "blocking",
       doc = "If true, the label blocks submit operation. If not set, the default is false.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public boolean isBlocking() {
     return blocking;
   }
@@ -106,8 +110,7 @@ public class LabelInfo implements StarlarkValue {
       doc =
           "The voting value of the user who recommended/disliked this label on the change if "
               + "it is not “+1”/“-1”.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public int getValue() {
     return value;
   }
@@ -117,8 +120,7 @@ public class LabelInfo implements StarlarkValue {
       doc =
           "The default voting value for the label. This value may be outside the range "
               + "specified in permitted_labels.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public int getDefaultValue() {
     return defaultValue;
   }
@@ -128,8 +130,7 @@ public class LabelInfo implements StarlarkValue {
       doc =
           "A map of all values that are allowed for this label. The map maps the values "
               + "(“-2”, “-1”, \" `0`\", “+1”, “+2”) to the value descriptions.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public ImmutableMap<String, String> getValues() {
     return ImmutableMap.copyOf(values);
   }
@@ -140,8 +141,7 @@ public class LabelInfo implements StarlarkValue {
           "List of all approvals for this label as a list of ApprovalInfo entities. Items "
               + "in this list may not represent actual votes cast by users; if a user votes on "
               + "any label, a corresponding ApprovalInfo will appear in this list for all labels.",
-      structField = true,
-      allowReturnNones = true)
+      structField = true)
   public ImmutableList<ApprovalInfo> getAll() {
     return all != null ? ImmutableList.copyOf(all) : ImmutableList.of();
   }

@@ -19,6 +19,7 @@ package com.google.copybara.git.gerritapi;
 import com.google.api.client.util.Key;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Printer;
@@ -57,6 +58,7 @@ public class ActionInfo implements StarlarkValue {
       doc = "Short title to display to a user describing the action",
       structField = true,
       allowReturnNones = true)
+  @Nullable
   public String getLabel() {
     return label;
   }
@@ -67,10 +69,10 @@ public class ActionInfo implements StarlarkValue {
 
   @StarlarkMethod(
       name = "enabled",
-      doc = "If true the action is permitted at this time and the caller is likely "
-          + "allowed to execute it.",
-      structField = true,
-      allowReturnNones = true)
+      doc =
+          "If true the action is permitted at this time and the caller is likely "
+              + "allowed to execute it.",
+      structField = true)
   public boolean getEnabled() {
     return enabled;
   }
