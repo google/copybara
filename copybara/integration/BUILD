@@ -19,7 +19,7 @@ sh_test(
     srcs = ["reference_doc_test.sh"],
     data = [
         "//docs:reference.md",
-        "//java/com/google/copybara:docs.md",
+        "//java/com/google/copybara:reference.md",
         "//third_party/bazel/bashunit",
     ],
     visibility = ["//visibility:public"],

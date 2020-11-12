@@ -1,7 +1,7 @@
 #!/bin/bash
-bazel build java/com/google/copybara:docs
+bazel build java/com/google/copybara:generate_reference
 mkdir -p docs
-cp bazel-bin/java/com/google/copybara/docs.md docs/reference.md
+cp bazel-bin/java/com/google/copybara/reference.md docs/reference.md
 git add docs/reference.md
 # If -a we ammend the current head commit
 if [[  $1 == '-a' ]]; then

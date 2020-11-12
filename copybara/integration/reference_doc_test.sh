@@ -17,7 +17,7 @@
 source "${TEST_SRCDIR}/copybara/third_party/bazel/bashunit/unittest.bash"
 
 function test_reference_doc_generated() {
-   doc=${TEST_SRCDIR}/copybara/java/com/google/copybara/docs.md
+   doc=${TEST_SRCDIR}/copybara/java/com/google/copybara/reference.md
    source_doc=${TEST_SRCDIR}/copybara/docs/reference.md
 
    [[ -f $doc ]] || fail "Documentation not generated"

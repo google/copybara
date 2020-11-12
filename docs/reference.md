@@ -1,3 +1,4 @@
+<!-- Generated reference here -->
 ## Table of Contents
 
 
@@ -49,6 +50,8 @@
     - [endpoint.new_destination_ref](#endpoint.new_destination_ref)
     - [endpoint.new_origin_ref](#endpoint.new_origin_ref)
   - [endpoint_provider](#endpoint_provider)
+    - [endpoint_provider.new_destination_ref](#endpoint_provider.new_destination_ref)
+    - [endpoint_provider.new_origin_ref](#endpoint_provider.new_origin_ref)
   - [feedback.action_result](#feedback.action_result)
   - [feedback.context](#feedback.context)
     - [feedback.context.error](#feedback.context.error)
@@ -81,6 +84,8 @@
     - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
     - [gerrit_api_obj.list_changes](#gerrit_api_obj.list_changes)
+    - [gerrit_api_obj.new_destination_ref](#gerrit_api_obj.new_destination_ref)
+    - [gerrit_api_obj.new_origin_ref](#gerrit_api_obj.new_origin_ref)
     - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
   - [git](#git)
     - [git.destination](#git.destination)
@@ -112,6 +117,8 @@
     - [github_api_obj.get_pull_requests](#github_api_obj.get_pull_requests)
     - [github_api_obj.get_reference](#github_api_obj.get_reference)
     - [github_api_obj.get_references](#github_api_obj.get_references)
+    - [github_api_obj.new_destination_ref](#github_api_obj.new_destination_ref)
+    - [github_api_obj.new_origin_ref](#github_api_obj.new_origin_ref)
     - [github_api_obj.post_issue_comment](#github_api_obj.post_issue_comment)
     - [github_api_obj.update_pull_request](#github_api_obj.update_pull_request)
     - [github_api_obj.update_reference](#github_api_obj.update_reference)
@@ -307,7 +314,7 @@ Module for Buildozer-related functionality such as creating and modifying BUILD 
 
 Creates a Buildozer command. You can specify the reversal with the 'reverse' argument.
 
-`command buildozer.cmd(forward, reverse=None)`
+`Command buildozer.cmd(forward, reverse=None)`
 
 
 #### Parameters:
@@ -322,7 +329,7 @@ reverse | `string` or `NoneType`<br><p>The reverse of the command. This is only 
 
 A transformation which creates a new build target and populates its attributes. This transform can reverse automatically to delete the target.
 
-`buildozerCreate buildozer.create(target, rule_type, commands=[], before='', after='')`
+`transformation buildozer.create(target, rule_type, commands=[], before='', after='')`
 
 
 #### Parameters:
@@ -331,7 +338,7 @@ Parameter | Description
 --------- | -----------
 target | `string`<br><p>Target to create, including the package, e.g. 'foo:bar'. The package can be '.' for the root BUILD file.</p>
 rule_type | `string`<br><p>Type of this rule, for instance, java_library.</p>
-commands | `sequence of string` or `sequence of command`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+commands | `sequence of string` or `sequence of Command`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 before | `string`<br><p>When supplied, causes this target to be created *before* the target named by 'before'</p>
 after | `string`<br><p>When supplied, causes this target to be created *after* the target named by 'after'</p>
 
@@ -340,7 +347,7 @@ after | `string`<br><p>When supplied, causes this target to be created *after* t
 
 A transformation which is the opposite of creating a build target. When run normally, it deletes a build target. When reversed, it creates and prepares one.
 
-`buildozerDelete buildozer.delete(target, rule_type='', recreate_commands=[], before='', after='')`
+`transformation buildozer.delete(target, rule_type='', recreate_commands=[], before='', after='')`
 
 
 #### Parameters:
@@ -349,7 +356,7 @@ Parameter | Description
 --------- | -----------
 target | `string`<br><p>Target to create, including the package, e.g. 'foo:bar'</p>
 rule_type | `string`<br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
-recreate_commands | `sequence of string` or `sequence of command`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+recreate_commands | `sequence of string` or `sequence of Command`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 before | `string`<br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
 after | `string`<br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *after* the target named by 'after'</p>
 
@@ -358,7 +365,7 @@ after | `string`<br><p>When supplied with rule_type and the transformation is re
 
 A transformation which runs one or more Buildozer commands against a single target expression. See http://go/buildozer for details on supported commands and target expression formats.
 
-`buildozerModify buildozer.modify(target, commands)`
+`transformation buildozer.modify(target, commands)`
 
 
 #### Parameters:
@@ -366,7 +373,7 @@ A transformation which runs one or more Buildozer commands against a single targ
 Parameter | Description
 --------- | -----------
 target | `string` or `sequence of string`<br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
-commands | `sequence of string` or `sequence of command`<br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+commands | `sequence of string` or `sequence of Command`<br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 
 
 #### Examples:
@@ -567,7 +574,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
-<span style="white-space: nowrap;">`--event-monitor`</span> | *list&lt;string&gt;* | Eventmonitors to enable. These must be in the list of available monitors.
+<span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
 <span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout
 <span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
@@ -727,7 +734,7 @@ Applies an initial filtering to find a substring to be replaced and then applies
 Parameter | Description
 --------- | -----------
 regex | `string`<br><p>A re2 regex to match a substring of the file</p>
-mapping | `object`<br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
+mapping | `unknown`<br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
 group | `int` or `NoneType`<br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
 paths | `glob` or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 reverse | `string` or `NoneType`<br><p>A re2 regex used as reverse transformation</p>
@@ -851,7 +858,7 @@ In this example, `foo/bar` would be moved to `bar`.
 
 Remove files from the workdir. **This transformation is only meant to be used inside core.transform for reversing core.copy like transforms**. For regular file filtering use origin_files exclude mechanism.
 
-`remove core.remove(paths)`
+`transformation core.remove(paths)`
 
 
 #### Parameters:
@@ -894,7 +901,7 @@ core.transform(
 
 Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
 
-`replace core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
+`transformation core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
 
 
 #### Parameters:
@@ -1028,7 +1035,7 @@ more public code
 
 A mapping function that applies a list of replaces until one replaces the text (Unless `all = True` is used). This should be used with core.filter_replace or other transformations that accept text mapping as parameter.
 
-`replaceMapper core.replace_mapper(mapping, all=False)`
+`mapping_function core.replace_mapper(mapping, all=False)`
 
 
 #### Parameters:
@@ -1057,7 +1064,7 @@ transformations | `sequence of transformation`<br><p>The transformations to reve
 
 Replace Google style TODOs. For example `TODO(username, othername)`.
 
-`todoReplace core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None, ignore=None)`
+`transformation core.todo_replace(tags=['TODO', 'NOTE'], mapping={}, mode='MAP_OR_IGNORE', paths=glob(["**"]), default=None, ignore=None)`
 
 
 #### Parameters:
@@ -1139,7 +1146,7 @@ ignore_noop | `bool` or `NoneType`<br><p>In case a noop error happens in the gro
 
 Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
 
-`verifyMatch core.verify_match(regex, paths=glob(["**"]), verify_no_match=False, also_on_reversal=False)`
+`transformation core.verify_match(regex, paths=glob(["**"]), verify_no_match=False, also_on_reversal=False)`
 
 
 #### Parameters:
@@ -1204,7 +1211,7 @@ reversible_check_ignore_files | `glob` or `NoneType`<br><p>Ignore the files matc
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
-<span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list&lt;integer&gt;* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
+<span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
 <span style="white-space: nowrap;">`--change-request-parent, --change_request_parent`</span> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able to detect the parent commit message.
 <span style="white-space: nowrap;">`--check-last-rev-state`</span> | *boolean* | If enabled, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--default-author`</span> | *string* | Use this author as default instead of the one in the config file.Format should be 'Foo Bar <foobar@example.com>'
@@ -1286,7 +1293,7 @@ Would copy all files in path/to/ from the destination baseline to the copybara w
 
 Checks whether a given file exists in the destination.
 
-`bool destination_reader.file_exists(path)`
+`boolean destination_reader.file_exists(path)`
 
 
 #### Parameters:
@@ -1399,6 +1406,36 @@ An handle for an origin or destination API in a feedback migration.
 Name | Description
 ---- | -----------
 url | Return the URL of this endpoint, if any.
+
+<a id="endpoint_provider.new_destination_ref" aria-hidden="true"></a>
+### endpoint_provider.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref endpoint_provider.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
+
+<a id="endpoint_provider.new_origin_ref" aria-hidden="true"></a>
+### endpoint_provider.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref endpoint_provider.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
 
 
 
@@ -1553,7 +1590,7 @@ Module for dealing with local filesystem folders
 
 A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
 
-`folderDestination folder.destination()`
+`destination folder.destination()`
 
 
 
@@ -1568,7 +1605,7 @@ Name | Type | Description
 
 A folder origin is a origin that uses a folder as input. The folder is specified via the source_ref argument.
 
-`folderOrigin folder.origin(materialize_outside_symlinks=False)`
+`origin folder.origin(materialize_outside_symlinks=False)`
 
 
 #### Parameters:
@@ -1808,8 +1845,8 @@ default_value | The default voting value for the label. This value may be outsid
 disliked | One user who disliked this label on the change (voted negatively, but not the minimum value) as an AccountInfo entity.
 recommended | One user who recommended this label on the change (voted positively, but not the maximum value) as an AccountInfo entity.
 rejected | One user who rejected this label on the change (voted the minimum value) as an AccountInfo entity.
-value | The voting value of the user who recommended/disliked this label on the change if it is not “+1”/“-1”.
-values | A map of all values that are allowed for this label. The map maps the values (“-2”, “-1”, " `0`", “+1”, “+2”) to the value descriptions.
+value | The voting value of the user who recommended/disliked this label on the change if it is not `"+1"`/`"-1"`.
+values | A map of all values that are allowed for this label. The map maps the values (`"-2"`, `"-1"`, `"0"`, `"+1"`, `"+2"`) to the value descriptions.
 
 
 
@@ -1933,6 +1970,36 @@ Parameter | Description
 query | `string`<br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
 include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
 
+<a id="gerrit_api_obj.new_destination_ref" aria-hidden="true"></a>
+### gerrit_api_obj.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref gerrit_api_obj.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
+
+<a id="gerrit_api_obj.new_origin_ref" aria-hidden="true"></a>
+### gerrit_api_obj.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref gerrit_api_obj.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+
 <a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
 ### gerrit_api_obj.post_review
 
@@ -1974,7 +2041,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`gitDestination git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None)`
+`destination git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None)`
 
 
 #### Parameters:
@@ -1986,7 +2053,7 @@ push | `string`<br><p>Reference to use for pushing the change, for example 'mast
 tag_name | `string` or `NoneType`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
@@ -2011,7 +2078,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-`endpoint_provider of gerrit_api_obj git.gerrit_api(url, checker=None)`
+`endpoint_provider git.gerrit_api(url, checker=None)`
 
 
 #### Parameters:
@@ -2036,7 +2103,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`gerritDestination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None, gerrit_submit=False)`
+`destination git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None, gerrit_submit=False)`
 
 
 #### Parameters:
@@ -2095,7 +2162,7 @@ Implicit labels that can be used/exposed:
   - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
-`gitOrigin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None, ignore_gerrit_noop=False)`
+`origin git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None, ignore_gerrit_noop=False)`
 
 
 #### Parameters:
@@ -2118,7 +2185,7 @@ ignore_gerrit_noop | `bool`<br><p>Option to not migrate Gerrit changes that do n
 
 Defines a feedback trigger based on updates on a Gerrit change.
 
-`gerritTrigger git.gerrit_trigger(url, checker=None)`
+`trigger git.gerrit_trigger(url, checker=None)`
 
 
 #### Parameters:
@@ -2143,7 +2210,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-`endpoint_provider of github_api_obj git.github_api(url, checker=None)`
+`endpoint_provider git.github_api(url, checker=None)`
 
 
 #### Parameters:
@@ -2166,7 +2233,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-`gitDestination git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None)`
+`destination git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -2204,7 +2271,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`gitOrigin git.github_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None)`
+`origin git.github_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None)`
 
 
 #### Parameters:
@@ -2218,14 +2285,14 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `latestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `LatestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
 
 Creates changes in a new pull request in the destination.
 
-`gitHubPrDestination git.github_pr_destination(url, destination_ref="master", pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
+`destination git.github_pr_destination(url, destination_ref="master", pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
 
 
 #### Parameters:
@@ -2325,7 +2392,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`gitHubPROrigin git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], required_check_runs=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
+`origin git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], required_check_runs=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -2358,8 +2425,8 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
 <span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
-<span style="white-space: nowrap;">`--github-required-label`</span> | *list&lt;string&gt;* | Required labels in the Pull Request to be imported by github_pr_origin
-<span style="white-space: nowrap;">`--github-retryable-label`</span> | *list&lt;string&gt;* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-label`</span> | *list* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-retryable-label`</span> | *list* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.github_trigger" aria-hidden="true"></a>
@@ -2367,7 +2434,7 @@ Name | Type | Description
 
 Defines a feedback trigger based on updates on a GitHub PR.
 
-`gitHubTrigger git.github_trigger(url, checker=None, events=[])`
+`trigger git.github_trigger(url, checker=None, events=[])`
 
 
 #### Parameters:
@@ -2426,7 +2493,7 @@ It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration.
 
 Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using `force:reference` in the CLI will force to use that reference instead.
 
-`latestVersionSelector git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
+`LatestVersionSelector git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
 
 
 #### Parameters:
@@ -2469,7 +2536,7 @@ Name | Type | Description
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`gitOrigin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None)`
+`origin git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None)`
 
 
 #### Parameters:
@@ -2484,7 +2551,7 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `latestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `LatestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input
@@ -2654,7 +2721,7 @@ number | `int`<br><p>Pull Request number</p>
 
 Get Pull Requests for a repo
 
-`list of github_api_pull_request_obj github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
+`sequence of github_api_pull_request_obj github_api_obj.get_pull_requests(head_prefix=None, base_prefix=None, state="OPEN", sort="CREATED", direction="ASC")`
 
 
 #### Parameters:
@@ -2687,6 +2754,36 @@ ref | `string`<br><p>The name of the reference. For example: "refs/heads/branchN
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
 `sequence of github_api_ref_obj github_api_obj.get_references()`
+
+<a id="github_api_obj.new_destination_ref" aria-hidden="true"></a>
+### github_api_obj.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref github_api_obj.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
+
+<a id="github_api_obj.new_origin_ref" aria-hidden="true"></a>
+### github_api_obj.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref github_api_obj.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
 
 <a id="github_api_obj.post_issue_comment" aria-hidden="true"></a>
 ### github_api_obj.post_issue_comment
@@ -2734,7 +2831,7 @@ Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The name of the reference.</p>
 sha | `string`<br><p>The id for the commit status.</p>
-force | `bool`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
+force | `boolean`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
 
 
 
@@ -2877,7 +2974,7 @@ Set of functions to define Mercurial (Hg) origins and destinations.
 
 <b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.
 
-`hgOrigin hg.origin(url, ref="default")`
+`origin hg.origin(url, ref="default")`
 
 
 #### Parameters:
@@ -3116,7 +3213,7 @@ metadata.map_author({
 
 Allows updating links to references in commit messages to match the destination's format. Note that this will only consider the 5000 latest commits.
 
-`referenceMigrator metadata.map_references(before, after, regex_groups={}, additional_import_labels=[])`
+`transformation metadata.map_references(before, after, regex_groups={}, additional_import_labels=[])`
 
 
 #### Parameters:
@@ -3575,7 +3672,7 @@ Module for applying patches.
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-`patchTransformation patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1)`
+`transformation patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1)`
 
 
 #### Parameters:
@@ -3890,7 +3987,7 @@ whole_message | `bool`<br><p>By default Copybara only looks in the last paragrap
 
 Run a glob or a transform. For example:<br><code>files = ctx.run(glob(['**.java']))</code><br>or<br><code>ctx.run(core.move("foo", "bar"))</code><br>or<br>
 
-`object ctx.run(runnable)`
+`unknown ctx.run(runnable)`
 
 
 #### Parameters:

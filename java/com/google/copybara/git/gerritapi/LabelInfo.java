@@ -109,7 +109,7 @@ public class LabelInfo implements StarlarkValue {
       name = "value",
       doc =
           "The voting value of the user who recommended/disliked this label on the change if "
-              + "it is not “+1”/“-1”.",
+              + "it is not `\"+1\"`/`\"-1\"`.",
       structField = true)
   public int getValue() {
     return value;
@@ -129,7 +129,7 @@ public class LabelInfo implements StarlarkValue {
       name = "values",
       doc =
           "A map of all values that are allowed for this label. The map maps the values "
-              + "(“-2”, “-1”, \" `0`\", “+1”, “+2”) to the value descriptions.",
+              + "(`\"-2\"`, `\"-1\"`, `\"0\"`, `\"+1\"`, `\"+2\"`) to the value descriptions.",
       structField = true)
   public ImmutableMap<String, String> getValues() {
     return ImmutableMap.copyOf(values);
