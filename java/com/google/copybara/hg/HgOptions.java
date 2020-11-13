@@ -65,7 +65,7 @@ public class HgOptions implements Option {
    */
   private HgRepository createBareRepo(String url, Path path)
       throws RepoException {
-    Path repoPath = resolveDirInCache(url, path);
+    Path repoPath = resolveDirInCache(/** prefix=*/ null, url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo =

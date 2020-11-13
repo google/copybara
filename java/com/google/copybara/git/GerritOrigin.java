@@ -99,7 +99,9 @@ public class GerritOrigin extends GitOrigin {
         firstParent,
         partialFetch,
         patchTransformation, describeVersion,
-        /*versionSelector=*/null);
+        /*versionSelector=*/null,
+        /*configPath=*/null,
+        /*workflowName=*/null);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -205,7 +207,9 @@ public class GerritOrigin extends GitOrigin {
         firstParent,
         partialFetch,
         patchTransformation,
-        describeVersion) {
+        describeVersion,
+        /*configPath=*/null,
+        /*workflowName=*/null) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(

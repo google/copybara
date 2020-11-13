@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 /**
  * Utility methods for files
@@ -457,8 +458,10 @@ public final class FileUtil {
   private static final PercentEscaper PERCENT_ESCAPER = new PercentEscaper(
       "-_", /*plusForSpace=*/ true);
 
-  public static Path resolveDirInCache(String url, Path repoStorage) {
-    String escapedUrl = PERCENT_ESCAPER.escape(url);
+  public static Path resolveDirInCache(@Nullable String prefix, String url, Path repoStorage) {
+    String escapedUrl = prefix == null
+        ? PERCENT_ESCAPER.escape(url)
+        : PERCENT_ESCAPER.escape(prefix + url);
 
     // This is to avoid "Filename too long" errors, mainly in tests. We cannot change the repo
     // storage path (we use JAVA_IO_TMPDIR), which is the right thing to do for tests to be

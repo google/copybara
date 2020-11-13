@@ -492,7 +492,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         firstParent,
         partialFetch,
         patchTransformation,
-        describeVersion) {
+        describeVersion,
+        /*configPath=*/null,
+        /*workflowName=*/null) {
 
       /** Disable rebase since this is controlled by useMerge field. */
       @Override

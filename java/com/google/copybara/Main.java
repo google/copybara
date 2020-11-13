@@ -284,7 +284,7 @@ public class Main {
     ConfigValidator validator = getConfigValidator(moduleSet.getOptions());
     Consumer<Migration> consumer = getMigrationRanConsumer();
     return ImmutableSet.of(
-        new MigrateCmd(validator, consumer, configLoaderProvider),
+        new MigrateCmd(validator, consumer, configLoaderProvider, moduleSet),
         new InfoCmd(configLoaderProvider, newInfoContextProvider()),
         new ValidateCmd(validator, consumer, configLoaderProvider),
         new HelpCmd(jcommander),

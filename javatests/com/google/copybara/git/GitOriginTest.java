@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Changes;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
@@ -42,6 +43,7 @@ import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -1271,6 +1273,29 @@ public class GitOriginTest {
 
     assertThat(actual.get("partialFetch")).containsExactly("true");
     assertThat(actual.get("url")).containsExactly("https://my-server.org/copybara");
+  }
+
+  @Test
+  public void checkPartialFetchGitRepoName() throws Exception {
+    String migrationName = "test_name";
+    ModuleSet moduleSet = skylark.createModuleSet();
+    for (Object module : moduleSet.getModules().values()) {
+      // We mutate the module per file loaded. Not ideal but it is the best we can do.
+      if (module instanceof LabelsAwareModule) {
+        LabelsAwareModule m = (LabelsAwareModule) module;
+        m.setWorkflowName(migrationName);
+      }
+    }
+    origin = skylark.evalWithModuleSet("result",
+        "result = git.origin(\n"
+            + "    url = 'https://my-server.org/copybara',\n"
+            + "    partial_fetch = True"
+            + ")", moduleSet);
+
+    Path gitDir = origin.getRepository().getGitDir();
+
+    assertThat(gitDir.getFileName().toString()).isEqualTo(
+        "copy%2Ebara%2Esky%3A" + migrationName + "https%3A%2F%2Fmy-server%2Eorg%2Fcopybara");
   }
 
   @Test

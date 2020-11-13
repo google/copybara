@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 public class GitOptions implements Option {
 
   private final GeneralOptions generalOptions;
+  private String partialCacheFilePrefix;
 
   @Nullable
   public String getCredentialHelperStorePath() {
@@ -84,14 +85,25 @@ public class GitOptions implements Option {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
+  private GitOptions(GeneralOptions generalOptions, @Nullable String partialCacheFilePrefix) {
+    this.generalOptions = Preconditions.checkNotNull(generalOptions);
+    this.partialCacheFilePrefix = partialCacheFilePrefix;
+  }
+
   public Path getRepoStorage() throws IOException {
     return generalOptions.getDirFactory().getCacheDir("git_repos");
   }
 
   public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
+    return cachedBareRepoForUrlWithPrefix(url, null);
+  }
+
+  public GitRepository cachedBareRepoForUrlWithPrefix(String url,
+      @Nullable String partialCacheFilePrefix) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
-      return createBareRepo(generalOptions, resolveDirInCache(url, getRepoStorage()));
+      return createBareRepo(generalOptions,
+          resolveDirInCache(partialCacheFilePrefix, url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
@@ -126,5 +138,13 @@ public class GitOptions implements Option {
     repo.withCredentialHelper("store" + path);
     repo.setLocalConfigField("fetch", "prune", "false");
     return repo;
+  }
+
+  public String getPartialCacheFilePrefix() {
+    return partialCacheFilePrefix;
+  }
+
+  public GitOptions setPartialCacheFilePrefix(String partialCacheFilePrefix) {
+    return new GitOptions(generalOptions, partialCacheFilePrefix);
   }
 }

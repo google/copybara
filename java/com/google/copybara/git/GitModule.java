@@ -123,6 +123,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   protected final Options options;
   private ConfigFile mainConfigFile;
+  private String workflowName;
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
@@ -265,7 +266,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         partialFetch,
         patchTransformation,
         convertDescribeVersion(describeVersion),
-        convertFromNoneable(versionSelector, null));
+        convertFromNoneable(versionSelector, null),
+        mainConfigFile.path(),
+        workflowName);
   }
 
   @Nullable
@@ -583,7 +586,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           partialFetch,
           patchTransformation,
           convertDescribeVersion(describeVersion),
-          /*versionSelector=*/ null);
+          /*versionSelector=*/ null,
+          mainConfigFile.path(),
+          workflowName);
     }
     return GerritOrigin.newGerritOrigin(
         options,
@@ -1010,7 +1015,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         partialFetch,
         patchTransformation,
         convertDescribeVersion(describeVersion),
-        convertFromNoneable(versionSelector, null));
+        convertFromNoneable(versionSelector, null),
+        mainConfigFile.path(),
+        workflowName);
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -2008,6 +2015,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @Override
   public void setConfigFile(ConfigFile mainConfigFile, ConfigFile currentConfigFile) {
     this.mainConfigFile = mainConfigFile;
+  }
+
+  @Override
+  public void setWorkflowName(String workflowName)
+  {
+    this.workflowName = workflowName;
   }
 
   @CheckReturnValue

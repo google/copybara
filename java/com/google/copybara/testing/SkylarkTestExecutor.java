@@ -100,18 +100,30 @@ public class SkylarkTestExecutor {
   }
 
   public <T> T eval(String var, String config) throws ValidationException {
-    return evalWithConfigFilePath(var, config, DEFAULT_FILE);
+    return evalWithConfigFilePathAndModuleSet(var, config, DEFAULT_FILE, createModuleSet());
   }
 
   @SuppressWarnings({"TypeParameterUnusedInFormals"})
   public <T> T evalWithConfigFilePath(String var, String config, String configPath)
       throws ValidationException {
+    return evalWithConfigFilePathAndModuleSet(var, config, configPath, createModuleSet());
+  }
+
+  @SuppressWarnings({"TypeParameterUnusedInFormals"})
+  public <T> T evalWithModuleSet(String var, String config, ModuleSet moduleSet)
+      throws ValidationException {
+    return evalWithConfigFilePathAndModuleSet(var, config, DEFAULT_FILE, moduleSet);
+  }
+
+  @SuppressWarnings({"TypeParameterUnusedInFormals"})
+  public <T> T evalWithConfigFilePathAndModuleSet(String var, String config, String configPath,
+      ModuleSet moduleSet) throws ValidationException {
     try {
       Module module =
           skylarkParser.executeSkylark(
-              createConfigFile(configPath, config), createModuleSet(), options.general.console());
+              createConfigFile(configPath, config), moduleSet, options.general.console());
       @SuppressWarnings("unchecked") // the cast below is wildly unsound
-      T t = (T) module.getGlobal(var);
+          T t = (T) module.getGlobal(var);
       Preconditions.checkNotNull(t, "Config %s evaluates to null '%s' var.", config, var);
       return t;
     } catch (IOException | InterruptedException e) {

@@ -39,6 +39,14 @@ public interface LabelsAwareModule {
   }
 
   /**
+   * Called before invoking any methonds on a module to give the module access to the current
+   * workflow name. This may be called multiple times, in which case only the most recent
+   * should be used.
+   */
+  default void setWorkflowName(String workflowName) {
+  }
+
+  /**
    * A Supplier that returns all the files loaded by the configuration loading. The supplier
    * shouldn't be evaluated before loading finishes.
    */

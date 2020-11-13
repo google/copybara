@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
+import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.RepoException;
@@ -43,12 +44,14 @@ public class MigrateCmd implements CopybaraCmd {
   private final ConfigValidator configValidator;
   private final Consumer<Migration> migrationRanConsumer;
   private final ConfigLoaderProvider configLoaderProvider;
+  private final ModuleSet moduleSet;
 
   MigrateCmd(ConfigValidator configValidator, Consumer<Migration> migrationRanConsumer,
-      ConfigLoaderProvider configLoaderProvider) {
+      ConfigLoaderProvider configLoaderProvider, ModuleSet moduleSet) {
     this.configValidator = Preconditions.checkNotNull(configValidator);
     this.migrationRanConsumer = Preconditions.checkNotNull(migrationRanConsumer);
     this.configLoaderProvider = Preconditions.checkNotNull(configLoaderProvider);
+    this.moduleSet = moduleSet;
   }
 
   @Override
@@ -57,12 +60,14 @@ public class MigrateCmd implements CopybaraCmd {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,
         /*useSourceRef*/true);
     ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
+    String workflowName = configFileArgs.getWorkflowName();
+    updateEnvironment(workflowName);
     run(
         commandEnv.getOptions(),
         configLoaderProvider.newLoader(
             configFileArgs.getConfigPath(),
             sourceRefs.size() == 1 ? Iterables.getOnlyElement(sourceRefs) : null),
-        configFileArgs.getWorkflowName(),
+        workflowName,
         commandEnv.getWorkdir(),
         sourceRefs);
     return ExitCode.SUCCESS;
@@ -75,6 +80,7 @@ public class MigrateCmd implements CopybaraCmd {
       Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, ValidationException, IOException {
     Config config = loadConfig(options, configLoader, migrationName);
+
     Migration migration = config.getMigration(migrationName);
 
     if (!options.get(WorkflowOptions.class).isReadConfigFromChange()) {
@@ -92,7 +98,7 @@ public class MigrateCmd implements CopybaraCmd {
         "Flag --read-config-from-change is not supported for non-workflow migrations: %s",
         migrationName);
     migrationRanConsumer.accept(migration);
-    @SuppressWarnings("unchecked")
+
     Workflow<? extends Revision, ? extends Revision> workflow =
         (Workflow<? extends Revision, ? extends Revision>) migration;
     new ReadConfigFromChangeWorkflow<>(workflow, options, configLoader, configValidator)
@@ -112,6 +118,16 @@ public class MigrateCmd implements CopybaraCmd {
     result.getErrors().forEach(console::error);
     console.error("Configuration is invalid.");
     throw new ValidationException("Error validating configuration: Configuration is invalid.");
+  }
+
+  private void updateEnvironment(String migrationName) {
+    for (Object module : moduleSet.getModules().values()) {
+      // We mutate the module per file loaded. Not ideal but it is the best we can do.
+      if (module instanceof LabelsAwareModule) {
+        LabelsAwareModule m = (LabelsAwareModule) module;
+        m.setWorkflowName(migrationName);
+      }
+    }
   }
 
   @Override

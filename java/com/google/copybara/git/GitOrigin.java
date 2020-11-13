@@ -59,6 +59,12 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   private static final String COPYBARA_TMP_REF = "refs/heads/copybara_dont_use_internal";
 
+  /**
+   * A temporary feature flag setting a prefix for git repos with partial fetch.
+   */
+  private static final String SET_GIT_PREFIX_FOR_PARTIAL_FETCH_ =
+      "set-git-prefix-for-partial-fetch";
+
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
     NO,
@@ -90,13 +96,17 @@ public class GitOrigin implements Origin<GitRevision> {
   @Nullable private final PatchTransformation patchTransformation;
   protected final boolean describeVersion;
   @Nullable private final LatestVersionSelector versionSelector;
+  @Nullable private final String configPath;
+  @Nullable private final String workflowName;
 
   GitOrigin(GeneralOptions generalOptions, String repoUrl,
       @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
       GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
       boolean includeBranchCommitLogs, boolean firstParent, boolean partialClone,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
-      @Nullable LatestVersionSelector versionSelector) {
+      @Nullable LatestVersionSelector versionSelector,
+      @Nullable String configPath,
+      @Nullable String workflowName) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -114,12 +124,20 @@ public class GitOrigin implements Origin<GitRevision> {
     this.patchTransformation = patchTransformation;
     this.describeVersion = describeVersion;
     this.versionSelector = versionSelector;
+    this.configPath = configPath;
+    this.workflowName = workflowName;
   }
 
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     if (partialFetch) {
-      return gitOptions.cachedBareRepoForUrl(repoUrl).withPartialClone();
+      String partialCacheFilePrefix =
+          // Remove this after December 1st.
+          generalOptions.isTemporaryFeature(SET_GIT_PREFIX_FOR_PARTIAL_FETCH_, true)
+              ? String.format("%s:%s", configPath, workflowName)
+              : null;
+       return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
+           .withPartialClone();
     }
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
@@ -128,7 +146,7 @@ public class GitOrigin implements Origin<GitRevision> {
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
     return new ReaderImpl(repoUrl, originFiles, authoring,
         gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent, partialFetch, patchTransformation, describeVersion);
+        firstParent, partialFetch, patchTransformation, describeVersion, configPath, workflowName);
   }
 
   @Override
@@ -181,6 +199,8 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean partialFetch;
     @Nullable private final PatchTransformation patchTransformation;
     private final boolean describeVersion;
+    private final String configPath;
+    private final String workflowName;
 
     ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
         GitOptions gitOptions,
@@ -191,7 +211,9 @@ public class GitOrigin implements Origin<GitRevision> {
         boolean firstParent,
         boolean partialFetch,
         @Nullable PatchTransformation patchTransformation,
-        boolean describeVersion) {
+        boolean describeVersion,
+        String configPath,
+        String workflowName) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -204,6 +226,8 @@ public class GitOrigin implements Origin<GitRevision> {
       this.partialFetch = partialFetch;
       this.patchTransformation = patchTransformation;
       this.describeVersion = describeVersion;
+      this.configPath = configPath;
+      this.workflowName = workflowName;
     }
 
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -217,7 +241,13 @@ public class GitOrigin implements Origin<GitRevision> {
 
     protected GitRepository getRepository() throws RepoException {
       if (partialFetch) {
-        return gitOptions.cachedBareRepoForUrl(repoUrl).withPartialClone();
+        String partialCacheFilePrefix =
+            // Remove this after December 1st.
+            generalOptions.isTemporaryFeature(SET_GIT_PREFIX_FOR_PARTIAL_FETCH_, true)
+                ? String.format("%s:%s", configPath, workflowName)
+                : null;
+         return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
+             .withPartialClone();
       }
       return gitOptions.cachedBareRepoForUrl(repoUrl);
     }
@@ -447,12 +477,14 @@ public class GitOrigin implements Origin<GitRevision> {
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
       boolean partialClone,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
-      @Nullable LatestVersionSelector versionSelector) {
+      @Nullable LatestVersionSelector versionSelector,
+      String configPath, String workflowName) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         submoduleStrategy, includeBranchCommitLogs, firstParent, partialClone,
-        patchTransformation, describeVersion, versionSelector);
+        patchTransformation, describeVersion, versionSelector,
+        configPath, workflowName);
   }
 
   @Override
