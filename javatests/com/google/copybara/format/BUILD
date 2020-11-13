@@ -14,7 +14,7 @@
 
 load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 # This is required because golang binaries have the build architecture in their
 # path.

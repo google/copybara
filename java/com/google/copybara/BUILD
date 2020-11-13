@@ -15,7 +15,7 @@
 load(":docs.bzl", "doc_generator")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 

@@ -15,7 +15,7 @@
 load(":test.bzl", "all_tests")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 LOCAL_TESTS = {
     "InfoTest.java": 3,

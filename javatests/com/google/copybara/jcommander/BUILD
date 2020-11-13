@@ -17,7 +17,7 @@ package(default_visibility = ["//visibility:public"])
 
 load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 all_tests(
     tests = [
