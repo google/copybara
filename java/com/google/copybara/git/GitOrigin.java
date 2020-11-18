@@ -137,7 +137,7 @@ public class GitOrigin implements Origin<GitRevision> {
               ? String.format("%s:%s", configPath, workflowName)
               : null;
        return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
-           .withPartialClone();
+           .enablePartialFetch();
     }
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
@@ -247,7 +247,7 @@ public class GitOrigin implements Origin<GitRevision> {
                 ? String.format("%s:%s", configPath, workflowName)
                 : null;
          return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
-             .withPartialClone();
+             .enablePartialFetch();
       }
       return gitOptions.cachedBareRepoForUrl(repoUrl);
     }

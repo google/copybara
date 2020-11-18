@@ -1108,14 +1108,14 @@ public class GitRepository {
     this.simpleCommand("config", String.format("%s.%s", category, field), value, "--local");
   }
 
-  public GitRepository withPartialClone() {
+  public GitRepository enablePartialFetch() {
     try {
       this.simpleCommand("config", "core.repositoryFormatVersion", "1");
       this.simpleCommand("config", "extensions.partialClone", "origin");
     } catch (Exception e) {
       logger.atInfo().withCause(e).log("Partial Clone %s", e);
     }
-    return new GitRepository(gitDir, workTree, verbose, gitEnv, fetchTimeout, noVerify);
+    return this;
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {

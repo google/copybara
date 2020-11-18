@@ -31,7 +31,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.authoring.Author;
@@ -44,8 +43,6 @@ import com.google.copybara.git.GitRepository.GitObjectType;
 import com.google.copybara.git.GitRepository.PushCmd;
 import com.google.copybara.git.GitRepository.StatusFile;
 import com.google.copybara.git.GitRepository.TreeElement;
-import com.google.copybara.testing.OptionsBuilder;
-import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import java.io.IOException;
@@ -557,7 +554,7 @@ public class GitRepositoryTest {
     GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     local.init();
-    local = local.withPartialClone();
+    local = local.enablePartialFetch();
     GitTestUtil.writeFile(workdir, "a/foo.txt", "a");
     GitTestUtil.writeFile(workdir, "b/bar.txt", "b");
     repository.add().files("a/foo.txt").run();
@@ -573,11 +570,21 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void returnSameObjectWithPartialFetchSet() throws Exception {
+    GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
+        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
+    local.init();
+    GitRepository sameLocal = local.enablePartialFetch();
+
+    assertThat(sameLocal).isEqualTo(local);
+  }
+
+  @Test
   public void testSparseCheckout() throws Exception {
     GitRepository local = GitRepository.newBareRepo(Files.createTempDirectory("localDir"),
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false);
     local.init();
-    local = local.withPartialClone();
+    local = local.enablePartialFetch();
 
     local.withWorkTree(workdir).setSparseCheckout(ImmutableSet.of("foo", "bar"));
     Path sparseCheckout =
