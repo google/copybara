@@ -69,7 +69,8 @@ public class ConsoleEventMonitorTest {
             ImmutableList.of(new OriginRef("ABCD")),
             new DestinationRef("1234", "commit", /*url=*/ null));
     eventMonitor.onChangeMigrationFinished(
-        new ChangeMigrationFinishedEvent(ImmutableList.of(destinationEffect)));
+        new ChangeMigrationFinishedEvent(ImmutableList.of(destinationEffect),
+            ImmutableMultimap.of(), ImmutableMultimap.of()));
 
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create(

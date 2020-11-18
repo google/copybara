@@ -101,7 +101,8 @@ public class Mirror implements Migration {
                     // TODO(danielromero): Populate OriginRef here
                     ImmutableList.of(),
                     new DestinationRef(
-                        getOriginDestinationRef(destination), "mirror", /*url=*/ null))));
+                        getOriginDestinationRef(destination), "mirror", /*url=*/ null))),
+            getOriginDescription(), getDestinationDescription());
     generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
   }
 

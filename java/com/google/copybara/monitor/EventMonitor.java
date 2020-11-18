@@ -20,6 +20,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Info;
 import com.google.copybara.Revision;
@@ -72,9 +73,15 @@ public interface EventMonitor {
   /** Event that happens for every change migration that is finished. */
   class ChangeMigrationFinishedEvent {
     private final ImmutableList<DestinationEffect> destinationEffects;
+    private final ImmutableMultimap<String, String> originDescription;
+    private final ImmutableMultimap<String, String> destinationDescription;
 
-    public ChangeMigrationFinishedEvent(ImmutableList<DestinationEffect> destinationEffects) {
+    public ChangeMigrationFinishedEvent(ImmutableList<DestinationEffect> destinationEffects,
+        ImmutableMultimap<String, String> originDescription,
+        ImmutableMultimap<String, String> destinationDescription) {
       this.destinationEffects = destinationEffects;
+      this.originDescription = originDescription;
+      this.destinationDescription = destinationDescription;
     }
 
     public ImmutableList<DestinationEffect> getDestinationEffects() {
@@ -86,6 +93,14 @@ public interface EventMonitor {
       return MoreObjects.toStringHelper(this)
           .add("destinationEffects", destinationEffects)
           .toString();
+    }
+
+    public ImmutableMultimap<String, String> getDestinationDescription() {
+      return destinationDescription;
+    }
+
+    public ImmutableMultimap<String, String> getOriginDescription() {
+      return originDescription;
     }
   }
 

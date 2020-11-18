@@ -98,7 +98,8 @@ public class Feedback implements Migration {
               name, action.getName(), actionResult.getMsg());
         } finally {
           eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(
-              new ChangeMigrationFinishedEvent(ImmutableList.copyOf(effects))));
+              new ChangeMigrationFinishedEvent(ImmutableList.copyOf(effects),
+                  getOriginDescription(), getDestinationDescription())));
         }
       }
     }

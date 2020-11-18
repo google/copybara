@@ -446,7 +446,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     GeneralOptions.DRY_RUN_FLAG);
           }
         } finally {
-          migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects));
+          migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects,
+              workflow.getOriginDescription(), workflow.getDestinationDescription()));
         }
       }
       return effects;
@@ -459,7 +460,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     final void finishedMigrate(ImmutableList<DestinationEffect> effects) {
       workflow.eventMonitors().dispatchEvent(
           m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
-      migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects));
+      migrationFinishedMonitor.accept(new ChangeMigrationFinishedEvent(effects,
+          workflow.getOriginDescription(), workflow.getDestinationDescription()));
     }
 
     private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
