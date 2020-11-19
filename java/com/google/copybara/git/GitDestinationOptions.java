@@ -79,10 +79,13 @@ public final class GitDestinationOptions implements Option {
   public String push = null;
 
   @Nullable
-  @Parameter(names = "--git-destination-path",
-      description = "If set, the tool will use this directory for the local repository."
-          + " Note that if the directory exists it needs to be a git repository. Copybara will"
-          + " revert any staged/unstaged changes.")
+  @Parameter(
+      names = "--git-destination-path",
+      description =
+          "If set, the tool will use this directory for the local repository. Note that if the"
+              + " directory exists it needs to be a git repository. Copybara will revert any"
+              + " staged/unstaged changes. For example, you can override destination url with a"
+              + " local non-bare repo (or existing empty folder) with this flag.")
   public String localRepoPath = null;
 
   @Parameter(names = "--git-destination-last-rev-first-parent",

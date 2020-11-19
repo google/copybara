@@ -2068,7 +2068,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
@@ -2138,7 +2138,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
@@ -2261,7 +2261,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
@@ -2364,7 +2364,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
-<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--github-destination-pr-branch`</span> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
