@@ -87,7 +87,7 @@ public class SkylarkParser {
       throw new RuntimeException("Internal error", e);
     }
     return new Config(
-        globalMigrations.getMigrations(), content.path(), module.getTransitiveBindings());
+        globalMigrations.getMigrations(), content.path(), module.getPredeclaredBindings());
   }
 
   @VisibleForTesting

@@ -38,7 +38,7 @@ public final class Config {
   public Config(Map<String, Migration> migrations, String location, Map<String, Object> globals) {
     this.migrations = ImmutableMap.copyOf(migrations);
     this.location = Preconditions.checkNotNull(location);
-    this.globals = ImmutableMap.copyOf(Preconditions.checkNotNull(globals));
+    this.globals = ImmutableMap.copyOf(globals);
   }
 
   /**

@@ -40,7 +40,8 @@ public class GlobalMigrations implements StarlarkValue {
   private final Map<String, Migration> migrations = new HashMap<>();
 
   public static GlobalMigrations getGlobalMigrations(Module module) {
-    return (GlobalMigrations) Objects.requireNonNull(module.get(GLOBAL_MIGRATIONS));
+    return (GlobalMigrations)
+        Objects.requireNonNull(module.getPredeclaredBindings().get(GLOBAL_MIGRATIONS));
   }
 
   public Map<String, Migration> getMigrations() {
