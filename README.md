@@ -75,7 +75,7 @@ you need:
       * `git clone https://github.com/google/copybara.git`
   * Build:
       * `bazel build //java/com/google/copybara`.
-	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
+      * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
   * Tests: `bazel test //...` if you want to ensure you are not using a broken version.
 
 ### System packages
@@ -109,6 +109,39 @@ targets:
 
 Note that configuration files can be stored in any place, even in a local folder. We recommend to
 use a VCS (like git) to store them; treat them as source code.
+
+### Building Copybara in an external Bazel workspace
+
+There are convenience macros defined for all of Copybara's dependencies. Add the
+following code to your `WORKSPACE` file, replacing `{{ sha256sum }}` and
+`{{ commit }}` as necessary.
+
+```
+http_archive(
+  name = "com_github_google_copybara",
+  sha256 = "{{ sha256sum }}"
+  strip_prefix = "copybara-{{ commit }}",
+  url = "https://github.com/google/copybara/archive/{{ commit }}",
+)
+
+load("@com_github_google_copybara//:repositories.bzl", "copybara_repositories")
+
+copybara_repositories()
+
+load("@com_github_google_copybara//:repositories.maven.bzl", "copybara_maven_repositories")
+
+copybara_maven_repositories()
+
+load("@com_github_google_copybara//:repositories.go.bzl", "copybara_go_repositories")
+
+copybara_go_repositories()
+```
+
+You can then build and run the Copybara tool from within your workspace:
+
+```
+bazel run @com_github_google_copybara//java/com/google/copybara -- <args...>
+```
 
 ### Using Docker to build and run Copybara
 

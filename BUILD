@@ -11,17 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-workspace(name = "com_github_google_copybara")
-
-load("//:repositories.bzl", "copybara_repositories")
-
-copybara_repositories()
-
-load("//:repositories.maven.bzl", "copybara_maven_repositories")
-
-copybara_maven_repositories()
-
-load("//:repositories.go.bzl", "copybara_go_repositories")
-
-copybara_go_repositories()
