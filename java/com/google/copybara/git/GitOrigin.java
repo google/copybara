@@ -59,12 +59,6 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   private static final String COPYBARA_TMP_REF = "refs/heads/copybara_dont_use_internal";
 
-  /**
-   * A temporary feature flag setting a prefix for git repos with partial fetch.
-   */
-  private static final String SET_GIT_PREFIX_FOR_PARTIAL_FETCH_ =
-      "set-git-prefix-for-partial-fetch";
-
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
     NO,
@@ -131,11 +125,7 @@ public class GitOrigin implements Origin<GitRevision> {
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     if (partialFetch) {
-      String partialCacheFilePrefix =
-          // Remove this after December 1st.
-          generalOptions.isTemporaryFeature(SET_GIT_PREFIX_FOR_PARTIAL_FETCH_, true)
-              ? String.format("%s:%s", configPath, workflowName)
-              : null;
+      String partialCacheFilePrefix = String.format("%s:%s", configPath, workflowName);
        return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
            .enablePartialFetch();
     }
@@ -241,11 +231,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
     protected GitRepository getRepository() throws RepoException {
       if (partialFetch) {
-        String partialCacheFilePrefix =
-            // Remove this after December 1st.
-            generalOptions.isTemporaryFeature(SET_GIT_PREFIX_FOR_PARTIAL_FETCH_, true)
-                ? String.format("%s:%s", configPath, workflowName)
-                : null;
+        String partialCacheFilePrefix = String.format("%s:%s", configPath, workflowName);
          return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
              .enablePartialFetch();
       }
@@ -330,20 +316,16 @@ public class GitOrigin implements Origin<GitRevision> {
 
         GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submodule.getUrl());
 
-        // TODO(danielromero): Remove temporary feature after 2019-10-30
-        if (generalOptions.isTemporaryFeature("SUBMODULES_FETCH_ALL", true)) {
-          if (submodule.getBranch() != null) {
-            subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch(), partialFetch);
-          } else {
-            subRepo.fetch(
-                submodule.getUrl(), /*prune*/
-                true, /*force*/
-                true,
-                ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
-                partialFetch);
-          }
-        } else {
+
+        if (submodule.getBranch() != null) {
           subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch(), partialFetch);
+        } else {
+          subRepo.fetch(
+              submodule.getUrl(), /*prune*/
+              true, /*force*/
+              true,
+              ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
+              partialFetch);
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(
