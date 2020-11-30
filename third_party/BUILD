@@ -15,7 +15,7 @@ package(
 java_library(
     name = "guava",
     exports = [
-	"@maven//:com_google_guava_failureaccess",
+        "@maven//:com_google_guava_failureaccess",
         "@maven//:com_google_guava_guava",
     ],
 )
@@ -95,18 +95,18 @@ java_library(
     name = "truth",
     testonly = 1,
     exports = [
-        "@maven//:com_googlecode_java_diff_utils_diffutils",
         "@maven//:com_google_truth_truth",
+        "@maven//:com_googlecode_java_diff_utils_diffutils",
     ],
 )
 
 java_library(
     name = "google_http_client",
     exports = [
+        "@maven//:com_google_code_gson_gson",
         "@maven//:com_google_http_client_google_http_client",
         "@maven//:com_google_http_client_google_http_client_gson",
-        "@maven//:com_google_code_gson_gson",
-	"@maven//:commons_codec_commons_codec",
+        "@maven//:commons_codec_commons_codec",
     ],
 )
 
@@ -153,8 +153,8 @@ java_library(
         "@maven//:com_google_flogger_flogger",
     ],
     runtime_deps = [
-        "@maven//:com_google_flogger_flogger_system_backend"
-    ]
+        "@maven//:com_google_flogger_flogger_system_backend",
+    ],
 )
 
 java_library(
@@ -169,11 +169,9 @@ java_library(
     testonly = 1,
     exports = [
         "//java/com/google/copybara/hg/testing",
-    ]
+    ],
 )
 
 # Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
 # is fixed
 exports_files(["bazel.patch"])
-
-
