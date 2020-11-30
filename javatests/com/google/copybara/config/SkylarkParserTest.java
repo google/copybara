@@ -343,6 +343,9 @@ public class SkylarkParserTest {
         + "\n"
         + NON_IMPORTANT_WORKFLOW;
     String val = parser.eval("val", content);
+    // Note: subfolder_val should be a local variable of its file,
+    // and therefore not in Module.getGlobals.
+    // However, we set FileOptions.loadBindsGlobally, for now.
     String subfolderVal = parser.eval("subfolder_val", content);
     assertThat(subfolderVal).isEqualTo("subfolder_foo");
     assertThat(val).isEqualTo("main_foo");

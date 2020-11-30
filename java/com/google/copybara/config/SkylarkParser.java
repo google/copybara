@@ -210,9 +210,14 @@ public class SkylarkParser {
       // parse & compile
       ParserInput input = ParserInput.fromUTF8(content.readContentBytes(), content.path());
       FileOptions options =
-          validation == StarlarkMode.STRICT
-              ? STARLARK_STRICT_FILE_OPTIONS
-              : STARLARK_LOOSE_FILE_OPTIONS;
+          FileOptions.DEFAULT.toBuilder()
+              // Ordinarily, load statements should create file-local variables.
+              // For now, we make them create first-class members of Module.globals.
+              .loadBindsGlobally(true)
+              .allowToplevelRebinding(true) // allow e.g. x=1; x=2 at top level
+              .requireLoadStatementsFirst(validation == StarlarkMode.STRICT)
+              .build();
+
       Program prog;
       try {
         prog = Program.compileFile(StarlarkFile.parse(input, options), module);
@@ -265,17 +270,6 @@ public class SkylarkParser {
       throw new ValidationException("Cycle was detected");
     }
   }
-
-  // Even in strict mode, we allow top-level if and for statements.
-  private static final FileOptions STARLARK_STRICT_FILE_OPTIONS =
-      FileOptions.DEFAULT.toBuilder() //
-          .allowToplevelRebinding(true)
-          .build();
-
-  private static final FileOptions STARLARK_LOOSE_FILE_OPTIONS =
-      STARLARK_STRICT_FILE_OPTIONS.toBuilder()
-          .requireLoadStatementsFirst(false)
-          .build();
 
   /** Updates the module globals with information about the current loaded config file. */
   // TODO(copybara-team): evaluate the cleaner approach of saving the varying parts in the
