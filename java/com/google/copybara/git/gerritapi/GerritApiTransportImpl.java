@@ -32,10 +32,12 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.time.Duration;
+
 import javax.annotation.Nullable;
 
 /**
@@ -109,7 +111,15 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     } catch (HttpResponseException e) {
       throw new GerritApiException(e.getStatusCode(), e.getContent(), e.getContent());
     }
-    return (T) response.parseAs(responseType);
+    try {
+      return (T) response.parseAs(responseType);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          String.format("Cannot parse response as type %s.\n"
+                  + "Request: %s\n"
+                  + "Response:\n%s", responseType,
+              httpRequest.getUrl(), response.parseAsString()), e);
+    }
   }
 
   /**
