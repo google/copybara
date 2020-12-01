@@ -119,7 +119,7 @@ public class GitOptions implements Option {
    *
    * <p>Can be overwritten to create custom GitRepository objects.
    */
-  protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
+  public GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
       throws RepoException {
     GitRepository repo =
         GitRepository.newBareRepo(

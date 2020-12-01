@@ -358,11 +358,10 @@ public class GitTestUtil {
     }
 
     @Override
-    protected GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
+    public GitRepository createBareRepo(GeneralOptions generalOptions, Path path)
         throws RepoException {
       return initRepo(new RewriteUrlGitRepository(path, null, generalOptions, httpsRepos,
-                                                  validator, mappingPrefixes,
-                                                  forcePushForRefspec));
+                                                  validator, mappingPrefixes, forcePushForRefspec));
     }
 
     /** Add additional prefixes that should be mapped for test. */
