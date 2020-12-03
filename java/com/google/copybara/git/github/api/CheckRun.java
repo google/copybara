@@ -145,7 +145,8 @@ public class CheckRun implements StarlarkValue {
     @Value("neutral") NEUTRAL,
     @Value("timed_out") TIMEDOUT,
     @Value("cancelled") CANCELLED,
-    @Value("action_required") ACTIONREQUIRED;
+    @Value("action_required") ACTIONREQUIRED,
+    @Value("skipped") SKIPPED;
   }
 
   @Override
