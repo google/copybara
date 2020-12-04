@@ -107,6 +107,9 @@ public class GitRepository {
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
+  private static final Pattern DEFAULT_BRANCH_PATTERN =
+      Pattern.compile("(?s)ref: (refs/heads/\\w+)\\s+HEAD.*");
+
   private static final Pattern FAILED_REBASE =
       Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
   private static final ImmutableList<Pattern> REF_NOT_FOUND_ERRORS =
@@ -2092,5 +2095,17 @@ public class GitRepository {
    */
   public String getPrimaryBranch() throws RepoException {
     return simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+  }
+
+  /**
+   * Returns the repo's primary branch, e.g. "main". Primarily intended for testing.
+   */
+  @Nullable public String getPrimaryBranch(String uri) throws RepoException, ValidationException {
+    String output = simpleCommand("ls-remote", "--symref", uri, "HEAD").getStdout().trim();
+    Matcher matcher = DEFAULT_BRANCH_PATTERN.matcher(output);
+    if (matcher.matches()) {
+      return matcher.group(1);
+    }
+    return "refs/heads/main";
   }
 }

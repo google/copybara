@@ -2031,6 +2031,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--git-default-branch`</span> | *`LEGACY`<br>or `MAIN`<br>or `AUTO_DETECT`* | What branch to use when none is specified in a git destination.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
@@ -2041,7 +2042,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`destination git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None)`
+`destination git.destination(url, push=None, tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None)`
 
 
 #### Parameters:
@@ -2049,7 +2050,7 @@ Creates a commit in a git repository using the transformed worktree.<br><br>For 
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
+push | `string` or `NoneType`<br><p>Reference to use for pushing the change, for example 'main'.</p>
 tag_name | `string` or `NoneType`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
@@ -2233,7 +2234,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-`destination git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None)`
+`destination git.github_destination(url, push=None, fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None)`
 
 
 #### Parameters:
@@ -2241,7 +2242,7 @@ Creates a commit in a GitHub repository branch (for example master). For creatin
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL to push to as well as the URL from which to get the parent commit</p>
-push | `string`<br><p>Reference to use for pushing the change, for example 'master'</p>
+push | `string` or `NoneType`<br><p>Reference to use for pushing the change, for example 'main'.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 pr_branch_to_update | `string` or `NoneType`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
@@ -2285,14 +2286,14 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `LatestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
 
 Creates changes in a new pull request in the destination.
 
-`destination git.github_pr_destination(url, destination_ref="master", pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
+`destination git.github_pr_destination(url, destination_ref=None, pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False)`
 
 
 #### Parameters:
@@ -2300,7 +2301,7 @@ Creates changes in a new pull request in the destination.
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
-destination_ref | `string`<br><p>Destination reference for the change. By default 'master'</p>
+destination_ref | `string` or `NoneType`<br><p>Destination reference for the change.</p>
 pr_branch | `string` or `NoneType`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 allow_empty_diff | `bool`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
@@ -2551,7 +2552,7 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `LatestVersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input

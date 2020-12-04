@@ -53,6 +53,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.NotifyOption;
@@ -224,7 +225,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "version_selector",
             allowedTypes = {
-              @ParamType(type = LatestVersionSelector.class),
+              @ParamType(type = VersionSelector.class),
               @ParamType(type = NoneType.class),
             },
             defaultValue = "None",
@@ -972,7 +973,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "version_selector",
             allowedTypes = {
-              @ParamType(type = LatestVersionSelector.class),
+              @ParamType(type = VersionSelector.class),
               @ParamType(type = NoneType.class),
             },
             defaultValue = "None",
@@ -1045,8 +1046,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "push",
             named = true,
-            doc = "Reference to use for pushing the change, for example 'master'",
-            defaultValue = "'master'"),
+            allowedTypes = {
+                @ParamType(type = String.class),
+                @ParamType(type = NoneType.class),
+            },
+            doc = "Reference to use for pushing the change, for example 'main'.",
+            defaultValue = "None"),
         @Param(
             name = "tag_name",
             allowedTypes = {
@@ -1111,7 +1116,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination destination(
       String url,
-      String push,
+      Object push,
       Object tagName,
       Object tagMsg,
       Object fetch,
@@ -1120,7 +1125,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
+    String resolvedPush = resolvePush(url, push);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GitDestination(
         fixHttp(
@@ -1142,6 +1147,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
   }
 
+  String resolvePush(String uri, Object push)
+      throws EvalException {
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    GitOptions gitOptions = options.get(GitOptions.class);
+    GeneralOptions generalOpts = options.get(GeneralOptions.class);
+
+    String value = firstNotNull(destinationOptions.push, convertFromNoneable(push, null));
+    if (!Strings.isNullOrEmpty(value)) {
+      return value;
+    }
+    try {
+      return gitOptions.defaultBranchMode.getDefaultBranch(uri, gitOptions, generalOpts);
+    } catch (RepoException | ValidationException e) {
+      throw Starlark.errorf("Error resolving push: %s", e.getMessage());
+    }
+  }
+
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "github_destination",
@@ -1155,11 +1177,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc =
                 "Indicates the URL to push to as well as the URL from which to get the parent "
                     + "commit"),
-        @Param(
-            name = "push",
-            named = true,
-            doc = "Reference to use for pushing the change, for example 'master'",
-            defaultValue = "'master'"),
+          @Param(
+              name = "push",
+              named = true,
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              doc = "Reference to use for pushing the change, for example 'main'.",
+              defaultValue = "None"),
         @Param(
             name = "fetch",
             allowedTypes = {
@@ -1239,7 +1265,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @DocDefault(field = "delete_pr_branch", value = "False")
   public GitDestination gitHubDestination(
       String url,
-      String push,
+      Object push,
       Object fetch,
       Object prBranchToUpdate,
       Boolean partialFetch,
@@ -1249,7 +1275,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
+    String resolvedPush = resolvePush(url, push);
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     String repoUrl =
         fixHttp(
@@ -1316,8 +1342,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "destination_ref",
             named = true,
-            doc = "Destination reference for the change. By default 'master'",
-            defaultValue = "\"master\""),
+            allowedTypes = {
+                @ParamType(type = String.class),
+                @ParamType(type = NoneType.class),
+            },
+            doc = "Destination reference for the change.",
+            defaultValue = "None"),
         @Param(
             name = "pr_branch",
             allowedTypes = {
@@ -1439,7 +1469,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + "    )")
   public GitHubPrDestination githubPrDestination(
       String url,
-      String destinationRef,
+      Object destinationRef,
       Object prBranch,
       Boolean partialFetch,
       Boolean allowEmptyDiff,
@@ -1461,7 +1491,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
             thread.getCallerLocation()),
-        destinationRef,
+        resolvePush(url, destinationRef),
         convertFromNoneable(prBranch, null),
         partialFetch,
         generalOptions,
@@ -1489,7 +1519,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         GITHUB_COM);
   }
 
-  private static String firstNotNull(String... values) {
+  @Nullable private static String firstNotNull(String... values) {
     for (String value : values) {
       if (!Strings.isNullOrEmpty(value)) {
         return value;

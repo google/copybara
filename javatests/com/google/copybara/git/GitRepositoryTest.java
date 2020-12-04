@@ -1090,6 +1090,15 @@ public class GitRepositoryTest {
     assertThat(repository.describe(head, false)).isNotEqualTo(repository.describe(head, true));
 }
 
+  @Test
+  public void testFindRemotePrimaryBranch() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    assertThat(repository.getPrimaryBranch("file://" + repository.getGitDir()))
+        .matches("refs/heads/ma.*");
+  }
+
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
     GitRepository repository = GitRepository.newBareRepo(gitDir,
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)

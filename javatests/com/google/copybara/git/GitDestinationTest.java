@@ -49,6 +49,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.git.GitOptions.DefaultBranchMode;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
@@ -177,6 +178,27 @@ public class GitDestinationTest {
     GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
     assertThat(d.getPush()).isEqualTo("master");
     assertThat(d.getFetch()).isEqualTo("master");
+  }
+
+  @Test
+  public void defaultPushBranch_main() throws ValidationException {
+    options.git.defaultBranchMode = DefaultBranchMode.MAIN;
+    GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
+    assertThat(d.getPush()).isEqualTo("refs/heads/main");
+    assertThat(d.getFetch()).isEqualTo("refs/heads/main");
+  }
+
+  @Test
+  public void defaultPushBranch_auto() throws Exception {
+    options.git.defaultBranchMode = DefaultBranchMode.AUTO_DETECT;
+    GitRepository repo = repo().withWorkTree(workdir);
+    Files.write(workdir.resolve("file"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "first commit");
+    GitDestination d = skylark.eval("result",
+        String.format("result = git.destination('file://%s')", repo.getGitDir()));
+    assertThat(d.getPush()).matches("refs/heads/ma.*");
+    assertThat(d.getFetch()).matches("refs/heads/ma.*");
   }
 
   private GitDestination destinationFirstCommit()
