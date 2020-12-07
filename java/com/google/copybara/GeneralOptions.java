@@ -235,15 +235,20 @@ public final class GeneralOptions implements Option {
    * Returns a {@link DirFactory} capable of creating directories in a self contained location in
    * the filesystem.
    *
-   * <p>By default, the directories are created under {@code $HOME/copybara}, but it can be
-   * overridden with the flag --output-root.
+   * <p>By default, the directories are created under {@code $XDG_DATA_HOME/copybara} (falling back
+   * to {@code $HOME/.local/share/copybara}), but it can be overridden with the flag
+   * --output-root.
    */
   public DirFactory getDirFactory() {
     if (getOutputRoot() != null) {
       return new DirFactory(getOutputRoot());
     } else {
-      String home = checkNotNull(environment.get("HOME"), "$HOME environment var is not set");
-      return new DirFactory(fileSystem.getPath(home).resolve("copybara"));
+      String errMessage = "Neither $HOME nor $XDG_DATA_HOME environment vars are set";
+      String outputRoot = environment.get("XDG_DATA_HOME") != null
+        ? environment.get("XDG_DATA_HOME")
+        : checkNotNull(environment.get("HOME"), errMessage) + "/.local/share";
+
+      return new DirFactory(fileSystem.getPath(outputRoot, "copybara"));
     }
   }
 
@@ -362,9 +367,9 @@ public final class GeneralOptions implements Option {
   @Parameter(
       names = OUTPUT_ROOT_FLAG,
       description =
-          "The root directory where to generate output files. If not set, ~/copybara/out is used "
-              + "by default. Use with care, Copybara might remove files inside this root if "
-              + "necessary.")
+          "The root directory where to generate output files. If not set, ~/.local/share/copybara "
+              + "is used by default. Use with care, Copybara might remove files inside this root "
+              + "if necessary.")
   String outputRoot = null;
 
   @Parameter(
