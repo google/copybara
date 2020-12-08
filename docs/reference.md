@@ -1293,7 +1293,7 @@ Would copy all files in path/to/ from the destination baseline to the copybara w
 
 Checks whether a given file exists in the destination.
 
-`boolean destination_reader.file_exists(path)`
+`bool destination_reader.file_exists(path)`
 
 
 #### Parameters:
@@ -2053,7 +2053,7 @@ push | `string`<br><p>Reference to use for pushing the change, for example 'mast
 tag_name | `string` or `NoneType`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-partial_fetch | `boolean`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 
 
@@ -2831,7 +2831,7 @@ Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The name of the reference.</p>
 sha | `string`<br><p>The id for the commit status.</p>
-force | `boolean`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
+force | `bool`<br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
 
 
 
