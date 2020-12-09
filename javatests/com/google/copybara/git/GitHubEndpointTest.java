@@ -347,7 +347,7 @@ public class GitHubEndpointTest {
   public void testGetCombinedStatus_notFound() throws Exception {
     gitUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/repos/google/example/commits/heads/not_found/status"),
+        eq("https://api.github.com/repos/google/example/commits/heads/not_found/status?per_page=100"),
         mockGitHubNotFound());
     runFeedback(ImmutableList.<String>builder()
         .add("res = {}")

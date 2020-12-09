@@ -1099,7 +1099,7 @@ public class GitHubPrOriginTest {
     JsonObject response = mockTestLabelResponse(contextToStatus, "statuses", "context", "state");
     gitUtil.mockApi(
         "GET",
-        "https://api.github.com/repos/google/example/commits/" + sha + "/status",
+        "https://api.github.com/repos/google/example/commits/" + sha + "/status?per_page=100",
         mockResponse(response.toString()));
   }
 
