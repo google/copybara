@@ -479,7 +479,8 @@ public abstract class AbstractGitHubApiTest {
   @Test
   public void testGetCombinedStatus() throws Exception {
     trainMockGet(
-        "/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e/status?per_page=100",
+        "/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e"
+            + "/status?per_page=100",
         getResource("get_combined_status_testdata.json"));
 
     CombinedStatus response = api.getCombinedStatus("octocat/Hello-World",

@@ -392,7 +392,9 @@ public class GitHubApi {
   public CombinedStatus getCombinedStatus(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_combined_status")) {
-      //TODO(copybara-team): Add paginatedGet to get all the statuses of a ref.
+      // TODO(copybara-team): We might consider add paginatedGet to get all the statuses of a ref
+      //  in future. At the moment, the latest 100 statues are enough as the older statues are
+      //  useless.
       return transport.get(String.format("repos/%s/commits/%s/status?per_page=%d", projectId, ref,
           MAX_PER_PAGE), CombinedStatus.class);
     }
