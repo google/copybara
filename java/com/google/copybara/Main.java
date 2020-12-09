@@ -328,7 +328,8 @@ public class Main {
   }
 
   protected ContextProvider newInfoContextProvider() {
-    return (config, configFileArgs, configLoaderProvider, console) -> ImmutableMap.of();
+    return (config, configFileArgs, configLoaderProvider, console) ->
+        ImmutableMap.of("copybara_config", config.getLocation());
   }
 
   /**
