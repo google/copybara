@@ -651,10 +651,10 @@ public abstract class AbstractGitHubApiTest {
 
   protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
-        Paths.get(System.getenv("TEST_SRCDIR"),
-            "copybara/java/com/google/copybara/git/github/api/"
-                + "testing")
-            .resolve(testfile));
+        Paths.get(System.getenv("TEST_SRCDIR"))
+          .resolve(System.getenv("TEST_WORKSPACE"))
+          .resolve("java/com/google/copybara/git/github/api/testing")
+          .resolve(testfile));
   }
 
   private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {

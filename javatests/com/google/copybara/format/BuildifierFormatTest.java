@@ -62,7 +62,8 @@ public class BuildifierFormatTest {
     options = new OptionsBuilder();
     options.setConsole(console);
     File buildifier = Paths.get(System.getenv("TEST_SRCDIR"))
-        .resolve("copybara/javatests/com/google/copybara/format")
+        .resolve(System.getenv("TEST_WORKSPACE"))
+        .resolve("javatests/com/google/copybara/format")
         .resolve("buildifier")
         .toFile();
     options.buildifier.buildifierBin = buildifier.getAbsolutePath();

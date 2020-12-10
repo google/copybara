@@ -34,8 +34,9 @@ public final class BuildozerTesting {
    * options}.
    */
   public static void enable(OptionsBuilder options) throws IOException {
-    Path runtime = Paths.get(System.getenv("TEST_SRCDIR")).resolve(
-        "copybara/java/com/google/copybara/buildozer/testing");
+    Path runtime = Paths.get(System.getenv("TEST_SRCDIR"))
+        .resolve(System.getenv("TEST_WORKSPACE"))
+        .resolve("java/com/google/copybara/buildozer/testing");
     // Use data dependencies on the buildozer/buildifier binaries.
     File buildozer = runtime.resolve("buildozer").toFile();
     File buildifier = runtime.resolve("buildifier").toFile();

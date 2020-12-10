@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source "${TEST_SRCDIR}/copybara/third_party/bazel/bashunit/unittest.bash"
+source "${TEST_SRCDIR}/${TEST_WORKSPACE}/third_party/bazel/bashunit/unittest.bash"
 
 function test_reference_doc_generated() {
-   doc=${TEST_SRCDIR}/copybara/java/com/google/copybara/reference.md
-   source_doc=${TEST_SRCDIR}/copybara/docs/reference.md
+   doc=${TEST_SRCDIR}/${TEST_WORKSPACE}/java/com/google/copybara/reference.md
+   source_doc=${TEST_SRCDIR}/${TEST_WORKSPACE}/docs/reference.md
 
    [[ -f $doc ]] || fail "Documentation not generated"
    # Check that we have table of contents and some basic modules
