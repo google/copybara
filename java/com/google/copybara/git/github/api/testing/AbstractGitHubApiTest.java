@@ -510,8 +510,7 @@ public abstract class AbstractGitHubApiTest {
     assertThat(pullRequestComment.getId()).isEqualTo(12345);
     assertThat(pullRequestComment.getPosition()).isEqualTo(13);
     assertThat(pullRequestComment.getOriginalPosition()).isEqualTo(13);
-    assertThat(pullRequestComment.getPath())
-        .isEqualTo("java/com/google/copybara/git/GitEnvironment.java");
+    assertThat(pullRequestComment.getPath()).contains("git/GitEnvironment.java");
     assertThat(pullRequestComment.getUser().getLogin()).isEqualTo("googletestuser");
     assertThat(pullRequestComment.getCommitId())
         .isEqualTo("228ed14f89c19caed87717a8a53392f58c3a24f9");
@@ -651,10 +650,10 @@ public abstract class AbstractGitHubApiTest {
 
   protected byte[] getResource(String testfile) throws IOException {
     return Files.readAllBytes(
-        Paths.get(System.getenv("TEST_SRCDIR"),
-            "copybara/java/com/google/copybara/git/github/api/"
-                + "testing")
-            .resolve(testfile));
+        Paths.get(System.getenv("TEST_SRCDIR"))
+          .resolve(System.getenv("TEST_WORKSPACE"))
+          .resolve("java/com/google/copybara/git/github/api/testing")
+          .resolve(testfile));
   }
 
   private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {

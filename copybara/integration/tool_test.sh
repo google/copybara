@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source "${TEST_SRCDIR}/copybara/third_party/bazel/bashunit/unittest.bash"
+source "${TEST_SRCDIR}/${TEST_WORKSPACE}/third_party/bazel/bashunit/unittest.bash"
 
 # This should be kept in sync with ExitCode
 readonly SUCCESS=0
@@ -38,7 +38,7 @@ java.util.logging.SimpleFormatter.format=%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$
 EOF
 
 # Extracted as a variable so that internal tests can extend the test with different binary
-copybara_binary="${copybara_binary-"${TEST_SRCDIR}/copybara/java/com/google/copybara/copybara"}"
+copybara_binary="${copybara_binary-"${TEST_SRCDIR}/${TEST_WORKSPACE}/java/com/google/copybara/copybara"}"
 
 function copybara() {
   $copybara_binary --jvm_flag=-Djava.util.logging.config.file=$log_config "$@" \
