@@ -267,6 +267,28 @@ public class GitHubPrOriginTest {
     labelTestNotPass("required_check_runs = ['foo/one', 'foo/two']", "check runs");
   }
 
+  @Test
+  public void gitResolveRequiredCheckRunsNotFoundOpenPR() throws Exception {
+    mockPullRequestAndIssue("closed", 125, "bar: yes");
+
+    EmptyChangeException thrown =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                checkResolve(
+                    githubPrOrigin(
+                        "url = 'https://github.com/google/example'",
+                        "required_check_runs = ['foo/one', 'foo/two']"),
+                    sha,
+                    125));
+
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains(
+            "Could not find a pr with not-closed state "
+                + "and head being equal to sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  }
+
   private void labelTestNotPass(String labelConfig, String errorMsg) throws Exception {
     mockPullRequestAndIssue("open", 125, "bar: yes");
 

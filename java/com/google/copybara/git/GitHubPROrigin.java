@@ -249,7 +249,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
             .filter(e -> !e.getState().equals("closed") && e.getHead().getSha().equals(sha))
             .collect(toImmutableList());
     if (prs.isEmpty()) {
-      throw new RepoException(
+      // Should not fail here because the pr of some SHA1 has been closed.
+      throw new EmptyChangeException(
           String.format("Could not find a pr with not-closed state and head being equal to sha %s",
               sha));
     }
