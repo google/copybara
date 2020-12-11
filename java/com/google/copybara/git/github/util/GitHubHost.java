@@ -53,7 +53,7 @@ public class GitHubHost {
 
   /**
    * Given a GitHub host name and a url that represents a GitHub repository, return the project
-   * name.
+   * name, e.g. org/repo.
    */
   public String getProjectNameFromUrl(String url) throws ValidationException {
     checkCondition(!Strings.isNullOrEmpty(url), "Empty url");
@@ -75,6 +75,10 @@ public class GitHubHost {
         host.equals(uri.getHost()), "Not a github url: %s. Expected host: %s", url, host);
 
     String name = uri.getPath().replaceAll("^/", "").replaceAll("([.]git|/)$", "");
+    Matcher firstTwo = Pattern.compile("^([^/]+/[^/]+).*$").matcher(name);
+    if (firstTwo.matches()) {
+      name = firstTwo.group(1);
+    }
 
     checkCondition(!Strings.isNullOrEmpty(name), "Cannot find project name from url %s", url);
     return name;

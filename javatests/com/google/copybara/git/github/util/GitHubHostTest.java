@@ -34,6 +34,8 @@ public class GitHubHostTest {
     assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo")).isEqualTo("foo");
     assertThat(GITHUB_COM.getProjectNameFromUrl("https://github.com/foo/bar")).isEqualTo("foo/bar");
     assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo/bar")).isEqualTo("foo/bar");
+    assertThat(GITHUB_COM.getProjectNameFromUrl("http://github.com/foo/bar/foobar"))
+        .isEqualTo("foo/bar");
     assertThat(GITHUB_COM.getProjectNameFromUrl("ssh://git@github.com/foo/bar.git"))
         .isEqualTo("foo/bar");
     assertThat(GITHUB_COM.getProjectNameFromUrl("git@github.com/foo/bar.git")).isEqualTo("foo/bar");
