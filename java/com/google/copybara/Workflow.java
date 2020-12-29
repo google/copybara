@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
+import static com.google.copybara.WorkflowMode.CHANGE_REQUEST_FROM_SOT;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -319,8 +320,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
-      checkCondition(mode == CHANGE_REQUEST, "'set_rev_id = False' is only supported"
-          + " for CHANGE_REQUEST mode.");
+      checkCondition(
+          mode == CHANGE_REQUEST || mode == CHANGE_REQUEST_FROM_SOT,
+          "'set_rev_id = False' is only supported"
+              + " for CHANGE_REQUEST and CHANGE_REQUEST_FROM_SOT mode.");
     }
   }
 

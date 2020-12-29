@@ -498,8 +498,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
       check(
-          mode == WorkflowMode.CHANGE_REQUEST,
-          "'set_rev_id = False' is only supported" + " for CHANGE_REQUEST mode.");
+          mode == WorkflowMode.CHANGE_REQUEST || mode == WorkflowMode.CHANGE_REQUEST_FROM_SOT,
+          "'set_rev_id = False' is only supported"
+              + " for CHANGE_REQUEST and CHANGE_REQUEST_FROM_SOT mode.");
     }
     if (smartPrune) {
       check(
