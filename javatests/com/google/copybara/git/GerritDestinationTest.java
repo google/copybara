@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static com.google.copybara.testing.git.GitTestUtil.ALWAYS_TRUE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -1149,6 +1150,26 @@ public class GerritDestinationTest {
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + secondChangeId);
+  }
+
+  @Test
+  public void testDryRunOnGetActiveChanges() throws Exception {
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    options.general.dryRunMode = true;
+    gitUtil.mockApi(
+        eq("GET"),
+        eq("https://localhost:33333/changes/?q="
+            + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
+            + "%20project:foo/bar%20AND%20status:NEW"),
+        mockResponseWithStatus("That’s an error: Gerrit Code Review is not enabled.",
+            404, ALWAYS_TRUE));
+
+    process(new DummyRevision("origin_ref"));
+
+    console.assertThat().logContains(MessageType.WARNING,
+        ".*Failed querying the hash tag from gerrit changes. Reason.*");
   }
 
   @Test

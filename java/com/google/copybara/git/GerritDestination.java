@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.flogger.FluentLogger;
 import com.google.common.hash.Hashing;
 import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
@@ -75,6 +76,8 @@ import javax.annotation.Nullable;
  * Gerrit repository destination.
  */
 public final class GerritDestination implements Destination<GitRevision> {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final int MAX_FIND_ATTEMPTS = 150;
 
@@ -227,9 +230,20 @@ public final class GerritDestination implements Destination<GitRevision> {
 
       console.progressFmt("Querying Gerrit ('%s') for active changes with hashtag '%s'",
           repoUrl, hashTag);
-      List<ChangeInfo> changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
-          String.format("hashtag:\"%s\" AND project:%s AND status:NEW",
-              hashTag, gerritOptions.getProject(repoUrl))));
+      List<ChangeInfo> changes;
+      try {
+        changes = gerritOptions.newGerritApi(repoUrl).getChanges(new ChangesQuery(
+            String.format("hashtag:\"%s\" AND project:%s AND status:NEW",
+                hashTag, gerritOptions.getProject(repoUrl))));
+      } catch(RepoException | ValidationException e) {
+        String errMsgFmt = "Failed querying the hash tag from gerrit changes. Reason: %s";
+        logger.atWarning().log(errMsgFmt, e.getMessage());
+        if (generalOptions.dryRunMode) {
+          console.warnFmt(errMsgFmt, e.getMessage());
+          return Optional.empty();
+        }
+        throw e;
+      }
       Optional<ChangeInfo> maxChangeNumber = changes.stream()
           .max(Comparator.comparingLong(ChangeInfo::getNumber));
       if (changes.size() > 1) {
