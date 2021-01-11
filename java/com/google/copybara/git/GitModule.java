@@ -201,7 +201,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = PATCH_FIELD,
             allowedTypes = {
@@ -499,7 +499,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "If true, partially fetch git repository by only fetching affected files.."),
         @Param(
             name = "api_checker",
             allowedTypes = {
@@ -949,7 +949,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = PATCH_FIELD,
             allowedTypes = {

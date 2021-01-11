@@ -2174,7 +2174,7 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string` or `NoneType`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files..</p>
 api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string` or `NoneType`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
@@ -2283,7 +2283,7 @@ url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string` or `NoneType`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
 version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
@@ -2549,7 +2549,7 @@ ref | `string` or `NoneType`<br><p>Represents the default reference that will be
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 include_branch_commit_logs | `bool`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 patch | `transformation` or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
 version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
