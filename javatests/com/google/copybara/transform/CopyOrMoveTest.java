@@ -23,8 +23,8 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

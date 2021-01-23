@@ -99,7 +99,6 @@ BASE_SRCS = [
     "LocalParallelizer.java",
     "Metadata.java",
     "MigrationInfo.java",
-    "NonReversibleValidationException.java",
     "Option.java",
     "Options.java",
     "Origin.java",

@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.exception;
 
 import net.starlark.java.eval.EvalException;
 
 /**
- * Exception thrown when a {@link Transformation} is not reversible but the configuration asked for
- * the reverse.
- *
- * TODO(malcon): Move to the exception package
+ * Exception thrown when a {@link com.google.copybara.Transformation} is not reversible
+ * but the configuration asked for the reverse.
  */
 public class NonReversibleValidationException extends EvalException {
 

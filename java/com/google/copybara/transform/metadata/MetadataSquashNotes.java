@@ -18,9 +18,9 @@ package com.google.copybara.transform.metadata;
 
 import com.google.common.collect.Lists;
 import com.google.copybara.Change;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;

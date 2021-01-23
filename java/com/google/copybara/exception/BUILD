@@ -28,5 +28,8 @@ java_library(
         ["**/*.java"],
     ),
     javacopts = JAVACOPTS,
-    deps = ["//third_party:error_prone"],
+    deps = [
+        "//third_party:starlark",
+        "//third_party:error_prone",
+    ],
 )

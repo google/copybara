@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;

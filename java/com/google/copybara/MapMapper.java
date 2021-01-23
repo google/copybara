@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.transform.ReversibleFunction;
 
 public class MapMapper implements ReversibleFunction<String, String> {

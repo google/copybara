@@ -20,11 +20,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import javax.annotation.Nullable;

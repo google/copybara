@@ -35,6 +35,7 @@ import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.feedback.Action;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.feedback.StarlarkAction;

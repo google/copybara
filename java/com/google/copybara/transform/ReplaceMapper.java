@@ -21,7 +21,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.NonReversibleValidationException;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.transform.RegexTemplateTokens.Replacer;
 import java.util.concurrent.ExecutionException;
 
