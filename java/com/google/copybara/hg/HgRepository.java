@@ -64,10 +64,10 @@ public class HgRepository {
   static final String HG_ORIGIN_REV_ID = "HgOrigin-RevId";
 
   private static final Pattern INVALID_HG_REPOSITORY =
-      Pattern.compile("abort: repository .+ not found!");
+      Pattern.compile("abort: repository .+ not found");
 
   private static final Pattern UNKNOWN_REVISION =
-      Pattern.compile("abort: unknown revision '.+'!");
+      Pattern.compile("abort: unknown revision '.+'");
 
   private static final Pattern INVALID_REF_EXPRESSION =
       Pattern.compile("syntax error in revset '.+'");
