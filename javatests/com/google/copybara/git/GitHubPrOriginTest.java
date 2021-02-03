@@ -771,6 +771,11 @@ public class GitHubPrOriginTest {
                     "review_state = 'HEAD_COMMIT_APPROVED'",
                     "review_approvers = [\"MEMBER\", \"OWNER\"]"));
     assertThat(e).hasMessageThat().contains("missing the required approvals");
+    assertThat(e).hasMessageThat().contains("MEMBER");
+    assertThat(e).hasMessageThat().contains("OWNER");
+    assertThat(e).hasMessageThat()
+        .contains("User APPROVED_COLLABORATOR - Association: COLLABORATOR");
+    assertThat(e).hasMessageThat().contains("User COMMENTED_OTHER - Association: NONE");
 
     GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
         "review_approvers = [\"MEMBER\", \"OWNER\"]");

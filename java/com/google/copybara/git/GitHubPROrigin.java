@@ -22,13 +22,16 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
 import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -321,12 +324,22 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     }
     if (reviewState != null) {
       ImmutableList<Review> reviews = api.getReviews(project, prNumber);
-      if (!gitHubPrOriginOptions.forceImport
-          && !reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha())) {
+      ApproverState shouldMigrate =
+          reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha());
+      if (!gitHubPrOriginOptions.forceImport && !shouldMigrate.shouldMigrate()) {
+        String rejected = "";
+        if (!shouldMigrate.rejectedReviews().isEmpty()) {
+          rejected = String.format("\nThe following reviews were ignored because they don't meet "
+                  + "the association requirement of %s:\n%s",
+              Joiner.on(", ").join(reviewApprovers),
+              shouldMigrate.rejectedReviews().entrySet().stream()
+                  .map(e -> String.format("User %s - Association: %s", e.getKey(), e.getValue()))
+                  .collect(Collectors.joining("\n")));
+        }
         throw new EmptyChangeException(String.format(
             "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
-                + " approvals (origin is configured as %s)",
-            project, prNumber, reviewState));
+                + " approvals (origin is configured as %s).%s",
+            project, prNumber, reviewState, rejected));
       }
       Set<String> approvers = new HashSet<>();
       Set<String> others = new HashSet<>();
@@ -670,16 +683,33 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       }
     };
 
-    boolean shouldMigrate(ImmutableList<Review> reviews,
+    ApproverState shouldMigrate(ImmutableList<Review> reviews,
         ImmutableSet<AuthorAssociation> approvers, String sha) {
-      return shouldMigrate(
+      return ApproverState.create(shouldMigrate(
           reviews.stream()
-              // Only take into acccount reviews by valid approverTypes
+              // Only take into account reviews by valid approverTypes
               .filter(e -> approvers.contains(e.getAuthorAssociation()))
               .collect(toImmutableList()),
-          sha);
+          sha),
+          reviews.stream()
+              .filter(e -> !approvers.contains(e.getAuthorAssociation()))
+              .collect(toImmutableList()));
     }
 
     abstract boolean shouldMigrate(ImmutableList<Review> reviews, String sha);
+  }
+
+  @AutoValue
+  abstract static class ApproverState {
+    public abstract boolean shouldMigrate();
+    public abstract ImmutableMap<String, String> rejectedReviews();
+
+    public static ApproverState create(
+        boolean shouldMigrate, ImmutableList<Review> rejectedReviews) {
+      return new AutoValue_GitHubPROrigin_ApproverState(
+          shouldMigrate,
+          rejectedReviews.stream().collect(ImmutableMap.toImmutableMap(
+              r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
+    }
   }
 }
