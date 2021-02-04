@@ -718,6 +718,64 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void gerritSubmit_plusTwoRestricted() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(eq("GET"), startsWith(BASE_URL +  "/changes/"),
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"NEW\""
+                + "}]")
+    );
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    AtomicBoolean reviewCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseWithStatus("Applying label \\\"Code-Review\\\": 2 is restricted\\n\\n", 401));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseAndValidateRequest(
+            "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"submitted\""
+                + "}",
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                }))
+    );
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext("GerritDestinationTest", "test", false, originRef,
+            Glob.ALL_FILES.roots());
+    ValidationException validationException =
+        assertThrows(ValidationException.class,
+            () ->  destination
+              .newWriter(writerContext)
+              .write(
+                  TransformResults.of(workdir, originRef)
+                      .withSummary("Test message")
+                      .withIdentity(originRef.asString()),
+                  glob,
+                  console));
+
+    assertThat(validationException).hasMessageThat().contains("2 is restricted");
+  }
+
+  @Test
   public void gerritSubmit_noChange() throws Exception {
     options.gerrit.gerritChangeId = null;
     fetch = "master";

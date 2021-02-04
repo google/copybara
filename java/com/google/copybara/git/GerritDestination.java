@@ -315,6 +315,11 @@ public final class GerritDestination implements Destination<GitRevision> {
         ChangeInfo resultInfo =
             gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
         console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
+      } catch(RepoException e) {
+        if (e.getMessage().contains("2 is restricted")) {
+          throw new ValidationException(e.getMessage(), e);
+        }
+        throw e;
       }
     }
 
