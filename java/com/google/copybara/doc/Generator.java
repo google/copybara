@@ -19,7 +19,6 @@ package com.google.copybara.doc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.function.Function.identity;
 
-import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -32,8 +31,19 @@ import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.Library;
 import com.google.copybara.doc.annotations.UsesFlags;
+import com.google.copybara.jcommander.DurationConverter;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+
+import com.beust.jcommander.Parameter;
+
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -56,13 +66,8 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import javax.annotation.Nullable;
-import net.starlark.java.annot.Param;
-import net.starlark.java.annot.ParamType;
-import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkMethod;
-import net.starlark.java.eval.NoneType;
-import net.starlark.java.eval.Starlark;
 
 /**
  * Given a file with list of classes, an output file, and an optional template file, generates
@@ -241,11 +246,16 @@ public class Generator {
                     if (p.hidden()) {
                       continue;
                     }
+                    String description = p.description();
+                    if (DurationConverter.class.isAssignableFrom(p.converter())) {
+                      description += (description.endsWith(".") ? " " : ". ")
+                          + " Example values: 30s, 20m, 1h, etc.";
+                    }
                     result.add(
                         new DocFlag(
                             Joiner.on(", ").join(p.names()),
                             simplerJavaTypes(f.getType()),
-                            p.description()));
+                            description));
                   }
                 }
               }

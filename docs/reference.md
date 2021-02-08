@@ -565,9 +565,9 @@ main_config_path | Location of the config file. This is subject to change
 
 Name | Type | Description
 ---- | ---- | -----------
-<span style="white-space: nowrap;">`--commands-timeout`</span> | *duration* | Commands timeout
+<span style="white-space: nowrap;">`--commands-timeout`</span> | *duration* | Commands timeout.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--config-root`</span> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
-<span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.
+<span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--console-file-path`</span> | *string* | If set, write the console output also to the given file path.
 <span style="white-space: nowrap;">`--debug-file-break`</span> | *string* | Stop when file matching the glob changes
 <span style="white-space: nowrap;">`--debug-metadata-break`</span> | *boolean* | Stop when message and/or author changes
@@ -575,7 +575,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
-<span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout
+<span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
