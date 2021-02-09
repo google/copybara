@@ -889,7 +889,18 @@ public class GitHubPrOriginTest {
                         "author_association",
                         "NONE",
                         "commit_id",
-                        prHeadSha1)))));
+                        prHeadSha1),
+                    // Same user to test duplication.
+                    ImmutableMap.of(
+                        "user",
+                        ImmutableMap.of("login", "COMMENTED_OTHER"),
+                        "state",
+                        "COMMENTED",
+                        "author_association",
+                        "NONE",
+                        "commit_id",
+                        Strings.repeat("0", 40))
+                    ))));
 
     GitHubPROrigin origin = createGitHubPrOrigin(configLines);
 

@@ -31,7 +31,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -332,7 +331,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
           rejected = String.format("\nThe following reviews were ignored because they don't meet "
                   + "the association requirement of %s:\n%s",
               Joiner.on(", ").join(reviewApprovers),
-              shouldMigrate.rejectedReviews().entrySet().stream()
+              shouldMigrate.rejectedReviews().entries().stream()
                   .map(e -> String.format("User %s - Association: %s", e.getKey(), e.getValue()))
                   .collect(Collectors.joining("\n")));
         }
@@ -702,13 +701,13 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   @AutoValue
   abstract static class ApproverState {
     public abstract boolean shouldMigrate();
-    public abstract ImmutableMap<String, String> rejectedReviews();
+    public abstract ImmutableListMultimap<String, String> rejectedReviews();
 
     public static ApproverState create(
         boolean shouldMigrate, ImmutableList<Review> rejectedReviews) {
       return new AutoValue_GitHubPROrigin_ApproverState(
           shouldMigrate,
-          rejectedReviews.stream().collect(ImmutableMap.toImmutableMap(
+          rejectedReviews.stream().collect(ImmutableListMultimap.toImmutableListMultimap(
               r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
     }
   }
