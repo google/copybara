@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.util.ExitCode.SUCCESS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -28,6 +29,7 @@ import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -62,6 +64,7 @@ public class InfoTest {
   private TestingEventMonitor eventMonitor;
   private Migration migration;
   private Config config;
+  private ConfigWithDependencies configWithDeps;
   private Path temp;
   private ImmutableMultimap<String, String> dummyOriginDescription;
   private ImmutableMultimap<String, String> dummyDestinationDescription;
@@ -83,13 +86,14 @@ public class InfoTest {
     config = new Config(ImmutableMap.of("workflow", migration),
         temp.resolve("copy.bara.sky").toString(),
         ImmutableMap.of());
+    configWithDeps = mock(ConfigWithDependencies.class);
+    when(configWithDeps.getConfig()).thenAnswer(i -> config);
     configInfo = ""
         + "core.workflow("
         + "    name = 'workflow',"
-        + "    origin = git.origin(url = 'https://example.com/orig'),"
+        + "    origin = git.origin(url = 'https://example.com/orig', ref = 'master'),"
         + "    destination = git.destination(url = 'https://example.com/dest'),"
-        + "    ref = 'master'"
-        + "    authoring = authoring.overwrite('Foo <foo@example.com>'),"
+        + "    authoring = authoring.overwrite('Foo <foo@example.com>')"
         + ")\n\n"
         + "";
     info = new InfoCmd(
@@ -134,7 +138,8 @@ public class InfoTest {
     console.assertThat()
         .matchesNextSkipAhead(MessageType.INFO,
             ".*example.*git\\.mirror \\(https://example.com/mirror1\\)"
-                + ".*git\\.mirror \\(https://example.com/mirror2\\).*MIRROR.*This is a description.*")
+                + ".*git\\.mirror \\(https://example.com/mirror2\\)"
+                + ".*MIRROR.*This is a description.*")
         .matchesNext(MessageType.INFO,
         ".*workflow.*git\\.origin \\(https://example.com/orig\\)"
             + ".*git\\.destination \\(https://example.com/dest\\).*SQUASH.*");
@@ -155,6 +160,10 @@ public class InfoTest {
           public Config load(Console console) {
             return config;
           }
+          @Override
+          public ConfigWithDependencies loadWithDependencies(Console console) {
+            return configWithDeps;
+          }
         }, getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
@@ -165,7 +174,7 @@ public class InfoTest {
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
     info.run(new CommandEnv(temp,
         optionsBuilder.build(),
-        ImmutableList.of("copy.bara.sky","workflow")));
+        ImmutableList.of("copy.bara.sky", "workflow")));
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
@@ -183,6 +192,10 @@ public class InfoTest {
           @Override
           public Config load(Console console) {
             return config;
+          }
+          @Override
+          public ConfigWithDependencies loadWithDependencies(Console console) {
+            return configWithDeps;
           }
         },  getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
@@ -211,7 +224,7 @@ public class InfoTest {
 
     info.run(new CommandEnv(temp,
         optionsBuilder.build(),
-        ImmutableList.of("copy.bara.sky","workflow")));
+        ImmutableList.of("copy.bara.sky", "workflow")));
 
     assertThat(eventMonitor.infoFinishedEvent).isNotNull();
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);

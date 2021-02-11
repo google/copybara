@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.Migration;
+import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
@@ -65,19 +66,19 @@ public class InfoCmd implements CopybaraCmd {
       throws ValidationException, IOException, RepoException {
     ConfigFileArgs configFileArgs = commandEnv.parseConfigFileArgs(this,  /*useSourceRef*/false);
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
-    Config config = configLoaderProvider
+    ConfigWithDependencies config = configLoaderProvider
         .newLoader(configFileArgs.getConfigPath(), configFileArgs.getSourceRef())
-        .load(console);
+        .loadWithDependencies(console);
     if (commandEnv.getOptions().get(GeneralOptions.class).infoListOnly) {
-      listMigrations(commandEnv, config);
+      listMigrations(commandEnv, config.getConfig());
       return ExitCode.SUCCESS;
     }
     if (configFileArgs.hasWorkflowName()) {
       ImmutableMap<String, String> context =
           contextProvider.getContext(config, configFileArgs, configLoaderProvider, console);
-      info(commandEnv.getOptions(), config, configFileArgs.getWorkflowName(), context);
+      info(commandEnv.getOptions(), config.getConfig(), configFileArgs.getWorkflowName(), context);
     } else {
-      showAllMigrations(commandEnv, config);
+      showAllMigrations(commandEnv, config.getConfig());
     }
     return ExitCode.SUCCESS;
   }

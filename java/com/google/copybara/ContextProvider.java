@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.config.Config;
+import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -28,4 +29,12 @@ public interface ContextProvider {
   ImmutableMap<String, String> getContext(Config config, ConfigFileArgs configFileArgs,
       ConfigLoaderProvider configLoaderProvider, Console console)
       throws ValidationException, IOException;
+
+  /** get context for CMD */
+  default ImmutableMap<String, String> getContext(
+      ConfigWithDependencies config, ConfigFileArgs configFileArgs,
+      ConfigLoaderProvider configLoaderProvider, Console console)
+      throws ValidationException, IOException {
+    return getContext(config.getConfig(), configFileArgs, configLoaderProvider, console);
+  };
 }
