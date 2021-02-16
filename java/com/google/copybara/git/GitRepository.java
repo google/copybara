@@ -329,8 +329,8 @@ public class GitRepository {
       args.add("--").add(rev.getSha1());
       return simpleCommand(args.build()).getStdout().trim();
     } catch (RepoException e) {
-      logger.atWarning()
-          .withCause(e).log("Cannot get describe version for commit " + rev.getSha1());
+      logger.atWarning().withCause(e).log(
+          "Cannot get describe version for commit %s", rev.getSha1());
       return simpleCommand("describe", "--always", "--", rev.getSha1()).getStdout().trim();
     }
   }

@@ -34,7 +34,6 @@ import com.google.copybara.format.BuildifierOptions;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Consoles;
 import com.google.copybara.shell.Command;
@@ -118,10 +117,10 @@ public final class BuildozerOptions implements Option {
           .withInput(Joiner.on('\n').join(commands).getBytes(UTF_8))
           .execute();
       if (!output.getStdout().isEmpty()) {
-        logger.atInfo().log("buildozer stdout: " + output.getStdout());
+        logger.atInfo().log("buildozer stdout: %s", output.getStdout());
       }
       if (!output.getStderr().isEmpty()) {
-        logger.atInfo().log("buildozer stderr: " + output.getStderr());
+        logger.atInfo().log("buildozer stderr: %s", output.getStderr());
       }
     } catch (BadExitStatusWithOutputException e) {
       // Don't print the output for common/known errors.

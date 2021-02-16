@@ -35,7 +35,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
-import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Consoles;
@@ -131,10 +130,10 @@ public class BuildifierFormat implements Transformation {
           .withVerbose(generalOptions.isVerbose())
           .execute();
       if (!output.getStdout().isEmpty()) {
-        logger.atInfo().log("buildifier stdout: " + output.getStdout());
+        logger.atInfo().log("buildifier stdout: %s", output.getStdout());
       }
       if (!output.getStderr().isEmpty()) {
-        logger.atInfo().log("buildifier stderr: " + output.getStderr());
+        logger.atInfo().log("buildifier stderr: %s", output.getStderr());
       }
     } catch (BadExitStatusWithOutputException e) {
       log(console, e.getOutput());

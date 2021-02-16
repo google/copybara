@@ -453,20 +453,19 @@ public class Main {
 
   protected void cleanupOutputDir(GeneralOptions generalOptions)
       throws RepoException, IOException, ValidationException {
-    generalOptions
-        .ioRepoTask(
-            "clean_outputdir",
-            () -> {
-              if (generalOptions.isNoCleanup()) {
-                return null;
-              }
-              generalOptions.console().progress("Cleaning output directory");
-              generalOptions.getDirFactory().cleanupTempDirs();
-              // Only for profiling purposes, no need to use the console
-              logger.atInfo()
-                  .log("Cleaned output directory:" + generalOptions.getDirFactory().getTmpRoot());
-              return null;
-            });
+    generalOptions.ioRepoTask(
+        "clean_outputdir",
+        () -> {
+          if (generalOptions.isNoCleanup()) {
+            return null;
+          }
+          generalOptions.console().progress("Cleaning output directory");
+          generalOptions.getDirFactory().cleanupTempDirs();
+          // Only for profiling purposes, no need to use the console
+          logger.atInfo().log(
+              "Cleaned output directory:%s", generalOptions.getDirFactory().getTmpRoot());
+          return null;
+        });
   }
   /**
    * Performs cleanup tasks after executing Copybara.

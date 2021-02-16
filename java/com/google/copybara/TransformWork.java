@@ -745,8 +745,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     } catch (RepoException e) {
       console
           .warn("Cannot access date for change " + currentRev.asString() + ": " + e.getMessage());
-      logger.atWarning().withCause(e)
-          .log("Cannot access readTimestamp for revision: " + currentRev);
+      logger.atWarning().withCause(e).log(
+          "Cannot access readTimestamp for revision: %s", currentRev);
     }
     labels.put(
         COPYBARA_CURRENT_REV_DATE_TIME,

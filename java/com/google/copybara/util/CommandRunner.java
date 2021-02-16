@@ -320,7 +320,7 @@ private static class DefaultExecutor implements CommandExecutor {
     }
     int lines = 0;
     for (String line : Splitter.on(System.lineSeparator()).split(string)) {
-      logger.at(level).log(prefix + line);
+      logger.at(level).log("%s%s", prefix, line);
       lines++;
       if (maxLogLines >= 0 && lines >= maxLogLines) {
         logger.at(level).log("%s... truncated after %d line(s)", prefix, maxLogLines);
