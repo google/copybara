@@ -1439,7 +1439,7 @@ public class GitRepository {
    * @param cwd the directory in which to execute the command
    * @param params params the argv to pass to Git, excluding the initial {@code git}
    */
-  private CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
+  protected CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
     try {
       return executeGit(cwd, params, gitEnv, verbose);
     } catch (BadExitStatusWithOutputException e) {
@@ -1474,7 +1474,7 @@ public class GitRepository {
    * (0-10. The upper bound is arbitrary). And will still fail for exit codes like 127 (Command not
    * found).
    */
-  private CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params,
+  protected CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params,
       Duration defaultTimeout)
       throws RepoException {
     try {
