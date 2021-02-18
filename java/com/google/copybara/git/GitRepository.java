@@ -446,14 +446,14 @@ public class GitRepository {
    */
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
-      throws RepoException {
+      throws RepoException, ValidationException {
     return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines);
   }
 
 
   private static Map<String, String> lsRemote(Path cwd,
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
-      throws RepoException {
+      throws RepoException, ValidationException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
     List<String> args;
@@ -468,10 +468,15 @@ public class GitRepository {
     try {
       output = executeGit(cwd, args, gitEnv, false, maxLogLines);
     } catch (BadExitStatusWithOutputException e) {
-      throw new RepoException(
-          String.format("Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
-              url, refs, e.getOutput().getTerminationStatus().getExitCode(),
-              e.getOutput().getStderr()), e);
+      String errMsg = String.format(
+          "Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
+          url, refs, e.getOutput().getTerminationStatus().getExitCode(),
+          e.getOutput().getStderr());
+      if (e.getOutput().getStderr().contains(
+          "Please make sure you have the correct access rights")) {
+         throw new ValidationException(errMsg, e);
+      }
+      throw new RepoException(errMsg, e);
     } catch (CommandException e) {
       throw new RepoException(
           String.format("Error running ls-remote for '%s' and refs '%s'", url, refs), e);
@@ -499,7 +504,8 @@ public class GitRepository {
    * @return - a map of refs to sha1 from the git ls-remote output.
    * @throws RepoException if the operation fails
    */
-  public Map<String, String> lsRemote(String url, Collection<String> refs) throws RepoException {
+  public Map<String, String> lsRemote(String url, Collection<String> refs)
+      throws RepoException, ValidationException {
     return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES);
   }
 
@@ -513,7 +519,7 @@ public class GitRepository {
    * @throws RepoException if the operation fails
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
-      throws RepoException {
+      throws RepoException, ValidationException {
     return lsRemote(url, refs, gitEnv, maxLogLines);
   }
 

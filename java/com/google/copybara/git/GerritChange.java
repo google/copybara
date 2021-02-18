@@ -264,7 +264,7 @@ class GerritChange {
    */
   static TreeMap<Integer, GitRevision> getGerritPatchSets(
       GitRepository repository, String url, int changeNumber)
-      throws RepoException, CannotResolveRevisionException {
+      throws RepoException, ValidationException {
     TreeMap<Integer, GitRevision> patchSets = new TreeMap<>();
     String basePath = String.format("refs/changes/%02d/%d", changeNumber % 100, changeNumber);
     Map<String, String> refsToSha1 = repository.lsRemote(url, ImmutableList.of(basePath + "/*"));

@@ -98,7 +98,7 @@ public class FuzzyClosestVersionSelector implements VersionSelector {
           .stream()
           .map(s -> s.substring("refs/tags/".length()))
           .collect(toImmutableList());
-    } catch (RepoException e) {
+    } catch (RepoException | ValidationException e) {
       console.warnFmt("Unable to obtain tags for %s. %s", url, e);
     }
     return ImmutableList.of();

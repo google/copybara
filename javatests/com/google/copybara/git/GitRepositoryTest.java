@@ -783,6 +783,22 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testLsRemoteNotExist() throws Exception {
+    String url = "file://" + Files.createTempDirectory("foo");
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> GitRepository.lsRemote(
+                url,
+                Collections.emptyList(),
+                new GitEnvironment(System.getenv()), /*maxLogLines*/
+                -1));
+
+    assertThat(e).hasMessageThat().contains("Error running ls-remote for '" + url + "'");
+  }
+
+  @Test
   public void testLsTreeWithReviewContext() throws Exception {
     Files.write(Files.createDirectories(workdir.resolve("foo")).resolve("foo.txt"), new byte[]{});
     repository.add().files("foo/foo.txt").run();
