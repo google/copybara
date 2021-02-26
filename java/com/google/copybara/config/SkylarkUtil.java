@@ -17,6 +17,7 @@
 package com.google.copybara.config;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -199,5 +200,31 @@ public final class SkylarkUtil {
   @Nullable
   public static String convertOptionalString(Object x) {
     return x == Starlark.NONE ? null : (String) x;
+  }
+
+  /** Casts nested sequence type in Dict */
+  public static <K, V> Dict<K, V> castOfSequence(
+      Object x, Class<K> keyType, Class<K> nestedValueType, String what) throws EvalException {
+    Preconditions.checkNotNull(x);
+    if (!(x instanceof Dict)) {
+      throw Starlark.errorf("got %s for '%s', want dict", Starlark.type(x), what);
+    }
+
+    for (Map.Entry<?, ?> e : ((Map<?, ?>) x).entrySet()) {
+      if (!keyType.isAssignableFrom(e.getKey().getClass())
+          && Sequence.cast(e.getValue(), nestedValueType, what) != null) {
+        throw Starlark.errorf(
+            "got dict<%s, %s> for '%s', want dict<%s, Sequence<%s>>",
+            Starlark.type(e.getKey()),
+            Starlark.type(e.getValue()),
+            what,
+            Starlark.classType(keyType),
+            Starlark.classType(nestedValueType));
+      }
+    }
+
+    @SuppressWarnings("unchecked") // safe
+    Dict<K, V> res = (Dict<K, V>) x;
+    return res;
   }
 }
