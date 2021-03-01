@@ -293,7 +293,14 @@ public final class GitDestination implements Destination<GitRevision> {
       if (!state.alreadyFetched) {
         GitRevision revision = fetchFromRemote(console, repo, repoUrl, remoteFetch);
         if (revision != null) {
-          repo.simpleCommand("branch", state.localBranch, revision.getSha1());
+          try {
+            repo.simpleCommand("branch", state.localBranch, revision.getSha1());
+          } catch (RepoException e) {
+            if (e.getMessage().contains(String.format("%s already exists", state.localBranch))) {
+              return;
+            }
+            throw e;
+          }
         }
         state.alreadyFetched = true;
       }
