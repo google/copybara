@@ -8,7 +8,8 @@
 ## Basic git-to-git import
 
 This example will import Copybara source code to an internal git repository
-under ``$GIT/third_party/copybara``.
+under ``$GIT/third_party/copybara``. Files named ``README_INTERNAL.txt``
+will not be copied.
 
 Assuming you have an existing git repository. For the example in ``/tmp/foo``. But it could be
 a remote one:
@@ -40,8 +41,8 @@ core.workflow(
 
     authoring = authoring.pass_thru("Default email <default@default.com>"),
     transformations = [
-	    core.move("", "third_party/copybara"),
-	],
+        core.move("", "third_party/copybara"),
+    ]
 )
 ```
 
