@@ -200,9 +200,9 @@ core.workflow(
     transformations = [
         core.replace(
             before = "//third_party/bazel/bashunit",
-	    after = "//another/path:bashunit",
+            after = "//another/path:bashunit",
             paths = glob(["**/BUILD"]),
-	),
+        ),
         core.move("", "third_party/copybara"),
     ],
 )
