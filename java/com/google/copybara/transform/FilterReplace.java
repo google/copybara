@@ -142,6 +142,9 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
       for (FileState file : elements) {
+        if (Files.isSymbolicLink(file.getPath())) {
+          continue;
+        }
         matchedFile = true;
         String originalContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
         String transformed = replaceString(originalContent);
