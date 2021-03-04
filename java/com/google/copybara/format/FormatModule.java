@@ -61,7 +61,6 @@ public class FormatModule implements StarlarkValue {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
 
-  // TODO(malcon): Move this to the OSS version
   @StarlarkMethod(
       name = "buildifier",
       doc = "Formats the BUILD files using buildifier.",
