@@ -172,6 +172,30 @@ public class FilterReplaceTest {
   }
 
   @Test
+  public void testGroupOptional() throws Exception {
+
+    write("file1.txt", ""
+        + "#import <foo>\n"
+        + "#import <aaaa>copybara\n"
+        + "");
+    write("file2.txt", "#import<other>\n");
+
+    transform(filterReplace(""
+        + "regex = '#import <(.*)>(copybara)?',"
+        + "mapping = {"
+        + "    'copybara': 'baracopy',\n"
+        + "},"
+        + "group = 2,"
+    ));
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", ""
+            + "#import <foo>\n"
+            + "#import <aaaa>baracopy\n")
+        .containsFile("file2.txt", "#import<other>\n")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testCustomReverse() throws Exception {
     String original = ""
         + "#import <foo1>\n"

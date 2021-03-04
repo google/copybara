@@ -142,9 +142,6 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
       List<FileState> changed = new ArrayList<>();
       boolean matchedFile = false;
       for (FileState file : elements) {
-        if (Files.isSymbolicLink(file.getPath())) {
-          continue;
-        }
         matchedFile = true;
         String originalContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
         String transformed = replaceString(originalContent);
@@ -170,11 +167,14 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
   private String replaceString(String originalContent) {
     Pattern pattern = Pattern.compile(before.pattern());
     Matcher matcher = pattern.matcher(originalContent);
-
     boolean anyReplace = false;
     StringBuilder result = new StringBuilder(originalContent.length());
     while (matcher.find()) {
       String val = matcher.group(FilterReplace.this.group);
+      if (val == null) {
+        matcher.appendReplacement(result, Matcher.quoteReplacement(matcher.group(0)));
+        continue;
+      }
       String res = mapping.apply(val);
       anyReplace |= !val.equals(res);
       if (group == 0) {
