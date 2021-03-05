@@ -58,7 +58,6 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
@@ -204,7 +203,7 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
         returnType);
   }
 
-  private List<? extends Element> findStarlarkMethods(TypeElement module) {
+  private ImmutableList<? extends Element> findStarlarkMethods(TypeElement module) {
     TypeMirror superclass = module.getSuperclass();
     ImmutableList.Builder<Element> result = ImmutableList.builder();
     if (!(superclass instanceof NoType)) {

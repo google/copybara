@@ -169,7 +169,7 @@ public class DummyRevision implements Revision {
                         computeChangedFiles());
   }
 
-  private Set<String> computeChangedFiles() {
+  private ImmutableSet<String> computeChangedFiles() {
     Map<String, String> pathToContent = readAllFiles(changesBase);
     Map<String, String> previousContent = previousPath == null
         ? ImmutableMap.of()

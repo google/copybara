@@ -72,7 +72,7 @@ final class Target {
     return new Target(configString.split(":", 2));
   }
 
-  static List<String> asStringList(List<Target> targets) {
+  static ImmutableList<String> asStringList(List<Target> targets) {
     return targets.stream().map(t -> t.toString()).collect(ImmutableList.toImmutableList());
   }
 }

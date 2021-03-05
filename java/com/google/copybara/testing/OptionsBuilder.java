@@ -168,7 +168,7 @@ public class OptionsBuilder {
     return new Options(ImmutableList.copyOf(allOptions()));
   }
 
-  private static Map<String, String> updateEnvironment(
+  private static ImmutableMap<String, String> updateEnvironment(
       Map<String, String> environment, String key, String value) {
     HashMap<String, String> updatedEnvironment = new HashMap<>(environment);
     updatedEnvironment.put(key, value);

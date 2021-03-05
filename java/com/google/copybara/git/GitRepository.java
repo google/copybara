@@ -450,9 +450,8 @@ public class GitRepository {
     return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines);
   }
 
-
-  private static Map<String, String> lsRemote(Path cwd,
-      String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
+  private static ImmutableMap<String, String> lsRemote(
+      Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException, ValidationException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
