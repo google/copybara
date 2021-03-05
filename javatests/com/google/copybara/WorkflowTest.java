@@ -3154,7 +3154,7 @@ public class WorkflowTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
+  
   public void testToFolderFlag() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     Path destinationPath = Files.createTempDirectory("destination");

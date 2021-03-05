@@ -1020,7 +1020,7 @@ public class GitOriginTest {
     assertThat(instant).isEqualTo(Instant.parse(COMMIT_TIME));
   }
 
-  @SuppressWarnings("unchecked")
+  
   @Test
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
     writeFile(remote, "excluded_file.txt", "some content");

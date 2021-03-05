@@ -75,10 +75,7 @@ public class PaginatedList<T> extends ArrayList<T> {
     return firstUrl;
   }
 
-  /**
-   * Return a PaginatedList with the next/last/etc. fields populated if linkHeader is not null.
-   */
-  @SuppressWarnings("unchecked")
+  /** Return a PaginatedList with the next/last/etc. fields populated if linkHeader is not null. */
   public PaginatedList<T> withPaginationInfo(String apiPrefix, @Nullable String linkHeader) {
     if (linkHeader == null) {
       return this;

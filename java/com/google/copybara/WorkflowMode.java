@@ -226,7 +226,7 @@ public enum WorkflowMode {
   @DocField(description = "Import an origin tree state diffed by a common parent"
       + " in destination. This could be a GH Pull Request, a Gerrit Change, etc.")
   CHANGE_REQUEST {
-    @SuppressWarnings("unchecked")
+    
     @Override
     <O extends Revision, D extends Revision> void run(WorkflowRunHelper<O, D> runHelper)
         throws RepoException, IOException, ValidationException {
