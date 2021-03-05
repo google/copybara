@@ -252,7 +252,7 @@ public class GitTestUtil {
     // Start a branch without history
     repo.simpleCommand("checkout", "--orphan", "meta_branch_" + change);
 
-    Files.write(repo.getWorkTree().resolve("not_used.txt"), "".getBytes());
+    Files.write(repo.getWorkTree().resolve("not_used.txt"), "".getBytes(UTF_8));
     repo.add().files("not_used.txt").run();
 
     repo.simpleCommand("commit", "-m", ""
@@ -266,7 +266,7 @@ public class GitTestUtil {
         + "Branch: refs/heads/master\n"
         + "Commit: 7d15cf91ee118e68b9784a7e7e2bba7a30ad8e59\n"
         + "Groups: 7d15cf91ee118e68b9784a7e7e2bba7a30ad8e59");
-    Files.write(repo.getWorkTree().resolve("not_used.txt"), "a".getBytes());
+    Files.write(repo.getWorkTree().resolve("not_used.txt"), "a".getBytes(UTF_8));
     repo.add().files("not_used.txt").run();
 
     repo.simpleCommand("commit", "-m", ""

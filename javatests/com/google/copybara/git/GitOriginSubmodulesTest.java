@@ -174,8 +174,9 @@ public class GitOriginSubmodulesTest {
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
     // Replace main with '.'. This is a valid branch reference but I haven't found a way of
     // adding it with the submodule command.
-    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace(primary, ".")
-        .getBytes(UTF_8));
+    Files.write(
+        moduleCfg,
+        new String(Files.readAllBytes(moduleCfg), UTF_8).replace(primary, ".").getBytes(UTF_8));
     commit(r2, "adding r1 submodule");
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), primary);
@@ -201,8 +202,11 @@ public class GitOriginSubmodulesTest {
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
     // Replace main with '.'. This is a valid branch reference but I haven't found a way of
     // adding it with the submodule command.
-    Files.write(moduleCfg, new String(Files.readAllBytes(moduleCfg)).replace(primaryBranch, ".")
-        .getBytes(UTF_8));
+    Files.write(
+        moduleCfg,
+        new String(Files.readAllBytes(moduleCfg), UTF_8)
+            .replace(primaryBranch, ".")
+            .getBytes(UTF_8));
     commit(r2, "adding r1 submodule");
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);

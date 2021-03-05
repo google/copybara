@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -29,12 +30,11 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.copybara.git.GitEnvironment;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
-
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -42,13 +42,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
-/**
- * Diff utilities that are repository-agnostic.
- */
+/** Diff utilities that are repository-agnostic. */
 public class DiffUtil {
 
   private static final byte[] EMPTY_DIFF = new byte[]{};
@@ -70,7 +67,7 @@ public class DiffUtil {
   public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
     boolean include = true;
     StringBuilder filteredDiff = new StringBuilder();
-    for (String line : Splitter.on('\n').split(new String(diff))) {
+    for (String line : Splitter.on('\n').split(new String(diff, UTF_8))) {
       if (line.startsWith("diff ")) {
         List<String> diffHeader = Splitter.on(' ').splitToList(line);
         // Given a diff in the format of:
@@ -212,13 +209,6 @@ public class DiffUtil {
     private FoldersDiff withZOption() {
       return new FoldersDiff(verbose, environment, nameStatus, noRenames, /*zOption=*/true,
           noIndex);
-    }
-
-    // TODO(malcon): Use this instead of checkNotInsideGitRepo
-    @CheckReturnValue
-    private FoldersDiff withNoIndex() {
-      return new FoldersDiff(verbose, environment, nameStatus, noRenames, zOption, /*noIndex=*/
-          true);
     }
 
     private byte[] run(Path one, Path other) throws IOException, InsideGitDirException {

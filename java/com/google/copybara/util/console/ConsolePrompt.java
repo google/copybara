@@ -16,15 +16,15 @@
 
 package com.google.copybara.util.console;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Console.PromptPrinter;
 import java.io.InputStream;
 import java.util.Scanner;
 
-/**
- * Reads the input from a {@link Console}.
- */
+/** Reads the input from a {@link Console}. */
 class ConsolePrompt {
 
   private static final ImmutableSet<String> YES = ImmutableSet.of("y", "yes");
@@ -39,7 +39,7 @@ class ConsolePrompt {
   }
 
   boolean promptConfirmation(String message) {
-    Scanner scanner = new Scanner(input);
+    Scanner scanner = new Scanner(input, UTF_8.name());
     promptPrinter.print(message);
     while (scanner.hasNextLine()) {
       String answer = scanner.nextLine().trim().toLowerCase();
