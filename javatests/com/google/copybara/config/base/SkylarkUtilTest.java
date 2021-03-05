@@ -28,21 +28,21 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SkylarkUtilTest {
   @Test
-  public void testCheckNotEmpty_Null() throws Exception {
+  public void testCheckNotEmpty_null() throws Exception {
     EvalException thrown =
         assertThrows(EvalException.class, () -> SkylarkUtil.checkNotEmpty(null, "foo"));
     assertThat(thrown).hasMessageThat().contains("Invalid empty field 'foo'");
   }
 
   @Test
-  public void testCheckNotEmpty_Empty() throws Exception {
+  public void testCheckNotEmpty_empty() throws Exception {
     EvalException thrown =
         assertThrows(EvalException.class, () -> SkylarkUtil.checkNotEmpty("", "foo"));
     assertThat(thrown).hasMessageThat().contains("Invalid empty field 'foo'");
   }
 
   @Test
-  public void testCheckNotEmpty_NonEmpty() throws Exception {
+  public void testCheckNotEmpty_nonEmpty() throws Exception {
     assertThat(SkylarkUtil.checkNotEmpty("test", "foo")).isEqualTo("test");
   }
 }

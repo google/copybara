@@ -509,7 +509,7 @@ public class GitHubEndpointTest {
   }
 
   @Test
-  public void testFeedbackDeleteReference_MasterCheck() {
+  public void testFeedbackDeleteReference_masterCheck() {
     AtomicBoolean called = new AtomicBoolean(false);
     gitUtil.mockApi(eq("DELETE"), contains("/git/refs/heads/master"),
         mockResponseWithStatus("", 202,

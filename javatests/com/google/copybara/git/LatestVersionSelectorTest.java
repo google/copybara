@@ -29,12 +29,10 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -110,7 +108,7 @@ public class LatestVersionSelectorTest {
 
   @Test
   public void testVersionSelector_branch() throws Exception {
-    for (String b : ImmutableList.of("vAlpha1","vBeta1", "vCharly10", "vCharly2")) {
+    for (String b : ImmutableList.of("vAlpha1", "vBeta1", "vCharly10", "vCharly2")) {
       git("branch", b);
     }
 
@@ -151,7 +149,7 @@ public class LatestVersionSelectorTest {
   }
 
   @Test
-  public void testVersionSelector_NoMatch() throws Exception {
+  public void testVersionSelector_noMatch() throws Exception {
     createTags("1.0", "1.1", "1.2");
     ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
     assertThat(e)

@@ -124,7 +124,8 @@ public abstract class AbstractGitHubApiTest {
             .withSort(CREATED));
   }
 
-  private void checkGetPulls(String expectedUrl, PullRequestListParams params) throws IOException, RepoException, ValidationException {
+  private void checkGetPulls(String expectedUrl, PullRequestListParams params)
+      throws IOException, RepoException, ValidationException {
     trainMockGet(expectedUrl, getResource("pulls_testdata.json"));
     ImmutableList<PullRequest> pullRequests = api.getPullRequests(
         "example/project", params);
@@ -562,7 +563,7 @@ public abstract class AbstractGitHubApiTest {
   }
 
   @Test
-  public void test_GetCheckRuns_Sucess() throws Exception {
+  public void test_getCheckRuns_success() throws Exception {
     trainMockGet("/repos/example/project/commits/12345/check-runs",
         getResource("get_check_runs_testdata.json"));
     CheckRuns checkRuns =
@@ -660,21 +661,27 @@ public abstract class AbstractGitHubApiTest {
     return new JsonValidator<>(clazz, predicate);
   }
 
-  // We don't want CreatePullRequest to be instantiable, this subclass sidesteps the issue.
+  /**
+   * We don't want CreatePullRequest to be instantiable, this subclass sidesteps the issue.
+   **/
   public static class TestCreatePullRequest extends CreatePullRequest {
     public TestCreatePullRequest() {
       super("invalid", "invalid", "invalid", "invalid");
     }
   }
 
-  // We don't want CreateStatusRequest to be instantiable, this subclass sidesteps the issue.
+  /**
+   * We don't want CreatePullRequest to be instantiable, this subclass sidesteps the issue.
+   **/
   public static class TestCreateStatusRequest extends CreateStatusRequest {
     public TestCreateStatusRequest() {
       super(State.ERROR, "invalid", "invalid", "invalid");
     }
   }
 
-  // We don't want UpdateReferenceRequest to be instantiable, this subclass sidesteps the issue.
+  /**
+   * We don't want CreatePullRequest to be instantiable, this subclass sidesteps the issue.
+   **/
   public static class TestUpdateReferenceRequest extends UpdateReferenceRequest {
     public TestUpdateReferenceRequest() {
       super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);

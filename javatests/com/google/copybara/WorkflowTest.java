@@ -1820,7 +1820,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void changeRequestChanges_LastChange() throws Exception {
+  public void changeRequestChanges_lastChange() throws Exception {
     origin
         .addSimpleChange(0, "One Change\n" + destination.getLabelNameWhenOrigin() + "=42")
         .addSimpleChange(1, "Second Change")
@@ -2827,7 +2827,7 @@ public class WorkflowTest {
   // Validates that the hook is executed when the workflow throws ValidationException, and that
   // the correct effect is populated
   @Test
-  public void testOnFinishHook_Error() throws Exception {
+  public void testOnFinishHook_error() throws Exception {
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
       public Writer<Revision> newWriter(WriterContext writerContext) {
@@ -2846,7 +2846,7 @@ public class WorkflowTest {
   // Validates that the hook is executed when the workflow throws an exception != VE, and that
   // the correct effect is populated
   @Test
-  public void testOnFinishHook_TemporaryError() throws Exception {
+  public void testOnFinishHook_temporaryError() throws Exception {
     options.testingOptions.destination = new RecordsProcessCallDestination() {
       @Override
       public Writer<Revision> newWriter(WriterContext writerContext) {
