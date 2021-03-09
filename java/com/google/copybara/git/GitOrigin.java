@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
 import static com.google.copybara.util.Glob.affectsRoots;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -73,9 +74,8 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   final String repoUrl;
 
-  /**
-   * Default reference to track
-   */
+  private String resolvedRef = null;
+
   @Nullable
   private final String configRef;
   private final Console console;
@@ -92,15 +92,25 @@ public class GitOrigin implements Origin<GitRevision> {
   @Nullable private final LatestVersionSelector versionSelector;
   @Nullable private final String configPath;
   @Nullable private final String workflowName;
+  protected final boolean primaryBranchMigrationMode;
 
-  GitOrigin(GeneralOptions generalOptions, String repoUrl,
-      @Nullable String configRef, GitRepoType repoType, GitOptions gitOptions,
-      GitOriginOptions gitOriginOptions, SubmoduleStrategy submoduleStrategy,
-      boolean includeBranchCommitLogs, boolean firstParent, boolean partialClone,
-      @Nullable PatchTransformation patchTransformation, boolean describeVersion,
+  GitOrigin(
+      GeneralOptions generalOptions,
+      String repoUrl,
+      @Nullable String configRef,
+      GitRepoType repoType,
+      GitOptions gitOptions,
+      GitOriginOptions gitOriginOptions,
+      SubmoduleStrategy submoduleStrategy,
+      boolean includeBranchCommitLogs,
+      boolean firstParent,
+      boolean partialClone,
+      @Nullable PatchTransformation patchTransformation,
+      boolean describeVersion,
       @Nullable LatestVersionSelector versionSelector,
       @Nullable String configPath,
-      @Nullable String workflowName) {
+      @Nullable String workflowName,
+      boolean primaryBranchMigrationMode) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -120,6 +130,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.versionSelector = versionSelector;
     this.configPath = configPath;
     this.workflowName = workflowName;
+    this.primaryBranchMigrationMode = primaryBranchMigrationMode;
   }
 
   @VisibleForTesting
@@ -155,9 +166,9 @@ public class GitOrigin implements Origin<GitRevision> {
         checkCondition(ref != null, "Cannot find any matching version for latest_version");
       }
     } else if (Strings.isNullOrEmpty(reference)) {
-      checkCondition(configRef != null, "No reference was passed as a command line argument for"
-              + " %s and no default reference was configured in the config file", repoUrl);
-      ref = configRef;
+      checkCondition(getConfigRef() != null, "No reference was passed as a command line argument "
+              + "for %s and no default reference was configured in the config file", repoUrl);
+      ref = getConfigRef();
     } else {
       ref = reference;
     }
@@ -455,6 +466,7 @@ public class GitOrigin implements Origin<GitRevision> {
         .add("repoUrl", repoUrl)
         .add("ref", configRef)
         .add("repoType", repoType)
+        .add("primaryBranchMigrationMode", primaryBranchMigrationMode)
         .toString();
   }
 
@@ -463,7 +475,7 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
-      boolean partialClone,
+      boolean partialClone, boolean primaryBranchMigrationMode,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
       @Nullable LatestVersionSelector versionSelector,
       String configPath, String workflowName) {
@@ -472,7 +484,7 @@ public class GitOrigin implements Origin<GitRevision> {
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         submoduleStrategy, includeBranchCommitLogs, firstParent, partialClone,
         patchTransformation, describeVersion, versionSelector,
-        configPath, workflowName);
+        configPath, workflowName, primaryBranchMigrationMode);
   }
 
   @Override
@@ -487,7 +499,8 @@ public class GitOrigin implements Origin<GitRevision> {
             .put("type", getType())
             .put("repoType", repoType.name())
             .put("url", repoUrl)
-            .put("submodules", submoduleStrategy.name());
+            .put("submodules", submoduleStrategy.name())
+            .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode);
     if (!originFiles.roots().isEmpty() && !originFiles.roots().contains("")) {
       builder.putAll("root", originFiles.roots());
     }
@@ -501,5 +514,20 @@ public class GitOrigin implements Origin<GitRevision> {
       builder.put("refspec", versionSelector.asGitRefspec());
     }
     return builder.build();
+  }
+
+  @Nullable
+  private String getConfigRef() throws RepoException {
+    if (resolvedRef != null) {
+      return resolvedRef;
+    }
+    if (primaryBranchMigrationMode && PRIMARY_BRANCHES.contains(configRef)) {
+      resolvedRef = getRepository().getPrimaryBranch(repoUrl);
+      console.infoFmt("Detected primary origin branch '%s'", resolvedRef);
+    }
+    if (resolvedRef == null) {
+      resolvedRef = configRef;
+    }
+    return resolvedRef;
   }
 }

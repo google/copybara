@@ -56,7 +56,6 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
-import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.NotifyOption;
@@ -125,6 +124,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           + "   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version."
           + " Constant in `ITERATIVE` mode and includes filtered changes.<br>"
           + "`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>";
+
+  /**
+   * Primary branch name that will be ignored if autodetect is enabled.
+   */
+  public static final ImmutableSet<String> PRIMARY_BRANCHES = ImmutableSet.of("master", "main");
 
   protected final Options options;
   private ConfigFile mainConfigFile;
@@ -237,6 +241,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+                @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
+                + " and instead try to establish the default git branch. If this fails, it will "
+                + "fall back to the 'ref' param.\n"
+                + "This is intended to help migrating to the new standard of using 'main' without "
+                + "breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin origin(
@@ -249,6 +266,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object patch,
       Object describeVersion,
       Object versionSelector,
+      Boolean primaryBranchMigration,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -270,6 +288,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         includeBranchCommitLogs,
         firstParent,
         partialFetch,
+        primaryBranchMigration,
         patchTransformation,
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null),
@@ -595,7 +614,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Option to not migrate Gerrit changes that do not change origin_files")
+            doc = "Option to not migrate Gerrit changes that do not change origin_files"),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+                @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
+                + " and instead try to establish the default git branch. If this fails, it will "
+                + "fall back to the 'ref' param.\n"
+                + "This is intended to help migrating to the new standard of using 'main' without "
+                + "breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin gerritOrigin(
@@ -609,6 +641,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object branch,
       Object describeVersion,
       Boolean ignoreGerritNoop,
+      Boolean primaryBranchMigration,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -630,6 +663,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           /*includeBranchCommitLogs=*/ false,
           firstParent,
           partialFetch,
+          primaryBranchMigration,
           patchTransformation,
           convertDescribeVersion(describeVersion),
           /*versionSelector=*/ null,
@@ -646,7 +680,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         patchTransformation,
         convertFromNoneable(branch, null),
         convertDescribeVersion(describeVersion),
-        ignoreGerritNoop);
+        ignoreGerritNoop,
+        primaryBranchMigration);
   }
 
   static final String GITHUB_PR_ORIGIN_NAME = "github_pr_origin";
@@ -1031,6 +1066,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+                @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
+                + " and instead try to establish the default git branch. If this fails, it will "
+                + "fall back to the 'ref' param.\n"
+                + "This is intended to help migrating to the new standard of using 'main' without "
+                + "breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin githubOrigin(
@@ -1042,6 +1090,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object patch,
       Object describeVersion,
       Object versionSelector,
+      Boolean primaryBranchMigration,
       StarlarkThread thread)
       throws EvalException {
     check(GITHUB_COM.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
@@ -1065,6 +1114,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         /*includeBranchCommitLogs=*/ false,
         firstParent,
         partialFetch,
+        primaryBranchMigration,
         patchTransformation,
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null),
@@ -1097,12 +1147,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "push",
             named = true,
-            allowedTypes = {
-                @ParamType(type = String.class),
-                @ParamType(type = NoneType.class),
-            },
             doc = "Reference to use for pushing the change, for example 'main'.",
-            defaultValue = "None"),
+            defaultValue = "'master'"),
         @Param(
             name = "tag_name",
             allowedTypes = {
@@ -1162,21 +1208,35 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
                     + " present in the message",
             positional = false),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+                @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "When enabled, copybara will ignore the 'push' and 'fetch' params if either is "
+                + "'master' or 'main' and instead try to establish the default git branch. If this "
+                + "fails, it will fall back to the param's declared value.\n"
+                + "This is intended to help migrating to the new standard of using 'main' without "
+                + "breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
   public GitDestination destination(
       String url,
-      Object push,
+      String push,
       Object tagName,
       Object tagMsg,
       Object fetch,
       boolean partialFetch,
       Object integrates,
+      Boolean primaryBranchMigration,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = resolvePush(url, push);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     return new GitDestination(
         fixHttp(
@@ -1187,6 +1247,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             "fetch"),
         resolvedPush,
         partialFetch,
+        primaryBranchMigration,
         convertFromNoneable(tagName, null),
         convertFromNoneable(tagMsg, null),
         destinationOptions,
@@ -1196,23 +1257,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
-  }
-
-  String resolvePush(String uri, Object push)
-      throws EvalException {
-    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    GitOptions gitOptions = options.get(GitOptions.class);
-    GeneralOptions generalOpts = options.get(GeneralOptions.class);
-
-    String value = firstNotNull(destinationOptions.push, convertFromNoneable(push, null));
-    if (!Strings.isNullOrEmpty(value)) {
-      return value;
-    }
-    try {
-      return gitOptions.defaultBranchMode.getDefaultBranch(uri, gitOptions, generalOpts);
-    } catch (RepoException | ValidationException e) {
-      throw Starlark.errorf("Error resolving push: %s", e.getMessage());
-    }
   }
 
   @SuppressWarnings("unused")
@@ -1231,12 +1275,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           @Param(
               name = "push",
               named = true,
-              allowedTypes = {
-                  @ParamType(type = String.class),
-                  @ParamType(type = NoneType.class),
-              },
               doc = "Reference to use for pushing the change, for example 'main'.",
-              defaultValue = "None"),
+              defaultValue = "'master'"),
         @Param(
             name = "fetch",
             allowedTypes = {
@@ -1309,6 +1349,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "origin/destination endpoints.",
             named = true,
             positional = false),
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+                @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "When enabled, copybara will ignore the 'push' and 'fetch' params if either is "
+                + "'master' or 'main' and instead try to establish the default git branch. If this "
+                + "fails, it will fall back to the param's declared value.\n"
+                + "This is intended to help migrating to the new standard of using 'main' without "
+                + "breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1316,17 +1369,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @DocDefault(field = "delete_pr_branch", value = "False")
   public GitDestination gitHubDestination(
       String url,
-      Object push,
+      String push,
       Object fetch,
       Object prBranchToUpdate,
       Boolean partialFetch,
       Object deletePrBranchParam,
       Object integrates,
       Object checker,
+      Boolean primaryBranchMigration,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
-    String resolvedPush = resolvePush(url, push);
+    String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     String repoUrl =
         fixHttp(
@@ -1360,6 +1414,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             "fetch"),
         resolvedPush,
         partialFetch,
+        primaryBranchMigration,
         /*tagName*/ null,
         /*tagMsg*/ null,
         destinationOptions,
@@ -1393,12 +1448,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "destination_ref",
             named = true,
-            allowedTypes = {
-                @ParamType(type = String.class),
-                @ParamType(type = NoneType.class),
-            },
             doc = "Destination reference for the change.",
-            defaultValue = "None"),
+            defaultValue = "'master'"),
         @Param(
             name = "pr_branch",
             allowedTypes = {
@@ -1489,6 +1540,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "By default, Copybara only set the title and body of the PR when creating"
                     + " the PR. If this field is set to true, it will update those fields for"
                     + " every update."),
+          @Param(
+              name = "primary_branch_migration",
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc = "When enabled, copybara will ignore the 'desination_ref' param if it is "
+                  + "'master' or 'main' and instead try to establish the default git branch. If "
+                  + "this fails, it will fall back to the param's declared value.\n"
+                  + "This is intended to help migrating to the new standard of using 'main' without"
+                  + " breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1520,7 +1581,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + "    )")
   public GitHubPrDestination githubPrDestination(
       String url,
-      Object destinationRef,
+      String destinationRef,
       Object prBranch,
       Boolean partialFetch,
       Boolean allowEmptyDiff,
@@ -1529,6 +1590,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Object checkerObj,
       Boolean updateDescription,
+      Boolean primaryBranchMigrationMode,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -1542,7 +1604,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
             thread.getCallerLocation()),
-        resolvePush(url, destinationRef),
+        destinationRef,
         convertFromNoneable(prBranch, null),
         partialFetch,
         generalOptions,
@@ -1567,7 +1629,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         mainConfigFile,
         convertFromNoneable(checkerObj, null),
         updateDescription,
-        GITHUB_COM);
+        GITHUB_COM,
+        primaryBranchMigrationMode);
   }
 
   @Nullable private static String firstNotNull(String... values) {
@@ -1727,6 +1790,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "By default, Copybara uses git commit/push to the main branch when submit = True."
                     + "  If this flag is enabled, it will update the Gerrit change with the "
                     + "latest commit and submit using Gerrit."),
+          @Param(
+              name = "primary_branch_migration",
+              allowedTypes = {
+                  @ParamType(type = Boolean.class),
+              },
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc = "When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params "
+                  + "if either is 'master' or 'main' and instead try to establish the default git "
+                  + "branch. If this fails, it will fall back to the param's declared value.\n"
+                  + "This is intended to help migrating to the new standard of using 'main' without"
+                  + " breaking users relying on the legacy default."),
+
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1747,6 +1824,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Object topicObj,
       Boolean gerritSubmit,
+      Boolean primaryBranchMigrationMode,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -1794,7 +1872,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         topicStr,
-        gerritSubmit);
+        gerritSubmit,
+        primaryBranchMigrationMode);
   }
 
   @SuppressWarnings("unused")

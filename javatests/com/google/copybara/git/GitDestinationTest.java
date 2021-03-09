@@ -49,7 +49,6 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.git.GitOptions.DefaultBranchMode;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.testing.DummyOrigin;
@@ -94,7 +93,8 @@ public class GitDestinationTest {
   private String tagMsg;
   private String partialClone;
   private String primaryBranch;
-  
+  private String primaryBranchMigration = "False";
+
   private Path workdir;
 
   @Before
@@ -181,24 +181,16 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void defaultPushBranch_main() throws ValidationException {
-    options.git.defaultBranchMode = DefaultBranchMode.MAIN;
-    GitDestination d = skylark.eval("result", "result = git.destination('file:///foo')");
-    assertThat(d.getPush()).isEqualTo("refs/heads/main");
-    assertThat(d.getFetch()).isEqualTo("refs/heads/main");
-  }
-
-  @Test
   public void defaultPushBranch_auto() throws Exception {
-    options.git.defaultBranchMode = DefaultBranchMode.AUTO_DETECT;
     GitRepository repo = repo().withWorkTree(workdir);
     Files.write(workdir.resolve("file"), "".getBytes(UTF_8));
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", "first commit");
     GitDestination d = skylark.eval("result",
-        String.format("result = git.destination('file://%s')", repo.getGitDir()));
-    assertThat(d.getPush()).matches("refs/heads/ma.*");
-    assertThat(d.getFetch()).matches("refs/heads/ma.*");
+        String.format("result = git.destination('file://%s', primary_branch_migration=True)",
+            repo.getGitDir()));
+    assertThat(d.getPush()).isEqualTo(primaryBranch);
+    assertThat(d.getFetch()).isEqualTo(primaryBranch);
   }
 
   private GitDestination destinationFirstCommit()
@@ -220,7 +212,8 @@ public class GitDestinationTest {
             + "    fetch = '%s',\n"
             + "    push = '%s',\n"
             + "    partial_fetch = %s,\n"
-            + ")", url, fetch, push, partialClone));
+            + "    primary_branch_migration = %s,\n"
+            + ")", url, fetch, push, partialClone, primaryBranchMigration));
   }
 
   private GitDestination evalDestinationWithTag(String tagMsg)
@@ -322,6 +315,28 @@ public class GitDestinationTest {
     assertCommitCount(1, "testPushToRef");
 
     assertCommitHasOrigin("testPushToRef", "origin_ref");
+  }
+
+  @Test
+  public void process_autoDetect() throws Exception {
+    push = primaryBranch;
+    fetch = primaryBranch;
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+    process(firstCommitWriter(), new DummyRevision("origin_ref"));
+    Files.write(workdir.resolve("test.txt"), "other content".getBytes(UTF_8));
+    primaryBranchMigration = "True";
+    push = "master";
+    fetch = "master";
+
+    // primaryBranch = repo().getPrimaryBranch(url);
+    process(newWriter(), new DummyRevision("process_autoDetect"));
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show", primaryBranch);
+    assertThat(showResult).contains("other content");
+    assertFilesInDir(1, primaryBranch, ".");
+    assertCommitCount(2, primaryBranch);
+    assertCommitHasOrigin(primaryBranch, "process_autoDetect");
   }
 
   @Test

@@ -81,6 +81,7 @@ public class GitHubPrDestinationTest {
   private GitTestUtil gitUtil;
 
   private Path workdir;
+  private String primaryBranchMigration;
 
   @Before
   public void setup() throws Exception {
@@ -107,6 +108,7 @@ public class GitHubPrDestinationTest {
     options.gitDestination.committerEmail = "commiter@email";
     options.gitDestination.committerName = "Bara Kopi";
     skylark = new SkylarkTestExecutor(options);
+    primaryBranchMigration = "False";
   }
   @Test
   public void testWrite_noContextReference() throws ValidationException {
@@ -266,6 +268,14 @@ public class GitHubPrDestinationTest {
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls/12345");
 
+  }
+
+  @Test
+  public void testWrite_primaryBranchMode()
+      throws ValidationException, IOException, RepoException {
+    primaryBranchMigration = "True";
+    options.githubDestination.destinationPrBranch = "feature";
+    checkWrite(new DummyRevision("dummyReference"));
   }
 
   @Test
@@ -681,6 +691,7 @@ public class GitHubPrDestinationTest {
         + "    allow_empty_diff = False,\n"
         + "    destination_ref = 'main',\n"
         + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+        + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
         + ")");
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),

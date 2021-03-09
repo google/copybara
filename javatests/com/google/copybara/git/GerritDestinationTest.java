@@ -140,7 +140,7 @@ public class GerritDestinationTest {
   private TestingConsole console;
   private ImmutableList<String> excludedDestinationPaths;
   private SkylarkTestExecutor skylark;
-
+  private String primaryBranchMigration = "False";
   private GitTestUtil gitUtil;
 
   private static String lastCommitChangeIdLineForRef(String originRef,
@@ -182,6 +182,7 @@ public class GerritDestinationTest {
         + "git.gerrit_destination(\n"
         + "    url = '" + url + "',\n"
         + "    fetch = '" + fetch + "',\n"
+        + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
         + (lines.length == 0 ? "" : "    " + Joiner.on(",\n    ").join(lines) + ",\n")
         + "    " + (pushToRefsFor == null ? "" : "push_to_refs_for = '" + pushToRefsFor + "',")
         + ")");
@@ -1448,6 +1449,28 @@ public class GerritDestinationTest {
         new DummyRevision("origin_ref").withContextReference("1234"),
         destination);
     assertPushRef(expectedRef);
+  }
+
+  @Test
+  public void testPushToAutoDetectedRef() throws Exception {
+    Path scratchWorkTree =
+        Files.createTempDirectory("GitDestinationTest-testPushToAutoDetectedRef");
+    writeFile(scratchWorkTree, "excluded.txt", "something else");
+    repo().withWorkTree(scratchWorkTree)
+        .add().files("excluded.txt").run();
+    repo().withWorkTree(scratchWorkTree)
+        .simpleCommand("commit", "-m", "message");
+    writeFile(workdir, "test.txt", "some content");
+    pushToRefsFor = repo().getPrimaryBranch();
+    options.setForce(true);
+    fetch = pushToRefsFor;
+    primaryBranchMigration = "True";
+    process(new DummyRevision("origin_ref"));
+
+    // Make sure commit adds new text
+    String showResult = git("--git-dir", repoGitDir.toString(), "show",
+        getGerritRef(repo(), "refs/for/" + pushToRefsFor));
+    assertThat(showResult).contains("some content");
   }
 
   @Test

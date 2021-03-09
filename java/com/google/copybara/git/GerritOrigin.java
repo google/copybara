@@ -86,7 +86,8 @@ public class GerritOrigin extends GitOrigin {
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
       boolean describeVersion,
-      boolean ignoreGerritNoop) {
+      boolean ignoreGerritNoop,
+      boolean primaryBranchMigrationMode) {
     super(
         generalOptions,
         repoUrl,
@@ -101,7 +102,8 @@ public class GerritOrigin extends GitOrigin {
         patchTransformation, describeVersion,
         /*versionSelector=*/null,
         /*configPath=*/null,
-        /*workflowName=*/null);
+        /*workflowName=*/null,
+        primaryBranchMigrationMode);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -173,7 +175,8 @@ public class GerritOrigin extends GitOrigin {
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
       boolean describeVersion,
-      boolean ignoreGerritNoop) {
+      boolean ignoreGerritNoop,
+      boolean primaryBranchMigrationMode) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -190,7 +193,8 @@ public class GerritOrigin extends GitOrigin {
         patchTransformation,
         branch,
         describeVersion,
-        ignoreGerritNoop);
+        ignoreGerritNoop,
+        primaryBranchMigrationMode);
   }
 
   @Override

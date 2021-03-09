@@ -24,10 +24,8 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -82,12 +80,6 @@ public class GitOptions implements Option {
   @Parameter(names = "--git-no-verify", description =
       "Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.")
   public boolean gitNoVerify = false;
-
-  @Parameter(
-      names = "--git-default-branch",
-      description = "What branch to use when none is specified in a git destination."
-  )
-  DefaultBranchMode defaultBranchMode = DefaultBranchMode.LEGACY;
 
   public GitOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -156,43 +148,4 @@ public class GitOptions implements Option {
     return new GitOptions(generalOptions, partialCacheFilePrefix);
   }
 
-  enum DefaultBranchMode {
-
-    LEGACY {
-      @Override
-      String getDefaultBranch(String uri, GitOptions opts, GeneralOptions genOpts) {
-        genOpts.console().infoFmt("Using 'master' as default branch");
-        return "master";
-      }
-    },
-    MAIN {
-      @Override
-      String getDefaultBranch(String uri, GitOptions opts, GeneralOptions genOpts) {
-        genOpts.console().infoFmt("Using 'main' as default branch");
-        return "refs/heads/main";
-      }
-    },
-    AUTO_DETECT {
-      @Override
-      String getDefaultBranch(String uri, GitOptions opts, GeneralOptions genOpts)
-          throws RepoException, ValidationException {
-        try {
-          String branch =  opts.createBareRepo(genOpts, Files.createTempDirectory("get_default"))
-              .getPrimaryBranch(uri);
-          if (branch == null) {
-            genOpts.console().warn(
-                "Unable to detect primary branch, using main. Please specify a branch explicitly.");
-            return "refs/heads/main";
-          }
-          genOpts.console().infoFmt("Using '%s' as default branch.", branch);
-          return branch;
-        } catch (IOException e) {
-          throw new RepoException("Error detecting default branch.", e);
-        }
-      }
-    };
-
-    abstract String getDefaultBranch(String uri, GitOptions opts, GeneralOptions genOpts)
-        throws RepoException, ValidationException;
-  }
 }

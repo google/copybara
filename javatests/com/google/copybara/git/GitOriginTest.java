@@ -164,7 +164,8 @@ public class GitOriginTest {
             "GitOrigin{"
                 + "repoUrl=https://my-server.org/copybara, "
                 + "ref=main, "
-                + "repoType=GIT"
+                + "repoType=GIT, "
+                + "primaryBranchMigrationMode=false"
                 + "}");
   }
 
@@ -180,7 +181,8 @@ public class GitOriginTest {
             "GitOrigin{"
                 + "repoUrl=https://my-server.org/copybara, "
                 + "ref=master, "
-                + "repoType=GIT"
+                + "repoType=GIT, "
+                + "primaryBranchMigrationMode=false"
                 + "}");
     console.assertThat().onceInLog(MessageType.WARNING, ".*does not use https.*");
   }
@@ -206,7 +208,8 @@ public class GitOriginTest {
             "GitOrigin{"
                 + "repoUrl=https://my-server.org/copybara, "
                 + "ref=null, "
-                + "repoType=GIT"
+                + "repoType=GIT, "
+                + "primaryBranchMigrationMode=false"
                 + "}");
   }
 
@@ -222,7 +225,8 @@ public class GitOriginTest {
             "GitOrigin{"
                 + "repoUrl=https://gerrit-server.org/copybara, "
                 + "ref=main, "
-                + "repoType=GERRIT"
+                + "repoType=GERRIT, "
+                + "primaryBranchMigrationMode=false"
                 + "}");
   }
 
@@ -238,7 +242,8 @@ public class GitOriginTest {
             "GitOrigin{"
                 + "repoUrl=https://github.com/copybara, "
                 + "ref=main, "
-                + "repoType=GITHUB"
+                + "repoType=GITHUB, "
+                + "primaryBranchMigrationMode=false"
                 + "}");
   }
 
@@ -1260,6 +1265,45 @@ public class GitOriginTest {
 
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).getChangesSummary()).contains("message_a!");
+  }
+
+  @Test
+  public void autoDetectBranchAtGitOrigin() throws Exception {
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/fileA.txt"), new byte[0]);
+    git("add", "include/fileA.txt");
+    git("commit", "-m", "not include");
+    defaultBranch = repo.getPrimaryBranch(url);
+    git("checkout", defaultBranch);
+
+    Files.createDirectories(remote.resolve("include"));
+    Files.write(remote.resolve("include/mainline-file.txt"), new byte[0]);
+    git("add", "include/mainline-file.txt");
+    git("commit", "-m", "message_a!");
+
+    options.setForce(true);
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+    @SuppressWarnings("unchecked")
+    Workflow<GitRevision, Revision> wf = (Workflow<GitRevision, Revision>) skylark.loadConfig(""
+        + "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin(\n"
+        // Intentionally pick the "wrong" ref.
+        + "         ref = '" + (defaultBranch.equals("master") ? "main" : "master") + "',\n"
+        + "         url = '" + url + "',\n"
+        + "         primary_branch_migration = True,\n"
+        + "    ),\n"
+        + "    origin_files = glob(['include/mainline-file.txt']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'ITERATIVE',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + ")\n").getMigration("default");
+
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+    List<ProcessedChange> changes = destination.processed;
+    assertThat(changes).hasSize(1);
   }
 
   @Test

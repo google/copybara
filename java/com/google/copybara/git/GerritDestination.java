@@ -538,7 +538,7 @@ public final class GerritDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext writerContext) {
+  public Writer<GitRevision> newWriter(WriterContext writerContext) throws ValidationException {
     return gitDestination.newWriter(writerContext);
   }
 
@@ -577,7 +577,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       @Nullable Checker endpointChecker,
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String topicTemplate,
-      boolean gerritSubmit) {
+      boolean gerritSubmit,
+      boolean primaryBranchMigrationMode) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push = submit && !gerritSubmit
@@ -589,6 +590,7 @@ public final class GerritDestination implements Destination<GitRevision> {
             fetch,
             push,
             partialFetch,
+            primaryBranchMigrationMode,
             /*tagName=*/null,
             /*tagMsg=*/null,
             destinationOptions,

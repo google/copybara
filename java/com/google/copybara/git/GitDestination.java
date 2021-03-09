@@ -21,12 +21,14 @@ import static com.google.copybara.DestinationReader.NOOP_DESTINATION_READER;
 import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
 import static com.google.copybara.util.FileUtil.deleteRecursively;
 import static java.lang.String.format;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -90,12 +92,15 @@ public final class GitDestination implements Destination<GitRevision> {
   private final String fetch;
   private final String push;
   private final boolean partialFetch;
+  final boolean primaryBranchMigrationMode;
+
   @Nullable private final String tagName;
   @Nullable private final String tagMsg;
   private final GitDestinationOptions destinationOptions;
   private final GitOptions gitOptions;
   private final GeneralOptions generalOptions;
 
+  @Nullable private String resolvedPrimary = null;
   private final Iterable<GitIntegrateChanges> integrates;
   private final WriteHook writerHook;
   private final LazyResourceLoader<GitRepository> localRepo;
@@ -105,6 +110,7 @@ public final class GitDestination implements Destination<GitRevision> {
       String fetch,
       String push,
       boolean partialFetch,
+      boolean primaryBranchMigrationMode,
       @Nullable String tagName,
       @Nullable String tagMsg,
       GitDestinationOptions destinationOptions,
@@ -116,6 +122,7 @@ public final class GitDestination implements Destination<GitRevision> {
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
     this.partialFetch = partialFetch;
+    this.primaryBranchMigrationMode = primaryBranchMigrationMode;
     this.tagName = tagName;
     this.tagMsg = tagMsg;
     this.destinationOptions = checkNotNull(destinationOptions);
@@ -135,7 +142,7 @@ public final class GitDestination implements Destination<GitRevision> {
     String output = repo.simpleCommand("config", "-l").getStdout();
     boolean nameConfigured = false;
     boolean emailConfigured = false;
-    for (String line : output.split("\n")) {
+    for (String line : Splitter.on('\n').split(output)) {
       if (line.startsWith("user.name=")) {
         nameConfigured = true;
       } else if (line.startsWith("user.email=")) {
@@ -148,16 +155,16 @@ public final class GitDestination implements Destination<GitRevision> {
   }
 
   @Override
-  public Writer<GitRevision> newWriter(WriterContext writerContext) {
+  public Writer<GitRevision> newWriter(WriterContext writerContext) throws ValidationException {
 
     WriterState state = new WriterState(
-        localRepo, destinationOptions.getLocalBranch(push, writerContext.isDryRun()));
+        localRepo, destinationOptions.getLocalBranch(getPush(), writerContext.isDryRun()));
 
     return new WriterImpl<>(
         writerContext.isDryRun(),
         repoUrl,
-        fetch,
-        push,
+        getFetch(),
+        getPush(),
         partialFetch,
         tagName,
         tagMsg,
@@ -754,15 +761,37 @@ public final class GitDestination implements Destination<GitRevision> {
     }
   }
 
-  @VisibleForTesting
-  String getFetch() {
+  String getFetch() throws ValidationException {
+    if (primaryBranchMigrationMode && PRIMARY_BRANCHES.contains(fetch)) {
+      String resolved = getResolvedPrimary();
+      if (resolved != null) {
+        return resolved;
+      }
+    }
     return fetch;
   }
 
-  @VisibleForTesting
-  String getPush() {
+  String getPush() throws ValidationException {
+    if (primaryBranchMigrationMode && PRIMARY_BRANCHES.contains(push)) {
+      String resolved = getResolvedPrimary();
+      if (resolved != null) {
+        return resolved;
+      }
+    }
     return push;
   }
+
+ @Nullable private String getResolvedPrimary() throws ValidationException {
+    if (resolvedPrimary == null) {
+      try {
+        resolvedPrimary = getLocalRepo().load(generalOptions.console()).getPrimaryBranch(repoUrl);
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log("Error detecting primary branch");
+        return null;
+      }
+    }
+    return resolvedPrimary;
+ }
 
   @VisibleForTesting
   public Iterable<GitIntegrateChanges> getIntegrates() {
@@ -781,6 +810,7 @@ public final class GitDestination implements Destination<GitRevision> {
         .add("fetch", fetch)
         .add("push", push)
         .add("partialFetch", partialFetch)
+        .add("primaryBranchMigrationMode", primaryBranchMigrationMode)
         .toString();
   }
 
@@ -807,7 +837,8 @@ public final class GitDestination implements Destination<GitRevision> {
             .put("type", getType())
             .put("url", repoUrl)
             .put("fetch", fetch)
-            .put("push", push);
+            .put("push", push)
+            .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode);
     builder.putAll(writerHook.describe());
     if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
       builder.putAll("root", destinationFiles.roots());
@@ -819,7 +850,7 @@ public final class GitDestination implements Destination<GitRevision> {
     if (tagName != null) {
       builder.put("tagName", tagName);
     }
-    if(tagMsg != null) {
+    if (tagMsg != null) {
       builder.put("tagMsg", tagMsg);
     }
     return builder.build();

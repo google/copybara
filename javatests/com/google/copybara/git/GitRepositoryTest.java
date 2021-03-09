@@ -1114,7 +1114,7 @@ public class GitRepositoryTest {
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     assertThat(repository.getPrimaryBranch("file://" + repository.getGitDir()))
-        .matches("refs/heads/ma.*");
+        .matches("ma.*");
   }
 
   @Test
@@ -1123,7 +1123,6 @@ public class GitRepositoryTest {
     repository.simpleCommand("checkout", "-b", "test");
     assertThat(repository.getCurrentBranch()).isEqualTo("test");
   }
-
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
     GitRepository repository = GitRepository.newBareRepo(gitDir,
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)

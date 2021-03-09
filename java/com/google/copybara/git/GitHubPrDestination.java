@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
 import static com.google.copybara.git.github.api.UpdatePullRequest.State.OPEN;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -66,6 +67,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final String destinationRef;
   private final String prBranch;
   private final boolean partialFetch;
+  private final boolean primaryBranchMigrationMode;
+
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final GitDestinationOptions destinationOptions;
@@ -80,6 +83,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
+
+  @Nullable private String resolvedDestinationRef;
 
   GitHubPrDestination(
       String url,
@@ -98,7 +103,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       ConfigFile mainConfigFile,
       @Nullable Checker endpointChecker,
       boolean updateDescription,
-      GitHubHost ghHost) {
+      GitHubHost ghHost,
+      boolean primaryBranchMigrationMode) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
@@ -117,6 +123,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
+    this.primaryBranchMigrationMode = primaryBranchMigrationMode;
   }
 
   @Override
@@ -130,7 +137,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         new ImmutableSetMultimap.Builder<String, String>()
             .put("type", getType())
             .put("url", url)
-            .put("destination_ref", destinationRef);
+            .put("destination_ref", destinationRef)
+            .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode)
+        ;
     if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
       builder.putAll("root", destinationFiles.roots());
     }
@@ -158,7 +167,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     return new WriterImpl<GitHubWriterState>(
         writerContext.isDryRun(),
         url,
-        destinationRef,
+        getDestinationRef(),
         prBranch,
         partialFetch,
         /*tagName*/ null,
@@ -191,7 +200,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           console.infoFmt(
               "Please create a PR manually following this link: %s/compare/%s...%s"
                   + " (Only needed once)",
-              asHttpsUrl(), destinationRef, prBranch);
+              asHttpsUrl(), getDestinationRef(), prBranch);
           state.pullRequestNumber = -1L;
           return result.build();
         }
@@ -232,11 +241,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                   "Pull request for branch %s already exists as %s/pull/%s",
                   prBranch, asHttpsUrl(), pr.getNumber());
             }
-            if (!pr.getBase().getRef().equals(destinationRef)) {
+            if (!pr.getBase().getRef().equals(getDestinationRef())) {
               // TODO(malcon): Update PR or create a new one?
               console.warnFmt(
                   "Current base branch '%s' is different from the PR base branch '%s'",
-                  destinationRef, pr.getBase().getRef());
+                  getDestinationRef(), pr.getBase().getRef());
             }
             if (updateDescription) {
               checkCondition(
@@ -265,8 +274,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 + " git.github_pr_destination or modify the message to not be empty");
 
         PullRequest pr =
-            api.createPullRequest(
-                getProjectName(), new CreatePullRequest(title, prBody, prBranch, destinationRef));
+            api.createPullRequest(getProjectName(),
+                new CreatePullRequest(title, prBody, prBranch, getDestinationRef()));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);
@@ -363,5 +372,20 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     GitHubWriterState(LazyResourceLoader<GitRepository> localRepo, String localBranch) {
       super(localRepo, localBranch);
     }
+  }
+
+  @Nullable String getDestinationRef() throws ValidationException {
+    if (!primaryBranchMigrationMode || !PRIMARY_BRANCHES.contains(destinationRef)) {
+      return destinationRef;
+    }
+    if (resolvedDestinationRef == null) {
+      try {
+        resolvedDestinationRef = localRepo.load(generalOptions.console()).getPrimaryBranch(url);
+      } catch (RepoException e) {
+        generalOptions.console().warnFmt("Error detecting primary branch: %s", e);
+        return null;
+      }
+    }
+    return resolvedDestinationRef;
   }
 }
