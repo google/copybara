@@ -21,11 +21,15 @@ import com.google.copybara.monitor.EventMonitor;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Test implementation for EventMonitor
+ */
 public class TestingEventMonitor implements EventMonitor {
 
   public List<ChangeMigrationStartedEvent> changeMigrationStartedEvents = new ArrayList<>();
   public List<ChangeMigrationFinishedEvent> changeMigrationFinishedEvents = new ArrayList<>();
   public InfoFinishedEvent infoFinishedEvent;
+  public InfoFailedEvent infoFailedEvent;
 
   @Override
   public void onChangeMigrationStarted(ChangeMigrationStartedEvent event) {
@@ -41,6 +45,12 @@ public class TestingEventMonitor implements EventMonitor {
   public void onInfoFinished(InfoFinishedEvent event) {
     Preconditions.checkState(infoFinishedEvent == null, "onInfoFinished() called more than once.");
     infoFinishedEvent = event;
+  }
+
+  @Override
+  public void onInfoFailed(InfoFailedEvent event) {
+    Preconditions.checkState(infoFailedEvent == null, "onInfoFailed() called more than once.");
+    infoFailedEvent = event;
   }
 
   public int changeMigrationStartedEventCount() {

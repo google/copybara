@@ -33,7 +33,7 @@ public interface ContextProvider {
   /** get context for CMD */
   default ImmutableMap<String, String> getContext(
       ConfigWithDependencies config, ConfigFileArgs configFileArgs,
-      ConfigLoaderProvider configLoaderProvider, Console console)
+      ConfigLoaderProvider configLoaderProvider, Options options, Console console)
       throws ValidationException, IOException {
     return getContext(config.getConfig(), configFileArgs, configLoaderProvider, console);
   };

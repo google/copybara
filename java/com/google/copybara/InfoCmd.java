@@ -32,6 +32,7 @@ import com.google.copybara.config.Migration;
 import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.monitor.EventMonitor.InfoFailedEvent;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.TablePrinter;
@@ -74,9 +75,10 @@ public class InfoCmd implements CopybaraCmd {
       return ExitCode.SUCCESS;
     }
     if (configFileArgs.hasWorkflowName()) {
-      ImmutableMap<String, String> context =
-          contextProvider.getContext(config, configFileArgs, configLoaderProvider, console);
-      info(commandEnv.getOptions(), config.getConfig(), configFileArgs.getWorkflowName(), context);
+      ImmutableMap<String, String> context = contextProvider.getContext(
+          config, configFileArgs, configLoaderProvider, commandEnv.getOptions(), console);
+      infoWithFailureHandling(
+          commandEnv.getOptions(), config.getConfig(), configFileArgs.getWorkflowName(), context);
     } else {
       showAllMigrations(commandEnv, config.getConfig());
     }
@@ -114,6 +116,19 @@ public class InfoCmd implements CopybaraCmd {
   private static String prettyOriginDestination(ImmutableSetMultimap<String, String> desc) {
     return Iterables.getOnlyElement(desc.get("type"))
         + (desc.containsKey("url") ? " (" + Iterables.getOnlyElement(desc.get("url")) + ")" : "");
+  }
+
+  /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */
+  private static void infoWithFailureHandling (
+      Options options, Config config, String migrationName, ImmutableMap<String, String> context)
+      throws ValidationException, RepoException {
+    try {
+      info(options, config, migrationName, context);
+    } catch (ValidationException | RepoException e) {
+      options.get(GeneralOptions.class).eventMonitors()
+          .dispatchEvent(d -> d.onInfoFailed(new InfoFailedEvent(e.getMessage(), context)));
+      throw e;
+    }
   }
 
   /** Retrieves the {@link Info} of the {@code migrationName} and prints it to the console. */

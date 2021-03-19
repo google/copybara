@@ -54,6 +54,9 @@ public interface EventMonitor {
   /** Invoked when an info subcommand finishes, only once at the end of the execution */
   default void onInfoFinished(InfoFinishedEvent event) {};
 
+  /** Invoked when an info subcommand fails, only once at the end of the execution */
+  default void onInfoFailed(InfoFailedEvent event) {};
+
   /** Event that happens for every migration that is started. */
   class MigrationStartedEvent {
     @Override
@@ -163,6 +166,35 @@ public interface EventMonitor {
     public String toString() {
       return MoreObjects.toStringHelper(this)
           .add("info", info)
+          .add("context", context)
+          .toString();
+    }
+
+  }
+
+  /** Event that happens for every info subcommand that failed. */
+  class InfoFailedEvent {
+
+    private final String error;
+    private final ImmutableMap<String, String> context;
+
+    public InfoFailedEvent(String error, ImmutableMap<String, String> context) {
+      this.error = Preconditions.checkNotNull(error);
+      this.context = Preconditions.checkNotNull(context);
+    }
+
+    public String getError() {
+      return error;
+    }
+
+    public ImmutableMap<String, String> getContext() {
+      return context;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("error", error)
           .add("context", context)
           .toString();
     }
