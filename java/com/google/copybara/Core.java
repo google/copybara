@@ -833,9 +833,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc =
                 "Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note"
-                    + " that this mechanism doesn't use backtracking. In other words, the group"
-                    + " instances are treated as different groups in regex construction and then a"
-                    + " validation is done after that.",
+                    + " that this won't match \"fooX/Y\". This mechanism doesn't use"
+                    + " backtracking. In other words, the group instances are treated as different"
+                    + " groups in regex construction and then a validation is done after that.",
             defaultValue = "False"),
         @Param(
             name = "ignore",
