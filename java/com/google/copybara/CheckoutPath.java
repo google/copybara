@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Objects;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -212,5 +213,22 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
   @Override
   public void repr(Printer printer) {
     printer.append(path.toString());
+  }
+
+  @Override
+  public int hashCode() {
+    return  path.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof CheckoutPath)) {
+      return false;
+    }
+    CheckoutPath other = (CheckoutPath) o;
+    return Objects.equals(path, other.path);
   }
 }
