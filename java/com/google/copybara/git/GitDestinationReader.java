@@ -19,10 +19,15 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.util.Glob;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
@@ -51,6 +56,18 @@ public class GitDestinationReader extends DestinationReader {
 
   @Override
   public void copyDestinationFiles(Glob glob) throws RepoException {
+    ImmutableList<TreeElement> treeElements = repository.lsTree(baseline, null, true, true);
+    PathMatcher pathMatcher = glob.relativeTo(workDir);
+    for (TreeElement file : treeElements) {
+      Path path = workDir.resolve(file.getPath());
+      if (pathMatcher.matches(path)) {
+        try {
+          Files.createDirectories(path.getParent());
+        } catch (IOException e) {
+          throw new RepoException(String.format("Cannot create parent directory for %s", path), e);
+        }
+      }
+    }
     repository.checkout(glob, workDir, baseline);
   }
 

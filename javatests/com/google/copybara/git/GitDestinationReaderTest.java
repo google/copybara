@@ -75,61 +75,84 @@ public class GitDestinationReaderTest {
     workDir = Files.createTempDirectory("workdir");
     options.setWorkdirToRealTempDir(workDir.toString());
     skylark = new SkylarkTestExecutor(options);
-    origin.addSimpleChange(1580341755,"first").addSimpleChange(1580341795,"second");
+    origin.singleFileChange(1580341755, "first", "foo/origin.txt", "AAAA")
+        .singleFileChange(1580341795, "second", "foo/origin.txt", "BBBB");
   }
 
   @Test
   public void testReadFileFromDestination() throws Exception {
-    Files.write(gitDir.resolve("foo.txt"), "foo".getBytes(UTF_8));
-    repo.add().files("foo.txt").run();
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/foo.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/foo.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
         .truncatedTo(ChronoUnit.SECONDS);
     repo.commit("= Foo = <bar@bara.com>", date,
         String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
     runWorkflow(ImmutableList.of(
-        "res = ctx.destination_reader().read_file(path = 'foo.txt')",
+        "res = ctx.destination_reader().read_file(path = 'foo/foo.txt')",
         "if res != 'foo':",
         "  fail('expected foo, got ' + res)"));
   }
 
   @Test
   public void testGlobFileFromDestination() throws Exception {
-    Files.write(gitDir.resolve("destination.txt"), "foo".getBytes(UTF_8));
-    repo.add().files("destination.txt").run();
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/destination.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/destination.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
         .truncatedTo(ChronoUnit.SECONDS);
     repo.commit("= Foo = <bar@bara.com>", date,
         String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
     FileSubjects.assertThatPath(workDir).containsNoMoreFiles();
     runWorkflow(ImmutableList.of(
-        "ctx.destination_reader().copy_destination_files(glob = glob(include = ['**']))"));
-    FileSubjects.assertThatPath(workDir).containsFile("checkout/destination.txt", "foo");
+        "ctx.destination_reader().copy_destination_files(glob = glob(include = ['foo/**']))"));
+    FileSubjects.assertThatPath(workDir).containsFile("checkout/foo/destination.txt", "foo");
+  }
+
+  @Test
+  public void testGlobFileFromDestination_otherRoot() throws Exception {
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/destination.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/destination.txt").run();
+    Files.createDirectories(gitDir.resolve("bar"));
+    Files.write(gitDir.resolve("bar/destination.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("bar/destination.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    repo.commit("= Foo = <bar@bara.com>", date,
+        String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
+    FileSubjects.assertThatPath(workDir).containsNoMoreFiles();
+    runWorkflow(ImmutableList.of(
+        "ctx.destination_reader().copy_destination_files(glob = glob(include = ['bar/**']))",
+        "ctx.run(core.transform([core.remove(glob(include = ['bar/**']))], reversal=[]))"));
   }
 
   @Test
   public void testFileExists() throws Exception {
-    Files.write(gitDir.resolve("foo.txt"), "foo".getBytes(UTF_8));
-    repo.add().files("foo.txt").run();
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/foo.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/foo.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
         .truncatedTo(ChronoUnit.SECONDS);
     repo.commit("= Foo = <bar@bara.com>", date,
         String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
     runWorkflow(ImmutableList.of(
-        "res = ctx.destination_reader().file_exists(path = 'foo.txt')",
+        "res = ctx.destination_reader().file_exists(path = 'foo/foo.txt')",
         "if not res:",
         "  fail('expected foo.txt to exist')"));
   }
 
   @Test
   public void testFileNotExists() throws Exception {
-    Files.write(gitDir.resolve("foo.txt"), "foo".getBytes(UTF_8));
-    repo.add().files("foo.txt").run();
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/foo.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/foo.txt").run();
     ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
         .truncatedTo(ChronoUnit.SECONDS);
     repo.commit("= Foo = <bar@bara.com>", date,
         String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
     runWorkflow(ImmutableList.of(
-        "res = ctx.destination_reader().file_exists(path = 'bar.txt')",
+        "res = ctx.destination_reader().file_exists(path = 'foo/bar.txt')",
         "if res:",
         "  fail('expected bar.txt not to exist')"));
   }
@@ -153,8 +176,8 @@ public class GitDestinationReaderTest {
             + "      push = '" + primaryBranch + "', \n"
             + "      url = 'file://" + destinationPath + "', \n"
             + "    ),\n"
-            + "    origin_files = glob(['**']),\n"
-            + "    destination_files = glob(['**']),\n"
+            + "    origin_files = glob(['foo/**']),\n"
+            + "    destination_files = glob(['foo/**']),\n"
             + "    transformations = [core.dynamic_transform(_dynamicTransform)],\n"
             + "    authoring = authoring.overwrite('test <commiter@email.com>'),\n"
 
