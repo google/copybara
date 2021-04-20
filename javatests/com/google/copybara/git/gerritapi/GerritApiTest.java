@@ -268,7 +268,7 @@ public class GerritApiTest {
     ImmutableMap<String, LabelInfo> labels = change.getLabels();
     assertThat(labels).hasSize(1);
     LabelInfo labelInfo = Iterables.getOnlyElement(labels.values());
-    assertThat(labelInfo.getAll().asList().get(0).getDate().format(DateTimeFormatter.ISO_DATE_TIME))
+    assertThat(labelInfo.getAll().get(0).getDate().format(DateTimeFormatter.ISO_DATE_TIME))
         .isEqualTo("2017-01-01T12:00:00Z");
   }
 

@@ -1115,6 +1115,13 @@ public class GitRepositoryTest {
         .matches("refs/heads/ma.*");
   }
 
+  @Test
+  public void testGetCurrentBranch() throws Exception {
+
+    repository.simpleCommand("checkout", "-b", "test");
+    assertThat(repository.getCurrentBranch()).isEqualTo("test");
+  }
+
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
     GitRepository repository = GitRepository.newBareRepo(gitDir,
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)

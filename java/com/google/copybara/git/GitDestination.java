@@ -455,16 +455,14 @@ public final class GitDestination implements Destination<GitRevision> {
       logger.atInfo().log(
           "Exporting from %s to: url=%s ref=%s", transformResult.getPath(), repoUrl, remotePush);
       String baseline = transformResult.getBaseline();
-
       GitRepository scratchClone = getRepository(console);
 
       fetchIfNeeded(scratchClone, console);
 
-      console.progress("Git Destination: Checking out " + remoteFetch);
+      console.progressFmt("Git Destination: Checking out %s", remoteFetch);
 
       GitRevision localBranchRevision = getLocalBranchRevision(scratchClone);
       updateLocalBranchToBaseline(scratchClone, baseline);
-
       if (state.firstWrite) {
         String reference = baseline != null ? baseline : state.localBranch;
         configForPush(getRepository(console), repoUrl, remotePush);
@@ -482,12 +480,17 @@ public final class GitDestination implements Destination<GitRevision> {
           scratchClone.simpleCommand("symbolic-ref", "HEAD", getCompleteRef(state.localBranch));
         }
         state.firstWrite = false;
-      } else if (!skipPush) {
-        // Should be a no-op, but an iterative migration could take several minutes between
-        // migrations so lets fetch the latest first.
-        fetchFromRemote(console, scratchClone, repoUrl, remoteFetch);
+      } else {
+        if (!skipPush) {
+          // Should be a no-op, but an iterative migration could take several minutes between
+          // migrations so lets fetch the latest first.
+          fetchFromRemote(console, scratchClone, repoUrl, remoteFetch);
+        }
+        // Checkout again in case the origin checkout changed the branch (origin = destination)
+        if (Strings.isNullOrEmpty(scratchClone.getCurrentBranch())) {
+           scratchClone.simpleCommand("checkout", "-q", "-f", state.localBranch);
+        }
       }
-
       PathMatcher pathMatcher = destinationFiles.relativeTo(scratchClone.getWorkTree());
       // Get the submodules before we stage them for deletion with
       // repo.simpleCommand(add --all)
@@ -548,6 +551,7 @@ public final class GitDestination implements Destination<GitRevision> {
             deleteRecursively(rebaseLock);
           }
         }
+
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
         alternate.rebase(localBranchRevision.getSha1());

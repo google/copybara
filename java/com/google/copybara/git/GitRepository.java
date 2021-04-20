@@ -2103,6 +2103,13 @@ public class GitRepository {
   }
 
   /**
+   * The current branch, if any.
+   */
+  public String getCurrentBranch() throws RepoException {
+    return simpleCommand("branch", "--show-current").getStdout().trim();
+  }
+
+  /**
    * Returns the repo's primary branch, e.g. "main". Primarily intended for testing.
    */
   @Nullable public String getPrimaryBranch(String uri) throws RepoException, ValidationException {

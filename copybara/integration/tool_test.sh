@@ -93,9 +93,15 @@ function copybara_with_exit_code() {
 function check_copybara_rev_id() {
    local repo="$1"
    local primary=$(get_primary_branch $repo)
+   check_copybara_rev_id_branch "$repo" "$2" "$primary"
+}
+
+function check_copybara_rev_id_branch() {
+   local repo="$1"
    local origin_id="$2"
+   local branch="$3"
    ( cd $repo || return
-     run_git log $primary -1 > $TEST_log
+     run_git log $branch -1 > $TEST_log
      expect_log "GitOrigin-RevId: $origin_id"
    )
 }
@@ -245,6 +251,69 @@ EOF
   copybara_with_exit_code $NO_OP copy.bara.sky default $commit_three
   expect_log "No new changes to import for resolved ref"
 }
+
+function test_git_iterative_same_repo() {
+  destination=$(temp_dir remote)
+  repo_storage=$(temp_dir storage)
+  workdir=$(temp_dir workdir)
+
+
+  pushd $destination || return
+  run_git init .
+  commit_one=$(single_file_commit "commit one" file.txt "food fooooo content1")
+  primary=$(get_primary_branch $destination)
+  run_git checkout -b push
+  run_git checkout $primary
+  commit_two=$(single_file_commit "commit two" file.txt "food fooooo content2")
+  commit_three=$(single_file_commit "commit three" file.txt "food fooooo content3")
+  commit_four=$(single_file_commit "commit four" file.txt "food fooooo content4")
+  commit_five=$(single_file_commit "commit five" file.txt "food fooooo content5")
+
+
+  popd || return
+    cat > copy.bara.sky <<EOF
+core.workflow(
+    name = "default",
+    origin = git.origin(
+      url = "file://$destination",
+      ref = "$primary",
+    ),
+    destination = git.destination(
+      url = "file://$destination",
+      fetch = "push",
+      push = "push",
+    ),
+    authoring = authoring.pass_thru("Copybara Team <no-reply@google.com>"),
+    mode = "ITERATIVE",
+)
+EOF
+
+  copybara copy.bara.sky default $commit_three --last-rev $commit_one
+
+  check_copybara_rev_id_branch "$destination" "$commit_three" push
+
+  ( cd $destination || return
+    run_git log push~1..push > $TEST_log
+  )
+  expect_not_log "commit two"
+  expect_log "commit three"
+
+  copybara copy.bara.sky default $commit_five
+
+  check_copybara_rev_id_branch "$destination" "$commit_five" push
+
+  ( cd $destination || return
+    run_git log "push~2..push~1" > $TEST_log
+  )
+  expect_log "commit four"
+
+  ( cd $destination || return
+    run_git log "push~1..push" > $TEST_log
+  )
+  expect_log "commit five"
+
+}
+
 
 function single_file_commit() {
   message=$1
