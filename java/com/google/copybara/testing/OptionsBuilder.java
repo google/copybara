@@ -88,7 +88,7 @@ public class OptionsBuilder {
     }
   };
   public GitHubDestinationOptions githubDestination = new GitHubDestinationOptions();
-  public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions(general, git);
+  public GitMirrorOptions gitMirrorOptions = new GitMirrorOptions();
   public GerritOptions gerrit = new GerritOptions(general, git);
   public WorkflowOptions workflowOptions =
       new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,

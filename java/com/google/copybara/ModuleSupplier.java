@@ -125,7 +125,7 @@ public class ModuleSupplier {
         new GitHubOptions(generalOptions, gitOptions),
         new GitHubDestinationOptions(),
         new GerritOptions(generalOptions, gitOptions),
-        new GitMirrorOptions(generalOptions, gitOptions),
+        new GitMirrorOptions(),
         new HgOptions(generalOptions),
         new HgOriginOptions(),
         new PatchingOptions(generalOptions),

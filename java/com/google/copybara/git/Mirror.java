@@ -30,11 +30,14 @@ import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**
@@ -76,7 +79,31 @@ public class Mirror implements Migration {
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
-      mirrorOptions.mirror(origin, destination, refspec, prune, partialFetch);
+      GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+      List<String> fetchRefspecs = refspec.stream()
+          .map(r -> r.originToOrigin().toString())
+          .collect(Collectors.toList());
+
+      generalOptions.console().progressFmt("Fetching from %s", origin);
+
+      Profiler profiler = generalOptions.profiler();
+      try (ProfilerTask ignore1 = profiler.start("fetch")) {
+        repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs, partialFetch);
+      }
+
+      if (generalOptions.dryRunMode) {
+        generalOptions.console().progressFmt("Skipping push to %s. You can check the"
+            + " commits to push in: %s", destination, repo.getGitDir());
+      } else {
+        generalOptions.console().progressFmt("Pushing to %s", destination);
+        List<Refspec> pushRefspecs = mirrorOptions.forcePush
+            ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
+            : refspec;
+        try (ProfilerTask ignore1 = profiler.start("push")) {
+          repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+        }
+      }
+
     } catch (RepoException e) {
       // non-fast-forward errors in git mirror usually means that the destination
       // has commits that the origin doesn't. Usually by a user submitting directly
