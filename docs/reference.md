@@ -2403,7 +2403,7 @@ Implicit labels that can be used/exposed:
 Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the GitHub repository</p>
-use_merge | `bool`<br><p>If the content for refs/pull/<ID>/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head revision.</p>
+use_merge | `bool`<br><p>If the content for refs/pull/&lt;ID&gt;/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/&lt;ID&gt;/head revision.</p>
 required_labels | `sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
 required_status_context_names | `sequence of string`<br><p>Required status context names to import the PR. All the status context names need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
 required_check_runs | `sequence of string`<br><p>Required check runs to import the PR. All the check runs need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
@@ -3397,7 +3397,7 @@ This is a public description for a commit
 
 ##### Keep only message enclosed in tags:
 
-The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach for this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in <public></public> tags:
+The previous example is prone to leak confidential information since a developer could easily forget to include the CONFIDENTIAL label. A different approach for this is to scrub everything by default except what is explicitly allowed. For example, the following scrubber would remove anything not enclosed in &lt;public&gt;&lt;/public&gt; tags:
 
 
 ```python
@@ -3644,7 +3644,7 @@ verify_no_match | `bool`<br><p>If true, the transformation will verify that the 
 
 ##### Check that a text is present in the change description:
 
-Check that the change message contains a text enclosed in <public></public>:
+Check that the change message contains a text enclosed in &lt;public&gt;&lt;/public&gt;:
 
 ```python
 metadata.verify_match("<public>(.|\n)*</public>")

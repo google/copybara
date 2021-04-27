@@ -667,9 +667,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "If the content for refs/pull/<ID>/merge should be used instead of the PR"
-                    + " head. The GitOrigin-RevId still will be the one from refs/pull/<ID>/head"
-                    + " revision."),
+                "If the content for refs/pull/&lt;ID&gt;/merge should be used instead of the PR"
+                    + " head. The GitOrigin-RevId still will be the one from"
+                    + " refs/pull/&lt;ID&gt;/head revision."),
         @Param(
             name = GitHubUtil.REQUIRED_LABELS,
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
@@ -689,16 +689,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "need to be passed in order to migrate the Pull Request."
                     + "Note: this field is still experimental.",
             positional = false),
-          @Param(
-              name = GitHubUtil.REQUIRED_CHECK_RUNS,
-              allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
-              named = true,
-              defaultValue = "[]",
-              doc =
-                  "Required check runs to import the PR. All the check runs "
-                      + "need to be passed in order to migrate the Pull Request."
-                      + "Note: this field is still experimental.",
-              positional = false),
+        @Param(
+            name = GitHubUtil.REQUIRED_CHECK_RUNS,
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "Required check runs to import the PR. All the check runs "
+                    + "need to be passed in order to migrate the Pull Request."
+                    + "Note: this field is still experimental.",
+            positional = false),
         @Param(
             name = GitHubUtil.RETRYABLE_LABELS,
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},

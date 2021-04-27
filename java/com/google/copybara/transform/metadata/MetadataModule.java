@@ -706,7 +706,7 @@ public class MetadataModule implements StarlarkValue {
               + " easily forget to include the CONFIDENTIAL label. A different approach for this"
               + " is to scrub everything by default except what is explicitly allowed. For"
               + " example, the following scrubber would remove anything not enclosed in"
-              + " <public></public> tags:\n",
+              + " &lt;public&gt;&lt;/public&gt; tags:\n",
       code =
           "metadata.scrubber('^(?:\\n|.)*<public>((?:\\n|.)*)</public>(?:\\n|.)*$', "
               + "replacement = '$1')",
@@ -808,7 +808,9 @@ public class MetadataModule implements StarlarkValue {
       useStarlarkThread = true)
   @Example(
       title = "Check that a text is present in the change description",
-      before = "Check that the change message contains a text enclosed in <public></public>:",
+      before =
+          "Check that the change message contains a text enclosed in"
+              + " &lt;public&gt;&lt;/public&gt;:",
       code = "metadata.verify_match(\"<public>(.|\\n)*</public>\")")
   public Transformation verifyMatch(String regex, Boolean verifyNoMatch, StarlarkThread thread)
       throws EvalException {
