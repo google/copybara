@@ -55,6 +55,8 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.action.Action;
+import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.NotifyOption;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
@@ -73,14 +75,7 @@ import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
+
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -91,11 +86,22 @@ import net.starlark.java.eval.Module;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.Location;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
 @StarlarkBuiltin(name = "git", doc = "Set of functions to define Git origins and destinations.")
@@ -125,6 +131,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   protected final Options options;
   private ConfigFile mainConfigFile;
   private String workflowName;
+  private StarlarkThread.PrintHandler printHandler;
 
   public GitModule(Options options) {
     this.options = Preconditions.checkNotNull(options);
@@ -368,7 +375,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "prune",
             named = true,
-            doc = "Remove remote refs that don't have a origin counterpart",
+            doc = "Remove remote refs that don't have a origin counterpart. Prune is ignored if"
+                + " actions are used (Action is in charge of doing the pruning)",
             defaultValue = "False"),
         @Param(
             name = "partial_fetch",
@@ -384,8 +392,25 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             },
             named = true,
             positional = false,
-            doc = "A description of what this workflow achieves",
+            doc = "A description of what this migration achieves",
             defaultValue = "None"),
+          @Param(
+              name = "actions",
+              doc =
+                  "[DO NOT USE, NOT READY]"
+                      + "A list of mirror actions to perform, with the following semantics:\n"
+                      + "  - There is no guarantee of the order of execution.\n"
+                      + "  - Actions need to be independent from each other.\n"
+                      + "  - Failure in one action might prevent other actions from executing."
+                      + " --force can be used to continue for 'user' errors like non-fast-forward"
+                      + " errors.\n"
+                      + "\n"
+                      + "Actions will be in charge of doing the fetch, push, rebases, merges,etc."
+                      + "Only fetches/pushes for the declared refspec are allowed",
+              defaultValue = "[]",
+              positional = false,
+              named = true),
+
       },
       useStarlarkThread = true)
   @UsesFlags(GitMirrorOptions.class)
@@ -397,6 +422,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean prune,
       Boolean partialFetch,
       Object description,
+      net.starlark.java.eval.Sequence<?> mirrorActions,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -414,6 +440,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         throw Starlark.errorf("%s", e.getMessage());
       }
     }
+    ImmutableList<Action> actions = convertActions(mirrorActions, printHandler);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     GlobalMigrations.getGlobalMigrations(module)
         .addMigration(
@@ -429,9 +456,29 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 prune,
                 partialFetch,
                 mainConfigFile,
-                convertFromNoneable(description, null)));
+                convertFromNoneable(description, null),
+                actions));
     return Starlark.NONE;
   }
+
+  private static ImmutableList<Action> convertActions(
+      net.starlark.java.eval.Sequence<?> actions, StarlarkThread.PrintHandler printHandler)
+      throws EvalException {
+    ImmutableList.Builder<Action> result = ImmutableList.builder();
+    for (Object action : actions) {
+      if (action instanceof StarlarkCallable) {
+        result.add(new StarlarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
+      } else if (action instanceof Action) {
+        result.add((Action) action);
+      } else {
+        throw Starlark.errorf(
+            "Invalid feedback action '%s 'of type: %s", action, action.getClass());
+      }
+    }
+    return result.build();
+  }
+
+
 
   @SuppressWarnings("unused")
   @StarlarkMethod(
@@ -2072,4 +2119,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings({"unused", "RedundantThrows"})
   protected void validateEndpointChecker(Checker checker, String functionName)
       throws EvalException {}
+
+  @Override
+  public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
+    this.printHandler = printHandler;
+  }
 }

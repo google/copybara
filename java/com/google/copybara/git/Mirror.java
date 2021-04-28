@@ -19,29 +19,41 @@ package com.google.copybara.git;
 import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.action.Action;
+import com.google.copybara.action.ActionResult;
+import com.google.copybara.action.ActionResult.Result;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.transform.SkylarkConsole;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**
  * Mirror one or more refspects between git repositories.
  */
 public class Mirror implements Migration {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final String MODE_STRING = "MIRROR";
 
@@ -56,10 +68,12 @@ public class Mirror implements Migration {
   private final boolean partialFetch;
   private final ConfigFile mainConfigFile;
   @Nullable private final String description;
+  private final Iterable<Action> actions;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
       String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
-      boolean partialFetch, ConfigFile mainConfigFile, @Nullable String description) {
+      boolean partialFetch, ConfigFile mainConfigFile, @Nullable String description,
+      ImmutableList<Action> actions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -71,14 +85,69 @@ public class Mirror implements Migration {
     this.partialFetch = partialFetch;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.description = description;
+    this.actions = Preconditions.checkNotNull(actions);
   }
 
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
+
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
+
       GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
-      defaultMirror(repo);
+
+      if (Iterables.isEmpty(actions)) {
+        defaultMirror(repo);
+      } else {
+        ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
+        for (Action action : actions) {
+          GitMirrorContext context = new GitMirrorContext(action,
+              new SkylarkConsole(generalOptions.console()),
+              sourceRefs, refspec, repo, origin, destination, generalOptions.isForced());
+          try {
+            action.run(context);
+            ActionResult actionResult = context.getActionResult();
+            allResultsBuilder.add(actionResult);
+            // First error aborts the execution of the other actions unless --force is used
+            ValidationException.checkCondition(generalOptions.isForced()
+                    || actionResult.getResult() != Result.ERROR,
+                "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
+                name, action.getName(), actionResult.getMsg());
+
+          } catch (NonFastForwardRepositoryException e) {
+            allResultsBuilder.add(ActionResult.error(action.getName() + ": " + e.getMessage()));
+            if (!generalOptions.isForced()) {
+              throw e;
+            }
+            logger.atWarning().withCause(e).log();
+          } finally {
+            generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(
+                new ChangeMigrationFinishedEvent(
+                    ImmutableList.copyOf(context.getNewDestinationEffects()),
+                    getOriginDescription(), getDestinationDescription())));
+          }
+        }
+        ImmutableList<ActionResult> allResults = allResultsBuilder.build();
+        if (allResults.stream().anyMatch(a -> a.getResult() == Result.ERROR)) {
+          String errors = allResults.stream()
+              .filter(a -> a.getResult() == Result.ERROR)
+              .map(ActionResult::getMsg)
+              .collect(Collectors.joining("\n - "));
+          throw new ValidationException("One or more errors happened during the migration:\n"
+              + " - " + errors);
+        }
+
+        // This check also returns true if there are no actions
+        if (allResults.stream().allMatch(a -> a.getResult() == Result.NO_OP)) {
+          String detailedMessage = allResults.isEmpty()
+              ? "actions field is empty"
+              : allResults.stream().map(ActionResult::getMsg)
+                  .collect(ImmutableList.toImmutableList()).toString();
+          throw new EmptyChangeException(
+              String.format("git.mirror migration '%s' was noop. Detailed messages: %s",
+                  name, detailedMessage));
+        }
+      }
     }
 
     // More fine grain events based on the references created/updated/deleted:
@@ -108,31 +177,27 @@ public class Mirror implements Migration {
     generalOptions.console().progressFmt("Fetching from %s", origin);
 
     Profiler profiler = generalOptions.profiler();
-    try {
-      try (ProfilerTask ignore1 = profiler.start("fetch")) {
-        repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs, partialFetch);
-      }
+    try (ProfilerTask ignore1 = profiler.start("fetch")) {
+      repo.fetch(origin, /*prune=*/true,
+          /*force=*/true, fetchRefspecs, partialFetch);
+    }
 
-      if (generalOptions.dryRunMode) {
-        generalOptions.console().progressFmt("Skipping push to %s. You can check the"
-            + " commits to push in: %s", destination, repo.getGitDir());
-      } else {
-        generalOptions.console().progressFmt("Pushing to %s", destination);
-        List<Refspec> pushRefspecs = mirrorOptions.forcePush || generalOptions.isForced()
-            ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
-            : refspec;
-        try (ProfilerTask ignore1 = profiler.start("push")) {
-          repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
-        }
+    if (generalOptions.dryRunMode) {
+      generalOptions.console().progressFmt("Skipping push to %s. You can check the"
+          + " commits to push in: %s", destination, repo.getGitDir());
+    } else {
+      generalOptions.console().progressFmt("Pushing to %s", destination);
+      List<Refspec> pushRefspecs = mirrorOptions.forcePush || generalOptions.isForced()
+          ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
+          : refspec;
+      try (ProfilerTask ignore1 = profiler.start("push")) {
+        repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+      } catch (NonFastForwardRepositoryException e) {
+        // Normally we want non-fast-forward to retry, but for git.mirror, given that it handles
+        // multiple refs, and that mirrors, it is better to just fail and tell the user.
+        throw new ValidationException(
+            "Error pushing some refs because origin is behind:" + e.getMessage(), e);
       }
-    } catch (RepoException e) {
-      // non-fast-forward errors in git mirror usually means that the destination
-      // has commits that the origin doesn't. Usually by a user submitting directly
-      // to the destination instead of using Copybara.
-      if (e.getMessage().contains("(non-fast-forward)")) {
-        throw new ValidationException(e.getMessage(), e);
-      }
-      throw e;
     }
   }
 

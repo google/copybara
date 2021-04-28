@@ -35,14 +35,17 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.profiler.RecordingListener;
 import com.google.copybara.testing.profiler.RecordingListener.EventType;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class GitMirrorTest {
@@ -52,16 +55,18 @@ public class GitMirrorTest {
   private GitRepository destRepo;
   private Path workdir;
   private String primaryBranch;
+  private TestingConsole console;
 
   @Before
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
+    console = new TestingConsole();
     options =
         new OptionsBuilder()
             .setEnvironment(GitTestUtil.getGitEnv().getEnvironment())
             .setOutputRootToTmpDir()
             .setWorkdirToRealTempDir()
-            .setConsole(new TestingConsole());
+            .setConsole(console);
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(Files.createTempDirectory("worktree"));
@@ -351,5 +356,79 @@ public class GitMirrorTest {
             + "',"
             + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
+  }
+
+  @Test
+  public void testActionsCode() throws Exception {
+    String cfg = ""
+        + "def a1(ctx):\n"
+        + "   ctx.console.info(\'Hello, this is action1 \' + str(ctx.refs))\n"
+        + "   return ctx.success()\n"
+        + "\n"
+        + "def a2(ctx):\n"
+        + "   ctx.console.info(\'Hello, this is action2\')\n"
+        + "   return ctx.success()\n"
+        + "\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    actions = [a1, a2]"
+        + ")\n"
+        + "";
+
+    Migration migration = loadMigration(cfg, "default");
+    migration.run(workdir, ImmutableList.of("my_ref"));
+    console.assertThat().onceInLog(MessageType.INFO,
+        "Hello, this is action1 \\[\"my_ref\"\\]");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action2");
+  }
+
+  @Test
+  public void testActionFailure() throws Exception {
+    ValidationException ve = checkActionFailure();
+    assertThat(ve).hasMessageThat().contains("Something bad happened");
+    assertThat(ve).hasMessageThat().doesNotContain("Another thing bad happened");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action1");
+    console.assertThat().timesInLog(0, MessageType.INFO, "Hello, this is action2");
+    console.assertThat().timesInLog(0, MessageType.INFO, "Hello, this is action3");
+  }
+
+  @Test
+  public void testActionFailureWithForce() throws Exception {
+    options.setForce(true);
+    ValidationException ve = checkActionFailure();
+    assertThat(ve).hasMessageThat().contains("Something bad happened");
+    assertThat(ve).hasMessageThat().contains("Another thing bad happened");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action1");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action2");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action3");
+  }
+
+  private ValidationException checkActionFailure() throws IOException, ValidationException {
+    String cfg = ""
+        + "def a1(ctx):\n"
+        + "   ctx.console.info(\'Hello, this is action1\')\n"
+        + "   return ctx.error('Something bad happened')\n"
+        + "\n"
+        + "def a2(ctx):\n"
+        + "   ctx.console.info(\'Hello, this is action2\')\n"
+        + "   return ctx.error('Another thing bad happened')\n"
+        + "\n"
+        + "def a3(ctx):\n"
+        + "   ctx.console.info(\'Hello, this is action3\')\n"
+        + "   return ctx.success()\n"
+        + "\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    actions = [a1, a2, a3]"
+        + ")\n"
+        + "";
+
+    Migration migration = loadMigration(cfg, "default");
+    return assertThrows(ValidationException.class,
+        () -> migration.run(workdir, ImmutableList.of()));
   }
 }

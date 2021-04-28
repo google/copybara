@@ -2496,7 +2496,7 @@ refspec_groups | `dict`<br><p>A set of named regexes that can be used to match p
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None)`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[])`
 
 
 #### Parameters:
@@ -2507,9 +2507,10 @@ name | `string`<br><p>Migration name</p>
 origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
 refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
-prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart</p>
+prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
 partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
-description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
+description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
+actions | `sequence`<br><p>[DO NOT USE, NOT READY]A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 
 
 

@@ -875,9 +875,9 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "-m", "message3");
 
     // We replaced the last commit. Should fail because we don't force
-    RepoException e =
+    NonFastForwardRepositoryException e =
         assertThrows(
-            RepoException.class,
+            NonFastForwardRepositoryException.class,
             () ->
                 repository
                     .push()
@@ -885,7 +885,9 @@ public class GitRepositoryTest {
                         remoteUrl, ImmutableList.of(
                             repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
                     .run());
-    assertThat(e).hasMessageThat().contains("[rejected]");
+    assertThat(e).hasMessageThat().matches(".*Failed to push to .*"
+        + "because local/origin history is behind destination.*");
+    assertThat(e.getCause()).hasMessageThat().contains("[rejected]");
 
     // Now it works because we force the push
     repository.push()
