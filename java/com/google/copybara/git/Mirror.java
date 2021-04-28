@@ -32,12 +32,10 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
 
 /**

@@ -197,6 +197,7 @@ java_library(
     deps = [
         ":base",
         ":general_options",
+        "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
         "//java/com/google/copybara/buildozer:buildozer_options",

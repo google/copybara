@@ -52,7 +52,6 @@
   - [endpoint_provider](#endpoint_provider)
     - [endpoint_provider.new_destination_ref](#endpoint_provider.new_destination_ref)
     - [endpoint_provider.new_origin_ref](#endpoint_provider.new_origin_ref)
-  - [feedback.action_result](#feedback.action_result)
   - [feedback.context](#feedback.context)
     - [feedback.context.error](#feedback.context.error)
     - [feedback.context.noop](#feedback.context.noop)
@@ -635,7 +634,7 @@ core.transform(
 
 Create a dynamic Skylark feedback migration. This should only be used by libraries developers
 
-`feedback.action core.dynamic_feedback(impl, params={})`
+`dynamic.action core.dynamic_feedback(impl, params={})`
 
 
 #### Parameters:
@@ -685,7 +684,7 @@ After defining this function, you can use `test('example', 42)` as a transformat
 
 If invoked, it will fail the current migration as a noop
 
-`feedback.action core.fail_with_noop(msg)`
+`dynamic.action core.fail_with_noop(msg)`
 
 
 #### Parameters:
@@ -1439,20 +1438,6 @@ ref | `string`<br><p>The reference.</p>
 
 
 
-## feedback.action_result
-
-Gives access to the feedback migration information and utilities.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-msg | The message associated with the result
-result | The result of this action
-
-
-
 ## feedback.context
 
 Gives access to the feedback migration information and utilities. This context is a concrete implementation for feedback migrations.
@@ -1476,7 +1461,7 @@ refs | A list containing string representations of the entities that triggered t
 
 Returns an error action result.
 
-`feedback.action_result feedback.context.error(msg)`
+`dynamic.action_result feedback.context.error(msg)`
 
 
 #### Parameters:
@@ -1490,7 +1475,7 @@ msg | `string`<br><p>The error message</p>
 
 Returns a no op action result with an optional message.
 
-`feedback.action_result feedback.context.noop(msg=None)`
+`dynamic.action_result feedback.context.noop(msg=None)`
 
 
 #### Parameters:
@@ -1522,7 +1507,7 @@ type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>:
 
 Returns a successful action result.
 
-`feedback.action_result feedback.context.success()`
+`dynamic.action_result feedback.context.success()`
 
 
 

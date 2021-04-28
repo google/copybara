@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.action.Action;
+import com.google.copybara.action.ActionResult;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import javax.annotation.Nullable;
@@ -134,7 +136,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> context) throws ValidationException {
     checkCondition(
         result != null,
         "Feedback actions must return a result via built-in functions: success(), "
@@ -159,7 +161,7 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     // Populate effects registered in the action context. This is required because SkylarkAction
     // makes a copy of the context to inject the parameters, but that instance is not visible from
     // the caller
-    this.newDestinationEffects.addAll(((FeedbackContext) actionContext).newDestinationEffects);
+    this.newDestinationEffects.addAll(((FeedbackContext) context).newDestinationEffects);
   }
 
   ActionResult getActionResult() {

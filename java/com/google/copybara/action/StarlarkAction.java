@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.feedback;
+package com.google.copybara.action;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;

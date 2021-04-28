@@ -16,11 +16,10 @@
 
 package com.google.copybara.git;
 
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.Option;
-
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.Option;
 
 /**
  * Arguments for git.mirror migration.

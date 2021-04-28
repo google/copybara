@@ -24,6 +24,7 @@ import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.Endpoint;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.action.Action;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.console.Console;

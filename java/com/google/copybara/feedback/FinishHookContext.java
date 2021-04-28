@@ -26,6 +26,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Revision;
 import com.google.copybara.SkylarkContext;
+import com.google.copybara.action.Action;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
@@ -129,7 +130,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> context) throws ValidationException {
     checkCondition(
         result == null || result.equals(Starlark.NONE),
         "Finish hook '%s' cannot return any result but returned: %s",
@@ -139,7 +140,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     // makes a copy of the context to inject the parameters, but that instance is not visible from
     // the caller
     this.newDestinationEffects.addAll(
-        ((FinishHookContext) actionContext).getNewDestinationEffects());
+        ((FinishHookContext) context).getNewDestinationEffects());
   }
 
   @StarlarkBuiltin(

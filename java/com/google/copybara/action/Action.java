@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.feedback;
+package com.google.copybara.action;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
@@ -23,10 +23,14 @@ import com.google.copybara.exception.ValidationException;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
-/** An action that will be executed in a feedback workflow or on finish hook */
+/**
+ * Actions are Starlark functions that receive a context object (that is different depending
+ *  on where it is used) that expose an API to implement custom logic in Starlark. */
 @StarlarkBuiltin(
-    name = "feedback.action",
-    doc = "An action that will be executed in a feedback workflow or on_finish hook",
+    name = "dynamic.action",
+    doc = "An action is an Starlark piece of code that does part of a migration. It is used"
+        + "to define the logic of migration for feedback workflow, on_finish hooks, git.mirror,"
+        + " etc.",
     documented = false)
 public interface Action extends StarlarkValue {
 

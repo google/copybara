@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.google.copybara.feedback;
+package com.google.copybara.action;
 
-import static com.google.copybara.feedback.ActionResult.Result.ERROR;
-import static com.google.copybara.feedback.ActionResult.Result.NO_OP;
-import static com.google.copybara.feedback.ActionResult.Result.SUCCESS;
+import static com.google.copybara.action.ActionResult.Result.ERROR;
+import static com.google.copybara.action.ActionResult.Result.NO_OP;
+import static com.google.copybara.action.ActionResult.Result.SUCCESS;
 
 import com.google.common.base.MoreObjects;
 import javax.annotation.Nullable;
@@ -30,8 +30,8 @@ import net.starlark.java.eval.StarlarkValue;
 /** Represents the result returned by an {@link Action}. */
 @SuppressWarnings("unused")
 @StarlarkBuiltin(
-    name = "feedback.action_result",
-    doc = "Gives access to the feedback migration information and utilities.")
+    name = "dynamic.action_result",
+    doc = "Result objects created by actions to tell Copybara what happened.")
 public class ActionResult implements StarlarkValue {
 
   private final Result result;

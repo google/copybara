@@ -754,7 +754,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<?> context) throws ValidationException {
     checkCondition(
         result == null || result.equals(Starlark.NONE),
         "Transform work cannot return any result but returned: %s",

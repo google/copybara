@@ -27,6 +27,6 @@ public interface SkylarkContext<T> {
   /** Create a copy instance with Skylark function parameters. */
   T withParams(Dict<?, ?> params);
 
-  /** Performs tasks after an {@link com.google.copybara.feedback.Action} finishes. */
-  void onFinish(Object result, SkylarkContext<?> actionContext) throws ValidationException;
+  /** Performs tasks after Starlark code finishes. */
+  void onFinish(Object result, SkylarkContext<?> context) throws ValidationException;
 }

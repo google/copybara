@@ -576,7 +576,7 @@ public class Generator {
     oldOrder.add("destination_ref");
     oldOrder.add("endpoint");
     oldOrder.add("endpoint_provider");
-    oldOrder.add("feedback.action_result");
+    oldOrder.add("action.action_result");
     oldOrder.add("feedback.context");
     oldOrder.add("feedback.finish_hook_context");
     oldOrder.add("feedback.revision_context");
