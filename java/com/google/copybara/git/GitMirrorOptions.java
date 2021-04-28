@@ -36,6 +36,7 @@ public class GitMirrorOptions implements Option {
   public GitMirrorOptions(GeneralOptions ignore1, GitOptions ignore2) {
   }
 
+  // TODO(malcon): Deprecate and use --force instead
   @Parameter(names = "--git-mirror-force",
       description = "Force push even if it is not fast-forward")
   boolean forcePush = false;

@@ -120,7 +120,7 @@ public class Mirror implements Migration {
             + " commits to push in: %s", destination, repo.getGitDir());
       } else {
         generalOptions.console().progressFmt("Pushing to %s", destination);
-        List<Refspec> pushRefspecs = mirrorOptions.forcePush
+        List<Refspec> pushRefspecs = mirrorOptions.forcePush || generalOptions.isForced()
             ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
             : refspec;
         try (ProfilerTask ignore1 = profiler.start("push")) {
