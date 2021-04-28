@@ -80,38 +80,7 @@ public class Mirror implements Migration {
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
       GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
-      List<String> fetchRefspecs = refspec.stream()
-          .map(r -> r.originToOrigin().toString())
-          .collect(Collectors.toList());
-
-      generalOptions.console().progressFmt("Fetching from %s", origin);
-
-      Profiler profiler = generalOptions.profiler();
-      try (ProfilerTask ignore1 = profiler.start("fetch")) {
-        repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs, partialFetch);
-      }
-
-      if (generalOptions.dryRunMode) {
-        generalOptions.console().progressFmt("Skipping push to %s. You can check the"
-            + " commits to push in: %s", destination, repo.getGitDir());
-      } else {
-        generalOptions.console().progressFmt("Pushing to %s", destination);
-        List<Refspec> pushRefspecs = mirrorOptions.forcePush
-            ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
-            : refspec;
-        try (ProfilerTask ignore1 = profiler.start("push")) {
-          repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
-        }
-      }
-
-    } catch (RepoException e) {
-      // non-fast-forward errors in git mirror usually means that the destination
-      // has commits that the origin doesn't. Usually by a user submitting directly
-      // to the destination instead of using Copybara.
-      if (e.getMessage().contains("(non-fast-forward)")) {
-        throw new ValidationException(e.getMessage(), e);
-      }
-      throw e;
+      defaultMirror(repo);
     }
 
     // More fine grain events based on the references created/updated/deleted:
@@ -131,6 +100,42 @@ public class Mirror implements Migration {
                         getOriginDestinationRef(destination), "mirror", /*url=*/ null))),
             getOriginDescription(), getDestinationDescription());
     generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
+  }
+
+  private void defaultMirror(GitRepository repo) throws RepoException, ValidationException {
+    List<String> fetchRefspecs = refspec.stream()
+        .map(r -> r.originToOrigin().toString())
+        .collect(Collectors.toList());
+
+    generalOptions.console().progressFmt("Fetching from %s", origin);
+
+    Profiler profiler = generalOptions.profiler();
+    try {
+      try (ProfilerTask ignore1 = profiler.start("fetch")) {
+        repo.fetch(origin, /*prune=*/true, /*force=*/true, fetchRefspecs, partialFetch);
+      }
+
+      if (generalOptions.dryRunMode) {
+        generalOptions.console().progressFmt("Skipping push to %s. You can check the"
+            + " commits to push in: %s", destination, repo.getGitDir());
+      } else {
+        generalOptions.console().progressFmt("Pushing to %s", destination);
+        List<Refspec> pushRefspecs = mirrorOptions.forcePush
+            ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
+            : refspec;
+        try (ProfilerTask ignore1 = profiler.start("push")) {
+          repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+        }
+      }
+    } catch (RepoException e) {
+      // non-fast-forward errors in git mirror usually means that the destination
+      // has commits that the origin doesn't. Usually by a user submitting directly
+      // to the destination instead of using Copybara.
+      if (e.getMessage().contains("(non-fast-forward)")) {
+        throw new ValidationException(e.getMessage(), e);
+      }
+      throw e;
+    }
   }
 
   private static String getOriginDestinationRef(String url) throws ValidationException {
