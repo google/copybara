@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.Message.MessageType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -33,7 +34,7 @@ import java.util.Set;
 public class CapturingConsole extends DelegateConsole {
 
   protected static final ImmutableSet<MessageType> ALL_TYPES =
-      ImmutableSet.copyOf(MessageType.values());
+      ImmutableSet.copyOf(EnumSet.allOf(MessageType.class));
 
   private final ArrayList<Message> messages = new ArrayList<>();
   private final Set<MessageType> captureTypes;
