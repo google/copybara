@@ -616,7 +616,7 @@ public class GitHubPrOriginTest {
         "use_merge = True",
         "baseline_from_branch = True");
 
-    mockPullRequestAndIssue("open", 123);
+    mockPullRequestAndIssue("open", "main", 123, true);
 
     GitRevision mergePrRevision = origin.resolve("123");
 
@@ -962,7 +962,7 @@ public class GitHubPrOriginTest {
             "branch = 'primary'",
         "use_merge = True");
 
-    mockPullRequestAndIssue("open", "primary", 123);
+    mockPullRequestAndIssue("open", "primary", 123, true);
 
     origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
 
@@ -1005,7 +1005,7 @@ public class GitHubPrOriginTest {
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
-    mockPullRequestAndIssue("open", 123, "main");
+    mockPullRequestAndIssue("open", 123);
 
     // Now try with merge ref
     GitHubPROrigin origin = githubPrOrigin(
@@ -1076,18 +1076,34 @@ public class GitHubPrOriginTest {
   public void mockPullRequestAndIssue(
       String state, String primaryBranch, int prNumber, String... labels)
       throws IOException {
+    mockPullRequestAndIssue(state, "main", prNumber, false, labels);
+  }
+
+  public void mockPullRequestAndIssue(
+      String state, String primaryBranch, int prNumber, boolean mergeable, String... labels)
+      throws IOException {
     // TODO(hsudhof): PrimaryBranch should not assume this value as
-    mockPullRequest(prNumber, state, primaryBranch);
+    mockPullRequest(prNumber, state, primaryBranch, mergeable);
     mockIssue(prNumber, issueResponse(prNumber, state, labels));
   }
 
   private void mockPullRequest(int prNumber, String state, String primaryBranch) {
-    mockPullRequest(gitUtil, prNumber, state, primaryBranch);
+    mockPullRequest(gitUtil, prNumber, state, primaryBranch, false);
+  }
+
+  private void mockPullRequest(
+      int prNumber, String state, String primaryBranch, boolean mergeable) {
+    mockPullRequest(gitUtil, prNumber, state, primaryBranch, mergeable);
   }
 
   /** Used internally */
   public static void mockPullRequest(
       GitTestUtil gitUtil, int prNumber, String state, String primaryBranch) {
+    mockPullRequest(gitUtil, prNumber, state, primaryBranch, false);
+  }
+
+  private static void mockPullRequest(
+      GitTestUtil gitUtil, int prNumber, String state, String primaryBranch, boolean mergeable) {
     String content = String.format(
         "{\n"
             + "  \"id\": 1,\n"
@@ -1121,8 +1137,12 @@ public class GitHubPrOriginTest {
             + "    {\n"
             + "      \"login\": \"assignee2\"\n"
             + "    }\n"
-            + "  ]\n"
+            + "  ],\n"
+            + "  \"mergeable\": "
+            + mergeable
+            + "\n"
             + "}", primaryBranch);
+
     gitUtil.mockApi(
         eq("GET"),
         eq("https://api.github.com/repos/google/example/pulls/" + prNumber),

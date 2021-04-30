@@ -16,9 +16,11 @@
 
 package com.google.copybara.git.github.api;
 
+import com.google.api.client.util.Data;
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -28,13 +30,14 @@ import net.starlark.java.eval.StarlarkValue;
     name = "github_api_pull_request_obj",
     doc =
         "Information about a pull request as defined in"
-            + " https://developer.github.com/v3/repos/pulls. This is a subset of the available"
+            + " https://docs.github.com/en/rest/reference/pulls. This is a subset of the available"
             + " fields in GitHub")
 public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
 
   @Key private Revision head;
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
+  @Key private Boolean mergeable;
 
   @StarlarkMethod(name = "head", doc = "Information about head", structField = true)
   public Revision getHead() {
@@ -44,6 +47,13 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @StarlarkMethod(name = "base", doc = "Information about base", structField = true)
   public Revision getBase() {
     return base;
+  }
+
+  @Nullable
+  public Boolean isMergeable() {
+    // Explicit null values in JSON data are not automatically converted to Java null; see
+    // https://googleapis.github.io/google-http-java-client/json.html
+    return Data.isNull(mergeable) ? null : mergeable;
   }
 
   public ImmutableList<User> getRequestedReviewers() {
@@ -57,6 +67,7 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
     return getToStringHelper()
         .add("head", head)
         .add("base", base)
+        .add("mergeable", isMergeable())
         .toString();
   }
 }

@@ -367,16 +367,30 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     // latency.
     console.progressFmt("Fetching Pull Request %d and branch '%s'",
         prNumber, prData.getBase().getRef());
-    try(ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
-      ImmutableList.Builder<String> refSpecBuilder = ImmutableList.<String>builder()
-          .add(String.format("%s:%s", asHeadRef(prNumber), LOCAL_PR_HEAD_REF))
-          // Prefix the branch name with 'refs/heads/' since some implementations of
-          // GitRepository need the whole reference name.
-          .add(String.format("refs/heads/%s:" + LOCAL_PR_BASE_BRANCH, prData.getBase().getRef()));
-      if (useMerge) {
+    ImmutableList.Builder<String> refSpecBuilder = ImmutableList.<String>builder()
+        .add(String.format("%s:%s", asHeadRef(prNumber), LOCAL_PR_HEAD_REF))
+        // Prefix the branch name with 'refs/heads/' since some implementations of
+        // GitRepository need the whole reference name.
+        .add(String.format("refs/heads/%s:" + LOCAL_PR_BASE_BRANCH, prData.getBase().getRef()));
+    if (useMerge) {
+      if (prData.isMergeable() == null) {
+        throw new CannotResolveRevisionException(
+            String.format(
+                "Cannot find a merge reference for Pull Request %d."
+                    + " GitHub might still be generating it.",
+                prNumber));
+      } else if (!prData.isMergeable()) {
+        throw new CannotResolveRevisionException(
+            String.format(
+                "Cannot find a merge reference for Pull Request %d."
+                    + " It might have a conflict with head.",
+                prNumber));
+      } else {
         refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       }
-      ImmutableList<String> refspec = refSpecBuilder.build();
+    }
+    ImmutableList<String> refspec = refSpecBuilder.build();
+    try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
       getRepository()
           .fetch(
               ghHost.projectAsUrl(project),
@@ -387,8 +401,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     } catch (CannotResolveRevisionException e) {
       if (useMerge) {
         throw new CannotResolveRevisionException(
-            String.format("Cannot find a merge reference for Pull Request %d."
-                + " It might have a conflict with head.", prNumber), e);
+            String.format("Cannot find a merge reference for Pull Request %d, even though GitHub"
+                + " reported that this merge reference should exist.", prNumber), e);
       } else {
         throw new CannotResolveRevisionException(
             String.format("Cannot find Pull Request %d.", prNumber), e);

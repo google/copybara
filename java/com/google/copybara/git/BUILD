@@ -43,8 +43,8 @@ java_library(
     deps = [
         ":core",
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara/action",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
