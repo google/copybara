@@ -2370,6 +2370,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
   - GITHUB_BASE_BRANCH: The name of the branch which serves as the base for the Pull Request.
   - GITHUB_BASE_BRANCH_SHA1: The SHA-1 of the commit used as baseline. Generally, the baseline commit is the point of divergence between the PR's 'base' and 'head' branches. When `use_merge = True` is specified, the baseline is instead the tip of the PR's base branch.
+  - GITHUB_PR_USE_MERGE: Equal to 'true' if the workflow is importing a GitHub PR 'merge' commit and 'false' when importing a GitHub PR 'head' commit.
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
   - GITHUB_PR_URL: GitHub url of the Pull Request.

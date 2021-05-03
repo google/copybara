@@ -26,6 +26,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_NUMBER_LABEL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USE_MERGE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -1022,6 +1023,55 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains("Cannot find a merge reference for Pull Request 123");
+  }
+
+  @Test
+  public void testCheckout_noMergeRef_withForce() throws Exception {
+    GitRepository remote = withTmpWorktree
+        (gitUtil.mockRemoteRepo("github.com/google/example"));
+    String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
+
+    remote.simpleCommand("branch", "feature");
+    String featureRef =
+        addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
+
+    remote.forceCheckout(baseRef);
+    String mainRef =
+        addFiles(remote, "commit to main branch", ImmutableMap.of("test.txt", "b"));
+    remote.simpleCommand("merge", "feature");
+    String mergeRef = remote.parseRef("HEAD");
+    remote.forceCheckout(mainRef);
+
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), featureRef);
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), mergeRef);
+
+    // Using --force should respect "use_merge = True" when a merge commit does exist
+    options.setForce(true);
+    skylark = new SkylarkTestExecutor(options);
+
+    mockPullRequestAndIssue("open", "main", 123, /*mergeable = */ true);
+
+    GitHubPROrigin origin =
+        githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
+
+    assertThat(origin.resolve("123").getSha1())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asMergeRef(123)).getSha1());
+    assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("true");
+
+    // Using --force should override "use_merge = True", since no merge commit exists
+
+    options.setForce(true);
+    skylark = new SkylarkTestExecutor(options);
+
+    remote.simpleCommand("reset", "--hard", "HEAD~1"); //delete the merge commit
+    mockPullRequestAndIssue("open", "main", 123, /*mergeable = */ false);
+
+    origin =
+        githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
+
+    assertThat(origin.resolve("123").getSha1())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1());
+    assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
   }
 
   private void checkResolve(GitHubPROrigin origin, String reference, int prNumber)

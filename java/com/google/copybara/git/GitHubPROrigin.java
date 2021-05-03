@@ -91,6 +91,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   public static final String GITHUB_PR_NUMBER_LABEL = "GITHUB_PR_NUMBER";
   public static final String GITHUB_BASE_BRANCH = "GITHUB_BASE_BRANCH";
   public static final String GITHUB_BASE_BRANCH_SHA1 = "GITHUB_BASE_BRANCH_SHA1";
+  public static final String GITHUB_PR_USE_MERGE = "GITHUB_PR_USE_MERGE";
   public static final String GITHUB_PR_TITLE = "GITHUB_PR_TITLE";
   public static final String GITHUB_PR_URL = "GITHUB_PR_URL";
   public static final String GITHUB_PR_BODY = "GITHUB_PR_BODY";
@@ -274,8 +275,9 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
     Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
     int prNumber = (int)prData.getNumber();
+    boolean actuallyUseMerge = this.useMerge;
 
-    if (!gitHubPrOriginOptions.forceImport && !requiredLabels.isEmpty()) {
+    if (!forceImport() && !requiredLabels.isEmpty()) {
       int retryCount = 0;
       Set<String> requiredButNotPresent;
       do {
@@ -311,8 +313,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
     // check if check runs are ready if applicable
     checkRequiredCheckRuns(api, project, prData);
-    if (!gitHubPrOriginOptions.forceImport
-        && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
+    if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
       throw new EmptyChangeException(String.format(
           "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
               + " the workflow is configured to only migrate changes for branch '%s'",
@@ -325,7 +326,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       ImmutableList<Review> reviews = api.getReviews(project, prNumber);
       ApproverState shouldMigrate =
           reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha());
-      if (!gitHubPrOriginOptions.forceImport && !shouldMigrate.shouldMigrate()) {
+      if (!forceImport() && !shouldMigrate.shouldMigrate()) {
         String rejected = "";
         if (!shouldMigrate.rejectedReviews().isEmpty()) {
           rejected = String.format("\nThe following reviews were ignored because they don't meet "
@@ -353,13 +354,11 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       labels.putAll(GITHUB_PR_REVIEWER_OTHER, others);
     }
 
-    if (!gitHubPrOriginOptions.forceImport
-        && requiredState == StateFilter.OPEN && !prData.isOpen()) {
+    if (!forceImport() && requiredState == StateFilter.OPEN && !prData.isOpen()) {
       throw new EmptyChangeException(String.format("Pull Request %d is not open", prNumber));
     }
 
-    if (!gitHubPrOriginOptions.forceImport
-        && requiredState == StateFilter.CLOSED && prData.isOpen()) {
+    if (!forceImport() && requiredState == StateFilter.CLOSED && prData.isOpen()) {
       throw new EmptyChangeException(String.format("Pull Request %d is open", prNumber));
     }
 
@@ -372,23 +371,31 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         // Prefix the branch name with 'refs/heads/' since some implementations of
         // GitRepository need the whole reference name.
         .add(String.format("refs/heads/%s:" + LOCAL_PR_BASE_BRANCH, prData.getBase().getRef()));
-    if (useMerge) {
-      if (prData.isMergeable() == null) {
+
+    if (actuallyUseMerge) {
+      if (Boolean.TRUE.equals(prData.isMergeable())) {
+        refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
+      } else if (forceImport()) {
+        console.warnFmt(
+            "PR %d is not mergeable, but continuing with PR Head instead because of %s",
+            prNumber,
+            GeneralOptions.FORCE);
+        actuallyUseMerge = false;
+      } else if (prData.isMergeable() == null) {
         throw new CannotResolveRevisionException(
             String.format(
                 "Cannot find a merge reference for Pull Request %d."
                     + " GitHub might still be generating it.",
                 prNumber));
-      } else if (!prData.isMergeable()) {
+      } else {
         throw new CannotResolveRevisionException(
             String.format(
                 "Cannot find a merge reference for Pull Request %d."
                     + " It might have a conflict with head.",
                 prNumber));
-      } else {
-        refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       }
     }
+
     ImmutableList<String> refspec = refSpecBuilder.build();
     try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
       getRepository()
@@ -399,7 +406,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
               refspec,
               partialFetch);
     } catch (CannotResolveRevisionException e) {
-      if (useMerge) {
+      if (actuallyUseMerge) {
         throw new CannotResolveRevisionException(
             String.format("Cannot find a merge reference for Pull Request %d, even though GitHub"
                 + " reported that this merge reference should exist.", prNumber), e);
@@ -409,7 +416,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       }
     }
 
-    String refForMigration = useMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
+    String refForMigration = actuallyUseMerge ? LOCAL_PR_MERGE_REF : LOCAL_PR_HEAD_REF;
     GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
     String headPrSha1 = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1();
@@ -427,6 +434,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     labels.put(GitModule.DEFAULT_INTEGRATE_LABEL, integrateLabel);
     labels.put(GITHUB_BASE_BRANCH, prData.getBase().getRef());
     labels.put(GITHUB_PR_HEAD_SHA, headPrSha1);
+    labels.put(GITHUB_PR_USE_MERGE, Boolean.toString(actuallyUseMerge));
 
     String mergeBase = getRepository().mergeBase(refForMigration, LOCAL_PR_BASE_BRANCH);
     labels.put(GITHUB_BASE_BRANCH_SHA1, mergeBase);
@@ -444,7 +452,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         gitRevision.getSha1(),
         // TODO(malcon): Decide the format to use here:
         /*reviewReference=*/null,
-        useMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
+        actuallyUseMerge ? asMergeRef(prNumber) : asHeadRef(prNumber),
         labels.build(),
         url);
 
@@ -453,7 +461,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
   private void checkRequiredCheckRuns(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
-    if (gitHubPrOriginOptions.forceImport || requiredCheckRuns.isEmpty()) {
+    if (forceImport() || requiredCheckRuns.isEmpty()) {
       return;
     }
     try (ProfilerTask ignore = generalOptions.profiler()
@@ -477,7 +485,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
   private void checkRequiredStatusContextNames(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
-    if (gitHubPrOriginOptions.forceImport || requiredStatusContextNames.isEmpty()) {
+    if (forceImport() || requiredStatusContextNames.isEmpty()) {
       return;
     }
     try (ProfilerTask ignore = generalOptions.profiler()
@@ -520,8 +528,8 @@ public class GitHubPROrigin implements Origin<GitRevision> {
         partialFetch,
         patchTransformation,
         describeVersion,
-        /*configPath=*/null,
-        /*workflowName=*/null) {
+        /*configPath=*/ null,
+        /*workflowName=*/ null) {
 
       /** Disable rebase since this is controlled by useMerge field. */
       @Override
@@ -569,7 +577,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       @Override
       public ChangesResponse<GitRevision> changes(@Nullable GitRevision fromRef, GitRevision toRef)
           throws RepoException, ValidationException {
-        if (!useMerge) {
+        checkCondition(
+            toRef.associatedLabels().containsKey(GITHUB_PR_USE_MERGE),
+            "Cannot determine whether 'use_merge' was set.");
+        if (toRef.associatedLabel(GITHUB_PR_USE_MERGE).contains("false")) {
           return super.changes(fromRef, toRef);
         }
         GitLogEntry merge =
@@ -643,6 +654,10 @@ public class GitHubPROrigin implements Origin<GitRevision> {
       builder.putAll(GitHubUtil.REQUIRED_CHECK_RUNS, requiredCheckRuns);
     }
     return builder.build();
+  }
+
+  private boolean forceImport() {
+    return generalOptions.isForced() || gitHubPrOriginOptions.forceImport;
   }
 
   /**

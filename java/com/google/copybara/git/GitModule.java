@@ -30,6 +30,7 @@ import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USE_MERGE;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.NUMERIC;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
@@ -45,6 +46,8 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
+import com.google.copybara.action.Action;
+import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
@@ -55,8 +58,6 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.action.Action;
-import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.NotifyOption;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
@@ -75,7 +76,14 @@ import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -92,16 +100,6 @@ import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.Location;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
 @StarlarkBuiltin(name = "git", doc = "Set of functions to define Git origins and destinations.")
@@ -678,6 +676,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + ": The SHA-1 of the commit used as baseline. Generally, the baseline commit is the"
               + " point of divergence between the PR's 'base' and 'head' branches. When `use_merge"
               + " = True` is specified, the baseline is instead the tip of the PR's base branch.\n"
+              + "  - "
+              + GITHUB_PR_USE_MERGE
+              + ": Equal to 'true' if the workflow is importing a GitHub PR 'merge' commit and"
+              + " 'false' when importing a GitHub PR 'head' commit.\n"
               + "  - "
               + GITHUB_PR_TITLE
               + ": Title of the Pull Request.\n"
