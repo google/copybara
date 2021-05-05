@@ -24,6 +24,7 @@
     - [console.verbose](#console.verbose)
     - [console.warn](#console.warn)
   - [core](#core)
+    - [core.action](#core.action)
     - [core.copy](#core.copy)
     - [core.dynamic_feedback](#core.dynamic_feedback)
     - [core.dynamic_transform](#core.dynamic_transform)
@@ -58,7 +59,10 @@
     - [feedback.context.record_effect](#feedback.context.record_effect)
     - [feedback.context.success](#feedback.context.success)
   - [feedback.finish_hook_context](#feedback.finish_hook_context)
+    - [feedback.finish_hook_context.error](#feedback.finish_hook_context.error)
+    - [feedback.finish_hook_context.noop](#feedback.finish_hook_context.noop)
     - [feedback.finish_hook_context.record_effect](#feedback.finish_hook_context.record_effect)
+    - [feedback.finish_hook_context.success](#feedback.finish_hook_context.success)
   - [feedback.revision_context](#feedback.revision_context)
   - [filter_replace](#filter_replace)
   - [folder](#folder)
@@ -584,6 +588,21 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
 <span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior to execution, but this might break legacy configs. Options are LOOSE, STRICT
 <span style="white-space: nowrap;">`-v, --verbose`</span> | *boolean* | Verbose output.
+
+<a id="core.action" aria-hidden="true"></a>
+### core.action
+
+Create a dynamic Skylark action. This should only be used by libraries developers. Actions are Starlark functions that receive a context, perform some side effect and return a result (success, error or noop).
+
+`dynamic.action core.action(impl, params={})`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+impl | `callable`<br><p>The Skylark function to call</p>
+params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
@@ -1453,7 +1472,7 @@ console | Get an instance of the console to report errors or warnings
 destination | An object representing the destination. Can be used to query or modify the destination state
 feedback_name | The name of the Feedback migration calling this action.
 origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
-params | Parameters for the function if created with core.dynamic_feedback
+params | Parameters for the function if created with core.action
 refs | A list containing string representations of the entities that triggered the event
 
 <a id="feedback.context.error" aria-hidden="true"></a>
@@ -1526,8 +1545,36 @@ console | Get an instance of the console to report errors or warnings
 destination | An object representing the destination. Can be used to query or modify the destination state
 effects | The list of effects that happened in the destination
 origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
-params | Parameters for the function if created with core.dynamic_feedback
+params | Parameters for the function if created with core.action
 revision | Get the requested/resolved revision
+
+<a id="feedback.finish_hook_context.error" aria-hidden="true"></a>
+### feedback.finish_hook_context.error
+
+Returns an error action result.
+
+`dynamic.action_result feedback.finish_hook_context.error(msg)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string`<br><p>The error message</p>
+
+<a id="feedback.finish_hook_context.noop" aria-hidden="true"></a>
+### feedback.finish_hook_context.noop
+
+Returns a no op action result with an optional message.
+
+`dynamic.action_result feedback.finish_hook_context.noop(msg=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string` or `NoneType`<br><p>The no op message</p>
 
 <a id="feedback.finish_hook_context.record_effect" aria-hidden="true"></a>
 ### feedback.finish_hook_context.record_effect
@@ -1546,6 +1593,13 @@ origin_refs | `sequence of origin_ref`<br><p>The origin refs</p>
 destination_ref | `destination_ref`<br><p>The destination ref</p>
 errors | `sequence of string`<br><p>An optional list of errors</p>
 type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
+
+<a id="feedback.finish_hook_context.success" aria-hidden="true"></a>
+### feedback.finish_hook_context.success
+
+Returns a successful action result.
+
+`dynamic.action_result feedback.finish_hook_context.success()`
 
 
 

@@ -26,13 +26,17 @@ java_library(
     name = "action",
     srcs = [
         "Action.java",
+        "ActionContext.java",
         "ActionResult.java",
         "StarlarkAction.java",
     ],
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/transform",
+        "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:starlark",

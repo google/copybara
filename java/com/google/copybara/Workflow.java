@@ -50,6 +50,7 @@ import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,6 +63,7 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
 
 /**

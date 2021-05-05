@@ -112,7 +112,7 @@ public class FeedbackTest {
             + "  return ctx.success()\n"
             + "\n"
             + "def action1(param1):\n"
-            + "  return core.dynamic_feedback(\n"
+            + "  return core.action(\n"
             + "      impl = _action1,\n"
             + "      params = {\n"
             + "          'param1': param1,\n"
@@ -120,7 +120,7 @@ public class FeedbackTest {
             + "  )"
             + "\n"
             + "def action2(param1, param2):\n"
-            + "  return core.dynamic_feedback(\n"
+            + "  return core.action(\n"
             + "      impl = _action2,\n"
             + "      params = {\n"
             + "          'param1': param1,\n"
@@ -242,7 +242,7 @@ public class FeedbackTest {
     assertThat(expected)
         .hasMessageThat()
         .contains(
-            "Feedback actions must return a result via built-in functions: success(), "
+            "Actions must return a result via built-in functions: success(), "
                 + "error(), noop() return, but 'test_action' returned: None");
   }
 

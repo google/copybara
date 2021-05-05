@@ -49,7 +49,7 @@ public class StarlarkAction implements Action {
   }
 
   @Override
-  public void run(SkylarkContext<?> context) throws ValidationException, RepoException {
+  public void run(ActionContext context) throws ValidationException, RepoException {
     //noinspection unchecked
     SkylarkContext<?> actionContext = (SkylarkContext<?>) context.withParams(params);
     try (Mutability mu = Mutability.create("dynamic_action")) {
@@ -58,6 +58,7 @@ public class StarlarkAction implements Action {
       Object result =
           Starlark.call(
               thread, function, ImmutableList.of(actionContext), /*kwargs=*/ ImmutableMap.of());
+      //noinspection unchecked
       context.onFinish(result, actionContext);
     } catch (EvalException e) {
       Throwable cause = e.getCause();

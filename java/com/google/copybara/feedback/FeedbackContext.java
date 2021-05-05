@@ -16,48 +16,29 @@
 
 package com.google.copybara.feedback;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.DestinationEffect;
-import com.google.copybara.DestinationEffect.DestinationRef;
-import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.Endpoint;
-import com.google.copybara.SkylarkContext;
 import com.google.copybara.action.Action;
-import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.action.ActionContext;
 import com.google.copybara.transform.SkylarkConsole;
-import com.google.copybara.util.console.Console;
-import java.util.ArrayList;
-import java.util.List;
-import net.starlark.java.annot.Param;
-import net.starlark.java.annot.ParamType;
+
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
-import net.starlark.java.eval.Sequence;
-import net.starlark.java.eval.StarlarkValue;
 
-/** Abstract context for feedback migrations. */
+/**
+ * A FeedbackContext is an ActionContext that has access to the origin & destination and
+ * is used for feedback mechanisms (core.feedback & core.workflow 'after_migration' hooks)
+ */
 @SuppressWarnings("unused")
-public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>, StarlarkValue {
-
-  final Action currentAction;
-  final SkylarkConsole console;
-  final ImmutableMap<String, String> labels;
-  final List<DestinationEffect> newDestinationEffects = new ArrayList<>();
-
-  private final Dict<?, ?> params;
+public abstract class FeedbackContext extends ActionContext<FeedbackContext> {
 
   FeedbackContext(
       Action currentAction,
       SkylarkConsole console,
       ImmutableMap<String, String> labels,
       Dict<?, ?> params) {
-    this.currentAction = Preconditions.checkNotNull(currentAction);
-    this.console = Preconditions.checkNotNull(console);
-    this.params = Preconditions.checkNotNull(params);
-    this.labels = Preconditions.checkNotNull(labels);
+    super(currentAction, console, labels, params);
   }
 
   @StarlarkMethod(name = "origin", doc = "An object representing the origin. Can be used to"
@@ -67,102 +48,4 @@ public abstract class FeedbackContext implements SkylarkContext<FeedbackContext>
   @StarlarkMethod(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
   public abstract Endpoint getDestination() throws EvalException;
-
-  @StarlarkMethod(
-      name = "action_name",
-      doc = "The name of the current action.",
-      structField = true)
-  public String getActionName() {
-    return currentAction.getName();
-  }
-
-  @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
-      + " warnings", structField = true)
-  public Console getConsole() {
-    return console;
-  }
-
-  @StarlarkMethod(
-      name = "params",
-      doc = "Parameters for the function if created with" + " core.dynamic_feedback",
-      structField = true)
-  public Dict<?, ?> getParams() {
-    return params;
-  }
-
-  @StarlarkMethod(
-      name = "cli_labels",
-      doc = "Access labels that a user passes through flag '--labels'. "
-          + "For example: --labels=foo:value1,bar:value2. Then it can access in this way:"
-          + "cli_labels['foo'].",
-      structField = true)
-  public Dict<String, String> getCliLabels() {
-    return Dict.copyOf(null, labels);
-  }
-
-  @StarlarkMethod(
-      name = "record_effect",
-      doc = "Records an effect of the current action.",
-      parameters = {
-        @Param(name = "summary", doc = "The summary of this effect", named = true),
-        @Param(
-            name = "origin_refs",
-            allowedTypes = {
-              @ParamType(type = Sequence.class, generic1 = OriginRef.class),
-            },
-            doc = "The origin refs",
-            named = true),
-        @Param(name = "destination_ref", doc = "The destination ref", named = true),
-        @Param(
-            name = "errors",
-            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
-            defaultValue = "[]",
-            doc = "An optional list of errors",
-            named = true),
-        @Param(
-            name = "type",
-            doc =
-                "The type of migration effect:<br>"
-                    + "<ul>"
-                    + "<li><b>'CREATED'</b>: A new review or change was created.</li>"
-                    + "<li><b>'UPDATED'</b>: An existing review or change was updated.</li>"
-                    + "<li><b>'NOOP'</b>: The change was a noop.</li>"
-                    + "<li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because "
-                    + "the change doesn't have enough approvals.</li>"
-                    + "<li><b>'ERROR'</b>: A user attributable error happened that prevented "
-                    + "the destination from creating/updating the change. "
-                    + "<li><b>'STARTED'</b>: The initial effect of a migration that depends on a "
-                    + "previous one. This allows to have 'dependant' migrations defined by users.\n"
-                    + "An example of this: a workflow migrates code from a Gerrit review to a "
-                    + "GitHub PR, and a feedback migration migrates the test results from a CI in "
-                    + "GitHub back to the Gerrit change.\n"
-                    + "This effect would be created on the former one.</li>"
-                    + "</ul>",
-            defaultValue = "\"UPDATED\"",
-            named = true)
-      })
-  public void recordEffect(
-      String summary,
-      Sequence<?> originRefs, // <OriginRef>
-      DestinationRef destinationRef,
-      Sequence<?> errors, // <String>
-      String typeStr)
-      throws EvalException {
-    DestinationEffect.Type type =
-        SkylarkUtil.stringToEnum("type", typeStr, DestinationEffect.Type.class);
-    newDestinationEffects.add(
-        new DestinationEffect(
-            type,
-            summary,
-            Sequence.cast(originRefs, OriginRef.class, "origin_refs"),
-            destinationRef,
-            Sequence.cast(errors, String.class, "errors")));
-  }
-
-  /**
-   * Return the new {@link DestinationEffect}s created by this context.
-   */
-  public ImmutableList<DestinationEffect> getNewDestinationEffects() {
-    return ImmutableList.copyOf(newDestinationEffects);
-  }
 }

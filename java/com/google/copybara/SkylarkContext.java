@@ -28,5 +28,5 @@ public interface SkylarkContext<T> {
   T withParams(Dict<?, ?> params);
 
   /** Performs tasks after Starlark code finishes. */
-  void onFinish(Object result, SkylarkContext<?> context) throws ValidationException;
+  void onFinish(Object result, SkylarkContext<T> context) throws ValidationException;
 }

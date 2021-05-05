@@ -16,28 +16,21 @@
 
 package com.google.copybara.feedback;
 
-import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
-import static com.google.copybara.exception.ValidationException.checkCondition;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Endpoint;
-import com.google.copybara.SkylarkContext;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
-import javax.annotation.Nullable;
-import net.starlark.java.annot.Param;
-import net.starlark.java.annot.ParamType;
+
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
-import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
-import net.starlark.java.eval.StarlarkValue;
+
+import javax.annotation.Nullable;
 
 /** Skylark context for feedback migrations. */
 @SuppressWarnings("unused")
@@ -46,12 +39,10 @@ import net.starlark.java.eval.StarlarkValue;
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for feedback migrations.")
-public class FeedbackMigrationContext extends FeedbackContext implements StarlarkValue {
+public class FeedbackMigrationContext extends FeedbackContext {
 
   private final Feedback feedback;
   private final ImmutableList<String> refs;
-  @Nullable private ActionResult actionResult;
-
 
   FeedbackMigrationContext(
       Feedback feedback, Action currentAction,  ImmutableMap<String, String> labels,
@@ -73,12 +64,12 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
 
   @Override
   public Endpoint getOrigin() {
-    return feedback.getTrigger().getEndpoint().withConsole(console);
+    return feedback.getTrigger().getEndpoint().withConsole(getConsole());
   }
 
   @Override
   public Endpoint getDestination() {
-    return feedback.getDestination().withConsole(console);
+    return feedback.getDestination().withConsole(getConsole());
   }
 
   @StarlarkMethod(
@@ -98,74 +89,8 @@ public class FeedbackMigrationContext extends FeedbackContext implements Starlar
     return StarlarkList.immutableCopyOf(refs);
   }
 
-  @StarlarkMethod(name = "success", doc = "Returns a successful action result.")
-  public ActionResult success() {
-    return ActionResult.success();
-  }
-
-  @StarlarkMethod(
-      name = "noop",
-      doc = "Returns a no op action result with an optional message.",
-      parameters = {
-        @Param(
-            name = "msg",
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = NoneType.class),
-            },
-            doc = "The no op message",
-            defaultValue = "None"),
-      })
-  public ActionResult noop(Object noopMsg) {
-    return ActionResult.noop(convertFromNoneable(noopMsg, /*defaultMsg*/ null));
-  }
-
-  @StarlarkMethod(
-      name = "error",
-      doc = "Returns an error action result.",
-      parameters = {
-        @Param(name = "msg", doc = "The error message"),
-      })
-  public ActionResult error(String errorMsg) {
-    return ActionResult.error(errorMsg);
-  }
-
   @Override
   public FeedbackContext withParams(Dict<?, ?> params) {
-    return new FeedbackMigrationContext(feedback, currentAction, labels, refs, console, params);
-  }
-
-  @Override
-  public void onFinish(Object result, SkylarkContext<?> context) throws ValidationException {
-    checkCondition(
-        result != null,
-        "Feedback actions must return a result via built-in functions: success(), "
-            + "error(), noop() return, but '%s' returned: None", currentAction.getName());
-    checkCondition(result instanceof ActionResult,
-        "Feedback actions must return a result via built-in functions: success(), "
-            + "error(), noop() return, but '%s' returned: %s", currentAction.getName(), result);
-    this.actionResult = (ActionResult) result;
-    switch (actionResult.getResult()) {
-      case ERROR:
-        console.errorFmt(
-            "Action '%s' returned error: %s", currentAction.getName(), actionResult.getMsg());
-        break;
-      case NO_OP:
-        console.infoFmt(
-            "Action '%s' returned noop: %s", currentAction.getName(), actionResult.getMsg());
-        break;
-      case SUCCESS:
-        console.infoFmt("Action '%s' returned success", currentAction.getName());
-        break;
-    }
-    // Populate effects registered in the action context. This is required because SkylarkAction
-    // makes a copy of the context to inject the parameters, but that instance is not visible from
-    // the caller
-    this.newDestinationEffects.addAll(((FeedbackContext) context).newDestinationEffects);
-  }
-
-  ActionResult getActionResult() {
-    Preconditions.checkNotNull(actionResult, "Action result should be set. This is a bug.");
-    return actionResult;
+    return new FeedbackMigrationContext(feedback, action, labels, refs, console, params);
   }
 }

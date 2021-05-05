@@ -1467,6 +1467,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }
 
+  // TODO(malcon): Deprecate this method once all references moved to core.action
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "dynamic_feedback",
@@ -1486,6 +1487,29 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   public Action dynamicFeedback(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
+    return new StarlarkAction(
+        impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "action",
+      doc = "Create a dynamic Skylark action. This should only be used by libraries"
+              + " developers. Actions are Starlark functions that receive a context, perform"
+              + " some side effect and return a result (success, error or noop).",
+      parameters = {
+        @Param(
+            name = "impl",
+            named = true,
+            doc = "The Skylark function to call"),
+        @Param(
+            name = "params",
+            named = true,
+            doc = "The parameters to the function. Will be available under ctx.params",
+            defaultValue = "{}"),
+      },
+      useStarlarkThread = true)
+  public Action action(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
     return new StarlarkAction(
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }

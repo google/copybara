@@ -30,8 +30,7 @@ import com.google.copybara.action.Action;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
-import java.util.Map;
-import java.util.stream.Collectors;
+
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -40,6 +39,9 @@ import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Skylark context for 'after migration' hooks. */
 @SuppressWarnings("unused")
@@ -125,16 +127,15 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
   @Override
   public FinishHookContext withParams(Dict<?, ?> params) {
     return new FinishHookContext(
-        currentAction, origin, destination, destinationEffects, labels, console, params,
-        resolvedRevision);
+        action, origin, destination, destinationEffects, labels, console, params, resolvedRevision);
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext<?> context) throws ValidationException {
+  public void onFinish(Object result, SkylarkContext<FeedbackContext> context)
+      throws ValidationException {
     checkCondition(
         result == null || result.equals(Starlark.NONE),
-        "Finish hook '%s' cannot return any result but returned: %s",
-        currentAction.getName(),
+        "Finish hook '%s' cannot return any result but returned: %s", action.getName(),
         result);
     // Populate effects registered in the action context. This is required because SkylarkAction
     // makes a copy of the context to inject the parameters, but that instance is not visible from

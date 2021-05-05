@@ -33,6 +33,7 @@ import net.starlark.java.eval.StarlarkValue;
         "A console that can be used in skylark transformations to print info, warning or"
             + " error messages.")
 @DocSignaturePrefix("console")
+// TODO(malcon): Move do a more general package.
 public class SkylarkConsole implements Console, StarlarkValue {
 
   private int errorCount = 0;
