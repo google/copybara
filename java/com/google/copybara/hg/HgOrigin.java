@@ -160,8 +160,12 @@ public class HgOrigin implements Origin<HgRevision> {
     @Override
     public ChangesResponse<HgRevision> changes(@Nullable HgRevision fromRef, HgRevision toRef)
       throws RepoException {
-      String refRange = String.format("%s::%s",
-          fromRef == null ? "" : fromRef.getGlobalId(), toRef.getGlobalId());
+      String fromRefExpression = fromRef == null ? "null" : fromRef.getGlobalId();
+      // The "<from>::<to>" part is to filter out unrelated history. The "only()" bit is
+      // so we include commits merged in from a side branch.
+      String refRange =
+          String.format(
+              "only(%s::%s, %s)", fromRefExpression, toRef.getGlobalId(), fromRefExpression);
 
       try {
         ChangeReader reader = changeReaderBuilder().build();
