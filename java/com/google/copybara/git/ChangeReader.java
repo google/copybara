@@ -215,10 +215,6 @@ class ChangeReader {
       return this;
     }
 
-    Builder setVerbose(boolean verbose) {
-      return this;
-    }
-
     Builder setFirstParent(boolean firstParent) {
       this.firstParent = firstParent;
       return this;

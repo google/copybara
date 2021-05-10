@@ -222,7 +222,6 @@ public class GitOrigin implements Origin<GitRevision> {
 
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
       return ChangeReader.Builder.forOrigin(authoring, getRepository(), generalOptions.console())
-          .setVerbose(generalOptions.isVerbose())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs)
           .setRoots(originFiles.roots())
           .setPartialFetch(partialFetch)

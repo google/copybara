@@ -273,8 +273,7 @@ public final class GitDestination implements Destination<GitRevision> {
         return;
       }
       ChangeReader.Builder queryChanges =
-          ChangeReader.Builder.forDestination(repository, baseConsole)
-              .setVerbose(generalOptions.isVerbose());
+          ChangeReader.Builder.forDestination(repository, baseConsole);
 
       GitVisitorUtil.visitChanges(
           start == null ? startRef : start,
@@ -328,7 +327,6 @@ public final class GitDestination implements Destination<GitRevision> {
       DestinationStatusVisitor visitor = new DestinationStatusVisitor(pathMatcher, labelName);
       ChangeReader.Builder changeReader =
           ChangeReader.Builder.forDestination(repo, baseConsole)
-              .setVerbose(generalOptions.isVerbose())
               .setFirstParent(lastRevFirstParent)
               .grep("^" + labelName + ORIGIN_LABEL_SEPARATOR);
       try {
