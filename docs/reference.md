@@ -2368,8 +2368,8 @@ Implicit labels that can be used/exposed:
 
   - GITHUB_PR_NUMBER: The pull request number if the reference passed was in the form of `https://github.com/project/pull/123`,  `refs/pull/123/head` or `refs/pull/123/master`.
   - COPYBARA_INTEGRATE_REVIEW: A label that when exposed, can be used to integrate automatically in the reverse workflow.
-  - GITHUB_BASE_BRANCH: The base branch name used for the Pull Request.
-  - GITHUB_BASE_BRANCH_SHA1: The base branch SHA-1 used as baseline.
+  - GITHUB_BASE_BRANCH: The name of the branch which serves as the base for the Pull Request.
+  - GITHUB_BASE_BRANCH_SHA1: The SHA-1 of the commit used as baseline. Generally, the baseline commit is the point of divergence between the PR's 'base' and 'head' branches. When `use_merge = True` is specified, the baseline is instead the tip of the PR's base branch.
   - GITHUB_PR_TITLE: Title of the Pull Request.
   - GITHUB_PR_BODY: Body of the Pull Request.
   - GITHUB_PR_URL: GitHub url of the Pull Request.

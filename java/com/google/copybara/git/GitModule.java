@@ -672,10 +672,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + " integrate automatically in the reverse workflow.\n"
               + "  - "
               + GITHUB_BASE_BRANCH
-              + ": The base branch name used for the Pull Request.\n"
+              + ": The name of the branch which serves as the base for the Pull Request.\n"
               + "  - "
               + GITHUB_BASE_BRANCH_SHA1
-              + ": The base branch SHA-1 used as baseline.\n"
+              + ": The SHA-1 of the commit used as baseline. Generally, the baseline commit is the"
+              + " point of divergence between the PR's 'base' and 'head' branches. When `use_merge"
+              + " = True` is specified, the baseline is instead the tip of the PR's base branch.\n"
               + "  - "
               + GITHUB_PR_TITLE
               + ": Title of the Pull Request.\n"
