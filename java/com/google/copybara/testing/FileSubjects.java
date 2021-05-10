@@ -61,7 +61,7 @@ public class FileSubjects {
     return assertAbout(PATH_SUBJECT_FACTORY).that(path);
   }
 
-  public static class PathSubject extends Subject {
+  public static class PathSubject extends Subject<PathSubject, Path> {
 
     private final Path actual;
     private final Set<Path> allowedPaths = new HashSet<>();
