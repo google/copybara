@@ -257,19 +257,19 @@ public class HgOriginTest {
   public void testChanges() throws Exception {
     ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
     String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "zero", "foo.txt", "zero");
     singleFileCommit(author, "one", "foo.txt", "one");
-    singleFileCommit(author, "two", "foo.txt", "two");
-    Path filePath = singleFileCommit(author, "three", "foo.txt", "three");
+    Path filePath = singleFileCommit(author, "two", "foo.txt", "two");
 
-    assertThat(Files.readAllBytes(filePath)).isEqualTo("three".getBytes(UTF_8));
+    assertThat(Files.readAllBytes(filePath)).isEqualTo("two".getBytes(UTF_8));
 
     ImmutableList<Change<HgRevision>> changes =
-        newReader().changes(origin.resolve("1"), origin.resolve("tip")).getChanges();
+        newReader().changes(origin.resolve("0"), origin.resolve("tip")).getChanges();
 
     assertThat(changes).hasSize(2);
 
-    assertThat(changes.get(0).getMessage()).isEqualTo("two");
-    assertThat(changes.get(1).getMessage()).isEqualTo("three");
+    assertThat(changes.get(0).getMessage()).isEqualTo("one");
+    assertThat(changes.get(1).getMessage()).isEqualTo("two");
 
     for (Change<HgRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("copy@bara.com");
@@ -292,16 +292,16 @@ public class HgOriginTest {
   @Test
   public void testChangesNoFromRef() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "zero", "foo.txt", "zero");
     singleFileCommit(author, "one", "foo.txt", "one");
     singleFileCommit(author, "two", "foo.txt", "two");
-    singleFileCommit(author, "three", "foo.txt", "three");
 
     ImmutableList<Change<HgRevision>> changes =
         newReader().changes(null, origin.resolve("1")).getChanges();
 
     assertThat(changes).hasSize(2);
-    assertThat(changes.get(0).getMessage()).isEqualTo("one");
-    assertThat(changes.get(1).getMessage()).isEqualTo("two");
+    assertThat(changes.get(0).getMessage()).isEqualTo("zero");
+    assertThat(changes.get(1).getMessage()).isEqualTo("one");
   }
 
   @Test
@@ -339,8 +339,8 @@ public class HgOriginTest {
   @Test
   public void testChangesToIsAncestor() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "zero", "foo.txt", "zero");
     singleFileCommit(author, "one", "foo.txt", "one");
-    singleFileCommit(author, "two", "foo.txt", "two");
 
     ChangesResponse<HgRevision> changes =
         newReader().changes(origin.resolve("tip"), origin.resolve("0"));
@@ -361,7 +361,7 @@ public class HgOriginTest {
   @Test
   public void testChange() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
-    singleFileCommit(author, "one", "foo.txt", "one");
+    singleFileCommit(author, "zero", "foo.txt", "zero");
 
     Change<HgRevision> change = newReader().change(origin.resolve("tip"));
 
@@ -370,7 +370,7 @@ public class HgOriginTest {
 
     assertThat(change.getChangeFiles()).containsExactly("foo.txt");
 
-    assertThat(change.getMessage()).isEqualTo("one");
+    assertThat(change.getMessage()).isEqualTo("zero");
   }
 
   @Test
@@ -383,10 +383,10 @@ public class HgOriginTest {
   @Test
   public void testVisit() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
+    singleFileCommit(author, "zero", "foo.txt", "zero");
     singleFileCommit(author, "one", "foo.txt", "one");
     singleFileCommit(author, "two", "foo.txt", "two");
     singleFileCommit(author, "three", "foo.txt", "three");
-    singleFileCommit(author, "four", "foo.txt", "four");
 
     List<Change<?>> visited = new ArrayList<>();
 
@@ -395,22 +395,22 @@ public class HgOriginTest {
             origin.resolve("tip"),
             input -> {
               visited.add(input);
-              return input.firstLineMessage().equals("three")
+              return input.firstLineMessage().equals("two")
                   ? VisitResult.TERMINATE
                   : VisitResult.CONTINUE;
             });
 
     assertThat(visited).hasSize(2);
-    assertThat(visited.get(0).firstLineMessage()).isEqualTo("four");
-    assertThat(visited.get(1).firstLineMessage()).isEqualTo("three");
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("three");
+    assertThat(visited.get(1).firstLineMessage()).isEqualTo("two");
   }
 
   @Test
   public void testVisitOutsideRoot() throws Exception {
     String author = "Copy Bara <copy@bara.com>";
-    singleFileCommit(author, "one", "foo/foo.txt", "one");
-    singleFileCommit(author, "two", "bar/foo.txt", "two");
-    singleFileCommit(author, "three", "foo/foo.txt", "three");
+    singleFileCommit(author, "zero", "foo/foo.txt", "zero");
+    singleFileCommit(author, "one", "bar/foo.txt", "one");
+    singleFileCommit(author, "two", "foo/foo.txt", "two");
 
     originFiles = Glob.createGlob(ImmutableList.of("bar/**"));
 
@@ -423,7 +423,7 @@ public class HgOriginTest {
               return VisitResult.CONTINUE;
             });
     assertThat(visited).hasSize(1);
-    assertThat(visited.get(0).firstLineMessage()).isEqualTo("two");
+    assertThat(visited.get(0).firstLineMessage()).isEqualTo("one");
   }
 
   @Test

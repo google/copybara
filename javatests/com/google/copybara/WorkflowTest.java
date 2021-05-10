@@ -140,6 +140,7 @@ public class WorkflowTest {
   @Before
   public void setup() throws Exception {
     options = new OptionsBuilder();
+    options.setOutputRootToTmpDir();
     authoring = "authoring.overwrite('" + DEFAULT_AUTHOR + "')";
     includeReleaseNotes = false;
     workdir = Files.createTempDirectory("workdir");
@@ -1932,7 +1933,6 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
-    options.setOutputRootToTmpDir();
     String config =
         "def after_all(ctx):\n"
         + "  ctx.destination.message('after_all '"
@@ -1984,7 +1984,6 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
-    options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
         + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
@@ -2030,7 +2029,6 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
-    options.setOutputRootToTmpDir();
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
         + String.format("    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
@@ -2116,8 +2114,6 @@ public class WorkflowTest {
 
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
-
-    options.setOutputRootToTmpDir();
 
     String config = "core.workflow(\n"
         + "    name = 'default',\n"
@@ -3395,7 +3391,6 @@ public class WorkflowTest {
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
     String primaryBranch = origin.getPrimaryBranch();
 
-    options.setOutputRootToTmpDir();
     options.setForce(false);
     options.workflowOptions.initHistory = true;
 
