@@ -264,7 +264,7 @@ public class HgOriginTest {
     assertThat(Files.readAllBytes(filePath)).isEqualTo("two".getBytes(UTF_8));
 
     ImmutableList<Change<HgRevision>> changes =
-        newReader().changes(origin.resolve("1"), origin.resolve("tip")).getChanges();
+        newReader().changes(origin.resolve("0"), origin.resolve("tip")).getChanges();
 
     assertThat(changes).hasSize(2);
 
