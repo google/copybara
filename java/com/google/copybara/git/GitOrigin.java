@@ -145,8 +145,15 @@ public class GitOrigin implements Origin<GitRevision> {
     console.progress("Git Origin: Initializing local repo");
     String ref;
     if (gitOriginOptions.useGitVersionSelector() && versionSelector != null) {
-      ref = versionSelector.selectVersion(reference, getRepository(), repoUrl, console);
-      checkCondition(ref != null, "Cannot find any matching version for latest_version");
+      if (generalOptions.isForced() && !Strings.isNullOrEmpty(reference)) {
+        console.warnFmt(
+            "Ignoring git.version_selector as %s is being used. Using %s instead.",
+            GeneralOptions.FORCE, reference);
+        ref = reference;
+      } else {
+        ref = versionSelector.selectVersion(reference, getRepository(), repoUrl, console);
+        checkCondition(ref != null, "Cannot find any matching version for latest_version");
+      }
     } else if (Strings.isNullOrEmpty(reference)) {
       checkCondition(configRef != null, "No reference was passed as a command line argument for"
               + " %s and no default reference was configured in the config file", repoUrl);

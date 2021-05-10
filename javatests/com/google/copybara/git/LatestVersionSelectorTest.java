@@ -86,6 +86,13 @@ public class LatestVersionSelectorTest {
   }
 
   @Test
+  public void testVersionSelector_notActiveBecauseOfForce() throws Exception {
+    options.general.setForceForTest(true);
+    createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
+    checkTags("foo");
+  }
+
+  @Test
   public void testVersionSelector_forcePrefix() throws Exception {
     cliReference = "force:1.0.0";
     createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");

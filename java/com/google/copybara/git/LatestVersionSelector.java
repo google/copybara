@@ -108,7 +108,10 @@ public class LatestVersionSelector implements VersionSelector {
       if (requestedRef.startsWith("force:")) {
         return requestedRef.substring("force:".length());
       }
-      console.warnFmt("Ignoring '%s' as git.version_selector is being used.", requestedRef);
+      console.warnFmt(
+          "Ignoring '%s' as git.version_selector is being used. Run with "
+              + "--nogit-origin-version-selector to override.",
+          requestedRef);
     }
     Set<String> refs = repo.lsRemote(url, ImmutableList.of(asGitRefspec())).keySet();
 
