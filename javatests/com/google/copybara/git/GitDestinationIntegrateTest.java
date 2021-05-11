@@ -371,7 +371,7 @@ public class GitDestinationIntegrateTest {
     GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
-    GitHubPRIntegrateLabel labelObj = new GitHubPRIntegrateLabel(repo, options.general,
+    GitHubPrIntegrateLabel labelObj = new GitHubPrIntegrateLabel(repo, options.general,
         "example/test_repo", 20, "some_user:1234-foo.bar.baz%3", secondChange.getSha1());
 
     assertThat(labelObj.getProjectId()).isEqualTo("example/test_repo");
@@ -414,7 +414,7 @@ public class GitDestinationIntegrateTest {
         .filter(e -> e.getType() == MessageType.WARNING)
         .collect(Collectors.toList())).isEmpty();
 
-    label = new GitHubPRIntegrateLabel(repo, options.general,
+    label = new GitHubPrIntegrateLabel(repo, options.general,
         "example/test_repo", 20, "some_user:branch", firstChange.getSha1()).toString();
     assertThat(label).isEqualTo("https://github.com/example/test_repo/pull/20"
         + " from some_user:branch " + firstChange.getSha1());

@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
  * <p>Where SHA-1 is optional: If present it means to integrate the specific SHA-1. Otherwise the
  * head of the PR is used.
  */
-class GitHubPRIntegrateLabel implements IntegrateLabel {
+class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   private static final Pattern LABEL_PATTERN =
       Pattern.compile(
@@ -49,7 +49,7 @@ class GitHubPRIntegrateLabel implements IntegrateLabel {
   @Nullable
   private final String sha1;
 
-  GitHubPRIntegrateLabel(GitRepository repository, GeneralOptions generalOptions, String projectId,
+  GitHubPrIntegrateLabel(GitRepository repository, GeneralOptions generalOptions, String projectId,
       long prNumber, String originBranch, @Nullable String sha1) {
     this.repository = Preconditions.checkNotNull(repository);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -60,11 +60,11 @@ class GitHubPRIntegrateLabel implements IntegrateLabel {
   }
 
   @Nullable
-  static GitHubPRIntegrateLabel parse(String str, GitRepository repository,
+  static GitHubPrIntegrateLabel parse(String str, GitRepository repository,
       GeneralOptions generalOptions) {
     Matcher matcher = LABEL_PATTERN.matcher(str);
     return matcher.matches()
-           ? new GitHubPRIntegrateLabel(repository, generalOptions,
+           ? new GitHubPrIntegrateLabel(repository, generalOptions,
                                         matcher.group(1),
                                         Long.parseLong(matcher.group(2)),
                                         matcher.group(3),

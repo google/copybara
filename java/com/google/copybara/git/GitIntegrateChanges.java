@@ -109,7 +109,7 @@ public class GitIntegrateChanges implements StarlarkValue {
       try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
           ImmutableMap.of("URL", label.getValue()))) {
         generalOptions.console().progress("Integrating change from " + label.getValue());
-        IntegrateLabel integrateLabel = GitHubPRIntegrateLabel.parse(label.getValue(), repository,
+        IntegrateLabel integrateLabel = GitHubPrIntegrateLabel.parse(label.getValue(), repository,
             generalOptions);
         if (integrateLabel == null) {
           integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository,

@@ -20,17 +20,17 @@ import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEE;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_HEAD_SHA;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USE_MERGE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_ASSIGNEE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_HEAD_SHA;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_REVIEWER_APPROVER;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_URL;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USE_MERGE;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.git.LatestVersionSelector.VersionElementType.NUMERIC;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
@@ -60,8 +60,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
 import com.google.copybara.git.GerritDestination.NotifyOption;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
-import com.google.copybara.git.GitHubPROrigin.ReviewState;
-import com.google.copybara.git.GitHubPROrigin.StateFilter;
+import com.google.copybara.git.GitHubPrOrigin.ReviewState;
+import com.google.copybara.git.GitHubPrOrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.LatestVersionSelector.VersionElementType;
@@ -695,7 +695,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + "Implicit labels that can be used/exposed:\n"
               + "\n"
               + "  - "
-              + GitHubPROrigin.GITHUB_PR_NUMBER_LABEL
+              + GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL
               + ": The pull request number if the"
               + " reference passed was in the form of `https://github.com/project/pull/123`, "
               + " `refs/pull/123/head` or `refs/pull/123/master`.\n"
@@ -914,7 +914,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       useStarlarkThread = true)
   @UsesFlags(GitHubPrOriginOptions.class)
   @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
-  public GitHubPROrigin githubPrOrigin(
+  public GitHubPrOrigin githubPrOrigin(
       String url,
       Boolean merge,
       Sequence<?> requiredLabels, // <String>
@@ -962,7 +962,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
     GitHubPrOriginOptions prOpts = options.get(GitHubPrOriginOptions.class);
-    return new GitHubPROrigin(
+    return new GitHubPrOrigin(
         fixHttp(url, thread.getCallerLocation()),
         prOpts.overrideMerge != null ? prOpts.overrideMerge : merge,
         options.get(GeneralOptions.class),

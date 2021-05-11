@@ -17,16 +17,16 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_BASE_BRANCH_SHA1;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_ASSIGNEE;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_BODY;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_HEAD_SHA;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_NUMBER_LABEL;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_TITLE;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_URL;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USER;
-import static com.google.copybara.git.GitHubPROrigin.GITHUB_PR_USE_MERGE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_ASSIGNEE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_BODY;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_HEAD_SHA;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_TITLE;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_URL;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USER;
+import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USE_MERGE;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
@@ -206,7 +206,7 @@ public class GitHubPrOriginTest {
   public void testGitResolveSha1() throws Exception {
     mockPullRequestAndIssue("open", 123);
 
-    GitHubPROrigin origin = githubPrOrigin(
+    GitHubPrOrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
     checkResolve(origin, "refs/pull/123/head", 123);
 
@@ -526,7 +526,7 @@ public class GitHubPrOriginTest {
 
     mockPullRequestAndIssue("open", 123);
 
-    GitHubPROrigin origin = githubPrOrigin(
+    GitHubPrOrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'");
 
     Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
@@ -571,7 +571,7 @@ public class GitHubPrOriginTest {
 
     mockPullRequestAndIssue("open", 123);
 
-    GitHubPROrigin origin = githubPrOrigin(
+    GitHubPrOrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "baseline_from_branch = True");
 
@@ -753,15 +753,15 @@ public class GitHubPrOriginTest {
   public void testReviewApprovers() throws Exception {
     GitRevision noReviews = checkReviewApprovers();
     assertThat(noReviews.associatedLabels())
-        .doesNotContainKey(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER);
+        .doesNotContainKey(GitHubPrOrigin.GITHUB_PR_REVIEWER_APPROVER);
     assertThat(noReviews.associatedLabels())
-        .doesNotContainKey(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER);
+        .doesNotContainKey(GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER);
 
     GitRevision any = checkReviewApprovers("review_state = 'ANY'");
 
-    assertThat(any.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(any.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER", "APPROVED_COLLABORATOR");
-    assertThat(any.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(any.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER");
 
     EmptyChangeException e =
@@ -781,24 +781,24 @@ public class GitHubPrOriginTest {
     GitRevision hasReviewers = checkReviewApprovers("review_state = 'ANY_COMMIT_APPROVED'",
         "review_approvers = [\"MEMBER\", \"OWNER\"]");
 
-    assertThat(hasReviewers.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(hasReviewers.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OWNER");
-    assertThat(hasReviewers.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(hasReviewers.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("COMMENTED_OTHER", "APPROVED_COLLABORATOR");
 
     GitRevision anyCommitApproved = checkReviewApprovers("review_state = 'HAS_REVIEWERS'",
         "review_approvers = [\"OWNER\"]");
 
-    assertThat(anyCommitApproved.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_APPROVER))
+    assertThat(anyCommitApproved.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_APPROVER))
         .containsExactly("COMMENTED_OWNER");
-    assertThat(anyCommitApproved.associatedLabels().get(GitHubPROrigin.GITHUB_PR_REVIEWER_OTHER))
+    assertThat(anyCommitApproved.associatedLabels().get(GitHubPrOrigin.GITHUB_PR_REVIEWER_OTHER))
         .containsExactly("APPROVED_MEMBER", "COMMENTED_OTHER", "APPROVED_COLLABORATOR");
   }
 
 
   @Test
   public void testHttprUrl() throws Exception {
-    GitHubPROrigin val =
+    GitHubPrOrigin val =
         skylark.eval(
             "origin", "origin = git.github_pr_origin(url = 'http://github.com/google/example')\n");
     assertThat(val.describe(Glob.ALL_FILES).get("url"))
@@ -829,7 +829,7 @@ public class GitHubPrOriginTest {
 
   @Test
   public void testDescribeBranch() throws Exception {
-    GitHubPROrigin val =
+    GitHubPrOrigin val =
         skylark.eval(
             "origin", "origin = git.github_pr_origin("
                 + "url = 'http://github.com/google/example', branch = 'dev')\n");
@@ -903,12 +903,12 @@ public class GitHubPrOriginTest {
                         Strings.repeat("0", 40))
                     ))));
 
-    GitHubPROrigin origin = createGitHubPrOrigin(configLines);
+    GitHubPrOrigin origin = createGitHubPrOrigin(configLines);
 
     return origin.resolve("123");
   }
 
-  private GitHubPROrigin createGitHubPrOrigin(String... configLines) throws ValidationException {
+  private GitHubPrOrigin createGitHubPrOrigin(String... configLines) throws ValidationException {
     return skylark.eval("origin", "origin = "
         + "git.github_pr_origin(\n"
         + "    url = 'https://github.com/google/example',\n"
@@ -957,7 +957,7 @@ public class GitHubPrOriginTest {
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("primary"));
 
 
-    GitHubPROrigin origin =
+    GitHubPrOrigin origin =
         githubPrOrigin(
         "url = 'https://github.com/google/example'",
             "branch = 'primary'",
@@ -1009,7 +1009,7 @@ public class GitHubPrOriginTest {
     mockPullRequestAndIssue("open", 123);
 
     // Now try with merge ref
-    GitHubPROrigin origin = githubPrOrigin(
+    GitHubPrOrigin origin = githubPrOrigin(
         "url = 'https://github.com/google/example'",
         "use_merge = True");
 
@@ -1051,7 +1051,7 @@ public class GitHubPrOriginTest {
 
     mockPullRequestAndIssue("open", "main", 123, /*mergeable = */ true);
 
-    GitHubPROrigin origin =
+    GitHubPrOrigin origin =
         githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
 
     assertThat(origin.resolve("123").getSha1())
@@ -1074,7 +1074,7 @@ public class GitHubPrOriginTest {
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
   }
 
-  private void checkResolve(GitHubPROrigin origin, String reference, int prNumber)
+  private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
     addFiles(remote, "first change", ImmutableMap.<String, String>builder()
@@ -1113,7 +1113,7 @@ public class GitHubPrOriginTest {
     return remote.withWorkTree(Files.createTempDirectory("temp"));
   }
 
-  private GitHubPROrigin githubPrOrigin(String... lines) throws ValidationException {
+  private GitHubPrOrigin githubPrOrigin(String... lines) throws ValidationException {
     return skylark.eval("r", "r = git.github_pr_origin("
         + "    " + Joiner.on(",\n    ").join(lines) + ",\n)");
   }

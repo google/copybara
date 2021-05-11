@@ -84,7 +84,7 @@ import javax.annotation.Nullable;
 /**
  * A class for reading GitHub Pull Requests
  */
-public class GitHubPROrigin implements Origin<GitRevision> {
+public class GitHubPrOrigin implements Origin<GitRevision> {
 
   static final int RETRY_COUNT = 3;
 
@@ -131,7 +131,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
   private final GitHubHost ghHost;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
 
-  GitHubPROrigin(
+  GitHubPrOrigin(
       String url,
       boolean useMerge,
       GeneralOptions generalOptions,
@@ -420,7 +420,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
     GitRevision gitRevision = getRepository().resolveReference(refForMigration);
 
     String headPrSha1 = getRepository().resolveReference(LOCAL_PR_HEAD_REF).getSha1();
-    String integrateLabel = new GitHubPRIntegrateLabel(getRepository(), generalOptions,
+    String integrateLabel = new GitHubPrIntegrateLabel(getRepository(), generalOptions,
         project, prNumber,
         prData.getHead().getLabel(),
         // The integrate SHA has to be HEAD of the PR not the merge ref, even if use_merge = True
@@ -734,7 +734,7 @@ public class GitHubPROrigin implements Origin<GitRevision> {
 
     public static ApproverState create(
         boolean shouldMigrate, ImmutableList<Review> rejectedReviews) {
-      return new AutoValue_GitHubPROrigin_ApproverState(
+      return new AutoValue_GitHubPrOrigin_ApproverState(
           shouldMigrate,
           rejectedReviews.stream().collect(ImmutableListMultimap.toImmutableListMultimap(
               r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
