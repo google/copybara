@@ -49,6 +49,18 @@ import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class GitMirrorTest {
+
+  public static final String NATIVE_MIRROR_IN_STARLARK_FUNC = "def _native_mirror(ctx):\n"
+      + "     ctx.console.info('Hello this is mirror!')\n"
+      + "     for o,d in ctx.params['refspec'].items():\n"
+      + "         ctx.origin_fetch(refspec = [o])\n"
+      + "         ctx.destination_push(refspec = [o + ':' + d], prune = ctx.params['prune'])\n"
+      + "         return ctx.success()\n"
+      + "\n"
+      + "def native_mirror(refspec = {'refs/heads/*': 'refs/heads/*'}, prune = False):\n"
+      + "    return core.action(impl = _native_mirror,"
+      + "         params = {'refspec': refspec, 'prune' : prune})\n"
+      + "\n";
   private OptionsBuilder options;
   private SkylarkTestExecutor skylark;
   private GitRepository originRepo;
@@ -430,5 +442,76 @@ public class GitMirrorTest {
     Migration migration = loadMigration(cfg, "default");
     return assertThrows(ValidationException.class,
         () -> migration.run(workdir, ImmutableList.of()));
+  }
+
+  /** Starlark version of our native git.mirror implementation */
+  @Test
+  public void testDefaultMirrorInStarlark() throws Exception {
+    String cfg = ""
+        + NATIVE_MIRROR_IN_STARLARK_FUNC
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    refspecs = ["
+        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
+        + "    ],"
+        + "    actions = [native_mirror(refspec = {"
+        + String.format("       'refs/heads/%s':'refs/heads/origin_primary'", primaryBranch)
+        + "})],"
+        + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    mirror.run(workdir, ImmutableList.of());
+    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
+        .getStdout();
+    String dest = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_primary", "-s")
+        .getStdout();
+    assertThat(dest).isEqualTo(origPrimary);
+    checkRefDoesntExist("refs/heads/" + primaryBranch);
+    checkRefDoesntExist("refs/heads/other");
+  }
+
+  @Test
+  public void testDefaultMirrorInStarlark_invalid_origin() throws Exception {
+    String cfg = ""
+        + NATIVE_MIRROR_IN_STARLARK_FUNC
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    refspecs = ["
+        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
+        + "    ],"
+        + "    actions = [native_mirror(refspec = {"
+        + "       'refs/heads/INVALID':'refs/heads/origin_primary'"
+        + "})],"
+        + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    ValidationException ve = assertThrows(ValidationException.class,
+        () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(ve).hasMessageThat().contains(
+        "Action tried to fetch from origin one or more refspec not covered by git.mirror");
+  }
+
+  @Test
+  public void testDefaultMirrorInStarlark_invalid_destination() throws Exception {
+    String cfg = ""
+        + NATIVE_MIRROR_IN_STARLARK_FUNC
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    refspecs = ["
+        + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
+        + "    ],"
+        + "    actions = [native_mirror(refspec = {"
+        + String.format("       'refs/heads/%s':'refs/heads/INVALID'", primaryBranch)
+        + "})],"
+        + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    ValidationException ve = assertThrows(ValidationException.class,
+        () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(ve).hasMessageThat().contains(
+        "Action tried to push to destination one or more refspec not covered by git.mirror");
   }
 }

@@ -40,6 +40,8 @@ import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 
+import net.starlark.java.eval.Dict;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -101,8 +103,9 @@ public class Mirror implements Migration {
         ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
         for (Action action : actions) {
           GitMirrorContext context = new GitMirrorContext(action,
-              new SkylarkConsole(generalOptions.console()),
-              sourceRefs, refspec, repo, origin, destination, generalOptions.isForced());
+              new SkylarkConsole(generalOptions.console()), sourceRefs, refspec, origin,
+              destination, generalOptions.isForced(),
+              repo, Dict.empty());
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();
