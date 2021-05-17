@@ -16,7 +16,7 @@
 
 package com.google.copybara.transform;
 
-import com.google.copybara.NonReversibleValidationException;
+import com.google.copybara.exception.NonReversibleValidationException;
 import java.util.function.Function;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;

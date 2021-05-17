@@ -17,9 +17,9 @@
 package com.google.copybara.transform.metadata;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import net.starlark.java.syntax.Location;

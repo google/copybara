@@ -23,9 +23,9 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.base.Joiner;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

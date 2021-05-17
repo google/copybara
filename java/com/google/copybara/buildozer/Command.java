@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.copybara.NonReversibleValidationException;
+import com.google.copybara.exception.NonReversibleValidationException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

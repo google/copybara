@@ -19,12 +19,12 @@ package com.google.copybara.buildozer;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.copybara.NonReversibleValidationException;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
+import com.google.copybara.exception.NonReversibleValidationException;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 
 /**

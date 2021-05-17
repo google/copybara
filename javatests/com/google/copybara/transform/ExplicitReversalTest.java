@@ -18,9 +18,10 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.file.Paths.get;
-import com.google.copybara.NonReversibleValidationException;
+
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.TransformWorks;
