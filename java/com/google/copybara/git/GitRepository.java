@@ -2117,7 +2117,7 @@ public class GitRepository {
     return simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
   }
 
-  /** Returns the repo's primary branch, e.g. "main". Falls back to main if not known. */
+  /** Returns the repo's primary branch, e.g. "main". */
   @Nullable
   public String getPrimaryBranch(String uri) throws RepoException {
     String output = simpleCommand("ls-remote", "--symref", uri, "HEAD").getStdout().trim();

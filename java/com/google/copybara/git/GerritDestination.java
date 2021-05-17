@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -120,6 +122,7 @@ public final class GerritDestination implements Destination<GitRevision> {
     private final String topicTemplate;
     private final boolean partialFetch;
     private final boolean gerritSubmit;
+    private final boolean primaryBranchMigrationMode;
 
     GerritWriteHook(
         GeneralOptions generalOptions,
@@ -135,7 +138,8 @@ public final class GerritDestination implements Destination<GitRevision> {
         @Nullable NotifyOption notifyOption,
         @Nullable String topicTemplate,
         boolean partialFetch,
-        boolean gerritSubmit) {
+        boolean gerritSubmit,
+        boolean primaryBranchMigrationMode) {
       this.generalOptions = Preconditions.checkNotNull(generalOptions);
       this.gerritOptions = Preconditions.checkNotNull(gerritOptions);
       this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -151,6 +155,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       this.topicTemplate = topicTemplate;
       this.partialFetch = partialFetch;
       this.gerritSubmit = gerritSubmit;
+      this.primaryBranchMigrationMode = primaryBranchMigrationMode;
     }
 
     /**
@@ -324,7 +329,8 @@ public final class GerritDestination implements Destination<GitRevision> {
     }
 
     @Override
-    public String getPushReference(String pushToRefsFor, TransformResult transformResult)
+    public String getPushReference(
+        GitRepository repo, String pushToRefsFor, TransformResult transformResult)
         throws ValidationException {
       List<String> components = Splitter.on('%').limit(2).splitToList(pushToRefsFor);
 
@@ -379,6 +385,20 @@ public final class GerritDestination implements Destination<GitRevision> {
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       String result = components.get(0);
+      if (result.startsWith("refs/for/")) {
+        String pushRef = result.substring("refs/for/".length());
+        if (primaryBranchMigrationMode && PRIMARY_BRANCHES.contains(pushRef)) {
+          String primaryBranch = null;
+          try {
+            primaryBranch = repo.getPrimaryBranch(repoUrl);
+          } catch (RepoException e) {
+            console.warnFmt("Unable to detect primary branch: %s", e);
+          }
+          if (primaryBranch != null) {
+            result = "refs/for/" + primaryBranch;
+          }
+        }
+      }
       if (!options.isEmpty()) {
         result += "%" + Joiner.on(',').join(options.entries()
             .stream()
@@ -610,7 +630,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 notifyOption,
                 topicTemplate,
                 partialFetch,
-                gerritSubmit),
+                gerritSubmit,
+                primaryBranchMigrationMode),
             integrates),
         submit);
   }

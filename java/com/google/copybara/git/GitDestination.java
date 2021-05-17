@@ -73,7 +73,7 @@ import net.starlark.java.eval.Sequence;
 /**
  * A Git repository destination.
  */
-public final class GitDestination implements Destination<GitRevision> {
+public class GitDestination implements Destination<GitRevision> {
 
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
 
@@ -90,7 +90,7 @@ public final class GitDestination implements Destination<GitRevision> {
 
   private final String repoUrl;
   private final String fetch;
-  private final String push;
+  protected final String push;
   private final boolean partialFetch;
   final boolean primaryBranchMigrationMode;
 
@@ -400,7 +400,8 @@ public final class GitDestination implements Destination<GitRevision> {
        * Construct the reference to push based on the pushToRefsFor reference. Implementations of
        * this method can change the reference to a different reference.
        */
-      String getPushReference(String pushToRefsFor, TransformResult transformResult)
+      String getPushReference(
+          GitRepository primaryBranch, String pushToRefsFor, TransformResult transformResult)
           throws ValidationException;
 
       /**
@@ -448,7 +449,8 @@ public final class GitDestination implements Destination<GitRevision> {
       }
 
       @Override
-      public String getPushReference(String pushToRefsFor, TransformResult transformResult) {
+      public String getPushReference(
+          GitRepository repo, String pushToRefsFor, TransformResult transformResult) {
         return pushToRefsFor;
       }
     }
@@ -461,8 +463,14 @@ public final class GitDestination implements Destination<GitRevision> {
           "Exporting from %s to: url=%s ref=%s", transformResult.getPath(), repoUrl, remotePush);
       String baseline = transformResult.getBaseline();
       GitRepository scratchClone = getRepository(console);
-
       fetchIfNeeded(scratchClone, console);
+      String primaryBranch = null;
+      try {
+        primaryBranch = scratchClone.getPrimaryBranch();
+      } catch (RepoException e) {
+        console.warnFmt("Error determining primary branch %s", e);
+      }
+
 
       console.progressFmt("Git Destination: Checking out %s", remoteFetch);
 
@@ -481,7 +489,7 @@ public final class GitDestination implements Destination<GitRevision> {
         if (localBranchRevision != null) {
           scratchClone.simpleCommand("checkout", "-f", "-q", reference);
         } else {
-          // Configure the commit to go to local branch instead of master.
+          // Configure the commit to go to local branch instead of main branch.
           scratchClone.simpleCommand("symbolic-ref", "HEAD", getCompleteRef(state.localBranch));
         }
         state.firstWrite = false;
@@ -613,7 +621,8 @@ public final class GitDestination implements Destination<GitRevision> {
                 originChanges,
                 new DestinationEffect.DestinationRef(head.getSha1(), "commit", /*url=*/ null)));
       }
-      String push = writeHook.getPushReference(getCompleteRef(remotePush), transformResult);
+      String push =
+          writeHook.getPushReference(scratchClone, getCompleteRef(remotePush), transformResult);
       console.progress(String.format("Git Destination: Pushing to %s %s", repoUrl, push));
       checkCondition(!nonFastForwardPush
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
@@ -781,7 +790,7 @@ public final class GitDestination implements Destination<GitRevision> {
     return push;
   }
 
- @Nullable private String getResolvedPrimary() throws ValidationException {
+ @Nullable protected String getResolvedPrimary() throws ValidationException {
     if (resolvedPrimary == null) {
       try {
         resolvedPrimary = getLocalRepo().load(generalOptions.console()).getPrimaryBranch(repoUrl);

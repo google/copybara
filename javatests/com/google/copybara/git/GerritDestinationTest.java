@@ -1378,7 +1378,8 @@ public class GerritDestinationTest {
             /*notifyOption*/ null,
             /*topicTemplate*/ null,
             /*partialFetch*/ false,
-            /*gerritSubmit*/ false);
+            /*gerritSubmit*/ false,
+            /*primaryBranchMigrationMode*/ false);
     fakeOneCommitInDestination();
 
     ImmutableList<DestinationEffect> result = process.afterPush(
@@ -1461,7 +1462,7 @@ public class GerritDestinationTest {
     repo().withWorkTree(scratchWorkTree)
         .simpleCommand("commit", "-m", "message");
     writeFile(workdir, "test.txt", "some content");
-    pushToRefsFor = repo().getPrimaryBranch();
+    pushToRefsFor = repo().getPrimaryBranch().equals("main") ? "master" : "main";
     options.setForce(true);
     fetch = pushToRefsFor;
     primaryBranchMigration = "True";
@@ -1469,7 +1470,7 @@ public class GerritDestinationTest {
 
     // Make sure commit adds new text
     String showResult = git("--git-dir", repoGitDir.toString(), "show",
-        getGerritRef(repo(), "refs/for/" + pushToRefsFor));
+        getGerritRef(repo(), String.format("refs/for/%s.*", repo().getPrimaryBranch())));
     assertThat(showResult).contains("some content");
   }
 

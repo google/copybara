@@ -441,6 +441,12 @@ public class GitTestUtil {
     }
 
     @Override
+    @Nullable
+    public String getPrimaryBranch(String url) throws RepoException {
+      return super.getPrimaryBranch(mapUrl(url));
+    }
+
+    @Override
     public GitRepository withWorkTree(Path newWorkTree) {
       return new RewriteUrlGitRepository(getGitDir(), newWorkTree, generalOptions, httpsRepos,
           validator, mappingPrefixes, forcePushForRefspec);
