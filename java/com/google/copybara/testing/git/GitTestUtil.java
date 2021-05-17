@@ -429,15 +429,10 @@ public class GitTestUtil {
     }
 
     @Override
-    public Map<String, String> lsRemote(String url, Collection<String> refs)
+    public Map<String, String> lsRemote(
+        String url, Collection<String> refs, int maxLogLines, Collection<String> flags)
         throws RepoException, ValidationException {
-      return super.lsRemote(mapUrl(url), refs);
-    }
-
-    @Override
-    public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
-        throws RepoException, ValidationException {
-      return super.lsRemote(mapUrl(url), refs, maxLogLines);
+      return super.lsRemote(mapUrl(url), refs, maxLogLines, flags);
     }
 
     @Override

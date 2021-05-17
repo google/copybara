@@ -105,12 +105,13 @@ public class GitRepository {
   private static final Pattern LS_TREE_ELEMENT = Pattern.compile(
       "([0-9]{6}) (commit|tag|tree|blob) ([a-f0-9]{40})\t(.*)");
 
-  private static final Pattern LS_REMOTE_OUTPUT_LINE = Pattern.compile("([a-f0-9]{40})\t(.+)");
+  private static final Pattern LS_REMOTE_OUTPUT_LINE =
+      Pattern.compile("([a-f0-9]{40}|ref: refs/heads/\\w+)\t(.+)");
 
   private static final Pattern SHA1_PATTERN = Pattern.compile("[a-f0-9]{6,40}");
 
   private static final Pattern DEFAULT_BRANCH_PATTERN =
-      Pattern.compile("(?s)ref: (refs/heads/(\\w+))\\s+HEAD.*");
+      Pattern.compile("(?s)ref: (refs/heads/(\\w+)).*");
 
   private static final Pattern FAILED_REBASE =
       Pattern.compile("(Failed to merge in the changes|Could not apply.*)");
@@ -447,23 +448,26 @@ public class GitRepository {
    * @param refs - see <refs> in git help ls-remote
    * @param gitEnv - determines where the Git binaries are
    * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
-   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @return - a map of refs to sha1 from the git ls-remote output. Can also contain symbolic refs
+   *     if --symref is set.
    * @throws RepoException if the operation fails
    */
   public static Map<String, String> lsRemote(
       String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
       throws RepoException, ValidationException {
-    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines);
+    return lsRemote(FileSystems.getDefault().getPath("."), url, refs, gitEnv, maxLogLines,
+        ImmutableList.of());
   }
 
   private static ImmutableMap<String, String> lsRemote(
-      Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines)
-      throws RepoException, ValidationException {
+      Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines,
+      Collection<String> flags) throws RepoException, ValidationException {
 
     ImmutableMap.Builder<String, String> result = ImmutableMap.builder();
-    List<String> args;
+    List<String> args = Lists.newArrayList("ls-remote");
+    args.addAll(flags);
     try {
-      args = Lists.newArrayList("ls-remote", validateUrl(url));
+      args.add(validateUrl(url));
     } catch (ValidationException e) {
       throw new RepoException("Invalid url: " + url, e);
     }
@@ -496,6 +500,10 @@ public class GitRepository {
           throw new RepoException("Unexpected format for ls-remote output: " + line);
         }
         result.put(matcher.group(2), matcher.group(1));
+        if (DEFAULT_BRANCH_PATTERN.matches(line)) {
+          // we have a ref: line, indicating that we were looking for a symbolic ref. bail.
+          break;
+        }
       }
     }
     return result.build();
@@ -511,11 +519,11 @@ public class GitRepository {
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs)
       throws RepoException, ValidationException {
-    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES);
+    return lsRemote(url, refs, DEFAULT_MAX_LOG_LINES);
   }
 
   /**
-   * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
+   * Same as {@link #lsRemote(String, Collection, int, Collection)} but using this repository
    * environment and explicit max number of log lines.
    *
    * @param refs - see <refs> in git help ls-remote
@@ -525,7 +533,23 @@ public class GitRepository {
    */
   public Map<String, String> lsRemote(String url, Collection<String> refs, int maxLogLines)
       throws RepoException, ValidationException {
-    return lsRemote(url, refs, gitEnv, maxLogLines);
+    return lsRemote(url, refs, maxLogLines, ImmutableList.of());
+  }
+
+  /**
+   * Same as {@link #lsRemote(String, Collection, GitEnvironment, int)} but using this repository
+   * environment and explicit max number of log lines.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @param maxLogLines - Limit log lines to the number specified. -1 for unlimited
+   * @param flags - additional flags to pass to ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
+   */
+  public Map<String, String> lsRemote(
+      String url, Collection<String> refs, int maxLogLines, Collection<String> flags)
+      throws RepoException, ValidationException {
+    return lsRemote(getCwd(), url, refs, gitEnv, maxLogLines, flags);
   }
 
   @CheckReturnValue
@@ -828,7 +852,7 @@ public class GitRepository {
   public GitRevision getHeadRef()
       throws RepoException, CannotResolveRevisionException {
     try {
-      String reference = this.simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+      String reference = getPrimaryBranch();
       return new GitRevision(this, parseRef(reference), null, reference,
           ImmutableListMultimap.of(), null);
     } catch (RepoException e) {
@@ -2124,22 +2148,26 @@ public class GitRepository {
   /** Returns the repo's primary branch, e.g. "main". */
   @Nullable
   public String getPrimaryBranch(String uri) throws RepoException {
-    String output = simpleCommand("ls-remote", "--symref", uri, "HEAD").getStdout().trim();
-    Matcher matcher = DEFAULT_BRANCH_PATTERN.matcher(output);
-    if (matcher.matches()) {
-      return matcher.group(2);
+    Map<String, String> refs;
+    try {
+       refs = lsRemote(
+           uri, ImmutableList.of("HEAD", "main", "master"),
+           DEFAULT_MAX_LOG_LINES, ImmutableList.of("--symref"));
+    } catch (ValidationException e) {
+      throw new RepoException("Error parsing primary branch", e);
+    }
+    for (String key : refs.values()) {
+      Matcher matcher = DEFAULT_BRANCH_PATTERN.matcher(key);
+      if (matcher.matches()) {
+        return matcher.group(2);
+      }
     }
     // Repo has no HEAD, try to guess by testing which branches exist.
-    try {
-      Map<String, String> refs = lsRemote(uri, ImmutableList.of("master", "main"));
-      if (refs.containsKey("refs/heads/main") && !refs.containsKey("refs/heads/master")) {
-        return "main";
-      }
-      if (refs.containsKey("refs/heads/master") && !refs.containsKey("refs/heads/main")) {
-        return "master";
-      }
-    } catch (ValidationException e) {
-      throw new RepoException("Error establishing primary branch", e);
+    if (refs.containsKey("refs/heads/main") && !refs.containsKey("refs/heads/master")) {
+      return "main";
+    }
+    if (refs.containsKey("refs/heads/master") && !refs.containsKey("refs/heads/main")) {
+      return "master";
     }
     return null;
   }
