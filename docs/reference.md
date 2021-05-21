@@ -174,6 +174,7 @@
     - [ctx.set_author](#ctx.set_author)
     - [ctx.set_message](#ctx.set_message)
     - [ctx.write_path](#ctx.write_path)
+  - [git_merge_result](#git_merge_result)
 
 
 
@@ -4088,5 +4089,19 @@ Parameter | Description
 --------- | -----------
 path | `Path`<br><p>The string representing the path</p>
 content | `string`<br><p>The content of the file</p>
+
+
+
+## git_merge_result
+
+The result returned by git merge when used in Starlark. For example in git.mirror dynamic actions.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+error | True if the merge execution resulted in an error. False otherwise
+error_msg | Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.
 
 

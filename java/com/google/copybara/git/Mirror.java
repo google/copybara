@@ -105,7 +105,8 @@ public class Mirror implements Migration {
           GitMirrorContext context = new GitMirrorContext(action,
               new SkylarkConsole(generalOptions.console()), sourceRefs, refspec, origin,
               destination, generalOptions.isForced(),
-              repo, Dict.empty());
+              repo, generalOptions.getDirFactory(),
+              Dict.empty());
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();

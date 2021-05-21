@@ -29,6 +29,7 @@ import com.google.copybara.config.Migration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -40,6 +41,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
@@ -513,5 +515,102 @@ public class GitMirrorTest {
         () -> mirror.run(workdir, ImmutableList.of()));
     assertThat(ve).hasMessageThat().contains(
         "Action tried to push to destination one or more refspec not covered by git.mirror");
+  }
+
+  @Test
+  public void testMerge() throws Exception {
+    Migration mirror = mergeInit();
+
+    GitLogEntry destChange = repoChange(destRepo, "some_file", "Content", "internal only");
+    GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    GitLogEntry merge = lastChange(destRepo, primaryBranch);
+
+    // It is a merge
+    assertThat(merge.getParents())
+        .containsExactly(destChange.getCommit(), originChange.getCommit());
+
+    // OSS branch is updated with origin version.
+    assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
+
+  }
+
+  @Test
+  public void testMergeConflict() throws Exception {
+    Migration mirror = mergeInit();
+
+    GitLogEntry destChange = repoChange(destRepo, "some_file", "Hello", "internal only");
+    GitLogEntry originChange = repoChange(originRepo, "some_file", "Bye", "new change");
+
+    assertThat((assertThrows(ValidationException.class, new ThrowingRunnable() {
+      @Override
+      public void run() throws Throwable {
+        mirror.run(workdir, ImmutableList.of());
+      }
+    }))).hasMessageThat().contains("Conflict merging refs/heads/" + primaryBranch);
+  }
+
+  private Migration mergeInit() throws IOException, ValidationException, RepoException {
+    String cfg = ""
+        + ("def _merger(ctx):\n"
+        + "     ctx.console.info('Hello this is mirror!')\n"
+        + "     branch = ctx.params['branch']\n"
+        + "     oss_branch = ctx.params['oss_branch']\n"
+        + "     ctx.origin_fetch(refspec = [branch + ':refs/heads/copybara/origin_fetch'])\n"
+        + "     exist = ctx.destination_fetch(refspec = [branch + ':refs/heads/copybara/destination_fetch'])\n"
+        + "     if exist:\n"
+        + "         result = ctx.merge(branch = 'copybara/destination_fetch', "
+        + "                        commits = ['refs/heads/copybara/origin_fetch'])\n"
+        + "         if result.error:\n"
+        + "             return ctx.error('Conflict merging ' + branch + ' into destination: ' + result.error_msg)\n"
+        + "         ctx.destination_push(refspec = ['refs/heads/copybara/destination_fetch:' + branch])\n"
+        + "     else:\n"
+        + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + branch])\n"
+        + "     if oss_branch:\n"
+        + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + oss_branch])\n"
+        + "     return ctx.success()\n"
+        + "\n"
+        + "def merger(branch, oss_branch = None):\n"
+        + "    return core.action(impl = _merger,"
+        + "         params = {'branch': branch, 'oss_branch' : oss_branch})\n"
+        + "\n")
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    refspecs = ["
+        + String.format(""
+            + "       'refs/heads/%s:refs/heads/%s',"
+            + "       'refs/heads/%s:refs/heads/oss'",
+        primaryBranch, primaryBranch, primaryBranch)
+        + "    ],"
+        + "    actions = [merger(" + String.format("'refs/heads/%s'", primaryBranch)
+        + ", oss_branch = 'refs/heads/oss')],"
+        + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    mirror.run(workdir, ImmutableList.of());
+    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
+        .getStdout();
+    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", primaryBranch, "-s")
+        .getStdout()).isEqualTo(origPrimary);
+    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "oss", "-s")
+        .getStdout()).isEqualTo(origPrimary);
+    return mirror;
+  }
+
+  private GitLogEntry repoChange(GitRepository repo, String path, String content, String msg)
+      throws IOException, RepoException {
+    GitRepository withWorkdir = repo.withWorkTree(Files.createTempDirectory("test"));
+
+    GitTestUtil.writeFile(withWorkdir.getWorkTree(), path, content);
+    withWorkdir.add().all().run();
+    withWorkdir.simpleCommand("commit", "-m", msg);
+    return lastChange(withWorkdir, "HEAD");
+  }
+
+  private GitLogEntry lastChange(GitRepository withWorkdir, String ref) throws RepoException {
+    return withWorkdir.log(ref).withLimit(1).run().get(0);
   }
 }
