@@ -37,13 +37,15 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
+
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.eval.StarlarkValue;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.eval.StarlarkValue;
 
 /** Integrate changes from a url present in the migrated change label. */
 @StarlarkBuiltin(
@@ -57,14 +59,11 @@ public class GitIntegrateChanges implements StarlarkValue {
   private final String label;
   private final Strategy strategy;
   private final boolean ignoreErrors;
-  private final boolean newGitIntegrate;
 
-  GitIntegrateChanges(String label, Strategy strategy, boolean ignoreErrors,
-      boolean newGitIntegrate) {
+  GitIntegrateChanges(String label, Strategy strategy, boolean ignoreErrors) {
     this.label = Preconditions.checkNotNull(label);
     this.strategy = Preconditions.checkNotNull(strategy);
     this.ignoreErrors = ignoreErrors;
-    this.newGitIntegrate = newGitIntegrate;
   }
 
   /**
@@ -123,7 +122,7 @@ public class GitIntegrateChanges implements StarlarkValue {
         }
 
         strategy.integrate(repository, integrateLabel, externalFiles, label,
-            messageInfo, generalOptions.console(), generalOptions.getDirFactory(), newGitIntegrate);
+            messageInfo, generalOptions.console(), generalOptions.getDirFactory());
       } catch (ValidationException e) {
         throw new CannotIntegrateException("Error resolving " + label.getValue(), e);
       }
@@ -141,7 +140,7 @@ public class GitIntegrateChanges implements StarlarkValue {
       @Override
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue,
-          MessageInfo messageInfo, Console console, DirFactory dirFactory, boolean newGitIntegrate)
+          MessageInfo messageInfo, Console console, DirFactory dirFactory)
           throws ValidationException, RepoException {
         GitLogEntry head = getHeadCommit(repository);
 
@@ -166,14 +165,14 @@ public class GitIntegrateChanges implements StarlarkValue {
       void integrate(GitRepository repository, IntegrateLabel gitRevision,
           Predicate<String> externalFiles,
           LabelFinder rawLabelValue, MessageInfo messageInfo, Console console,
-          DirFactory dirFactory, boolean newGitIntegrate)
+          DirFactory dirFactory)
           throws ValidationException, RepoException {
         // Fake merge first so that we have a commit and then amend that commit wit the external
         // files
         FAKE_MERGE.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory, newGitIntegrate);
+            console, dirFactory);
         INCLUDE_FILES.integrate(repository, gitRevision, externalFiles, rawLabelValue, messageInfo,
-            console, dirFactory, newGitIntegrate);
+            console, dirFactory);
       }
     },
     /**
@@ -183,20 +182,14 @@ public class GitIntegrateChanges implements StarlarkValue {
       @Override
       void integrate(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
-          Console console, DirFactory dirFactory, boolean newGitIntegrate)
+          Console console, DirFactory dirFactory)
           throws ValidationException, RepoException {
         // Save HEAD commit before starting messing with the repo
         GitLogEntry head = getHeadCommit(repository);
         byte[] diff;
-        if (newGitIntegrate) {
-          // TODO(malcon): This doesn't support binaries well. We should fix it.
-          diff = computeExternalDiff(repository, integrateLabel, externalFiles, head)
-              .getBytes(StandardCharsets.UTF_8);
-        } else {
-          diff = repository.simpleCommandNoRedirectOutput("diff",
-              head.getCommit().getSha1() + ".." + integrateLabel.getRevision().getSha1())
-              .getStdoutBytes();
-        }
+        // TODO(b/188914756): This doesn't support binaries well. We should fix it.
+        diff = computeExternalDiff(repository, integrateLabel, externalFiles, head)
+            .getBytes(StandardCharsets.UTF_8);
         if (diff.length == 0) {
           return;
         }
@@ -308,8 +301,7 @@ public class GitIntegrateChanges implements StarlarkValue {
 
     void integrate(GitRepository repository, IntegrateLabel gitRevision,
         Predicate<String> externalFiles, LabelFinder rawLabelValue, MessageInfo messageInfo,
-        Console console,
-        DirFactory dirFactory, boolean newGitIntegrate)
+        Console console, DirFactory dirFactory)
         throws ValidationException, RepoException {
       throw new CannotIntegrateException(this + " integrate mode is still not supported");
     }

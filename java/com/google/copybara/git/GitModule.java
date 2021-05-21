@@ -143,13 +143,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             new GitIntegrateChanges(
                 DEFAULT_INTEGRATE_LABEL,
                 Strategy.FAKE_MERGE_AND_INCLUDE_FILES,
-                /*ignoreErrors=*/ true,
-                useNewIntegrate()));
-  }
-
-  private boolean useNewIntegrate() {
-    // TODO(malcon): Remove after 2019/09/20 when new integrate is proven to work
-    return options.get(GeneralOptions.class).isTemporaryFeature("NEW_GIT_INTEGRATE", true);
+                /*ignoreErrors=*/ true));
   }
 
   @SuppressWarnings("unused")
@@ -361,7 +355,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public GitIntegrateChanges integrate(String label, String strategy, Boolean ignoreErrors)
       throws EvalException {
     return new GitIntegrateChanges(
-        label, stringToEnum("strategy", strategy, Strategy.class), ignoreErrors, useNewIntegrate());
+        label, stringToEnum("strategy", strategy, Strategy.class), ignoreErrors);
   }
 
   @SuppressWarnings("unused")
