@@ -239,9 +239,9 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
                 .collect(Collectors.toList()));
       }
     } else if (runnable instanceof Transformation) {
-      // Works like Sequence. We keep always the latest transform work to allow
-      // catching for two sequential replaces.
-      this.validateTreeStateCache();
+      // Can never trust the cache when inside a dynamic transform. This makes the cache
+      // more-or-less useless here.
+      this.treeState.clearCache();
       ((Transformation) runnable).transform(this);
       return Starlark.NONE;
     }

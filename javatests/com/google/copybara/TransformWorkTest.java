@@ -717,6 +717,27 @@ public class TransformWorkTest {
     assertThat(e).hasMessageThat().contains("points to a file outside the checkout dir");
   }
 
+  @Test
+  public void testPathOperations_withCoreReplace() throws Exception {
+    Files.write(workdir.resolve("file1.txt"), "contents of file 1; x".getBytes(UTF_8));
+
+    Transformation transformation = skylark.eval("transformation", ""
+        + "def test(ctx):\n"
+        + "    ctx.run(core.replace('x', 'y'))\n"
+        + "    ctx.write_path(ctx.new_path('file2.txt'), 'contents of file 2; y')\n"
+        + "    ctx.run(core.replace('y', 'z'))\n"
+        + "\n"
+        + "transformation = core.transform([test])");
+
+    TransformWork work = TransformWorks.of(workdir, "test", console);
+    transformation.transform(work);
+
+    assertThat(Files.readAllLines(workdir.resolve("file1.txt")))
+        .containsExactly("contents of file 1; z");
+    assertThat(Files.readAllLines(workdir.resolve("file2.txt")))
+        .containsExactly("contents of file 2; z");
+  }
+
   private void touchFile(Path base, String path) throws IOException {
     writeFile(base, path, "");
   }
