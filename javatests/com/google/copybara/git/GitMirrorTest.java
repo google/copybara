@@ -521,7 +521,7 @@ public class GitMirrorTest {
   public void testMerge() throws Exception {
     Migration mirror = mergeInit();
 
-    GitLogEntry destChange = repoChange(destRepo, "some_file", "Content", "internal only");
+    GitLogEntry destChange = repoChange(destRepo, "some_file", "Content", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
 
     mirror.run(workdir, ImmutableList.of());
@@ -541,7 +541,7 @@ public class GitMirrorTest {
   public void testMergeConflict() throws Exception {
     Migration mirror = mergeInit();
 
-    GitLogEntry destChange = repoChange(destRepo, "some_file", "Hello", "internal only");
+    GitLogEntry destChange = repoChange(destRepo, "some_file", "Hello", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_file", "Bye", "new change");
 
     assertThat((assertThrows(ValidationException.class, new ThrowingRunnable() {
