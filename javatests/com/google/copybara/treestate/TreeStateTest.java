@@ -17,7 +17,6 @@
 package com.google.copybara.treestate;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.treestate.TreeStateUtil.isCachedTreeState;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.util.Glob;
@@ -44,53 +43,65 @@ public class TreeStateTest {
 
   @Test
   public void testNotNotified() {
-    TreeState treeState = new FileSystemTreeState(checkoutDir);
-    assertThat(isCachedTreeState(treeState.newTreeState())).isFalse();
+    TreeState treeState = new TreeState(checkoutDir);
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isFalse();
   }
 
   @Test
   public void testNotifiedReturnsCached() throws IOException {
-    TreeState treeState = new FileSystemTreeState(checkoutDir);
+    TreeState treeState = new TreeState(checkoutDir);
     treeState.find(Glob.ALL_FILES.relativeTo(checkoutDir));
     treeState.notifyNoChange();
-    assertThat(isCachedTreeState(treeState.newTreeState())).isTrue();
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isTrue();
   }
 
   @Test
   public void testNoUsedButNotified() throws IOException {
-    TreeState treeState = new FileSystemTreeState(checkoutDir);
+    TreeState treeState = new TreeState(checkoutDir);
     // FSTReeState should be used (find() call) to get a cached version.
     treeState.notifyNoChange();
-    assertThat(isCachedTreeState(treeState.newTreeState())).isFalse();
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isFalse();
   }
 
   @Test
   public void testBackToFSIfNotNotified() throws IOException {
-    TreeState treeState = new FileSystemTreeState(checkoutDir);
+    TreeState treeState = new TreeState(checkoutDir);
     treeState.find(Glob.ALL_FILES.relativeTo(checkoutDir));
     treeState.notifyNoChange();
-    assertThat(isCachedTreeState(treeState.newTreeState())).isTrue();
-    assertThat(isCachedTreeState(treeState.newTreeState().newTreeState()))
-        .isFalse();
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isTrue();
+
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isFalse();
   }
 
   /**
    * Regression that checks that a cached TreeState doesn't keep the 'notified'
-   * bit active between newTreeState calls.
+   * bit active between maybeClearCache calls.
    */
   @Test
   public void testCachedNotifiedIsNotSticky() throws IOException {
-    TreeState treeState = new FileSystemTreeState(checkoutDir);
+    TreeState treeState = new TreeState(checkoutDir);
     treeState.find(Glob.ALL_FILES.relativeTo(checkoutDir));
     treeState.notifyNoChange();
 
-    treeState = treeState.newTreeState();
-    assertThat(isCachedTreeState(treeState)).isTrue();
+    treeState.maybeClearCache();
+
+    assertThat(treeState.isCached()).isTrue();
+
     treeState.find(Glob.ALL_FILES.relativeTo(checkoutDir));
     treeState.notifyNoChange();
 
-    treeState = treeState.newTreeState();
-    // This TreeState has not been used or notified. Should return a FS based one.
-    assertThat(isCachedTreeState(treeState.newTreeState())).isFalse();
+    treeState.maybeClearCache();
+    treeState.maybeClearCache();
+    assertThat(treeState.isCached()).isFalse();
   }
 }

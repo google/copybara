@@ -16,7 +16,6 @@
 
 package com.google.copybara.treestate;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.copybara.treestate.TreeState.FileState;
 import java.nio.file.PathMatcher;
 import java.util.Collection;
@@ -40,8 +39,4 @@ public final class TreeStateUtil {
         .collect(Collectors.toList());
   }
 
-  @VisibleForTesting
-  public static boolean isCachedTreeState(TreeState treeState) {
-    return treeState instanceof MapBasedTreeState;
-  }
 }

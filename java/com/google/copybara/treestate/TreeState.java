@@ -16,26 +16,37 @@
 
 package com.google.copybara.treestate;
 
-import com.google.common.base.MoreObjects;
+import static com.google.copybara.treestate.TreeStateUtil.filter;
+
 import com.google.common.base.Preconditions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An object that allows to do potentially cached filesystem lookups.
  *
- * <p>In particular, if a transform does lookups (using find) and then notifies the affected
- * files, the next transform gets a cached version of the TreeState.
+ * <p>In particular, if a transform does lookups (using find) and then notifies the affected files,
+ * the next transform gets a cached version of the TreeState.
  */
-public interface TreeState {
+public class TreeState {
 
   /**
    * An object that contains a path found in the {@link TreeState}.
    *
    * <p>Wrapped so that we can include things like the hash of the file in the future.
    */
-  class FileState {
+  public static class FileState {
     private final Path path;
 
     FileState(Path path) {
@@ -51,7 +62,7 @@ public interface TreeState {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof FileState)) {
         return false;
       }
       FileState fileState = (FileState) o;
@@ -69,32 +80,95 @@ public interface TreeState {
     }
   }
 
-  /**
-   * Find a a set of files in the checkout dir, using a {@link PathMatcher}.
-   */
-  Iterable<FileState> find(PathMatcher pathMatcher) throws IOException;
+  private final Path checkoutDir;
+  private boolean isCached = false;
+  private boolean notified = false;
+  private Map<Path, FileState> files = new HashMap<>();
+
+  private final LoadingCache<PathMatcher, List<FileState>> cachedMatches =
+      CacheBuilder.newBuilder()
+          .maximumSize(10)
+          .build(
+              new CacheLoader<PathMatcher, List<FileState>>() {
+                @Override
+                public List<FileState> load(PathMatcher pathMatcher) {
+                  return filter(pathMatcher, files.values());
+                }
+              });
+
+  public TreeState(Path checkoutDir) {
+    this.checkoutDir = checkoutDir;
+  }
+
+  /** Find a a set of files in the checkout dir, using a {@link PathMatcher}. */
+  public Iterable<FileState> find(PathMatcher pathMatcher) throws IOException {
+    if (!isCached) {
+      files = readFileSystem();
+      isCached = true;
+    }
+    return cachedMatches.getUnchecked(pathMatcher);
+  }
+
+  private Map<Path, FileState> readFileSystem() throws IOException {
+    Map<Path, FileState> result = new HashMap<>();
+    Files.walkFileTree(
+        checkoutDir,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            result.put(file, new FileState(file));
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    return result;
+  }
+
+  /** Notify the {@link TreeState} that {@code paths} have been modified. */
+  public void notifyModify(Iterable<FileState> paths) {
+    notified = true;
+    for (FileState path : paths) {
+      files.put(path.getPath(), path);
+    }
+  }
+
+  /** Not implemented for now. */
+  public void notifyAdd(Iterable<FileState> path) {
+    throw new UnsupportedOperationException("Not supported. Don't notify!");
+  }
+
+  /** Not implemented for now. */
+  public void notifyDelete(Iterable<FileState> path) {
+    throw new UnsupportedOperationException("Not supported. Don't notify!");
+  }
+
+  public void notifyNoChange() {
+    notified = true;
+  }
+
+  public boolean isCached() {
+    return isCached;
+  }
+
+  public void clearCache() {
+    isCached = false;
+    files = new HashMap<>();
+    cachedMatches.invalidateAll();
+    notified = false;
+  }
 
   /**
-   * Notify the {@link TreeState} that {@code paths} have been modified.
+   * If any of the notify* methods were invoked, it will retain the cached version of the TreeState.
+   * Otherwise it clears the cache.
+   *
+   * <p>This method is called in between every pair of Transformations. Unless the previous
+   * Transformation calls one of the notify* methods to indicate which files it has touched, we must
+   * assume that the cache may be stale.
    */
-  void notifyModify(Iterable<FileState> paths);
-
-  /**
-   * Not implemented for now.
-   */
-  void notifyAdd(Iterable<FileState> path);
-
-  /**
-   * Not implemented for now.
-   */
-  void notifyDelete(Iterable<FileState> path);
-
-  void notifyNoChange();
-
-  /**
-   * Returns a new {@link TreeState}. Iff find was invoked, and then any of the nofity* methods
-   * where invoked, it will return a cached version of the TreeState. Otherwise it returns a
-   * FileSystem based TreeState.
-   */
-  TreeState newTreeState();
+  public void maybeClearCache() {
+    if (!notified) {
+      clearCache();
+    }
+    notified = false;
+    return;
+  }
 }

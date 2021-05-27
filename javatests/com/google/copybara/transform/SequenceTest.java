@@ -17,11 +17,9 @@
 package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.copybara.treestate.TreeStateUtil.isCachedTreeState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
-import com.google.common.truth.BooleanSubject;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.testing.OptionsBuilder;
@@ -93,11 +91,8 @@ public final class SequenceTest {
     t2.useTreeState = true;
     TransformWork work = cachedTreeStateTranformWork();
     sequence.transform(work);
-    assertCachedTreeState(work.withUpdatedTreeState()).isFalse();
-  }
-
-  private static BooleanSubject assertCachedTreeState(TransformWork work) {
-    return assertThat(isCachedTreeState(work.getTreeState()));
+    work.validateTreeStateCache();
+    assertThat(work.getTreeState().isCached()).isFalse();
   }
 
   @Test
@@ -106,7 +101,8 @@ public final class SequenceTest {
     t2.useTreeState = true;
     TransformWork work = cachedTreeStateTranformWork();
     sequence.transform(work);
-    assertCachedTreeState(work.withUpdatedTreeState()).isFalse();
+    work.validateTreeStateCache();
+    assertThat(work.getTreeState().isCached()).isFalse();
   }
 
   private TransformWork cachedTreeStateTranformWork() throws IOException {
@@ -114,8 +110,8 @@ public final class SequenceTest {
     // Force a map based tree-state
     work.getTreeState().find(Glob.ALL_FILES.relativeTo(checkoutDir));
     work.getTreeState().notifyNoChange();
-    work = work.withUpdatedTreeState();
-    assertCachedTreeState(work).isTrue();
+    work.validateTreeStateCache();
+    assertThat(work.getTreeState().isCached()).isTrue();
     return work;
   }
 }

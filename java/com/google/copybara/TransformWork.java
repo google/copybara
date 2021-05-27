@@ -34,7 +34,6 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.treestate.FileSystemTreeState;
 import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
@@ -107,7 +106,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   private final Revision lastRev;
   @Nullable
   private final Revision currentRev;
-  private TransformWork skylarkTransformWork;
   private final Dict<?, ?> skylarkTransformParams;
   private final LazyResourceLoader<Endpoint> originApi;
   private final LazyResourceLoader<Endpoint> destinationApi;
@@ -125,8 +123,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         console,
         migrationInfo,
         resolvedReference,
-        new FileSystemTreeState(checkoutDir), /*insideExplicitTransform*/
-        false,
+        new TreeState(checkoutDir),
+        /*insideExplicitTransform*/ false,
         /*lastRev=*/ null,
         /*currentRev=*/ null,
         Dict.empty(),
@@ -162,7 +160,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     this.insideExplicitTransform = insideExplicitTransform;
     this.lastRev = lastRev;
     this.currentRev = currentRev;
-    this.skylarkTransformWork = this;
     this.skylarkTransformParams = skylarkTransformParams;
     this.ignoreNoop = ignoreNoop;
     this.originApi = Preconditions.checkNotNull(originApi);
@@ -244,9 +241,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     } else if (runnable instanceof Transformation) {
       // Works like Sequence. We keep always the latest transform work to allow
       // catching for two sequential replaces.
-      skylarkTransformWork = skylarkTransformWork.withUpdatedTreeState();
-      ((Transformation) runnable).transform(skylarkTransformWork);
-      this.updateFrom(skylarkTransformWork);
+      this.validateTreeStateCache();
+      ((Transformation) runnable).transform(this);
       return Starlark.NONE;
     }
 
@@ -627,14 +623,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   }
 
   /**
-   * Creates a new {@link TransformWork} object that contains a new {@link TreeState}
-   * ready to be used by a transform.
+   * Clear the TreeState cache, unless we can confirm that it is up-to-date.
    */
-  public TransformWork withUpdatedTreeState() {
-    return new TransformWork(checkoutDir, metadata, changes, console,
-        migrationInfo, resolvedReference, treeState.newTreeState(), insideExplicitTransform,
-        lastRev, currentRev, skylarkTransformParams, ignoreNoop, originApi, destinationApi,
-        destinationReader);
+  public void validateTreeStateCache() {
+    treeState.maybeClearCache();
   }
 
   @Override

@@ -69,7 +69,7 @@ public class Sequence implements Transformation {
 
     // Force to create a new fresh copy of the tree state to leave the
     // old one untouched so that a upper level call would return a fs based implementation.
-    TransformWork localWork = work.withUpdatedTreeState();
+    work.validateTreeStateCache();
 
     List<Transformation> transformationList = getTransformations();
 
@@ -80,12 +80,10 @@ public class Sequence implements Transformation {
           transformation.describe());
       logger.log(Level.INFO, transformMsg);
 
-      localWork.getConsole().progress(transformMsg);
-      runOneTransform(localWork, transformation);
-      localWork = localWork.withUpdatedTreeState();
+      work.getConsole().progress(transformMsg);
+      runOneTransform(work, transformation);
+      work.validateTreeStateCache();
     }
-    // Update parent work with potentially modified metadata.
-    work.updateFrom(localWork);
   }
 
   private ImmutableList<Transformation> getTransformations() {

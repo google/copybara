@@ -99,8 +99,9 @@ public final class TransformDebug implements Transformation {
     TreeMap<String, byte[]> before = readState(work, fileDebug || transformMatch,
         work.getTreeState());
     delegate.transform(work);
+    work.validateTreeStateCache();
     TreeMap<String, byte[]> after = readState(work, fileDebug || transformMatch,
-        work.getTreeState().newTreeState());
+        work.getTreeState());
 
     MapDifference<String, byte[]> difference = Maps.difference(before, after,
         new Equivalence<byte[]>() {

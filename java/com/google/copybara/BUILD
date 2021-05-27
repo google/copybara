@@ -108,8 +108,6 @@ BASE_SRCS = [
     "TransformResult.java",
     "TransformWork.java",
     "Trigger.java",
-    "treestate/FileSystemTreeState.java",
-    "treestate/MapBasedTreeState.java",
     "treestate/TreeState.java",
     "treestate/TreeStateUtil.java",
     "WorkflowOptions.java",
