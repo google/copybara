@@ -67,22 +67,23 @@ public class Sequence implements Transformation {
       return;
     }
 
-    // Force to create a new fresh copy of the tree state to leave the
-    // old one untouched so that a upper level call would return a fs based implementation.
-    work.validateTreeStateCache();
-
     List<Transformation> transformationList = getTransformations();
 
     for (int i = 0; i < transformationList.size(); i++) {
+
+      // Only check the cache in between consecutive Transforms
+      if (i != 0) {
+        work.validateTreeStateCache();
+      }
+
       Transformation transformation = transformationList.get(i);
       String transformMsg = String.format(
           "[%2d/%d] Transform %s", i + 1, transformationList.size(),
           transformation.describe());
       logger.log(Level.INFO, transformMsg);
-
       work.getConsole().progress(transformMsg);
+
       runOneTransform(work, transformation);
-      work.validateTreeStateCache();
     }
   }
 

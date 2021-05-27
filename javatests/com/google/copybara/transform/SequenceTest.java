@@ -17,6 +17,7 @@
 package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
@@ -40,17 +41,44 @@ public final class SequenceTest {
 
   private TestingConsole console;
   private Path checkoutDir;
+  OptionsBuilder options;
 
   private static class MockTransform implements Transformation {
 
+    String name;
     boolean useTreeState = false;
+    Boolean expectCacheHit;
+    boolean wasRun = false;
+
+    MockTransform(String name) {
+      this.name = name;
+    }
 
     @Override
     public void transform(TransformWork work) throws IOException {
       if (useTreeState) {
+        if (expectCacheHit != null) {
+          assertWithMessage(name + "'s cache usage was incorrect")
+              .that(work.getTreeState().isCached())
+              .isEqualTo(expectCacheHit);
+        }
         work.getTreeState().find(Glob.ALL_FILES.relativeTo(work.getCheckoutDir()));
         work.getTreeState().notifyNoChange();
       }
+      this.wasRun = true;
+    }
+
+    public MockTransform setUseTreeState(boolean b) {
+      this.useTreeState = b;
+      return this;
+    }
+
+    /**
+     * If set, the test will fail unless the cache is hit/miss in accordance with the value.
+     */
+    public MockTransform setExpectCacheHit(boolean useCache) {
+      this.expectCacheHit = useCache;
+      return this;
     }
 
     @Override
@@ -64,54 +92,166 @@ public final class SequenceTest {
     }
   }
 
-  private final MockTransform t1 = new MockTransform();
-  private final MockTransform t2 = new MockTransform();
-  private Sequence sequence;
-
   @Before
   public void setup() throws IOException {
     FileSystem fs = Jimfs.newFileSystem();
     checkoutDir = fs.getPath("/test-checkoutDir");
     Files.createDirectories(checkoutDir);
-    OptionsBuilder options = new OptionsBuilder();
+    options = new OptionsBuilder();
     console = new TestingConsole();
     options.setConsole(console);
-    sequence = new Sequence(options.general.profiler(), /*joinTransformations*/true,
-                            ImmutableList.of(t1, t2));
   }
 
   /**
-   * The TreeState passed to a Sequence shouldn't return a cached TreeState after invocation and
-   * calling updateTreeState(). Since it could contain many non-cache-safe transforms and the
-   * last one could be a safe one. But we shouldn't be able to reuse that cache.
+   * A Sequence should automatically validate the cache in between each child Transformation that it
+   * runs.
    */
+
   @Test
-  public void testSequenceTreeStateIsNotCached_allGood() throws Exception {
-    t1.useTreeState = true;
-    t2.useTreeState = true;
-    TransformWork work = cachedTreeStateTranformWork();
-    sequence.transform(work);
-    work.validateTreeStateCache();
-    assertThat(work.getTreeState().isCached()).isFalse();
+  public void testSequence_treeStateBeginsUncached() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    // No cache for the first transform to use...
+    Transformation t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(false);
+    // ...but it should have created one for the second transform
+    Transformation t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(t1, t2);
+    t.transform(work);
   }
 
   @Test
-  public void testSequenceTreeStateIsNotCached_firstBad() throws Exception {
-    t1.useTreeState = false;
-    t2.useTreeState = true;
-    TransformWork work = cachedTreeStateTranformWork();
-    sequence.transform(work);
-    work.validateTreeStateCache();
-    assertThat(work.getTreeState().isCached()).isFalse();
+  public void testSequence_treeStateMultipleCacheHits() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    // The first transform uses the pre-existing cache...
+    Transformation t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(true);
+    // ...and the second transform does as well
+    Transformation t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(t1, t2);
+    t.transform(work);
   }
 
-  private TransformWork cachedTreeStateTranformWork() throws IOException {
+  @Test
+  public void testSequence_treeStateCacheInvalidation() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    // The first transform does not use/notify the TreeState...
+    Transformation t1 = new MockTransform("t1").setUseTreeState(false);
+    // ...so the second transform should not have a cache available
+    Transformation t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(false);
+
+    Transformation t = sequence(t1, t2);
+    t.transform(work);
+  }
+
+  @Test
+  public void testSequence_nestedSequences_allCachesHit() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t3 = new MockTransform("t3").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t4 = new MockTransform("t4").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(sequence(t1, t2), sequence(t3, t4));
+    t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(t4.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_nestedSequences_missOnFirstCache() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(false);
+    MockTransform t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t3 = new MockTransform("t3").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t4 = new MockTransform("t4").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(sequence(t1, t2), sequence(t3, t4));
+    t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(t4.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_nestedSequences_missOnSecondCache() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setUseTreeState(false);
+    MockTransform t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(false);
+    MockTransform t3 = new MockTransform("t3").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t4 = new MockTransform("t4").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(sequence(t1, t2), sequence(t3, t4));
+    t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(t4.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_nestedSequences_missOnThirdCache() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t2 = new MockTransform("t2").setUseTreeState(false);
+    MockTransform t3 = new MockTransform("t3").setUseTreeState(true).setExpectCacheHit(false);
+    MockTransform t4 = new MockTransform("t4").setUseTreeState(true).setExpectCacheHit(true);
+
+    Transformation t = sequence(sequence(t1, t2), sequence(t3, t4));
+    t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(t4.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_nestedSequences_missOnFourthCache() throws Exception {
+    TransformWork work = cachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t2 = new MockTransform("t2").setUseTreeState(true).setExpectCacheHit(true);
+    MockTransform t3 = new MockTransform("t3").setUseTreeState(false);
+    MockTransform t4 = new MockTransform("t4").setUseTreeState(true).setExpectCacheHit(false);
+
+    Transformation t = sequence(sequence(t1, t2), sequence(t3, t4));
+    t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(t4.wasRun).isTrue();
+  }
+
+  private TransformWork uncachedTreeStateTransformWork() throws IOException {
+    return TransformWorks.of(checkoutDir, "foo", console);
+  }
+
+  private TransformWork cachedTreeStateTransformWork() throws IOException {
     TransformWork work = TransformWorks.of(checkoutDir, "foo", console);
-    // Force a map based tree-state
+    // Force a cached tree-state
     work.getTreeState().find(Glob.ALL_FILES.relativeTo(checkoutDir));
-    work.getTreeState().notifyNoChange();
-    work.validateTreeStateCache();
     assertThat(work.getTreeState().isCached()).isTrue();
     return work;
+  }
+
+  private Sequence sequence(Transformation... childTransforms) {
+    return new Sequence(
+        options.general.profiler(), /*joinTransformations*/
+        true,
+        ImmutableList.copyOf(childTransforms));
   }
 }
