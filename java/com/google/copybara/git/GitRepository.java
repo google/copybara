@@ -2125,6 +2125,18 @@ public class GitRepository {
     if (matcher.matches()) {
       return matcher.group(2);
     }
+    // Repo has no HEAD, try to guess by testing which branches exist.
+    try {
+      Map<String, String> refs = lsRemote(uri, ImmutableList.of("master", "main"));
+      if (refs.containsKey("refs/heads/main") && !refs.containsKey("refs/heads/master")) {
+        return "main";
+      }
+      if (refs.containsKey("refs/heads/master") && !refs.containsKey("refs/heads/main")) {
+        return "master";
+      }
+    } catch (ValidationException e) {
+      throw new RepoException("Error establishing primary branch", e);
+    }
     return null;
   }
 

@@ -1104,7 +1104,6 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "-m", "second");
     repository.simpleCommand("merge", "foo");
     GitRevision head = repository.resolveReference("HEAD");
-
     assertThat(repository.describe(head, false)).isNotEqualTo(repository.describe(head, true));
 }
 
@@ -1118,11 +1117,21 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void testGetCurrentBranch() throws Exception {
+  public void testFindRemotePrimaryBranch_noHead() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "foo.txt", "-m", "message");
+    repository.simpleCommand("symbolic-ref", "HEAD", "refs/heads/doesnotexist");
+    assertThat(repository.getPrimaryBranch("file://" + repository.getGitDir()))
+        .matches("ma.*");
+  }
 
+  @Test
+  public void testGetCurrentBranch() throws Exception {
     repository.simpleCommand("checkout", "-b", "test");
     assertThat(repository.getCurrentBranch()).isEqualTo("test");
   }
+
   private GitRepository mockRepository(Path gitDir, Path workTree) throws RepoException {
     GitRepository repository = GitRepository.newBareRepo(gitDir,
         getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
