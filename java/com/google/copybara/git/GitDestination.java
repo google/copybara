@@ -464,13 +464,6 @@ public class GitDestination implements Destination<GitRevision> {
       String baseline = transformResult.getBaseline();
       GitRepository scratchClone = getRepository(console);
       fetchIfNeeded(scratchClone, console);
-      String primaryBranch = null;
-      try {
-        primaryBranch = scratchClone.getPrimaryBranch();
-      } catch (RepoException e) {
-        console.warnFmt("Error determining primary branch %s", e);
-      }
-
 
       console.progressFmt("Git Destination: Checking out %s", remoteFetch);
 
