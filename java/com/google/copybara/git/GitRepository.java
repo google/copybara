@@ -160,6 +160,8 @@ public class GitRepository {
   public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
   public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
   public static final String GIT_DESCRIBE_FIRST_PARENT = "GIT_DESCRIBE_FIRST_PARENT";
+  // Closest tag, if any
+  public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -315,19 +317,17 @@ public class GitRepository {
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
     return rev.withLabels(
         ImmutableListMultimap.of(
-            GIT_DESCRIBE_REQUESTED_VERSION,
-            describe(rev, false),
-            GIT_DESCRIBE_FIRST_PARENT,
-            describe(rev, true)));
+            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
+            GIT_DESCRIBE_FIRST_PARENT, describe(rev, true),
+            GIT_DESCRIBE_ABBREV, describe(rev, "--abbrev=0"))
+    );
   }
 
-  public String describe(GitRevision rev, boolean firstParent) throws RepoException {
+  public String describe(GitRevision rev, String... arg) throws RepoException {
     try {
       ImmutableList.Builder<String> args = ImmutableList.builder();
       args.add("describe");
-      if (firstParent) {
-        args.add("--first-parent");
-      }
+      args.add(arg);
       args.add("--").add(rev.getSha1());
       return simpleCommand(args.build()).getStdout().trim();
     } catch (RepoException e) {
@@ -335,6 +335,10 @@ public class GitRepository {
           "Cannot get describe version for commit %s", rev.getSha1());
       return simpleCommand("describe", "--always", "--", rev.getSha1()).getStdout().trim();
     }
+  }
+
+  public String describe(GitRevision rev, boolean firstParent) throws RepoException {
+    return describe(rev, firstParent ? new String[]{"--first-parent"} : new String[]{});
   }
 
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {

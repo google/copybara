@@ -309,6 +309,8 @@ public class GitOriginTest {
         .isNotEqualTo(labels.get("GIT_DESCRIBE_REQUESTED_VERSION"));
     assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT").stream().anyMatch(x -> x.contains("0.1")))
         .isTrue();
+    assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.1")))
+        .isTrue();
   }
 
   @Test
