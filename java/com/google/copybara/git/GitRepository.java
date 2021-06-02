@@ -318,13 +318,14 @@ public class GitRepository {
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
     return rev.withLabels(
         ImmutableListMultimap.of(
-            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
+            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev ,false),
             GIT_DESCRIBE_FIRST_PARENT, describe(rev, true),
-            GIT_DESCRIBE_ABBREV, describe(rev, "--abbrev=0"))
+            GIT_DESCRIBE_ABBREV, Strings.nullToEmpty(describe(rev, false, "--tag", "--abbrev=0")))
     );
   }
 
-  public String describe(GitRevision rev, String... arg) throws RepoException {
+  @Nullable
+  String describe(GitRevision rev, boolean fallback, String... arg) throws RepoException {
     try {
       ImmutableList.Builder<String> args = ImmutableList.builder();
       args.add("describe");
@@ -334,12 +335,15 @@ public class GitRepository {
     } catch (RepoException e) {
       logger.atWarning().withCause(e).log(
           "Cannot get describe version for commit %s", rev.getSha1());
+      if (!fallback) {
+        return null;
+      }
       return simpleCommand("describe", "--always", "--", rev.getSha1()).getStdout().trim();
     }
   }
 
   public String describe(GitRevision rev, boolean firstParent) throws RepoException {
-    return describe(rev, firstParent ? new String[]{"--first-parent"} : new String[]{});
+    return describe(rev, true, firstParent ? new String[]{"--first-parent"} : new String[]{});
   }
 
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
