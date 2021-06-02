@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.RepoException;
@@ -54,7 +55,7 @@ public class SkylarkTransformation implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException, RepoException {
     SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
     TransformWork skylarkWork = work.withConsole(skylarkConsole)
@@ -95,6 +96,7 @@ public class SkylarkTransformation implements Transformation {
 
     checkCondition(skylarkConsole.getErrorCount() == 0, "%d error(s) while executing %s",
         skylarkConsole.getErrorCount(), function.getName());
+    return TransformationStatus.success();
   }
 
   @Override

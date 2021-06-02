@@ -232,7 +232,6 @@ public class GerritDestinationTest {
             console,
             new MigrationInfo(DummyOrigin.LABEL_NAME, null),
             originRef,
-            /*ignoreNoop=*/ false,
             console -> new DummyEndpoint(),
             console -> gitRevisionWriter.getFeedbackEndPoint(console),
             () -> gitRevisionWriter.getDestinationReader(console, null, workdir)

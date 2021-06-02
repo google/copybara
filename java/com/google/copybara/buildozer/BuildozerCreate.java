@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
 import com.google.copybara.exception.ValidationException;
@@ -96,10 +97,12 @@ public final class BuildozerCreate implements BuildozerTransformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     beforeRun(work);
     try {
-      options.run(work.getConsole(), work.getCheckoutDir(), getCommands(), work.getIgnoreNoop());
+      options.run(work.getConsole(), work.getCheckoutDir(), getCommands());
+      return TransformationStatus.success();
     } catch (TargetNotFoundException e) {
       // This should not happen for creation. If it happens, it is due to a file error.
       throw new ValidationException(e.getMessage());

@@ -27,6 +27,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
@@ -116,7 +117,7 @@ public final class Replace implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
 
     work.getConsole().verboseFmt("Running Replace %s", this);
@@ -138,12 +139,11 @@ public final class Replace implements Transformation {
 
     work.getTreeState().notifyModify(changed);
     if (changed.isEmpty()) {
-      workflowOptions.reportNoop(
-          work.getConsole(),
+      return TransformationStatus.noop(
           "Transformation '" + toString() + "' was a no-op because it didn't "
-              + (matchedFile ? "change any of the matching files" : "match any file"),
-          work.getIgnoreNoop());
+              + (matchedFile ? "change any of the matching files" : "match any file"));
     }
+    return TransformationStatus.success();
   }
 
   @Override

@@ -22,7 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.WorkflowOptions;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
@@ -39,17 +39,16 @@ public class Remove implements Transformation {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final Glob glob;
-  private final WorkflowOptions workflowOptions;
   private final Location location;
 
-  public Remove(Glob glob, WorkflowOptions workflowOptions, Location location) {
+  public Remove(Glob glob, Location location) {
     this.glob = Preconditions.checkNotNull(glob);
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.location = location;
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     // TODO(malcon): Fix ConfigValidator and move this logic there.
     checkCondition(work.isInsideExplicitTransform(),
         "core.remove() is only mean to be used inside core.transform for reversing"
@@ -60,9 +59,9 @@ public class Remove implements Transformation {
         glob.relativeTo(work.getCheckoutDir()));
     logger.atInfo().log("Deleted %d files for glob: %s", numDeletes, glob);
     if (numDeletes  == 0) {
-      workflowOptions.reportNoop(
-          work.getConsole(), glob + " didn't delete any file", work.getIgnoreNoop());
+      return TransformationStatus.noop(glob + " didn't delete any file");
     }
+    return TransformationStatus.success();
   }
 
   @Override

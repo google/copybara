@@ -21,6 +21,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
@@ -52,29 +53,30 @@ public class ExposeLabelInMessage implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     if (all) {
-      exposeAllLabels(work);
-      return;
+      return exposeAllLabels(work);
     }
 
     String value = work.getLabel(this.label);
     if (value == null) {
       checkCondition(ignoreNotFound, "Cannot find label %s", this.label);
-      return;
+      return TransformationStatus.success();
     }
     if (label.equals(newLabelName)) {
       work.removeLabelWithValue(this.label, value, /*wholeMessage=*/true);
     }
     work.addLabel(newLabelName, value, separator, /*hidden=*/false);
+    return TransformationStatus.success();
   }
 
-  private void exposeAllLabels(TransformWork work) throws ValidationException {
+  private TransformationStatus exposeAllLabels(TransformWork work) throws ValidationException {
     LinkedHashSet<String> values = new LinkedHashSet<>(work.getAllLabels(label));
 
     if (values.isEmpty()) {
       checkCondition(ignoreNotFound, "Cannot find label %s", label);
-      return;
+      return TransformationStatus.success();
     }
     //If the label name is the same, we remove it and add it at the end, since the format
     //of the message will be more consistent.
@@ -85,6 +87,8 @@ public class ExposeLabelInMessage implements Transformation {
     for (String value : values) {
       work.addLabel(newLabelName, value, separator, /*hidden=*/false);
     }
+
+    return TransformationStatus.success();
   }
 
   @Override

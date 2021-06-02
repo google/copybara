@@ -18,11 +18,14 @@ package com.google.copybara.transform;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.Glob;
@@ -49,13 +52,14 @@ public final class SequenceTest {
     boolean useTreeState = false;
     Boolean expectCacheHit;
     boolean wasRun = false;
+    boolean isNoop = false;
 
     MockTransform(String name) {
       this.name = name;
     }
 
     @Override
-    public void transform(TransformWork work) throws IOException {
+    public TransformationStatus transform(TransformWork work) throws IOException {
       if (useTreeState) {
         if (expectCacheHit != null) {
           assertWithMessage(name + "'s cache usage was incorrect")
@@ -66,6 +70,7 @@ public final class SequenceTest {
         work.getTreeState().notifyNoChange();
       }
       this.wasRun = true;
+      return this.isNoop ? TransformationStatus.noop("") : TransformationStatus.success();
     }
 
     public MockTransform setUseTreeState(boolean b) {
@@ -78,6 +83,12 @@ public final class SequenceTest {
      */
     public MockTransform setExpectCacheHit(boolean useCache) {
       this.expectCacheHit = useCache;
+      return this;
+    }
+
+    /** If true, this Transformation will return {@code TransformationStatus.noop()} when run. */
+    public MockTransform setNoop(boolean isNoop) {
+      this.isNoop = isNoop;
       return this;
     }
 
@@ -236,6 +247,114 @@ public final class SequenceTest {
     assertThat(t4.wasRun).isTrue();
   }
 
+  @Test
+  public void testSequence_noopIfAnyNoop_noChildNoops() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1");
+    MockTransform t2 = new MockTransform("t2");
+
+    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
+  @Test
+  public void testSequence_noopIfAnyNoop_someChildNoops() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1");
+    MockTransform t2 = new MockTransform("t2").setNoop(true);
+    MockTransform t3 = new MockTransform("t3");
+
+    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1, t2, t3);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isFalse();
+    assertThat(status.isNoop()).isTrue();
+  }
+
+  @Test
+  public void testSequence_ignoreNoop_someChildNoops() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1");
+    MockTransform t2 = new MockTransform("t2").setNoop(true);
+    MockTransform t3 = new MockTransform("t3");
+
+    Transformation t = sequence(Sequence.NoopBehavior.IGNORE_NOOP, t1, t2, t3);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
+  @Test
+  public void testSequence_noopIfAnyNoop_insideIgnoreNoop() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setNoop(true);
+
+    Transformation t =
+        sequence(
+            Sequence.NoopBehavior.IGNORE_NOOP,
+            sequence(Sequence.NoopBehavior.NOOP_IF_ANY_NOOP, t1));
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
+  @Test
+  public void testSequence_failIfAnyNoop_causesFailure() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setNoop(true);
+
+    Transformation t = sequence(Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1);
+    assertThrows(VoidOperationException.class, () -> t.transform(work));
+
+    assertThat(t1.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_failIfAnyNoop_insideIgnoreNoop() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setNoop(true);
+
+    Transformation t =
+        sequence(
+            Sequence.NoopBehavior.IGNORE_NOOP,
+            sequence(Sequence.NoopBehavior.FAIL_IF_ANY_NOOP, t1));
+    assertThrows(VoidOperationException.class, () -> t.transform(work));
+
+    assertThat(t1.wasRun).isTrue();
+  }
+
+  @Test
+  public void testSequence_ignoreNoop_insideFailIfAnyNoop() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setNoop(true);
+
+    Transformation t =
+        sequence(
+            Sequence.NoopBehavior.FAIL_IF_ANY_NOOP,
+            sequence(Sequence.NoopBehavior.IGNORE_NOOP, t1));
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
   private TransformWork uncachedTreeStateTransformWork() throws IOException {
     return TransformWorks.of(checkoutDir, "foo", console);
   }
@@ -250,8 +369,17 @@ public final class SequenceTest {
 
   private Sequence sequence(Transformation... childTransforms) {
     return new Sequence(
-        options.general.profiler(), /*joinTransformations*/
-        true,
-        ImmutableList.copyOf(childTransforms));
+        options.general.profiler(),
+        options.workflowOptions,
+        ImmutableList.copyOf(childTransforms),
+        Sequence.NoopBehavior.IGNORE_NOOP);
+  }
+
+  private Sequence sequence(Sequence.NoopBehavior noopBehavior, Transformation... childTransforms) {
+    return new Sequence(
+        options.general.profiler(),
+        options.workflowOptions,
+        ImmutableList.copyOf(childTransforms),
+        noopBehavior);
   }
 }

@@ -468,11 +468,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Sequence sequenceTransform =
         Sequence.fromConfig(
             generalOptions.profiler(),
-            workflowOptions.joinTransformations(),
+            workflowOptions,
             transformations,
             "transformations",
             printHandler,
-            debugOptions::transformWrapper);
+            debugOptions::transformWrapper,
+            Sequence.NoopBehavior.NOOP_IF_ANY_NOOP);
     Transformation reverseTransform = null;
     if (!generalOptions.isDisableReversibleCheck()
         && convertFromNoneable(reversibleCheckObj, mode == WorkflowMode.CHANGE_REQUEST)) {
@@ -768,7 +769,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + " 'foo/static/**.html']))]\n"
               + ")")
   public Remove remove(Glob paths, StarlarkThread thread) {
-    return new Remove(paths, workflowOptions, thread.getCallerLocation());
+    return new Remove(paths, thread.getCallerLocation());
   }
 
   @SuppressWarnings("unused")
@@ -1392,17 +1393,23 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object reversal,
       Object ignoreNoop)
       throws EvalException {
+    Sequence.NoopBehavior noopBehavior = Sequence.NoopBehavior.NOOP_IF_ANY_NOOP;
+    if (Boolean.TRUE.equals(ignoreNoop)) {
+      noopBehavior = Sequence.NoopBehavior.IGNORE_NOOP;
+    } else if (Boolean.FALSE.equals(ignoreNoop)) {
+      noopBehavior = Sequence.NoopBehavior.FAIL_IF_ANY_NOOP;
+    }
     Sequence forward =
         Sequence.fromConfig(
             generalOptions.profiler(),
-            workflowOptions.joinTransformations(),
+            workflowOptions,
             transformations,
             "transformations",
             printHandler,
-            debugOptions::transformWrapper);
+            debugOptions::transformWrapper,
+            noopBehavior);
     net.starlark.java.eval.Sequence<Transformation> reverseList =
         convertFromNoneable(reversal, null);
-    Boolean updatedIgnoreNoop = convertFromNoneable(ignoreNoop, null);
     if (reverseList == null) {
       try {
         reverseList = StarlarkList.immutableCopyOf(ImmutableList.of(forward.reverse()));
@@ -1415,15 +1422,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Sequence reverse =
         Sequence.fromConfig(
             generalOptions.profiler(),
-            workflowOptions.joinTransformations(),
+            workflowOptions,
             reverseList,
             "reversal",
             printHandler,
-            debugOptions::transformWrapper);
-    return new ExplicitReversal(
-        forward, reverse, updatedIgnoreNoop);
+            debugOptions::transformWrapper,
+            noopBehavior);
+    return new ExplicitReversal(forward, reverse);
   }
-
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "dynamic_transform",

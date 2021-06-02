@@ -37,7 +37,8 @@ public interface Transformation extends StarlarkValue {
    * @throws IOException if an error occur during the access to the files
    * @throws ValidationException if an error attributable to the user happened
    */
-  void transform(TransformWork work) throws IOException, ValidationException, RepoException;
+  TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException, RepoException;
 
   /**
    * Returns a transformation which runs this transformation in reverse.
@@ -67,4 +68,5 @@ public interface Transformation extends StarlarkValue {
     throw new IllegalStateException(String.format(
         "Unexpected join call for %s and %s", this, next));
   }
+
 }

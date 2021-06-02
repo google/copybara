@@ -22,6 +22,7 @@ import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.InsideGitDirException;
@@ -57,7 +58,8 @@ public class PatchTransformation implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws ValidationException, IOException {
+  public TransformationStatus transform(TransformWork work)
+      throws ValidationException, IOException {
     try {
       patch(work.getConsole(), work.getCheckoutDir(), /*gitDir=*/null);
     } catch (InsideGitDirException e) {
@@ -67,6 +69,7 @@ public class PatchTransformation implements Transformation {
           e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG)
       );
     }
+    return TransformationStatus.success();
   }
 
   public void patch(Console console, Path checkoutDir, @Nullable Path gitDir)

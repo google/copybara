@@ -29,7 +29,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.WorkflowOptions;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
@@ -54,7 +54,6 @@ import javax.annotation.Nullable;
 public class BuildifierFormat implements Transformation {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
-  private final WorkflowOptions workflowOptions;
   private final BuildifierOptions buildifierOptions;
   private final GeneralOptions generalOptions;
 
@@ -64,14 +63,12 @@ public class BuildifierFormat implements Transformation {
   @Nullable private final String type;
 
   BuildifierFormat(
-      WorkflowOptions workflowOptions,
       BuildifierOptions buildifierOptions,
       GeneralOptions generalOptions,
       Glob glob,
       LintMode lintMode,
       ImmutableList<String> warnings,
       @Nullable String type) {
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.buildifierOptions = Preconditions.checkNotNull(buildifierOptions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.glob = Preconditions.checkNotNull(glob);
@@ -81,7 +78,8 @@ public class BuildifierFormat implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     PathMatcher pathMatcher = glob.relativeTo(work.getCheckoutDir());
     ImmutableList.Builder<String> paths = ImmutableList.builder();
     Files.walkFileTree(
@@ -98,14 +96,12 @@ public class BuildifierFormat implements Transformation {
         });
     ImmutableList<String> builtPaths = paths.build();
     if (builtPaths.isEmpty()) {
-      workflowOptions.reportNoop(
-          work.getConsole(),
-          glob + " didn't match any build file to format",
-          work.getIgnoreNoop());
+      return TransformationStatus.noop(glob + " didn't match any build file to format");
     }
     for (List<String> sublist : Iterables.partition(builtPaths, buildifierOptions.batchSize)) {
       run(work.getConsole(), work.getCheckoutDir(), sublist);
     }
+    return TransformationStatus.success();
   }
 
   /** Runs buildifier with the given arguments. */

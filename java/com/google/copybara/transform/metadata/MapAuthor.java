@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Change;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
@@ -95,7 +96,8 @@ public class MapAuthor implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     work.setAuthor(getMappedAuthor(work.getAuthor()));
 
     if (mapAll) {
@@ -103,6 +105,8 @@ public class MapAuthor implements Transformation {
         current.setMappedAuthor(getMappedAuthor(current.getAuthor()));
       }
     }
+
+    return TransformationStatus.success();
   }
 
   private Author getMappedAuthor(Author originalAuthor) throws ValidationException {

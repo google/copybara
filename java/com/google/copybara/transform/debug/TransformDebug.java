@@ -29,6 +29,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -70,7 +71,7 @@ public final class TransformDebug implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException, RepoException {
     Console console = work.getConsole();
     boolean fileDebug = false;
@@ -92,13 +93,12 @@ public final class TransformDebug implements Transformation {
 
     if (!fileDebug && !metadataDebug && !transformMatch) {
       // Nothing to debug!
-      delegate.transform(work);
-      return;
+      return delegate.transform(work);
     }
 
     TreeMap<String, byte[]> before = readState(work, fileDebug || transformMatch,
         work.getTreeState());
-    delegate.transform(work);
+    TransformationStatus status = delegate.transform(work);
     work.validateTreeStateCache();
     TreeMap<String, byte[]> after = readState(work, fileDebug || transformMatch,
         work.getTreeState());
@@ -138,7 +138,7 @@ public final class TransformDebug implements Transformation {
       console.infoFmt("Message, author and/or labels changed");
     }
     if (!stop) {
-      return;
+      return status;
     }
     if (!transformMatch) {
       // Stopped because of file/metadata change. Show the diff directly
@@ -161,7 +161,7 @@ public final class TransformDebug implements Transformation {
           break;
         }
         case "c":
-          return;
+          return status;
         case "s":
           throw new ValidationException("Stopped by user");
       }

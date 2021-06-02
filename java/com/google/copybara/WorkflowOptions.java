@@ -23,12 +23,10 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.jcommander.AuthorConverter;
 import com.google.copybara.jcommander.GlobConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -221,24 +219,6 @@ public class WorkflowOptions implements Option {
 
   public boolean joinTransformations() {
     return !noTransformationJoin;
-  }
-
-  /**
-   * Reports that some operation is a no-op. This will either throw an exception or report the
-   * incident to the console, depending on the options.
-   */
-  public void reportNoop(Console console, String message, boolean currentIgnoreNoop)
-      throws VoidOperationException {
-    if (ignoreNoop) {
-      console.warn("NOOP: " + message);
-    } else if(currentIgnoreNoop){
-      if(console.isVerbose()){
-        console.warn("NOOP: " + message);
-      }
-    } else {
-      throw new VoidOperationException(
-          String.format("%s. Use --ignore-noop if you want to ignore this error", message));
-    }
   }
 
   public WorkflowOptions() {}

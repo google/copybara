@@ -22,6 +22,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.Change;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
@@ -46,7 +47,7 @@ public class RestoreOriginalAuthor implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     Author author = null;
     // If multiple commits are included (for example on a squash for skipping a bad change),
@@ -70,6 +71,7 @@ public class RestoreOriginalAuthor implements Transformation {
       work.setAuthor(author);
       work.removeLabel(label, /*wholeMessage=*/true);
     }
+    return TransformationStatus.success();
   }
 
   @Override

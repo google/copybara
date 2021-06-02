@@ -86,7 +86,7 @@ public class RevisionMigratorTest {
     return new TransformWork(checkoutDir, new Metadata(msg, new Author("foo", "foo@foo.com"),
         ImmutableSetMultimap.of()),
         Changes.EMPTY, console, new MigrationInfo(DummyOrigin.LABEL_NAME, destinationReader),
-        new DummyRevision("1234567890"), false, c -> origin.getEndpoint(),
+        new DummyRevision("1234567890"), c -> origin.getEndpoint(),
         c -> new DummyEndpoint(), () -> DestinationReader.NOT_IMPLEMENTED);
   }
 

@@ -25,6 +25,7 @@ import com.google.copybara.LocalParallelizer;
 import com.google.copybara.LocalParallelizer.TransformFunc;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
@@ -73,7 +74,7 @@ public final class VerifyMatch implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
     Iterable<FileState> files = work.getTreeState().find(
@@ -93,6 +94,8 @@ public final class VerifyMatch implements Transformation {
     ValidationException.checkCondition(
         size == 0,
         "%d file(s) failed the validation of %s, located at %s.", size, describe(), location);
+
+    return TransformationStatus.success();
   }
 
   private class BatchRun implements TransformFunc<FileState, List<String>> {

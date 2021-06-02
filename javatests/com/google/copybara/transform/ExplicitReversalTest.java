@@ -21,6 +21,7 @@ import static java.nio.file.Paths.get;
 
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.util.ArrayList;
@@ -39,8 +40,9 @@ public final class ExplicitReversalTest {
     String name;
 
     @Override
-    public void transform(TransformWork work) {
+    public TransformationStatus transform(TransformWork work) {
       invokedTransforms.add(name);
+      return TransformationStatus.success();
     }
 
     @Override

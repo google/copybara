@@ -101,7 +101,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   private final Revision resolvedReference;
   private final TreeState treeState;
   private final boolean insideExplicitTransform;
-  private final boolean ignoreNoop;
   @Nullable
   private final Revision lastRev;
   @Nullable
@@ -113,7 +112,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
 
 
   public TransformWork(Path checkoutDir, Metadata metadata, Changes changes, Console console,
-      MigrationInfo migrationInfo, Revision resolvedReference, boolean ignoreNoop,
+      MigrationInfo migrationInfo, Revision resolvedReference,
       LazyResourceLoader<Endpoint> originApi, LazyResourceLoader<Endpoint> destinationApi,
       ResourceSupplier<DestinationReader> destinationReader) {
     this(
@@ -128,7 +127,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         /*lastRev=*/ null,
         /*currentRev=*/ null,
         Dict.empty(),
-        ignoreNoop,
         originApi,
         destinationApi,
         destinationReader);
@@ -146,7 +144,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       @Nullable Revision lastRev,
       @Nullable Revision currentRev,
       Dict<?, ?> skylarkTransformParams,
-      boolean ignoreNoop,
       LazyResourceLoader<Endpoint> originApi,
       LazyResourceLoader<Endpoint> destinationApi,
       ResourceSupplier<DestinationReader> destinationReader) {
@@ -161,7 +158,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     this.lastRev = lastRev;
     this.currentRev = currentRev;
     this.skylarkTransformParams = skylarkTransformParams;
-    this.ignoreNoop = ignoreNoop;
     this.originApi = Preconditions.checkNotNull(originApi);
     this.destinationApi = Preconditions.checkNotNull(destinationApi);
     this.destinationReader = Preconditions.checkNotNull(destinationReader);
@@ -618,8 +614,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(checkoutDir, metadata, changes, Preconditions.checkNotNull(newConsole),
         migrationInfo, resolvedReference, treeState, insideExplicitTransform, lastRev,
-        currentRev, skylarkTransformParams, ignoreNoop, originApi, destinationApi,
-        destinationReader);
+        currentRev, skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
   /**
@@ -634,7 +629,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     Preconditions.checkNotNull(params);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev, params,
-        ignoreNoop, originApi, destinationApi, destinationReader);
+        originApi, destinationApi, destinationReader);
   }
 
   @VisibleForTesting
@@ -642,14 +637,14 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     Preconditions.checkNotNull(changes);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev,
-        skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
+        skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
   @VisibleForTesting
   public TransformWork withLastRev(@Nullable Revision previousRef) {
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, insideExplicitTransform, previousRef, currentRev,
-        skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
+        skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
   @VisibleForTesting
@@ -657,21 +652,21 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev,
-        skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
+        skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
-  public TransformWork insideExplicitTransform(boolean ignoreNoop) {
+  public TransformWork insideExplicitTransform() {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, /*insideExplicitTransform=*/true, lastRev, currentRev,
-        skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
+        skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
   public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(checkoutDir, metadata, changes, console, migrationInfo,
         resolvedReference, treeState, insideExplicitTransform, lastRev, currentRev,
-        skylarkTransformParams, ignoreNoop, originApi, destinationApi, destinationReader);
+        skylarkTransformParams, originApi, destinationApi, destinationReader);
   }
 
   /**
@@ -683,10 +678,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
 
   public TreeState getTreeState() {
     return treeState;
-  }
-
-  public boolean getIgnoreNoop() {
-    return ignoreNoop;
   }
 
   /**

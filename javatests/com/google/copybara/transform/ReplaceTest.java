@@ -19,17 +19,15 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertThrows;
 
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.FileSubjects;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
-import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -61,8 +59,8 @@ public final class ReplaceTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation transformation) throws Exception {
-    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+  private TransformationStatus transform(Transformation transformation) throws Exception {
+    return transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test
@@ -312,7 +310,8 @@ public final class ReplaceTest {
 
     writeFile(checkoutDir.resolve("before_and_after"), "foo/barbar\n");
     // Because we don't use backtracking this repeated group is expected to fail.
-    assertThrows(VoidOperationException.class, () -> transform(transformation));
+    TransformationStatus status = transform(transformation);
+    assertThat(status.isNoop()).isTrue();
   }
 
   @Test
@@ -486,7 +485,8 @@ public final class ReplaceTest {
         + "  before = \"this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
         + ")");
-    assertThrows(VoidOperationException.class, () -> transform(replace));
+    TransformationStatus status = transform(replace);
+    assertThat(status.isNoop()).isTrue();
   }
 
   @Test
@@ -495,34 +495,30 @@ public final class ReplaceTest {
         + "  before = \"hello\\n\\r\\tbye!\",\n"
         + "  after = 'lulz',\n"
         + ")");
-    VoidOperationException thrown =
-        assertThrows(VoidOperationException.class, () -> transform(replace));
-    assertThat(thrown).hasMessageThat().contains("hello\\n\\r\\tbye!");
+    TransformationStatus status = transform(replace);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).contains("hello\\n\\r\\tbye!");
   }
 
   @Test
   public void noopReplaceAsWarning() throws Exception {
-    options.workflowOptions.ignoreNoop = true;
-
     writeFile(checkoutDir.resolve("foo"), "");
-    transform(eval("core.replace(\n"
+    TransformationStatus status = transform(eval("core.replace(\n"
         + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
         + ")"));
-    console.assertThat()
-        .onceInLog(MessageType.WARNING,
-            ".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files");
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage())
+        .matches(".*BEFORE.*lulz.*was a no-op because it didn't change any of the matching files");
 
-    console.clearMessages();
-
-    transform(eval("core.replace(\n"
+    status = transform(eval("core.replace(\n"
         + "  before = \"BEFORE this string doesn't appear anywhere in source\",\n"
         + "  after = 'lulz',\n"
         + "  paths = glob(['bad_path/**'])\n"
         + ")"));
-    console.assertThat()
-        .onceInLog(MessageType.WARNING,
-            ".*BEFORE.*lulz.*was a no-op because it didn't match any file");
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage())
+        .matches(".*BEFORE.*lulz.*was a no-op because it didn't match any file");
   }
 
   @Test

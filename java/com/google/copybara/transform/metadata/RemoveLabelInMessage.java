@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
@@ -36,13 +37,15 @@ public class RemoveLabelInMessage implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     String message = work.getMessage();
     work.removeLabel(label, /*wholeMessage*/ false);
     // Lets try to find the message all the text
     if (work.getMessage().equals(message)) {
       work.removeLabel(label, /*wholeMessage*/ true);
     }
+    return TransformationStatus.success();
   }
 
   @Override

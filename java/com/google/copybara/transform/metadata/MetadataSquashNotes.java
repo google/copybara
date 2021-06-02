@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.Change;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
@@ -63,7 +64,7 @@ public class MetadataSquashNotes implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     StringBuilder sb;
     try {
@@ -77,7 +78,7 @@ public class MetadataSquashNotes implements Transformation {
     if (max == 0) {
       // Don't force changes to be computed if we don't want any change back.
       work.setMessage(sb.toString());
-      return;
+      return TransformationStatus.success();
     }
     int counter = 0;
     List<? extends Change<?>> changes = work.getChanges().getCurrent();
@@ -131,6 +132,8 @@ public class MetadataSquashNotes implements Transformation {
       sb.append("  (And ").append(changes.size() - max).append(" more changes)\n");
     }
     work.setMessage(sb.toString());
+
+    return TransformationStatus.success();
   }
 
   private String cutIfLong(String msg) {

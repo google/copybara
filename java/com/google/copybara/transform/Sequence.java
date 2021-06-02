@@ -21,6 +21,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
+import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -43,20 +45,26 @@ import net.starlark.java.eval.StarlarkThread;
 public class Sequence implements Transformation {
 
   private final Profiler profiler;
-  private final boolean joinTransformations;
+  private final WorkflowOptions workflowOptions;
   private final ImmutableList<Transformation> sequence;
+  private final NoopBehavior noopBehavior;
 
   protected final Logger logger = Logger.getLogger(Sequence.class.getName());
 
   @VisibleForTesting
-  Sequence(Profiler profiler, boolean joinTransformations, ImmutableList<Transformation> sequence) {
+  Sequence(
+      Profiler profiler,
+      WorkflowOptions workflowOptions,
+      ImmutableList<Transformation> sequence,
+      NoopBehavior noopBehavior) {
     this.profiler = Preconditions.checkNotNull(profiler);
-    this.joinTransformations = joinTransformations;
+    this.workflowOptions = workflowOptions;
     this.sequence = Preconditions.checkNotNull(sequence);
+    this.noopBehavior = noopBehavior;
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException, RepoException {
 
     List<Transformation> transformationList = getTransformations();
@@ -69,8 +77,24 @@ public class Sequence implements Transformation {
 
       Transformation transformation = transformationList.get(i);
       work.getConsole().progress(getTransformMessage(transformation, i, transformationList.size()));
-      runOneTransform(work, transformation);
+      TransformationStatus status = runOneTransform(work, transformation);
+
+      if (status.isNoop()) {
+        if (noopBehavior == NoopBehavior.FAIL_IF_ANY_NOOP) {
+          status.throwException(work.getConsole(), workflowOptions.ignoreNoop);
+        } else if (noopBehavior == NoopBehavior.NOOP_IF_ANY_NOOP) {
+          if (workflowOptions.ignoreNoop) {
+            status.warn(work.getConsole());
+          } else {
+            return status;
+          }
+        } else if (work.getConsole().isVerbose()) {
+          status.warn(work.getConsole());
+        }
+      }
     }
+
+    return TransformationStatus.success();
   }
 
   private String getTransformMessage(
@@ -85,7 +109,7 @@ public class Sequence implements Transformation {
   }
 
   private ImmutableList<Transformation> getTransformations() {
-    if (!joinTransformations) {
+    if (!workflowOptions.joinTransformations()) {
       return sequence;
     }
     List<Transformation> result = new ArrayList<>(sequence.size());
@@ -106,10 +130,10 @@ public class Sequence implements Transformation {
     return ImmutableList.copyOf(result);
   }
 
-  private void runOneTransform(TransformWork work, Transformation transform)
+  private TransformationStatus runOneTransform(TransformWork work, Transformation transform)
       throws IOException, ValidationException, RepoException {
-    try(ProfilerTask ignored = profiler.start(transform.describe().replace('/', ' '))) {
-      transform.transform(work);
+    try (ProfilerTask ignored = profiler.start(transform.describe().replace('/', ' '))) {
+      return transform.transform(work);
     }
   }
 
@@ -119,7 +143,7 @@ public class Sequence implements Transformation {
     for (Transformation element : sequence) {
       list.add(element.reverse());
     }
-    return new Sequence(profiler, joinTransformations, list.build().reverse());
+    return new Sequence(profiler, workflowOptions, list.build().reverse(), noopBehavior);
   }
 
   @VisibleForTesting
@@ -143,25 +167,23 @@ public class Sequence implements Transformation {
   /**
    * Create a sequence from a list of native and Skylark transforms.
    *
-   * @param joinTransformations if compatible and consecutive transformations can be joined for
-   *     efficiency
    * @param description a description of the argument being converted, such as its name
-   * @param thread skylark environment for user defined transformations
    */
   public static Sequence fromConfig(
       Profiler profiler,
-      boolean joinTransformations,
+      WorkflowOptions workflowOptions,
       net.starlark.java.eval.Sequence<?> elements,
       String description,
       StarlarkThread.PrintHandler printHandler,
-      Function<Transformation, Transformation> transformWrapper)
+      Function<Transformation, Transformation> transformWrapper,
+      NoopBehavior noopBehavior)
       throws EvalException {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(
           transformWrapper.apply(convertToTransformation(description, printHandler, element)));
     }
-    return new Sequence(profiler, joinTransformations, transformations.build());
+    return new Sequence(profiler, workflowOptions, transformations.build(), noopBehavior);
   }
 
   private static Transformation convertToTransformation(
@@ -176,5 +198,27 @@ public class Sequence implements Transformation {
     throw Starlark.errorf(
         "for '%s' element, got %s, want function or transformation",
         description, Starlark.type(element));
+  }
+
+  /**
+   * An enum to specify how a {@link Sequence} should handle a no-op occurring in one of its child
+   * {@link Transformation}s.
+   */
+  public enum NoopBehavior {
+    /**
+     * No matter how many of the wrapped Transformation no-op, this Sequence is always considered to
+     * be a successful op.
+     */
+    IGNORE_NOOP,
+    /**
+     * If at least 1 of the wrapped transformations is a no-op, this Sequence will also be
+     * considered a no-op. The remainder of the wrapped transformations will not be run.
+     */
+    NOOP_IF_ANY_NOOP,
+    /**
+     * If at least 1 of the wrapped transformation is a no-op, this Sequence will fail immediately,
+     * even if another Sequence with {@code IGNORE_NOOP} is wrapping this one.
+     */
+    FAIL_IF_ANY_NOOP
   }
 }

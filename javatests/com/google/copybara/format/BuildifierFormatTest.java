@@ -21,8 +21,8 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
@@ -179,9 +179,8 @@ public class BuildifierFormatTest {
 
     Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(checkoutDir.resolve("foo/BUILD"), NOT_FORMATTED.getBytes(UTF_8));
-    assertThrows(
-        VoidOperationException.class,
-        () -> b.transform(TransformWorks.of(checkoutDir, "foo", console)));
+    TransformationStatus status = b.transform(TransformWorks.of(checkoutDir, "foo", console));
+    assertThat(status.isNoop()).isTrue();
   }
 
   @Test

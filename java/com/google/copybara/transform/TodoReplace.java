@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
@@ -100,12 +101,14 @@ public class TodoReplace implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     work.getTreeState().notifyModify(
         Iterables.concat(
             parallelizer.run(
                 work.getTreeState().find(glob.relativeTo(work.getCheckoutDir())),
                 files -> run(files, work.getConsole()))));
+    return TransformationStatus.success();
   }
 
   private Set<FileState> run(Iterable<FileState> files, Console console)

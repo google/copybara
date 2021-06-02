@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.MoreObjects;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
@@ -34,33 +35,22 @@ public final class ExplicitReversal implements Transformation {
 
   private final Transformation forward;
   private final Transformation reverse;
-  private final Boolean ignoreNoop;
-
-  public ExplicitReversal(Transformation forward, Transformation reverse) {
-    this(forward, reverse, /*ignoreNoop=*/null);
-  }
 
   public ExplicitReversal(
       Transformation forward,
-      Transformation reverse,
-      Boolean ignoreNoop) {
+      Transformation reverse) {
     this.forward = checkNotNull(forward);
     this.reverse = checkNotNull(reverse);
-    this.ignoreNoop = ignoreNoop;
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException, RepoException {
     TransformWork newWork;
-    if(ignoreNoop == null){
-      // use parent ignoreNoop if current ignoreNoop is null
-      newWork = work.insideExplicitTransform(work.getIgnoreNoop());
-    } else {
-      newWork = work.insideExplicitTransform(ignoreNoop);
-    }
-    forward.transform(newWork);
+    newWork = work.insideExplicitTransform();
+    TransformationStatus status = forward.transform(newWork);
     work.updateFrom(newWork);
+    return status;
   }
 
   /**
@@ -79,7 +69,7 @@ public final class ExplicitReversal implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new ExplicitReversal(reverse, forward, ignoreNoop);
+    return new ExplicitReversal(reverse, forward);
   }
 
   @Override

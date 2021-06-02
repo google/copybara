@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.copybara.Change;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
@@ -52,13 +53,14 @@ public class UseLastChange implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     Change<?> lastChange = getLastChange(work);
     if (lastChange == null) {
       if (useMessage && defaultMessage != null) {
         work.setMessage(defaultMessage);
       }
-      return;
+      return TransformationStatus.success();
     }
     if (useMessage) {
       work.setMessage(lastChange.getMessage());
@@ -66,6 +68,7 @@ public class UseLastChange implements Transformation {
     if (useAuthor) {
       work.setAuthor(lastChange.getMappedAuthor());
     }
+    return TransformationStatus.success();
   }
 
   @Nullable

@@ -96,14 +96,13 @@ public final class BuildozerOptions implements Option {
   /**
    * Runs buildozer with the given commands.
    */
-  void run(Console console, Path checkoutDir, Iterable<BuildozerCommand> commands,
-      boolean ignoreNoop)
+  void run(Console console, Path checkoutDir, Iterable<BuildozerCommand> commands)
       throws ValidationException, TargetNotFoundException {
     List<String> args = Lists.newArrayList(
         buildozerBin, "-buildifier=" + buildifierOptions.buildifierBin);
 
     // We only use -k in keep going mode because it shows less errors (http://b/69386431)
-    if (workflowOptions.ignoreNoop || ignoreNoop) {
+    if (workflowOptions.ignoreNoop) {
       args.add("-k");
     }
     args.add("-f");

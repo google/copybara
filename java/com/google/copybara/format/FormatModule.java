@@ -149,7 +149,6 @@ public class FormatModule implements StarlarkValue {
         "Warnings can only be used when lint is set to FIX");
 
     return new BuildifierFormat(
-        workflowOptions,
         buildifierOptions,
         generalOptions,
         convertFromNoneable(paths, DEFAULT_BUILDIFIER_PATHS),

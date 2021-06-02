@@ -150,7 +150,7 @@ public final class CoreReverseTest {
     }
 
     @Override
-    public void transform(TransformWork work) {
+    public TransformationStatus transform(TransformWork work) {
       throw new UnsupportedOperationException();
     }
 

@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -51,14 +52,14 @@ public class TemplateMessage implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     String newMsg;
     try {
       newMsg = labelTemplate.resolve(work::getLabel);
     } catch (LabelNotFoundException e) {
       if (ignoreIfLabelNotFound) {
-        return;
+        return TransformationStatus.success();
       }
       throw new ValidationException(String.format(
           "Cannot find label '%s' in message:\n %s\nor any of the original commit messages",
@@ -69,6 +70,7 @@ public class TemplateMessage implements Transformation {
       newMsg += (newLine ? "\n" : "") + work.getMessage();
     }
     work.setMessage(newMsg);
+    return TransformationStatus.success();
   }
 
   @Override

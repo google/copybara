@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
@@ -50,7 +51,7 @@ public class Scrubber implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     try {
       String scrubbedMessage = pattern.matcher(work.getMessage()).replaceAll(replacement);
@@ -59,7 +60,7 @@ public class Scrubber implements Transformation {
             .verboseFmt(
                 "Scrubbed change description '%s' by '%s'", work.getMessage(), scrubbedMessage);
         work.setMessage(scrubbedMessage);
-        return;
+        return TransformationStatus.success();
       }
       ValidationException.checkCondition(
           !failIfNotMacth,
@@ -74,6 +75,7 @@ public class Scrubber implements Transformation {
           "Could not find matching group. Are you missing a group in your regex '%s'?",
           pattern), e);
     }
+    return TransformationStatus.success();
   }
 
   @Override

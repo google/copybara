@@ -24,6 +24,7 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer.TransformFunc;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
@@ -71,7 +72,8 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
   }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
     Path checkoutDir = work.getCheckoutDir();
 
     Iterable<FileState> files = work.getTreeState().find(glob.relativeTo(checkoutDir));
@@ -84,12 +86,11 @@ public class FilterReplace implements Transformation, ReversibleFunction<String,
 
     work.getTreeState().notifyModify(changed);
     if (changed.isEmpty()) {
-      workflowOptions.reportNoop(
-          work.getConsole(),
+      return TransformationStatus.noop(
           "Transformation '" + toString() + "' was a no-op because it didn't "
-              + (matchedFile ? "change any of the matching files" : "match any file"),
-          work.getIgnoreNoop());
+              + (matchedFile ? "change any of the matching files" : "match any file"));
     }
+    return TransformationStatus.success();
   }
 
   @Override

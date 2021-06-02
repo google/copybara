@@ -554,14 +554,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               workflow.getConsole(),
               new MigrationInfo(workflow.getRevIdLabel(), writer),
               resolvedRef,
-              /*ignoreNoop=*/ false,
               originApi,
               destinationApi,
               destinationReader)
               .withLastRev(lastRev)
               .withCurrentRev(rev);
       try (ProfilerTask ignored = profiler().start("transforms")) {
-        getTransformation().transform(transformWork);
+        TransformationStatus status = getTransformation().transform(transformWork);
+        if (status.isNoop()) {
+          status.throwException(workflow.getConsole(), workflow.getWorkflowOptions().ignoreNoop);
+        }
       }
 
       if (getReverseTransformForCheck() != null) {
@@ -582,7 +584,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
 
         try (ProfilerTask ignored = profiler().start("reverse_transform")) {
-          getReverseTransformForCheck()
+          TransformationStatus status = getReverseTransformForCheck()
               .transform(
                   new TransformWork(
                       reverse,
@@ -591,10 +593,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                       workflow.getConsole(),
                       new MigrationInfo(/*originLabel=*/ null, null),
                       resolvedRef,
-                      /*ignoreNoop=*/ false,
                       destinationApi,
                       originApi,
                       () -> DestinationReader.NOT_IMPLEMENTED));
+          if (status.isNoop()) {
+            status.throwException(workflow.getConsole(), workflow.getWorkflowOptions().ignoreNoop);
+          }
         }
         String diff;
         try {
@@ -671,9 +675,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   baselineConsole,
                   new MigrationInfo(workflow.getRevIdLabel(), writer),
                   resolvedRef,
-                  // Doesn't guarantee that we will not run a ignore_noop = False core.transform but
-                  // reduces the chances.
-                  /*ignoreNoop=*/true,
                   originApi,
                   destinationApi,
                   destinationReader)

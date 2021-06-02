@@ -106,6 +106,7 @@ BASE_SRCS = [
     "SkylarkContext.java",
     "Transformation.java",
     "TransformResult.java",
+    "TransformationStatus.java",
     "TransformWork.java",
     "Trigger.java",
     "treestate/TreeState.java",

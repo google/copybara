@@ -22,6 +22,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions.BuildozerCommand;
 import com.google.copybara.exception.NonReversibleValidationException;
@@ -51,12 +52,13 @@ public final class BuildozerDelete implements BuildozerTransformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     try {
-      options.run(work.getConsole(), work.getCheckoutDir(), getCommands(), work.getIgnoreNoop());
+      options.run(work.getConsole(), work.getCheckoutDir(), getCommands());
+      return TransformationStatus.success();
     } catch (TargetNotFoundException e) {
-      workflowOptions.reportNoop(work.getConsole(), e.getMessage(), work.getIgnoreNoop());
+      return TransformationStatus.noop(e.getMessage());
     }
   }
 

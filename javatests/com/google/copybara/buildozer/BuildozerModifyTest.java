@@ -22,6 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
+import com.google.copybara.buildozer.testing.BuildozerTesting;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -29,7 +31,6 @@ import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import com.google.copybara.buildozer.testing.BuildozerTesting;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,8 +57,8 @@ public final class BuildozerModifyTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation modify) throws Exception {
-    modify.transform(TransformWorks.of(checkoutDir, "test msg", console));
+  private TransformationStatus transform(Transformation modify) throws Exception {
+    return modify.transform(TransformWorks.of(checkoutDir, "test msg", console));
   }
 
   @Test
@@ -476,11 +477,10 @@ public final class BuildozerModifyTest {
     options.workflowOptions.ignoreNoop = true;
     Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(checkoutDir.resolve("foo/BUILD"), "".getBytes(UTF_8));
-    transform(modify);
-    console
-        .assertThat()
-        .onceInLog(
-            MessageType.WARNING,
+    TransformationStatus status = transform(modify);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage())
+        .matches(
             ".*Buildozer could not find a target for foo:doesnt_exist:"
                 + " rule 'doesnt_exist' not found.*");
   }
@@ -495,12 +495,10 @@ public final class BuildozerModifyTest {
     options.workflowOptions.ignoreNoop = true;
     Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(checkoutDir.resolve("foo/BUILD"), "".getBytes(UTF_8));
-    transform(modify);
-    console
-        .assertThat()
-        .onceInLog(
-            MessageType.WARNING,
-            ".*Buildozer could not find a target for:\n  remove deps\\|foo:%proto_library.*");
+    TransformationStatus status = transform(modify);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage())
+        .matches(".*Buildozer could not find a target for:\n  remove deps\\|foo:%proto_library.*");
   }
 
   @Test

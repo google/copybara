@@ -28,6 +28,7 @@ import com.google.copybara.Origin;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.Workflow;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Authoring;
@@ -524,7 +525,7 @@ public class SkylarkParserTest {
     }
 
     @Override
-    public void transform(TransformWork work) throws IOException {
+    public TransformationStatus transform(TransformWork work) throws IOException {
       throw new UnsupportedOperationException();
     }
 

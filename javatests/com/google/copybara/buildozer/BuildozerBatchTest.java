@@ -22,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
@@ -59,8 +59,8 @@ public class BuildozerBatchTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation transformation) throws Exception {
-    transformation.transform(TransformWorks.of(checkoutDir, "test msg", console));
+  private TransformationStatus transform(Transformation transformation) throws Exception {
+    return transformation.transform(TransformWorks.of(checkoutDir, "test msg", console));
   }
 
   @Test
@@ -94,9 +94,9 @@ public class BuildozerBatchTest {
             + "     )");
     Files.createDirectories(checkoutDir.resolve("foo/bar"));
     Files.write(checkoutDir.resolve("foo/bar/BUILD"), "".getBytes(UTF_8));
-    VoidOperationException thrown =
-        assertThrows(VoidOperationException.class, () -> transform(create1.join(notFound)));
-    assertThat(thrown).hasMessageThat().contains("foo/bar:idontexist");
+    TransformationStatus status = transform(create1.join(notFound));
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).contains("foo/bar:idontexist");
     assertThatPath(checkoutDir).containsFiles("copy/bar/BUILD");
   }
 

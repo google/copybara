@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
@@ -108,15 +109,13 @@ public class CopyOrMove implements Transformation {
     }
 
   @Override
-  public void transform(TransformWork work) throws IOException, ValidationException {
+  public TransformationStatus transform(TransformWork work)
+      throws IOException, ValidationException {
       work.getConsole().progress("Moving " + this.before);
     Path before = work.getCheckoutDir().resolve(this.before).normalize();
       if (!Files.exists(before)) {
-      workflowOptions.reportNoop(
-          work.getConsole(),
-          String.format("Error moving '%s'. It doesn't exist in the workdir", this.before),
-          work.getIgnoreNoop());
-        return;
+        return TransformationStatus.noop(
+          String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
       }
     Path after = work.getCheckoutDir().resolve(this.after).normalize();
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
@@ -142,7 +141,7 @@ public class CopyOrMove implements Transformation {
         // Simple move of all the contents of a directory
         if (beforeIsDir && !isCopy && paths.equals(Glob.ALL_FILES)) {
           moveAllFilesInDir(before, after, work.getCheckoutDir());
-          return;
+          return TransformationStatus.success();
         }
 
         Files.walkFileTree(before,
@@ -158,6 +157,7 @@ public class CopyOrMove implements Transformation {
         throw new ValidationException(
             String.format("Cannot move file to '%s' because it already exists", e.getFile()), e);
       }
+    return TransformationStatus.success();
   }
 
   /** Traverse a directory files/folders recursively and delete any empty folder */
@@ -238,10 +238,10 @@ public class CopyOrMove implements Transformation {
         throw new NonReversibleValidationException(
             "core.copy not automatically" + " reversible when copying to a parent directory");
       }
-      return new ExplicitReversal(new Remove(
-          // After might be a directory or a file. Delete both
-          Glob.createGlob(ImmutableList.of(after, afterPath + "/**")),
-          workflowOptions, location),
+      return new ExplicitReversal(
+          new Remove(
+              // After might be a directory or a file. Delete both
+              Glob.createGlob(ImmutableList.of(after, afterPath + "/**")), location),
           this);
     }
     return new CopyOrMove(after, before, paths, /*overwrite=*/false, location, workflowOptions,

@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -60,8 +61,8 @@ public class CopyOrMoveTest {
     skylark = new SkylarkTestExecutor(options);
   }
 
-  private void transform(Transformation t) throws Exception {
-    t.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+  private TransformationStatus transform(Transformation t) throws Exception {
+    return t.transform(TransformWorks.of(checkoutDir, "testmsg", console));
   }
 
   @Test
@@ -274,16 +275,18 @@ public class CopyOrMoveTest {
   public void testDoesntExistMover() throws Exception {
     CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
-    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(mover));
-    assertThat(thrown).hasMessageThat().contains("Error moving 'blablabla'. It doesn't exist");
+    TransformationStatus status = transform(mover);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).contains("Error moving 'blablabla'. It doesn't exist");
   }
 
   @Test
   public void testDoesntExistCopier() throws Exception {
     CopyOrMove copier = skylark.eval("m", ""
         + "m = core.copy(before = 'blablabla', after = 'other')\n");
-    ValidationException thrown = assertThrows(ValidationException.class, () -> transform(copier));
-    assertThat(thrown).hasMessageThat().contains("Error moving 'blablabla'. It doesn't exist");
+    TransformationStatus status = transform(copier);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).contains("Error moving 'blablabla'. It doesn't exist");
   }
 
   @Test
@@ -293,10 +296,9 @@ public class CopyOrMoveTest {
     CopyOrMove mover = skylark.eval("m", ""
         + "m = core.move(before = 'blablabla', after = 'other')\n");
 
-    transform(mover);
-
-    console.assertThat()
-        .onceInLog(MessageType.WARNING, ".*blablabla.*doesn't exist.*");
+    TransformationStatus status = transform(mover);
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).matches(".*blablabla.*doesn't exist.*");
   }
 
   @Test

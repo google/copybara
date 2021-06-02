@@ -19,6 +19,7 @@ package com.google.copybara.transform.metadata;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
@@ -38,9 +39,10 @@ public class SaveOriginalAuthor implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work)
+  public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
     work.addOrReplaceLabel(label, work.getAuthor().toString(), "=");
+    return TransformationStatus.success();
   }
 
   @Override

@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.ChangeVisitable;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
+import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.ExplicitReversal;
@@ -94,7 +95,7 @@ public class ReferenceMigrator implements Transformation {
   }
 
   @Override
-  public void transform(TransformWork work) throws ValidationException {
+  public TransformationStatus transform(TransformWork work) throws ValidationException {
     AtomicReference<ValidationException> thrown = new AtomicReference<>();
     Replacer replacer = before.callbackReplacer(after, (groupValues, template) -> {
         if (groupValues.get(0) != null) {
@@ -123,6 +124,7 @@ public class ReferenceMigrator implements Transformation {
     if (!replaced.equals(work.getMessage())) {
       work.setMessage(replaced);
     }
+    return TransformationStatus.success();
   }
 
   @Override
