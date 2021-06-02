@@ -21,12 +21,8 @@ import static java.nio.file.Paths.get;
 
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
-import com.google.copybara.exception.NonReversibleValidationException;
-import com.google.copybara.exception.ValidationException;
-import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -99,23 +95,5 @@ public final class ExplicitReversalTest {
     transform(explicit.reverse().reverse());
     assertThat(invokedTransforms)
         .containsExactly("t1-foo");
-  }
-
-  private static class NoopTransform implements Transformation {
-
-    @Override
-    public void transform(TransformWork work) throws IOException, ValidationException {
-      throw new VoidOperationException("Nothing happened");
-    }
-
-    @Override
-    public Transformation reverse() throws NonReversibleValidationException {
-      return this;
-    }
-
-    @Override
-    public String describe() {
-      return "noop";
-    }
   }
 }
