@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -59,32 +58,30 @@ public class Sequence implements Transformation {
   @Override
   public void transform(TransformWork work)
       throws IOException, ValidationException, RepoException {
-    if (sequence.size() == 1) {
-      Transformation transform = sequence.get(0);
-      logger.log(Level.INFO, transform.describe());
-      work.getConsole().progress(transform.describe());
-      runOneTransform(work, transform);
-      return;
-    }
 
     List<Transformation> transformationList = getTransformations();
 
     for (int i = 0; i < transformationList.size(); i++) {
-
       // Only check the cache in between consecutive Transforms
       if (i != 0) {
         work.validateTreeStateCache();
       }
 
       Transformation transformation = transformationList.get(i);
-      String transformMsg = String.format(
-          "[%2d/%d] Transform %s", i + 1, transformationList.size(),
-          transformation.describe());
-      logger.log(Level.INFO, transformMsg);
-      work.getConsole().progress(transformMsg);
-
+      work.getConsole().progress(getTransformMessage(transformation, i, transformationList.size()));
       runOneTransform(work, transformation);
     }
+  }
+
+  private String getTransformMessage(
+      Transformation transform, int currentTransformIndex, int transformListSize) {
+      String transformMsg = transform.describe();
+      if (transformListSize > 1) {
+        transformMsg =
+          String.format(
+              "[%2d/%d] Transform %s", currentTransformIndex + 1, transformListSize, transformMsg);
+      }
+      return transformMsg;
   }
 
   private ImmutableList<Transformation> getTransformations() {
