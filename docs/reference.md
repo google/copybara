@@ -1173,7 +1173,7 @@ Would replace texts like TODO(b/123, aaa) with TODO(b/123, foo)
 
 Groups some transformations in a transformation that can contain a particular, manually-specified, reversal, where the forward version and reversed version of the transform are represented as lists of transforms. The is useful if a transformation does not automatically reverse, or if the automatic reversal does not work for some reason.<br>If reversal is not provided, the transform will try to compute the reverse of the transformations list.
 
-`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=None)`
+`transformation core.transform(transformations, reversal=The reverse of 'transformations', ignore_noop=None, noop_behavior=NOOP_IF_ANY_NOOP)`
 
 
 #### Parameters:
@@ -1182,7 +1182,8 @@ Parameter | Description
 --------- | -----------
 transformations | `sequence of transformation`<br><p>The list of transformations to run as a result of running this transformation.</p>
 reversal | `sequence of transformation` or `NoneType`<br><p>The list of transformations to run as a result of running this transformation in reverse.</p>
-ignore_noop | `bool` or `NoneType`<br><p>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
+ignore_noop | `bool` or `NoneType`<br><p>WARNING: Deprecated. Use `noop_behavior` instead.<br>In case a noop error happens in the group of transformations (Both forward and reverse), it will be ignored, but the rest of the transformations in the group will still be executed. If ignore_noop is not set, we will apply the closest parent's ignore_noop.</p>
+noop_behavior | `string` or `NoneType`<br><p>How to handle no-op transformations:<br><ul> <li><b>'IGNORE_NOOP'</b>: Any no-ops among the wrapped transformations are ignored.</li> <li><b>'NOOP_IF_ANY_NOOP'</b>: Throws an exception as soon as a single wrapped transformation is a no-op.</li> <li><b>'NOOP_IF_ALL_NOOP'</b>: Ignores no-ops from the wrapped transformations unless they all no-op, in which case an exception is thrown.</li></ul></p>
 
 <a id="core.verify_match" aria-hidden="true"></a>
 ### core.verify_match

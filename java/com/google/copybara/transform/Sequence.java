@@ -69,6 +69,7 @@ public class Sequence implements Transformation {
 
     List<Transformation> transformationList = getTransformations();
 
+    boolean someTransformWasSuccess = false;
     for (int i = 0; i < transformationList.size(); i++) {
       // Only check the cache in between consecutive Transforms
       if (i != 0) {
@@ -92,6 +93,13 @@ public class Sequence implements Transformation {
           status.warn(work.getConsole());
         }
       }
+
+      someTransformWasSuccess |= status.isSuccess();
+    }
+
+    if (noopBehavior == NoopBehavior.NOOP_IF_ALL_NOOP && !someTransformWasSuccess) {
+      return TransformationStatus.noop(
+          String.format("%s was a no-op because all wrapped transforms were no-ops", this));
     }
 
     return TransformationStatus.success();
@@ -215,6 +223,12 @@ public class Sequence implements Transformation {
      * considered a no-op. The remainder of the wrapped transformations will not be run.
      */
     NOOP_IF_ANY_NOOP,
+    /**
+     * This Sequence will run all of the wrapped transformations. If all of them are no-ops
+     * (including the case where the transfomation list is empty), this Sequence is considered to be
+     * a no-op.
+     */
+    NOOP_IF_ALL_NOOP,
     /**
      * If at least 1 of the wrapped transformation is a no-op, this Sequence will fail immediately,
      * even if another Sequence with {@code IGNORE_NOOP} is wrapping this one.

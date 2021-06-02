@@ -21,6 +21,7 @@ import static com.google.copybara.config.GlobalMigrations.getGlobalMigrations;
 import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -38,6 +39,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.NonReversibleValidationException;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.templatetoken.Parser;
@@ -1423,21 +1425,48 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = NoneType.class),
             },
             doc =
-                "In case a noop error happens in the group of transformations (Both forward and"
-                    + " reverse), it will be ignored, but the rest of the transformations in the"
-                    + " group will still be executed. If ignore_noop is not set,"
-                    + " we will apply the closest parent's ignore_noop.",
+                "WARNING: Deprecated. Use `noop_behavior` instead.\nIn case a noop error happens in"
+                    + " the group of transformations (Both forward and reverse), it will be"
+                    + " ignored, but the rest of the transformations in the group will still be"
+                    + " executed. If ignore_noop is not set, we will apply the closest parent's"
+                    + " ignore_noop.",
             named = true,
             positional = false,
-            defaultValue = "None")
+            defaultValue = "None"),
+        @Param(
+            name = "noop_behavior",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "How to handle no-op transformations:<br><ul> <li><b>'IGNORE_NOOP'</b>: Any no-ops"
+                    + " among the wrapped transformations are ignored.</li>"
+                    + " <li><b>'NOOP_IF_ANY_NOOP'</b>: Throws an exception as soon as a single"
+                    + " wrapped transformation is a no-op.</li> <li><b>'NOOP_IF_ALL_NOOP'</b>:"
+                    + " Ignores no-ops from the wrapped transformations unless they all no-op, in"
+                    + " which case an exception is thrown.</li></ul>",
+            named = true,
+            positional = false,
+            defaultValue = "None"),
       })
   @DocDefault(field = "reversal", value = "The reverse of 'transformations'")
+  @DocDefault(field = "noop_behavior", value = "NOOP_IF_ANY_NOOP")
   public Transformation transform(
       net.starlark.java.eval.Sequence<?> transformations, // <Transformation>
       Object reversal,
-      Object ignoreNoop)
-      throws EvalException {
-    Sequence.NoopBehavior noopBehavior = Sequence.NoopBehavior.NOOP_IF_ANY_NOOP;
+      Object ignoreNoop,
+      Object noopBehaviorString)
+      throws EvalException, ValidationException {
+    checkCondition(
+        Starlark.isNullOrNone(ignoreNoop) || Starlark.isNullOrNone(noopBehaviorString),
+        "The deprecated param 'ignore_noop' cannot be set simultaneously with 'noop_behavior'."
+            + " Prefer using 'noop_behavior'.");
+    Sequence.NoopBehavior noopBehavior =
+        stringToEnum(
+            "noop_behavior",
+            convertFromNoneable(noopBehaviorString, "NOOP_IF_ANY_NOOP"),
+            Sequence.NoopBehavior.class);
     if (Boolean.TRUE.equals(ignoreNoop)) {
       noopBehavior = Sequence.NoopBehavior.IGNORE_NOOP;
     } else if (Boolean.FALSE.equals(ignoreNoop)) {

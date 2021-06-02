@@ -273,6 +273,80 @@ public final class CoreTransformTest {
   }
 
   @Test
+  public void testOneLayerTransformWithNoop_usingNoopBehavior_ignoreNoop() throws Exception {
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            "x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "    ),\n"
+                + "], noop_behavior = 'IGNORE_NOOP')");
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+
+    console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+    assertThatPath(checkoutDir).containsFile("file.txt", "bar").containsNoMoreFiles();
+  }
+
+  @Test
+  public void testOneLayerTransformWithNoop_usingNoopBehavior_noopIfAllNoop() throws Exception {
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            "x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "    core.replace(\n"
+                + "        before = 'foo',\n"
+                + "        after = 'bar',\n"
+                + "    ),\n"
+                + "], noop_behavior = 'NOOP_IF_ALL_NOOP')");
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    t.transform(TransformWorks.of(checkoutDir, "msg", console));
+
+    console.assertThat().onceInLog(MessageType.WARNING, ".*NOOP.*");
+    assertThatPath(checkoutDir).containsFile("file.txt", "bar").containsNoMoreFiles();
+  }
+
+  @Test
+  public void testOneLayerTransformWithAllNoops_usingNoopBehavior_noopIfAllNoop() throws Exception {
+    ExplicitReversal t =
+        skylark.eval(
+            "x",
+            "x="
+                + "core.transform([\n"
+                + "    core.replace(\n"
+                + "        before = 'not found',\n"
+                + "        after = 'not important',\n"
+                + "    ),\n"
+                + "    core.replace(\n"
+                + "        before = 'also not found',\n"
+                + "        after = 'also not important',\n"
+                + "    ),\n"
+                + "], noop_behavior = 'NOOP_IF_ALL_NOOP')");
+
+    Files.write(checkoutDir.resolve("file.txt"), "foo".getBytes(UTF_8));
+
+    TransformationStatus status = t.transform(TransformWorks.of(checkoutDir, "msg", console));
+
+    assertThat(status.isNoop()).isTrue();
+    console.assertThat().timesInLog(2, MessageType.WARNING, ".*NOOP.*");
+    assertThatPath(checkoutDir).containsFile("file.txt", "foo").containsNoMoreFiles();
+  }
+
+  @Test
   public void errorForMissingForwardArgument() {
     skylark.evalFails(
         "core.transform(reversal = [core.move('foo', 'bar')])",

@@ -355,6 +355,40 @@ public final class SequenceTest {
     assertThat(status.isSuccess()).isTrue();
   }
 
+  @Test
+  public void testSequence_noopIfAllNoop_someChildNoops() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1");
+    MockTransform t2 = new MockTransform("t2").setNoop(true);
+    MockTransform t3 = new MockTransform("t3");
+
+    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(status.isSuccess()).isTrue();
+  }
+
+  @Test
+  public void testSequence_noopIfAllNoop_allChildNoops() throws Exception {
+    TransformWork work = uncachedTreeStateTransformWork();
+
+    MockTransform t1 = new MockTransform("t1").setNoop(true);
+    MockTransform t2 = new MockTransform("t2").setNoop(true);
+    MockTransform t3 = new MockTransform("t3").setNoop(true);
+
+    Transformation t = sequence(Sequence.NoopBehavior.NOOP_IF_ALL_NOOP, t1, t2, t3);
+    TransformationStatus status = t.transform(work);
+
+    assertThat(t1.wasRun).isTrue();
+    assertThat(t2.wasRun).isTrue();
+    assertThat(t3.wasRun).isTrue();
+    assertThat(status.isNoop()).isTrue();
+  }
+
   private TransformWork uncachedTreeStateTransformWork() throws IOException {
     return TransformWorks.of(checkoutDir, "foo", console);
   }
