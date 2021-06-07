@@ -373,7 +373,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         .add(String.format("refs/heads/%s:" + LOCAL_PR_BASE_BRANCH, prData.getBase().getRef()));
 
     if (actuallyUseMerge) {
-      if (Boolean.TRUE.equals(prData.isMergeable())) {
+      if (!Boolean.FALSE.equals(prData.isMergeable())) {
+        // TODO(b/190387768): If mergeable == null and the merge ref turns out not to exist,
+        // Copybara (run with --force) is not currently able to recover to using the HEAD ref
         refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       } else if (forceImport()) {
         console.warnFmt(
@@ -381,12 +383,6 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
             prNumber,
             GeneralOptions.FORCE);
         actuallyUseMerge = false;
-      } else if (prData.isMergeable() == null) {
-        throw new CannotResolveRevisionException(
-            String.format(
-                "Cannot find a merge reference for Pull Request %d."
-                    + " GitHub might still be generating it.",
-                prNumber));
       } else {
         throw new CannotResolveRevisionException(
             String.format(
@@ -407,9 +403,11 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
               partialFetch);
     } catch (CannotResolveRevisionException e) {
       if (actuallyUseMerge) {
-        throw new CannotResolveRevisionException(
-            String.format("Cannot find a merge reference for Pull Request %d, even though GitHub"
-                + " reported that this merge reference should exist.", prNumber), e);
+        String msg = String.format("Cannot find a merge reference for Pull Request %d.", prNumber);
+        if (Boolean.TRUE.equals(prData.isMergeable())) {
+          msg += " GitHub reported that this merge reference should exist.";
+        }
+        throw new CannotResolveRevisionException(msg, e);
       } else {
         throw new CannotResolveRevisionException(
             String.format("Cannot find Pull Request %d.", prNumber), e);
