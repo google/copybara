@@ -2973,6 +2973,17 @@ glob(["folder/**"], exclude = ["folder/**.excluded"]) + glob(['folder/includeme.
 This matches all the files in `folder`, excludes all files in that folder that ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>`+` operator for globs is equivalent to `OR` operation.
 
 
+##### Glob difference:
+
+This is another way to exclude a broad subset of files, but still include some of those files.
+
+```python
+glob(["folder/**"]) - glob(["folder/**.excluded"], exclude=["folder/includeme.excluded"])
+```
+
+This matches the same file as in the previous example.<br><br>`-` operator for globs is equivalent to a set difference operation.
+
+
 <a id="new_author" aria-hidden="true"></a>
 ### new_author
 

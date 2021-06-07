@@ -16,23 +16,25 @@
 
 package com.google.copybara.util;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
+import static java.lang.Math.max;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.re2j.Pattern;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.HasBinary;
+import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.TokenKind;
@@ -49,27 +51,80 @@ import net.starlark.java.syntax.TokenKind;
         "Glob returns a list of every file in the workdir that matches at least one"
             + " pattern in include and does not match any of the patterns in exclude.",
     documented = false)
-public abstract class Glob implements StarlarkValue, HasBinary {
-
-  private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
+public class Glob implements StarlarkValue, HasBinary {
 
   public static final Glob ALL_FILES = createGlob(ImmutableList.of("**"));
 
+  private final ImmutableList<GlobAtom> include;
+  private final ImmutableList<Glob> globInclude;
+  @Nullable private final Glob exclude;
+
+  Glob(Iterable<GlobAtom> include, Iterable<Glob> globInclude, @Nullable Glob exclude) {
+    this.include = ImmutableList.copyOf(Preconditions.checkNotNull(include));
+    this.globInclude = ImmutableList.copyOf(Preconditions.checkNotNull(globInclude));
+    this.exclude = exclude;
+  }
+
   @Override
-  public final UnionGlob binaryOp(TokenKind op, Object that, boolean thisLeft)
-      throws EvalException {
-    if (op == TokenKind.PLUS && that instanceof Glob) {
-      return new UnionGlob(this, (Glob) that);
+  public final Glob binaryOp(TokenKind op, Object that, boolean thisLeft) throws EvalException {
+    switch (op) {
+      case PLUS:
+        if (that instanceof Glob) {
+          return union(this, (Glob) that);
+        } else {
+          throw Starlark.errorf(
+              "Cannot concatenate %s with %s. Only a glob can be concatenated to a glob",
+              this, that);
+        }
+      case MINUS:
+        if (that instanceof Glob) {
+          return difference(this, (Glob) that);
+        } else {
+          throw Starlark.errorf(
+              "Cannot subtract %s from %s. Only a glob can be subtracted from a glob", that, this);
+        }
+      default:
+        throw Starlark.errorf("Glob does not support %s", op);
     }
-    throw Starlark.errorf(
-        "Cannot concatenate %s with %s. Only a glob can be concatenated to a glob", this, that);
-  };
+  }
 
   /**
-   * Checks if the given {@code changedFiles} are or are descendants of the {@code roots}.
+   * Compute the 'set union' of two Globs, which is a Glob that will match any Path matched by at
+   * least one of those two Globs.
+   *
+   * <p>Try to keep the resulting Glob as flat as possible. In the worst case, this will increase
+   * the depth of each leaf (i.e. {@code GlobAtom}) by 1, but we can often do better.
    */
-  public static boolean affectsRoots(ImmutableSet<String> roots,
-      ImmutableCollection<String> changedFiles) {
+  private static Glob union(Glob glob1, Glob glob2) {
+    if (Objects.equals(glob1.exclude, glob2.exclude)) {
+      return new Glob(
+          Iterables.concat(glob1.include, glob2.include),
+          Iterables.concat(glob1.globInclude, glob2.globInclude),
+          glob1.exclude);
+    } else if (glob1.exclude == null) {
+      return new Glob(
+          glob1.include, Iterables.concat(glob1.globInclude, ImmutableList.of(glob2)), null);
+    } else if (glob2.exclude == null) {
+      return new Glob(
+          glob2.include, Iterables.concat(glob2.globInclude, ImmutableList.of(glob1)), null);
+    }
+    return new Glob(ImmutableList.of(), ImmutableList.of(glob1, glob2), null);
+  }
+
+  /**
+   * Compute the 'set difference' of two Globs, which is a Glob that will match any Path which is
+   * matched by the first Glob, but not matched by the second Glob.
+   */
+  private static Glob difference(Glob glob1, Glob glob2) {
+    if (glob1.exclude == null) {
+      return new Glob(glob1.include, glob1.globInclude, glob2);
+    }
+    return new Glob(glob1.include, glob1.globInclude, Glob.union(glob1.exclude, glob2));
+  }
+
+  /** Checks if the given {@code changedFiles} are or are descendants of the {@code roots}. */
+  public static boolean affectsRoots(
+      ImmutableSet<String> roots, ImmutableCollection<String> changedFiles) {
     if (changedFiles == null || isEmptyRoot(roots)) {
       return true;
     }
@@ -85,30 +140,64 @@ public abstract class Glob implements StarlarkValue, HasBinary {
     return false;
   }
 
-  public abstract PathMatcher relativeTo(Path path);
+  public PathMatcher relativeTo(Path path) {
+    ImmutableList.Builder<PathMatcher> includeList = ImmutableList.builder();
+    for (GlobAtom path1 : include) {
+      includeList.add(path1.matcher(path));
+    }
+    for (Glob g : globInclude) {
+      includeList.add(g.relativeTo(path));
+    }
+    PathMatcher excludeMatcher =
+        (exclude == null) ? FileUtil.anyPathMatcher(ImmutableList.of()) : exclude.relativeTo(path);
+    return new GlobPathMatcher(FileUtil.anyPathMatcher(includeList.build()), excludeMatcher);
+  }
+
+  private class GlobPathMatcher implements PathMatcher {
+
+    private final PathMatcher includeMatcher;
+    private final PathMatcher excludeMatcher;
+
+    GlobPathMatcher(PathMatcher includeMatcher, PathMatcher excludeMatcher) {
+      this.includeMatcher = includeMatcher;
+      this.excludeMatcher = excludeMatcher;
+    }
+
+    @Override
+    public boolean matches(Path path) {
+      return includeMatcher.matches(path) && !excludeMatcher.matches(path);
+    }
+
+    @Override
+    public String toString() {
+      return Glob.this.toString();
+    }
+  }
 
   /**
-   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a
-   * {@link PathMatcher} relative to the path.
+   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a {@link
+   * PathMatcher} relative to the path.
    *
    * @param include list of strings representing the globs to include/match
    * @param exclude list of strings representing the globs to exclude from the include set
    * @throws IllegalArgumentException if any glob is not valid
    */
   public static Glob createGlob(Iterable<String> include, Iterable<String> exclude) {
-    return new SimpleGlob(ImmutableList.copyOf(include),
-                          Iterables.isEmpty(exclude) ? null : createGlob(exclude));
+    return new Glob(
+        ImmutableList.copyOf(GlobAtom.ofIterable(include, GlobAtom.AtomType.JAVA_GLOB)),
+        ImmutableList.of(),
+        Iterables.isEmpty(exclude) ? null : createGlob(exclude));
   }
 
   /**
-   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a
-   * {@link PathMatcher} relative to the path.
+   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a {@link
+   * PathMatcher} relative to the path.
    *
    * @param include list of strings representing the globs to include/match
    * @throws IllegalArgumentException if any glob is not valid
    */
   public static Glob createGlob(Iterable<String> include) {
-    return new SimpleGlob(include, null);
+    return createGlob(include, ImmutableList.of());
   }
 
   /**
@@ -120,59 +209,55 @@ public abstract class Glob implements StarlarkValue, HasBinary {
    * which directories to query from the repo. For instance, if the <em>include</em> paths are:
    *
    * <ul>
-   * <li>foo/bar.jar
-   * <li>foo/baz/**
+   *   <li>foo/bar.jar
+   *   <li>foo/baz/**
    * </ul>
    *
    * This function will return a single string: {@code "foo"}.
    *
    * <p>If the include paths potentially include files in the root directory or use metacharacters
-   * to specify the top level directory, a set with only the empty string is returned. For
-   * instance, the following include globs will cause {@code [""]} (and no other string) to be
-   * returned:
+   * to specify the top level directory, a set with only the empty string is returned. For instance,
+   * the following include globs will cause {@code [""]} (and no other string) to be returned:
    *
    * <ul>
-   * <li>{@code *.java}
-   * <li>{@code {foo,bar}/baz/**}
-   * <ul>
+   *   <li>{@code *.java}
+   *   <li>{@code {foo,bar}/baz/**}
+   * </ul>
    *
    * <p>Note that in the case of {@code origin_files} or {@code destination_files}, the origin or
    * destination may give special meaning to the roots of the glob. For instance, the destination
    * may store metadata at {root}/INFO for every root. See the documentation of the destination or
    * origin you are using for more information.
    */
-  public abstract ImmutableSet<String> roots();
+  public ImmutableSet<String> roots() {
+    return computeRootsFromIncludes(getIncludes());
+  }
 
   /**
-   * If roots is empty or contains a single elemnent that is not a subdirectory. See
-   * {@link #roots()} for detail.
+   * If roots is empty or contains a single elemnent that is not a subdirectory. See {@link
+   * #roots()} for detail.
    */
   public static boolean isEmptyRoot(Iterable<String> roots) {
     return Iterables.isEmpty(roots) || Objects.equals(roots.iterator().next(), "");
   }
 
-  protected abstract Iterable<String> getIncludes();
+  protected Iterable<GlobAtom> getIncludes() {
+    return Iterables.concat(
+        include, Iterables.concat(Iterables.transform(globInclude, Glob::getIncludes)));
+  }
 
-  static ImmutableSet<String> computeRootsFromIncludes(Iterable<String> includes) {
+  static ImmutableSet<String> computeRootsFromIncludes(Iterable<GlobAtom> includes) {
     List<String> roots = new ArrayList<>();
 
-    for (String includePath : includes) {
-      ArrayDeque<String> components = new ArrayDeque<>();
-      for (String component : Splitter.on('/').split(includePath)) {
-        components.add(unescape(component));
-        if (isMeta(component)) {
-          break;
-        }
-      }
-      components.removeLast();
-      if (components.isEmpty()) {
-        return ImmutableSet.of("");
-      }
-      roots.add(Joiner.on('/').join(components));
+    for (GlobAtom atom : includes) {
+      roots.add(atom.root());
     }
 
     // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/"
     Collections.sort(roots);
+    if (roots.contains("")) {
+      return ImmutableSet.of("");
+    }
     int r = 0;
     while (r < roots.size() - 1) {
       if (roots.get(r + 1).startsWith(roots.get(r) + "/")) {
@@ -185,27 +270,98 @@ public abstract class Glob implements StarlarkValue, HasBinary {
     return ImmutableSet.copyOf(roots);
   }
 
-  private static String unescape(String pathComponent) {
-    return UNESCAPE.matcher(pathComponent).replaceAll("$1");
+  @Override
+  public String toString() {
+    return toStringWithParentheses(true);
   }
 
-  private static boolean isMeta(String pathComponent) {
-    int c = 0;
-    while (c < pathComponent.length()) {
-      switch (pathComponent.charAt(c)) {
-        case '*':
-        case '{':
-        case '[':
-        case '?':
-          return true;
-        case '\\':
-          c++;
-          break;
-        default: // fall out
-      }
-      c++;
+  private String toStringWithParentheses(boolean isRootGlob) {
+    StringBuilder builder = new StringBuilder();
+    int numberOfTerms = 0;
+    boolean inlineExclude =
+        this.globInclude.isEmpty()
+            && this.exclude != null
+            && this.exclude.globInclude.isEmpty()
+            && this.exclude.exclude == null;
+    if (!include.isEmpty() || this.globInclude.isEmpty()) {
+      builder
+          .append("glob(include = ")
+          .append(toStringList(include))
+          .append(inlineExclude ? ", exclude = " + toStringList(this.exclude.include) : "")
+          .append(")");
+      numberOfTerms += 1;
     }
-    return false;
+    for (Glob g : this.globInclude) {
+      if (numberOfTerms > 0) {
+        builder.append(" + ");
+      }
+      builder.append(g.toStringWithParentheses(false));
+      numberOfTerms += 1;
+    }
+    if (this.exclude != null && !inlineExclude) {
+      builder.append(" - ").append(this.exclude.toStringWithParentheses(false));
+      numberOfTerms += 1;
+    }
+
+    if (!isRootGlob && numberOfTerms > 1) {
+      return "(" + builder + ")";
+    }
+    return builder.toString();
   }
 
+  private String toStringList(Iterable<GlobAtom> iterable) {
+    StringBuilder sb = new StringBuilder("[");
+    boolean first = true;
+    for (GlobAtom atom : iterable) {
+      if (first) {
+        first = false;
+      } else {
+        sb.append(", ");
+      }
+      sb.append('"').append(sanitize(atom.toString())).append('"');
+    }
+    return sb.append("]").toString();
+  }
+
+  private String sanitize(String s) {
+    return s.replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\f", "\\f")
+        .replace("\b", "\\b")
+        .replace("\000", "\\000");
+  }
+
+  @Override
+  public void repr(Printer printer) {
+    printer.append(toString());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Glob)) {
+      return false;
+    }
+    Glob that = (Glob) o;
+    return Objects.equals(include, that.include)
+        && Objects.equals(globInclude, that.globInclude)
+        && Objects.equals(exclude, that.exclude);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(include, globInclude, exclude);
+  }
+
+  @VisibleForTesting
+  public int heightOfGlobTree() {
+    int includeHeight = this.globInclude.stream().mapToInt(Glob::heightOfGlobTree).max().orElse(-1);
+    int excludeHeight = this.exclude == null ? -1 : this.exclude.heightOfGlobTree();
+    return 1 + max(includeHeight, excludeHeight);
+  }
 }

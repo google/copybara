@@ -96,6 +96,117 @@ public class GlobTest {
   }
 
   @Test
+  public void iteratedUnion_doesNotCreateTallGlobTree() throws Exception {
+    String config = "glob(['foo/**'], exclude=['foo/file*'])";
+    for (int i = 0; i < 1000; i++) {
+      config += String.format(" + glob(['foo/file%d'])", i);
+    }
+    Glob glob = parseGlob(config);
+
+    assertThat(glob.roots()).containsExactly("foo");
+    assertThat(glob.heightOfGlobTree()).isLessThan(3);
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/file777"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/file1000"))).isFalse();
+  }
+
+  @Test
+  public void differenceTest() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**']) - glob(['foo/bar/**'])");
+
+    assertThat(glob.roots()).containsExactly("foo");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/bar/a"))).isFalse();
+  }
+
+  @Test
+  public void simpleDifferenceIsSameAsExclude() throws Exception {
+    Glob glob1 = parseGlob("glob(['foo/**']) - glob(['foo/bar/**'])");
+    Glob glob2 = parseGlob("glob(['foo/**'], exclude=['foo/bar/**'])");
+    assertThat(glob1).isEqualTo(glob2);
+  }
+
+  @Test
+  public void iteratedDifference_doesNotCreateTallGlobTree() throws Exception {
+    String config = "glob(['foo/**'])";
+    for (int i = 0; i < 1000; i++) {
+      config += String.format(" - glob(['foo/file%d'])", i);
+    }
+    Glob glob = parseGlob(config);
+
+    assertThat(glob.roots()).containsExactly("foo");
+    assertThat(glob.heightOfGlobTree()).isLessThan(3);
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/file777"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/file1000"))).isTrue();
+  }
+
+  @Test
+  public void unionOfDifferences() throws Exception {
+    Glob glob =
+        parseGlob(
+            "(glob(['foo/**']) - glob(['**/bar'])) + (glob(['foo2/**']) - glob(['**/bar2']))");
+    assertThat(glob.roots()).containsExactly("foo", "foo2");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/bar"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/bar2"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo2/bar"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo2/bar2"))).isFalse();
+  }
+
+  @Test
+  public void differenceOfUnions() throws Exception {
+    Glob glob =
+        parseGlob("(glob(['foo/**']) + glob(['bar/**'])) - (glob(['**/abc']) + glob(['**/def']))");
+    assertThat(glob.roots()).containsExactly("foo", "bar");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/qqq"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("foo/abc"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("foo/def"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("bar/qqq"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/abc"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("bar/def"))).isFalse();
+  }
+
+  @Test
+  public void differenceOfDifferences() throws Exception {
+    // a - (b - (c - d))
+    Glob glob =
+        parseGlob(
+            "glob(['aaa/**']) - (glob(['**/bbb/**']) - (glob(['**/ccc/**']) - glob(['**/ddd'])))");
+    assertThat(glob.roots()).containsExactly("aaa");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("aaa/xxx"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("aaa/bbb/xxx"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("aaa/bbb/ccc/xxx"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("aaa/bbb/ccc/ddd"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("xxx/bbb/ccc/xxx"))).isFalse();
+  }
+
+  @Test
+  public void errorForLeftDifferenceWithString() throws Exception {
+    skylark.evalFails("glob(['foo']) - 'abc'", "Only a glob can be subtracted from a glob");
+  }
+
+  @Test
+  public void errorForRightDifferenceWithString() throws Exception {
+    skylark.evalFails("'abc' - glob(['foo'])", "Only a glob can be subtracted from a glob");
+  }
+
+  @Test
   public void errorForMissingInclude() throws Exception {
     skylark.evalFails("glob(exclude = ['foo'])", "missing 1 required positional argument: include");
   }

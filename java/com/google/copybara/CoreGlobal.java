@@ -108,6 +108,17 @@ public class CoreGlobal implements StarlarkValue {
           "This matches all the files in `folder`, excludes all files in that folder that"
               + " ends with `.excluded` but keeps `folder/includeme.excluded`<br><br>"
               + "`+` operator for globs is equivalent to `OR` operation.")
+  @Example(
+      title = "Glob difference",
+      before =
+          "This is another way to exclude a broad subset of files, but still include some of those"
+              + " files.",
+      code =
+          "glob([\"folder/**\"]) - glob([\"folder/**.excluded\"],"
+              + " exclude=[\"folder/includeme.excluded\"])",
+      after =
+          "This matches the same file as in the previous example.<br><br>"
+              + "`-` operator for globs is equivalent to a set difference operation.")
   public Glob glob(Sequence<?> include, Sequence<?> exclude) throws EvalException {
     List<String> includeStrings = SkylarkUtil.convertStringList(include, "include");
     List<String> excludeStrings = SkylarkUtil.convertStringList(exclude, "exclude");
