@@ -21,14 +21,18 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.templatetoken.Token;
+import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.FileAlreadyExistsException;
@@ -40,6 +44,7 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -47,24 +52,30 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.syntax.Location;
 
-/**
- * Transformation that moves (renames) or copies a single file or directory.
- */
+/** Transformation that moves (renames) or copies a single file or directory. */
 public class CopyOrMove implements Transformation {
 
-  private final String before;
-  private final String after;
+  private final RegexTemplateTokens before;
+  private final RegexTemplateTokens after;
   private final Glob paths;
+  private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean overwrite;
-  @Nullable
-  private final Location location;
+  @Nullable private final Location location;
   private final WorkflowOptions workflowOptions;
   private final boolean isCopy;
 
-  private CopyOrMove(String before, String after, Glob paths, boolean overwrite,
-      @Nullable Location location, WorkflowOptions workflowOptions, boolean isCopy) {
+  private CopyOrMove(
+      RegexTemplateTokens before,
+      RegexTemplateTokens after,
+      Map<String, Pattern> regexGroups,
+      WorkflowOptions workflowOptions,
+      Glob paths,
+      boolean overwrite,
+      @Nullable Location location,
+      boolean isCopy) {
     this.before = Preconditions.checkNotNull(before);
     this.after = Preconditions.checkNotNull(after);
+    this.regexGroups = ImmutableMap.copyOf(regexGroups);
     this.paths = paths;
     this.overwrite = overwrite;
     this.location = location;
@@ -72,52 +83,89 @@ public class CopyOrMove implements Transformation {
     this.isCopy = isCopy;
   }
 
-  public static CopyOrMove createMove(
-      String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
-      Location location) throws EvalException {
+  public static CopyOrMove create(
+      String before,
+      String after,
+      Map<String, String> regexGroups,
+      WorkflowOptions workflowOptions,
+      Glob paths,
+      boolean overwrite,
+      Location location,
+      boolean isCopy)
+      throws EvalException {
+    Map<String, Pattern> parsedRegexGroups = Replace.parsePatterns(regexGroups);
+    RegexTemplateTokens beforeTokens =
+        new RegexTemplateTokens(validatePath(before), parsedRegexGroups, true, true, location);
+    beforeTokens.validateUnused();
+    RegexTemplateTokens afterTokens =
+        new RegexTemplateTokens(validatePath(after), parsedRegexGroups, true, true, location);
     return new CopyOrMove(
-        validatePath(before),
-        validatePath(after),
+        beforeTokens,
+        afterTokens,
+        parsedRegexGroups,
+        workflowOptions,
         paths,
         overwrite,
         location,
-        workflowOptions,
-        /*isCopy=*/ false);
+        isCopy);
+  }
+
+  public static CopyOrMove createMove(
+      String before,
+      String after,
+      Map<String, String> regexGroups,
+      WorkflowOptions workflowOptions,
+      Glob paths,
+      boolean overwrite,
+      Location location)
+      throws EvalException {
+    return create(
+        before, after, regexGroups, workflowOptions, paths, overwrite, location, /*isCopy=*/ false);
   }
 
   public static CopyOrMove createCopy(
-      String before, String after, WorkflowOptions workflowOptions, Glob paths, boolean overwrite,
-      Location location) throws EvalException {
-    return new CopyOrMove(
-        validatePath(before),
-        validatePath(after),
-        paths,
-        overwrite,
-        location,
-        workflowOptions,
-        /*isCopy=*/ true);
+      String before,
+      String after,
+      Map<String, String> regexGroups,
+      WorkflowOptions workflowOptions,
+      Glob paths,
+      boolean overwrite,
+      Location location)
+      throws EvalException {
+    return create(
+        before, after, regexGroups, workflowOptions, paths, overwrite, location, /*isCopy=*/ true);
   }
 
   @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("before", before)
-          .add("after", after)
-          .add("paths", paths)
-          .add("overwrite", overwrite)
-          .toString();
-    }
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("before", before)
+        .add("after", after)
+        .add("regexGroups", regexGroups)
+        .add("paths", paths)
+        .add("overwrite", overwrite)
+        .toString();
+  }
 
   @Override
   public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
-      work.getConsole().progress("Moving " + this.before);
-    Path before = work.getCheckoutDir().resolve(this.before).normalize();
+    work.getConsole().progress("Moving " + this.before);
+    if (this.before.isLiteral()) {
+      return transformNoRegex(work);
+    } else {
+      return transformWithRegex(work);
+    }
+  }
+
+  private TransformationStatus transformNoRegex(TransformWork work)
+      throws IOException, ValidationException {
+    Path before = work.getCheckoutDir().resolve(this.before.toString()).normalize();
       if (!Files.exists(before)) {
         return TransformationStatus.noop(
           String.format("Error moving '%s'. It doesn't exist in the workdir", this.before));
       }
-    Path after = work.getCheckoutDir().resolve(this.after).normalize();
+    Path after = work.getCheckoutDir().resolve(this.after.toString()).normalize();
       if (Files.isDirectory(after, LinkOption.NOFOLLOW_LINKS)
           && after.startsWith(before)) {
       // When moving from a parent dir to a sub-directory, make sure after doesn't already have
@@ -133,10 +181,13 @@ public class CopyOrMove implements Transformation {
         checkCondition(paths.equals(Glob.ALL_FILES) || beforeIsDir,
             "Cannot use user defined 'paths' filter when the 'before' is not a directory: "
                 + paths);
-        checkCondition(!this.after.isEmpty() || beforeIsDir,
-            "Can only move a path to the root when the path is a folder. But '%s' is a "
-                + "file. Use instead core.move('%s', '%s')", this.before, this.before,
-            before.getFileName().toString());
+      checkCondition(
+          !this.after.isEmpty() || beforeIsDir,
+          "Can only move a path to the root when the path is a folder. But '%s' is a "
+              + "file. Use instead core.move('%s', '%s')",
+          this.before,
+          this.before,
+          before.getFileName().toString());
 
         // Simple move of all the contents of a directory
         if (beforeIsDir && !isCopy && paths.equals(Glob.ALL_FILES)) {
@@ -158,6 +209,56 @@ public class CopyOrMove implements Transformation {
             String.format("Cannot move file to '%s' because it already exists", e.getFile()), e);
       }
     return TransformationStatus.success();
+  }
+
+  private TransformationStatus transformWithRegex(TransformWork work)
+      throws IOException, ValidationException {
+
+    // Optimize by only visiting files within rootPath
+    Path rootPath = work.getCheckoutDir().resolve(getRoot(before)).normalize();
+    if (!Files.isDirectory(rootPath)) {
+      return TransformationStatus.noop(
+          "Transformation '" + this + "' was a no-op because it didn't match any file");
+    }
+    try {
+      boolean atLeastOneFileMatched =
+          CopyMoveRegexVisitor.run(
+              rootPath,
+              before,
+              after,
+              paths.relativeTo(rootPath),
+              work.getCheckoutDir(),
+              overwrite,
+              isCopy);
+      if (!atLeastOneFileMatched) {
+        return TransformationStatus.noop(
+            "Transformation '" + this + "' was a no-op because it didn't match any file");
+      }
+    } catch (FileAlreadyExistsException e) {
+      throw new ValidationException(
+          String.format("Cannot move file to '%s' because it already exists", e.getFile()), e);
+    }
+    return TransformationStatus.success();
+  }
+
+  private static String getRoot(RegexTemplateTokens templateTokens) {
+    List<Token> tokens = templateTokens.getTokens();
+    if (tokens.isEmpty()) {
+      return "";
+    } else if (tokens.size() == 1) {
+      Token token = tokens.get(0);
+      return token.getType() == TokenType.LITERAL ? token.getValue() : "";
+    }
+    String prefix =
+        tokens.stream()
+            .findFirst()
+            .map((t) -> t.getType() == TokenType.LITERAL ? t.getValue() : "")
+            .orElse("");
+    if (prefix.contains("/")) {
+      return prefix.substring(0, prefix.lastIndexOf("/"));
+    } else {
+      return "";
+    }
   }
 
   /** Traverse a directory files/folders recursively and delete any empty folder */
@@ -222,6 +323,13 @@ public class CopyOrMove implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
+    if (!this.before.isLiteral()) {
+      throw new NonReversibleValidationException(
+          "core."
+              + (isCopy ? "copy" : "move")
+              + "() with regex templating is not automatically reversible. Use core.transform to"
+              + " define an explicit reverse");
+    }
     if (overwrite) {
       throw new NonReversibleValidationException(
           "core."
@@ -230,22 +338,30 @@ public class CopyOrMove implements Transformation {
               + " automatically reversible. Use core.transform to define an explicit reverse");
     }
     if (isCopy) {
-      Path afterPath = Paths.get(after);
+      Path afterPath = Paths.get(after.toString());
       if (paths != Glob.ALL_FILES) {
         throw new NonReversibleValidationException(
             "core.copy not automatically" + " reversible when using 'paths'");
-      } else if ("".equals(after) || Paths.get(before).normalize().startsWith(afterPath)) {
+      } else if (after.isEmpty()
+          || Paths.get(before.toString()).normalize().startsWith(afterPath)) {
         throw new NonReversibleValidationException(
             "core.copy not automatically" + " reversible when copying to a parent directory");
       }
       return new ExplicitReversal(
           new Remove(
               // After might be a directory or a file. Delete both
-              Glob.createGlob(ImmutableList.of(after, afterPath + "/**")), location),
+              Glob.createGlob(ImmutableList.of(after.toString(), afterPath + "/**")), location),
           this);
     }
-    return new CopyOrMove(after, before, paths, /*overwrite=*/false, location, workflowOptions,
-        /*isCopy=*/false);
+    return new CopyOrMove(
+        after,
+        before,
+        regexGroups,
+        workflowOptions,
+        paths,
+        /*overwrite=*/ false,
+        location,
+        /*isCopy=*/ false);
   }
 
   private void createParentDirs(Path after) throws IOException, ValidationException {

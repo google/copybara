@@ -686,4 +686,137 @@ public class CopyOrMoveTest {
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*missing 1 required positional argument: after.*");
   }
+
+  @Test
+  public void copyWithRegex() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = '${x}.before', after = 'folder/${x}.after', regex_groups = {"
+                + " 'x': '...'})");
+    touch("one.before");
+    touch("foo.before");
+    touch("not_matched.before");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("one.before")
+        .containsFiles("foo.before")
+        .containsFiles("not_matched.before")
+        .containsFiles("folder/one.after")
+        .containsFiles("folder/foo.after")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void copyWithRegex_toSubdirectory() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = '${x}', after = 'folder/${x}', regex_groups = {"
+                + " 'x': '.*'})");
+    touch("file1");
+    touch("folder/file2");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("file1")
+        .containsFiles("folder/file1")
+        .containsFiles("folder/file2")
+        .containsFiles("folder/folder/file2")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void copyWithRegex_fileNameCollision() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = '${x}/${y}/file', after = '${x}/file', regex_groups = {"
+                + " 'x': '.*', 'y': '.*'})");
+    touch("folder/foo/file");
+    touch("folder/bar/file");
+    ValidationException e = assertThrows(ValidationException.class, () -> transform(copier));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Cannot move file to '" + checkoutDir + "/folder/file' because it already exists");
+  }
+
+  @Test
+  public void copyWithRegex_noop() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = '${x}.java', after = '${x}.java.copy', regex_groups = {"
+                + " 'x': '.*'})");
+    touch("folder/foo/file.py");
+
+    TransformationStatus status = transform(copier);
+    assertThatPath(checkoutDir).containsFiles("folder/foo/file.py").containsNoMoreFiles();
+    assertThat(status.isNoop()).isTrue();
+    assertThat(status.getMessage()).contains("was a no-op because it didn't match any file");
+  }
+
+  @Test
+  public void copyWithRegex_regexIsPortionOfPathComponent() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = 'folder_${x}/${y}', after = 'folder/${x}/${y}', regex_groups ="
+                + " { 'x': 'foo|bar', 'y': '.*'})");
+    touch("folder_foo/file");
+    touch("folder_other/file");
+
+    transform(copier);
+    assertThatPath(checkoutDir)
+        .containsFiles("folder/foo/file")
+        .containsFiles("folder_foo/file")
+        .containsFiles("folder_other/file")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void copyWithRegex_regexIncludesPathSeparator() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = 'folder/${x}', after = 'folder_other/${x}', regex_groups ="
+                + " { 'x': 'foo/.*/bar'})");
+    touch("folder/foo/file/bar");
+    touch("folder/xxx/yyy/zzz");
+
+    transform(copier);
+    assertThatPath(checkoutDir)
+        .containsFiles("folder/foo/file/bar")
+        .containsFiles("folder/xxx/yyy/zzz")
+        .containsFiles("folder_other/foo/file/bar")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void copyWithRegex_notReversible() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.copy(before = 'folder/${x}', after = 'folder_other/${x}', regex_groups ="
+                + " { 'x': '.*'})");
+    assertThrows(NonReversibleValidationException.class, copier::reverse);
+  }
+
+  @Test
+  public void moveWithRegex_deletesEmptiedFolders() throws Exception {
+    CopyOrMove copier =
+        skylark.eval(
+            "m",
+            "m = core.move(before = 'folder/${x}', after = 'other_folder/${x}', regex_groups = {"
+                + " 'x': '.*'})");
+    touch("folder/file");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("other_folder/file")
+        .containsNoDirs("folder")
+        .containsNoMoreFiles();
+  }
 }

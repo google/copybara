@@ -30,6 +30,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
+import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
@@ -57,14 +58,23 @@ public final class RegexTemplateTokens {
   private final Location location;
 
   public RegexTemplateTokens(
-      String template, Map<String, Pattern> regexGroups, boolean repeatedGroups,
+      String template, Map<String, Pattern> regexGroups, boolean repeatedGroups, Location location)
+      throws EvalException {
+    this(template, regexGroups, repeatedGroups, false, location);
+  }
+
+  public RegexTemplateTokens(
+      String template,
+      Map<String, Pattern> regexGroups,
+      boolean repeatedGroups,
+      boolean matchExactly,
       Location location)
       throws EvalException {
     this.template = Preconditions.checkNotNull(template);
 
     this.tokens = ImmutableList.copyOf(new Parser().parse(template));
     this.location = Preconditions.checkNotNull(location);
-    this.before = buildBefore(regexGroups, repeatedGroups);
+    this.before = buildBefore(regexGroups, repeatedGroups, matchExactly);
 
     this.unusedGroups = Sets.difference(regexGroups.keySet(), groupIndexes.keySet());
   }
@@ -75,6 +85,20 @@ public final class RegexTemplateTokens {
    */
   public Pattern getBefore() {
     return before;
+  }
+
+  public ImmutableList<Token> getTokens() {
+    return tokens;
+  }
+
+  public boolean isEmpty() {
+    return template.isEmpty();
+  }
+
+  /** Is this template regex-free */
+  public boolean isLiteral() {
+    return this.isEmpty()
+        || (this.tokens.size() == 1 && this.tokens.get(0).getType() == TokenType.LITERAL);
   }
 
   public ImmutableListMultimap<String, Integer> getGroupIndexes() {
@@ -263,13 +287,18 @@ public final class RegexTemplateTokens {
    * <p>It also fills groupIndexes with all the interpolation locations.
    *
    * @param regexesByInterpolationName map from group name to the regex to interpolate when the
-   * group is mentioned
+   *     group is mentioned
    * @param repeatedGroups true if a regex group is allowed to be used multiple times
+   * @param matchExactly true if the regex must match the entire input string
    */
-  private Pattern buildBefore(Map<String, Pattern> regexesByInterpolationName,
-      boolean repeatedGroups) throws EvalException {
+  private Pattern buildBefore(
+      Map<String, Pattern> regexesByInterpolationName, boolean repeatedGroups, boolean matchExactly)
+      throws EvalException {
     int groupCount = 1;
     StringBuilder fullPattern = new StringBuilder();
+    if (matchExactly) {
+      fullPattern.append("^");
+    }
     for (Token token : tokens) {
       switch (token.getType()) {
         case INTERPOLATION:
@@ -287,6 +316,9 @@ public final class RegexTemplateTokens {
           fullPattern.append(Pattern.quote(token.getValue()));
           break;
       }
+    }
+    if (matchExactly) {
+      fullPattern.append("$");
     }
     return Pattern.compile(fullPattern.toString(), Pattern.MULTILINE);
   }

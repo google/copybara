@@ -609,6 +609,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " 'before' is a directory, then all files in 'before' will be moved to the"
                     + " repo root, maintaining the directory tree inside 'before'."),
         @Param(
+            name = "regex_groups",
+            named = true,
+            doc =
+                "A set of named regexes that can be used to match part of the file name."
+                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}"),
+        @Param(
             name = "paths",
             named = true,
             allowedTypes = {
@@ -647,8 +655,20 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       before = "Move the contents of a folder to the checkout root directory:",
       code = "core.move(\"foo\", \"\")",
       after = "In this example, `foo/bar` would be moved to `bar`.")
+  @Example(
+      title = "Move using Regex",
+      before = "Change a file extension:",
+      code =
+          "core.move(before = 'foo/${x}.txt', after = 'foo/${x}.md', regex_groups = {"
+              + " 'x': '.*'})",
+      after = "In this example, `foo/bar/README.txt` will be moved to `foo/bar/README.md`.")
   public Transformation move(
-      String before, String after, Object paths, Boolean overwrite, StarlarkThread thread)
+      String before,
+      String after,
+      Dict<?, ?> regexes,
+      Object paths,
+      Boolean overwrite,
+      StarlarkThread thread)
       throws EvalException {
 
     check(
@@ -659,6 +679,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return CopyOrMove.createMove(
         before,
         after,
+        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
         workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
@@ -684,6 +705,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "The name of the file or directory destination. If this is the empty string and"
                     + " 'before' is a directory, then all files in 'before' will be copied to the"
                     + " repo root, maintaining the directory tree inside 'before'."),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            doc =
+                "A set of named regexes that can be used to match part of the file name."
+                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}"),
         @Param(
             name = "paths",
             named = true,
@@ -714,6 +743,13 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       code = "core.copy(\"foo/bar_internal\", \"bar\")",
       after = "In this example, `foo/bar_internal/one` will be copied to `bar/one`.")
   @Example(
+      title = "Copy using Regex",
+      before = "Change a file extension:",
+      code =
+          "core.copy(before = 'foo/${x}.txt', after = 'foo/${x}.md', regex_groups = {"
+              + " 'x': '.*'})",
+      after = "In this example, `foo/bar/README.txt` will be copied to `foo/bar/README.md`.")
+  @Example(
       title = "Copy with reversal",
       before = "Copy all static files to a 'static' folder and use remove for reverting the change",
       code =
@@ -724,7 +760,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + " 'foo/static/**.html']))]\n"
               + ")")
   public Transformation copy(
-      String before, String after, Object paths, Boolean overwrite, StarlarkThread thread)
+      String before,
+      String after,
+      Dict<?, ?> regexes,
+      Object paths,
+      Boolean overwrite,
+      StarlarkThread thread)
       throws EvalException {
     check(
         !Objects.equals(before, after),
@@ -733,6 +774,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return CopyOrMove.createCopy(
         before,
         after,
+        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
         workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
