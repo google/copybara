@@ -87,7 +87,7 @@ public class CheckRun implements StarlarkValue {
   )
   @Nullable
   public String getConclusion() {
-    return conclusion.toString().toLowerCase();
+    return conclusion == null ? null : conclusion.toString().toLowerCase();
   }
 
   @StarlarkMethod(
