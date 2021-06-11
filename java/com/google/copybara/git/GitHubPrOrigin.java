@@ -191,7 +191,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     String configProjectName = ghHost.getProjectNameFromUrl(url);
 
     // Only when requiredStatusContextNames is enabled, the reference can potentially be a sha1.
-    if (!requiredStatusContextNames.isEmpty() || !requiredCheckRuns.isEmpty()
+    if ((!requiredStatusContextNames.isEmpty() || !requiredCheckRuns.isEmpty())
         && GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
       PullRequest pr = getPrToMigrate(configProjectName, reference);
       return getRevisionForPR(configProjectName, pr);

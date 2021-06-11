@@ -85,6 +85,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class GitHubPrOriginTest {
 
+  private static final int PR_NUMBER = 125;
   private Path repoGitDir;
   private OptionsBuilder options;
   private TestingConsole console;
@@ -314,26 +315,26 @@ public class GitHubPrOriginTest {
   public void gitResolveRequiredStatusContextNamesFail_forceMigrate() throws Exception {
     mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
 
-    labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']", true);
+    labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']", sha, true);
   }
 
   @Test
   public void gitResolveRequiredCheckRunsFail_forceMigrate() throws Exception {
     mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "failure"));
 
-    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']", true);
+    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']", sha, true);
   }
 
-  private void labelTestWithForceMigrate(String labelConfig, boolean forceImport)
+  private void labelTestWithForceMigrate(String labelConfig, String ref, boolean forceImport)
       throws Exception {
-    options.githubPrOrigin.forceImport = true;
-    mockPullRequestAndIssue("open", 125, "bar: yes");
+    options.githubPrOrigin.forceImport = forceImport;
+    mockPullRequestAndIssue("open", PR_NUMBER, "bar: yes");
 
     checkResolve(
         githubPrOrigin(
             "url = 'https://github.com/google/example'", labelConfig),
-        sha,
-        125);
+        ref,
+        PR_NUMBER);
 
   }
 
@@ -341,16 +342,22 @@ public class GitHubPrOriginTest {
   public void gitResolveRequiredStatusContextNamesPass() throws Exception {
     mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
 
+    labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']", sha, false);
+  }
+
+  @Test
+  public void gitResolveRequiredStatusContextNamesPass_prNumber() throws Exception {
+    mockGetCombinedStatus(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
+
     labelTestWithForceMigrate("required_status_context_names = ['foo/one', 'foo/two']",
-        false);
+        "" + PR_NUMBER, false);
   }
 
   @Test
   public void gitResolveRequiredCheckRunsPass() throws Exception {
     mockGetCheckRun(sha, ImmutableMap.of("foo/one", "success", "foo/two", "success"));
 
-    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']",
-        false);
+    labelTestWithForceMigrate("required_check_runs = ['foo/one', 'foo/two']", sha, false);
   }
 
   @Test
