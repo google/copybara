@@ -172,6 +172,24 @@ public class Glob implements StarlarkValue, HasBinary {
     public String toString() {
       return Glob.this.toString();
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof GlobPathMatcher)) {
+        return false;
+      }
+      GlobPathMatcher that = (GlobPathMatcher) o;
+      return Objects.equals(this.includeMatcher, that.includeMatcher)
+          && Objects.equals(this.excludeMatcher, that.excludeMatcher);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(includeMatcher, excludeMatcher);
+    }
   }
 
   /**

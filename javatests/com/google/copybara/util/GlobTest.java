@@ -340,6 +340,18 @@ public class GlobTest {
     assertThat(matcher.matches(workdir.resolve("foo/bar"))).isTrue();
   }
 
+  @Test
+  public void pathMatcherEquality() throws Exception {
+    assertThat(createPathMatcher("glob(['foo/**'])"))
+        .isEqualTo(createPathMatcher("glob(['foo/**'])"));
+
+    assertThat(createPathMatcher("glob(['foo/**']) + glob(['bar/**'])"))
+        .isEqualTo(createPathMatcher("glob(['foo/**', 'bar/**'])"));
+
+    assertThat(createPathMatcher("glob(['foo/**']) - glob(['bar/**'])"))
+        .isEqualTo(createPathMatcher("glob(['foo/**'], exclude=['bar/**'])"));
+  }
+
   private PathMatcher createPathMatcher(String expression)
       throws ValidationException {
     return parseGlob(expression).relativeTo(workdir);
