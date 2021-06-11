@@ -610,7 +610,7 @@ params | `dict`<br><p>The parameters to the function. Will be available under ct
 
 Copy files between directories and renames files
 
-`transformation core.copy(before, after, regex_groups={}, paths=glob(["**"]), overwrite=False)`
+`transformation core.copy(before, after, paths=glob(["**"]), overwrite=False, regex_groups={})`
 
 
 #### Parameters:
@@ -619,9 +619,9 @@ Parameter | Description
 --------- | -----------
 before | `string`<br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
 after | `string`<br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
-regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 paths | `glob` or `NoneType`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
 overwrite | `bool`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
 
 #### Examples:
@@ -835,7 +835,7 @@ args | `sequence`<br><p>The arguments to format</p>
 
 Moves files between directories and renames files
 
-`transformation core.move(before, after, regex_groups={}, paths=glob(["**"]), overwrite=False)`
+`transformation core.move(before, after, paths=glob(["**"]), overwrite=False, regex_groups={})`
 
 
 #### Parameters:
@@ -844,9 +844,9 @@ Parameter | Description
 --------- | -----------
 before | `string`<br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
 after | `string`<br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
-regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 paths | `glob` or `NoneType`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
 overwrite | `bool`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
 
 #### Examples:

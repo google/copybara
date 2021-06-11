@@ -609,14 +609,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " 'before' is a directory, then all files in 'before' will be moved to the"
                     + " repo root, maintaining the directory tree inside 'before'."),
         @Param(
-            name = "regex_groups",
-            named = true,
-            doc =
-                "A set of named regexes that can be used to match part of the file name."
-                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
-                    + " For example {\"x\": \"[A-Za-z]+\"}",
-            defaultValue = "{}"),
-        @Param(
             name = "paths",
             named = true,
             allowedTypes = {
@@ -636,7 +628,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "Overwrite destination files if they already exist. Note that this makes the"
                     + " transformation non-reversible, since there is no way to know if the file"
                     + " was overwritten or not in the reverse workflow.",
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            positional = false,
+            doc =
+                "A set of named regexes that can be used to match part of the file name."
+                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}")
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -665,9 +666,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   public Transformation move(
       String before,
       String after,
-      Dict<?, ?> regexes,
       Object paths,
       Boolean overwrite,
+      Dict<?, ?> regexes,
       StarlarkThread thread)
       throws EvalException {
 
@@ -706,14 +707,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " 'before' is a directory, then all files in 'before' will be copied to the"
                     + " repo root, maintaining the directory tree inside 'before'."),
         @Param(
-            name = "regex_groups",
-            named = true,
-            doc =
-                "A set of named regexes that can be used to match part of the file name."
-                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
-                    + " For example {\"x\": \"[A-Za-z]+\"}",
-            defaultValue = "{}"),
-        @Param(
             name = "paths",
             named = true,
             allowedTypes = {
@@ -733,7 +726,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "Overwrite destination files if they already exist. Note that this makes the"
                     + " transformation non-reversible, since there is no way to know if the file"
                     + " was overwritten or not in the reverse workflow.",
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            positional = false,
+            doc =
+                "A set of named regexes that can be used to match part of the file name."
+                    + " Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax."
+                    + " For example {\"x\": \"[A-Za-z]+\"}",
+            defaultValue = "{}")
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -762,9 +764,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   public Transformation copy(
       String before,
       String after,
-      Dict<?, ?> regexes,
       Object paths,
       Boolean overwrite,
+      Dict<?, ?> regexes,
       StarlarkThread thread)
       throws EvalException {
     check(
