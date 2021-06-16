@@ -249,13 +249,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     // Only migrate a pr with not-closed state and head being equal to sha
     ImmutableList<PullRequest> prs =
         pullRequests.stream()
-            .filter(e -> !e.getState().equals("closed") && e.getHead().getSha().equals(sha))
+            .filter(e -> requiredState.accepts(e) && e.getHead().getSha().equals(sha))
             .collect(toImmutableList());
     if (prs.isEmpty()) {
-      // Should not fail here because the pr of some SHA1 has been closed.
+      String stateClause = requiredState == StateFilter.ALL ? "" : (requiredState + " state and ");
       throw new EmptyChangeException(
-          String.format("Could not find a pr with not-closed state and head being equal to sha %s",
-              sha));
+          String.format("Could not find a pr with %shead being equal to sha %s", stateClause, sha));
     }
     // Usually, it will return one pr. But there might be an extreme case with multiple prs
     // available. We temporarily handle one pr now.
@@ -308,6 +307,11 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
 
+    if (!forceImport() && !requiredState.accepts(prData)) {
+      throw new EmptyChangeException(
+          String.format("Pull Request %d is %s", prNumber, prData.getState()));
+    }
+
     // check if status context names are ready if applicable
     checkRequiredStatusContextNames(api, project, prData);
 
@@ -352,14 +356,6 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
       labels.putAll(GITHUB_PR_REVIEWER_APPROVER, approvers);
       labels.putAll(GITHUB_PR_REVIEWER_OTHER, others);
-    }
-
-    if (!forceImport() && requiredState == StateFilter.OPEN && !prData.isOpen()) {
-      throw new EmptyChangeException(String.format("Pull Request %d is not open", prNumber));
-    }
-
-    if (!forceImport() && requiredState == StateFilter.CLOSED && prData.isOpen()) {
-      throw new EmptyChangeException(String.format("Pull Request %d is open", prNumber));
     }
 
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
@@ -662,9 +658,26 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
    * Only migrate PR in one of the following states:
    */
   enum StateFilter {
-    OPEN,
-    CLOSED,
-    ALL
+    OPEN {
+      @Override
+      boolean accepts(PullRequest pr) {
+        return "open".equals(pr.getState());
+      }
+    },
+    CLOSED {
+      @Override
+      boolean accepts(PullRequest pr) {
+        return "closed".equals(pr.getState());
+      }
+    },
+    ALL {
+      @Override
+      boolean accepts(PullRequest pr) {
+        return true;
+      }
+    };
+
+    abstract boolean accepts(PullRequest pr);
   }
 
   @VisibleForTesting

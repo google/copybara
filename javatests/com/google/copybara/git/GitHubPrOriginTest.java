@@ -287,7 +287,7 @@ public class GitHubPrOriginTest {
     assertThat(thrown)
         .hasMessageThat()
         .contains(
-            "Could not find a pr with not-closed state "
+            "Could not find a pr with OPEN state "
                 + "and head being equal to sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
   }
 
@@ -448,7 +448,15 @@ public class GitHubPrOriginTest {
             () ->
                 checkResolve(
                     githubPrOrigin("url = 'https://github.com/google/example'"), "125", 125));
-    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is not open");
+    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is closed");
+  }
+
+  @Test
+  public void testAlreadyClosed_requestClosedPRs() throws Exception {
+    mockPullRequestAndIssue("closed", 125, "foo: yes");
+
+    checkResolve(
+        githubPrOrigin("url = 'https://github.com/google/example', state = 'CLOSED'"), "125", 125);
   }
 
   @Test
@@ -462,7 +470,7 @@ public class GitHubPrOriginTest {
                     githubPrOrigin("url = 'https://github.com/google/example', state = 'OPEN'"),
                     "125",
                     125));
-    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is not open");
+    assertThat(thrown).hasMessageThat().contains("Pull Request 125 is closed");
   }
 
   @Test
