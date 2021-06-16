@@ -190,10 +190,9 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     console.progress("GitHub PR Origin: Resolving reference " + reference);
     String configProjectName = ghHost.getProjectNameFromUrl(url);
 
-    // Only when requiredStatusContextNames is enabled, the reference can potentially be a sha1.
-    if ((!requiredStatusContextNames.isEmpty() || !requiredCheckRuns.isEmpty())
-        && GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
-      PullRequest pr = getPrToMigrate(configProjectName, reference);
+    // GitHub's commit 'status' webhook provides only the commit SHA
+    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
+      PullRequest pr = getPrFromSha(configProjectName, reference);
       return getRevisionForPR(configProjectName, pr);
     }
 
@@ -204,34 +203,40 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           githubPrUrl.get().getProject().equals(configProjectName),
           "Project name should be '%s' but it is '%s' instead", configProjectName,
               githubPrUrl.get().getProject());
-      return getRevisionForPR(configProjectName,
-          getPr(configProjectName, githubPrUrl.get().getPrNumber()));
+      return getRevisionForPR(
+          configProjectName, getPrFromNumber(configProjectName, githubPrUrl.get().getPrNumber()));
     }
     // A Pull request number
     if (CharMatcher.digit().matchesAllOf(reference)) {
       return getRevisionForPR(
-          ghHost.getProjectNameFromUrl(url), getPr(configProjectName, Integer.parseInt(reference)));
+          ghHost.getProjectNameFromUrl(url),
+          getPrFromNumber(configProjectName, Integer.parseInt(reference)));
     }
 
     // refs/pull/12345/head
     Optional<Integer> prNumber = GitHubUtil.maybeParseGithubPrFromHeadRef(reference);
     if (prNumber.isPresent()) {
-      return getRevisionForPR(configProjectName, getPr(configProjectName, prNumber.get()));
+      return getRevisionForPR(
+          configProjectName, getPrFromNumber(configProjectName, prNumber.get()));
     }
+
+    throw new CannotResolveRevisionException(
+        String.format(
+            "'%s' is not a valid reference for a GitHub Pull Request. Valid formats:"
+                + "'https://github.com/project/pull/1234', 'refs/pull/1234/head' or '1234'",
+            reference));
+  }
+
+  @Override
+  public GitRevision resolveLastRev(String reference) throws RepoException, ValidationException {
     String sha1Part = Splitter.on(" ").split(reference).iterator().next();
     Matcher matcher = GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha1Part);
-    // The only valid use case for this is to resolve previous ref.  Because we fetch the head of
-    // the base branch when resolving the PR, it should exist at this point. If it doesn't then it
-    // is a non-valid reference.
     // Note that this might not work if the PR is for a different branch than the imported to
     // the destination. But in this case we cannot do that much apart from --force.
     if (matcher.matches()) {
       return new GitRevision(getRepository(), getRepository().parseRef(sha1Part));
     }
-    throw new CannotResolveRevisionException(
-        String.format("'%s' is not a valid reference for a GitHub Pull Request. Valid formats:"
-                + "'https://github.com/project/pull/1234', 'refs/pull/1234/head' or '1234'",
-            reference));
+    throw new CannotResolveRevisionException(String.format("'%s' is not a valid SHA.", reference));
   }
 
   @Override
@@ -242,7 +247,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         checkNotNull(revisionTo, "revisionTo should not be null").getSha1());
   }
 
-  private PullRequest getPrToMigrate(String project, String sha)
+  /** Given a commit SHA, use the GitHub API to (try to) look up info for a corresponding PR. */
+  private PullRequest getPrFromSha(String project, String sha)
       throws RepoException, ValidationException {
     ImmutableList<PullRequest> pullRequests =
         gitHubOptions.newGitHubApi(project).listPullRequestsAssociatedWithACommit(project, sha);
@@ -261,7 +267,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     return prs.get(0);
   }
 
-  private PullRequest getPr(String project, long prNumber)
+  /** Given a PR number, use the GitHub API to look up the PR info. */
+  private PullRequest getPrFromNumber(String project, long prNumber)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
       return gitHubOptions.newGitHubApi(project).getPullRequest(project, prNumber);

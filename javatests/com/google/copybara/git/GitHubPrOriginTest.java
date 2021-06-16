@@ -213,8 +213,7 @@ public class GitHubPrOriginTest {
 
     // Test that we can resolve SHA-1 as long as they were fetched by the PR + base branch fetch.
     String sha1 = gitUtil.mockRemoteRepo("github.com/google/example").parseRef("HEAD");
-    GitRevision rev = origin
-        .resolve(sha1 + " not important review data");
+    GitRevision rev = origin.resolveLastRev(sha1 + " not important review data");
 
     assertThat(rev.getSha1()).isEqualTo(sha1);
   }
@@ -549,12 +548,12 @@ public class GitHubPrOriginTest {
     GitRevision prHead = origin.resolve("123");
     assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
     ImmutableList<Change<GitRevision>> changes =
-        reader.changes(origin.resolve(base), prHead).getChanges();
+        reader.changes(origin.resolveLastRev(base), prHead).getChanges();
 
     assertThat(Lists.transform(changes, Change::getMessage))
         .isEqualTo(Lists.newArrayList("one\n", "two\n"));
     // Non-found baseline. We return all the changes between baseline and PR head.
-    changes = reader.changes(origin.resolve(remote.parseRef("HEAD")), prHead).getChanges();
+    changes = reader.changes(origin.resolveLastRev(remote.parseRef("HEAD")), prHead).getChanges();
 
     // Even if the PR is outdated it should return only the changes in the PR by finding the
     // common ancestor.
