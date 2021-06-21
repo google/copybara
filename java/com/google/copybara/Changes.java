@@ -29,7 +29,7 @@ import net.starlark.java.eval.StarlarkValue;
     doc =
         "Data about the set of changes that are being migrated. "
             + "Each change includes information like: original author, change message, "
-            + "labels, etc. You receive this as a field in TransformWork object for used defined "
+            + "labels, etc. You receive this as a field in TransformWork object for user defined "
             + "transformations")
 public final class Changes implements StarlarkValue {
 
