@@ -303,8 +303,6 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
     if (actuallyUseMerge) {
       if (!Boolean.FALSE.equals(prData.isMergeable())) {
-        // TODO(b/190387768): If mergeable == null and the merge ref turns out not to exist,
-        // Copybara (run with --force) is not currently able to recover to using the HEAD ref
         refSpecBuilder.add(String.format("%s:%s", asMergeRef(prNumber), LOCAL_PR_MERGE_REF));
       } else if (forceImport()) {
         console.warnFmt(
@@ -331,15 +329,38 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
               refspec,
               partialFetch);
     } catch (CannotResolveRevisionException e) {
-      if (actuallyUseMerge) {
-        String msg = String.format("Cannot find a merge reference for Pull Request %d.", prNumber);
-        if (Boolean.TRUE.equals(prData.isMergeable())) {
-          msg += " GitHub reported that this merge reference should exist.";
+
+      if (actuallyUseMerge && prData.isMergeable() == null && forceImport()) {
+        // We can perhaps recover by fetching without the merge ref
+        actuallyUseMerge = false;
+        refspec = refspec.subList(0, refspec.size() - 1);
+        try (ProfilerTask ignore = generalOptions.profiler().start("fetch")) {
+          getRepository()
+              .fetch(
+                  ghHost.projectAsUrl(project),
+                  /*prune=*/ false,
+                  /*force=*/ true,
+                  refspec,
+                  partialFetch);
+          e = null;
+        } catch (CannotResolveRevisionException e2) {
+          // Report the error from the second fetch instead of the original fetch
+          e = e2;
         }
-        throw new CannotResolveRevisionException(msg, e);
-      } else {
-        throw new CannotResolveRevisionException(
-            String.format("Cannot find Pull Request %d.", prNumber), e);
+      }
+
+      if (e != null) {
+        if (actuallyUseMerge) {
+          String msg =
+              String.format("Cannot find a merge reference for Pull Request %d.", prNumber);
+          if (Boolean.TRUE.equals(prData.isMergeable())) {
+            msg += " GitHub reported that this merge reference should exist.";
+          }
+          throw new CannotResolveRevisionException(msg, e);
+        } else {
+          throw new CannotResolveRevisionException(
+              String.format("Cannot find Pull Request %d.", prNumber), e);
+        }
       }
     }
 

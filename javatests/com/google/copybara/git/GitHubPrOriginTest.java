@@ -1248,6 +1248,61 @@ public class GitHubPrOriginTest {
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("true");
   }
 
+  @Test
+  public void testCheckout_nullMergeable_mergeCommitDoesntExist() throws Exception {
+    GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
+    String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
+    remote.simpleCommand("branch", "feature");
+    String featureRef =
+        addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
+    remote.forceCheckout(baseRef);
+    String mainRef = addFiles(remote, "commit to main branch", ImmutableMap.of("test.txt", "b"));
+    remote.forceCheckout(mainRef);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), featureRef);
+
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrimaryBranch("main")
+        .setPrNumber(123)
+        .setMergeable(null)
+        .mock();
+    GitHubPrOrigin origin =
+        githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
+
+    CannotResolveRevisionException thrown =
+        assertThrows(CannotResolveRevisionException.class, () -> origin.resolve("123"));
+    assertThat(thrown)
+        .hasMessageThat()
+        .contains("Cannot find a merge reference for Pull Request 123");
+  }
+
+  @Test
+  public void testCheckout_nullMergeable_mergeCommitDoesntExistAndForce() throws Exception {
+    GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
+    String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
+    remote.simpleCommand("branch", "feature");
+    String featureRef =
+        addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
+    remote.forceCheckout(baseRef);
+    String mainRef = addFiles(remote, "commit to main branch", ImmutableMap.of("test.txt", "b"));
+    remote.forceCheckout(mainRef);
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), featureRef);
+
+    options.setForce(true);
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrimaryBranch("main")
+        .setPrNumber(123)
+        .setMergeable(null)
+        .mock();
+    GitHubPrOrigin origin =
+        githubPrOrigin("url = 'https://github.com/google/example'", "use_merge = True");
+
+    assertThat(origin.resolve("123").getSha1())
+        .isEqualTo(remote.resolveReference(GitHubUtil.asHeadRef(123)).getSha1());
+    assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
+  }
+
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
