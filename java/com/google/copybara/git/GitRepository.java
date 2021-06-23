@@ -48,8 +48,6 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.CommandOutputWithStatus;
@@ -57,9 +55,10 @@ import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -85,7 +84,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
@@ -1703,9 +1701,10 @@ public class GitRepository {
         output = repo.runPush(this);
       } catch (RepoException e) {
         /* Non-fast-forward errors in git mirror usually means that the destination
-         has commits that the origin doesn't. Usually by a user submitting directly
-         to the destination instead of using Copybara. */
-        if (e.getMessage().contains("(non-fast-forward)")) {
+        has commits that the origin doesn't. Usually by a user submitting directly
+        to the destination instead of using Copybara. */
+        if (e.getMessage().contains("(non-fast-forward)")
+            || e.getMessage().contains("(fetch first)")) {
           throw new NonFastForwardRepositoryException(String.format(
               "Failed to push to %s %s, because local/origin history is behind destination", url,
               refspecs), e);

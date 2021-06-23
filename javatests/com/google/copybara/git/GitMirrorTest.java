@@ -38,16 +38,14 @@ import com.google.copybara.testing.profiler.RecordingListener;
 import com.google.copybara.testing.profiler.RecordingListener.EventType;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RunWith(JUnit4.class)
 public class GitMirrorTest {
@@ -312,9 +310,10 @@ public class GitMirrorTest {
   @Test
   public void testMirrorConflict() throws Exception {
     Migration mirror = prepareForConflict();
-    RepoException e =
-        assertThrows(RepoException.class, () -> mirror.run(workdir, ImmutableList.of()));
-    assertThat(e.getMessage()).contains("[rejected]");
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(e).hasMessageThat().matches(".*Failed to push to .*"
+        + "because local/origin history is behind destination.*");
   }
 
   @Test
@@ -553,42 +552,55 @@ public class GitMirrorTest {
   }
 
   private Migration mergeInit() throws IOException, ValidationException, RepoException {
-    String cfg = ""
-        + ("def _merger(ctx):\n"
-        + "     ctx.console.info('Hello this is mirror!')\n"
-        + "     branch = ctx.params['branch']\n"
-        + "     oss_branch = ctx.params['oss_branch']\n"
-        + "     ctx.origin_fetch(refspec = [branch + ':refs/heads/copybara/origin_fetch'])\n"
-        + "     exist = ctx.destination_fetch(refspec = [branch + ':refs/heads/copybara/destination_fetch'])\n"
-        + "     if exist:\n"
-        + "         result = ctx.merge(branch = 'copybara/destination_fetch', "
-        + "                        commits = ['refs/heads/copybara/origin_fetch'])\n"
-        + "         if result.error:\n"
-        + "             return ctx.error('Conflict merging ' + branch + ' into destination: ' + result.error_msg)\n"
-        + "         ctx.destination_push(refspec = ['refs/heads/copybara/destination_fetch:' + branch])\n"
-        + "     else:\n"
-        + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + branch])\n"
-        + "     if oss_branch:\n"
-        + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:' + oss_branch])\n"
-        + "     return ctx.success()\n"
-        + "\n"
-        + "def merger(branch, oss_branch = None):\n"
-        + "    return core.action(impl = _merger,"
-        + "         params = {'branch': branch, 'oss_branch' : oss_branch})\n"
-        + "\n")
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    refspecs = ["
-        + String.format(""
-            + "       'refs/heads/%s:refs/heads/%s',"
-            + "       'refs/heads/%s:refs/heads/oss'",
-        primaryBranch, primaryBranch, primaryBranch)
-        + "    ],"
-        + "    actions = [merger(" + String.format("'refs/heads/%s'", primaryBranch)
-        + ", oss_branch = 'refs/heads/oss')],"
-        + ")";
+    String cfg =
+        ""
+            + ("def _merger(ctx):\n"
+                + "     ctx.console.info('Hello this is mirror!')\n"
+                + "     branch = ctx.params['branch']\n"
+                + "     oss_branch = ctx.params['oss_branch']\n"
+                + "     ctx.origin_fetch(refspec = [branch +"
+                + " ':refs/heads/copybara/origin_fetch'])\n"
+                + "     exist = ctx.destination_fetch(refspec = [branch +"
+                + " ':refs/heads/copybara/destination_fetch'])\n"
+                + "     if exist:\n"
+                + "         result = ctx.merge(branch = 'copybara/destination_fetch',           "
+                + "              commits = ['refs/heads/copybara/origin_fetch'])\n"
+                + "         if result.error:\n"
+                + "             return ctx.error('Conflict merging ' + branch + ' into"
+                + " destination: ' + result.error_msg)\n"
+                + "         ctx.destination_push(refspec ="
+                + " ['refs/heads/copybara/destination_fetch:' + branch])\n"
+                + "     else:\n"
+                + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:'"
+                + " + branch])\n"
+                + "     if oss_branch:\n"
+                + "         ctx.destination_push(refspec = ['refs/heads/copybara/origin_fetch:'"
+                + " + oss_branch])\n"
+                + "     return ctx.success()\n"
+                + "\n"
+                + "def merger(branch, oss_branch = None):\n"
+                + "    return core.action(impl = _merger,         params = {'branch': branch,"
+                + " 'oss_branch' : oss_branch})\n"
+                + "\n")
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://"
+            + originRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    destination = 'file://"
+            + destRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    refspecs = ["
+            + String.format(
+                ""
+                    + "       'refs/heads/%s:refs/heads/%s',"
+                    + "       'refs/heads/%s:refs/heads/oss'",
+                primaryBranch, primaryBranch, primaryBranch)
+            + "    ],"
+            + "    actions = [merger("
+            + String.format("'refs/heads/%s'", primaryBranch)
+            + ", oss_branch = 'refs/heads/oss')],"
+            + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
     String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
