@@ -2477,8 +2477,8 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL of the GitHub repository</p>
 use_merge | `bool`<br><p>If the content for refs/pull/&lt;ID&gt;/merge should be used instead of the PR head. The GitOrigin-RevId still will be the one from refs/pull/&lt;ID&gt;/head revision.</p>
 required_labels | `sequence of string`<br><p>Required labels to import the PR. All the labels need to be present in order to migrate the Pull Request.</p>
-required_status_context_names | `sequence of string`<br><p>Required status context names to import the PR. All the status context names need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
-required_check_runs | `sequence of string`<br><p>Required check runs to import the PR. All the check runs need to be passed in order to migrate the Pull Request.Note: this field is still experimental.</p>
+required_status_context_names | `sequence of string`<br><p>A list of names of services which must all mark the PR with 'success' before it can be imported.<br><br>See https://docs.github.com/en/rest/reference/repos#statuses</p>
+required_check_runs | `sequence of string`<br><p>A list of check runs which must all have a value of 'success' in order to import the PR.<br><br>See https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api</p>
 retryable_labels | `sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch | `bool`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
@@ -2500,9 +2500,13 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
 <span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
+<span style="white-space: nowrap;">`--github-required-check-run`</span> | *list* | Required check runs in the Pull Request to be imported by github_pr_origin
 <span style="white-space: nowrap;">`--github-required-label`</span> | *list* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-status-context-name`</span> | *list* | Required status context names in the Pull Request to be imported by github_pr_origin
 <span style="white-space: nowrap;">`--github-retryable-label`</span> | *list* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-skip-required-check-runs`</span> | *boolean* | Skip checking check runs for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 
 <a id="git.github_trigger" aria-hidden="true"></a>
 ### git.github_trigger

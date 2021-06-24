@@ -115,8 +115,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final GitOriginOptions gitOriginOptions;
   private final GitHubOptions gitHubOptions;
   private final Set<String> requiredLabelsField;
-  private final Set<String> requiredStatusContextNames;
-  private final Set<String> requiredCheckRuns;
+  private final Set<String> requiredStatusContextNamesField;
+  private final Set<String> requiredCheckRunsField;
   private final Set<String> retryableLabelsField;
   private final SubmoduleStrategy submoduleStrategy;
   private final Console console;
@@ -165,8 +165,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.gitHubOptions = gitHubOptions;
     this.gitHubPrOriginOptions = Preconditions.checkNotNull(gitHubPrOriginOptions);
     this.requiredLabelsField = checkNotNull(requiredLabels);
-    this.requiredStatusContextNames = checkNotNull(requiredStatusContextNames);
-    this.requiredCheckRuns = checkNotNull(requiredCheckRuns);
+    this.requiredStatusContextNamesField = checkNotNull(requiredStatusContextNames);
+    this.requiredCheckRunsField = checkNotNull(requiredCheckRuns);
     this.retryableLabelsField = checkNotNull(retryableLabels);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
     console = generalOptions.console();
@@ -432,8 +432,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   /** Check that the PR has all the labels provided in the `required_labels` param */
   private void checkRequiredLabels(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
-    Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
-    Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
+    Set<String> requiredLabels = getRequiredLabels();
+    Set<String> retryableLabels = getRetryableLabels();
     if (forceImport() || requiredLabels.isEmpty()) {
       return;
     }
@@ -470,6 +470,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
    */
   private void checkRequiredStatusContextNames(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
+    Set<String> requiredStatusContextNames = getRequiredStatusContextNames();
     if (forceImport() || requiredStatusContextNames.isEmpty()) {
       return;
     }
@@ -498,6 +499,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
    */
   private void checkRequiredCheckRuns(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
+    Set<String> requiredCheckRuns = getRequiredCheckRuns();
     if (forceImport() || requiredCheckRuns.isEmpty()) {
       return;
     }
@@ -690,6 +692,21 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     return gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
   }
 
+  @VisibleForTesting
+  public Set<String> getRequiredStatusContextNames() {
+    return gitHubPrOriginOptions.getRequiredStatusContextNames(requiredStatusContextNamesField);
+  }
+
+  @VisibleForTesting
+  public Set<String> getRequiredCheckRuns() {
+    return gitHubPrOriginOptions.getRequiredCheckRuns(requiredCheckRunsField);
+  }
+
+  @VisibleForTesting
+  public Set<String> getRetryableLabels() {
+    return gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
+  }
+
   @Override
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
@@ -707,11 +724,17 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       builder.putAll(
           "review_approvers", reviewApprovers.stream().map(Enum::name).collect(toImmutableList()));
     }
-    if (!requiredStatusContextNames.isEmpty()) {
-        builder.putAll(GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES, requiredStatusContextNames);
+    if (!getRequiredLabels().isEmpty()) {
+      builder.putAll(GitHubUtil.REQUIRED_LABELS, getRequiredLabels());
     }
-    if (!requiredCheckRuns.isEmpty()) {
-      builder.putAll(GitHubUtil.REQUIRED_CHECK_RUNS, requiredCheckRuns);
+    if (!getRequiredStatusContextNames().isEmpty()) {
+      builder.putAll(GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES, getRequiredStatusContextNames());
+    }
+    if (!getRequiredCheckRuns().isEmpty()) {
+      builder.putAll(GitHubUtil.REQUIRED_CHECK_RUNS, getRequiredCheckRuns());
+    }
+    if (!getRetryableLabels().isEmpty()) {
+      builder.putAll(GitHubUtil.RETRYABLE_LABELS, getRetryableLabels());
     }
     return builder.build();
   }

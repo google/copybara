@@ -756,8 +756,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "[]",
             doc =
-                "Required labels to import the PR. All the labels need to be present in order"
-                    + " to migrate the Pull Request.",
+                "Required labels to import the PR. All the labels need to be present in order to"
+                    + " migrate the Pull Request.",
             positional = false),
         @Param(
             name = GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES,
@@ -765,9 +765,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "[]",
             doc =
-                "Required status context names to import the PR. All the status context names "
-                    + "need to be passed in order to migrate the Pull Request."
-                    + "Note: this field is still experimental.",
+                "A list of names of services which must all mark the PR with 'success' before it"
+                    + " can be imported.<br><br>See"
+                    + " https://docs.github.com/en/rest/reference/repos#statuses",
             positional = false),
         @Param(
             name = GitHubUtil.REQUIRED_CHECK_RUNS,
@@ -775,9 +775,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "[]",
             doc =
-                "Required check runs to import the PR. All the check runs "
-                    + "need to be passed in order to migrate the Pull Request."
-                    + "Note: this field is still experimental.",
+                "A list of check runs which must all have a value of 'success' in order to import"
+                    + " the PR.<br><br>See"
+                    + " https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api",
             positional = false),
         @Param(
             name = GitHubUtil.RETRYABLE_LABELS,
@@ -964,17 +964,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options.get(GitOriginOptions.class),
         options.get(GitHubOptions.class),
         prOpts,
-        ImmutableSet.copyOf(Sequence.cast(requiredLabels, String.class,
-            GitHubUtil.RETRYABLE_LABELS)),
+        ImmutableSet.copyOf(
+            Sequence.cast(requiredLabels, String.class, GitHubUtil.REQUIRED_LABELS)),
         ImmutableSet.copyOf(
             Sequence.cast(
-                requiredStatusContextNames, String.class,
+                requiredStatusContextNames,
+                String.class,
                 GitHubUtil.REQUIRED_STATUS_CONTEXT_NAMES)),
         ImmutableSet.copyOf(
-            Sequence.cast(
-                requiredCheckRuns, String.class, GitHubUtil.REQUIRED_CHECK_RUNS)),
-        ImmutableSet.copyOf(Sequence.cast(retryableLabels, String.class,
-            GitHubUtil.RETRYABLE_LABELS)),
+            Sequence.cast(requiredCheckRuns, String.class, GitHubUtil.REQUIRED_CHECK_RUNS)),
+        ImmutableSet.copyOf(
+            Sequence.cast(retryableLabels, String.class, GitHubUtil.RETRYABLE_LABELS)),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
         baselineFromBranch,
         firstParent,

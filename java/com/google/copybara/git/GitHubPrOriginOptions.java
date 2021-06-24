@@ -36,6 +36,20 @@ public class GitHubPrOriginOptions implements Option {
           + GitModule.GITHUB_PR_ORIGIN_NAME)
   public List<String> requiredLabels = new ArrayList<>();
 
+  @Parameter(
+      names = "--github-required-status-context-name",
+      description =
+          "Required status context names in the Pull Request to be imported by "
+              + GitModule.GITHUB_PR_ORIGIN_NAME)
+  public List<String> requiredStatusContextNames = new ArrayList<>();
+
+  @Parameter(
+      names = "--github-required-check-run",
+      description =
+          "Required check runs in the Pull Request to be imported by "
+              + GitModule.GITHUB_PR_ORIGIN_NAME)
+  public List<String> requiredCheckRuns = new ArrayList<>();
+
   @Parameter(names = "--github-retryable-label",
       description = "Required labels in the Pull Request that should be retryed to be imported by "
           + GitModule.GITHUB_PR_ORIGIN_NAME)
@@ -45,6 +59,20 @@ public class GitHubPrOriginOptions implements Option {
       + " importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.")
   public boolean skipRequiredLabels = false;
 
+  @Parameter(
+      names = "--github-skip-required-status-context-names",
+      description =
+          "Skip checking status context names for importing Pull Requests. Note that this is"
+              + " dangerous as it might import an unsafe PR.")
+  public boolean skipRequiredStatusContextNames = false;
+
+  @Parameter(
+      names = "--github-skip-required-check-runs",
+      description =
+          "Skip checking check runs for importing Pull Requests. Note that this is dangerous as it"
+              + " might import an unsafe PR.")
+  public boolean skipRequiredCheckRuns = false;
+
   @Parameter(names = "--github-force-import", description = "Force import regardless of the state"
       + " of the PR")
   public boolean forceImport = false;
@@ -53,10 +81,10 @@ public class GitHubPrOriginOptions implements Option {
   public Boolean overrideMerge = null;
 
   /**
-   * Compute the labels that should be required by git.github_pr_origin for importing a
-   * Pull Request.
+   * Compute the labels that should be required by git.github_pr_origin for importing a Pull
+   * Request.
    *
-   * <p>This method might be overwritten to provide custom behavior.
+   * <p>This method might be overridden to provide custom behavior.
    */
   public Set<String> getRequiredLabels(Iterable<String> configLabels) {
     if (skipRequiredLabels) {
@@ -68,10 +96,39 @@ public class GitHubPrOriginOptions implements Option {
   }
 
   /**
-   * Compute the labels that should be retried by git.github_pr_origin for importing a
-   * Pull Request.
+   * Compute the status context names that should be required by git.github_pr_origin for importing
+   * a Pull Request.
    *
-   * <p>This method might be overwritten to provide custom behavior.
+   * <p>This method might be overridden to provide custom behavior.
+   */
+  public Set<String> getRequiredStatusContextNames(Iterable<String> configStatusContextNames) {
+    if (skipRequiredStatusContextNames) {
+      return ImmutableSet.of();
+    } else if (requiredStatusContextNames.isEmpty()) {
+      return ImmutableSet.copyOf(configStatusContextNames);
+    }
+    return ImmutableSet.copyOf(requiredStatusContextNames);
+  }
+
+  /**
+   * Compute the check runs that should be required by git.github_pr_origin for importing a Pull
+   * Request.
+   *
+   * <p>This method might be overridden to provide custom behavior.
+   */
+  public Set<String> getRequiredCheckRuns(Iterable<String> configCheckRuns) {
+    if (skipRequiredCheckRuns) {
+      return ImmutableSet.of();
+    } else if (requiredCheckRuns.isEmpty()) {
+      return ImmutableSet.copyOf(configCheckRuns);
+    }
+    return ImmutableSet.copyOf(requiredCheckRuns);
+  }
+
+  /**
+   * Compute the labels that should be retried by git.github_pr_origin for importing a Pull Request.
+   *
+   * <p>This method might be overridden to provide custom behavior.
    */
   public Set<String> getRetryableLabels(Iterable<String> configLabels) {
     if (skipRequiredLabels) {
