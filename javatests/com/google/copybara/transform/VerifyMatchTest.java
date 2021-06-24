@@ -174,6 +174,25 @@ public final class VerifyMatchTest {
     writeFile(checkoutDir.resolve("folder/subfolder/file1.java"), "foo");
   }
 
+  @Test
+  public void doNotProcessSymlinks() throws Exception {
+    VerifyMatch transformation =
+        eval(
+            "      core.verify_match("
+                + "  regex='abc',"
+                + "  paths = glob(['**'], exclude = ['i-exist']),"
+                + "  verify_no_match=True"
+                + ")");
+    writeFile(checkoutDir.resolve("i-exist"), "abc");
+    // Invalid symlinks should not cause an exception
+    Files.createSymbolicLink(
+        checkoutDir.resolve("invalid_symlink"), checkoutDir.resolve("i-dont-exist"));
+    // Valid symlinks, even to something that contains matching text, should also be skipped
+    Files.createSymbolicLink(checkoutDir.resolve("valid_symlink"), checkoutDir.resolve("i-exist"));
+
+    transform(transformation);
+  }
+
   private Path writeFile(Path path, String text) throws IOException {
     return Files.write(path, text.getBytes(UTF_8));
   }

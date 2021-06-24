@@ -113,6 +113,9 @@ public final class VerifyMatch implements Transformation {
       // TODO(malcon): Remove reconstructing pattern once RE2J doesn't synchronize on matching.
       Pattern batchPattern = Pattern.compile(pattern.pattern(), pattern.flags());
       for (FileState file : files) {
+        if (Files.isSymbolicLink(file.getPath())) {
+          continue;
+        }
         String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
         if (verifyNoMatch == batchPattern.matcher(originalFileContent).find()) {
           errors.add(checkoutDir.relativize(file.getPath()).toString());
