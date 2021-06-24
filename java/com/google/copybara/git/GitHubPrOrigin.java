@@ -18,9 +18,11 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
 import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
+import static java.util.stream.Collectors.joining;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.annotations.VisibleForTesting;
@@ -278,92 +280,16 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private GitRevision getRevisionForPR(String project, PullRequest prData)
       throws RepoException, ValidationException {
     GitHubApi api = gitHubOptions.newGitHubApi(project);
-    Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
-    Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
-    int prNumber = (int)prData.getNumber();
+    int prNumber = (int) prData.getNumber();
     boolean actuallyUseMerge = this.useMerge;
-
-    if (!forceImport() && !requiredLabels.isEmpty()) {
-      int retryCount = 0;
-      Set<String> requiredButNotPresent;
-      do {
-        Issue issue;
-        try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
-          issue = api.getIssue(project, prNumber);
-        }
-
-        requiredButNotPresent = Sets.newHashSet(requiredLabels);
-        requiredButNotPresent.removeAll(Collections2.transform(issue.getLabels(), Label::getName));
-        // If we got all the labels we want or none of the ones we didn't get are retryable, return.
-        if (requiredButNotPresent.isEmpty()
-            || Collections.disjoint(requiredButNotPresent, retryableLabels)) {
-          break;
-        }
-        Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
-        retryCount++;
-      } while (retryCount < RETRY_COUNT);
-      if (!requiredButNotPresent.isEmpty()) {
-        throw new EmptyChangeException(String.format(
-            "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
-                + " labels: %s",
-            project,
-            prNumber,
-            requiredButNotPresent));
-      }
-    }
-
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
 
-    if (!forceImport() && !requiredState.accepts(prData)) {
-      throw new EmptyChangeException(
-          String.format("Pull Request %d is %s", prNumber, prData.getState()));
-    }
-
-    // check if status context names are ready if applicable
+    checkPrState(prData);
+    checkPrBranch(project, prData);
+    checkRequiredLabels(api, project, prData);
     checkRequiredStatusContextNames(api, project, prData);
-
-    // check if check runs are ready if applicable
     checkRequiredCheckRuns(api, project, prData);
-    if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
-      throw new EmptyChangeException(String.format(
-          "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
-              + " the workflow is configured to only migrate changes for branch '%s'",
-          project,
-          prNumber,
-          prData.getBase().getRef(),
-          branch));
-    }
-    if (reviewState != null) {
-      ImmutableList<Review> reviews = api.getReviews(project, prNumber);
-      ApproverState shouldMigrate =
-          reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha());
-      if (!forceImport() && !shouldMigrate.shouldMigrate()) {
-        String rejected = "";
-        if (!shouldMigrate.rejectedReviews().isEmpty()) {
-          rejected = String.format("\nThe following reviews were ignored because they don't meet "
-                  + "the association requirement of %s:\n%s",
-              Joiner.on(", ").join(reviewApprovers),
-              shouldMigrate.rejectedReviews().entries().stream()
-                  .map(e -> String.format("User %s - Association: %s", e.getKey(), e.getValue()))
-                  .collect(Collectors.joining("\n")));
-        }
-        throw new EmptyChangeException(String.format(
-            "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
-                + " approvals (origin is configured as %s).%s",
-            project, prNumber, reviewState, rejected));
-      }
-      Set<String> approvers = new HashSet<>();
-      Set<String> others = new HashSet<>();
-      for (Review review : reviews) {
-        if (reviewApprovers.contains(review.getAuthorAssociation())) {
-          approvers.add(review.getUser().getLogin());
-        } else {
-          others.add(review.getUser().getLogin());
-        }
-      }
-      labels.putAll(GITHUB_PR_REVIEWER_APPROVER, approvers);
-      labels.putAll(GITHUB_PR_REVIEWER_OTHER, others);
-    }
+    checkReviewApprovers(api, project, prData, labels);
 
     // Fetch also the baseline branch. It is almost free and doing a roundtrip later would hurt
     // latency.
@@ -460,30 +386,67 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     return describeVersion ? getRepository().addDescribeVersion(result) : result;
   }
 
-  private void checkRequiredCheckRuns(GitHubApi api, String project, PullRequest prData)
-      throws ValidationException, RepoException {
-    if (forceImport() || requiredCheckRuns.isEmpty()) {
-      return;
-    }
-    try (ProfilerTask ignore = generalOptions.profiler()
-        .start("github_api_get_combined_status")) {
-      CheckRuns checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
-      Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
-      List<CheckRun> passedCheckRuns = checkRuns.getCheckRuns().stream()
-          .filter(e -> e.getConclusion().equals("success")).collect(Collectors.toList());
-      requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns,
-          CheckRun::getName));
-      if (!requiredButNotPresent.isEmpty()) {
-        throw new EmptyChangeException(String.format(
-            "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
-                + "have not been passed: %s",
-            project,
-            prData.getNumber(),
-            requiredButNotPresent));
-      }
+  /**
+   * Check that the state of the PR (i.e. {open,closed}) matches the provided value of the `state`
+   * param
+   */
+  private void checkPrState(PullRequest prData) throws ValidationException {
+    if (!forceImport() && !requiredState.accepts(prData)) {
+      throw new EmptyChangeException(
+          String.format("Pull Request %d is %s", prData.getNumber(), prData.getState()));
     }
   }
 
+  /** Check that the branch name of the PR matches the provided value of the `branch` param */
+  private void checkPrBranch(String project, PullRequest prData) throws ValidationException {
+    if (!forceImport() && branch != null && !Objects.equals(prData.getBase().getRef(), branch)) {
+      throw new EmptyChangeException(
+          String.format(
+              "Cannot migrate http://github.com/%s/pull/%d because its base branch is '%s', but"
+                  + " the workflow is configured to only migrate changes for branch '%s'",
+              project, prData.getNumber(), prData.getBase().getRef(), branch));
+    }
+  }
+
+  /** Check that the PR has all the labels provided in the `required_labels` param */
+  private void checkRequiredLabels(GitHubApi api, String project, PullRequest prData)
+      throws ValidationException, RepoException {
+    Set<String> requiredLabels = gitHubPrOriginOptions.getRequiredLabels(requiredLabelsField);
+    Set<String> retryableLabels = gitHubPrOriginOptions.getRetryableLabels(retryableLabelsField);
+    if (forceImport() || requiredLabels.isEmpty()) {
+      return;
+    }
+    int retryCount = 0;
+    Set<String> requiredButNotPresent;
+    do {
+      Issue issue;
+      try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_issue")) {
+        issue = api.getIssue(project, prData.getNumber());
+      }
+
+      requiredButNotPresent = Sets.newHashSet(requiredLabels);
+      requiredButNotPresent.removeAll(Collections2.transform(issue.getLabels(), Label::getName));
+      // If we got all the labels we want or none of the ones we didn't get are retryable, return.
+      if (requiredButNotPresent.isEmpty()
+          || Collections.disjoint(requiredButNotPresent, retryableLabels)) {
+        break;
+      }
+      Uninterruptibles.sleepUninterruptibly(2, TimeUnit.SECONDS);
+      retryCount++;
+    } while (retryCount < RETRY_COUNT);
+    if (!requiredButNotPresent.isEmpty()) {
+      throw new EmptyChangeException(
+          String.format(
+              "Cannot migrate http://github.com/%s/pull/%d because it is missing the following"
+                  + " labels: %s",
+              project, prData.getNumber(), requiredButNotPresent));
+    }
+  }
+
+  /**
+   * Check that the PR has a state of "success" for each status whose context is in the list
+   * provided in the `required_status_context_names` param
+   */
   private void checkRequiredStatusContextNames(GitHubApi api, String project, PullRequest prData)
       throws ValidationException, RepoException {
     if (forceImport() || requiredStatusContextNames.isEmpty()) {
@@ -493,19 +456,94 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         .start("github_api_get_combined_status")) {
       CombinedStatus combinedStatus = api.getCombinedStatus(project, prData.getHead().getSha());
       Set<String> requiredButNotPresent = Sets.newHashSet(requiredStatusContextNames);
-      List<Status> successStatuses = combinedStatus.getStatuses().stream()
-          .filter(e -> e.getState() == State.SUCCESS).collect(Collectors.toList());
-      requiredButNotPresent.removeAll(Collections2.transform(successStatuses,
-          Status::getContext));
+      List<Status> successStatuses =
+          combinedStatus.getStatuses().stream()
+              .filter(e -> e.getState() == State.SUCCESS)
+              .collect(Collectors.toList());
+      requiredButNotPresent.removeAll(Collections2.transform(successStatuses, Status::getContext));
       if (!requiredButNotPresent.isEmpty()) {
-        throw new EmptyChangeException(String.format(
-            "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
-                + "have not been passed: %s",
-            project,
-            prData.getNumber(),
-            requiredButNotPresent));
+        throw new EmptyChangeException(
+            String.format(
+                "Cannot migrate http://github.com/%s/pull/%d because the following ci labels "
+                    + "have not been passed: %s",
+                project, prData.getNumber(), requiredButNotPresent));
       }
     }
+  }
+
+  /**
+   * Check that the PR has a conclusion of "success" for each check_run whose name is in the list
+   * provided in the `required_check_runs` param
+   */
+  private void checkRequiredCheckRuns(GitHubApi api, String project, PullRequest prData)
+      throws ValidationException, RepoException {
+    if (forceImport() || requiredCheckRuns.isEmpty()) {
+      return;
+    }
+    try (ProfilerTask ignore = generalOptions.profiler()
+        .start("github_api_get_combined_status")) {
+      CheckRuns checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
+      Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
+      List<CheckRun> passedCheckRuns =
+          checkRuns.getCheckRuns().stream()
+              .filter(e -> e.getConclusion().equals("success"))
+              .collect(Collectors.toList());
+      requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns, CheckRun::getName));
+      if (!requiredButNotPresent.isEmpty()) {
+        throw new EmptyChangeException(
+            String.format(
+                "Cannot migrate http://github.com/%s/pull/%d because the following check runs "
+                    + "have not been passed: %s",
+                project, prData.getNumber(), requiredButNotPresent));
+      }
+    }
+  }
+
+  /**
+   * Check that the PR has been approved by sufficient reviewers of the correct types, in accordance
+   * with the values provided in the `review_state` and `review_approvers` params
+   */
+  private void checkReviewApprovers(
+      GitHubApi api,
+      String project,
+      PullRequest prData,
+      ImmutableListMultimap.Builder<String, String> labelsBuilder)
+      throws ValidationException, RepoException {
+    if (reviewState == null) {
+      return;
+    }
+    ImmutableList<Review> reviews = api.getReviews(project, prData.getNumber());
+    ApproverState approverState =
+        reviewState.shouldMigrate(reviews, reviewApprovers, prData.getHead().getSha());
+    if (!forceImport() && !approverState.shouldMigrate()) {
+      String rejected = "";
+      if (!approverState.rejectedReviews().isEmpty()) {
+        rejected =
+            String.format(
+                "\nThe following reviews were ignored because they don't meet "
+                    + "the association requirement of %s:\n%s",
+                Joiner.on(", ").join(reviewApprovers),
+                approverState.rejectedReviews().entries().stream()
+                    .map(e -> String.format("User %s - Association: %s", e.getKey(), e.getValue()))
+                    .collect(joining("\n")));
+      }
+      throw new EmptyChangeException(
+          String.format(
+              "Cannot migrate http://github.com/%s/pull/%d because it is missing the required"
+                  + " approvals (origin is configured as %s).%s",
+              project, prData.getNumber(), reviewState, rejected));
+    }
+    Set<String> approvers = new HashSet<>();
+    Set<String> others = new HashSet<>();
+    for (Review review : reviews) {
+      if (reviewApprovers.contains(review.getAuthorAssociation())) {
+        approvers.add(review.getUser().getLogin());
+      } else {
+        others.add(review.getUser().getLogin());
+      }
+    }
+    labelsBuilder.putAll(GITHUB_PR_REVIEWER_APPROVER, approvers);
+    labelsBuilder.putAll(GITHUB_PR_REVIEWER_OTHER, others);
   }
 
   @VisibleForTesting
@@ -754,8 +792,10 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         boolean shouldMigrate, ImmutableList<Review> rejectedReviews) {
       return new AutoValue_GitHubPrOrigin_ApproverState(
           shouldMigrate,
-          rejectedReviews.stream().collect(ImmutableListMultimap.toImmutableListMultimap(
-              r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
+          rejectedReviews.stream()
+              .collect(
+                  toImmutableListMultimap(
+                      r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
     }
   }
 }
