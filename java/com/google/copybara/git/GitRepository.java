@@ -2178,6 +2178,9 @@ public class GitRepository {
 
   /** The current branch, if any. */
   public String getCurrentBranch() throws RepoException {
-    return simpleCommand("rev-parse", "--abbrev-ref", "HEAD").getStdout().trim();
+    String rev = simpleCommand("rev-parse", "--abbrev-ref", "HEAD").getStdout().trim();
+    if (rev.equals("HEAD"))
+      return "";
+    return rev;
   }
 }
