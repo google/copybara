@@ -2145,6 +2145,8 @@ public class GitRepository {
 
   /** Returns the repo's primary branch, e.g. "main". */
   public String getPrimaryBranch() throws RepoException {
+    // This actually returns the current branch, but in a newly initialized repo the two are the
+    // same
     return simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
   }
 
@@ -2175,8 +2177,18 @@ public class GitRepository {
     return null;
   }
 
-  /** The current branch, if any. */
-  public String getCurrentBranch() throws RepoException {
-    return simpleCommand("branch", "--show-current").getStdout().trim();
+ public String getCurrentBranch() throws RepoException {
+    try {
+      String rev = simpleCommand("symbolic-ref", "--short", "HEAD").getStdout().trim();
+      if (rev.equals("HEAD")) {
+        return "";
+      }
+      return rev;
+    } catch (RepoException re) {
+      if (re.getMessage().contains("ref HEAD is not a symbolic ref")) {
+        return "";
+      }
+      throw re;
+    }
   }
 }
