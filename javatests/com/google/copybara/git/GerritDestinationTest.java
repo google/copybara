@@ -87,7 +87,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import net.starlark.java.eval.Starlark.UncheckedEvalException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -202,7 +201,7 @@ public class GerritDestinationTest {
     Pattern compiled = Pattern.compile(refRegex);
     ImmutableSet<String> refs = repo.showRef().keySet();
     List<String> first = refs.stream()
-        .filter(e ->compiled.matcher(e).find()).collect(Collectors.toList());
+        .filter(e -> compiled.matcher(e).find()).collect(Collectors.toList());
     assertWithMessage("Multiple refs found: " + first).that((first.size() < 2))
         .isTrue();
     if (first.isEmpty()) {
@@ -644,10 +643,9 @@ public class GerritDestinationTest {
 
   @Test
   public void configFailed_gerritSubmitFalse() {
-    UncheckedEvalException uncheckedEvalException =
-        assertThrows(UncheckedEvalException.class,
-            () -> destination("submit = False", "gerrit_submit = True"));
-    assertThat(uncheckedEvalException).hasMessageThat()
+    ValidationException expected = assertThrows(ValidationException.class,
+        () -> destination("submit = False", "gerrit_submit = True"));
+    assertThat(expected).hasMessageThat()
         .contains("Only set gerrit_submit if submit is true");
   }
 
@@ -1100,7 +1098,7 @@ public class GerritDestinationTest {
             TransformResults.of(workdir, originRef)
                 .withSummary("Test message")
                 .withIdentity(originRef.asString())
-                .withLabelFinder (e-> e.equals("SOME_REVIEWER")
+                .withLabelFinder (e -> e.equals("SOME_REVIEWER")
                     ? ImmutableList.of("foo@example.com")
                     : ImmutableList.of()),
             glob,
@@ -1135,7 +1133,7 @@ public class GerritDestinationTest {
             TransformResults.of(workdir, originRef)
                 .withSummary("Test message")
                 .withIdentity(originRef.asString())
-                .withLabelFinder(e-> e.equals("SOME_REVIEWER")
+                .withLabelFinder(e -> e.equals("SOME_REVIEWER")
                     ? ImmutableList.of("foo@example.com", "bar@example.com")
                     : ImmutableList.of()),
             glob,

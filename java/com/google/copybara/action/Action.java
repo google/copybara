@@ -17,9 +17,9 @@
 package com.google.copybara.action;
 
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -34,7 +34,8 @@ import net.starlark.java.eval.StarlarkValue;
     documented = false)
 public interface Action extends StarlarkValue {
 
-  void run(ActionContext context) throws ValidationException, RepoException;
+  <T extends SkylarkContext<T>> void run(ActionContext<T> context)
+      throws ValidationException, RepoException;
 
   String getName();
 

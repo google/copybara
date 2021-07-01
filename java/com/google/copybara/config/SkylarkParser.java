@@ -247,6 +247,14 @@ public class SkylarkParser {
       } catch (EvalException ex) {
         console.error(ex.getMessageWithStack());
         throw new ValidationException("Error loading config file", ex);
+      } catch (Starlark.UncheckedEvalException uex) {
+        console.error(uex.toString());
+        // rethrow the UEX because it has the starlark stacktrace.
+        if (uex.getCause() != null) {
+          throw new ValidationException(
+              "Error loading config file: " + uex.getCause().getMessage(), uex);
+        }
+        throw new ValidationException("Error loading config file", uex);
       }
 
       pending.remove(content.path());
@@ -327,7 +335,7 @@ public class SkylarkParser {
           Starlark.addMethods(envBuilder, module.getConstructor().newInstance());
         }
       } catch (ReflectiveOperationException e) {
-        throw new AssertionError(e);
+        throw new LinkageError(e.getMessage(), e);
       }
       env.putAll(envBuilder.build());
 
