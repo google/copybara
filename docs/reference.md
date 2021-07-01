@@ -172,6 +172,7 @@
     - [ctx.replace_label](#ctx.replace_label)
     - [ctx.run](#ctx.run)
     - [ctx.set_author](#ctx.set_author)
+    - [ctx.set_executable](#ctx.set_executable)
     - [ctx.set_message](#ctx.set_message)
     - [ctx.write_path](#ctx.write_path)
   - [git_merge_result](#git_merge_result)
@@ -4096,6 +4097,21 @@ Update the author to be used in the change
 Parameter | Description
 --------- | -----------
 author | `author`<br><p></p>
+
+<a id="ctx.set_executable" aria-hidden="true"></a>
+### ctx.set_executable
+
+Set the executable permission of a file
+
+`ctx.set_executable(path, value)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+path | `Path`<br><p>The string representing the path</p>
+value | `bool`<br><p>Whether or not the file should be executable</p>
 
 <a id="ctx.set_message" aria-hidden="true"></a>
 ### ctx.set_message

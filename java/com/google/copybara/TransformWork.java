@@ -327,6 +327,17 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
   }
 
+  @StarlarkMethod(
+      name = "set_executable",
+      doc = "Set the executable permission of a file",
+      parameters = {
+        @Param(name = "path", doc = "The string representing the path"),
+        @Param(name = "value", doc = "Whether or not the file should be executable"),
+      })
+  public void setExecutable(CheckoutPath path, boolean value) throws EvalException {
+    asCheckoutPath(path).toFile().setExecutable(value);
+  }
+
   private Path asCheckoutPath(CheckoutPath path) throws EvalException {
     Path normalized = checkoutDir.resolve(path.getPath()).normalize();
     if (!normalized.startsWith(checkoutDir)) {

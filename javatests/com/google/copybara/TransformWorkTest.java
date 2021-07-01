@@ -738,6 +738,29 @@ public class TransformWorkTest {
         .containsExactly("contents of file 2; z");
   }
 
+  @Test
+  public void testPathOperations_setExecutable() throws Exception {
+    Files.write(workdir.resolve("file1.txt"), "contents of file1".getBytes(UTF_8));
+    Files.write(workdir.resolve("file2.txt"), "contents of file2".getBytes(UTF_8));
+    workdir.resolve("file2.txt").toFile().setExecutable(true);
+
+    Transformation transformation =
+        skylark.eval(
+            "transformation",
+            ""
+                + "def test(ctx):\n"
+                + "    ctx.set_executable(ctx.new_path('file1.txt'), True)\n"
+                + "    ctx.set_executable(ctx.new_path('file2.txt'), False)\n"
+                + "\n"
+                + "transformation = core.transform([test])");
+
+    TransformWork work = TransformWorks.of(workdir, "test", console);
+    transformation.transform(work);
+
+    assertThat(Files.isExecutable(workdir.resolve("file1.txt"))).isTrue();
+    assertThat(Files.isExecutable(workdir.resolve("file2.txt"))).isFalse();
+  }
+
   private void touchFile(Path base, String path) throws IOException {
     writeFile(base, path, "");
   }
