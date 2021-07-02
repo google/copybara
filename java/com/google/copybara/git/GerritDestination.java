@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
@@ -53,7 +54,6 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
 import com.google.copybara.git.gerritapi.ChangeInfo;
-import com.google.copybara.git.gerritapi.ChangeStatus;
 import com.google.copybara.git.gerritapi.ChangesQuery;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.git.gerritapi.IncludeResult;
@@ -181,7 +181,6 @@ public final class GerritDestination implements Destination<GitRevision> {
             ChangeIdPolicy.REPLACE);
       }
 
-      String workflowId = result.getChangeIdentity();
       String hashTag = computeInternalHashTag(result);
       Optional<ChangeInfo> activeChange = findActiveChange(hashTag);
       if (activeChange.isPresent()) {
@@ -189,40 +188,13 @@ public final class GerritDestination implements Destination<GitRevision> {
             activeChange.get().getChangeId(), changeIdPolicy);
       }
 
-      if (isGerritRandomChangeId()) {
-        // If no change is found, create a random change-id. Change-Ids can be reused later
-        // by looking by hashtag in the code above.
-        return createMessageInfo(result, /*newReview=*/true,
-            "I"
-                + Hashing.sha1()
-                .newHasher()
-                .putString(UUID.randomUUID().toString(), StandardCharsets.UTF_8)
-                .hash(), changeIdPolicy);
-      }
-
-      // TODO(malcon): Remove this logic after 2020-09-01, once all new changes are created with
-      // hashtag.
-      int attempt = 0;
-      while (attempt <= MAX_FIND_ATTEMPTS) {
-        String changeId = computeChangeId(workflowId, committer.getEmail(), attempt);
-        List<ChangeInfo> changes = findChanges(changeId, ImmutableList.of());
-        if (changes.isEmpty()) {
-          return createMessageInfo(result, /*newReview=*/true, changeId, changeIdPolicy);
-        }
-        if (changes.get(0).getStatus().equals(ChangeStatus.NEW)) {
-          return createMessageInfo(result, /*newReview=*/false, changes.get(0).getChangeId(),
-              changeIdPolicy);
-        }
-        attempt++;
-      }
-      throw new RepoException(
-          String.format("Unable to find unmerged change for '%s', committer '%s'.",
-              workflowId, committer));
-    }
-
-    // TODO(malcon): Remove after 2020-09-01
-    private boolean isGerritRandomChangeId() {
-      return generalOptions.isTemporaryFeature("GERRIT_RANDOM_CHANGE_ID", true);
+      // If no change is found, create a random change-id. Change-Ids can be reused later
+      // by looking by hashtag in the code above.
+      return createMessageInfo(
+          result,
+          /*newReview=*/ true,
+          "I" + Hashing.sha1().hashString(UUID.randomUUID().toString(), UTF_8),
+          changeIdPolicy);
     }
 
     private String computeInternalHashTag(TransformResult result) {
@@ -542,11 +514,11 @@ public final class GerritDestination implements Destination<GitRevision> {
     static String computeChangeId(String workflowId, String committerEmail, int attempt) {
       return "I"
           + Hashing.sha1()
-          .newHasher()
-          .putString(workflowId, StandardCharsets.UTF_8)
-          .putString(committerEmail, StandardCharsets.UTF_8)
-          .putInt(attempt)
-          .hash();
+              .newHasher()
+              .putString(workflowId, UTF_8)
+              .putString(committerEmail, UTF_8)
+              .putInt(attempt)
+              .hash();
     }
 
     @Override
