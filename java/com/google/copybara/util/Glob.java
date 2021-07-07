@@ -48,8 +48,8 @@ import net.starlark.java.syntax.TokenKind;
 @StarlarkBuiltin(
     name = "glob",
     doc =
-        "Glob returns a list of every file in the workdir that matches at least one"
-            + " pattern in include and does not match any of the patterns in exclude.",
+        "A glob selects every file in the workdir that matches at least one pattern in include and"
+            + " does not match any of the patterns in exclude.",
     documented = false)
 public class Glob implements StarlarkValue, HasBinary {
 

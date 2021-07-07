@@ -72,10 +72,10 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "TransformWork",
     doc =
-        "Data about the set of changes that are being migrated. "
-            + "It includes information about changes like: the author to be used for commit, "
-            + "change message, etc. You receive a TransformWork object as an argument to the <code>"
-            + "transformations</code> functions used in <code>core.workflow</code>")
+        "Data about the set of changes that are being migrated. It includes information about"
+            + " changes like: the author to be used for commit, change message, etc. You receive a"
+            + " TransformWork object as an argument when defining a <a"
+            + " href='#core.dynamic_transform'><code>dynamic transform</code></a>.")
 @DocSignaturePrefix("ctx")
 public final class TransformWork implements SkylarkContext<TransformWork>, StarlarkValue {
 

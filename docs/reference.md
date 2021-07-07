@@ -176,6 +176,7 @@
     - [ctx.set_message](#ctx.set_message)
     - [ctx.write_path](#ctx.write_path)
   - [git_merge_result](#git_merge_result)
+  - [transformation](#transformation)
 
 
 
@@ -693,12 +694,24 @@ impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
 
-#### Example:
+#### Examples:
 
 
-##### Create a dynamic transformation with parameter:
+##### Create a dynamic transformation without parameters:
 
-If you want to create a library that uses dynamic transformations, you probably want to make them customizable. In order to do that, in your library.bara.sky, you need to hide the dynamic transformation (prefix with '_' and instead expose a function that creates the dynamic transformation with the param:
+To define a simple dynamic transformation, you don't even need to use `core.dynamic_transform`. The following transformation sets the change's message to uppercase.
+
+```python
+def test(ctx):
+  ctx.set_message(ctx.message.upper())
+```
+
+After defining this function, you can use `test` as a transformation in `core.workflow`.
+
+
+##### Create a dynamic transformation with parameters:
+
+If you want to create a library that uses dynamic transformations, you probably want to make them customizable. In order to do that, in your library.bara.sky, you need to hide the dynamic transformation (prefix with '\_') and instead expose a function that creates the dynamic transformation with the param:
 
 ```python
 def _test_impl(ctx):
@@ -3875,7 +3888,7 @@ Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com
 
 ## TransformWork
 
-Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument to the <code>transformations</code> functions used in <code>core.workflow</code>
+Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument when defining a <a href='#core.dynamic_transform'><code>dynamic transform</code></a>.
 
 
 #### Fields:
@@ -4159,5 +4172,11 @@ Name | Description
 ---- | -----------
 error | True if the merge execution resulted in an error. False otherwise
 error_msg | Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.
+
+
+
+## transformation
+
+A single operation which modifies the source checked out from the origin, prior to writing it to the destination. Transformations can also be used to perform validations or checks.<br/><br/>Many common transformations are provided by the built-in libraries, such as <a href='#core'><code>core</code></a>.<br/><br/>Custom transformations can be defined in Starlark code via <a href='#core.dynamic_transform'><code>core.dynamic_transform</code></a>.
 
 

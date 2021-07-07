@@ -1503,6 +1503,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             noopBehavior);
     return new ExplicitReversal(forward, reverse);
   }
+
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "dynamic_transform",
@@ -1510,10 +1511,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "Create a dynamic Skylark transformation. This should only be used by libraries"
               + " developers",
       parameters = {
-        @Param(
-            name = "impl",
-            named = true,
-            doc = "The Skylark function to call"),
+        @Param(name = "impl", named = true, doc = "The Skylark function to call"),
         @Param(
             name = "params",
             named = true,
@@ -1522,11 +1520,22 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   @Example(
-      title = "Create a dynamic transformation with parameter",
+      title = "Create a dynamic transformation without parameters",
+      before =
+          "To define a simple dynamic transformation, you don't even need to use"
+              + " `core.dynamic_transform`. The following transformation sets the change's message"
+              + " to uppercase.",
+      code = "def test(ctx):\n  ctx.set_message(ctx.message.upper())",
+      testExistingVariable = "test",
+      after =
+          "After defining this function, you can use `test` as a transformation in"
+              + " `core.workflow`.")
+  @Example(
+      title = "Create a dynamic transformation with parameters",
       before =
           "If you want to create a library that uses dynamic transformations, you probably want to"
               + " make them customizable. In order to do that, in your library.bara.sky, you need"
-              + " to hide the dynamic transformation (prefix with '_' and instead expose a"
+              + " to hide the dynamic transformation (prefix with '\\_') and instead expose a"
               + " function that creates the dynamic transformation with the param:",
       code =
           ""

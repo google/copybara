@@ -27,8 +27,13 @@ import net.starlark.java.syntax.Location;
 /** Interface implemented by all source code transformations. */
 @StarlarkBuiltin(
     name = "transformation",
-    doc = "A transformation to the workdir",
-    documented = false)
+    doc =
+        "A single operation which modifies the source checked out from the origin, prior to writing"
+            + " it to the destination. Transformations can also be used to perform validations or"
+            + " checks.<br/><br/>Many common transformations are provided by the built-in"
+            + " libraries, such as <a href='#core'><code>core</code></a>.<br/><br/>Custom"
+            + " transformations can be defined in Starlark code via <a"
+            + " href='#core.dynamic_transform'><code>core.dynamic_transform</code></a>.")
 public interface Transformation extends StarlarkValue {
 
   /**
