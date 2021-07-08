@@ -329,6 +329,12 @@ public class GlobTest {
   }
 
   @Test
+  public void testRoots_overlap() {
+    assertThat(createGlob(ImmutableList.of("foo/*", "foo-bar/*", "foo/bar/*")).roots())
+        .containsExactly("foo", "foo-bar");
+  }
+
+  @Test
   public void windowsGlobWorks() throws Exception {
     FileSystem workFs = Jimfs.newFileSystem(Configuration.windows());
     workdir = workFs.getPath("c:/tmp");

@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -272,7 +273,7 @@ public class Glob implements StarlarkValue, HasBinary {
     }
 
     // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/"
-    Collections.sort(roots);
+    Collections.sort(roots, Glob::compareRoots);
     if (roots.contains("")) {
       return ImmutableSet.of("");
     }
@@ -286,6 +287,23 @@ public class Glob implements StarlarkValue, HasBinary {
     }
 
     return ImmutableSet.copyOf(roots);
+  }
+
+  /** A lexicographical String comparator that sorts the '/' char before any other char. */
+  private static int compareRoots(String s1, String s2) {
+    int len1 = s1.length();
+    int len2 = s2.length();
+    int lim = min(len1, len2);
+    for (int k = 0; k < lim; k++) {
+      int c1 = s1.charAt(k);
+      c1 = c1 == '/' ? -1 : c1;
+      int c2 = s2.charAt(k);
+      c2 = c2 == '/' ? -1 : c2;
+      if (c1 != c2) {
+        return c1 - c2;
+      }
+    }
+    return len1 - len2;
   }
 
   @Override
