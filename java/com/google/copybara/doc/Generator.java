@@ -19,6 +19,7 @@ package com.google.copybara.doc;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.function.Function.identity;
 
+import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -34,16 +35,6 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.jcommander.DurationConverter;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
-import com.beust.jcommander.Parameter;
-
-import net.starlark.java.annot.Param;
-import net.starlark.java.annot.ParamType;
-import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkMethod;
-import net.starlark.java.eval.NoneType;
-import net.starlark.java.eval.Starlark;
-
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -59,15 +50,21 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.Starlark;
 
 /**
  * Given a file with list of classes, an output file, and an optional template file, generates
@@ -93,7 +90,7 @@ public class Generator {
     sb.append("\n").append(Strings.repeat("#", level)).append(' ').append(name).append("\n\n");
   }
 
-  private List<DocModule> generate(Path classListFile) throws IOException {
+  private ImmutableList<DocModule> generate(Path classListFile) throws IOException {
     List<String> classes = Files.readAllLines(classListFile, StandardCharsets.UTF_8);
 
     List<DocModule> modules = new ArrayList<>();
@@ -126,7 +123,7 @@ public class Generator {
       }
     }
 
-    return orderAsOldGenerator(modules);
+    return deduplicateAndSort(modules);
   }
 
   private static void writeMarkdown(Iterable<DocModule> modules, String template) {
@@ -534,10 +531,8 @@ public class Generator {
     }
   }
 
-  // TODO(malcon): Remove the oldGenerator part and keep the deduping code once we generate the docs
-  // the first time.
-  private List<DocModule> orderAsOldGenerator(Collection<DocModule> modules) {
-    Map<String, DocModule> asMap = new LinkedHashMap<>();
+  private ImmutableList<DocModule> deduplicateAndSort(Collection<DocModule> modules) {
+    SortedMap<String, DocModule> asMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     for (DocModule module : modules) {
       DocModule existing = asMap.get(module.name);
       if (existing == null
@@ -548,66 +543,6 @@ public class Generator {
       }
     }
 
-    List<DocModule> result = new ArrayList<>();
-    for (String old : createOldList()) {
-      DocModule remove = asMap.remove(old);
-      if (remove != null) {
-        result.add(remove);
-      }
-    }
-    result.addAll(asMap.values());
-    return result;
-  }
-
-  // Generated from the current documentation
-  private List<String> createOldList() {
-    List<String> oldOrder = new ArrayList<>();
-    oldOrder.add("author");
-    oldOrder.add("authoring");
-    oldOrder.add("authoring_class");
-    oldOrder.add("buildozer");
-    oldOrder.add("change");
-    oldOrder.add("ChangeMessage");
-    oldOrder.add("Changes");
-    oldOrder.add("Console");
-    oldOrder.add("core");
-    oldOrder.add("destination_effect");
-    oldOrder.add("destination_reader");
-    oldOrder.add("destination_ref");
-    oldOrder.add("endpoint");
-    oldOrder.add("endpoint_provider");
-    oldOrder.add("action.action_result");
-    oldOrder.add("feedback.context");
-    oldOrder.add("feedback.finish_hook_context");
-    oldOrder.add("feedback.revision_context");
-    oldOrder.add("filter_replace");
-    oldOrder.add("folder");
-    oldOrder.add("format");
-    oldOrder.add("gerritapi.AccountInfo");
-    oldOrder.add("gerritapi.ApprovalInfo");
-    oldOrder.add("gerritapi.ChangeInfo");
-    oldOrder.add("gerritapi.ChangeMessageInfo");
-    oldOrder.add("gerritapi.ChangesQuery");
-    oldOrder.add("gerritapi.CommitInfo");
-    oldOrder.add("gerritapi.getActionInfo");
-    oldOrder.add("gerritapi.GitPersonInfo");
-    oldOrder.add("gerritapi.LabelInfo");
-    oldOrder.add("gerritapi.ParentCommitInfo");
-    oldOrder.add("gerritapi.ReviewResult");
-    oldOrder.add("gerritapi.RevisionInfo");
-    oldOrder.add("gerrit_api_obj");
-    oldOrder.add("git");
-    oldOrder.add("github_api_obj");
-    oldOrder.add("Globals");
-    oldOrder.add("hg");
-    oldOrder.add("mapping_function");
-    oldOrder.add("metadata");
-    oldOrder.add("origin_ref");
-    oldOrder.add("patch");
-    oldOrder.add("Path");
-    oldOrder.add("PathAttributes");
-    oldOrder.add("SetReviewInput");
-    oldOrder.add("TransformWork");
-    return oldOrder;
+    return ImmutableList.copyOf(asMap.values());
   }
 }

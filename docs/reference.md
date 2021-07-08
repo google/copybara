@@ -70,6 +70,14 @@
     - [folder.origin](#folder.origin)
   - [format](#format)
     - [format.buildifier](#format.buildifier)
+  - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.delete_vote](#gerrit_api_obj.delete_vote)
+    - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
+    - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
+    - [gerrit_api_obj.list_changes](#gerrit_api_obj.list_changes)
+    - [gerrit_api_obj.new_destination_ref](#gerrit_api_obj.new_destination_ref)
+    - [gerrit_api_obj.new_origin_ref](#gerrit_api_obj.new_origin_ref)
+    - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
   - [gerritapi.AccountInfo](#gerritapi.accountinfo)
   - [gerritapi.ApprovalInfo](#gerritapi.approvalinfo)
   - [gerritapi.ChangeInfo](#gerritapi.changeinfo)
@@ -82,14 +90,6 @@
   - [gerritapi.ParentCommitInfo](#gerritapi.parentcommitinfo)
   - [gerritapi.ReviewResult](#gerritapi.reviewresult)
   - [gerritapi.RevisionInfo](#gerritapi.revisioninfo)
-  - [gerrit_api_obj](#gerrit_api_obj)
-    - [gerrit_api_obj.delete_vote](#gerrit_api_obj.delete_vote)
-    - [gerrit_api_obj.get_actions](#gerrit_api_obj.get_actions)
-    - [gerrit_api_obj.get_change](#gerrit_api_obj.get_change)
-    - [gerrit_api_obj.list_changes](#gerrit_api_obj.list_changes)
-    - [gerrit_api_obj.new_destination_ref](#gerrit_api_obj.new_destination_ref)
-    - [gerrit_api_obj.new_origin_ref](#gerrit_api_obj.new_origin_ref)
-    - [gerrit_api_obj.post_review](#gerrit_api_obj.post_review)
   - [git](#git)
     - [git.destination](#git.destination)
     - [git.gerrit_api](#git.gerrit_api)
@@ -107,6 +107,7 @@
     - [git.mirror](#git.mirror)
     - [git.origin](#git.origin)
     - [git.review_input](#git.review_input)
+  - [git_merge_result](#git_merge_result)
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_obj.add_label)
     - [github_api_obj.create_status](#github_api_obj.create_status)
@@ -155,6 +156,7 @@
     - [path.resolve_sibling](#path.resolve_sibling)
   - [PathAttributes](#pathattributes)
   - [SetReviewInput](#setreviewinput)
+  - [transformation](#transformation)
   - [TransformWork](#transformwork)
     - [ctx.add_label](#ctx.add_label)
     - [ctx.add_or_replace_label](#ctx.add_or_replace_label)
@@ -175,8 +177,6 @@
     - [ctx.set_executable](#ctx.set_executable)
     - [ctx.set_message](#ctx.set_message)
     - [ctx.write_path](#ctx.write_path)
-  - [git_merge_result](#git_merge_result)
-  - [transformation](#transformation)
 
 
 
@@ -1773,6 +1773,129 @@ Name | Type | Description
 
 
 
+## gerrit_api_obj
+
+Gerrit API endpoint implementation for feedback migrations and after migration hooks.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+url | Return the URL of this endpoint.
+
+<a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
+### gerrit_api_obj.delete_vote
+
+Delete a label vote from an account owner on a Gerrit change.
+
+
+`gerrit_api_obj.delete_vote(change_id, account_id, label_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
+account_id | `string`<br><p>The account owner who votes on label_id. Use 'me' or 'self' if the account owner makes this api call</p>
+label_id | `string`<br><p>The name of the label.</p>
+
+<a id="gerrit_api_obj.get_actions" aria-hidden="true"></a>
+### gerrit_api_obj.get_actions
+
+Retrieve the actions of a Gerrit change.
+
+`dict[string, gerritapi.getActionInfo] gerrit_api_obj.get_actions(id, revision)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+id | `string`<br><p>The change id or change number.</p>
+revision | `string`<br><p>The revision of the change.</p>
+
+<a id="gerrit_api_obj.get_change" aria-hidden="true"></a>
+### gerrit_api_obj.get_change
+
+Retrieve a Gerrit change.
+
+`gerritapi.ChangeInfo gerrit_api_obj.get_change(id, include_results=['LABELS'])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+id | `string`<br><p>The change id or change number.</p>
+include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
+
+<a id="gerrit_api_obj.list_changes" aria-hidden="true"></a>
+### gerrit_api_obj.list_changes
+
+Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
+
+
+`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes(query, include_results=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+query | `string`<br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
+include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
+
+<a id="gerrit_api_obj.new_destination_ref" aria-hidden="true"></a>
+### gerrit_api_obj.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+`destination_ref gerrit_api_obj.new_destination_ref(ref, type, url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+type | `string`<br><p>The type of this reference.</p>
+url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
+
+<a id="gerrit_api_obj.new_origin_ref" aria-hidden="true"></a>
+### gerrit_api_obj.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+`origin_ref gerrit_api_obj.new_origin_ref(ref)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ref | `string`<br><p>The reference.</p>
+
+<a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
+### gerrit_api_obj.post_review
+
+Post a review to a Gerrit change for a particular revision. The review will be authored by the user running the tool, or the role account if running in the service.
+
+
+`gerritapi.ReviewResult gerrit_api_obj.post_review(change_id, revision_id, review_input)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
+revision_id | `string`<br><p>The revision for which the comment will be posted.</p>
+review_input | `SetReviewInput`<br><p>The review to post to Gerrit.</p>
+
+
+
 ## gerritapi.AccountInfo
 
 Gerrit account information.
@@ -1974,129 +2097,6 @@ kind | The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PAR
 patchset_number | The patch set number, or edit if the patch set is an edit.
 ref | The Git reference for the patch set.
 uploader | The uploader of the patch set as an AccountInfo entity.
-
-
-
-## gerrit_api_obj
-
-Gerrit API endpoint implementation for feedback migrations and after migration hooks.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-url | Return the URL of this endpoint.
-
-<a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
-### gerrit_api_obj.delete_vote
-
-Delete a label vote from an account owner on a Gerrit change.
-
-
-`gerrit_api_obj.delete_vote(change_id, account_id, label_id)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-change_id | `string`<br><p>The Gerrit change id.</p>
-account_id | `string`<br><p>The account owner who votes on label_id. Use 'me' or 'self' if the account owner makes this api call</p>
-label_id | `string`<br><p>The name of the label.</p>
-
-<a id="gerrit_api_obj.get_actions" aria-hidden="true"></a>
-### gerrit_api_obj.get_actions
-
-Retrieve the actions of a Gerrit change.
-
-`dict[string, gerritapi.getActionInfo] gerrit_api_obj.get_actions(id, revision)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-id | `string`<br><p>The change id or change number.</p>
-revision | `string`<br><p>The revision of the change.</p>
-
-<a id="gerrit_api_obj.get_change" aria-hidden="true"></a>
-### gerrit_api_obj.get_change
-
-Retrieve a Gerrit change.
-
-`gerritapi.ChangeInfo gerrit_api_obj.get_change(id, include_results=['LABELS'])`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-id | `string`<br><p>The change id or change number.</p>
-include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
-
-<a id="gerrit_api_obj.list_changes" aria-hidden="true"></a>
-### gerrit_api_obj.list_changes
-
-Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
-
-
-`sequence of gerritapi.ChangeInfo gerrit_api_obj.list_changes(query, include_results=[])`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-query | `string`<br><p>The query string to list changes by. See https://gerrit-review.googlesource.com/Documentation/user-search.html#_basic_change_search.</p>
-include_results | `sequence of string`<br><p>What to include in the response. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#query-options</p>
-
-<a id="gerrit_api_obj.new_destination_ref" aria-hidden="true"></a>
-### gerrit_api_obj.new_destination_ref
-
-Creates a new destination reference out of this endpoint.
-
-`destination_ref gerrit_api_obj.new_destination_ref(ref, type, url=None)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-type | `string`<br><p>The type of this reference.</p>
-url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
-
-<a id="gerrit_api_obj.new_origin_ref" aria-hidden="true"></a>
-### gerrit_api_obj.new_origin_ref
-
-Creates a new origin reference out of this endpoint.
-
-`origin_ref gerrit_api_obj.new_origin_ref(ref)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-
-<a id="gerrit_api_obj.post_review" aria-hidden="true"></a>
-### gerrit_api_obj.post_review
-
-Post a review to a Gerrit change for a particular revision. The review will be authored by the user running the tool, or the role account if running in the service.
-
-
-`gerritapi.ReviewResult gerrit_api_obj.post_review(change_id, revision_id, review_input)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-change_id | `string`<br><p>The Gerrit change id.</p>
-revision_id | `string`<br><p>The revision for which the comment will be posted.</p>
-review_input | `SetReviewInput`<br><p>The review to post to Gerrit.</p>
 
 
 
@@ -2672,6 +2672,20 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
 <span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
+
+
+
+## git_merge_result
+
+The result returned by git merge when used in Starlark. For example in git.mirror dynamic actions.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+error | True if the merge execution resulted in an error. False otherwise
+error_msg | Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.
 
 
 
@@ -3886,6 +3900,12 @@ Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com
 
 
 
+## transformation
+
+A single operation which modifies the source checked out from the origin, prior to writing it to the destination. Transformations can also be used to perform validations or checks.<br/><br/>Many common transformations are provided by the built-in libraries, such as <a href='#core'><code>core</code></a>.<br/><br/>Custom transformations can be defined in Starlark code via <a href='#core.dynamic_transform'><code>core.dynamic_transform</code></a>.
+
+
+
 ## TransformWork
 
 Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument when defining a <a href='#core.dynamic_transform'><code>dynamic transform</code></a>.
@@ -4158,25 +4178,5 @@ Parameter | Description
 --------- | -----------
 path | `Path`<br><p>The string representing the path</p>
 content | `string`<br><p>The content of the file</p>
-
-
-
-## git_merge_result
-
-The result returned by git merge when used in Starlark. For example in git.mirror dynamic actions.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-error | True if the merge execution resulted in an error. False otherwise
-error_msg | Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.
-
-
-
-## transformation
-
-A single operation which modifies the source checked out from the origin, prior to writing it to the destination. Transformations can also be used to perform validations or checks.<br/><br/>Many common transformations are provided by the built-in libraries, such as <a href='#core'><code>core</code></a>.<br/><br/>Custom transformations can be defined in Starlark code via <a href='#core.dynamic_transform'><code>core.dynamic_transform</code></a>.
 
 
