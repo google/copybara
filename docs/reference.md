@@ -4037,7 +4037,7 @@ Create a new path
 
 Parameter | Description
 --------- | -----------
-path | `string`<br><p>The string representing the path</p>
+path | `string`<br><p>The string representing the path, relative to the checkout root directory</p>
 
 <a id="ctx.now_as_string" aria-hidden="true"></a>
 ### ctx.now_as_string
@@ -4073,7 +4073,7 @@ Read the content of path as UTF-8
 
 Parameter | Description
 --------- | -----------
-path | `Path`<br><p>The string representing the path</p>
+path | `Path`<br><p>The Path to read from</p>
 
 <a id="ctx.remove_label" aria-hidden="true"></a>
 ### ctx.remove_label
@@ -4147,7 +4147,7 @@ Set the executable permission of a file
 
 Parameter | Description
 --------- | -----------
-path | `Path`<br><p>The string representing the path</p>
+path | `Path`<br><p>The Path to set the executable permission of</p>
 value | `bool`<br><p>Whether or not the file should be executable</p>
 
 <a id="ctx.set_message" aria-hidden="true"></a>
@@ -4176,7 +4176,7 @@ Write an arbitrary string to a path (UTF-8 will be used)
 
 Parameter | Description
 --------- | -----------
-path | `Path`<br><p>The string representing the path</p>
+path | `Path`<br><p>The Path to write to</p>
 content | `string`<br><p>The content of the file</p>
 
 

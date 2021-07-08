@@ -251,7 +251,9 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "new_path",
       doc = "Create a new path",
       parameters = {
-        @Param(name = "path", doc = "The string representing the path"),
+        @Param(
+            name = "path",
+            doc = "The string representing the path, relative to the checkout root directory"),
       })
   public CheckoutPath newPath(String path) throws EvalException {
     return CheckoutPath.createWithCheckoutDir(
@@ -306,7 +308,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "write_path",
       doc = "Write an arbitrary string to a path (UTF-8 will be used)",
       parameters = {
-        @Param(name = "path", doc = "The string representing the path"),
+        @Param(name = "path", doc = "The Path to write to"),
         @Param(name = "content", doc = "The content of the file"),
       })
   public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
@@ -321,7 +323,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "read_path",
       doc = "Read the content of path as UTF-8",
       parameters = {
-        @Param(name = "path", doc = "The string representing the path"),
+        @Param(name = "path", doc = "The Path to read from"),
       })
   public String readPath(CheckoutPath path) throws IOException, EvalException {
     return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
@@ -331,7 +333,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "set_executable",
       doc = "Set the executable permission of a file",
       parameters = {
-        @Param(name = "path", doc = "The string representing the path"),
+        @Param(name = "path", doc = "The Path to set the executable permission of"),
         @Param(name = "value", doc = "Whether or not the file should be executable"),
       })
   public void setExecutable(CheckoutPath path, boolean value) throws EvalException {
