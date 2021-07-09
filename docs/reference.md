@@ -3425,6 +3425,7 @@ Will transform the message to:
 
 ```
 COPYBARA CHANGE: Import of 12345
+
 Body from Github Pull Request
 ```
 
