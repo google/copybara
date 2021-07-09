@@ -665,7 +665,7 @@ public class MetadataModule implements StarlarkValue {
       after =
           "Will transform the message to:\n\n"
               + "```\n"
-              + "COPYBARA CHANGE: Import of 12345"
+              + "COPYBARA CHANGE: Import of 12345\n"
               + "\n"
               + "Body from Github Pull Request"
               + "\n"
