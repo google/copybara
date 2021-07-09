@@ -237,10 +237,10 @@ public class MetadataModule implements StarlarkValue {
             name = "authors",
             named = true,
             doc =
-                "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or"
-                    + " 'Your Name <some@mail>'. The mapping applies heuristics to know which field"
-                    + " to use in the mapping. The value has to be always in the form of"
-                    + " 'Your Name <some@mail>'"),
+                "The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your"
+                    + " Name &lt;some@mail&gt;'. The mapping applies heuristics to know which field"
+                    + " to use in the mapping. The value has to be always in the form of 'Your Name"
+                    + " &lt;some@mail&gt;'"),
         @Param(
             name = "reversible",
             named = true,

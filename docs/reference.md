@@ -3303,7 +3303,7 @@ Map the author name and mail to another author. The mapping can be done by both 
 
 Parameter | Description
 --------- | -----------
-authors | `dict`<br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name <some@mail>'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name <some@mail>'</p>
+authors | `dict`<br><p>The author mapping. Keys can be in the form of 'Your Name', 'some@mail' or 'Your Name &lt;some@mail&gt;'. The mapping applies heuristics to know which field to use in the mapping. The value has to be always in the form of 'Your Name &lt;some@mail&gt;'</p>
 reversible | `bool`<br><p>If the transform is automatically reversible. Workflows using the reverse of this transform will be able to automatically map values to keys.</p>
 noop_reverse | `bool`<br><p>If true, the reversal of the transformation doesn't do anything. This is useful to avoid having to write `core.transformation(metadata.map_author(...), reversal = [])`.</p>
 fail_if_not_found | `bool`<br><p>Fail if a mapping cannot be found. Helps discovering early authors that should be in the map</p>
