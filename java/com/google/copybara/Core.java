@@ -1713,7 +1713,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
 
   @StarlarkMethod(
       name = "format",
-      doc = "Formats a String using Java format patterns.",
+      doc =
+          "Formats a String using Java's <a"
+              + " href='https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#format-java.lang.String-java.lang.Object...-'><code>String.format</code></a>.",
       parameters = {
         @Param(name = "format", named = true, doc = "The format string"),
         @Param(name = "args", named = true, doc = "The arguments to format"),

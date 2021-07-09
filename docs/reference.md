@@ -832,7 +832,7 @@ core.filter_replace(
 <a id="core.format" aria-hidden="true"></a>
 ### core.format
 
-Formats a String using Java format patterns.
+Formats a String using Java's <a href='https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#format-java.lang.String-java.lang.Object...-'><code>String.format</code></a>.
 
 `string core.format(format, args)`
 
