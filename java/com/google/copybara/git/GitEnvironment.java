@@ -37,6 +37,11 @@ public class GitEnvironment {
 
   public ImmutableMap<String, String> getEnvironment() {
     Map<String, String> env = Maps.newHashMap(environment);
+
+    // Explicitly set output language to english so parsing of git's output
+    // succeeds independently of users default locale.
+    env.put("LANG", "en_US.UTF-8");
+
     if (noGitPrompt) {
       env.put("GIT_TERMINAL_PROMPT", "0");
     }
