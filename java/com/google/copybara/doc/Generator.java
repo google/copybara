@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.function.Function.identity;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -132,13 +133,13 @@ public class Generator {
       sb.append("  - [");
       sb.append(module.name);
       sb.append("](#");
-      sb.append(module.name.toLowerCase());
+      sb.append(Ascii.toLowerCase(module.name).replace(".", ""));
       sb.append(")\n");
       for (DocFunction f : module.functions) {
         sb.append("    - [");
         sb.append(f.name);
         sb.append("](#");
-        sb.append(f.name.toLowerCase());
+        sb.append(Ascii.toLowerCase(f.name).replace(".", ""));
         sb.append(")\n");
       }
     }
