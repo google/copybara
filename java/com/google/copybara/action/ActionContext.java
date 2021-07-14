@@ -162,6 +162,8 @@ public abstract class ActionContext<T extends SkylarkContext<T>> implements Skyl
                       + "<li><b>'CREATED'</b>: A new review or change was created.</li>"
                       + "<li><b>'UPDATED'</b>: An existing review or change was updated.</li>"
                       + "<li><b>'NOOP'</b>: The change was a noop.</li>"
+                      + "<li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relative"
+                      + "to an existing pending change.</li>"
                       + "<li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because "
                       + "the change doesn't have enough approvals.</li>"
                       + "<li><b>'ERROR'</b>: A user attributable error happened that prevented "

@@ -20,7 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
@@ -98,10 +98,10 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
             new SameGitTree(scratchClone, repoUrl, generalOptions, partialFetch);
         PullRequest pullRequest =  pullRequests.get(0);
         if (sameGitTree.hasSameTree(pullRequest.getHead().getSha())) {
-          throw new EmptyChangeException(
+          throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
-                      repoUrl, pullRequest.getNumber(), originalChange.getRef()));
+                  repoUrl, pullRequest.getNumber(), originalChange.getRef()));
         }
       } catch(GitHubApiException e) {
           if (e.getResponseCode() == ResponseCode.NOT_FOUND

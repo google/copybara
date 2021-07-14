@@ -45,6 +45,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
@@ -618,9 +619,9 @@ public class GitHubPrDestinationTest {
         + "}]"));
     writeFile(this.workdir, "foo.txt", "test");
 
-    EmptyChangeException e =
+    RedundantChangeException e =
         assertThrows(
-            EmptyChangeException.class, () -> writer.write(
+            RedundantChangeException.class, () -> writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
             .withChanges(new Changes(
                 ImmutableList.of(

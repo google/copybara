@@ -37,6 +37,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ChangeRejectedException;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
@@ -402,6 +403,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             doMigrate(
                 rev, lastRev, processConsole, metadata, changes, destinationBaseline,
                 changeIdentityRevision);
+      } catch (RedundantChangeException e) {
+        effects =
+            ImmutableList.of(
+                new DestinationEffect(
+                    Type.NOOP_AGAINST_PENDING_CHANGE,
+                    String.format(
+                        "Cannot migrate revisions [%s]: %s",
+                        changes.getCurrent().isEmpty()
+                            ? "Unknown"
+                            : Joiner.on(", ")
+                                .join(
+                                    changes.getCurrent().stream()
+                                        .map(c -> c.getRevision().asString())
+                                        .iterator()),
+                        e.getMessage()),
+                    changes.getCurrent(),
+                    /*destinationRef=*/ null));
+        throw e;
       } catch (EmptyChangeException empty) {
         effects =
             ImmutableList.of(

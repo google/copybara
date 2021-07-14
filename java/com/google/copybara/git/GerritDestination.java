@@ -48,7 +48,7 @@ import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
-import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
@@ -64,7 +64,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -254,11 +253,11 @@ public final class GerritDestination implements Destination<GitRevision> {
         }
         SameGitTree sameGitTree = new SameGitTree(repo, repoUrl, generalOptions, partialFetch);
         if (sameGitTree.hasSameTree(changeInfo.getCurrentRevision())) {
-          throw new EmptyChangeException(String.format(
-                "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
-                    + " same from the previous PatchSet (%s)",
-                changeInfo.getNumber(),
-                changeInfo.getCurrentRevision()));
+          throw new RedundantChangeException(
+              String.format(
+                  "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
+                      + " same from the previous PatchSet (%s)",
+                  changeInfo.getNumber(), changeInfo.getCurrentRevision()));
         }
       }
     }

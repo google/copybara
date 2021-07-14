@@ -54,6 +54,7 @@ import com.google.copybara.TransformWork;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.EmptyChangeException;
+import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GerritDestination.ChangeIdPolicy;
@@ -1605,9 +1606,9 @@ public class GerritDestinationTest {
 
     mockChangeFound(currentRev, 12310);
 
-    EmptyChangeException e =
+    RedundantChangeException e =
         assertThrows(
-            EmptyChangeException.class, () -> runAllowEmptyPatchSetFalse(newParent.getSha1()));
+            RedundantChangeException.class, () -> runAllowEmptyPatchSetFalse(newParent.getSha1()));
     assertThat(e)
         .hasMessageThat()
         .contains(
