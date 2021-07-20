@@ -3798,10 +3798,10 @@ A transformation that applies the given patch files. If a path does not exist in
 
 Parameter | Description
 --------- | -----------
-patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file.The files will be applied relative to the checkout dir and the leading pathcomponent will be stripped (-p1).<br><br>This field can be combined with 'series'. Both 'patches' and 'series' will be applied in order (patches first). **This field doesn't accept a glob**</p>
+patches | `sequence of string`<br><p>The list of patchfiles to apply, relative to the current config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).<br><br>If `series` is also specified, these patches will be applied before those ones.<br><br>**This field doesn't accept a glob.**</p>
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
-series | `string` or `NoneType`<br><p>The config file that contains a list of patches to apply. The <i>series</i> file contains names of the patch files one per line. The names of the patch files are relative to the <i>series</i> config file. The files will be applied relative to the checkout dir and the leading path component will be stripped (-p1).:<br>:<br>This field can be combined with 'patches'. Both 'patches' and 'series' will be applied in order (patches first).</p>
-strip | `int`<br><p>Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.).By default it uses -p1</p>
+series | `string` or `NoneType`<br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
+strip | `int`<br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
 
 
 

@@ -17,7 +17,6 @@
 package com.google.copybara.transform.patch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.config.SkylarkUtil.check;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -26,7 +25,6 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
-import com.google.copybara.util.Glob;
 import java.io.IOException;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -69,15 +67,13 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             name = "patches",
             named = true,
             defaultValue = "[]",
-            allowedTypes = {
-                @ParamType(type = Sequence.class, generic1 =  String.class)
-            },
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
             doc =
-                "The list of patchfiles to apply, relative to the current config file."
-                    + "The files will be applied relative to the checkout dir and the leading path"
-                    + "component will be stripped (-p1).<br><br>"
-                    + "This field can be combined with 'series'. Both 'patches' and 'series' will "
-                    + "be applied in order (patches first). **This field doesn't accept a glob**"),
+                "The list of patchfiles to apply, relative to the current config file. The files"
+                    + " will be applied relative to the checkout dir and the leading path component"
+                    + " will be stripped (-p1).<br><br>If `series` is also specified, these patches"
+                    + " will be applied before those ones.<br><br>**This field doesn't accept a"
+                    + " glob.**"),
         @Param(
             name = "excluded_patch_paths",
             allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
@@ -98,21 +94,21 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             defaultValue = "None",
             doc =
-                "The config file that contains a list of patches to apply. "
-                    + "The <i>series</i> file contains names of the patch files one per line. "
-                    + "The names of the patch files are relative to the <i>series</i> config file. "
-                    + "The files will be applied relative to the checkout dir and the leading path "
-                    + "component will be stripped (-p1).:<br>:<br>"
-                    + "This field can be combined with 'patches'. Both 'patches' and 'series' will "
-                    + "be applied in order (patches first)."),
+                "A file which contains a list of patches to apply. The patch files to apply are"
+                    + " interpreted relative to this file and must be written one per line. The"
+                    + " patches listed in this file will be applied relative to the checkout dir"
+                    + " and the leading path component will be stripped (via the `-p1`"
+                    + " flag).<br><br>You can generate a file which matches this format by running"
+                    + " 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is"
+                    + " also specified, those patches will be applied before these ones."),
         @Param(
             name = "strip",
             named = true,
             positional = false,
             defaultValue = "1",
             doc =
-                "Number of segments to strip. (This sets -pX flag, for example -p0, -p1, etc.)."
-                    + "By default it uses -p1"),
+                "Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`,"
+                    + " etc.) By default it uses `-p1`."),
       },
       useStarlarkThread = true)
   @UsesFlags(PatchingOptions.class)
