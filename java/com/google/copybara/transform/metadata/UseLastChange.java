@@ -30,8 +30,8 @@ import javax.annotation.Nullable;
 import net.starlark.java.syntax.Location;
 
 /**
- * Given a label that is not present in the change message but it is in the changes
- * metadata, expose it as a text label.
+ * Use metadata (i.e. message/author) from the last change being migrated. Useful when using
+ * 'SQUASH' mode but user only cares about the last change.
  */
 public class UseLastChange implements Transformation {
 
