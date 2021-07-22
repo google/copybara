@@ -394,7 +394,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "description",
             allowedTypes = {
@@ -408,7 +408,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           @Param(
               name = "actions",
               doc =
-                  "[DO NOT USE, NOT READY]"
+                  "Experimental feature. "
                       + "A list of mirror actions to perform, with the following semantics:\n"
                       + "  - There is no guarantee of the order of execution.\n"
                       + "  - Actions need to be independent from each other.\n"
@@ -818,7 +818,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "state",
             defaultValue = "'OPEN'",
@@ -1188,7 +1188,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "integrates",
             named = true,
@@ -1304,7 +1304,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             name = "partial_fetch",
             defaultValue = "False",
             named = true,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "delete_pr_branch",
             allowedTypes = {
@@ -1462,7 +1462,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "allow_empty_diff",
             defaultValue = "True",
@@ -1678,7 +1678,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             name = "partial_fetch",
             defaultValue = "False",
             named = true,
-            doc = "Please DO NOT set it to True. This feature is not ready."),
+            doc = "This is an experimental feature that only works for certain origin globs."),
         @Param(
             name = "notify",
             allowedTypes = {

@@ -2134,7 +2134,7 @@ push | `string`<br><p>Reference to use for pushing the change, for example 'main
 tag_name | `string` or `NoneType`<br><p>A template string that refers to a tag name. If tag_name exists, overwrite this tag only if flag git-tag-overwrite is set. Note that tag creation is best-effort and migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg of a tag. If set, we will create an annotated tag when tag_name is set. Usage: Users can use a string or a string with a label. For instance ${label}_message. And the value of label must be in changes' label list. Otherwise, tag will be created with sha1's commit msg.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 
@@ -2196,7 +2196,7 @@ url | `string`<br><p>Indicates the URL to push to as well as the URL from which 
 fetch | `string`<br><p>Indicates the ref from which to get the parent commit</p>
 push_to_refs_for | `string` or `NoneType`<br><p>Review branch to push the change to, for example setting this to 'feature_x' causes the destination to push to 'refs/for/feature_x'. It defaults to 'fetch' value.</p>
 submit | `bool`<br><p>If true, skip the push thru Gerrit refs/for/branch and directly push to branch. This is effectively a git.destination that sets a Change-Id</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 notify | `string` or `NoneType`<br><p>Type of Gerrit notify option (https://gerrit-review.googlesource.com/Documentation/user-upload.html#notify). Sends notifications by default.</p>
 change_id_policy | `string`<br><p>What to do in the presence or absent of Change-Id in message:<ul>  <li>`'REQUIRE'`: Require that the change_id is present in the message as a valid label</li>  <li>`'FAIL_IF_PRESENT'`: Fail if found in message</li>  <li>`'REUSE'`: Reuse if present. Otherwise generate a new one</li>  <li>`'REPLACE'`: Replace with a new one if found</li></ul></p>
 allow_empty_diff_patchset | `bool`<br><p>By default Copybara will upload a new PatchSet to Gerrit without checking the previous one. If this set to false, Copybara will download current PatchSet and check the diff against the new diff.</p>
@@ -2328,7 +2328,7 @@ url | `string`<br><p>Indicates the URL to push to as well as the URL from which 
 push | `string`<br><p>Reference to use for pushing the change, for example 'main'.</p>
 fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the parent commit. Defaults to push value if None</p>
 pr_branch_to_update | `string` or `NoneType`<br><p>A template string that refers to a pull request branch in the same repository will be updated to current commit of this push branch only if pr_branch_to_update exists. The reason behind this field is that presubmiting changes creates and leaves a pull request open. By using this, we can automerge/close this type of pull requests. As a result, users will see this pr_branch_to_update as merged to this push branch. Usage: Users can use a string or a string with a label. For instance ${label}_pr_branch_name. And the value of label must be in changes' label list. Otherwise, nothing will happen.</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 delete_pr_branch | `bool` or `NoneType`<br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
@@ -2388,7 +2388,7 @@ Parameter | Description
 url | `string`<br><p>Url of the GitHub project. For example "https://github.com/google/copybara'"</p>
 destination_ref | `string`<br><p>Destination reference for the change.</p>
 pr_branch | `string` or `NoneType`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 allow_empty_diff | `bool`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
 title | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
@@ -2496,7 +2496,7 @@ retryable_labels | `sequence of string`<br><p>Required labels to import the PR t
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 baseline_from_branch | `bool`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 state | `string`<br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 review_state | `string` or `NoneType`<br><p>Required state of the reviews associated with the Pull Request Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`, `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
 review_approvers | `sequence of string` or `NoneType`<br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
@@ -2612,9 +2612,9 @@ origin | `string`<br><p>Indicates the URL of the origin git repository</p>
 destination | `string`<br><p>Indicates the URL of the destination git repository</p>
 refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirror between origin and destination. For example 'refs/heads/*:refs/remotes/origin/*' will mirror any reference inside refs/heads to refs/remotes/origin.</p>
 prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
-partial_fetch | `bool`<br><p>Please DO NOT set it to True. This feature is not ready.</p>
+partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
-actions | `sequence`<br><p>[DO NOT USE, NOT READY]A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
+actions | `sequence`<br><p>Experimental feature. A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 
 
 
