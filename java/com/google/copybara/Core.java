@@ -22,6 +22,7 @@ import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.transform.Transformations.toTransformation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -142,15 +143,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ImmutableList.Builder<Transformation> builder = ImmutableList.builder();
     for (Object t : transforms) {
       try {
-        if (t instanceof StarlarkCallable) {
-          builder.add(
-              new SkylarkTransformation((StarlarkCallable) t, Dict.empty(), printHandler)
-                  .reverse());
-        } else if (t instanceof Transformation) {
-          builder.add(((Transformation) t).reverse());
-        } else {
-          throw Starlark.errorf("Expected type 'transformation' or function, but found: %s", t);
-        }
+        builder.add(toTransformation(t, "transformations", printHandler).reverse());
       } catch (NonReversibleValidationException e) {
         throw Starlark.errorf("%s", e.getMessage());
       }

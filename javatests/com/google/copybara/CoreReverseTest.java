@@ -102,7 +102,9 @@ public final class CoreReverseTest {
     console
         .assertThat()
         .onceInLog(
-            MessageType.ERROR, ".*Expected type '?transformation'? or function, but found: 42.*");
+            MessageType.ERROR,
+            "Error in reverse: for 'transformations' element, got int, want function or"
+                + " transformation");
   }
 
   @Test

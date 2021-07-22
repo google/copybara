@@ -16,6 +16,8 @@
 
 package com.google.copybara.transform;
 
+import static com.google.copybara.transform.Transformations.toTransformation;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -33,10 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
-import net.starlark.java.eval.Starlark;
-import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkThread;
 
 /**
@@ -189,23 +188,9 @@ public class Sequence implements Transformation {
     ImmutableList.Builder<Transformation> transformations = ImmutableList.builder();
     for (Object element : elements) {
       transformations.add(
-          transformWrapper.apply(convertToTransformation(description, printHandler, element)));
+          transformWrapper.apply(toTransformation(element, description, printHandler)));
     }
     return new Sequence(profiler, workflowOptions, transformations.build(), noopBehavior);
-  }
-
-  private static Transformation convertToTransformation(
-      String description, StarlarkThread.PrintHandler printHandler, Object element)
-      throws EvalException {
-    if (element instanceof StarlarkCallable) {
-      return new SkylarkTransformation((StarlarkCallable) element, Dict.empty(), printHandler);
-    }
-    if (element instanceof Transformation) {
-      return (Transformation) element;
-    }
-    throw Starlark.errorf(
-        "for '%s' element, got %s, want function or transformation",
-        description, Starlark.type(element));
   }
 
   /**
