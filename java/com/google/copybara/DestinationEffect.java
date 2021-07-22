@@ -181,11 +181,10 @@ public class DestinationEffect implements StarlarkValue {
     CREATED,
     /** An existing review or change was updated */
     UPDATED,
-    /**
-     * The change was a noop. {@code destinationRef} might still be populated if the noop was
-     * detected against an existing review or pending change.
-     */
+    /** The change was a noop, relative to the destination's baseline. */
     NOOP,
+    /** The change was a noop, relative to an existing pending change in the destination. */
+    NOOP_AGAINST_PENDING_CHANGE,
     /** The effect couldn't happen because the change doesn't have enough approvals */
     INSUFFICIENT_APPROVALS,
     /**
