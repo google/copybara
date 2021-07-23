@@ -19,6 +19,7 @@ package com.google.copybara.doc.skylark;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.common.AnnotationMirrors;
 import com.google.auto.common.BasicAnnotationProcessor;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -461,9 +462,11 @@ public class MarkdownGenerator extends BasicAnnotationProcessor {
           return (T) entry.getValue().getValue();
         }
       }
-      throw new ElementException(element,
-          String.format("Cannot find @%s annotation field %s in class %s", annMirror, name,
-              element.getSimpleName()));
+      throw new ElementException(
+          element,
+          String.format(
+              "Cannot find @%s annotation field %s in class %s",
+              AnnotationMirrors.toString(annMirror), name, element.getSimpleName()));
     }
   }
 

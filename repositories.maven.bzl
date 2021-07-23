@@ -23,7 +23,7 @@ def copybara_maven_repositories():
             "com.beust:jcommander:1.48",
             "com.google.auto.value:auto-value-annotations:1.6.3",
             "com.google.auto.value:auto-value:1.6.3",
-            "com.google.auto:auto-common:0.10",
+            "com.google.auto:auto-common:1.1.2",
             "com.google.code.findbugs:jsr305:3.0.2",
             "com.google.code.gson:gson:jar:2.8.5",
             "com.google.flogger:flogger-system-backend:0.3.1",
