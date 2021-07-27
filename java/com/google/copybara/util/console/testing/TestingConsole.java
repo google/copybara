@@ -26,8 +26,11 @@ import com.google.copybara.util.console.CapturingConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.Message.MessageType;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.EnumSet;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 
 /**
  * A testing console that allows programming the user input and deletages on a
@@ -44,6 +47,7 @@ public final class TestingConsole extends CapturingConsole {
   private final Console outputConsole =
       LogConsole.writeOnlyConsole(System.out, /*verbose=*/true);
   private final ArrayDeque<PromptResponse> programmedResponses = new ArrayDeque<>();
+  private final ArrayDeque<String> programmedStringResponses = new ArrayDeque<>();
 
   public TestingConsole() {
     this(/*verbose*/true);
@@ -63,6 +67,11 @@ public final class TestingConsole extends CapturingConsole {
 
   public TestingConsole respondNo() {
     this.programmedResponses.addLast(PromptResponse.NO);
+    return this;
+  }
+
+  public TestingConsole respondWithString(String response) {
+    this.programmedStringResponses.addLast(response);
     return this;
   }
 
@@ -87,6 +96,15 @@ public final class TestingConsole extends CapturingConsole {
     // Validate prompt messages with WARN level in tests
     warn(message);
     return programmedResponses.removeFirst() == PromptResponse.YES;
+  }
+
+  @Override
+  public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    Preconditions.checkState(!programmedStringResponses.isEmpty(), "No more programmed responses.");
+    info(msg);
+    infoFmt("Responding with %s", programmedStringResponses.peekFirst());
+    return programmedStringResponses.removeFirst();
   }
 
   @Override

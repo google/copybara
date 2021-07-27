@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.LogSubjects.LogSubject;
+import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -152,6 +153,13 @@ public final class TestingConsoleTest {
         .respondNo();
     assertThat(console.promptConfirmation("Proceed?")).isTrue();
     assertThat(console.promptConfirmation("Proceed?")).isFalse();
+  }
+
+  @Test
+  public void testProgrammedStringResponses() throws Exception {
+    Console console = new TestingConsole().respondWithString("Hello world!");
+    assertThat(console.ask("Have anything to say?", "foo", Objects::nonNull))
+        .isEqualTo("Hello world!");
   }
 
   @Test
