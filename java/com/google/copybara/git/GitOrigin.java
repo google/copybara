@@ -136,9 +136,8 @@ public class GitOrigin implements Origin<GitRevision> {
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
     if (partialFetch) {
-      String partialCacheFilePrefix = String.format("%s:%s", configPath, workflowName);
-       return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
-           .enablePartialFetch();
+      String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, repoUrl);
+      return gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
     }
     return gitOptions.cachedBareRepoForUrl(repoUrl);
   }
@@ -248,9 +247,8 @@ public class GitOrigin implements Origin<GitRevision> {
 
     protected GitRepository getRepository() throws RepoException {
       if (partialFetch) {
-        String partialCacheFilePrefix = String.format("%s:%s", configPath, workflowName);
-         return gitOptions.cachedBareRepoForUrlWithPrefix(repoUrl, partialCacheFilePrefix)
-             .enablePartialFetch();
+        String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, repoUrl);
+        return gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
       }
       return gitOptions.cachedBareRepoForUrl(repoUrl);
     }

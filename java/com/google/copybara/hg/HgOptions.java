@@ -18,13 +18,11 @@ package com.google.copybara.hg;
 
 import static com.google.copybara.util.FileUtil.resolveDirInCache;
 
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
-
-import com.beust.jcommander.Parameters;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -65,7 +63,7 @@ public class HgOptions implements Option {
    */
   private HgRepository createBareRepo(String url, Path path)
       throws RepoException {
-    Path repoPath = resolveDirInCache(/** prefix=*/ null, url, path);
+    Path repoPath = resolveDirInCache(url, path);
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo =

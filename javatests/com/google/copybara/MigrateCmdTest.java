@@ -111,8 +111,11 @@ public class MigrateCmdTest {
             optionsBuilder.build(),
             ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default")));
 
-    assertThat(Files.exists(FileUtil.resolveDirInCache(/*prefix=*/"copy.bara.sky:default", url,
-        outPut.resolve("cache").resolve("git_repos")))).isTrue();
+    assertThat(
+            Files.exists(
+                FileUtil.resolveDirInCache(
+                    "copy.bara.sky:default" + url, outPut.resolve("cache").resolve("git_repos"))))
+        .isTrue();
   }
 
   @Test
@@ -122,8 +125,10 @@ public class MigrateCmdTest {
             optionsBuilder.build(),
             ImmutableList.of(temp.resolve("copy.bara.sky").toString(), "default")));
 
-    assertThat(Files.exists(FileUtil.resolveDirInCache(/*prefix=*/null, url,
-        outPut.resolve("cache").resolve("git_repos")))).isTrue();
+    assertThat(
+            Files.exists(
+                FileUtil.resolveDirInCache(url, outPut.resolve("cache").resolve("git_repos"))))
+        .isTrue();
   }
 
   private String git(Path dir, String... params) throws RepoException {

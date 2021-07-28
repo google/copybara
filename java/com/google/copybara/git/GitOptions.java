@@ -95,15 +95,9 @@ public class GitOptions implements Option {
   }
 
   public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
-    return cachedBareRepoForUrlWithPrefix(url, null);
-  }
-
-  public GitRepository cachedBareRepoForUrlWithPrefix(String url,
-      @Nullable String partialCacheFilePrefix) throws RepoException {
     Preconditions.checkNotNull(url);
     try {
-      return createBareRepo(generalOptions,
-          resolveDirInCache(partialCacheFilePrefix, url, getRepoStorage()));
+      return createBareRepo(generalOptions, resolveDirInCache(url, getRepoStorage()));
     } catch (IOException e) {
       throw new RepoException("Cannot create a cached repo for " + url, e);
     }
