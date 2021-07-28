@@ -32,6 +32,7 @@ import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState;
@@ -238,13 +239,37 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       // Can never trust the cache when inside a dynamic transform. This makes the cache
       // more-or-less useless here.
       this.treeState.clearCache();
-      ((Transformation) runnable).transform(this);
-      return Starlark.NONE;
+      return ((Transformation) runnable).transform(this);
     }
 
     throw Starlark.errorf(
         "Only globs or transforms can be run, but '%s' is of type %s",
         runnable, runnable.getClass());
+  }
+
+  @StarlarkMethod(name = "success", doc = "The status returned by a successful Transformation")
+  @Example(
+      title = "Define a dynamic transformation",
+      before = "Create a custom transformation which is successful.",
+      code = "def my_transform(ctx):\n" + "  # do some stuff\n" + "  return ctx.success()",
+      after = "For compatibility reasons, returning nothing is the same as returning success.")
+  public TransformationStatus success() {
+    return TransformationStatus.success();
+  }
+
+  @StarlarkMethod(
+      name = "noop",
+      doc = "The status returned by a no-op Transformation",
+      parameters = {@Param(name = "message")})
+  @Example(
+      title = "Define a dynamic transformation",
+      before = "Create a custom transformation which fails.",
+      code =
+          "def my_transform(ctx):\n"
+              + "  # do some stuff\n"
+              + "  return ctx.noop('Error! The transform didn\\'t do anything.')")
+  public TransformationStatus noop(String message) {
+    return TransformationStatus.noop(message);
   }
 
   @StarlarkMethod(

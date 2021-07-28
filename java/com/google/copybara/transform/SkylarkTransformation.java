@@ -60,17 +60,22 @@ public class SkylarkTransformation implements Transformation {
     SkylarkConsole skylarkConsole = new SkylarkConsole(work.getConsole());
     TransformWork skylarkWork = work.withConsole(skylarkConsole)
         .withParams(params);
+    TransformationStatus status = TransformationStatus.success();
     try (Mutability mu = Mutability.create("dynamic_transform")) {
       StarlarkThread thread = new StarlarkThread(mu, StarlarkSemantics.DEFAULT);
       thread.setPrintHandler(printHandler);
       Object result =
           Starlark.call(
               thread, function, ImmutableList.of(skylarkWork), /*kwargs=*/ ImmutableMap.of());
+      result = result == Starlark.NONE ? TransformationStatus.success() : result;
       checkCondition(
-          result == Starlark.NONE,
-          "Message transformer functions should not return anything, but '%s' returned: %s",
+          result instanceof TransformationStatus,
+          "Dynamic transforms functions should return nothing or objects of type %s, but '%s'"
+              + " returned: %s",
+          TransformationStatus.STARLARK_TYPE_NAME,
           function.getName(),
           result);
+      status = (TransformationStatus) result;
     } catch (EvalException e) {
       if (e.getCause() instanceof EmptyChangeException) {
         throw ((EmptyChangeException) e.getCause());
@@ -96,7 +101,7 @@ public class SkylarkTransformation implements Transformation {
 
     checkCondition(skylarkConsole.getErrorCount() == 0, "%d error(s) while executing %s",
         skylarkConsole.getErrorCount(), function.getName());
-    return TransformationStatus.success();
+    return status;
   }
 
   @Override

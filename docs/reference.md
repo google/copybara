@@ -157,6 +157,7 @@
   - [PathAttributes](#pathattributes)
   - [SetReviewInput](#setreviewinput)
   - [transformation](#transformation)
+  - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
     - [ctx.add_label](#ctxadd_label)
     - [ctx.add_or_replace_label](#ctxadd_or_replace_label)
@@ -167,6 +168,7 @@
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
     - [ctx.new_path](#ctxnew_path)
+    - [ctx.noop](#ctxnoop)
     - [ctx.now_as_string](#ctxnow_as_string)
     - [ctx.origin_api](#ctxorigin_api)
     - [ctx.read_path](#ctxread_path)
@@ -176,6 +178,7 @@
     - [ctx.set_author](#ctxset_author)
     - [ctx.set_executable](#ctxset_executable)
     - [ctx.set_message](#ctxset_message)
+    - [ctx.success](#ctxsuccess)
     - [ctx.write_path](#ctxwrite_path)
 
 
@@ -3906,6 +3909,20 @@ A single operation which modifies the source checked out from the origin, prior 
 
 
 
+## transformation_status
+
+The status of a Transformation that was just run. Either a 'success' or a 'no-op'.
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+is_noop | Whether this status has the value NO-OP.
+is_success | Whether this status has the value SUCCESS.
+
+
+
 ## TransformWork
 
 Data about the set of changes that are being migrated. It includes information about changes like: the author to be used for commit, change message, etc. You receive a TransformWork object as an argument when defining a <a href='#core.dynamic_transform'><code>dynamic transform</code></a>.
@@ -4039,6 +4056,35 @@ Parameter | Description
 --------- | -----------
 path | `string`<br><p>The string representing the path, relative to the checkout root directory</p>
 
+<a id="ctx.noop" aria-hidden="true"></a>
+### ctx.noop
+
+The status returned by a no-op Transformation
+
+`transformation_status ctx.noop(message)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+message | `string`<br><p></p>
+
+
+#### Example:
+
+
+##### Define a dynamic transformation:
+
+Create a custom transformation which fails.
+
+```python
+def my_transform(ctx):
+  # do some stuff
+  return ctx.noop('Error! The transform didn\'t do anything.')
+```
+
+
 <a id="ctx.now_as_string" aria-hidden="true"></a>
 ### ctx.now_as_string
 
@@ -4163,6 +4209,30 @@ Update the message to be used in the change
 Parameter | Description
 --------- | -----------
 message | `string`<br><p></p>
+
+<a id="ctx.success" aria-hidden="true"></a>
+### ctx.success
+
+The status returned by a successful Transformation
+
+`transformation_status ctx.success()`
+
+
+#### Example:
+
+
+##### Define a dynamic transformation:
+
+Create a custom transformation which is successful.
+
+```python
+def my_transform(ctx):
+  # do some stuff
+  return ctx.success()
+```
+
+For compatibility reasons, returning nothing is the same as returning success.
+
 
 <a id="ctx.write_path" aria-hidden="true"></a>
 ### ctx.write_path

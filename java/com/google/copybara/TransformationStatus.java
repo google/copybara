@@ -19,12 +19,18 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.util.console.Console;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
-/**
- * The Status of a Transformation that was just run. Either a 'success' or a 'no-op'.
- */
-public final class TransformationStatus {
+/** The status of a Transformation that was just run. Either a 'success' or a 'no-op'. */
+@SuppressWarnings("unused")
+@StarlarkBuiltin(
+    name = TransformationStatus.STARLARK_TYPE_NAME,
+    doc = "The status of a Transformation that was just run. Either a 'success' or a 'no-op'.")
+public final class TransformationStatus implements StarlarkValue {
 
+  public static final String STARLARK_TYPE_NAME = "transformation_status";
   private final boolean isSuccess;
   private final String message;
 
@@ -41,10 +47,18 @@ public final class TransformationStatus {
     return new TransformationStatus(false, message);
   }
 
+  @StarlarkMethod(
+      name = "is_success",
+      doc = "Whether this status has the value SUCCESS.",
+      structField = true)
   public boolean isSuccess() {
     return isSuccess;
   }
 
+  @StarlarkMethod(
+      name = "is_noop",
+      doc = "Whether this status has the value NO-OP.",
+      structField = true)
   public boolean isNoop() {
     return !isSuccess;
   }
