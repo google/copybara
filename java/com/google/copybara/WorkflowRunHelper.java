@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
+import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
@@ -419,7 +420,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                         .iterator()),
                         e.getMessage()),
                     changes.getCurrent(),
-                    /*destinationRef=*/ null));
+                    new DestinationRef(e.getPendingRevision(), "commit", /*url=*/ null)));
         throw e;
       } catch (EmptyChangeException empty) {
         effects =

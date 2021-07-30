@@ -257,7 +257,8 @@ public final class GerritDestination implements Destination<GitRevision> {
               String.format(
                   "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
                       + " same from the previous PatchSet (%s)",
-                  changeInfo.getNumber(), changeInfo.getCurrentRevision()));
+                  changeInfo.getNumber(), changeInfo.getCurrentRevision()),
+              changeInfo.getCurrentRevision());
         }
       }
     }

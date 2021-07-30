@@ -23,11 +23,20 @@ package com.google.copybara.exception;
  */
 public class RedundantChangeException extends EmptyChangeException {
 
-  public RedundantChangeException(String message) {
+  private final String pendingRevision;
+
+  public RedundantChangeException(String message, String pendingRevision) {
     super(message);
+    this.pendingRevision = pendingRevision;
   }
 
-  public RedundantChangeException(Throwable cause, String message) {
+  public RedundantChangeException(Throwable cause, String message, String pendingRevision) {
     super(cause, message);
+    this.pendingRevision = pendingRevision;
+  }
+
+  /** Return a ref (e.g. SHA1) of the pending change that makes the current workflow redundant. */
+  public String getPendingRevision() {
+    return pendingRevision;
   }
 }

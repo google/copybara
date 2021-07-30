@@ -101,7 +101,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
           throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
-                  repoUrl, pullRequest.getNumber(), originalChange.getRef()));
+                  repoUrl, pullRequest.getNumber(), originalChange.getRef()),
+              pullRequest.getHead().getSha());
         }
       } catch(GitHubApiException e) {
           if (e.getResponseCode() == ResponseCode.NOT_FOUND
