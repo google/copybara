@@ -119,7 +119,7 @@ following code to your `WORKSPACE` file, replacing `{{ sha256sum }}` and
 ```
 http_archive(
   name = "com_github_google_copybara",
-  sha256 = "{{ sha256sum }}"
+  sha256 = "{{ sha256sum }}",
   strip_prefix = "copybara-{{ commit }}",
   url = "https://github.com/google/copybara/archive/{{ commit }}",
 )
