@@ -130,4 +130,19 @@ public class SkylarkTransformationTest {
 
     assertThat(status.isSuccess()).isTrue();
   }
+
+  @Test
+  public void testStarlarkTransform_convertToString() throws Exception {
+    Transformation t =
+        skylark.eval(
+            "t",
+            ""
+                + "def _foo_impl(ctx):\n"
+                + "  pass\n"
+                + "\n"
+                + "t = core.dynamic_transform(_foo_impl, {'a': 1})");
+
+    assertThat(t.describe()).isEqualTo("_foo_impl");
+    assertThat(t.toString()).isEqualTo("Foo{a=1}");
+  }
 }

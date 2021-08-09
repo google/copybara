@@ -18,6 +18,9 @@ package com.google.copybara.transform;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
+import com.google.common.base.CaseFormat;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +32,7 @@ import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
+import java.util.Map.Entry;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Mutability;
@@ -73,7 +77,7 @@ public class SkylarkTransformation implements Transformation {
           "Dynamic transforms functions should return nothing or objects of type %s, but '%s'"
               + " returned: %s",
           TransformationStatus.STARLARK_TYPE_NAME,
-          function.getName(),
+          describe(),
           result);
       status = (TransformationStatus) result;
     } catch (EvalException e) {
@@ -84,13 +88,13 @@ public class SkylarkTransformation implements Transformation {
         throw new RepoException(
             String.format(
                 "Error while executing the skylark transformation %s: %s",
-                function.getName(), e.getMessageWithStack()),
+                describe(), e.getMessageWithStack()),
             e);
       }
       throw new ValidationException(
           String.format(
               "Error while executing the skylark transformation %s: %s",
-              function.getName(), e.getMessageWithStack()),
+              describe(), e.getMessageWithStack()),
           e);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -99,8 +103,11 @@ public class SkylarkTransformation implements Transformation {
       work.updateFrom(skylarkWork);
     }
 
-    checkCondition(skylarkConsole.getErrorCount() == 0, "%d error(s) while executing %s",
-        skylarkConsole.getErrorCount(), function.getName());
+    checkCondition(
+        skylarkConsole.getErrorCount() == 0,
+        "%d error(s) while executing %s",
+        skylarkConsole.getErrorCount(),
+        describe());
     return status;
   }
 
@@ -112,6 +119,19 @@ public class SkylarkTransformation implements Transformation {
   @Override
   public String describe() {
     return function.getName();
+  }
+
+  @Override
+  public String toString() {
+    String camelCaseName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, this.describe());
+    if (camelCaseName.endsWith("Impl")) {
+      camelCaseName = camelCaseName.substring(0, camelCaseName.length() - 4);
+    }
+    ToStringHelper builder = MoreObjects.toStringHelper(camelCaseName);
+    for (Entry<?, ?> e : this.params.entrySet()) {
+      builder.add(e.getKey().toString(), e.getValue().toString());
+    }
+    return builder.toString();
   }
 
   @Override
