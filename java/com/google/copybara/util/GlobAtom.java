@@ -53,8 +53,8 @@ public final class GlobAtom {
     return type.matcher(root, pattern);
   }
 
-  public String root() {
-    return type.root(pattern);
+  public String root(boolean allowFiles) {
+    return type.root(pattern, allowFiles);
   }
 
   @Override
@@ -93,15 +93,19 @@ public final class GlobAtom {
       }
 
       @Override
-      String root(String pattern) {
+      String root(String pattern, boolean allowFiles) {
+        boolean isSingleFile = true;
         ArrayDeque<String> components = new ArrayDeque<>();
         for (String component : Splitter.on('/').split(pattern)) {
           components.add(unescape(component));
           if (isMeta(component)) {
+            isSingleFile = false;
             break;
           }
         }
-        components.removeLast();
+        if (!(allowFiles && isSingleFile)) {
+          components.removeLast();
+        }
         if (components.isEmpty()) {
           return "";
         }
@@ -134,12 +138,8 @@ public final class GlobAtom {
       return false;
     }
 
-    PathMatcher matcher(Path root, String pattern) {
-      throw new UnsupportedOperationException();
-    }
+    abstract PathMatcher matcher(Path root, String pattern);
 
-    String root(String pattern) {
-      throw new UnsupportedOperationException();
-    }
+    abstract String root(String pattern, boolean allowFiles);
   }
 }

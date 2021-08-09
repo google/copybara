@@ -1231,6 +1231,43 @@ public class GitOriginTest {
   }
 
   @Test
+  public void partialFetch_canFetchRootFile() throws Exception {
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+
+    Files.write(remote.resolve("file.txt"), new byte[0]);
+    git("add", "file.txt");
+    git("commit", "-m", "message");
+
+    @SuppressWarnings("unchecked")
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'default',\n"
+                        + "    origin = git.origin(\n"
+                        + "         url = '"
+                        + url
+                        + "',\n"
+                        + "         include_branch_commit_logs = True,\n"
+                        + "         partial_fetch = True,\n"
+                        + "    ),\n"
+                        + "    origin_files = glob(['directory/**', 'file.txt']),\n"
+                        + "    destination = testing.destination(),\n"
+                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+                        + ")\n")
+                .getMigration("default");
+
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+
+    List<ProcessedChange> changes = destination.processed;
+    assertThat(changes).hasSize(1);
+  }
+
+  @Test
   public void partialFetchAtGitOrigin() throws Exception {
     Files.createDirectories(remote.resolve("include"));
     Files.write(remote.resolve("include/fileA.txt"), new byte[0]);

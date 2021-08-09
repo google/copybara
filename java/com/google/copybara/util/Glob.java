@@ -249,7 +249,16 @@ public class Glob implements StarlarkValue, HasBinary {
    * origin you are using for more information.
    */
   public ImmutableSet<String> roots() {
-    return computeRootsFromIncludes(getIncludes());
+    return roots(false);
+  }
+
+  /**
+   * If {@code allowFiles} is set to true, then Paths containing no meta characters are retained
+   * exactly as they are - for example, {@code foo/bar.txt} is output unmodified and not shortened
+   * to {@code foo}.
+   */
+  public ImmutableSet<String> roots(boolean allowFiles) {
+    return computeRootsFromIncludes(getIncludes(), allowFiles);
   }
 
   /**
@@ -265,11 +274,12 @@ public class Glob implements StarlarkValue, HasBinary {
         include, Iterables.concat(Iterables.transform(globInclude, Glob::getIncludes)));
   }
 
-  static ImmutableSet<String> computeRootsFromIncludes(Iterable<GlobAtom> includes) {
+  private static ImmutableSet<String> computeRootsFromIncludes(
+      Iterable<GlobAtom> includes, boolean allowFiles) {
     List<String> roots = new ArrayList<>();
 
     for (GlobAtom atom : includes) {
-      roots.add(atom.root());
+      roots.add(atom.root(allowFiles));
     }
 
     // Remove redundant roots - e.g. "foo" covers all paths that start with "foo/"
