@@ -73,7 +73,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       boolean skipPush,
       List<? extends Change<?>> originChanges)
       throws ValidationException, RepoException {
-    if (skipPush || allowEmptyDiff) {
+    if (skipPush || generalOptions.allowEmptyDiff(allowEmptyDiff)) {
       return;
     }
     for (Change<?> originalChange : originChanges) {

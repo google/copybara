@@ -510,4 +510,17 @@ public final class GeneralOptions implements Option {
       names = {"--event-monitor"},
       description = "Eventmonitors to enable. These must be in the list of available monitors.")
   public List<String> enabledEventMonitors = new ArrayList<>(ImmutableList.of(DEFAULT_MONITOR));
+
+  @Parameter(
+      names = "--allow-empty-diff",
+      description =
+          "If set to false, Copybara will not write to the destination if the exact same change is"
+              + " already pending in the destination. Currently only supported for"
+              + " `git.github_pr_destination` and `git.gerrit_destination`.",
+      arity = 1)
+  public Boolean allowEmptyDiff = null;
+
+  public boolean allowEmptyDiff(boolean configAllowEmptyDiff) {
+    return this.allowEmptyDiff == null ? configAllowEmptyDiff : this.allowEmptyDiff;
+  }
 }

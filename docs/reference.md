@@ -577,6 +577,7 @@ main_config_path | `string`<br><p>Location of the config file. This is subject t
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--allow-empty-diff`</span> | *boolean* | If set to false, Copybara will not write to the destination if the exact same change is already pending in the destination. Currently only supported for `git.github_pr_destination` and `git.gerrit_destination`.
 <span style="white-space: nowrap;">`--commands-timeout`</span> | *duration* | Commands timeout.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--config-root`</span> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.  Example values: 30s, 20m, 1h, etc.

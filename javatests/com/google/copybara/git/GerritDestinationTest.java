@@ -53,7 +53,6 @@ import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -1635,6 +1634,34 @@ public class GerritDestinationTest {
         .containsFile("non_relevant.txt", "bar")
         .containsFile("foo.txt", thirdChange)
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testNoAllowEmptyPatchSet_overriddenByOptions() throws Exception {
+    options.general.allowEmptyDiff = true;
+
+    Path workTree = Files.createTempDirectory("populate");
+    GitRepository repo = repo().withWorkTree(workTree);
+
+    writeFile(workTree, "foo.txt", "content 1");
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "Old parent");
+
+    writeFile(workdir, "foo.txt", "content 2");
+
+    mockNoChangesFound();
+    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getSha1());
+
+    String primaryBranch = repo.getPrimaryBranch();
+
+    GitRevision currentRev = repo.resolveReference(getGerritRef(repo, "refs/for/" + primaryBranch));
+    repo.simpleCommand("update-ref", "refs/changes/10/12310/1", currentRev.getSha1());
+    // To avoid the non-fastforward. In real Gerrit this is not a problem
+    repo.simpleCommand("update-ref", "-d", getGerritRef(repo, "refs/for/" + primaryBranch));
+
+    repo.forceCheckout(primaryBranch);
+    mockChangeFound(currentRev, 12310);
+    runAllowEmptyPatchSetFalse(repo.resolveReference("HEAD").getSha1());
   }
 
   private void mockChangeFound(GitRevision currentRev, int changeNum) throws IOException {
