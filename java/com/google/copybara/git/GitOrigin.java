@@ -328,15 +328,15 @@ public class GitOrigin implements Origin<GitRevision> {
         generalOptions.console()
             .verboseFmt(
                 "Checking out submodule '%s' with reference '%s'", submodule, element.getRef());
-
-        GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submodule.getUrl());
+        String submoduleUrl = gitOptions.rewriteSubmoduleUrl(submodule.getUrl());
+        GitRepository subRepo = gitOptions.cachedBareRepoForUrl(submoduleUrl);
 
 
         if (submodule.getBranch() != null) {
-          subRepo.fetchSingleRef(submodule.getUrl(), submodule.getBranch(), partialFetch);
+          subRepo.fetchSingleRef(submoduleUrl, submodule.getBranch(), partialFetch);
         } else {
           subRepo.fetch(
-              submodule.getUrl(), /*prune*/
+              submoduleUrl, /*prune*/
               true, /*force*/
               true,
               ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
@@ -344,7 +344,7 @@ public class GitOrigin implements Origin<GitRevision> {
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(
-                element.getRef(), submodule.getName(), submodule.getUrl());
+                element.getRef(), submodule.getName(), submoduleUrl);
 
         Path subdir = workdir.resolve(submodule.getPath());
         try {
@@ -354,7 +354,7 @@ public class GitOrigin implements Origin<GitRevision> {
               "Cannot create subdirectory %s for submodule: %s", subdir, submodule));
         }
 
-        checkoutRepo(subRepo, submodule.getUrl(), subdir,
+        checkoutRepo(subRepo, submoduleUrl, subdir,
             submoduleStrategy == SubmoduleStrategy.RECURSIVE
                 ? SubmoduleStrategy.RECURSIVE
                 : SubmoduleStrategy.NO, submoduleRef, /*topLevelCheckout*/ false);

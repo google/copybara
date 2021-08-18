@@ -103,6 +103,13 @@ public class GitOptions implements Option {
     }
   }
 
+  /**
+   * Rewrite url for subodule fetch
+   */
+  public String rewriteSubmoduleUrl(String url) throws RepoException {
+    return url;
+  }
+
   /** Returns a {@link GitEnvironment} configured for the given options. */
   protected GitEnvironment getGitEnvironment(Map<String, String> env) {
     return new GitEnvironment(env, noGitPrompt);

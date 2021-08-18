@@ -19,8 +19,10 @@ package com.google.copybara.git;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.MoreFiles;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -34,6 +36,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
@@ -84,11 +87,11 @@ public class GitOriginSubmodulesTest {
   @Test
   public void testBasicCases() throws Exception {
     Path base = Files.createTempDirectory("base");
-    createRepoWithFoo(base, "r1");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
     // Build a relative url submodule
     r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "--reference",
-        r2.getWorkTree().toString(), "../r1");
+        r1.getWorkTree().toString(), "../r1");
     commit(r2, "adding r1 submodule");
     r2.simpleCommand("branch", "for_submodule");
     // This commit shouldn't be read, since it is in main and r3 depends on 'for_submodule' branch:
@@ -152,10 +155,15 @@ public class GitOriginSubmodulesTest {
 
   private GitRepository createRepoWithFoo(Path base, String name)
       throws IOException, RepoException, ValidationException {
+    return createRepoWithFile(base, name, "foo");
+  }
+
+  private GitRepository createRepoWithFile(Path base, String name, String file)
+      throws IOException, RepoException, ValidationException {
     Files.createDirectories(base.resolve(name));
     GitRepository repo =
         GitRepository.newRepo(/*verbose*/ false, base.resolve(name), getGitEnv()).init();
-    commitAdd(repo, ImmutableMap.of("foo", "1"));
+    commitAdd(repo, ImmutableMap.of(file, "1"));
     return repo;
   }
 
@@ -290,6 +298,53 @@ public class GitOriginSubmodulesTest {
         .containsFile("r1.with.dot/foo", "1");
   }
 
+  @Test
+  public void testRewriteUrl() throws Exception {
+    Path base = Files.createTempDirectory("testRewriteUrl");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+    GitRepository r3 =
+        GitRepository.newBareRepo(
+                base.resolve("testRewriteUrl").resolve("r3"),
+                getGitEnv(),
+                false,
+                Duration.ofMinutes(1),
+                false)
+            .init();
+
+    r3.fetch(
+        "file://" + r1.getGitDir(),
+        false,
+        true,
+        ImmutableList.of("refs/heads/*:refs/heads/*"),
+        false);
+    String primaryBranch = r2.getPrimaryBranch();
+
+    OptionsBuilder options = new OptionsBuilder()
+        .setConsole(new TestingConsole())
+        .setOutputRootToTmpDir();
+    options.git = new GitOptions(options.general) {
+      @Override
+      public String rewriteSubmoduleUrl(String url) {
+        return r3.getGitDir().toString();
+      }
+    };
+    skylark = new SkylarkTestExecutor(options);
+
+    r2.simpleCommand("submodule", "add", "-f", "--name", "r1",
+        "file://" + r1.getWorkTree(), "r1");
+
+    commit(r2, "adding r3->r1 submodule");
+    MoreFiles.deleteRecursively(r1.getGitDir()); // Nuke r1 to verify r3 is read
+    GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);
+    GitRevision main = origin.resolve(primaryBranch);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFile("r1/foo", "1");
+  }
+
   private void commitAdd(GitRepository repo, Map<String, String> files)
       throws IOException, RepoException, ValidationException {
     for (Entry<String, String> e : files.entrySet()) {
@@ -309,3 +364,4 @@ public class GitOriginSubmodulesTest {
     repo.commit("foo <foobar@example.com>", ZonedDateTime.now(ZoneId.systemDefault()), message);
   }
 }
+
