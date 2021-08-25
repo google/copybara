@@ -17,15 +17,18 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Represents an issue returned by https://api.github.com/repos/REPO_ID/issues/NUMBER
  */
-public class Issue extends PullRequestOrIssue {
 
-  @Key
-  private List<Label> labels;
+public class Issue extends PullRequestOrIssue implements StarlarkValue {
+
+  @Key private List<Label> labels;
+
 
   public List<Label> getLabels() {
     return labels;
@@ -37,9 +40,32 @@ public class Issue extends PullRequestOrIssue {
 
   @Override
   public String toString() {
-    return getToStringHelper()
-        .add("labels", labels)
-        .toString();
+    return super.toString() + getToStringHelper();
+  }
+
+  /** Represents https://docs.github.com/en/rest/reference/issues#create-an-issue--parameters */
+  public static class CreateIssueRequest {
+    @Key private String title;
+    @Key private String body;
+    @Key private List<String> assignees;
+
+    public CreateIssueRequest(String title, String body, List<String> assignees) {
+      this.title = title;
+      this.body = body;
+      this.assignees = ImmutableList.copyOf(assignees);
+    }
+
+    public String getTitle() {
+      return title;
+    }
+
+    public String getBody() {
+      return body;
+    }
+
+    public ImmutableList<String> getAssignees() {
+      return ImmutableList.copyOf(assignees);
+    }
   }
 
 }

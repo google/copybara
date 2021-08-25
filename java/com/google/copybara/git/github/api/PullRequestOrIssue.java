@@ -20,11 +20,11 @@ import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Ints;
 import java.time.ZonedDateTime;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -44,16 +44,15 @@ public class PullRequestOrIssue implements StarlarkValue {
   @Key private User assignee;
   @Key private List<User> assignees;
 
-  @StarlarkMethod(name = "number", doc = "Pull Request number", structField = true)
-  public int getNumberForStarlark() {
-    // Sadly Starlark doesn't support long.
-    return Ints.saturatedCast(number);
-  }
 
   public long getNumber() {
     return number;
   }
 
+  @StarlarkMethod(name = "number", doc = "Pull Request number", structField = true)
+  public StarlarkInt getNumberForSkylark() {
+    return StarlarkInt.of(number);
+  }
   public String getState() {
     return state;
   }

@@ -110,6 +110,7 @@
   - [git_merge_result](#git_merge_result)
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_objadd_label)
+    - [github_api_obj.create_issue](#github_api_objcreate_issue)
     - [github_api_obj.create_status](#github_api_objcreate_status)
     - [github_api_obj.delete_reference](#github_api_objdelete_reference)
     - [github_api_obj.get_authenticated_user](#github_api_objget_authenticated_user)
@@ -2717,6 +2718,22 @@ Parameter | Description
 --------- | -----------
 number | `int`<br><p>Pull Request number</p>
 labels | `sequence of string`<br><p>List of labels to add.</p>
+
+<a id="github_api_obj.create_issue" aria-hidden="true"></a>
+### github_api_obj.create_issue
+
+Create a new issue.
+
+`Issue github_api_obj.create_issue(title, body, assignees)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+title | `string`<br><p>Title of the issue</p>
+body | `string`<br><p>Body of the issue.</p>
+assignees | `sequence`<br><p>GitHub users to whom the issue will be assigned.</p>
 
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
 ### github_api_obj.create_status

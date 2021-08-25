@@ -28,6 +28,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
+import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.lang.reflect.Type;
@@ -295,6 +296,17 @@ public class GitHubApi {
       return transport.get(String.format("repos/%s/issues/%d", projectId, number), Issue.class);
     } catch (GitHubApiException e) {
       throw treatGitHubException(e, "Issue");
+    }
+  }
+
+  /**
+   * Create a issue
+   */
+  public Issue createIssue(String projectId, CreateIssueRequest request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_create_issue")) {
+      return transport.post(
+          String.format("repos/%s/issues", projectId), request, Issue.class);
     }
   }
 

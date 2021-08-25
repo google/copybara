@@ -23,8 +23,10 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
@@ -41,6 +43,8 @@ import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.StateF
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
+import com.google.copybara.git.github.api.Issue;
+import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
@@ -71,6 +75,8 @@ import net.starlark.java.eval.StarlarkValue;
     name = "github_api_obj",
     doc = "GitHub API endpoint implementation for feedback migrations and after migration hooks.")
 public class GitHubEndPoint implements Endpoint, StarlarkValue {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
@@ -536,6 +542,30 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
               SkylarkUtil.convertStringList(labels, "Expected list of GitHub label names."));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling add_label: %s", e.getMessage());
+    }
+  }
+
+  @StarlarkMethod(
+      name = "create_issue",
+      doc = "Create a new issue.",
+      parameters = {
+          @Param(name = "title", named = true, doc = "Title of the issue"),
+          @Param(name = "body", named = true, doc = "Body of the issue."),
+          @Param(name = "assignees", named = true,
+              doc = "GitHub users to whom the issue will be assigned."),
+      })
+  public Issue createIssue(String title, String body, StarlarkList<?> assignees)
+      throws EvalException, RepoException {
+    try {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return apiSupplier.load(console)
+          .createIssue(project, new CreateIssueRequest(title, body,
+              SkylarkUtil.convertStringList(assignees,
+                  "Expected assignees to be a list of string.")));
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf(
+          "Error calling create_issue: %s - %s",
+          e.getMessage(), Throwables.getRootCause(e).getMessage());
     }
   }
 

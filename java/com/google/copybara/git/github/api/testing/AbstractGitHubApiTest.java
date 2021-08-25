@@ -46,6 +46,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
+import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
@@ -365,6 +366,25 @@ public abstract class AbstractGitHubApiTest {
         .containsExactly("cla: yes");
   }
 
+  @Test
+  public void testCreateIssue() throws Exception {
+    trainMockPost(
+        "/repos/example/project/issues", createValidator(TestCreateIssueRequest.class,
+            (ci) ->
+                ci.getTitle().equals("[TEST] example pull request one")
+                    && ci.getBody().equals("Example body.\n")
+                    && ci.getAssignees().equals(ImmutableList.of("foo", "bar"))),
+
+        getResource("issues_12345_testdata.json"));
+    Issue issue = api.createIssue("example/project",
+        new CreateIssueRequest("[TEST] example pull request one", "Example body.\n",
+            ImmutableList.of("foo", "bar")));
+
+    assertThat(issue.getNumber()).isEqualTo(12345);
+    assertThat(issue.getState()).isEqualTo("open");
+    assertThat(issue.getTitle()).isEqualTo("[TEST] example pull request one");
+    assertThat(issue.getBody()).isEqualTo("Example body.\r\n");
+  }
 
   @Test
   public void testCreateStatus() throws Exception {
@@ -667,6 +687,15 @@ public abstract class AbstractGitHubApiTest {
   public static class TestCreatePullRequest extends CreatePullRequest {
     public TestCreatePullRequest() {
       super("invalid", "invalid", "invalid", "invalid");
+    }
+  }
+
+  /**
+   * We don't want CreateIssueRequest to be instantiable, this subclass sidesteps the issue.
+   **/
+  public static class TestCreateIssueRequest extends CreateIssueRequest {
+    public TestCreateIssueRequest() {
+      super("invalid", "invalid", ImmutableList.of("foo", "bar"));
     }
   }
 
