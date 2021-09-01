@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.CommandLineException;
@@ -116,14 +117,30 @@ public final class MainArguments {
     if (firstArg.endsWith(COPYBARA_SKYLARK_CONFIG_FILENAME)) {
       return new CommandWithArgs(defaultCmd, ImmutableList.copyOf(unnamed));
     }
-
+    if (firstArg.contains(COPYBARA_SKYLARK_CONFIG_FILENAME + ':')) {
+      return new CommandWithArgs(defaultCmd, ImmutableList.<String>builder()
+          .addAll(splitConfigArg(firstArg)).addAll(unnamed.subList(1, unnamed.size())).build());
+    }
     if (!commands.containsKey(firstArg.toLowerCase())) {
       throw new CommandLineException(
           String.format("Invalid subcommand '%s'. Available commands: %s", firstArg,
               new TreeSet<>(commands.keySet())));
     }
-    return new CommandWithArgs(commands.get(firstArg.toLowerCase()),
-        ImmutableList.copyOf(unnamed.subList(1, unnamed.size())));
+    if (unnamed.size() == 1) {
+      return new CommandWithArgs(commands.get(firstArg.toLowerCase()), ImmutableList.of());
+    }
+    ImmutableList.Builder<String> args = ImmutableList.<String>builder().
+        addAll(splitConfigArg(unnamed.get(1))).addAll(unnamed.subList(2, unnamed.size()));
+    return new CommandWithArgs(commands.get(firstArg.toLowerCase()), args.build());
+  }
+
+  private static ImmutableList<String> splitConfigArg(String arg) {
+    List<String> split =
+        ImmutableList.copyOf(Splitter.on("copy.bara.sky:").limit(2).splitToList(arg));
+    if (split.size() == 1) {
+      return ImmutableList.copyOf(split);
+    }
+    return ImmutableList.of(split.get(0) + "copy.bara.sky", split.get(1));
   }
 
   static class CommandWithArgs {
