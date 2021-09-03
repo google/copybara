@@ -104,7 +104,11 @@ public final class TestingConsole extends CapturingConsole {
     Preconditions.checkState(!programmedStringResponses.isEmpty(), "No more programmed responses.");
     info(msg);
     infoFmt("Responding with %s", programmedStringResponses.peekFirst());
-    return programmedStringResponses.removeFirst();
+    String response = programmedStringResponses.removeFirst();
+    if (!validator.test(response)) {
+      throw new IOException("Invalid input");
+    }
+    return response;
   }
 
   @Override
