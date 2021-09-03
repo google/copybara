@@ -603,8 +603,8 @@ public class GitDestination implements Destination<GitRevision> {
       writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);
       if (skipPush) {
         console.infoFmt(
-            "Git Destination: skipped push to remote. Check the local commits by running: cd %s &&"
-                + " git log %s",
+            "Git Destination: skipped push to remote. Check the local commits by running:"
+                + " GIT_DIR=%s git log %s",
             scratchClone.getGitDir(), localBranchName);
         return ImmutableList.of(
             new DestinationEffect(
