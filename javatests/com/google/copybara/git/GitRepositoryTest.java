@@ -591,7 +591,7 @@ public class GitRepositoryTest {
         local.getGitDir().resolve("info/sparse-checkout");
 
     List<String> paths = Files.readAllLines(sparseCheckout);
-    assertThat(paths).containsExactly("foo", "bar");
+    assertThat(paths).containsExactly("/foo", "/bar");
   }
 
   @Test

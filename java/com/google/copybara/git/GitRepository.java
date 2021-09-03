@@ -893,7 +893,11 @@ public class GitRepository {
       throws RepoException {
     ImmutableList.Builder<String> argv = ImmutableList.builder();
     argv.add("sparse-checkout", "set");
-    argv.addAll(checkoutPaths.stream().filter(e -> !e.isEmpty()).collect(Collectors.toList()));
+    argv.addAll(
+        checkoutPaths.stream()
+            .filter(s -> !s.isEmpty())
+            .map(s -> "/" + s)
+            .collect(Collectors.toList()));
     return simpleCommand(argv.build());
   }
 
