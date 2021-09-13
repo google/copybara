@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -89,7 +89,7 @@ public class GitHubDestinationTest {
   private Path workdir;
   private GitTestUtil gitUtil;
   private GitRepository remote;
-  
+
   @Before
   public void setup() throws Exception {
     console = new TestingConsole();
@@ -216,7 +216,7 @@ public class GitHubDestinationTest {
     assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
     // This is a migration of two changes (use the same ref because mocks)
-    verifyNoMoreInteractions(gitUtil.httpTransport());
+    verifyNoInteractions(gitUtil.httpTransport());
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
@@ -480,6 +480,22 @@ public class GitHubDestinationTest {
         assertThrows(ValidationException.class,
             () -> process(writer, new DummyRevision("origin_ref1")));
     Assert.assertTrue(e.getMessage().contains("Template 'other_${no_such_label}' has an error"));
+  }
+
+  @Test
+  public void testLabelIsPropagated()
+      throws ValidationException {
+    options.setForce(force);
+    GitDestination dest =  skylark.eval("result",
+        String.format("result = git.github_destination(\n"
+            + "    url = '%s',\n"
+            + "    fetch = '%s',\n"
+            + "    push = '%s',\n"
+            + "    tag_name = 'guten_tag',\n"
+            + "    tag_msg = 'tag msg',\n"
+            + ")", url, fetch, push));
+    assertThat(dest.describe(Glob.ALL_FILES).get("tagName")).contains("guten_tag");
+    assertThat(dest.describe(Glob.ALL_FILES).get("tagMsg")).contains("tag msg");
   }
 
   private void addFiles(GitRepository remote, String branch, String msg, Map<String, String> files)

@@ -42,7 +42,7 @@ def copybara_maven_repositories():
             "junit:junit:4.13",
             "net.bytebuddy:byte-buddy-agent:1.9.10",
             "net.bytebuddy:byte-buddy:1.9.10",
-            "org.mockito:mockito-core:2.28.2",
+            "org.mockito:mockito-core:3.12.4",
             "org.objenesis:objenesis:1.0",
         ],
         repositories = [

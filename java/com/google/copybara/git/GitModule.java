@@ -1356,6 +1356,38 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 + "fails, it will fall back to the param's declared value.\n"
                 + "This is intended to help migrating to the new standard of using 'main' without "
                 + "breaking users relying on the legacy default."),
+          @Param(
+              name = "tag_name",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              named = true,
+              positional = false,
+              doc =
+                  "A template string that specifies to a tag name. If the tag already exists, "
+                      + "copybara will only overwrite it if the --git-tag-overwrite flag is set."
+                      + "\nNote that tag creation is "
+                      + "best-effort and the migration will succeed even if the tag cannot be "
+                      + "created. "
+                      + "Usage: Users can use a string or a string with a label. "
+                      + "For instance ${label}_tag_name. And the value of label must be "
+                      + "in changes' label list. Otherwise, tag won't be created.",
+              defaultValue = "None"),
+          @Param(
+              name = "tag_msg",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              named = true,
+              positional = false,
+              doc =
+                  "A template string that refers to the commit msg for a tag. If set, copybara will"
+                      + "create an annotated tag with this custom message\n"
+                      + "Usage: Labels in the string will be resolved. E.g .${label}_message."
+                      + "By default, the tag will be created with the labeled commit's message.",
+              defaultValue = "None"),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1371,6 +1403,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Object checker,
       Boolean primaryBranchMigration,
+      Object tagName,
+      Object tagMsg,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1409,8 +1443,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         resolvedPush,
         partialFetch,
         primaryBranchMigration,
-        /*tagName*/ null,
-        /*tagMsg*/ null,
+        convertFromNoneable(tagName, null),
+        convertFromNoneable(tagMsg, null),
         destinationOptions,
         options.get(GitOptions.class),
         generalOptions,
