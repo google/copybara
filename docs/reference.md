@@ -3967,7 +3967,7 @@ Add a label to the end of the description
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p>The label to replace</p>
+label | `string`<br><p>The label to add</p>
 value | `string`<br><p>The new value for the label</p>
 separator | `string`<br><p>The separator to use for the label</p>
 hidden | `bool`<br><p>Don't show the label in the message but only keep it internally</p>
@@ -3984,7 +3984,7 @@ Replace an existing label or add it to the end of the description
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p>The label to replace</p>
+label | `string`<br><p>The label to add/replace</p>
 value | `string`<br><p>The new value for the label</p>
 separator | `string`<br><p>The separator to use for the label</p>
 
@@ -4034,21 +4034,21 @@ Returns a handle to read files from the destination, if supported by the destina
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels
 
-Tries to find all the values for a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+Tries to find all the values for a label. First it looks at the generated message (that is, labels that might have been added by previous transformations), then it looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
 
-`sequence of string ctx.find_all_labels(message)`
+`sequence of string ctx.find_all_labels(label)`
 
 
 #### Parameters:
 
 Parameter | Description
 --------- | -----------
-message | `string`<br><p></p>
+label | `string`<br><p>The label to find</p>
 
 <a id="ctx.find_label" aria-hidden="true"></a>
 ### ctx.find_label
 
-Tries to find a label. First it looks at the generated message (IOW labels that might have been added by previous steps), then looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
+Tries to find a label. First it looks at the generated message (that is, labels that might have been added by previous transformations), then it looks in all the commit messages being imported and finally in the resolved reference passed in the CLI. Returns the first such label value found this way.
 
 `string ctx.find_label(label)`
 
@@ -4057,7 +4057,7 @@ Tries to find a label. First it looks at the generated message (IOW labels that 
 
 Parameter | Description
 --------- | -----------
-label | `string`<br><p></p>
+label | `string`<br><p>The label to find</p>
 
 <a id="ctx.new_path" aria-hidden="true"></a>
 ### ctx.new_path

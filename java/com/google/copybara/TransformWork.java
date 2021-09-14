@@ -377,7 +377,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "add_label",
       doc = "Add a label to the end of the description",
       parameters = {
-        @Param(name = "label", doc = "The label to replace"),
+        @Param(name = "label", doc = "The label to add"),
         @Param(name = "value", doc = "The new value for the label"),
         @Param(
             name = "separator",
@@ -404,7 +404,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "add_or_replace_label",
       doc = "Replace an existing label or add it to the end of the description",
       parameters = {
-        @Param(name = "label", doc = "The label to replace"),
+        @Param(name = "label", doc = "The label to add/replace"),
         @Param(name = "value", doc = "The new value for the label"),
         @Param(
             name = "separator",
@@ -499,13 +499,18 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
         : ChangeMessage.parseMessage(getMessage());
   }
 
+  private static final String FIND_LABEL_DETAILS =
+      "First it looks at the generated message (that is, labels that might have been added by"
+          + " previous transformations), then it looks in all the commit messages being imported"
+          + " and finally in the resolved reference passed in the CLI.";
+
   @StarlarkMethod(
       name = "find_label",
       doc =
-          "Tries to find a label. First it looks at the generated message (IOW labels that might"
-              + " have been added by previous steps), then looks in all the commit messages being"
-              + " imported and finally in the resolved reference passed in the CLI.",
-      parameters = {@Param(name = "label")},
+          "Tries to find a label. "
+              + FIND_LABEL_DETAILS
+              + " Returns the first such label value found this way.",
+      parameters = {@Param(name = "label", doc = "The label to find")},
       allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
@@ -515,12 +520,8 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
 
   @StarlarkMethod(
       name = "find_all_labels",
-      doc =
-          "Tries to find all the values for a label. First it looks at the generated message (IOW"
-              + " labels that might have been added by previous steps), then looks in all the"
-              + " commit messages being imported and finally in the resolved reference passed in"
-              + " the CLI.",
-      parameters = {@Param(name = "message")})
+      doc = "Tries to find all the values for a label. " + FIND_LABEL_DETAILS,
+      parameters = {@Param(name = "label", doc = "The label to find")})
   public Sequence<String> getAllLabels(String label) {
     return findLabelValues(label, /*all=*/true);
   }
