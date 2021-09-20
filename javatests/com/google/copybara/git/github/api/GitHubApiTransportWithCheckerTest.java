@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.CheckerException;
@@ -58,7 +58,7 @@ public class GitHubApiTransportWithCheckerTest {
   public void testGetThrowsException() throws Exception {
     doThrow(new CheckerException("Error!")).when(checker).check(any(), any(), any(), any());
     assertThrows(ValidationException.class, () -> transport.get("path/foo", String.class));
-    verifyZeroInteractions(delegate);
+    verifyNoMoreInteractions(delegate);
   }
 
   @Test
@@ -80,6 +80,6 @@ public class GitHubApiTransportWithCheckerTest {
     assertThrows(
         ValidationException.class,
         () -> transport.post("path/foo", "request_content", String.class));
-    verifyZeroInteractions(delegate);
+    verifyNoMoreInteractions(delegate);
   }
 }

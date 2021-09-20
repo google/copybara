@@ -38,7 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 
 @RunWith(JUnit4.class)
 public class FileUtilTest {
@@ -320,7 +320,7 @@ public class FileUtilTest {
 
     FileUtil.copyFilesRecursively(one, two, FAIL_OUTSIDE_SYMLINKS,
         Glob.createGlob(ImmutableList.of("foo/**", "bar/**")), Optional.of(validator));
-    verify(validator).validate(Matchers.eq(one.resolve("foo/include.txt")));
+    verify(validator).validate(ArgumentMatchers.eq(one.resolve("foo/include.txt")));
     verifyNoMoreInteractions(validator);
    }
 }

@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.checks.ApiChecker;
@@ -68,7 +68,7 @@ public class GerritApiTransportWithCheckerTest {
         .when(checker)
         .doCheck(ArgumentMatchers.<ImmutableMap<String, String>>any(), eq(console));
     assertThrows(ValidationException.class, () -> transport.get("path/foo", String.class));
-    verifyZeroInteractions(delegate);
+    verifyNoMoreInteractions(delegate);
   }
 
   @Test
@@ -92,6 +92,6 @@ public class GerritApiTransportWithCheckerTest {
     assertThrows(
         ValidationException.class,
         () -> transport.post("path/foo", "request_content", String.class));
-    verifyZeroInteractions(delegate);
+    verifyNoMoreInteractions(delegate);
   }
 }

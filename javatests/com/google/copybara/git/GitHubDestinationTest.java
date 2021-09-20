@@ -27,7 +27,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -216,7 +216,7 @@ public class GitHubDestinationTest {
     assertThat(destinationResult.get(0).getDestinationRef().getId()).matches("[0-9a-f]{40}");
 
     // This is a migration of two changes (use the same ref because mocks)
-    verifyZeroInteractions(gitUtil.httpTransport());
+    verifyNoMoreInteractions(gitUtil.httpTransport());
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("test.txt", "some content")
         .containsNoMoreFiles();
