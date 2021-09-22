@@ -22,7 +22,7 @@ import com.google.copybara.util.ExitCode;
 
 /** CopybaraCmd that assists users in creating a config file. Note that this is still experimental
  * and a work in progress. In the near term, users will be able to generate a simple config by
- * running `copybara onboard` and following onscreen prompts. Thi functionality will be extended
+ * running `copybara onboard` and following onscreen prompts. This functionality will be extended
  * over time. */
 public class OnboardCmd implements CopybaraCmd {
 
