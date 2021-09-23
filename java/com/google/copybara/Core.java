@@ -54,6 +54,7 @@ import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.ReplaceMapper;
 import com.google.copybara.transform.ReversibleFunction;
 import com.google.copybara.transform.Sequence;
+import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.transform.SkylarkTransformation;
 import com.google.copybara.transform.TodoReplace;
 import com.google.copybara.transform.TodoReplace.Mode;
@@ -65,6 +66,7 @@ import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -109,6 +111,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   private ConfigFile mainConfigFile;
   private Supplier<ImmutableMap<String, ConfigFile>> allConfigFiles;
   private StarlarkThread.PrintHandler printHandler;
+  @Nullable private SkylarkConsole console;
 
   public Core(
       GeneralOptions generalOptions, WorkflowOptions workflowOptions, DebugOptions debugOptions,
@@ -1696,6 +1699,20 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;
+  }
+
+  @StarlarkMethod(
+      name = "console",
+      structField = true,
+      doc =  "Returns a handle to the console object.")
+  public SkylarkConsole console()
+      throws EvalException {
+    synchronized (this) {
+      if (console == null) {
+        console = new SkylarkConsole(generalOptions.console());
+      }
+    }
+    return console;
   }
 
   /** Registers a {@link Migration} in the global registry. */

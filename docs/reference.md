@@ -567,6 +567,7 @@ Core functionality for creating migrations, and basic transformations.
 
 Name | Description
 ---- | -----------
+console | Returns a handle to the console object.
 main_config_path | Location of the config file. This is subject to change
 
 

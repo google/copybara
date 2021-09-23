@@ -22,6 +22,8 @@ import static org.junit.Assert.assertThrows;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,15 +34,18 @@ public class CoreTest {
 
   private OptionsBuilder options;
   private SkylarkTestExecutor skylark;
+  private TestingConsole console;
 
   @Before
   public void setup() {
+    console = new TestingConsole();
     options = new OptionsBuilder();
+    options.setConsole(console);
     skylark = new SkylarkTestExecutor(options);
   }
 
   @Test
-  public void testGetconfig() throws Exception {
+  public void testGetConfig() throws Exception {
     assertThat(
             skylark.<String>evalWithConfigFilePath(
                 "p", "p = core.main_config_path", "some/random/path/copy.bara.sky"))
@@ -62,5 +67,11 @@ public class CoreTest {
     assertThat(expected)
         .hasMessageThat()
         .contains("Invalid format: %-10s %d: d != java.lang.String");
+  }
+
+  @Test
+  public void testConsole() throws Exception {
+     skylark.<String>eval("f", "f = core.console.info('Hello World')");
+     console.assertThat().logContains(MessageType.INFO, "Hello World");
   }
 }
