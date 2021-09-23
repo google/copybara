@@ -53,6 +53,7 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:converters",
+        "//java/com/google/copybara/onboard",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

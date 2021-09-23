@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard;
 
+import com.beust.jcommander.Parameters;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.util.ExitCode;
@@ -24,6 +25,7 @@ import com.google.copybara.util.ExitCode;
  * and a work in progress. In the near term, users will be able to generate a simple config by
  * running `copybara onboard` and following onscreen prompts. This functionality will be extended
  * over time. */
+@Parameters(separators = "=", commandDescription = "Runs assisted onboarding tool.")
 public class OnboardCmd implements CopybaraCmd {
 
   public OnboardCmd() {}
