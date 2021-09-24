@@ -30,6 +30,7 @@ java_library(
         "1.8",
     ],
     deps = [
+        "//java/com/google/copybara/doc:annotations",  # unuseddeps: keep
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/util/console",

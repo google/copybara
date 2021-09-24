@@ -42,7 +42,7 @@ public class CoreGlobal implements StarlarkValue {
   @StarlarkMethod(
       name = "glob",
       doc =
-          "Glob returns a list of every file in the workdir that matches at least one"
+          "Returns an object which matches every file in the workdir that matches at least one"
               + " pattern in include and does not match any of the patterns in exclude.",
       parameters = {
         @Param(

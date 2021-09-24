@@ -48,10 +48,7 @@ import net.starlark.java.syntax.TokenKind;
  */
 @StarlarkBuiltin(
     name = "glob",
-    doc =
-        "A glob selects every file in the workdir that matches at least one pattern in include and"
-            + " does not match any of the patterns in exclude.",
-    documented = false)
+    doc = "A glob represents a set of relative filepaths in the Copybara workdir.")
 public class Glob implements StarlarkValue, HasBinary {
 
   public static final Glob ALL_FILES = createGlob(ImmutableList.of("**"));

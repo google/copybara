@@ -127,6 +127,7 @@
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
     - [github_api_obj.update_pull_request](#github_api_objupdate_pull_request)
     - [github_api_obj.update_reference](#github_api_objupdate_reference)
+  - [glob](#glob)
   - [Globals](#globals)
     - [glob](#glob)
     - [new_author](#new_author)
@@ -2966,6 +2967,12 @@ force | `bool`<br><p>Indicates whether to force the update or to make sure the u
 
 
 
+## glob
+
+A glob represents a set of relative filepaths in the Copybara workdir.
+
+
+
 ## Globals
 
 Global functions available in Copybara
@@ -2973,7 +2980,7 @@ Global functions available in Copybara
 <a id="glob" aria-hidden="true"></a>
 ### glob
 
-Glob returns a list of every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
+Returns an object which matches every file in the workdir that matches at least one pattern in include and does not match any of the patterns in exclude.
 
 `glob glob(include, exclude=[])`
 
