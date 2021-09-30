@@ -486,6 +486,22 @@ public class MetadataModuleTest {
     checkLabelChange("some message\n\nTEST=1\nTEST=2\n",
         "metadata.expose_label('TEST', separator = ': ', all = True)",
         "some message\n\nTEST: 1\nTEST: 2\n");
+
+    checkLabelChange(
+        "some message\n\nTEST=1\nTEST=2\n",
+        "metadata.expose_label('TEST', separator = ': ', all = True, concat_separator=',')",
+        "some message\n\nTEST: 1,2\n");
+  }
+
+  @Test
+  public void testExposeLabel_joinerWithoutAll() {
+    assertThrows(
+        ValidationException.class,
+        () ->
+            runWorkflow(
+                WorkflowMode.SQUASH,
+                "metadata.expose_label('TEST', separator = ': ', all = False, concat_separator=',')"
+            ));
   }
 
   @Test

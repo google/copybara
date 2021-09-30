@@ -28,6 +28,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.util.Map;
+import java.util.Optional;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -399,6 +400,13 @@ public class MetadataModule implements StarlarkValue {
                     + " First looking into the message and then looking into the changes in order."
                     + " If this field is true it exposes all the matches instead.",
             defaultValue = "False"),
+        @Param(
+            name = "concat_separator",
+            named = true,
+            doc =
+                "If all is set, copybara will expose multiple values in one per line. If a "
+                    + "separator is specified, it will concat the values instead.",
+            defaultValue = "None"),
       },
       useStarlarkThread = true)
   @Example(
@@ -421,6 +429,11 @@ public class MetadataModule implements StarlarkValue {
       before = "Expose all instances of a label in all the changes (SQUASH for example)",
       code = "metadata.expose_label('REVIEW_URL', all = True)",
       after = "This would add 0 or more `REVIEW_URL: the_value` labels to the message.")
+  @Example(
+      title = "Expose multiple labels, concatenating the values ",
+      before = "Expose all instances of a label in all the changes (SQUASH for example)",
+      code = "metadata.expose_label('REVIEW_URL', all = True, concat_separator=',')",
+      after = "This would add a `REVIEW_URL: value1,value2` label to the message.")
   @DocDefault(field = "new_name", value = "label")
   public Transformation exposeLabel(
       String label,
@@ -428,6 +441,7 @@ public class MetadataModule implements StarlarkValue {
       String separator,
       Boolean ignoreIfLabelNotFound,
       Boolean all,
+      Object joiner,
       StarlarkThread thread)
       throws EvalException {
     check(
@@ -440,8 +454,18 @@ public class MetadataModule implements StarlarkValue {
         "'new_name': Invalid label name '%s'",
         newLabelName);
 
+    Optional<String> join = Optional.ofNullable(convertFromNoneable(joiner, null));
+    check(
+        !join.isPresent() || all,
+        "'joiner': Cannot be set unless all is True.");
     return new ExposeLabelInMessage(
-        label, newLabelName, separator, ignoreIfLabelNotFound, all, thread.getCallerLocation());
+        label,
+        newLabelName,
+        separator,
+        ignoreIfLabelNotFound,
+        all,
+        join,
+        thread.getCallerLocation());
     }
 
   @SuppressWarnings("unused")

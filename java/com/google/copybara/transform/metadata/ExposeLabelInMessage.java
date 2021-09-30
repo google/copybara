@@ -18,6 +18,7 @@ package com.google.copybara.transform.metadata;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
@@ -27,6 +28,7 @@ import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import net.starlark.java.syntax.Location;
 
 /**
@@ -40,15 +42,23 @@ public class ExposeLabelInMessage implements Transformation {
   private final String separator;
   private final boolean ignoreNotFound;
   private final boolean all;
+  private final Optional<String> joiner;
   private final Location location;
 
-  ExposeLabelInMessage(String label, String newLabelName, String separator,
-      boolean ignoreNotFound, boolean all, Location location) {
+  ExposeLabelInMessage(
+      String label,
+      String newLabelName,
+      String separator,
+      boolean ignoreNotFound,
+      boolean all,
+      Optional<String> joiner,
+      Location location) {
     this.label = Preconditions.checkNotNull(label);
     this.newLabelName = Preconditions.checkNotNull(newLabelName);
     this.separator = Preconditions.checkNotNull(separator);
     this.ignoreNotFound = ignoreNotFound;
     this.all = all;
+    this.joiner = joiner;
     this.location = Preconditions.checkNotNull(location);
   }
 
@@ -84,8 +94,13 @@ public class ExposeLabelInMessage implements Transformation {
       // Remove the old label since we want it with different name/separator.
       work.removeLabel(label, /*wholeMessage=*/true);
     }
-    for (String value : values) {
-      work.addLabel(newLabelName, value, separator, /*hidden=*/false);
+    if (joiner.isPresent()) {
+      work.addLabel(
+          newLabelName, Joiner.on(joiner.get()).join(values), separator, /*hidden=*/ false);
+    } else {
+      for (String value : values) {
+        work.addLabel(newLabelName, value, separator, /*hidden=*/ false);
+      }
     }
 
     return TransformationStatus.success();
