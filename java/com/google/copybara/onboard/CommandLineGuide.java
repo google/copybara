@@ -32,6 +32,7 @@ final class CommandLineGuide {
 
   public static void runForCommandLine(CommandEnv commandEnv) {
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+    console.info("Welcome to Copybara's Assisted Onboarding Tool!\n");
     com.google.copybara.onboard.ConfigBuilder configBuilder =
         new com.google.copybara.onboard.ConfigBuilder(
             new com.google.copybara.onboard.GitToGitTemplate());
@@ -42,7 +43,7 @@ final class CommandLineGuide {
           tryAskConsole(
               console,
               String.format(
-                  "What should be the value for field %s? The field description is:\n\"%s\"",
+                  "What should be the value for field %s? The field description is:\n\"%s\"\n",
                   field.name(), field.helpText()),
               "INVALID",
               field.predicate(),
@@ -59,7 +60,9 @@ final class CommandLineGuide {
     if (configBuilder.isValid()) {
       console.info(
           String.format(
-              "Please paste this config text into a new file named copy.bara.sky:\n\n%s",
+              "Config generation successful! Please paste this config text into a new file named"
+                  + " copy.bara.sky:\n\n"
+                  + "%s",
               configBuilder.build()));
     }
   }
