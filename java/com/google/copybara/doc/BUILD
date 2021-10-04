@@ -49,14 +49,21 @@ java_binary(
 
 java_library(
     name = "generator-lib",
-    srcs = ["Generator.java"],
-    deps = [
-        ":annotations",
+    srcs = [
+        "DocBase.java",
+        "Generator.java",
+        "MarkdownRenderer.java",
+        "ModuleLoader.java",
+    ],
+    runtime_deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:copybara_main",
-        "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/util/console",
+    ],
+    deps = [
+        ":annotations",
+        "//java/com/google/copybara/jcommander:converters",
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
