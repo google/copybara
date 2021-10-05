@@ -216,11 +216,16 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
               + "<code>files = ctx.run(glob(['**.java']))</code><br>or<br>"
               + "<code>ctx.run(core.move(\"foo\", \"bar\"))</code><br>or<br>",
       parameters = {
-        @Param(name = "runnable", doc = "A glob or a transform (Transforms still not implemented)",
-        allowedTypes = {
-            @ParamType(type = Glob.class),
-            @ParamType(type = Transformation.class),
-        }),
+        @Param(
+            name = "runnable",
+            doc =
+                "When `runnable` is a `glob`, returns a list of files in the workdir which it"
+                    + " matches.</br></br>When `runnable` is a `transformation`, runs it in the"
+                    + " workdir.",
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = Transformation.class),
+            }),
       })
   public Object run(Object runnable)
       throws EvalException, IOException, ValidationException, RepoException {

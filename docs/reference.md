@@ -4204,7 +4204,7 @@ Run a glob or a transform. For example:<br><code>files = ctx.run(glob(['**.java'
 
 Parameter | Description
 --------- | -----------
-runnable | [`glob`](#glob) or [`transformation`](#transformation)<br><p>A glob or a transform (Transforms still not implemented)</p>
+runnable | [`glob`](#glob) or [`transformation`](#transformation)<br><p>When `runnable` is a `glob`, returns a list of files in the workdir which it matches.</br></br>When `runnable` is a `transformation`, runs it in the workdir.</p>
 
 <a id="ctx.set_author" aria-hidden="true"></a>
 ### ctx.set_author
