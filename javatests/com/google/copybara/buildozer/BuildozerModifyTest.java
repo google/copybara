@@ -149,16 +149,6 @@ public final class BuildozerModifyTest {
   }
 
   @Test
-  public void setWithOnlyOneArg_isError() {
-    skylark.evalFails(""
-        + "buildozer.modify(\n"
-        + "    target = 'describe/IncludesTarget:Name',\n"
-        + "    commands = [buildozer.cmd('set x')],\n"
-        + ")\n",
-        "'set' requires at least 2 arguments, but got: 1");
-  }
-
-  @Test
   public void runTwoCommands() throws Exception {
     BuildozerModify modify = skylark.eval("m", "m = "
         + "buildozer.modify(\n"
@@ -667,6 +657,32 @@ public final class BuildozerModifyTest {
             + "    ],\n"
             + ")\n");
   }
+
+  @Test
+  public void setEmptyList() throws Exception {
+    BuildozerModify modify = skylark.eval("m", "m = "
+        + "buildozer.modify("
+        + "    target = 'foo/bar:baz',"
+        + "    commands = ['set deps'],"
+        + ")");
+
+    Files.createDirectories(checkoutDir.resolve("foo/bar"));
+    String original = ""
+        + "# initial comment\n\n"
+        + "proto_library(name = 'baz', srcs = ['x'])\n";
+    Files.write(checkoutDir.resolve("foo/bar/BUILD"), original.getBytes(UTF_8));
+    transform(modify);
+
+    assertThatPath(checkoutDir)
+        .containsFile("foo/bar/BUILD", ""
+            + "# initial comment\n\n"
+            + "proto_library(\n"
+            + "    name = \"baz\",\n"
+            + "    srcs = [\"x\"],\n"
+            + "    deps = [],\n"
+            + ")\n");
+  }
+
 
   /**
    * A specific test for the target '...:*'.

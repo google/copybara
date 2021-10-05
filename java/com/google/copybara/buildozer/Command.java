@@ -107,13 +107,13 @@ public final class Command implements StarlarkValue {
           break;
         case "comment":
         case "remove":
+        case "set":
+        case "set_if_absent":
           validateCount(argCount() >= 1, "at least 1 argument");
           break;
         case "add":
         case "new_load":
         case "new":
-        case "set":
-        case "set_if_absent":
           validateCount(argCount() >= 2, "at least 2 arguments");
           break;
         default:
