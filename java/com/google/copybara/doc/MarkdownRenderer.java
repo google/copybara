@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.copybara.doc.DocBase.DocExample;
@@ -31,10 +32,14 @@ import com.google.copybara.doc.DocBase.DocModule;
 import com.google.copybara.doc.DocBase.DocParam;
 import com.google.copybara.doc.annotations.Example;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 final class MarkdownRenderer {
 
   private static final int MODULE_HEADING_LEVEL = 2;
+
+  private final Set<String> headings = new HashSet<>();
 
   public CharSequence render(Iterable<DocModule> modules) {
     StringBuilder sb = new StringBuilder();
@@ -51,10 +56,12 @@ final class MarkdownRenderer {
     StringBuilder sb = new StringBuilder();
     sb.append("## Table of Contents\n\n\n");
     for (DocModule module : modules) {
+      headings.add(module.name);
       sb.append("  - ");
       sb.append(linkify(module.name));
       sb.append("\n");
       for (DocFunction f : module.functions) {
+        headings.add(f.name);
         sb.append("    - ");
         sb.append(linkify(f.name));
         sb.append("\n");
@@ -75,7 +82,8 @@ final class MarkdownRenderer {
       for (DocField field : module.fields) {
         sb.append(
             tableRow(
-                field.name, String.format("`%s`<br><p>%s</p>", field.type, field.description)));
+                field.name,
+                String.format("%s<br><p>%s</p>", typeName(field.type), field.description)));
       }
       sb.append("\n");
     }
@@ -87,11 +95,10 @@ final class MarkdownRenderer {
       sb.append(title(level + 1, func.name));
       sb.append(func.description);
       sb.append("\n\n");
-      sb.append("`");
       if (func.returnType != null) {
-        sb.append(func.returnType).append(" ");
+        sb.append(typeName(func.returnType)).append(" ");
       }
-      sb.append(func.name).append("(");
+      sb.append("`").append(func.name).append("(");
       Joiner.on(", ")
           .appendTo(
               sb,
@@ -107,8 +114,9 @@ final class MarkdownRenderer {
               tableRow(
                   param.name,
                   String.format(
-                      "`%s`<br><p>%s</p>",
-                      Joiner.on("` or `").join(param.allowedTypes), param.description)));
+                      "%s<br><p>%s</p>",
+                      param.allowedTypes.stream().map(this::typeName).collect(joining(" or ")),
+                      param.description)));
         }
         sb.append("\n");
       }
@@ -128,8 +136,32 @@ final class MarkdownRenderer {
     return "\n" + Strings.repeat("#", level) + ' ' + name + "\n\n";
   }
 
+  private boolean shouldLinkify(String type) {
+    return headings.contains(type);
+  }
+
+  private String typeName(String type) {
+    if (type.startsWith("sequence of ")) {
+      String paramType = type.substring("sequence of ".length());
+      if (shouldLinkify(paramType)) {
+        return "`sequence of `" + typeName(paramType);
+      }
+    }
+    if (shouldLinkify(type)) {
+      return linkify(codify(type));
+    }
+    return codify(type);
+  }
+
   private String linkify(String name) {
-    return "[" + name + "](#" + Ascii.toLowerCase(name).replace(".", "") + ")";
+    return "[" + name + "](#" + Ascii.toLowerCase(name).replace(".", "").replace("`", "") + ")";
+  }
+
+  private static String codify(String snippet) {
+    Preconditions.checkArgument(
+        !snippet.contains("`"), "String '%s' already contains backticks.", snippet);
+
+    return "`" + snippet + "`";
   }
 
   private String example(int level, Example example) {
