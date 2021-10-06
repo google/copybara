@@ -114,8 +114,11 @@ abstract class DocBase implements Comparable<DocBase> {
 
   static final class DocField extends DocBase {
 
-    DocField(String name, String description) {
+    @Nullable final String type;
+
+    DocField(String name, String description, @Nullable String type) {
       super(name, description);
+      this.type = type;
     }
   }
 }

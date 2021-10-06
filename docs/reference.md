@@ -194,8 +194,8 @@ Represents the author of a change
 
 Name | Description
 ---- | -----------
-email | The email of the author
-name | The name of the author
+email | `string`<br><p>The email of the author</p>
+name | `string`<br><p>The name of the author</p>
 
 
 
@@ -429,15 +429,15 @@ A change metadata. Contains information like author, change message or detected 
 
 Name | Description
 ---- | -----------
-author | The author of the change
-date_time_iso_offset | Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'
-first_line_message | The message of the change
-labels | A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.
-labels_all_values | A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.
-merge | Returns true if the change represents a merge
-message | The message of the change
-original_author | The author of the change before any mapping
-ref | Origin reference ref
+author | `author`<br><p>The author of the change</p>
+date_time_iso_offset | `string`<br><p>Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'</p>
+first_line_message | `string`<br><p>The message of the change</p>
+labels | `dict[string, string]`<br><p>A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.</p>
+labels_all_values | `dict[string, sequence of string]`<br><p>A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.</p>
+merge | `bool`<br><p>Returns true if the change represents a merge</p>
+message | `string`<br><p>The message of the change</p>
+original_author | `author`<br><p>The author of the change before any mapping</p>
+ref | `string`<br><p>Origin reference ref</p>
 
 
 
@@ -450,8 +450,8 @@ Represents a well formed parsed change message with its associated labels.
 
 Name | Description
 ---- | -----------
-first_line | First line of this message
-text | The text description this message, not including the labels.
+first_line | `string`<br><p>First line of this message</p>
+text | `string`<br><p>The text description this message, not including the labels.</p>
 
 <a id="message.label_values" aria-hidden="true"></a>
 ### message.label_values
@@ -478,8 +478,8 @@ Data about the set of changes that are being migrated. Each change includes info
 
 Name | Description
 ---- | -----------
-current | List of changes that will be migrated
-migrated | List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.
+current | `sequence of change`<br><p>List of changes that will be migrated</p>
+migrated | `sequence of change`<br><p>List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.</p>
 
 
 
@@ -568,8 +568,8 @@ Core functionality for creating migrations, and basic transformations.
 
 Name | Description
 ---- | -----------
-console | Returns a handle to the console object.
-main_config_path | Location of the config file. This is subject to change
+console | `Console`<br><p>Returns a handle to the console object.</p>
+main_config_path | `string`<br><p>Location of the config file. This is subject to change</p>
 
 
 
@@ -1307,11 +1307,11 @@ Represents an effect that happened in the destination due to a single migration
 
 Name | Description
 ---- | -----------
-destination_ref | Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).
-errors | List of errors that happened during the migration
-origin_refs | List of origin changes that were included in this migration
-summary | Textual summary of what happened. Users of this class should not try to parse this field.
-type | Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR
+destination_ref | `destination_ref`<br><p>Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).</p>
+errors | `sequence of string`<br><p>List of errors that happened during the migration</p>
+origin_refs | `sequence of origin_ref`<br><p>List of origin changes that were included in this migration</p>
+summary | `string`<br><p>Textual summary of what happened. Users of this class should not try to parse this field.</p>
+type | `string`<br><p>Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR</p>
 
 
 
@@ -1411,9 +1411,9 @@ Reference to the change/review created/updated on the destination.
 
 Name | Description
 ---- | -----------
-id | Destination reference id
-type | Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids
-url | Url, if any, of the destination change
+id | `string`<br><p>Destination reference id</p>
+type | `string`<br><p>Type of reference created. Each destination defines its own and guarantees to be more stable than urls/ids</p>
+url | `string`<br><p>Url, if any, of the destination change</p>
 
 
 
@@ -1426,7 +1426,7 @@ An origin or destination API in a feedback migration.
 
 Name | Description
 ---- | -----------
-url | Return the URL of this endpoint.
+url | `string`<br><p>Return the URL of this endpoint.</p>
 
 <a id="endpoint.new_destination_ref" aria-hidden="true"></a>
 ### endpoint.new_destination_ref
@@ -1469,7 +1469,7 @@ An handle for an origin or destination API in a feedback migration.
 
 Name | Description
 ---- | -----------
-url | Return the URL of this endpoint, if any.
+url | `string`<br><p>Return the URL of this endpoint, if any.</p>
 
 <a id="endpoint_provider.new_destination_ref" aria-hidden="true"></a>
 ### endpoint_provider.new_destination_ref
@@ -1512,14 +1512,14 @@ Gives access to the feedback migration information and utilities. This context i
 
 Name | Description
 ---- | -----------
-action_name | The name of the current action.
-cli_labels | Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].
-console | Get an instance of the console to report errors or warnings
-destination | An object representing the destination. Can be used to query or modify the destination state
-feedback_name | The name of the Feedback migration calling this action.
-origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
-params | Parameters for the function if created with core.action
-refs | A list containing string representations of the entities that triggered the event
+action_name | `string`<br><p>The name of the current action.</p>
+cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+console | `Console`<br><p>Get an instance of the console to report errors or warnings</p>
+destination | `endpoint`<br><p>An object representing the destination. Can be used to query or modify the destination state</p>
+feedback_name | `string`<br><p>The name of the Feedback migration calling this action.</p>
+origin | `endpoint`<br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
+params | `dict`<br><p>Parameters for the function if created with core.action</p>
+refs | `sequence of string`<br><p>A list containing string representations of the entities that triggered the event</p>
 
 <a id="feedback.context.error" aria-hidden="true"></a>
 ### feedback.context.error
@@ -1585,14 +1585,14 @@ Gives access to the feedback migration information and utilities. This context i
 
 Name | Description
 ---- | -----------
-action_name | The name of the current action.
-cli_labels | Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].
-console | Get an instance of the console to report errors or warnings
-destination | An object representing the destination. Can be used to query or modify the destination state
-effects | The list of effects that happened in the destination
-origin | An object representing the origin. Can be used to query about the ref or modifying the origin state
-params | Parameters for the function if created with core.action
-revision | Get the requested/resolved revision
+action_name | `string`<br><p>The name of the current action.</p>
+cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+console | `Console`<br><p>Get an instance of the console to report errors or warnings</p>
+destination | `endpoint`<br><p>An object representing the destination. Can be used to query or modify the destination state</p>
+effects | `sequence of destination_effect`<br><p>The list of effects that happened in the destination</p>
+origin | `endpoint`<br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
+params | `dict`<br><p>Parameters for the function if created with core.action</p>
+revision | `feedback.revision_context`<br><p>Get the requested/resolved revision</p>
 
 <a id="feedback.finish_hook_context.error" aria-hidden="true"></a>
 ### feedback.finish_hook_context.error
@@ -1658,7 +1658,7 @@ Information about the revision request/resolved for the migration
 
 Name | Description
 ---- | -----------
-labels | A dictionary with the labels detected for the requested/resolved revision.
+labels | `dict[string, sequence of string]`<br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
 
 
 
@@ -1788,7 +1788,7 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 
 Name | Description
 ---- | -----------
-url | Return the URL of this endpoint.
+url | `string`<br><p>Return the URL of this endpoint.</p>
 
 <a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
 ### gerrit_api_obj.delete_vote
@@ -1911,11 +1911,11 @@ Gerrit account information.
 
 Name | Description
 ---- | -----------
-account_id | The numeric ID of the account.
-email | The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.
-name | The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
-secondary_emails | A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
-username | The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
+account_id | `string`<br><p>The numeric ID of the account.</p>
+email | `string`<br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
+name | `string`<br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+secondary_emails | `sequence of string`<br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
+username | `string`<br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 
 
 
@@ -1928,13 +1928,13 @@ Gerrit approval information.
 
 Name | Description
 ---- | -----------
-account_id | The numeric ID of the account.
-date | The time and date describing when the approval was made.
-email | The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.
-name | The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
-secondary_emails | A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.
-username | The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.
-value | The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.
+account_id | `string`<br><p>The numeric ID of the account.</p>
+date | `string`<br><p>The time and date describing when the approval was made.</p>
+email | `string`<br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
+name | `string`<br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+secondary_emails | `sequence of string`<br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
+username | `string`<br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
+value | `int`<br><p>The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.</p>
 
 
 
@@ -1947,23 +1947,23 @@ Gerrit change information.
 
 Name | Description
 ---- | -----------
-branch | The name of the target branch.<br>The refs/heads/ prefix is omitted.
-change_id | The Change-Id of the change.
-created | The timestamp of when the change was created.
-current_revision | The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.
-id | The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.
-labels | The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.
-messages | Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.
-number | The legacy numeric ID of the change.
-owner | The owner of the change as an AccountInfo entity.
-project | The name of the project.
-revisions | All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.
-status | The status of the change (NEW, MERGED, ABANDONED).
-subject | The subject of the change (header line of the commit message).
-submittable | Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.
-submitted | The timestamp of when the change was submitted.
-topic | The topic to which this change belongs.
-updated | The timestamp of when the change was last updated.
+branch | `string`<br><p>The name of the target branch.<br>The refs/heads/ prefix is omitted.</p>
+change_id | `string`<br><p>The Change-Id of the change.</p>
+created | `string`<br><p>The timestamp of when the change was created.</p>
+current_revision | `string`<br><p>The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.</p>
+id | `string`<br><p>The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
+labels | `dict[string, gerritapi.LabelInfo]`<br><p>The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.</p>
+messages | `sequence of gerritapi.ChangeMessageInfo`<br><p>Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.</p>
+number | `string`<br><p>The legacy numeric ID of the change.</p>
+owner | `gerritapi.AccountInfo`<br><p>The owner of the change as an AccountInfo entity.</p>
+project | `string`<br><p>The name of the project.</p>
+revisions | `dict[string, gerritapi.RevisionInfo]`<br><p>All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.</p>
+status | `string`<br><p>The status of the change (NEW, MERGED, ABANDONED).</p>
+subject | `string`<br><p>The subject of the change (header line of the commit message).</p>
+submittable | `bool`<br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
+submitted | `string`<br><p>The timestamp of when the change was submitted.</p>
+topic | `string`<br><p>The topic to which this change belongs.</p>
+updated | `string`<br><p>The timestamp of when the change was last updated.</p>
 
 
 
@@ -1976,13 +1976,13 @@ Gerrit change message information.
 
 Name | Description
 ---- | -----------
-author | Author of the message as an AccountInfo entity.<br>Unset if written by the Gerrit system.
-date | The timestamp of when this identity was constructed.
-id | The ID of the message.
-message | The text left by the user.
-real_author | Real author of the message as an AccountInfo entity.<br>Set if the message was posted on behalf of another user.
-revision_number | Which patchset (if any) generated this message.
-tag | Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.
+author | `gerritapi.AccountInfo`<br><p>Author of the message as an AccountInfo entity.<br>Unset if written by the Gerrit system.</p>
+date | `string`<br><p>The timestamp of when this identity was constructed.</p>
+id | `string`<br><p>The ID of the message.</p>
+message | `string`<br><p>The text left by the user.</p>
+real_author | `gerritapi.AccountInfo`<br><p>Real author of the message as an AccountInfo entity.<br>Set if the message was posted on behalf of another user.</p>
+revision_number | `int`<br><p>Which patchset (if any) generated this message.</p>
+tag | `string`<br><p>Value of the tag field from ReviewInput set while posting the review. NOTE: To apply different tags on on different votes/comments multiple invocations of the REST call are required.</p>
 
 
 
@@ -2001,12 +2001,12 @@ Gerrit commit information.
 
 Name | Description
 ---- | -----------
-author | The author of the commit as a GitPersonInfo entity.
-commit | The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.
-committer | The committer of the commit as a GitPersonInfo entity.
-message | The commit message.
-parents | The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.
-subject | The subject of the commit (header line of the commit message).
+author | `gerritapi.GitPersonInfo`<br><p>The author of the commit as a GitPersonInfo entity.</p>
+commit | `string`<br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
+committer | `gerritapi.GitPersonInfo`<br><p>The committer of the commit as a GitPersonInfo entity.</p>
+message | `string`<br><p>The commit message.</p>
+parents | `sequence of gerritapi.ParentCommitInfo`<br><p>The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.</p>
+subject | `string`<br><p>The subject of the commit (header line of the commit message).</p>
 
 
 
@@ -2019,8 +2019,8 @@ Gerrit actions information.
 
 Name | Description
 ---- | -----------
-enabled | If true the action is permitted at this time and the caller is likely allowed to execute it.
-label | Short title to display to a user describing the action
+enabled | `bool`<br><p>If true the action is permitted at this time and the caller is likely allowed to execute it.</p>
+label | `string`<br><p>Short title to display to a user describing the action</p>
 
 
 
@@ -2033,9 +2033,9 @@ Git person information.
 
 Name | Description
 ---- | -----------
-date | The timestamp of when this identity was constructed.
-email | The email address of the author/committer.
-name | The name of the author/committer.
+date | `string`<br><p>The timestamp of when this identity was constructed.</p>
+email | `string`<br><p>The email address of the author/committer.</p>
+name | `string`<br><p>The name of the author/committer.</p>
 
 
 
@@ -2048,15 +2048,15 @@ Gerrit label information.
 
 Name | Description
 ---- | -----------
-all | List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.
-approved | One user who approved this label on the change (voted the maximum value) as an AccountInfo entity.
-blocking | If true, the label blocks submit operation. If not set, the default is false.
-default_value | The default voting value for the label. This value may be outside the range specified in permitted_labels.
-disliked | One user who disliked this label on the change (voted negatively, but not the minimum value) as an AccountInfo entity.
-recommended | One user who recommended this label on the change (voted positively, but not the maximum value) as an AccountInfo entity.
-rejected | One user who rejected this label on the change (voted the minimum value) as an AccountInfo entity.
-value | The voting value of the user who recommended/disliked this label on the change if it is not `"+1"`/`"-1"`.
-values | A map of all values that are allowed for this label. The map maps the values (`"-2"`, `"-1"`, `"0"`, `"+1"`, `"+2"`) to the value descriptions.
+all | `sequence of gerritapi.ApprovalInfo`<br><p>List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.</p>
+approved | `gerritapi.AccountInfo`<br><p>One user who approved this label on the change (voted the maximum value) as an AccountInfo entity.</p>
+blocking | `bool`<br><p>If true, the label blocks submit operation. If not set, the default is false.</p>
+default_value | `int`<br><p>The default voting value for the label. This value may be outside the range specified in permitted_labels.</p>
+disliked | `gerritapi.AccountInfo`<br><p>One user who disliked this label on the change (voted negatively, but not the minimum value) as an AccountInfo entity.</p>
+recommended | `gerritapi.AccountInfo`<br><p>One user who recommended this label on the change (voted positively, but not the maximum value) as an AccountInfo entity.</p>
+rejected | `gerritapi.AccountInfo`<br><p>One user who rejected this label on the change (voted the minimum value) as an AccountInfo entity.</p>
+value | `int`<br><p>The voting value of the user who recommended/disliked this label on the change if it is not `"+1"`/`"-1"`.</p>
+values | `dict[string, string]`<br><p>A map of all values that are allowed for this label. The map maps the values (`"-2"`, `"-1"`, `"0"`, `"+1"`, `"+2"`) to the value descriptions.</p>
 
 
 
@@ -2069,8 +2069,8 @@ Gerrit parent commit information.
 
 Name | Description
 ---- | -----------
-commit | The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.
-subject | The subject of the commit (header line of the commit message).
+commit | `string`<br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
+subject | `string`<br><p>The subject of the commit (header line of the commit message).</p>
 
 
 
@@ -2083,8 +2083,8 @@ Gerrit review result.
 
 Name | Description
 ---- | -----------
-labels | Map of labels to values after the review was posted.
-ready | If true, the change was moved from WIP to ready for review as a result of this action. Not set if false.
+labels | `dict[string, int]`<br><p>Map of labels to values after the review was posted.</p>
+ready | `bool`<br><p>If true, the change was moved from WIP to ready for review as a result of this action. Not set if false.</p>
 
 
 
@@ -2097,12 +2097,12 @@ Gerrit revision information.
 
 Name | Description
 ---- | -----------
-commit | The commit of the patch set as CommitInfo entity.
-created | The timestamp of when the patch set was created.
-kind | The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, and NO_CHANGE.
-patchset_number | The patch set number, or edit if the patch set is an edit.
-ref | The Git reference for the patch set.
-uploader | The uploader of the patch set as an AccountInfo entity.
+commit | `gerritapi.CommitInfo`<br><p>The commit of the patch set as CommitInfo entity.</p>
+created | `string`<br><p>The timestamp of when the patch set was created.</p>
+kind | `string`<br><p>The change kind. Valid values are REWORK, TRIVIAL_REBASE, MERGE_FIRST_PARENT_UPDATE, NO_CODE_CHANGE, and NO_CHANGE.</p>
+patchset_number | `int`<br><p>The patch set number, or edit if the patch set is an edit.</p>
+ref | `string`<br><p>The Git reference for the patch set.</p>
+uploader | `gerritapi.AccountInfo`<br><p>The uploader of the patch set as an AccountInfo entity.</p>
 
 
 
@@ -2692,8 +2692,8 @@ The result returned by git merge when used in Starlark. For example in git.mirro
 
 Name | Description
 ---- | -----------
-error | True if the merge execution resulted in an error. False otherwise
-error_msg | Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.
+error | `bool`<br><p>True if the merge execution resulted in an error. False otherwise</p>
+error_msg | `string`<br><p>Error message from git if the merge resulted in a conflict/error. Users must check error field before accessing this field.</p>
 
 
 
@@ -2706,7 +2706,7 @@ GitHub API endpoint implementation for feedback migrations and after migration h
 
 Name | Description
 ---- | -----------
-url | Return the URL of this endpoint.
+url | `string`<br><p>Return the URL of this endpoint.</p>
 
 <a id="github_api_obj.add_label" aria-hidden="true"></a>
 ### github_api_obj.add_label
@@ -3808,7 +3808,7 @@ Reference to the change/review in the origin.
 
 Name | Description
 ---- | -----------
-ref | Origin reference ref
+ref | `string`<br><p>Origin reference ref</p>
 
 
 
@@ -3854,10 +3854,10 @@ Represents a path in the checkout directory
 
 Name | Description
 ---- | -----------
-attr | Get the file attributes, for example size.
-name | Filename of the path. For foo/bar/baz.txt it would be baz.txt
-parent | Get the parent path
-path | Full path relative to the checkout directory
+attr | `PathAttributes`<br><p>Get the file attributes, for example size.</p>
+name | `string`<br><p>Filename of the path. For foo/bar/baz.txt it would be baz.txt</p>
+parent | `unknown`<br><p>Get the parent path</p>
+path | `string`<br><p>Full path relative to the checkout directory</p>
 
 <a id="path.read_symlink" aria-hidden="true"></a>
 ### path.read_symlink
@@ -3919,8 +3919,8 @@ Represents a path attributes like size.
 
 Name | Description
 ---- | -----------
-size | The size of the file. Throws an error if file size > 2GB.
-symlink | Returns true if it is a symlink
+size | `int`<br><p>The size of the file. Throws an error if file size > 2GB.</p>
+symlink | `bool`<br><p>Returns true if it is a symlink</p>
 
 
 
@@ -3945,8 +3945,8 @@ The status of a Transformation that was just run. Either a 'success' or a 'no-op
 
 Name | Description
 ---- | -----------
-is_noop | Whether this status has the value NO-OP.
-is_success | Whether this status has the value SUCCESS.
+is_noop | `bool`<br><p>Whether this status has the value NO-OP.</p>
+is_success | `bool`<br><p>Whether this status has the value SUCCESS.</p>
 
 
 
@@ -3959,11 +3959,11 @@ Data about the set of changes that are being migrated. It includes information a
 
 Name | Description
 ---- | -----------
-author | Author to be used in the change
-changes | List of changes that will be migrated
-console | Get an instance of the console to report errors or warnings
-message | Message to be used in the change
-params | Parameters for the function if created with core.dynamic_transform
+author | `author`<br><p>Author to be used in the change</p>
+changes | `Changes`<br><p>List of changes that will be migrated</p>
+console | `Console`<br><p>Get an instance of the console to report errors or warnings</p>
+message | `string`<br><p>Message to be used in the change</p>
+params | `dict`<br><p>Parameters for the function if created with core.dynamic_transform</p>
 
 <a id="ctx.add_label" aria-hidden="true"></a>
 ### ctx.add_label

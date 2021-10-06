@@ -73,7 +73,9 @@ final class MarkdownRenderer {
       sb.append(title(level + 2, "Fields:"));
       sb.append(tableHeader("Name", "Description"));
       for (DocField field : module.fields) {
-        sb.append(tableRow(field.name, field.description));
+        sb.append(
+            tableRow(
+                field.name, String.format("`%s`<br><p>%s</p>", field.type, field.description)));
       }
       sb.append("\n");
     }

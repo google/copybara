@@ -104,7 +104,7 @@ final class ModuleLoader {
     return Starlark.getMethodAnnotations(cls).entrySet().stream()
         .filter(e -> e.getValue().structField())
         .map(e -> processStarlarkMethod(e.getKey(), e.getValue(), null))
-        .map(m -> new DocField(m.name, m.description))
+        .map(m -> new DocField(m.name, m.description, m.returnType))
         .collect(toImmutableList());
   }
 
