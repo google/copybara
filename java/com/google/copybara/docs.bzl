@@ -14,53 +14,59 @@
 
 """Bazel rule to generate copybara reference docs."""
 
-def _doc_impl(ctx):
+def _doc_generator_impl(ctx):
     jars = []
-    for dep in ctx.attr.deps:
-        for jar in dep[JavaInfo].transitive_source_jars.to_list():
+    for target in ctx.attr.targets:
+        for jar in target[JavaInfo].transitive_source_jars.to_list():
             jars.append(jar)
-    tmp = ctx.actions.declare_file("tmp.md")
-    ctx.actions.run(
-        tools = [ctx.executable._doc_tool],
-        inputs = jars,
-        outputs = [tmp, ctx.outputs.class_list],
-        progress_message = "Generating reference documentation for %s" % ctx.label,
-        use_default_shell_env = True,
-        executable = ctx.executable._doc_tool.path,
-        arguments = [tmp.path, ctx.outputs.class_list.path] + [f.path for f in jars],
-    )
 
-    # If suffix file exists, concat, copy otherwise
-    if ctx.attr.template_file != None:
-        ctx.actions.run_shell(
-            inputs = [ctx.files.template_file[0], tmp],
-            outputs = [ctx.outputs.out],
-            progress_message = "Appending suffix from %s" % ctx.files.template_file,
-            command = "sed -e '/<!-- Generated reference here -->/r./%s' %s >> %s" % (tmp.path, ctx.files.template_file[0].path, ctx.outputs.out.path),
-        )
-    else:
-        ctx.actions.run(
-            inputs = [tmp],
-            outputs = [ctx.outputs.out],
-            executable = "/bin/cp",
-            arguments = [tmp.path, ctx.outputs.out.path],
-        )
+    ctx.actions.run(
+        inputs = jars + ctx.files.template_file,
+        outputs = [ctx.outputs.out],
+        executable = ctx.executable.generator,
+        arguments = [
+            ",".join([j.path for j in jars]),
+            ctx.outputs.out.path,
+        ] + [f.path for f in ctx.files.template_file],
+    )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.
 doc_generator = rule(
     attrs = {
-        "deps": attr.label_list(allow_rules = [
+        "targets": attr.label_list(allow_rules = [
             "java_binary",
             "java_library",
         ]),
-        "_doc_tool": attr.label(
+        "generator": attr.label(
             executable = True,
-            cfg = "host",
-            allow_files = True,
-            default = Label("//java/com/google/copybara:doc_skylark.sh"),
+            cfg = "exec",
+            mandatory = True,
         ),
         "template_file": attr.label(mandatory = False, allow_single_file = True),
+        "out": attr.output(mandatory = True),
     },
-    outputs = {"out": "%{name}.md", "class_list": "%{name}_class_list.txt"},
-    implementation = _doc_impl,
+    implementation = _doc_generator_impl,
+    output_to_genfiles = True,
 )
+
+def copybara_reference(name, *, out, libraries, template_file = None):
+    """
+    Auto-generate reference documentation for a target containing Copybara libraries.
+
+    out: Name of the output file to generate.
+    libraries: List of libraries for which to generate reference documentation.
+    template_file: Optional template file in which to insert the generated reference.
+    """
+    native.java_binary(
+        name = "generator",
+        main_class = "com.google.copybara.doc.Generator",
+        runtime_deps = ["//java/com/google/copybara/doc:generator-lib"] + libraries,
+    )
+
+    doc_generator(
+        name = name,
+        out = out,
+        generator = ":generator",
+        targets = libraries,
+        template_file = template_file,
+    )

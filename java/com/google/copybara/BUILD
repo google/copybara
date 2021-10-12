@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load(":docs.bzl", "doc_generator")
+load(":docs.bzl", "copybara_reference")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])
@@ -65,18 +65,10 @@ java_library(
     ],
 )
 
-doc_generator(
-    name = "docs",
-    deps = [":copybara"],
-)
-
-genrule(
+copybara_reference(
     name = "generate_reference",
-    srcs = ["//java/com/google/copybara:docs_class_list.txt"],
-    outs = ["reference.md"],
-    cmd = """absolutify() { [[ "$$1" =~ ^/ ]] && echo "$$1" || echo "$$PWD/$$1"; };
-        `absolutify $(location //java/com/google/copybara/doc:generator)` $(location //java/com/google/copybara:docs_class_list.txt) > $@""",
-    tools = ["//java/com/google/copybara/doc:generator"],
+    out = "reference.md",
+    libraries = ["//java/com/google/copybara:copybara_main"],
 )
 
 BASE_SRCS = [

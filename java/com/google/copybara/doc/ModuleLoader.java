@@ -18,13 +18,16 @@ package com.google.copybara.doc;
 
 import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.stream;
 import static java.util.function.Function.identity;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.html.HtmlEscapers;
+import com.google.common.io.CharStreams;
 import com.google.copybara.doc.DocBase.DocExample;
 import com.google.copybara.doc.DocBase.DocField;
 import com.google.copybara.doc.DocBase.DocFlag;
@@ -39,6 +42,8 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.jcommander.DurationConverter;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -55,6 +60,8 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -65,7 +72,8 @@ import net.starlark.java.eval.Starlark;
 
 final class ModuleLoader {
 
-  public ImmutableList<DocModule> load(List<String> classes) {
+  public ImmutableList<DocModule> load(List<String> jarFiles) throws IOException {
+    List<String> classes = loadClassList(jarFiles);
     List<DocModule> modules = new ArrayList<>();
     DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
     modules.add(docModule);
@@ -98,6 +106,20 @@ final class ModuleLoader {
     }
 
     return deduplicateAndSort(modules);
+  }
+
+  private static ImmutableList<String> loadClassList(List<String> jarFiles) throws IOException {
+    ImmutableList.Builder<String> builder = ImmutableList.builder();
+    for (String jarFile : jarFiles) {
+      try (ZipFile f = new ZipFile(jarFile)) {
+        ZipEntry e = f.getEntry("starlark_class_list.txt");
+        if (e != null) {
+          String contents = CharStreams.toString(new InputStreamReader(f.getInputStream(e), UTF_8));
+          builder.addAll(Splitter.on('\n').omitEmptyStrings().split(contents));
+        }
+      }
+    }
+    return builder.build();
   }
 
   private ImmutableList<DocField> processFields(Class<?> cls) {

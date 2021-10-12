@@ -18,8 +18,9 @@ package(default_visibility = ["//visibility:public"])
 
 java_plugin(
     name = "document",
-    srcs = glob([
-        "skylark/**/*.java",
+    srcs = [
+        "AnnotationProcessor.java",
+    ] + glob([
         "annotations/**/*.java",
     ]),
     javacopts = [
@@ -27,7 +28,7 @@ java_plugin(
         "-source",
         "1.8",
     ],
-    processor_class = "com.google.copybara.doc.skylark.MarkdownGenerator",
+    processor_class = "com.google.copybara.doc.AnnotationProcessor",
     visibility = [
         "//visibility:public",
     ],
@@ -41,12 +42,6 @@ java_plugin(
     ],
 )
 
-java_binary(
-    name = "generator",
-    main_class = "com.google.copybara.doc.Generator",
-    runtime_deps = [":generator-lib"],
-)
-
 java_library(
     name = "generator-lib",
     srcs = [
@@ -54,12 +49,6 @@ java_library(
         "Generator.java",
         "MarkdownRenderer.java",
         "ModuleLoader.java",
-    ],
-    runtime_deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara:copybara_main",
-        "//java/com/google/copybara/util/console",
     ],
     deps = [
         ":annotations",
