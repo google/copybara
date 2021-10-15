@@ -230,6 +230,8 @@ public class GitRepository {
     }
   }
 
+  private static final Pattern BASIC_REFSPEC =
+      Pattern.compile("refs/(heads|tags)/(\\*|[A-Za-z][A-Za-z0-9_]*)");
   /**
    * Validate that a refspec is valid.
    *
@@ -238,6 +240,10 @@ public class GitRepository {
   static void validateRefSpec(GitEnvironment gitEnv, Path cwd, String refspec)
       throws InvalidRefspecException {
     try {
+      // Skip calling CLI for common refspecs that we know are safe. CLI can take 50-100ms.
+      if (BASIC_REFSPEC.matcher(refspec).matches()){
+        return;
+      }
       executeGit(
           cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
