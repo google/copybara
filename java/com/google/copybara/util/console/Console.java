@@ -16,8 +16,15 @@
 
 package com.google.copybara.util.console;
 
+import static com.google.copybara.util.console.AnsiColor.BLUE;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import com.google.common.base.Strings;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.Scanner;
 import java.util.function.Predicate;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -124,6 +131,36 @@ public interface Console extends AutoCloseable {
   }
 
   default String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
+      throws IOException {
+    throw new IllegalStateException("Interactive prompt not allowed in " + this.getClass());
+  }
+
+  default String askWithErrorMessage(
+      InputStream input,
+      PrintStream output,
+      String msg,
+      @Nullable String defaultAnswer,
+      EnhancedPredicate enhancedValidator)
+      throws IOException {
+    Scanner scanner = new Scanner(input, UTF_8.name());
+    output.print(colorize(BLUE, "Question: ") + msg);
+    while (scanner.hasNextLine()) {
+      String answer = scanner.nextLine().trim();
+      if (Strings.isNullOrEmpty(answer) && defaultAnswer != null) {
+        return defaultAnswer;
+      }
+      if (enhancedValidator.predicate().test(answer)) {
+        return answer;
+      }
+      error("Invalid answer: " + answer);
+      error(enhancedValidator.errorMsg());
+      output.print(BLUE.write("Question: ") + msg);
+    }
+    throw new IOException("Cancelled by user");
+  }
+
+  default String askWithErrorMessage(
+      String msg, @Nullable String defaultAnswer, EnhancedPredicate enhancedValidator)
       throws IOException {
     throw new IllegalStateException("Interactive prompt not allowed in " + this.getClass());
   }

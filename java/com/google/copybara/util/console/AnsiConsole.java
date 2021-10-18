@@ -114,6 +114,13 @@ public final class AnsiConsole implements Console {
   }
 
   @Override
+  public String askWithErrorMessage(
+      String msg, @Nullable String defaultAnswer, EnhancedPredicate enhancedValidator)
+      throws IOException {
+    return askWithErrorMessage(input, output, msg, defaultAnswer, enhancedValidator);
+  }
+
+  @Override
   public boolean isVerbose() {
     return verbose;
   }

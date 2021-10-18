@@ -20,6 +20,7 @@ java_library(
     name = "console",
     srcs = glob(["**/*.java"]),
     deps = [
+        "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:flogger",
         "//third_party:guava",

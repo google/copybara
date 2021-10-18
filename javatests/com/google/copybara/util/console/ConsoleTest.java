@@ -220,6 +220,33 @@ public class ConsoleTest {
     checkExpectedPrompt(console, out, inputText, expectedResponse);
   }
 
+  @Test
+  public void ansiConsoleAskEnhancedPredicate() throws Exception {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("Hello there!\nHello World".getBytes(StandardCharsets.UTF_8));
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
+    String errorMsg = "You did not say \'Hello World\'";
+    console.askWithErrorMessage(
+        "Say \'Hello World\'",
+        "a default",
+        EnhancedPredicate.create(x -> x.equals("Hello World"), errorMsg));
+    assertThat(out.toString(StandardCharsets.UTF_8.name()))
+        .contains("Invalid answer: Hello there!");
+    assertThat(out.toString(StandardCharsets.UTF_8.name())).contains(errorMsg);
+  }
+
+  @Test
+  public void ansiConsoleAsk() throws Exception {
+    ByteArrayInputStream in =
+        new ByteArrayInputStream("Hello there!\nHello World".getBytes(StandardCharsets.UTF_8));
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Console console = new AnsiConsole(in, new PrintStream(out), /*verbose=*/ false);
+    console.ask("Say \'Hello World\'", "a default", x -> x.equals("Hello World"));
+    assertThat(out.toString(StandardCharsets.UTF_8.name()))
+        .contains("Invalid answer: Hello there!");
+  }
+
   private void checkLogConsoleExpectedPrompt(String inputText, boolean expectedResponse)
       throws IOException {
     ByteArrayInputStream in = new ByteArrayInputStream(inputText.getBytes(StandardCharsets.UTF_8));
