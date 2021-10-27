@@ -1,7 +1,8 @@
 # GCB configuration file
 # To learn more about GCB, go to https://cloud.google.com/container-builder/docs/
 steps:
-- name: gcr.io/cloud-builders/bazel
+# https://pantheon.corp.google.com/gcr/images/cloud-builders/global/bazel@sha256:a7ab9f3abba94aad648d5fa9f690d285c0f55d8b20a411a3d53ca22a2ab9ad50/details
+- name: gcr.io/cloud-builders/bazel@sha256:a7ab9f3abba94aad648d5fa9f690d285c0f55d8b20a411a3d53ca22a2ab9ad50
   entrypoint: "bash"
   args: ["-c", "./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp -j 1000"]
 options:
