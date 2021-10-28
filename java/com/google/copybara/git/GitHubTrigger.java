@@ -16,18 +16,18 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.github.api.GitHubApi;
-import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
+import java.util.stream.Collectors;
 
 /**
  * A feedback trigger based on updates on a GitHub PR.
@@ -37,13 +37,13 @@ public class GitHubTrigger implements Trigger {
   private final LazyResourceLoader<GitHubApi> apiSupplier;
   private final String url;
   private GitHubHost ghHost;
-  private final ImmutableSet<GitHubEventType> events;
+  private final ImmutableSet<EventTrigger> events;
   private final Console console;
 
   GitHubTrigger(
       LazyResourceLoader<GitHubApi> apiSupplier,
       String url,
-      ImmutableSet<GitHubEventType> events,
+      ImmutableSet<EventTrigger> events,
       Console console,
       GitHubHost ghHost) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
@@ -64,7 +64,16 @@ public class GitHubTrigger implements Trigger {
     ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
     builder.put("type", "github_trigger");
     builder.put("url", url);
-    builder.putAll("events", Iterables.transform(events, GitHubEventType::toString));
+    builder.putAll("events",
+        events.stream().map(s -> s.type().name()).collect(Collectors.toList()));
+    for (EventTrigger trigger : events) {
+      if (trigger.subtypes().isEmpty()) {
+        continue;
+      }
+      builder.putAll(
+          String.format("SUBTYPES_%s", trigger.type().name()),
+          trigger.subtypes());
+    }
     return builder.build();
   }
 
@@ -72,6 +81,8 @@ public class GitHubTrigger implements Trigger {
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("url", url)
+        .add("event_types", Joiner.on(",").join(events))
         .toString();
   }
+
 }

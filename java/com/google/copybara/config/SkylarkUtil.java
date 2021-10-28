@@ -41,6 +41,7 @@ import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkList;
 
 /**
  * Utilities for dealing with Skylark parameter objects and converting them to Java ones.
@@ -203,8 +204,8 @@ public final class SkylarkUtil {
   }
 
   /** Casts nested sequence type in Dict */
-  public static <K, V> Dict<K, V> castOfSequence(
-      Object x, Class<K> keyType, Class<K> nestedValueType, String what) throws EvalException {
+  public static <K, V> Dict<K, StarlarkList<V>> castOfSequence(
+      Object x, Class<K> keyType, Class<V> nestedValueType, String what) throws EvalException {
     Preconditions.checkNotNull(x);
     if (!(x instanceof Dict)) {
       throw Starlark.errorf("got %s for '%s', want dict", Starlark.type(x), what);
@@ -224,7 +225,7 @@ public final class SkylarkUtil {
     }
 
     @SuppressWarnings("unchecked") // safe
-    Dict<K, V> res = (Dict<K, V>) x;
+    Dict<K, StarlarkList<V>> res = (Dict<K, StarlarkList<V>>) x;
     return res;
   }
 }

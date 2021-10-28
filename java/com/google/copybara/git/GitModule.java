@@ -80,6 +80,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
@@ -2024,38 +2025,29 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             name = "events",
             allowedTypes = {
               @ParamType(type = Sequence.class, generic1 = String.class),
+              @ParamType(type = Dict.class, generic1 = Sequence.class),
             },
             named = true,
             defaultValue = "[]",
             doc =
                 "Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`,"
                     + " `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`,"
-                    + " `'STATUS'`, "),
+                    + " `'STATUS'`, `'CHECK_RUNS'`"),
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubOptions.class)
   public GitHubTrigger gitHubTrigger(
       String url,
       Object checkerObj,
-      Sequence<?> events, // <String>
+      Object events,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
-    LinkedHashSet<GitHubEventType> eventBuilder = new LinkedHashSet<>();
-    for (String e : Sequence.cast(events, String.class, "events")) {
-      GitHubEventType event = stringToEnum("events", e, GitHubEventType.class);
-      check(eventBuilder.add(event), "Repeated element %s", e);
-      check(
-          WATCHABLE_EVENTS.contains(event),
-          "%s is not a valid value. Values: %s",
-          event,
-          WATCHABLE_EVENTS);
-    }
-    check(!eventBuilder.isEmpty(), "events cannot be empty");
-
-    ImmutableSet<GitHubEventType> parsedEvents = ImmutableSet.copyOf(eventBuilder);
+    LinkedHashSet<EventTrigger> eventBuilder = new LinkedHashSet<>();
+    LinkedHashSet<GitHubEventType> types = new LinkedHashSet<>();
+    ImmutableSet<EventTrigger> parsedEvents = handleEventTypes(events, eventBuilder, types);
     validateEndpointChecker(checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     return new GitHubTrigger(
@@ -2064,6 +2056,42 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         parsedEvents,
         getGeneralConsole(),
         GITHUB_COM);
+  }
+
+  private ImmutableSet<EventTrigger> handleEventTypes(
+      Object events, LinkedHashSet<EventTrigger> eventBuilder,
+      LinkedHashSet<GitHubEventType> types) throws EvalException {
+    if (events instanceof Sequence) {
+      for (String e : Sequence.cast(events, String.class, "events")) {
+        GitHubEventType event = stringToEnum("events", e, GitHubEventType.class);
+        check(eventBuilder.add(EventTrigger.create(event, ImmutableSet.of())),
+            "Repeated element %s", e);
+      }
+    } else if (events instanceof Dict) {
+      Dict<String, StarlarkList<String>> dict = SkylarkUtil.castOfSequence(
+          events,
+          String.class,
+          String.class,
+          "events");
+      for (Entry<String, StarlarkList<String>> trigger : dict.entrySet()) {
+        check(types.add(
+            stringToEnum("events", trigger.getKey(), GitHubEventType.class)),
+            "Repeated element %s", trigger);
+        eventBuilder.add(
+            EventTrigger.create(
+                stringToEnum("events", trigger.getKey(), GitHubEventType.class),
+                ImmutableSet.copyOf(trigger.getValue())));
+      }
+    }
+    for (EventTrigger trigger : eventBuilder) {
+      check(
+          WATCHABLE_EVENTS.contains(trigger.type()),
+          "%s is not a valid value. Values: %s",
+          trigger.type(),
+          WATCHABLE_EVENTS);
+    }
+    check(!eventBuilder.isEmpty(), "events cannot be empty");
+    return ImmutableSet.copyOf(eventBuilder);
   }
 
   @SuppressWarnings("unused")

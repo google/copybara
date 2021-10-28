@@ -60,6 +60,44 @@ public class GitHubTriggerTest {
   }
 
   @Test
+  public void testParsing_dict() throws Exception {
+    GitHubTrigger gitHubTrigger =
+        skylarkTestExecutor.eval(
+            "e", "e = git.github_trigger("
+                + "url = 'https://github.com/google/example',"
+                + "events = {'STATUS': [], 'ISSUES': []})");
+    assertThat(gitHubTrigger.describe()).containsExactly(
+        "type", "github_trigger",
+        "url", "https://github.com/google/example",
+        "events", "STATUS",
+        "events", "ISSUES").inOrder();
+
+    assertThat(gitHubTrigger.getEndpoint().describe())
+        .containsExactly("type", "github_api", "url", "https://github.com/google/example");
+  }
+
+  @Test
+  public void testParsing_dictWithSubCategory() throws Exception {
+    GitHubTrigger gitHubTrigger =
+        skylarkTestExecutor.eval(
+            "e", "e = git.github_trigger("
+                + "url = 'https://github.com/google/example',"
+                + "events = {'STATUS': ['foobar', 'bar'], 'ISSUES': []})");
+    assertThat(gitHubTrigger.describe()).containsExactly(
+        "type", "github_trigger",
+        "url", "https://github.com/google/example",
+        "events", "STATUS",
+        "events", "ISSUES",
+        "SUBTYPES_STATUS", "foobar",
+        "SUBTYPES_STATUS", "bar"
+    ).inOrder();
+
+
+    assertThat(gitHubTrigger.getEndpoint().describe())
+        .containsExactly("type", "github_api", "url", "https://github.com/google/example");
+  }
+
+  @Test
   public void testInvalidEvent() {
     skylarkTestExecutor.evalFails(
         "git.github_trigger("
