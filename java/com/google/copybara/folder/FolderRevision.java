@@ -30,7 +30,7 @@ public class FolderRevision implements Revision {
   final Path path;
   private final ZonedDateTime timestamp;
 
-  FolderRevision(Path path, ZonedDateTime timestamp) {
+  public FolderRevision(Path path, ZonedDateTime timestamp) {
     Preconditions.checkState(path.isAbsolute());
     this.path = path;
     this.timestamp = Preconditions.checkNotNull(timestamp);
