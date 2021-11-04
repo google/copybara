@@ -18,9 +18,10 @@ apt-get update --fix-missing
 apt-get -y install python3-pip
 apt-get install locales
 # upgrade jdk
-apt-get install openjdk-11-jre-headless
+apt-get -y install openjdk-11-jre-headless
 
-pip install mercurial
+apt-get -y install mercurial
+
 
 log "Extracting Bazel"
 # Only because first time it extracts the installation
