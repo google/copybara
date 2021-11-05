@@ -265,8 +265,10 @@ public final class GerritDestination implements Destination<GitRevision> {
 
     @Nullable
     private  ChangeInfo findChange(String changeId) throws ValidationException, RepoException {
-      List<ChangeInfo> changes = findChanges(changeId,
-          ImmutableList.of(IncludeResult.CURRENT_REVISION));
+      List<ChangeInfo> changes =
+          findChanges(
+              changeId,
+              ImmutableList.of(IncludeResult.CURRENT_REVISION, IncludeResult.SUBMITTABLE));
       if (changes.isEmpty()) {
         return null;
       }
@@ -282,13 +284,16 @@ public final class GerritDestination implements Destination<GitRevision> {
           return;
         }
         GerritApi gerritApi = gerritOptions.newGerritApi(repoUrl);
-        // Default selfReview before submitchange. We might consider to let users decide whether
-        // do the selfReview before submitChange in future on demand. The main reason is that there
-        // are two ways make a gerrit change submittable. One is selfReview, the other is prolog
-        // config.
-        gerritApi.setReview(changeInfo.getChangeId(), changeInfo.getCurrentRevision(),
-            new SetReviewInput("", ImmutableMap
-                .of("Code-Review", 2)));
+        // If the change isn't yet submittable, try voting Code-Review+2 to approve the change.
+        // The change will generally not be submittable until it receives Code-Review+2, but
+        // individual Gerrit projects can change their Prolog submittability rules to change this
+        // behavior, and even to get rid of the Code-Review label entirely.
+        if (!changeInfo.isSubmittable()) {
+          gerritApi.setReview(
+              changeInfo.getChangeId(),
+              changeInfo.getCurrentRevision(),
+              new SetReviewInput("", ImmutableMap.of("Code-Review", 2)));
+        }
         ChangeInfo resultInfo =
             gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
         console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());

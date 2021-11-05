@@ -716,6 +716,66 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void gerritSubmit_alreadySubmittable() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/"),
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"NEW\","
+                + "  submittable : true"
+                + "}]"));
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseWithStatus("Change should not be voted on", 500));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseAndValidateRequest(
+            "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"submitted\""
+                + "}",
+            new MockRequestAssertion(
+                "Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                })));
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestinationTest", "test", false, originRef, Glob.ALL_FILES.roots());
+    List<DestinationEffect> result =
+        destination
+            .newWriter(writerContext)
+            .write(
+                TransformResults.of(workdir, originRef)
+                    .withSummary("Test message")
+                    .withIdentity(originRef.asString()),
+                glob,
+                console);
+
+    assertThat(submitCalled.get()).isTrue();
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getErrors()).isEmpty();
+  }
+
+  @Test
   public void gerritSubmit_plusTwoRestricted() throws Exception {
     options.gerrit.gerritChangeId = null;
     fetch = "master";
