@@ -22,6 +22,7 @@ java_library(
         "PatchModule.java",
         "PatchTransformation.java",
         "PatchingOptions.java",
+        "QuiltTransformation.java",
     ],
     deps = [
         "//java/com/google/copybara:base",

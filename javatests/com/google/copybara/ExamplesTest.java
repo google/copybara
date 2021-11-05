@@ -92,6 +92,11 @@ public class ExamplesTest {
     for (Example example : samples) {
       Object val;
       String exampleRef = module.getName() + "#" + name + ": " + example.title();
+      // Quilt requires an extra file.
+      if (exampleRef.contains(
+              "com.google.copybara.transform.patch.PatchModule#quiltApply")) {
+        executor.addConfigFile("patches/series", "");
+      }
       try {
         val = Strings.isNullOrEmpty(example.testExistingVariable())
             ? executor.eval("a", "a=" + example.code())

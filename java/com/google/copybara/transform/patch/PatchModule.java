@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import java.io.IOException;
@@ -126,24 +127,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     }
     String series = SkylarkUtil.convertOptionalString(seriesOrNone);
     if (series != null && !series.trim().isEmpty()) {
-      try {
-        ConfigFile seriesFile = resolve(series.trim());
-        for (String line : LINES.split(seriesFile.readContent())) {
-          // Comment at the begining of the line or
-          // a whitespace followed by the hash character.
-          int comment = line.indexOf('#');
-          if (comment != 0) {
-            if (comment > 0 && Character.isWhitespace(line.charAt(comment - 1))) {
-              line = line.substring(0, comment - 1).trim();
-            }
-            if (!line.isEmpty()) {
-              builder.add(seriesFile.resolve(line));
-            }
-          }
-        }
-      } catch (CannotResolveLabel | IOException e) {
-        throw Starlark.errorf("Error reading patch series file: %s", series);
-      }
+      parseSeries(series, builder);
     }
     return new PatchTransformation(
         builder.build(),
@@ -154,11 +138,101 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         thread.getCallerLocation());
   }
 
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "quilt_apply",
+      doc =
+          "A transformation that applies and updates patch files using Quilt. Compared to"
+              + " `patch.apply`, this transformation supports updating the content of patch files"
+              + " if they can be successfully applied with fuzz. The patch files must be included"
+              + " in the destination_files glob in order to get updated. Underneath, Copybara"
+              + " runs `quilt import; quilt push; quilt refresh` for each patch file in the"
+              + " `series` file in order. Currently, all patch files and the `series` file must"
+              + " reside in a \"patches\" sub-directory under the root directory containing the"
+              + " migrated code. This means it has the limitation that the migrated code itself"
+              + " cannot contain a directory with the name \"patches\".",
+      parameters = {
+        @Param(
+            name = "series",
+            named = true,
+            positional = false,
+            doc =
+                "A file which contains a list of patches to apply. It is similar to the `series`"
+                    + " parameter in `patch.apply` transformation, and is required for Quilt."
+                    + " Patches listed in this file will be applied relative to the checkout dir,"
+                    + " and the leading path component is stripped via the `-p1` flag. Currently"
+                    + " this file should be the `patches/series` file in the root directory"
+                    + " of the migrated code."),
+      },
+      useStarlarkThread = true)
+  @Example(
+      title = "Workflow to apply and update patches",
+      before =
+          "Suppose the destination repository's directory structure looks like:\n"
+              + "```\n"
+              + "source_root/BUILD\n"
+              + "source_root/copy.bara.sky\n"
+              + "source_root/migrated_file1\n"
+              + "source_root/migrated_file2\n"
+              + "source_root/patches/series\n"
+              + "source_root/patches/patch1.patch\n"
+              + "```\n"
+              + "Then the transformations in `source_root/copy.bara.sky` should look like:",
+      code =
+          "[\n"
+              + "    patch.quilt_apply(series = \"patches/series\"),\n"
+              + "    core.move(\"\", \"source_root\"),\n"
+              + "]",
+      after =
+          "In this example, `patch1.patch` is applied to `migrated_file1` and/or `migrated_file2`."
+              + " `patch1.patch` itself will be updated during the migration if it is applied with"
+              + " fuzz.")
+  @UsesFlags(PatchingOptions.class)
+  public QuiltTransformation quiltApply(
+      String series,
+      StarlarkThread thread)
+      throws EvalException {
+    ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
+    ConfigFile seriesFile = parseSeries(series, builder);
+    return new QuiltTransformation(
+        seriesFile,
+        builder.build(),
+        patchingOptions,
+        /*reverse=*/ false,
+        thread.getCallerLocation());
+  }
+
   private ConfigFile resolve(String path) throws EvalException {
     try {
       return configFile.resolve(path);
     } catch (CannotResolveLabel e) {
       throw Starlark.errorf("Failed to resolve patch: %s", path);
     }
+  }
+
+  private ConfigFile parseSeries(
+      String series, ImmutableList.Builder<ConfigFile> outputBuilder) throws EvalException {
+    ConfigFile seriesFile;
+    try {
+      // Don't use this.resolve(), because its error message mentions patch file instead of series.
+      seriesFile = configFile.resolve(series.trim());
+      for (String line : LINES.split(seriesFile.readContent())) {
+        // Comment at the beginning of the line or
+        // a whitespace followed by the hash character.
+        int comment = line.indexOf('#');
+        if (comment != 0) {
+          if (comment > 0 && Character.isWhitespace(line.charAt(comment - 1))) {
+            line = line.substring(0, comment - 1).trim();
+          }
+          if (!line.isEmpty()) {
+            outputBuilder.add(seriesFile.resolve(line));
+          }
+        }
+      }
+    } catch (CannotResolveLabel | IOException e) {
+      throw Starlark.errorf("Error reading patch series file: %s. Caused by: %s",
+          series, e.toString());
+    }
+    return seriesFile;
   }
 }

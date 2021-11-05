@@ -74,6 +74,9 @@ public class PatchingOptions implements Option {
       arity = 1)
   public boolean useGitApply = true;
 
+  @Parameter(names = "--quilt-bin", description = "Path to quilt command")
+  String quiltBin = "quilt";
+
   /**
    * Applies the diff into a directory tree.
    *
@@ -95,6 +98,10 @@ public class PatchingOptions implements Option {
       patchWithGitApply(
           rootDir, diffContents, excludedPaths, stripSlashes, verbose, reverse, env, gitDir);
     }
+  }
+
+  GeneralOptions getGeneralOptions() {
+    return generalOptions;
   }
 
   @VisibleForTesting

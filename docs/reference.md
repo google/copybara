@@ -151,6 +151,7 @@
   - [origin_ref](#origin_ref)
   - [patch](#patch)
     - [patch.apply](#patchapply)
+    - [patch.quilt_apply](#patchquilt_apply)
   - [Path](#path)
     - [path.read_symlink](#pathread_symlink)
     - [path.relativize](#pathrelativize)
@@ -3855,6 +3856,59 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
+<span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
+
+<a id="patch.quilt_apply" aria-hidden="true"></a>
+### patch.quilt_apply
+
+A transformation that applies and updates patch files using Quilt. Compared to `patch.apply`, this transformation supports updating the content of patch files if they can be successfully applied with fuzz. The patch files must be included in the destination_files glob in order to get updated. Underneath, Copybara runs `quilt import; quilt push; quilt refresh` for each patch file in the `series` file in order. Currently, all patch files and the `series` file must reside in a "patches" sub-directory under the root directory containing the migrated code. This means it has the limitation that the migrated code itself cannot contain a directory with the name "patches".
+
+[`transformation`](#transformation) `patch.quilt_apply(series)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+series | `string`<br><p>A file which contains a list of patches to apply. It is similar to the `series` parameter in `patch.apply` transformation, and is required for Quilt. Patches listed in this file will be applied relative to the checkout dir, and the leading path component is stripped via the `-p1` flag. Currently this file should be the `patches/series` file in the root directory of the migrated code.</p>
+
+
+#### Example:
+
+
+##### Workflow to apply and update patches:
+
+Suppose the destination repository's directory structure looks like:
+```
+source_root/BUILD
+source_root/copy.bara.sky
+source_root/migrated_file1
+source_root/migrated_file2
+source_root/patches/series
+source_root/patches/patch1.patch
+```
+Then the transformations in `source_root/copy.bara.sky` should look like:
+
+```python
+[
+    patch.quilt_apply(series = "patches/series"),
+    core.move("", "source_root"),
+]
+```
+
+In this example, `patch1.patch` is applied to `migrated_file1` and/or `migrated_file2`. `patch1.patch` itself will be updated during the migration if it is applied with fuzz.
+
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
+<span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
+<span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
+<span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
 
 
 
