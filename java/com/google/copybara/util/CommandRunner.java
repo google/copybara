@@ -23,6 +23,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.flogger.FluentLogger;
+import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.AbnormalTerminationException;
 import com.google.copybara.shell.BadExitStatusException;
 import com.google.copybara.shell.Command;
@@ -41,7 +42,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.CheckReturnValue;
 
 /**
  * Allows running a {@link Command} with easier stderr/stdout and logging management.

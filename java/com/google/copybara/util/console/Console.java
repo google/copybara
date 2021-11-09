@@ -20,13 +20,13 @@ import static com.google.copybara.util.console.AnsiColor.BLUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Strings;
+import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.Scanner;
 import java.util.function.Predicate;
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /** Write user messages to the console */

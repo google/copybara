@@ -21,12 +21,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.DiffUtil.DiffFile;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.function.Function;
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /**

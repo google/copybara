@@ -63,6 +63,7 @@ java_library(
         "//java/com/google/copybara/util:origin_util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
+        "//third_party:error_prone",
         "//third_party:flogger",
         "//third_party:google_http_client",
         "//third_party:guava",
@@ -88,6 +89,7 @@ java_library(
         "//third_party:jsr305",
         "//third_party:re2j",
         "//third_party:shell",
+        "//third_party:error_prone",
     ],
 )
 

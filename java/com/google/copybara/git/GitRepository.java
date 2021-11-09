@@ -55,6 +55,7 @@ import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.re2j.Matcher;
@@ -84,7 +85,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /**

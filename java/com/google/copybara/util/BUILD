@@ -40,6 +40,7 @@ java_library(
         "//third_party:re2j",
         "//third_party:shell",
         "//third_party:starlark",
+        "//third_party:error_prone",
     ],
 )
 

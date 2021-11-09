@@ -20,9 +20,9 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.util.Arrays;
 import java.util.List;
-import javax.annotation.CheckReturnValue;
 
 /**
  * Utility for printing tabular data to an ASCII string. Currently only supports single-line cells.

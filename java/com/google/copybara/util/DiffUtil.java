@@ -33,6 +33,7 @@ import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
+import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
@@ -42,7 +43,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 /** Diff utilities that are repository-agnostic. */
