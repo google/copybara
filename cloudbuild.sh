@@ -22,6 +22,7 @@ apt-get -y install openjdk-11-jre-headless
 
 apt-get -y install mercurial
 
+apt-get -y install quilt
 
 log "Extracting Bazel"
 # Only because first time it extracts the installation
@@ -34,6 +35,8 @@ hg --version | grep "(version" | sed 's/.*[(]version \([^ ]*\)[)].*/Mercurial: \
 git --version | sed 's/git version/Git:/'
 bazel version | grep "Build label" | sed 's/Build label:/Bazel:/'
 java -version
+echo "Quilt:"
+quilt --version
 echo "-----------------------------------"
 
 log "Setting Locale"
