@@ -19,7 +19,7 @@ apt-get -y install python3-pip
 apt-get install locales
 # upgrade jdk
 apt-get -y install openjdk-11-jre-headless
-
+apt-get -y install openjdk-11-jdk-headless
 apt-get -y install mercurial
 
 apt-get -y install quilt
