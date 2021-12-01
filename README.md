@@ -70,7 +70,7 @@ $ copybara copy.bara.sky
 Copybara doesn't have a release process yet, so you need to compile from HEAD.
 In order to do that, you need to do the following:
 
-  * [Install JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+  * [Install JDK 11](https://www.oracle.com/java/technologies/downloads/#java11).
   * [Install Bazel](https://docs.bazel.build/versions/master/install.html).
   * Clone the copybara source locally:
       * `git clone https://github.com/google/copybara.git`
