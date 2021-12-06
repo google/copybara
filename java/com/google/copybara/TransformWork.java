@@ -329,7 +329,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       Files.createSymbolicLink(linkFullPath, relativized);
     } catch (IOException e) {
       String msg = "Cannot create symlink: " + e.getMessage();
-      logger.atSevere().withCause(e).log(msg);
+      logger.atSevere().withCause(e).log("%s", msg);
       throw Starlark.errorf("%s", msg);
     }
   }

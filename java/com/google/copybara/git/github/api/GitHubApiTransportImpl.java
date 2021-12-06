@@ -127,7 +127,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       String msg = String
           .format("GitHub credentials not found in %s. Assuming the repository is public.",
               storePath);
-      logger.atInfo().log(msg);
+      logger.atInfo().log("%s", msg);
       console.info(msg);
       return null;
     }

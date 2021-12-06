@@ -186,7 +186,7 @@ public final class CommandRunner {
     startMsg = startMsg.length() > MAX_COMMAND_LENGTH
         ? startMsg.substring(0, MAX_COMMAND_LENGTH) + "..." : startMsg;
     String validStartMsg = "Executing [" + startMsg + "]";
-    logger.atInfo().log(validStartMsg);
+    logger.atInfo().log("%s", validStartMsg);
     if (verbose) {
       System.err.println(validStartMsg);
     }
@@ -248,13 +248,13 @@ public final class CommandRunner {
             "Command '%s' was killed after timeout. Execution time %s. %s",
             commandName, formatDuration(stopwatch.elapsed()),
             exitStatus != null ? exitStatus.toString() : "(No exit status)");
-        logger.atSevere().log(finishMsg);
+        logger.atSevere().log("%s", finishMsg);
       } else {
         finishMsg = String.format(
             "Command '%s' finished in %s. %s",
             commandName, formatDuration(stopwatch.elapsed()),
             exitStatus != null ? exitStatus.toString() : "(No exit status)");
-        logger.atInfo().log(finishMsg);
+        logger.atInfo().log("%s", finishMsg);
       }
       if (verbose) {
         System.err.println(finishMsg);

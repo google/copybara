@@ -167,7 +167,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
               LinkOption.NOFOLLOW_LINKS));
     } catch (IOException e) {
       String msg = "Error getting attributes for " + path + ":" + e;
-      logger.atSevere().withCause(e).log(msg);
+      logger.atSevere().withCause(e).log("%s", msg);
       throw Starlark.errorf("%s", msg); // or IOException?
     }
   }
@@ -191,7 +191,7 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       return create(checkoutDir.relativize(resolvedSymlink.getRegularFile()));
     } catch (IOException e) {
       String msg = String.format("Cannot resolve symlink %s: %s", path, e);
-      logger.atSevere().withCause(e).log(msg);
+      logger.atSevere().withCause(e).log("%s", msg);
       throw Starlark.errorf("%s", msg);
     }
   }

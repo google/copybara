@@ -514,7 +514,7 @@ public class Main {
       cause = cause.getCause();
     }
     console.error(error.toString());
-    logger.at(level).withCause(e).log(formatLogError(e.getMessage(), args));
+    logger.at(level).withCause(e).log("%s", formatLogError(e.getMessage(), args));
   }
 
   private String printException(Throwable t) {
@@ -525,7 +525,7 @@ public class Main {
   }
 
   private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
-    logger.atSevere().withCause(e).log(formatLogError(msg, args));
+    logger.atSevere().withCause(e).log("%s", formatLogError(msg, args));
     console.error(msg + " (" + e + ")");
   }
 
