@@ -560,6 +560,8 @@ public class GitDestination implements Destination<GitRevision> {
 
         // Note that it is a different work-tree from the previous reset
         alternate.simpleCommand("reset", "--hard");
+        ValidationException.checkCondition(localBranchRevision != null,
+            "Unable to rebase because the local branch's revision was not resolvable.");
         alternate.rebase(localBranchRevision.getSha1());
         afterRebaseRev = alternate.resolveReference("HEAD");
         if (afterRebaseRev.getSha1().equals(localBranchRevision.getSha1())) {
