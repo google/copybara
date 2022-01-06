@@ -843,7 +843,7 @@ public class GitDestinationTest {
 
     destinationFiles = Glob.createGlob(ImmutableList.of("foo"));
     TransformResult result = TransformResults.of(workdir, new DummyRevision("origin_ref"))
-        .withBaseline(baseline.getSha1()).withSummary("");
+        .withBaseline(baseline.getSha1()).withSummary("Empty");
     EmptyChangeException e =
         assertThrows(
             EmptyChangeException.class,
@@ -1657,7 +1657,33 @@ public class GitDestinationTest {
                     TransformResults.of(workdir, originRef).withSummary(" "),
                     Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("test.txt")),
                     console));
-    assertThat(e.getMessage()).isEqualTo("Change description is empty.");
+    assertThat(e).hasMessageThat().contains("Change description is empty");
+  }
+
+  @Test
+  public void testChangeDescriptionEmpty_setRevId() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("foo").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    WriterContext writerContext =
+        new WriterContext("GitDestinationTest", "test", true, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer = destination().newWriter(writerContext);
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                writer.write(
+                    TransformResults.of(workdir, originRef).withSummary("")
+                        .withLabelFinder(s -> ImmutableList.of())
+                        .withSetRevId(false),
+                    Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("test.txt")),
+                    console));
+    assertThat(e).hasMessageThat().contains("Change description is empty");
   }
 
   @Test

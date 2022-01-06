@@ -519,6 +519,10 @@ public class GitDestination implements Destination<GitRevision> {
       console.progress("Git Destination: Creating a local commit");
       MessageInfo messageInfo = writeHook.generateMessageInfo(transformResult);
 
+      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
+          "Change description is empty - this can be the result of scrubbing or an origin "
+              + "change without description.");
+
       ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
       for (LabelFinder label : messageInfo.labelsToAdd) {
         msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());
@@ -529,7 +533,6 @@ public class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           commitMessage);
-
       // Don't remove. Used internally in test
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
@@ -571,9 +574,6 @@ public class GitDestination implements Destination<GitRevision> {
               + " than the origin change baseline.");
         }
       }
-
-      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
-          "Change description is empty.");
 
       String localBranchName = "";
       if (localRepoPath != null) {
