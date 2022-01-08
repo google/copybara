@@ -152,8 +152,8 @@ public class MapAuthor implements Transformation {
     }
 
     try {
-      ImmutableMap<String, String> reverse = ImmutableBiMap.<String, String>builder()
-          .putAll(authorToAuthor).build().inverse();
+      ImmutableMap<String, String> reverse =
+          ImmutableBiMap.<String, String>builder().putAll(authorToAuthor).buildOrThrow().inverse();
       return new MapAuthor(location, reverse, ImmutableMap.of(),
           ImmutableMap.of(), reversible, noopReverse, failIfNotFoundInReverse, failIfNotFound,
           mapAll);
