@@ -93,7 +93,7 @@ public class Glob implements StarlarkValue, HasBinary {
    * <p>Try to keep the resulting Glob as flat as possible. In the worst case, this will increase
    * the depth of each leaf (i.e. {@code GlobAtom}) by 1, but we can often do better.
    */
-  private static Glob union(Glob glob1, Glob glob2) {
+  public static Glob union(Glob glob1, Glob glob2) {
     if (Objects.equals(glob1.exclude, glob2.exclude)) {
       return new Glob(
           Iterables.concat(glob1.include, glob2.include),
