@@ -156,6 +156,31 @@ public class WorkflowOptions implements Option {
       + "to change an existing workflow to use folder.destination")
   boolean toFolder = false;
 
+  public WorkflowOptions(WorkflowOptions other) {
+    this.changeBaseline = other.changeBaseline;
+    this.lastRevision = other.lastRevision;
+    this.initHistory = other.initHistory;
+    this.iterativeLimitChanges = other.iterativeLimitChanges;
+    this.ignoreNoop = other.ignoreNoop;
+    this.squashSkipHistory = other.squashSkipHistory;
+    this.migrateNoopChanges = other.migrateNoopChanges;
+    this.workflowIdentityUser = other.workflowIdentityUser;
+    this.checkLastRevState = other.checkLastRevState;
+    this.threads = other.threads;
+    this.changeRequestFromSotLimit = other.changeRequestFromSotLimit;
+    this.threadsMinSize = other.threadsMinSize;
+    this.noTransformationJoin = other.noTransformationJoin;
+    this.readConfigFromChange = other.readConfigFromChange;
+    this.readConfigFromChangePaths = other.readConfigFromChangePaths;
+    this.noSmartPrune = other.noSmartPrune;
+    this.toFolder = other.toFolder;
+    this.changeRequestFromSotRetry = other.changeRequestFromSotRetry;
+    this.defaultAuthor = other.defaultAuthor;
+    this.forcedChangeMessage = other.forcedChangeMessage;
+    this.forcedAuthor = other.forcedAuthor;
+    this.diffInOrigin = other.diffInOrigin;
+  }
+
   public boolean canUseSmartPrune() {
     return !noSmartPrune;
   }
@@ -258,5 +283,12 @@ public class WorkflowOptions implements Option {
   @Override
   public int hashCode() {
     return Objects.hash(changeBaseline, lastRevision);
+  }
+
+  public WorkflowOptions withInitHistory(boolean initHistory) {
+    WorkflowOptions other =
+        new WorkflowOptions(this);
+    other.initHistory = initHistory;
+    return other;
   }
 }

@@ -47,12 +47,10 @@ import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
-
-import net.starlark.java.annot.StarlarkBuiltin;
-
 import java.nio.file.FileSystem;
 import java.util.Map;
 import java.util.function.Function;
+import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -140,6 +138,10 @@ public class ModuleSupplier {
    */
   public final ModuleSet create() {
     Options options = newOptions();
+    return createWithOptions(options);
+  }
+
+  public final ModuleSet createWithOptions(Options options) {
     return new ModuleSet(options, getStaticModules(), modulesToVariableMap(options));
   }
 
