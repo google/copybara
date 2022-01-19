@@ -31,23 +31,26 @@ import net.starlark.java.syntax.Location;
 public class SaveOriginalAuthor implements Transformation {
 
   private final String label;
+  private final String separator;
   private final Location location;
 
-  SaveOriginalAuthor(String label, Location location) {
+  SaveOriginalAuthor(String label, String separator, Location location) {
+
     this.label = Preconditions.checkNotNull(label);
+    this.separator = Preconditions.checkNotNull(separator);
     this.location = Preconditions.checkNotNull(location);
   }
 
   @Override
   public TransformationStatus transform(TransformWork work)
       throws IOException, ValidationException {
-    work.addOrReplaceLabel(label, work.getAuthor().toString(), "=");
+    work.addOrReplaceLabel(label, work.getAuthor().toString(), separator);
     return TransformationStatus.success();
   }
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    return new RestoreOriginalAuthor(label, /*searchAllChanges=*/false, location);
+    return new RestoreOriginalAuthor(label, separator, /*searchAllChanges=*/false, location);
   }
 
   @Override

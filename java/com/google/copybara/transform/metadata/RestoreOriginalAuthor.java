@@ -36,12 +36,14 @@ import net.starlark.java.syntax.Location;
 public class RestoreOriginalAuthor implements Transformation {
 
   private final String label;
+  private final String separator;
   private final boolean searchAllChanges;
   private final Location location;
 
-  RestoreOriginalAuthor(String label, boolean searchAllChanges,
-      Location location) {
+  RestoreOriginalAuthor(String label, String separator,
+          boolean searchAllChanges, Location location) {
     this.label = label;
+    this.separator = separator;
     this.searchAllChanges = searchAllChanges;
     this.location = Preconditions.checkNotNull(location);
   }
@@ -76,7 +78,7 @@ public class RestoreOriginalAuthor implements Transformation {
 
   @Override
   public Transformation reverse() throws NonReversibleValidationException {
-    return new SaveOriginalAuthor(label, location);
+    return new SaveOriginalAuthor(label, separator, location);
   }
 
   @Override
