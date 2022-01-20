@@ -16,11 +16,8 @@
 
 package com.google.copybara.profiler;
 
-
-import com.google.common.base.Throwables;
 import com.google.common.flogger.FluentLogger;
 import java.time.Duration;
-import java.util.List;
 
 /**
  * A simple callback for the profiler that logs the execution of the tasks when they finish.
@@ -36,29 +33,31 @@ public class LogProfilerListener implements Listener {
 
   @Override
   public void taskFinished(Task task) {
-    List<StackTraceElement> stack = Throwables.lazyStackTrace(new Throwable());
-    if (stack != null && stack.size() > 2) {
-      // Call-site -> profiler -> this
-      int depth = 2;
-      StackTraceElement caller = stack.get(depth);
-      // Depending on the JVM, we might have added entries
-      while ((caller.getClassName().equals("com.google.copybara.profiler.Profiler") 
-          || caller.getMethodName().startsWith("$")) 
-          && stack.size() > depth + 1) {
-        depth++;
-        caller = stack.get(depth);
-      }
-      logger.atInfo()
-          .withInjectedLogSite(
-              caller.getClassName(),
-              caller.getMethodName(),
-              caller.getLineNumber(),
-              caller.getFileName())
-          .log("PROFILE: %6d %s",
-              Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());
-      return;
-    }
-    logger.atInfo().log("PROFILE: %6d %s",
-        Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription());
+    StackWalker.getInstance()
+        .walk(
+            stream ->
+                stream
+                    .skip(2)
+                    .dropWhile(
+                        frame ->
+                            frame.getClassName().equals("com.google.copybara.profiler.Profiler")
+                                || frame.getMethodName().startsWith("$"))
+                    .findFirst())
+        .ifPresentOrElse(
+            caller ->
+                logger
+                    .atInfo()
+                    .withInjectedLogSite(
+                        caller.getClassName(),
+                        caller.getMethodName(),
+                        caller.getLineNumber(),
+                        caller.getFileName())
+                    .log(
+                        "PROFILE: %6d %s",
+                        Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription()),
+            () ->
+                logger.atInfo().log(
+                    "PROFILE: %6d %s",
+                    Duration.ofNanos(task.elapsedNanos()).toMillis(), task.getDescription()));
   }
 }
