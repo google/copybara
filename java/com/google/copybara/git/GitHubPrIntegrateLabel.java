@@ -38,7 +38,8 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
 
   private static final Pattern LABEL_PATTERN =
       Pattern.compile(
-          "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+) from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,40}))?");
+          "https://github.com/([a-zA-Z0-9_/-]+)/pull/([0-9]+)"
+              + " from ([^\\s\\r\\n]*)(?: ([0-9a-f]{7,40}))?");
 
   private final GitRepository repository;
   private final GeneralOptions generalOptions;
@@ -62,7 +63,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
   @Nullable
   static GitHubPrIntegrateLabel parse(String str, GitRepository repository,
       GeneralOptions generalOptions) {
-    Matcher matcher = LABEL_PATTERN.matcher(str);
+    Matcher matcher = LABEL_PATTERN.matcher(str.trim());
     return matcher.matches()
            ? new GitHubPrIntegrateLabel(repository, generalOptions,
                                         matcher.group(1),

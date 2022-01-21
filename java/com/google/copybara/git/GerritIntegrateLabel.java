@@ -69,7 +69,7 @@ class GerritIntegrateLabel implements IntegrateLabel {
   @Nullable
   static GerritIntegrateLabel parse(String str, GitRepository repository,
       GeneralOptions generalOptions) {
-    Matcher matcher = LABEL_PATTERN.matcher(str);
+    Matcher matcher = LABEL_PATTERN.matcher(str.trim());
     return matcher.matches()
            ? new GerritIntegrateLabel(repository, generalOptions,
                                       matcher.group(1),
