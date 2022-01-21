@@ -214,10 +214,15 @@ public class MetadataModule implements StarlarkValue {
             named = true,
             doc = "The label to use for storing the author",
             defaultValue = "'ORIGINAL_AUTHOR'"),
+        @Param(
+            name = "separator",
+            named = true,
+            doc = "The separator to use between the label and the value",
+            defaultValue = "\"=\""),
       },
       useStarlarkThread = true)
-  public Transformation saveAuthor(String label, StarlarkThread thread) {
-    return new SaveOriginalAuthor(label, thread.getCallerLocation());
+  public Transformation saveAuthor(String label, String separator, StarlarkThread thread) {
+    return new SaveOriginalAuthor(label, separator, thread.getCallerLocation());
   }
 
   static final String MAP_AUTHOR_EXAMPLE_SIMPLE = ""
@@ -500,6 +505,11 @@ public class MetadataModule implements StarlarkValue {
             doc = "The label to use for restoring the author",
             defaultValue = "'ORIGINAL_AUTHOR'"),
         @Param(
+            name = "separator",
+            named = true,
+            doc = "The separator to use between the label and the value",
+            defaultValue = "\"=\""),
+        @Param(
             name = "search_all_changes",
             named = true,
             doc =
@@ -510,8 +520,9 @@ public class MetadataModule implements StarlarkValue {
       },
       useStarlarkThread = true)
   public Transformation restoreAuthor(
-      String label, Boolean searchAllChanges, StarlarkThread thread) {
-    return new RestoreOriginalAuthor(label, searchAllChanges, thread.getCallerLocation());
+      String label, String separator, Boolean searchAllChanges, StarlarkThread thread) {
+    return new RestoreOriginalAuthor(
+        label, separator, searchAllChanges, thread.getCallerLocation());
     }
 
   @SuppressWarnings("unused")

@@ -607,6 +607,31 @@ public class MetadataModuleTest {
   }
 
   @Test
+  public void testSaveAuthorOtherSeparator() throws Exception {
+    Workflow<?, ?> wf =
+        createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author(separator=': ')");
+    origin.setAuthor(new Author("keep me", "keep@me.com"))
+        .addSimpleChange(0, "A change");
+    wf.run(workdir, ImmutableList.of());
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR: keep me <keep@me.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR=");
+  }
+
+  @Test
+  public void testSaveAuthorOtherLabelAndSeparator() throws Exception {
+    Workflow<?, ?> wf = createWorkflow(
+        WorkflowMode.ITERATIVE, "metadata.save_author('OTHER_LABEL', separator=': ')");
+    origin.setAuthor(new Author("keep me", "keep@me.com"))
+        .addSimpleChange(0, "A change");
+    wf.run(workdir, ImmutableList.of());
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).contains("OTHER_LABEL: keep me <keep@me.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR=");
+  }
+
+  @Test
   public void testsSaveReplaceAuthor() throws Exception {
     Workflow<?, ?> wf = createWorkflow(WorkflowMode.ITERATIVE, "metadata.save_author()");
     origin.setAuthor(new Author("keep me", "keep@me.com"))
@@ -661,6 +686,36 @@ public class MetadataModuleTest {
     assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
     assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=no no <no@no.com>");
     assertThat(change.getChangesSummary()).doesNotContain("OTHER_LABEL");
+    assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
+  }
+
+  @Test
+  public void testRestoreAuthorOtherSeparator() throws Exception {
+    Workflow<?, ?> wf =
+        createWorkflow(WorkflowMode.ITERATIVE, "metadata.restore_author(separator=': ')");
+    origin.setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(0, "A change\n\n"
+            + "ORIGINAL_AUTHOR: restore me <restore@me.com>\n");
+    wf.run(workdir, ImmutableList.of());
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
+    assertThat(change.getChangesSummary()).doesNotContain("ORIGINAL_AUTHOR");
+    assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
+  }
+
+  @Test
+  public void testRestoreAuthorOtherLabelAndSeparator() throws Exception {
+    Workflow<?, ?> wf = createWorkflow(
+        WorkflowMode.ITERATIVE, "metadata.restore_author('OTHER_LABEL', separator=': ')");
+    origin.setAuthor(new Author("remove me", "remove@me.com"))
+        .addSimpleChange(0, "A change\n\n"
+            + "OTHER_LABEL: restore me <restore@me.com>\n"
+            + "ORIGINAL_AUTHOR=no no <no@no.com>\n");
+    wf.run(workdir, ImmutableList.of());
+    ProcessedChange change = Iterables.getLast(destination.processed);
+    assertThat(change.getChangesSummary()).doesNotContain("restore@me.com");
+    assertThat(change.getChangesSummary()).contains("ORIGINAL_AUTHOR=no no <no@no.com>");
+    assertThat(change.getChangesSummary()).doesNotContain("OTHER_LABEL:");
     assertThat(change.getAuthor().toString()).isEqualTo("restore me <restore@me.com>");
   }
 

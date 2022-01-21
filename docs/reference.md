@@ -3480,7 +3480,7 @@ Body from Github Pull Request
 
 For a given change, restore the author present in the ORIGINAL_AUTHOR label as the author of the change.
 
-[`transformation`](#transformation) `metadata.restore_author(label='ORIGINAL_AUTHOR', search_all_changes=False)`
+[`transformation`](#transformation) `metadata.restore_author(label='ORIGINAL_AUTHOR', separator="=", search_all_changes=False)`
 
 
 #### Parameters:
@@ -3488,6 +3488,7 @@ For a given change, restore the author present in the ORIGINAL_AUTHOR label as t
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to use for restoring the author</p>
+separator | `string`<br><p>The separator to use between the label and the value</p>
 search_all_changes | `bool`<br><p>By default Copybara only looks in the last current change for the author label. This allows to do the search in all current changes (Only makes sense for SQUASH/CHANGE_REQUEST).</p>
 
 <a id="metadata.save_author" aria-hidden="true"></a>
@@ -3495,7 +3496,7 @@ search_all_changes | `bool`<br><p>By default Copybara only looks in the last cur
 
 For a given change, store a copy of the author as a label with the name ORIGINAL_AUTHOR.
 
-[`transformation`](#transformation) `metadata.save_author(label='ORIGINAL_AUTHOR')`
+[`transformation`](#transformation) `metadata.save_author(label='ORIGINAL_AUTHOR', separator="=")`
 
 
 #### Parameters:
@@ -3503,6 +3504,7 @@ For a given change, store a copy of the author as a label with the name ORIGINAL
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to use for storing the author</p>
+separator | `string`<br><p>The separator to use between the label and the value</p>
 
 <a id="metadata.scrubber" aria-hidden="true"></a>
 ### metadata.scrubber
