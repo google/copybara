@@ -575,7 +575,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String topicTemplate,
       boolean gerritSubmit,
-      boolean primaryBranchMigrationMode) {
+      boolean primaryBranchMigrationMode,
+      @Nullable Checker checker) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     String push = submit && !gerritSubmit
@@ -588,8 +589,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             push,
             partialFetch,
             primaryBranchMigrationMode,
-            /*tagName=*/null,
-            /*tagMsg=*/null,
+            /*tagName=*/ null,
+            /*tagMsg=*/ null,
             destinationOptions,
             options.get(GitOptions.class),
             generalOptions,
@@ -609,7 +610,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 partialFetch,
                 gerritSubmit,
                 primaryBranchMigrationMode),
-            integrates),
+            integrates,
+            checker),
         submit);
   }
 

@@ -1206,16 +1206,27 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
-                @ParamType(type = Boolean.class),
+              @ParamType(type = Boolean.class),
             },
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "When enabled, copybara will ignore the 'push' and 'fetch' params if either is "
-                + "'master' or 'main' and instead try to establish the default git branch. If this "
-                + "fails, it will fall back to the param's declared value.\n"
-                + "This is intended to help migrating to the new standard of using 'main' without "
-                + "breaking users relying on the legacy default."),
+            doc =
+                "When enabled, copybara will ignore the 'push' and 'fetch' params if either is"
+                    + " 'master' or 'main' and instead try to establish the default git branch. If"
+                    + " this fails, it will fall back to the param's declared value.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A checker that can check leaks or other checks in the commit created. ",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1228,11 +1239,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       boolean partialFetch,
       Object integrates,
       Boolean primaryBranchMigration,
+      Object checker,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     String resolvedPush = checkNotEmpty(firstNotNull(destinationOptions.push, push), "push");
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    Checker maybeChecker = convertFromNoneable(checker, null);
+    if (maybeChecker != null && options.get(GitDestinationOptions.class).skipGitChecker) {
+      maybeChecker = null;
+      getGeneralConsole()
+          .warn(
+              "Skipping git checker for git.destination. Note that this could"
+                  + " cause leaks or other problems");
+    }
     return new GitDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1251,7 +1271,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         new DefaultWriteHook(),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
-            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
+        maybeChecker);
   }
 
   @SuppressWarnings("unused")
@@ -1267,11 +1288,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc =
                 "Indicates the URL to push to as well as the URL from which to get the parent "
                     + "commit"),
-          @Param(
-              name = "push",
-              named = true,
-              doc = "Reference to use for pushing the change, for example 'main'.",
-              defaultValue = "'master'"),
+        @Param(
+            name = "push",
+            named = true,
+            doc = "Reference to use for pushing the change, for example 'main'.",
+            defaultValue = "'master'"),
         @Param(
             name = "fetch",
             allowedTypes = {
@@ -1347,48 +1368,62 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
-                @ParamType(type = Boolean.class),
+              @ParamType(type = Boolean.class),
             },
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "When enabled, copybara will ignore the 'push' and 'fetch' params if either is "
-                + "'master' or 'main' and instead try to establish the default git branch. If this "
-                + "fails, it will fall back to the param's declared value.\n"
-                + "This is intended to help migrating to the new standard of using 'main' without "
-                + "breaking users relying on the legacy default."),
-          @Param(
-              name = "tag_name",
-              allowedTypes = {
-                  @ParamType(type = String.class),
-                  @ParamType(type = NoneType.class),
-              },
-              named = true,
-              positional = false,
-              doc =
-                  "A template string that specifies to a tag name. If the tag already exists, "
-                      + "copybara will only overwrite it if the --git-tag-overwrite flag is set."
-                      + "\nNote that tag creation is "
-                      + "best-effort and the migration will succeed even if the tag cannot be "
-                      + "created. "
-                      + "Usage: Users can use a string or a string with a label. "
-                      + "For instance ${label}_tag_name. And the value of label must be "
-                      + "in changes' label list. Otherwise, tag won't be created.",
-              defaultValue = "None"),
-          @Param(
-              name = "tag_msg",
-              allowedTypes = {
-                  @ParamType(type = String.class),
-                  @ParamType(type = NoneType.class),
-              },
-              named = true,
-              positional = false,
-              doc =
-                  "A template string that refers to the commit msg for a tag. If set, copybara will"
-                      + "create an annotated tag with this custom message\n"
-                      + "Usage: Labels in the string will be resolved. E.g .${label}_message."
-                      + "By default, the tag will be created with the labeled commit's message.",
-              defaultValue = "None"),
+            doc =
+                "When enabled, copybara will ignore the 'push' and 'fetch' params if either is"
+                    + " 'master' or 'main' and instead try to establish the default git branch. If"
+                    + " this fails, it will fall back to the param's declared value.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "tag_name",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A template string that specifies to a tag name. If the tag already exists, "
+                    + "copybara will only overwrite it if the --git-tag-overwrite flag is set."
+                    + "\nNote that tag creation is "
+                    + "best-effort and the migration will succeed even if the tag cannot be "
+                    + "created. "
+                    + "Usage: Users can use a string or a string with a label. "
+                    + "For instance ${label}_tag_name. And the value of label must be "
+                    + "in changes' label list. Otherwise, tag won't be created.",
+            defaultValue = "None"),
+        @Param(
+            name = "tag_msg",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A template string that refers to the commit msg for a tag. If set, copybara will"
+                    + "create an annotated tag with this custom message\n"
+                    + "Usage: Labels in the string will be resolved. E.g. .${label}_message."
+                    + "By default, the tag will be created with the labeled commit's message.",
+            defaultValue = "None"),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc =
+                "A checker that validates the commit files & message. If `api_checker` is not"
+                    + " set, it will also be used for checking API calls. If only `api_checker`"
+                    + "is used, that checker will only apply to API calls.",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1402,10 +1437,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean partialFetch,
       Object deletePrBranchParam,
       Object integrates,
-      Object checker,
+      Object apiChecker,
       Boolean primaryBranchMigration,
       Object tagName,
       Object tagMsg,
+      Object checker,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1436,6 +1472,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gitHubOptions.gitHubDeletePrBranch != null
             ? gitHubOptions.gitHubDeletePrBranch
             : deletePrBranch != null ? deletePrBranch : false;
+
+    Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
+    Checker checkerObj = convertFromNoneable(checker, null);
     return new GitDestination(
         repoUrl,
         checkNotEmpty(
@@ -1456,11 +1495,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectivePrBranchToUpdate,
             effectiveDeletePrBranch,
             getGeneralConsole(),
-            convertFromNoneable(checker, null),
+            apiCheckerObj != null ? apiCheckerObj : checkerObj,
             GITHUB_COM),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
-            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"));
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
+        checkerObj);
   }
 
   @SuppressWarnings("unused")
@@ -1569,16 +1609,30 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "By default, Copybara only set the title and body of the PR when creating"
                     + " the PR. If this field is set to true, it will update those fields for"
                     + " every update."),
-          @Param(
-              name = "primary_branch_migration",
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc = "When enabled, copybara will ignore the 'desination_ref' param if it is "
-                  + "'master' or 'main' and instead try to establish the default git branch. If "
-                  + "this fails, it will fall back to the param's declared value.\n"
-                  + "This is intended to help migrating to the new standard of using 'main' without"
-                  + " breaking users relying on the legacy default."),
+        @Param(
+            name = "primary_branch_migration",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or"
+                    + " 'main' and instead try to establish the default git branch. If this fails,"
+                    + " it will fall back to the param's declared value.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc =
+                "A checker that validates the commit files & message. If `api_checker` is not"
+                    + " set, it will also be used for checking API calls. If only `api_checker`"
+                    + "is used, that checker will only apply to API calls.",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1617,9 +1671,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object title,
       Object body,
       Object integrates,
-      Object checkerObj,
+      Object apiChecker,
       Boolean updateDescription,
       Boolean primaryBranchMigrationMode,
+      Object checker,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -1629,6 +1684,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
     String destinationPrBranch = convertFromNoneable(prBranch, null);
+    Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
+    Checker checkerObj = convertFromNoneable(checker, null);
     return new GitHubPrDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1656,10 +1713,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(title, null),
         convertFromNoneable(body, null),
         mainConfigFile,
-        convertFromNoneable(checkerObj, null),
+        apiCheckerObj != null ? apiCheckerObj : checkerObj,
         updateDescription,
         GITHUB_COM,
-        primaryBranchMigrationMode);
+        primaryBranchMigrationMode,
+        checkerObj);
   }
 
   @Nullable private static String firstNotNull(String... values) {
@@ -1819,20 +1877,33 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "By default, Copybara uses git commit/push to the main branch when submit = True."
                     + "  If this flag is enabled, it will update the Gerrit change with the "
                     + "latest commit and submit using Gerrit."),
-          @Param(
-              name = "primary_branch_migration",
-              allowedTypes = {
-                  @ParamType(type = Boolean.class),
-              },
-              defaultValue = "False",
-              named = true,
-              positional = false,
-              doc = "When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params "
-                  + "if either is 'master' or 'main' and instead try to establish the default git "
-                  + "branch. If this fails, it will fall back to the param's declared value.\n"
-                  + "This is intended to help migrating to the new standard of using 'main' without"
-                  + " breaking users relying on the legacy default."),
-
+        @Param(
+            name = "primary_branch_migration",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc =
+                "When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if"
+                    + " either is 'master' or 'main' and instead try to establish the default git"
+                    + " branch. If this fails, it will fall back to the param's declared value.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc =
+                "A checker that validates the commit files & message. If `api_checker` is not"
+                    + " set, it will also be used for checking API calls. If only `api_checker`"
+                    + "is used, that checker will only apply to API calls.",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1849,11 +1920,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Sequence<?> reviewers, // <String>
       Sequence<?> ccParam, // <String>
       Sequence<?> labelsParam, // <String>
-      Object checkerObj,
+      Object apiChecker,
       Object integrates,
       Object topicObj,
       Boolean gerritSubmit,
       Boolean primaryBranchMigrationMode,
+      Object checker,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -1878,6 +1950,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         notifyOptionStr == null
             ? null
             : stringToEnum("notify", notifyOptionStr, NotifyOption.class);
+
+    Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
+    Checker checkerObj = convertFromNoneable(checker, null);
+
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, thread.getCallerLocation()),
@@ -1896,13 +1972,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         newReviewers,
         cc,
         labels,
-        convertFromNoneable(checkerObj, null),
+        apiCheckerObj != null ? apiCheckerObj : checkerObj,
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         topicStr,
         gerritSubmit,
-        primaryBranchMigrationMode);
+        primaryBranchMigrationMode,
+        checkerObj);
   }
 
   @SuppressWarnings("unused")

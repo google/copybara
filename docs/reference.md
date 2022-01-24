@@ -2130,7 +2130,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`destination` `git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None, primary_branch_migration=False)`
+`destination` `git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None, primary_branch_migration=False, checker=None)`
 
 
 #### Parameters:
@@ -2145,6 +2145,7 @@ fetch | `string` or `NoneType`<br><p>Indicates the ref from which to get the par
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+checker | `checker` or `NoneType`<br><p>A checker that can check leaks or other checks in the commit created. </p>
 
 
 
@@ -2161,6 +2162,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.gerrit_api" aria-hidden="true"></a>
@@ -2193,7 +2195,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-`destination` `git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None, gerrit_submit=False, primary_branch_migration=False)`
+`destination` `git.gerrit_destination(url, fetch, push_to_refs_for=fetch value, submit=False, partial_fetch=False, notify=None, change_id_policy='FAIL_IF_PRESENT', allow_empty_diff_patchset=True, reviewers=[], cc=[], labels=[], api_checker=None, integrates=None, topic=None, gerrit_submit=False, primary_branch_migration=False, checker=None)`
 
 
 #### Parameters:
@@ -2216,6 +2218,7 @@ integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes f
 topic | `string` or `NoneType`<br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
 gerrit_submit | `bool`<br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+checker | `checker` or `NoneType`<br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 
 
 
@@ -2232,6 +2235,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.gerrit_origin" aria-hidden="true"></a>
@@ -2325,7 +2329,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-`destination` `git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None, primary_branch_migration=False, tag_name=None, tag_msg=None)`
+`destination` `git.github_destination(url, push='master', fetch=None, pr_branch_to_update=None, partial_fetch=False, delete_pr_branch=False, integrates=None, api_checker=None, primary_branch_migration=False, tag_name=None, tag_msg=None, checker=None)`
 
 
 #### Parameters:
@@ -2342,7 +2346,8 @@ integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes f
 api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 tag_name | `string` or `NoneType`<br><p>A template string that specifies to a tag name. If the tag already exists, copybara will only overwrite it if the --git-tag-overwrite flag is set.<br>Note that tag creation is best-effort and the migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
-tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
+tag_msg | `string` or `NoneType`<br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
+checker | `checker` or `NoneType`<br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 
 
 
@@ -2359,6 +2364,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_origin" aria-hidden="true"></a>
@@ -2388,7 +2394,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Creates changes in a new pull request in the destination.
 
-`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False)`
+`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None)`
 
 
 #### Parameters:
@@ -2406,6 +2412,7 @@ integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes f
 api_checker | `checker` or `NoneType`<br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 update_description | `bool`<br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+checker | `checker` or `NoneType`<br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 
 
 #### Examples:
@@ -2464,6 +2471,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--github-destination-pr-branch`</span> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
 <span style="white-space: nowrap;">`--github-destination-pr-create`</span> | *boolean* | If the pull request should be created
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode

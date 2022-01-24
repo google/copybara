@@ -79,7 +79,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @Nullable private final String title;
   @Nullable private final String body;
   private final boolean updateDescription;
-  private GitHubHost ghHost;
+  private final GitHubHost ghHost;
+  @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
   @Nullable private final Checker endpointChecker;
@@ -104,7 +105,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       @Nullable Checker endpointChecker,
       boolean updateDescription,
       GitHubHost ghHost,
-      boolean primaryBranchMigrationMode) {
+      boolean primaryBranchMigrationMode,
+      @Nullable Checker checker) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
@@ -120,6 +122,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.body = body;
     this.updateDescription = updateDescription;
     this.ghHost = Preconditions.checkNotNull(ghHost);
+    this.checker = checker;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
@@ -184,7 +187,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         destinationOptions.committerEmail,
         destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize,
-        gitOptions.gitTagOverwrite) {
+        gitOptions.gitTagOverwrite,
+        checker) {
       @Override
       public ImmutableList<DestinationEffect> write(
           TransformResult transformResult, Glob destinationFiles, Console console)
@@ -274,7 +278,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 + " git.github_pr_destination or modify the message to not be empty");
 
         PullRequest pr =
-            api.createPullRequest(getProjectName(),
+            api.createPullRequest(
+                getProjectName(),
                 new CreatePullRequest(title, prBody, prBranch, getDestinationRef()));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",

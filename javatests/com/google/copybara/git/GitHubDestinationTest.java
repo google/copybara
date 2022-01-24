@@ -42,6 +42,7 @@ import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApiException;
@@ -222,6 +223,64 @@ public class GitHubDestinationTest {
         .containsNoMoreFiles();
 
     assertThat(remote.simpleCommand("show-ref").getStdout()).doesNotContain("other");
+  }
+
+  @Test
+  public void testCheckerOnPush() throws Exception {
+    options.workflowOptions.initHistory = true;
+
+    addFiles(remote, primaryBranch, "first change", ImmutableMap.of("foo.txt", "hello"));
+
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("BAD"));
+
+    GitDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_destination("
+                + "    url = '"
+                + url
+                + "', \n"
+                + "    push = '"
+                + primaryBranch
+                + "',\n"
+                + "    checker = testing.dummy_checker(),\n"
+                + ")");
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github",
+            "test",
+            false,
+            new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    writeFile(this.workdir, "test.txt", "BAD");
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    DummyRevision ref = new DummyRevision("origin_ref1");
+
+    Changes changes =
+        new Changes(
+            ImmutableList.of(
+                new Change<>(
+                    ref,
+                    new Author("foo", "foo@foo.com"),
+                    "message",
+                    ZonedDateTime.now(ZoneOffset.UTC),
+                    ImmutableListMultimap.of("my_label", "12345")),
+                new Change<>(
+                    ref,
+                    new Author("foo", "foo@foo.com"),
+                    "message",
+                    ZonedDateTime.now(ZoneOffset.UTC),
+                    ImmutableListMultimap.of("my_label", "6789"))),
+            ImmutableList.of());
+
+    TransformResult result = TransformResults.of(workdir, ref).withChanges(changes);
+
+    assertThat(
+            assertThrows(
+                CheckerException.class, () -> writer.write(result, destinationFiles, console)))
+        .hasMessageThat()
+        .contains("Bad word 'bad' found");
   }
 
   private void checkPrToUpdateWithRegularString(String deletePrBranch, boolean expectDeletePrBranch)

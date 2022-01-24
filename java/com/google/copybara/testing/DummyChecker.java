@@ -22,9 +22,13 @@ import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
 import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
@@ -68,6 +72,29 @@ public class DummyChecker implements Checker {
    */
   @Override
   public void doCheck(Path target, Console console) throws CheckerException, IOException {
+    AtomicReference<CheckerException> e = new AtomicReference<>();
+    SimpleFileVisitor<Path> visitor =
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            try {
+              checkFile(file);
+            } catch (CheckerException ex) {
+              e.set(ex);
+              return FileVisitResult.TERMINATE;
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        };
+
+    Files.walkFileTree(target, visitor);
+    if (e.get() != null) {
+      throw e.get();
+    }
+  }
+
+  private void checkFile(Path target) throws IOException, CheckerException {
     int lineNum = 0;
     for (String line : Files.readAllLines(target)) {
       lineNum++;

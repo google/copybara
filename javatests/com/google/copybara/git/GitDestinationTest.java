@@ -31,6 +31,7 @@ import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.truth.Truth;
 import com.google.copybara.Change;
@@ -45,12 +46,14 @@ import com.google.copybara.Origin.Baseline;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
@@ -71,6 +74,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,6 +97,7 @@ public class GitDestinationTest {
   private String tagMsg;
   private String partialClone;
   private String primaryBranch;
+  @Nullable private String checker;
   private String primaryBranchMigration = "False";
 
   private Path workdir;
@@ -108,6 +113,7 @@ public class GitDestinationTest {
     options.gitDestination.committerName = "Bara Kopi";
     destinationFiles = Glob.createGlob(ImmutableList.of("**"));
     partialClone = "False";
+    checker = "None";
 
     url = "file://" + repoGitDir;
     skylark = new SkylarkTestExecutor(options);
@@ -206,14 +212,18 @@ public class GitDestinationTest {
 
   private GitDestination evalDestination()
       throws ValidationException {
-    return skylark.eval("result",
-        String.format("result = git.destination(\n"
-            + "    url = '%s',\n"
-            + "    fetch = '%s',\n"
-            + "    push = '%s',\n"
-            + "    partial_fetch = %s,\n"
-            + "    primary_branch_migration = %s,\n"
-            + ")", url, fetch, push, partialClone, primaryBranchMigration));
+    return skylark.eval(
+        "result",
+        String.format(
+            "result = git.destination(\n"
+                + "    url = '%s',\n"
+                + "    fetch = '%s',\n"
+                + "    push = '%s',\n"
+                + "    partial_fetch = %s,\n"
+                + "    checker = %s,\n"
+                + "    primary_branch_migration = %s,\n"
+                + ")",
+            url, fetch, push, partialClone, checker, primaryBranchMigration));
   }
 
   private GitDestination evalDestinationWithTag(String tagMsg)
@@ -1561,6 +1571,46 @@ public class GitDestinationTest {
         .containsFile("test42", "42")
         .containsFile("test99", "99")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testChecker() throws Exception {
+
+    Writer<GitRevision> writer = firstCommitWriter();
+
+    Files.write(workdir.resolve("existing"), "BAD".getBytes(UTF_8));
+    ImmutableList<DestinationEffect> result =
+        writer.write(
+            TransformResults.of(workdir, new DummyRevision("ref1")), destinationFiles, console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("BAD"));
+
+    checker = "testing.dummy_checker()";
+    final Writer<GitRevision> writer2 = newWriter();
+
+    Files.write(workdir.resolve("new_file"), "ok".getBytes(UTF_8));
+    result =
+        writer2.write(
+            TransformResults.of(workdir, new DummyRevision("ref2")), destinationFiles, console);
+    assertThat(result).hasSize(1);
+
+    assertThat(result.get(0).getErrors()).isEmpty();
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+
+    Files.write(workdir.resolve("new_file"), "BAD".getBytes(UTF_8));
+
+    CheckerException ex =
+        assertThrows(
+            CheckerException.class,
+            () ->
+                writer2.write(
+                    TransformResults.of(workdir, new DummyRevision("ref3")),
+                    destinationFiles,
+                    console));
+    assertThat(ex).hasMessageThat().containsMatch("Bad word 'bad' found:.*/new_file:1");
+    assertThat(ex).hasMessageThat().doesNotContainMatch("Bad word 'bad' found:.*/existing:1");
   }
 
   @Test

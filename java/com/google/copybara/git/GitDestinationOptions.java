@@ -54,6 +54,15 @@ public final class GitDestinationOptions implements Option {
           + " destination.")
   public String committerEmail = "";
 
+  @VisibleForTesting
+  @Parameter(
+      names = "--git-skip-checker",
+      description =
+          "If true and git.destination has a configured checker, it will not"
+              + " be used in the migration.",
+      arity = 1)
+  public boolean skipGitChecker;
+
   public GitDestinationOptions(GeneralOptions generalOptions,
       GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);

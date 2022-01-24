@@ -53,6 +53,7 @@ import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -62,6 +63,7 @@ import com.google.copybara.git.GerritDestination.GerritWriteHook;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.gerritapi.GerritApiException;
 import com.google.copybara.git.testing.GitTesting;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyEndpoint;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
@@ -557,6 +559,43 @@ public class GerritDestinationTest {
     assertThat(destination.getType()).isEqualTo("git.destination");
     assertThat(destination.describe(glob).get("fetch")).isEqualTo(ImmutableSet.of("master"));
     assertThat(destination.describe(glob).get("push")).isEqualTo(ImmutableSet.of("master"));
+  }
+
+  @Test
+  public void testChecker() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "BAD");
+
+    options.setForce(true);
+
+    url = "https://localhost:33333/foo/bar";
+    GitRepository repo = gitUtil.mockRemoteRepo("localhost:33333/foo/bar");
+    mockNoChangesFound();
+
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("BAD"));
+    GerritDestination destination = destination("submit = True, checker = testing.dummy_checker()");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestinationTest", "test", false, originRef, Glob.ALL_FILES.roots());
+
+    assertThat(
+            assertThrows(
+                CheckerException.class,
+                () ->
+                    destination
+                        .newWriter(writerContext)
+                        .write(
+                            TransformResults.of(workdir, originRef)
+                                .withSummary("Test message")
+                                .withIdentity(originRef.asString()),
+                            glob,
+                            console)))
+        .hasMessageThat()
+        .contains("Bad word 'bad' found");
   }
 
   @Test

@@ -22,6 +22,7 @@ import static com.google.copybara.GeneralOptions.FORCE;
 import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
+import static com.google.copybara.util.FileUtil.copyFilesRecursively;
 import static com.google.copybara.util.FileUtil.deleteRecursively;
 import static java.lang.String.format;
 
@@ -31,6 +32,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
@@ -48,6 +51,8 @@ import com.google.copybara.Origin;
 import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.AccessValidationException;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -56,8 +61,10 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl.WriteHook;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -76,6 +83,7 @@ import net.starlark.java.eval.Sequence;
 public class GitDestination implements Destination<GitRevision> {
 
   private static final String ORIGIN_LABEL_SEPARATOR = ": ";
+  public static final int SMALL_NUM_FILES_CHECKER_THRESHOLD = 100;
 
   static class MessageInfo {
 
@@ -103,6 +111,7 @@ public class GitDestination implements Destination<GitRevision> {
   @Nullable private String resolvedPrimary = null;
   private final Iterable<GitIntegrateChanges> integrates;
   private final WriteHook writerHook;
+  @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
 
   GitDestination(
@@ -117,7 +126,8 @@ public class GitDestination implements Destination<GitRevision> {
       GitOptions gitOptions,
       GeneralOptions generalOptions,
       WriteHook writerHook,
-      Iterable<GitIntegrateChanges> integrates) {
+      Iterable<GitIntegrateChanges> integrates,
+      @Nullable Checker checker) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -130,6 +140,7 @@ public class GitDestination implements Destination<GitRevision> {
     this.generalOptions = checkNotNull(generalOptions);
     this.integrates = checkNotNull(integrates);
     this.writerHook = checkNotNull(writerHook);
+    this.checker = checker;
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
 
@@ -180,7 +191,8 @@ public class GitDestination implements Destination<GitRevision> {
         destinationOptions.committerEmail,
         destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize,
-        gitOptions.gitTagOverwrite);
+        gitOptions.gitTagOverwrite,
+        checker);
   }
 
   /**
@@ -230,17 +242,31 @@ public class GitDestination implements Destination<GitRevision> {
     private final boolean rebase;
     private final int visitChangePageSize;
     private final boolean gitTagOverwrite;
+    @Nullable private final Checker checker;
 
-    /**
-     * Create a new git.destination writer
-     */
-    WriterImpl(boolean skipPush, String repoUrl, String remoteFetch,
-        String remotePush, boolean partialFetch, String tagNameTemplate, String tagMsgTemplate,
-        GeneralOptions generalOptions, WriteHook writeHook, S state,
-        boolean nonFastForwardPush, Iterable<GitIntegrateChanges> integrates,
-        boolean lastRevFirstParent, boolean ignoreIntegrationErrors, String localRepoPath,
-        String committerName, String committerEmail, boolean rebase, int visitChangePageSize,
-        boolean gitTagOverwrite) {
+    /** Create a new git.destination writer */
+    WriterImpl(
+        boolean skipPush,
+        String repoUrl,
+        String remoteFetch,
+        String remotePush,
+        boolean partialFetch,
+        String tagNameTemplate,
+        String tagMsgTemplate,
+        GeneralOptions generalOptions,
+        WriteHook writeHook,
+        S state,
+        boolean nonFastForwardPush,
+        Iterable<GitIntegrateChanges> integrates,
+        boolean lastRevFirstParent,
+        boolean ignoreIntegrationErrors,
+        String localRepoPath,
+        String committerName,
+        String committerEmail,
+        boolean rebase,
+        int visitChangePageSize,
+        boolean gitTagOverwrite,
+        Checker checker) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -263,6 +289,7 @@ public class GitDestination implements Destination<GitRevision> {
       this.rebase = rebase;
       this.visitChangePageSize = visitChangePageSize;
       this.gitTagOverwrite = gitTagOverwrite;
+      this.checker = checker;
     }
 
     @Override
@@ -533,6 +560,9 @@ public class GitDestination implements Destination<GitRevision> {
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
           commitMessage);
+
+      maybeCheckHeadCommit(alternate);
+
       // Don't remove. Used internally in test
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
@@ -637,6 +667,35 @@ public class GitDestination implements Destination<GitRevision> {
               .run()
       );
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
+    }
+
+    /**
+     * Given a change in HEAD, if a checker is configured, it checks the affected files (the whole
+     * files, not the diff) and the commit message.
+     */
+    private void maybeCheckHeadCommit(GitRepository alternate)
+        throws RepoException, IOException, CheckerException {
+      if (checker == null) {
+        return;
+      }
+      ImmutableList<GitLogEntry> head =
+          alternate.log("HEAD").withLimit(1).includeFiles(true).includeBody(true).run();
+      GitLogEntry commit = Iterables.getOnlyElement(head);
+      ImmutableSet<String> files = commit.getFiles();
+      Path target = alternate.getWorkTree();
+      // If only a few files, create a copy of those modified files so that the checker doesn't
+      // have to check all the existing tree.
+      if (files != null && files.size() < SMALL_NUM_FILES_CHECKER_THRESHOLD) {
+        Path dest = generalOptions.getDirFactory().newTempDir("git_dest_checker");
+        copyFilesRecursively(
+            alternate.getWorkTree(),
+            dest,
+            CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
+            Glob.createGlob(files));
+        target = dest;
+      }
+      checker.doCheck(target, baseConsole);
+      checker.doCheck(ImmutableMap.of("change_message", commit.getBody()), baseConsole);
     }
 
     @Nullable
@@ -856,6 +915,9 @@ public class GitDestination implements Destination<GitRevision> {
     }
     if (tagMsg != null) {
       builder.put("tagMsg", tagMsg);
+    }
+    if (checker != null) {
+      builder.put("checker", checker.getClass().getName());
     }
     return builder.build();
   }
