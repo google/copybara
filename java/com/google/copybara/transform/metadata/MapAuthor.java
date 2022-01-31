@@ -90,8 +90,15 @@ public class MapAuthor implements Transformation {
         }
       }
     }
-    return new MapAuthor(location, authorToAuthor.build(), mailToAuthor.build(),
-        nameToAuthor.build(), reversible, noopReverse, failIfNotFound, failIfNotFoundInReverse,
+    return new MapAuthor(
+        location,
+        authorToAuthor.buildOrThrow(),
+        mailToAuthor.buildOrThrow(),
+        nameToAuthor.buildOrThrow(),
+        reversible,
+        noopReverse,
+        failIfNotFound,
+        failIfNotFoundInReverse,
         mapAll);
   }
 

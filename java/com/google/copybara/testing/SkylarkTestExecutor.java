@@ -229,7 +229,7 @@ public class SkylarkTestExecutor {
         new ImmutableMap.Builder<String, byte[]>()
             .putAll(extraConfigFiles)
             .put(filename, configContent.getBytes(UTF_8))
-            .build(),
+            .buildOrThrow(),
         filename);
   }
 

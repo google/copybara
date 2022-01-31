@@ -44,7 +44,6 @@ import com.google.copybara.DestinationEffect;
 import com.google.copybara.Revision;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -162,8 +161,11 @@ public class GitHubPrDestinationTest {
             Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(
@@ -210,8 +212,11 @@ public class GitHubPrDestinationTest {
             Glob.ALL_FILES.roots());
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(
@@ -320,8 +325,11 @@ public class GitHubPrDestinationTest {
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(TransformResults.of(this.workdir,
@@ -376,8 +384,11 @@ public class GitHubPrDestinationTest {
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(TransformResults.of(this.workdir,
@@ -429,8 +440,11 @@ public class GitHubPrDestinationTest {
     Writer<GitRevision> writer = d.newWriter(new WriterContext("piper_to_github_pr", "TEST", false,
         revision, Glob.ALL_FILES.roots()));
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(
@@ -577,11 +591,17 @@ public class GitHubPrDestinationTest {
 
     Writer<GitRevision> writer = d.newWriter(writerContext);
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, "main", "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        "main",
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
-    addFiles(remote, "other", "second change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "test").build());
+    addFiles(
+        remote,
+        "other",
+        "second change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(
@@ -599,14 +619,17 @@ public class GitHubPrDestinationTest {
   public void emptyChange() throws Exception {
     Writer<GitRevision> writer = getWriterForTestEmptyDiff();
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
     String baseline = remote.resolveReference("HEAD").getSha1();
     addFiles(
         remote,
         "test_feature",
         "second change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "test").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
     String changeHead = remote.resolveReference("HEAD").getSha1();
     gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
         + "  \"id\": 1,\n"
@@ -643,8 +666,11 @@ public class GitHubPrDestinationTest {
   public void changeWithAllowEmptyDiff() throws Exception {
     Writer<GitRevision> writer = getWriterForTestEmptyDiff();
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change", ImmutableMap.<String, String>builder()
-        .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
     String baseline = remote.resolveReference("HEAD").getSha1();
 
     String changeHead = remote.resolveReference("HEAD").getSha1();
@@ -759,13 +785,13 @@ public class GitHubPrDestinationTest {
         remote,
         "main",
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     addFiles(
         remote,
         "other",
         "second change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "test").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
 
     writeFile(this.workdir, "test.txt", "some content");
     writer.write(
@@ -796,9 +822,11 @@ public class GitHubPrDestinationTest {
     Writer<GitRevision> writer = d.newWriter(writerContext);
 
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
-    addFiles(remote, null, "first change\n\nDummyOrigin-RevId: baseline",
-        ImmutableMap.<String, String>builder()
-            .put("foo.txt", "").build());
+    addFiles(
+        remote,
+        null,
+        "first change\n\nDummyOrigin-RevId: baseline",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
 
     DestinationStatus status = writer.getDestinationStatus(Glob.ALL_FILES, "DummyOrigin-RevId");
 

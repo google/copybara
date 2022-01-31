@@ -174,8 +174,10 @@ public class GitHubPrOriginTest {
         .addLabels("foo: yes", "bar: yes")
         .mock();
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    addFiles(remote, "first change", ImmutableMap.<String, String>builder()
-        .put(123 + ".txt", "").build());
+    addFiles(
+        remote,
+        "first change",
+        ImmutableMap.<String, String>builder().put(123 + ".txt", "").buildOrThrow());
     String sha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), sha1);
 
@@ -630,20 +632,22 @@ public class GitHubPrOriginTest {
   @Test
   public void testChanges() throws Exception {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    addFiles(remote, "base", ImmutableMap.<String, String>builder()
-        .put("test.txt", "a").build());
+    addFiles(
+        remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
     String base = remote.parseRef("HEAD");
-    addFiles(remote, "one", ImmutableMap.<String, String>builder()
-        .put("test.txt", "b").build());
-    addFiles(remote, "two", ImmutableMap.<String, String>builder()
-        .put("test.txt", "c").build());
+    addFiles(
+        remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").buildOrThrow());
+    addFiles(
+        remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").buildOrThrow());
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // main = base commit.
 
-    addFiles(remote, "main change", ImmutableMap.<String, String>builder()
-        .put("other.txt", "").build());
+    addFiles(
+        remote,
+        "main change",
+        ImmutableMap.<String, String>builder().put("other.txt", "").buildOrThrow());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
     MockPullRequest.create(gitUtil).setState("open").setPrNumber(123).mock();
@@ -676,19 +680,25 @@ public class GitHubPrOriginTest {
   @Test
   public void testCheckout() throws Exception {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    String baseline1 = addFiles(remote, "base", ImmutableMap.<String, String>builder()
-        .put("test.txt", "a").build());
-    addFiles(remote, "one", ImmutableMap.<String, String>builder()
-        .put("test.txt", "b").build());
-    addFiles(remote, "two", ImmutableMap.<String, String>builder()
-        .put("test.txt", "c").build());
+    String baseline1 =
+        addFiles(
+            remote,
+            "base",
+            ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
+    addFiles(
+        remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").buildOrThrow());
+    addFiles(
+        remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").buildOrThrow());
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
     withTmpWorktree(remote).simpleCommand("reset", "--hard", "HEAD~2"); // main = base commit.
 
-    String baselineMerge = addFiles(remote, "main change", ImmutableMap.<String, String>builder()
-        .put("other.txt", "").build());
+    String baselineMerge =
+        addFiles(
+            remote,
+            "main change",
+            ImmutableMap.<String, String>builder().put("other.txt", "").buildOrThrow());
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("HEAD"));
 
     MockPullRequest.create(gitUtil).setState("open").setPrNumber(123).mock();
@@ -786,10 +796,13 @@ public class GitHubPrOriginTest {
   public void testHookForGitHubPr() throws Exception {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
     GitRepository destination = gitUtil.mockRemoteRepo("github.com/destination");
-    addFiles(remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").build());
+    addFiles(
+        remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
     String lastRev = remote.parseRef("HEAD");
-    addFiles(remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").build());
-    addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
+    addFiles(
+        remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").buildOrThrow());
+    addFiles(
+        remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").buildOrThrow());
 
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
@@ -967,9 +980,12 @@ public class GitHubPrOriginTest {
   private GitRevision checkReviewApprovers(String... configLines)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    addFiles(remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").build());
-    addFiles(remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").build());
-    addFiles(remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").build());
+    addFiles(
+        remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
+    addFiles(
+        remote, "one", ImmutableMap.<String, String>builder().put("test.txt", "b").buildOrThrow());
+    addFiles(
+        remote, "two", ImmutableMap.<String, String>builder().put("test.txt", "c").buildOrThrow());
 
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
@@ -1066,19 +1082,29 @@ public class GitHubPrOriginTest {
   public void testMerge() throws Exception {
     GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
 
-    addFiles(remote, "base", ImmutableMap.<String, String>builder()
-        .put("a.txt", "").build());
+    addFiles(
+        remote, "base", ImmutableMap.<String, String>builder().put("a.txt", "").buildOrThrow());
     remote.simpleCommand("branch", "testMerge");
     remote.simpleCommand("branch", "primary");
 
     remote.forceCheckout("testMerge");
-    addFiles(remote, "one", ImmutableMap.<String, String>builder()
-        .put("a.txt", "").put("b.txt", "").build());
-    addFiles(remote, "two", ImmutableMap.<String, String>builder()
-        .put("a.txt", "").put("b.txt", "").put("c.txt", "").build());
+    addFiles(
+        remote,
+        "one",
+        ImmutableMap.<String, String>builder().put("a.txt", "").put("b.txt", "").buildOrThrow());
+    addFiles(
+        remote,
+        "two",
+        ImmutableMap.<String, String>builder()
+            .put("a.txt", "")
+            .put("b.txt", "")
+            .put("c.txt", "")
+            .buildOrThrow());
     remote.forceCheckout("primary");
-    addFiles(remote, "primary change", ImmutableMap.<String, String>builder()
-        .put("a.txt", "").put("d.txt", "").build());
+    addFiles(
+        remote,
+        "primary change",
+        ImmutableMap.<String, String>builder().put("a.txt", "").put("d.txt", "").buildOrThrow());
     remote.simpleCommand("merge", "testMerge");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), remote.parseRef("testMerge"));
     remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("primary"));
@@ -1133,8 +1159,8 @@ public class GitHubPrOriginTest {
   @Test
   public void testCheckout_noMergeRef() throws Exception {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    addFiles(remote, "base", ImmutableMap.<String, String>builder()
-        .put("test.txt", "a").build());
+    addFiles(
+        remote, "base", ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
     String prHeadSha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
 
@@ -1306,8 +1332,10 @@ public class GitHubPrOriginTest {
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
-    addFiles(remote, "first change", ImmutableMap.<String, String>builder()
-        .put(prNumber + ".txt", "").build());
+    addFiles(
+        remote,
+        "first change",
+        ImmutableMap.<String, String>builder().put(prNumber + ".txt", "").buildOrThrow());
     String sha1 = remote.parseRef("HEAD");
     remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(prNumber), sha1);
 

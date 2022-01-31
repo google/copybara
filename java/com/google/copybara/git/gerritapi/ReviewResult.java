@@ -55,7 +55,7 @@ public class ReviewResult implements StarlarkValue {
     for (Map.Entry<String, Integer> e : getLabels().entrySet()) {
       m.put(e.getKey(), StarlarkInt.of(e.getValue()));
     }
-    return m.build(); // becomes a Starlark dict
+    return m.buildOrThrow(); // becomes a Starlark dict
   }
 
   public Map<String, Integer> getLabels() {

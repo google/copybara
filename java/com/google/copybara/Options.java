@@ -32,7 +32,7 @@ public class Options {
     for (Option option : options) {
       builder.put(option.getClass(), option);
     }
-    config = builder.build();
+    config = builder.buildOrThrow();
   }
 
   /**

@@ -514,7 +514,7 @@ public class GitRepository {
         }
       }
     }
-    return result.build();
+    return result.buildOrThrow();
   }
 
   /**
@@ -600,7 +600,7 @@ public class GitRepository {
       // Ref -> SHA1
       result.put(strings.get(1), new GitRevision(this, strings.get(0)));
     }
-    return result.build();
+    return result.buildOrThrow();
   }
 
 

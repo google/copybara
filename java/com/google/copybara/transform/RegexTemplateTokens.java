@@ -200,7 +200,7 @@ public final class RegexTemplateTokens {
           for (int i = 0; i <= matcher.groupCount(); i++) {
             groupValues.put(i, matcher.group(i));
           }
-          replaceTemplate = callback.alter(groupValues.build(), afterReplaceTemplate);
+          replaceTemplate = callback.alter(groupValues.buildOrThrow(), afterReplaceTemplate);
         } else {
           replaceTemplate = afterReplaceTemplate;
         }

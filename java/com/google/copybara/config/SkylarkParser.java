@@ -337,7 +337,7 @@ public class SkylarkParser {
       } catch (ReflectiveOperationException e) {
         throw new LinkageError(e.getMessage(), e);
       }
-      env.putAll(envBuilder.build());
+      env.putAll(envBuilder.buildOrThrow());
 
       // Add the options to the module that require them
       if (OptionsAwareModule.class.isAssignableFrom(module)) {

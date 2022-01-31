@@ -235,7 +235,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    return result.build();
+    return result.buildOrThrow();
   }
 
   @Override

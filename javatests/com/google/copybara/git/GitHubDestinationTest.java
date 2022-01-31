@@ -126,7 +126,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     remote.simpleCommand("branch", "other");
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", true, new DummyRevision("origin_ref1"),
@@ -189,7 +189,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", false, new DummyRevision("origin_ref1"),
             Glob.ALL_FILES.roots());
@@ -251,7 +251,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     remote.simpleCommand("branch", "other");
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
@@ -335,7 +335,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     remote.simpleCommand("branch", "other_12345");
     remote.simpleCommand("branch", "other_6789");
     GitTesting.assertThatCheckout(remote, primaryBranch)
@@ -393,7 +393,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
@@ -441,7 +441,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     WriterContext writerContext =
         new WriterContext(
             "piper_to_github",
@@ -464,7 +464,7 @@ public class GitHubDestinationTest {
         remote,
         primaryBranch,
         "first change",
-        ImmutableMap.<String, String>builder().put("foo.txt", "foo").build());
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
     WriterContext writerContext =
         new WriterContext(
             "piper_to_github",

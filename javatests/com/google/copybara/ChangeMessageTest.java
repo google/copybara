@@ -78,7 +78,7 @@ public class ChangeMessageTest {
             .put("label_values('GitOrigin-RevId')[0]", "12345")
             .put("label_values('Other-label')[0]", "AA")
             .put("label_values('Other-label')[1]", "BB")
-            .build();
+            .buildOrThrow();
     skylarkTestExecutor.verifyFields(var, expectedFieldValues);
   }
 }

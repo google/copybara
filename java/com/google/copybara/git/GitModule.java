@@ -2147,7 +2147,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         //   -> JsonFactory.toByteArray
         //
         // where the Iterability of the labels map causes it to be treated like a list of keys.
-        copy.build(),
+        copy.buildOrThrow(),
         convertFromNoneable(tag, null));
   }
 
