@@ -226,11 +226,11 @@ public final class Authoring implements StarlarkValue {
    */
   public enum AuthoringMappingMode {
     /**
-     * Corresponds with {@link Authoring.Module#overwrite(String, Location)} built-in function.
+     * Corresponds with {@link Authoring.Module#overwrite(String)} built-in function.
      */
     OVERWRITE,
     /**
-     * Corresponds with {@link Authoring.Module#passThru(String, Location)} built-in function.
+     * Corresponds with {@link Authoring.Module#passThru(String)} built-in function.
      */
     PASS_THRU,
     /**
