@@ -3,3 +3,4 @@ bazel-*
 *.iml
 *.pyc
 .ijwb
+/.bazelrc.user
