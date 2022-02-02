@@ -255,9 +255,9 @@ public final class GerritDestination implements Destination<GitRevision> {
         if (sameGitTree.hasSameTree(changeInfo.getCurrentRevision())) {
           throw new RedundantChangeException(
               String.format(
-                  "Skipping creating a new Gerrit PatchSet for change %s since the diff is the"
+                  "Skipping creating a new Gerrit PatchSet for change %s/q/%s since the diff is the"
                       + " same from the previous PatchSet (%s)",
-                  changeInfo.getNumber(), changeInfo.getCurrentRevision()),
+                  repoUrl, changeInfo.getNumber(), changeInfo.getCurrentRevision()),
               changeInfo.getCurrentRevision());
         }
       }

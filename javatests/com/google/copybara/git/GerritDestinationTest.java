@@ -1710,8 +1710,9 @@ public class GerritDestinationTest {
     assertThat(e)
         .hasMessageThat()
         .contains(
-            "Skipping creating a new Gerrit PatchSet for change 12310 since the diff is the same"
-                + " from the previous PatchSet");
+            "Skipping creating a new Gerrit PatchSet for change"
+                + " https://localhost:33333/foo/bar/q/12310 since the diff is the same from the"
+                + " previous PatchSet");
     // No push happened
     assertThat(repo().refExists("refs/for/" + primaryBranch)).isFalse();
 
