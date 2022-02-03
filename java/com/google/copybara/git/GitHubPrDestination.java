@@ -141,8 +141,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
             .put("type", getType())
             .put("url", url)
             .put("destination_ref", destinationRef)
-            .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode)
-        ;
+            .put("primaryBranchMigrationMode", "" + primaryBranchMigrationMode);
+
+    if (checker != null) {
+      builder.put("checker", checker.getClass().getName());
+    }
     if (!destinationFiles.roots().isEmpty() && !destinationFiles.roots().contains("")) {
       builder.putAll("root", destinationFiles.roots());
     }

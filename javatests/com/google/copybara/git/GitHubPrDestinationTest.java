@@ -36,6 +36,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.Changes;
 import com.google.copybara.Destination.DestinationStatus;
@@ -49,6 +50,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -410,6 +412,20 @@ public class GitHubPrDestinationTest {
         + "    body = 'custom body',\n"
         + ")");
     assertThat(d.describe(Glob.ALL_FILES).get("url")).contains("https://github.com/foo");
+  }
+
+  @Test
+  public void testCheckerInDescribe() throws Exception {
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("BAD"));
+
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_pr_destination("
+                + "    url = 'http://github.com/foo',"
+                + "    checker = testing.dummy_checker()"
+                + ")");
+    assertThat(d.describe(Glob.ALL_FILES).get("checker")).contains(DummyChecker.class.getName());
   }
 
   private void checkWrite(Revision revision)
