@@ -964,7 +964,7 @@ core.transform(
 <a id="core.replace" aria-hidden="true"></a>
 ### core.replace
 
-Replace a text with another text using optional regex groups. This tranformer can be automatically reversed.
+Replace a text with another text using optional regex groups. This transformation can be automatically reversed.
 
 [`transformation`](#transformation) `core.replace(before, after, regex_groups={}, paths=glob(["**"]), first_only=False, multiline=False, repeated_groups=False, ignore=[])`
 

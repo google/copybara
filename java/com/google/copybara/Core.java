@@ -818,7 +818,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "replace",
       doc =
-          "Replace a text with another text using optional regex groups. This tranformer can be"
+          "Replace a text with another text using optional regex groups. This transformation can be"
               + " automatically reversed.",
       parameters = {
         @Param(
