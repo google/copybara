@@ -279,15 +279,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = CHECK_LAST_REV_STATE,
             named = true,
-            allowedTypes = {
-              @ParamType(type = Boolean.class),
-              @ParamType(type = NoneType.class),
-            },
             doc =
                 "If set to true, Copybara will validate that the destination didn't change"
                     + " since last-rev import for destination_files. Note that this"
                     + " flag doesn't work for CHANGE_REQUEST mode.",
-            defaultValue = "None",
+            defaultValue = "False",
             positional = false),
         @Param(
             name = "ask_for_confirmation",
@@ -428,7 +424,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @UsesFlags({WorkflowOptions.class})
   @DocDefault(field = "origin_files", value = "glob([\"**\"])")
   @DocDefault(field = "destination_files", value = "glob([\"**\"])")
-  @DocDefault(field = CHECK_LAST_REV_STATE, value = "True for CHANGE_REQUEST")
   @DocDefault(field = "reversible_check", value = "True for 'CHANGE_REQUEST' mode. False otherwise")
   @DocDefault(field = "reversible_check_ignore_files", value = "None")
   public void workflow(
@@ -441,7 +436,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object destinationFiles,
       String modeStr,
       Object reversibleCheckObj,
-      Object checkLastRevStateField,
+      boolean checkLastRevState,
       Boolean askForConfirmation,
       Boolean dryRunMode,
       net.starlark.java.eval.Sequence<?> afterMigrations,
@@ -508,7 +503,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "'smart_prune = True' is only supported" + " for CHANGE_REQUEST mode.");
     }
 
-    boolean checkLastRevState = convertFromNoneable(checkLastRevStateField, false);
     if (checkLastRevState) {
       check(
           mode != WorkflowMode.CHANGE_REQUEST,
