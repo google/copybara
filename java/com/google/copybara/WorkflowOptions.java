@@ -47,10 +47,12 @@ public class WorkflowOptions implements Option {
   protected static final String CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG =
       "--change-request-from-sot-limit";
 
-  @Parameter(names = {CHANGE_REQUEST_PARENT_FLAG, CHANGE_REQUEST_PARENT_FLAG_ALT},
-      description = "Commit revision to be used as parent when importing a commit using"
-          + " CHANGE_REQUEST workflow mode. this shouldn't be needed in general as Copybara is able"
-          + " to detect the parent commit message.")
+  @Parameter(
+      names = {CHANGE_REQUEST_PARENT_FLAG, CHANGE_REQUEST_PARENT_FLAG_ALT},
+      description =
+          "Commit revision to be used as parent when importing a commit using CHANGE_REQUEST"
+              + " workflow mode. This shouldn't be needed in general as Copybara is able to detect"
+              + " the parent commit message.")
   public String changeBaseline = "";
 
   /**
