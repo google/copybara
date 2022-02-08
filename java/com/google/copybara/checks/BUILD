@@ -27,6 +27,7 @@ java_library(
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util/console",
+        "//third_party:error_prone",
         "//third_party:guava",
         "//third_party:starlark",
     ],

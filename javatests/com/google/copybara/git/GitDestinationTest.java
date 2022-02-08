@@ -1614,6 +1614,52 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testCheckerDescription() {
+    assertThat(
+            assertThrows(
+                CheckerException.class,
+                () -> runDescriptionChecker(new DummyChecker(ImmutableSet.of("BAD")))))
+        .hasMessageThat()
+        .contains("Bad word 'bad' found in description");
+  }
+
+  @Test
+  public void testCheckerDescription_withDefault() throws Exception {
+    runDescriptionChecker(new DummyChecker(ImmutableSet.of("BAD"), "Message for failures"));
+    ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
+    assertThat(head).isNotEmpty();
+    assertThat(head.get(0).getBody()).isEqualTo("Message for failures\n");
+    assertThat(head.get(0).getAuthor()).isEqualTo(new Author("Dont", "rewri@te.me"));
+  }
+
+  private void runDescriptionChecker(DummyChecker checker)
+      throws ValidationException, IOException, RepoException {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    Writer<GitRevision> writer = firstCommitWriter();
+
+    Files.write(workdir.resolve("existing"), "test".getBytes(UTF_8));
+    ImmutableList<DestinationEffect> result =
+        writer.write(
+            TransformResults.of(workdir, new DummyRevision("ref1")), destinationFiles, console);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getType()).isEqualTo(Type.CREATED);
+
+    options.testingOptions.checker = checker;
+
+    this.checker = "testing.dummy_checker()";
+    final Writer<GitRevision> writer2 = newWriter();
+
+    Files.write(workdir.resolve("new_file"), "ok".getBytes(UTF_8));
+    writer2.write(
+        TransformResults.of(
+                workdir, new DummyRevision("ref2").withAuthor(new Author("Dont", "rewri@te.me")))
+            .withSummary("This is BAD"),
+        destinationFiles,
+        console);
+  }
+
+  @Test
   public void testGitIgnoreIncluded() throws Exception {
     fetch = primaryBranch;
     push = primaryBranch;

@@ -32,7 +32,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -52,7 +51,7 @@ import com.google.copybara.Revision;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
-import com.google.copybara.checks.CheckerException;
+import com.google.copybara.checks.DescriptionChecker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.AccessValidationException;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -674,7 +673,7 @@ public class GitDestination implements Destination<GitRevision> {
      * files, not the diff) and the commit message.
      */
     private void maybeCheckHeadCommit(GitRepository alternate)
-        throws RepoException, IOException, CheckerException {
+        throws RepoException, IOException, ValidationException {
       if (checker == null) {
         return;
       }
@@ -695,7 +694,16 @@ public class GitDestination implements Destination<GitRevision> {
         target = dest;
       }
       checker.doCheck(target, baseConsole);
-      checker.doCheck(ImmutableMap.of("change_message", commit.getBody()), baseConsole);
+
+      if (!(checker instanceof DescriptionChecker)) {
+        return;
+      }
+
+      DescriptionChecker descChecker = (DescriptionChecker) checker;
+      String updated = descChecker.processDescription(commit.getBody(), baseConsole);
+      if (!updated.equals(commit.getBody())) {
+        alternate.commit(null, true, null, updated);
+      }
     }
 
     @Nullable

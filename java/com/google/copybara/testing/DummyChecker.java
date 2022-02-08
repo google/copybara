@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.checks.DescriptionChecker;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -29,6 +30,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 
 /**
@@ -37,9 +39,10 @@ import net.starlark.java.annot.StarlarkBuiltin;
  * <p>TODO(danielromero): Promote to a real transform that uses regex
  */
 @StarlarkBuiltin(name = "dummy_checker", doc = "A dummy checker for tests")
-public class DummyChecker implements Checker {
+public class DummyChecker implements Checker, DescriptionChecker {
 
   private final ImmutableSet<String> badWords;
+  @Nullable private final String descriptionOnError;
 
   /**
    * Creates a new checker.
@@ -47,7 +50,13 @@ public class DummyChecker implements Checker {
    * @param badWords Case-insensitive set of bad words
    */
   public DummyChecker(ImmutableSet<String> badWords) {
-    this.badWords = badWords.stream().map(String::toLowerCase).collect(ImmutableSet.toImmutableSet());
+    this(badWords, null);
+  }
+
+  public DummyChecker(ImmutableSet<String> badWords, @Nullable String descriptionOnError) {
+    this.badWords =
+        badWords.stream().map(String::toLowerCase).collect(ImmutableSet.toImmutableSet());
+    this.descriptionOnError = descriptionOnError;
   }
 
   /**
@@ -92,6 +101,21 @@ public class DummyChecker implements Checker {
     if (e.get() != null) {
       throw e.get();
     }
+  }
+
+  @Override
+  public String processDescription(String description, Console console) throws CheckerException {
+    String lowerCase = description.toLowerCase();
+    for (String badWord : badWords) {
+      if (!lowerCase.contains(badWord)) {
+        continue;
+      }
+      if (descriptionOnError != null) {
+        return descriptionOnError;
+      }
+      throw new CheckerException(String.format("Bad word '%s' found in description", badWord));
+    }
+    return description;
   }
 
   private void checkFile(Path target) throws IOException, CheckerException {
