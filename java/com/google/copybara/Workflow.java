@@ -307,6 +307,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
    * @throws ValidationException if flags are invalid for this workflow
    */
   private void validateFlags() throws ValidationException {
+    console.verboseFmt("Using %s parallel threads for transformations", workflowOptions.threads);
     checkCondition(!isInitHistory() || mode != CHANGE_REQUEST,
         "%s is not compatible with %s",
             WorkflowOptions.INIT_HISTORY_FLAG, CHANGE_REQUEST);
