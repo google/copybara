@@ -1628,7 +1628,19 @@ public class GitDestinationTest {
     runDescriptionChecker(new DummyChecker(ImmutableSet.of("BAD"), "Message for failures"));
     ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
     assertThat(head).isNotEmpty();
-    assertThat(head.get(0).getBody()).isEqualTo("Message for failures\n");
+    assertThat(head.get(0).getBody()).isEqualTo(""
+        + "Message for failures\n"
+        + "\n"
+        + "DummyOrigin-RevId: ref2\n");
+    assertThat(head.get(0).getAuthor()).isEqualTo(new Author("Dont", "rewri@te.me"));
+  }
+
+  @Test
+  public void testCheckerDescription_label_leak_is_fine() throws Exception {
+    runDescriptionChecker(new DummyChecker(ImmutableSet.of(DummyOrigin.LABEL_NAME)));
+    ImmutableList<GitLogEntry> head = repo().log(primaryBranch).withLimit(1).run();
+    assertThat(head).isNotEmpty();
+    assertThat(head.get(0).getBody()).isEqualTo("This is BAD\n\nDummyOrigin-RevId: ref2\n");
     assertThat(head.get(0).getAuthor()).isEqualTo(new Author("Dont", "rewri@te.me"));
   }
 

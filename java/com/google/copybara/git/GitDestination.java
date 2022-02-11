@@ -549,18 +549,12 @@ public class GitDestination implements Destination<GitRevision> {
           "Change description is empty - this can be the result of scrubbing or an origin "
               + "change without description.");
 
-      ChangeMessage msg = ChangeMessage.parseMessage(transformResult.getSummary());
-      for (LabelFinder label : messageInfo.labelsToAdd) {
-        msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());
-      }
-
-      String commitMessage = msg.toString();
       alternate.commit(
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
-          commitMessage);
+          addDestinationLabels(messageInfo, transformResult.getSummary()));
 
-      maybeCheckHeadCommit(alternate);
+      maybeCheckHeadCommit(alternate, transformResult.getSummary(), messageInfo);
 
       // Don't remove. Used internally in test
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
@@ -668,11 +662,20 @@ public class GitDestination implements Destination<GitRevision> {
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
+    private String addDestinationLabels(MessageInfo messageInfo, String summary) {
+      ChangeMessage msg = ChangeMessage.parseMessage(summary);
+      for (LabelFinder label : messageInfo.labelsToAdd) {
+        msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());
+      }
+      return msg.toString();
+    }
+
     /**
      * Given a change in HEAD, if a checker is configured, it checks the affected files (the whole
      * files, not the diff) and the commit message.
      */
-    private void maybeCheckHeadCommit(GitRepository alternate)
+    private void maybeCheckHeadCommit(GitRepository alternate, String beforeCommitMsg,
+        MessageInfo messageInfo)
         throws RepoException, IOException, ValidationException {
       if (checker == null) {
         return;
@@ -700,9 +703,9 @@ public class GitDestination implements Destination<GitRevision> {
       }
 
       DescriptionChecker descChecker = (DescriptionChecker) checker;
-      String updated = descChecker.processDescription(commit.getBody(), baseConsole);
-      if (!updated.equals(commit.getBody())) {
-        alternate.commit(null, true, null, updated);
+      String updated = descChecker.processDescription(beforeCommitMsg, baseConsole);
+      if (!updated.equals(beforeCommitMsg)) {
+        alternate.commit(null, true, null, addDestinationLabels(messageInfo, updated));
       }
     }
 
