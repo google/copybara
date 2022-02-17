@@ -76,14 +76,14 @@ def copybara_repositories():
         http_archive,
         name = "com_google_protobuf",
         patch_args = ["-p1"],
-        patches = ["@io_bazel//third_party/protobuf:3.13.0.patch"],
+        patches = ["@io_bazel//third_party/protobuf:3.19.2.patch"],
         patch_cmds = EXPORT_WORKSPACE_IN_BUILD_FILE,
         patch_cmds_win = EXPORT_WORKSPACE_IN_BUILD_FILE_WIN,
-        sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
-        strip_prefix = "protobuf-3.13.0",
+        sha256 = "4dd35e788944b7686aac898f77df4e9a54da0ca694b8801bd6b2a9ffc1b3085e",
+        strip_prefix = "protobuf-3.19.2",
         urls = [
-            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",
-            "https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",
+            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v3.19.2.tar.gz",
+            "https://github.com/protocolbuffers/protobuf/archive/v3.19.02.tar.gz",
         ],
     )
 
