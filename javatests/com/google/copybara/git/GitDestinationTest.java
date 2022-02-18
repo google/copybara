@@ -1793,6 +1793,33 @@ public class GitDestinationTest {
                     console));
     assertThat(e).hasMessageThat().contains("Change description is empty");
   }
+  @Test
+  public void testChangeDescriptionEmpty_empty_commit() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    Path scratchTree = Files.createTempDirectory("GitDestinationTest-testLocalRepo");
+    Files.write(scratchTree.resolve("foo"), "foo\n".getBytes(UTF_8));
+    repo().withWorkTree(scratchTree).add().force().files("foo").run();
+    repo().withWorkTree(scratchTree).simpleCommand("commit", "-a", "-m", "change");
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    WriterContext writerContext =
+        new WriterContext("GitDestinationTest", "test", true, new DummyRevision("origin_ref1"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer = destination().newWriter(writerContext);
+    ValidationException e =
+        assertThrows(
+            EmptyChangeException.class,
+            () ->
+                writer.write(
+                    TransformResults.of(workdir, originRef).withSummary("")
+                        .withLabelFinder(s -> ImmutableList.of())
+                        .withSetRevId(false),
+                    Glob.createGlob(ImmutableList.of("nothing_to_be_found"),
+                        ImmutableList.of("test.txt")),
+                    console));
+    assertThat(e).hasMessageThat().contains(
+        "Migration of the revision resulted in an empty change");
+  }
 
   @Test
   public void testLocalRepoSkipPushFlag() throws Exception {

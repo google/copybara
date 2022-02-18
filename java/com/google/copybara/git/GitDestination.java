@@ -545,14 +545,16 @@ public class GitDestination implements Destination<GitRevision> {
       console.progress("Git Destination: Creating a local commit");
       MessageInfo messageInfo = writeHook.generateMessageInfo(transformResult);
 
-      ValidationException.checkCondition(!transformResult.getSummary().trim().isEmpty(),
-          "Change description is empty - this can be the result of scrubbing or an origin "
-              + "change without description.");
-
       alternate.commit(
           transformResult.getAuthor().toString(),
           transformResult.getTimestamp(),
-          addDestinationLabels(messageInfo, transformResult.getSummary()));
+          addDestinationLabels(
+              messageInfo,
+              transformResult.getSummary().trim().isEmpty()
+                  // Won't be really used if commit is successful, as there is a validation
+                  // below. This allows us to not fail on commit because of empty description.
+                  ? "Internal change"
+                  : transformResult.getSummary()));
 
       maybeCheckHeadCommit(alternate, transformResult.getSummary(), messageInfo);
 
@@ -564,6 +566,11 @@ public class GitDestination implements Destination<GitRevision> {
             path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
             transformResult, ignoreIntegrationErrors);
       }
+
+      ValidationException.checkCondition(
+          !transformResult.getSummary().trim().isEmpty(),
+          "Change description is empty - this can be the result of scrubbing or an origin "
+              + "change without description.");
 
       // Don't leave unstaged/untracked files in the work-tree. This is a problem for rebase
       // and in general any inspection of the directory after Copybara execution.
