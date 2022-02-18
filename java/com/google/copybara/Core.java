@@ -80,6 +80,7 @@ import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.eval.StarlarkThread.CallStackEntry;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -1565,7 +1566,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   public Action dynamicFeedback(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
-    return new StarlarkAction(
+    return new StarlarkAction(findCallableName(impl, thread),
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
   }
 
@@ -1588,8 +1589,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       },
       useStarlarkThread = true)
   public Action action(StarlarkCallable impl, Dict<?, ?> params, StarlarkThread thread) {
-    return new StarlarkAction(
+
+    return new StarlarkAction(findCallableName(impl, thread),
         impl, Dict.<Object, Object>copyOf(thread.mutability(), params), printHandler);
+  }
+
+  private String findCallableName(StarlarkCallable impl, StarlarkThread thread) {
+    String name = impl.getName();
+    ImmutableList<CallStackEntry> stack = thread.getCallStack();
+    if (name.equals("lambda") && stack.size() > 1
+        && !stack.get(stack.size() - 2).name.equals("<toplevel>")) {
+      name = stack.get(stack.size() - 2).name;
+    }
+    return name;
   }
 
   @SuppressWarnings("unused")
@@ -1749,7 +1761,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
       if (action instanceof StarlarkCallable) {
-        actions.add(new StarlarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
+        actions.add(new StarlarkAction(((StarlarkCallable) action).getName(),
+            (StarlarkCallable) action, Dict.empty(), printHandler));
       } else if (action instanceof Action) {
         actions.add((Action) action);
       } else {

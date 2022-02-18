@@ -19,11 +19,13 @@ package com.google.copybara.transform;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import net.starlark.java.eval.StarlarkCallable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,6 +61,31 @@ public class CoreTest {
   }
 
   @Test
+  public void testLambdaName_top_level() throws Exception {
+    assertThat(skylark.<StarlarkAction>eval("some", ""
+        + "some = core.action(impl = lambda x: x*2)").getName())
+        .isEqualTo("lambda");
+  }
+
+  @Test
+  public void testLambdaName_caller_name() throws Exception {
+    assertThat(skylark.<StarlarkAction>eval("some", ""
+        + "def create_f(n):\n"
+        + "    return core.action(impl = lambda x: x*n)\n"
+        + "some = create_f(3)").getName())
+        .isEqualTo("create_f");
+  }
+
+  @Test
+  public void testLambdaName_no_rename_raw_lambda() throws Exception {
+    assertThat(skylark.<StarlarkCallable>eval("some", ""
+        + "def create_f(n):\n"
+        + "    return lambda x: x*n\n"
+        + "some = create_f(3)").getName())
+        .isEqualTo("lambda");
+  }
+
+  @Test
   public void testInvalidFormat() {
     ValidationException expected =
         assertThrows(
@@ -71,7 +98,7 @@ public class CoreTest {
 
   @Test
   public void testConsole() throws Exception {
-     skylark.<String>eval("f", "f = core.console.info('Hello World')");
-     console.assertThat().logContains(MessageType.INFO, "Hello World");
+    skylark.<String>eval("f", "f = core.console.info('Hello World')");
+    console.assertThat().logContains(MessageType.INFO, "Hello World");
   }
 }

@@ -479,7 +479,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableList.Builder<Action> result = ImmutableList.builder();
     for (Object action : actions) {
       if (action instanceof StarlarkCallable) {
-        result.add(new StarlarkAction((StarlarkCallable) action, Dict.empty(), printHandler));
+        result.add(new StarlarkAction(((StarlarkCallable) action).getName(),
+            (StarlarkCallable) action, Dict.empty(), printHandler));
       } else if (action instanceof Action) {
         result.add((Action) action);
       } else {
@@ -489,8 +490,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
     return result.build();
   }
-
-
 
   @SuppressWarnings("unused")
   @StarlarkMethod(

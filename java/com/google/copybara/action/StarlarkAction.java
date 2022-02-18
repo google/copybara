@@ -31,18 +31,22 @@ import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkSemantics;
 import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.eval.StarlarkThread.PrintHandler;
 
 /**
  * An implementation of {@link Action} that delegates to a Starlark function.
  */
 public class StarlarkAction implements Action {
 
+  private final String name;
   private final StarlarkCallable function;
   private final Dict<?, ?> params;
   private final StarlarkThread.PrintHandler printHandler;
 
   public StarlarkAction(
-      StarlarkCallable function, Dict<?, ?> params, StarlarkThread.PrintHandler printHandler) {
+      String name, StarlarkCallable function, Dict<?, ?> params,
+      PrintHandler printHandler) {
+    this.name = name;
     this.function = Preconditions.checkNotNull(function);
     this.params = Preconditions.checkNotNull(params);
     this.printHandler = Preconditions.checkNotNull(printHandler);
@@ -77,7 +81,7 @@ public class StarlarkAction implements Action {
 
   @Override
   public String getName() {
-    return function.getName();
+    return name;
   }
 
   @Override
