@@ -537,6 +537,44 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testReferences() throws Exception {
+    String cfg =
+        ""
+            + "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/origin/*'])\n"
+            + "     for k in ctx.references().keys():\n"
+            + "         ctx.console.info('REF: ' + k)\n"
+            + "     for k in ctx.references(['refs/heads/origin/fo*']).keys():\n"
+            + "         ctx.console.info('REFSPEC: ' + k)\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+            + "    actions = [test],"
+            + ")";
+    Migration mirror1 = loadMigration(cfg, "default");
+    originRepo.simpleCommand("branch", "foo1");
+    originRepo.simpleCommand("branch", "foo2");
+    mirror1.run(workdir, ImmutableList.of());
+
+    console.assertThat().onceInLog(MessageType.INFO, "REF: refs/heads/origin/" + primaryBranch);
+    console.assertThat().onceInLog(MessageType.INFO, "REF: refs/heads/origin/foo1");
+    console.assertThat().onceInLog(MessageType.INFO, "REF: refs/heads/origin/foo2");
+    console.assertThat().onceInLog(MessageType.INFO, "REF: refs/heads/origin/other");
+
+    console.assertThat().onceInLog(MessageType.INFO, "REFSPEC: refs/heads/origin/foo1");
+    console.assertThat().onceInLog(MessageType.INFO, "REFSPEC: refs/heads/origin/foo2");
+    console
+        .assertThat()
+        .timesInLog(0, MessageType.INFO, "REFSPEC: refs/heads/origin/" + primaryBranch);
+    console
+        .assertThat()
+        .timesInLog(0, MessageType.INFO, "REFSPEC: refs/heads/origin/other");
+  }
+
+  @Test
   public void testMergeConflict() throws Exception {
     Migration mirror = mergeInit();
 

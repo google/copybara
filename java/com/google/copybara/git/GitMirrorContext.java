@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.config.SkylarkUtil.convertStringList;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
@@ -32,7 +33,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
@@ -41,11 +47,6 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class GitMirrorContext extends ActionContext<GitMirrorContext> implements StarlarkValue {
 
@@ -153,6 +154,41 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   }
 
   @StarlarkMethod(
+      name = "references",
+      doc = "Return a map of reference -> sha-1 for local references matching the refspec or"
+          + " all if no refspec is passed.",
+      parameters = {
+          @Param(name = "refspec", allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class)
+          }, named = true , defaultValue = "[]")
+      })
+  public Dict<String, String> references(Sequence<?> refspec)
+      throws ValidationException, EvalException {
+    Predicate<String> filter = refspecFilter(convertStringList(refspec, "refspec"));
+    try {
+      return Dict.immutableCopyOf(
+          repo.showRef().entrySet().stream()
+              .filter(e ->  filter.test(e.getKey()))
+              .collect(ImmutableMap.toImmutableMap(Entry::getKey, v -> v.getValue().getSha1())));
+    } catch (RepoException e) {
+      throw new ValidationException("Cannot list references in the local repository", e);
+    }
+  }
+
+  private Predicate<String> refspecFilter(Collection<String> refspec)
+      throws ValidationException {
+    if (refspec.isEmpty()) {
+      return s -> true;
+    }
+    Predicate<String> filter = null;
+    for (String r : refspec) {
+      Refspec refSpec = repo.createRefSpec(r);
+      filter = filter == null? refSpec::matchesOrigin: filter.or(refSpec::matchesOrigin);
+    }
+    return filter;
+  }
+
+  @StarlarkMethod(
       name = "destination_push",
       doc = "Push to the destination a list of refspecs.",
       parameters = {
@@ -182,8 +218,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       })
   public MergeResult merge(String branch, Sequence<?> commits, Object msg)
       throws RepoException, ValidationException, EvalException, IOException {
-    ValidationException
-        .checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
+    checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
     GitRepository withWorktree = this.repo.withWorkTree(dirFactory.newTempDir("mirror"));
     try {
       withWorktree.forceCheckout(branch);
@@ -201,7 +236,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       cmd.add("-m");
       cmd.add(strMsg);
     }
-    cmd.addAll(SkylarkUtil.convertStringList(commits, "commits"));
+    cmd.addAll(convertStringList(commits, "commits"));
 
     try {
       withWorktree.simpleCommand(cmd);
