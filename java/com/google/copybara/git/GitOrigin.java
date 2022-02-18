@@ -370,7 +370,10 @@ public class GitOrigin implements Origin<GitRevision> {
       generalOptions.console().info(String.format("Rebasing %s to %s", rebaseToRef, rebaseToRef));
       GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef, partialFetch);
       repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
-      repo.rebase(COPYBARA_TMP_REF);
+      repo.rebaseCmd(COPYBARA_TMP_REF)
+          .errorAdvice(
+              "Please consider not using the flag --git-origin-rebase-ref as a workaround")
+          .run();
     }
 
     @Override

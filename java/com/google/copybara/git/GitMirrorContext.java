@@ -32,6 +32,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.BranchCmd;
 import com.google.copybara.git.GitRepository.CherryPickCmd;
+import com.google.copybara.git.GitRepository.RebaseCmd;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
@@ -221,11 +222,9 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   public MergeResult merge(String branch, Sequence<?> commits, Object msg)
       throws RepoException, ValidationException, EvalException, IOException {
     checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
-    GitRepository withWorktree = forceCheckout(branch,
-        String.format(
-            "Cannot merge commits %s into branch %s because of failure during merge checkout",
-            commits, branch));
-
+    GitRepository withWorktree = prepareWorktreeForMerge(branch,
+        String.format("Cannot merge commits %s into"
+                + " branch %s because of failure during merge checkout", commits, branch));
     String strMsg = SkylarkUtil.convertFromNoneable(msg, null);
 
     List<String> cmd = Lists.newArrayList("merge");
@@ -244,6 +243,53 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       return MergeResult.error(e.getMessage());
     }
     return MergeResult.success();
+  }
+
+  @StarlarkMethod(
+      name = "rebase",
+      doc = "Rebase one or more commits into a local branch.",
+      parameters = {
+          @Param(name = "upstream", named = true, doc = "upstream branch with new changes"),
+          @Param(name = "branch", named = true, doc = "Current branch with specific commits that"
+              + " we want to rebase in top of the new `upstream` changes"),
+          @Param(name = "newBase", named = true, defaultValue = "None",
+              doc = "Move the rebased changes to a new branch (--into parameter in git rebase)"),
+          @Param(name = "conflict_advice", named = true, defaultValue = "None",
+          doc = "Additional information on how to solve the issue in case if conflict")})
+  public MergeResult rebase(String upstream, String branch, Object newBase, Object conflictAdvice)
+      throws RepoException, ValidationException, EvalException, IOException {
+
+    GitRepository withWorktree = prepareWorktreeForMerge(branch,
+        String.format("Cannot rebase %s from branch %s because of failure during checkout",
+            branch, upstream));
+    try {
+      RebaseCmd rebaseCmd = withWorktree.rebaseCmd(upstream);
+      rebaseCmd
+          .branch(branch)
+          .into(SkylarkUtil.convertFromNoneable(newBase, null))
+          .errorAdvice(SkylarkUtil.convertFromNoneable(conflictAdvice, null))
+          .run();
+    } catch (RebaseConflictException e) {
+      logger.atWarning().withCause(e)
+          .log("Error running merge in action %s for branch %s and upstream %s",
+              getActionName(), branch, upstream);
+      return MergeResult.error(e.getMessage());
+    }
+    return MergeResult.success();
+  }
+
+  private GitRepository prepareWorktreeForMerge(String branch, String errorMsg)
+      throws IOException, ValidationException, RepoException {
+    GitRepository withWorktree = this.repo.withWorkTree(dirFactory.newTempDir("mirror"));
+    try {
+      withWorktree.forceCheckout(branch);
+    } catch (RepoException e) {
+      throw new ValidationException(errorMsg, e);
+    }
+    // Clean everything before the merge
+    withWorktree.simpleCommand("reset", "--hard");
+    withWorktree.forceClean();
+    return withWorktree;
   }
 
   @StarlarkMethod(

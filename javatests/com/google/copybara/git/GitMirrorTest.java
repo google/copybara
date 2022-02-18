@@ -535,6 +535,44 @@ public class GitMirrorTest {
     assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
 
   }
+  @Test
+  public void testRebase() throws Exception {
+    String cfg =
+        ""
+            + "def _rebase(ctx):\n"
+            + "     ctx.destination_fetch(refspec = ['refs/heads/" + primaryBranch + "'])\n"
+            + "     exist = ctx.destination_fetch(refspec = ['refs/heads/internal'])\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/" + primaryBranch + "'])\n"
+            + "     if exist:\n"
+            + "         result = ctx.rebase(branch = 'internal',"
+            + "               upstream = '" + primaryBranch + "')\n"
+            + "         if result.error:\n"
+            + "             return ctx.error('Conflict rebasing change')\n"
+            + "     else:\n"
+            + "         ctx.create_branch('internal', starting_point = '" + primaryBranch + "')\n"
+            + "     ctx.destination_push(refspec = ['+refs/heads/internal'])\n"
+            + "     ctx.destination_push(refspec = ['refs/heads/" + primaryBranch + "'])\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+            + "    refspecs = ['refs/heads/*:refs/heads/*'],"
+            + "    actions = [_rebase],"
+            + ")";
+    Migration mirror1 = loadMigration(cfg, "default");
+    mirror1.run(workdir, ImmutableList.of());
+    GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
+    GitRepository dest = destRepo.withWorkTree(Files.createTempDirectory("dest"));
+    dest.forceCheckout("internal");
+    GitLogEntry destChange = repoChange(dest, "some_file", "Content", "destination only");
+    mirror1.run(workdir, ImmutableList.of());
+
+    ImmutableList<GitLogEntry> log = destRepo.log("internal").run();
+    assertThat(log.get(0).getBody()).contains(destChange.getBody());
+    assertThat(log.get(1).getCommit()).isEqualTo(originChange.getCommit());
+  }
 
   @Test
   public void testReferences() throws Exception {
@@ -727,7 +765,9 @@ public class GitMirrorTest {
 
   private GitLogEntry repoChange(GitRepository repo, String path, String content, String msg)
       throws IOException, RepoException {
-    GitRepository withWorkdir = repo.withWorkTree(Files.createTempDirectory("test"));
+    GitRepository withWorkdir =
+        repo.getWorkTree() != null ? repo
+                                   : repo.withWorkTree(Files.createTempDirectory("test"));
 
     GitTestUtil.writeFile(withWorkdir.getWorkTree(), path, content);
     withWorkdir.add().all().run();

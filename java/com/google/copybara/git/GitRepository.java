@@ -930,25 +930,88 @@ public class GitRepository {
     }
   }
 
-  public void rebase(String newBaseline) throws RepoException, RebaseConflictException {
-    CommandOutputWithStatus output = gitAllowNonZeroExit(
-        NO_INPUT, ImmutableList.of("rebase", checkNotNull(newBaseline)),
-        DEFAULT_TIMEOUT);
+  /** An object capable of performing a 'git rebase' operation on the local repository. */
+  public class RebaseCmd {
+    private final GitRepository repo;
+    @Nullable private final String branch;
+    private final String upstream;
+    @Nullable private final String into;
+    @Nullable private final String errorAdvice;
 
-    if (output.getTerminationStatus().success()) {
-      return;
+    @CheckReturnValue
+    RebaseCmd(
+        GitRepository repo,
+        String upstream,
+        @Nullable String branch,
+        @Nullable String into,
+        @Nullable String errorAdvice) {
+
+      this.repo = repo;
+      this.branch = branch;
+      this.upstream = upstream;
+      this.into = into;
+      this.errorAdvice = errorAdvice;
     }
 
-    if (FAILED_REBASE.matcher(output.getStderr()).find()) {
-      throw new RebaseConflictException(
-          String.format(
-              ""
-                  + "Conflict detected while rebasing %s to %s. Please sync or update the change "
-                  + "in the origin and retry. Git output was:\n%s. Please consider to use flag %s "
-                  + "to workaround", workTree, newBaseline, output.getStdout(),
-              "nogit-destination-rebase"));
+    /** Set the branch to rebase */
+    @CheckReturnValue
+    public RebaseCmd branch(String branch) {
+      return new RebaseCmd(this.repo, upstream, branch, into, errorAdvice);
     }
-    throw new RepoException(output.getStderr());
+
+    /** Set --into branch. See git rebase. */
+    @CheckReturnValue
+    public RebaseCmd into(String into) {
+      return new RebaseCmd(this.repo, upstream, branch, into, errorAdvice);
+    }
+
+    /**
+     * Additional advice to the user in case of error. Can have context on flags or manual
+     * intervention that fix the problem.
+     */
+    @CheckReturnValue
+    public RebaseCmd errorAdvice(String errorAdvice) {
+      return new RebaseCmd(this.repo, upstream, branch, into, errorAdvice);
+    }
+
+    /** Run 'git rebase'. */
+    public void run() throws RepoException, RebaseConflictException {
+      List<String> cmd = Lists.newArrayList("rebase", upstream);
+
+      if (branch != null) {
+        cmd.add(branch);
+      }
+
+      if (into != null) {
+        cmd.add("--into");
+        cmd.add(into);
+      }
+
+      CommandOutputWithStatus output = gitAllowNonZeroExit(NO_INPUT, cmd, DEFAULT_TIMEOUT);
+
+      if (output.getTerminationStatus().success()) {
+        return;
+      }
+
+      if (FAILED_REBASE.matcher(output.getStderr()).find()) {
+        throw new RebaseConflictException(
+            String.format(
+                "Conflict detected while rebasing %s to %s. Please sync or update the change in the"
+                    + " origin and retry. Git output was:\n"
+                    + "%s%s",
+                workTree,
+                branch,
+                output.getStdout(),
+                errorAdvice != null ? ". " + errorAdvice : ""));
+      }
+      throw new RepoException(output.getStderr());
+    }
+  }
+
+  /** Create a git rebase command. */
+  @CheckReturnValue
+  public RebaseCmd rebaseCmd(String upstream) {
+    return new RebaseCmd(this, checkNotNull(upstream), null, null, null);
   }
 
   /** Try to cherry pick a commit. If it fails, cherry-pick will be aborted and return false*/

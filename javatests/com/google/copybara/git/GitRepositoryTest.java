@@ -363,6 +363,45 @@ public class GitRepositoryTest {
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
   }
 
+  @Test
+  public void testRebase() throws Exception {
+    simpleChange(repository, "foo.txt", "", "first");
+    repository.branch("foo").run();
+    repository.forceCheckout("foo");
+    simpleChange(repository, "bar.txt", "", "branch change");
+    simpleChange(repository, "bar.txt", "modified", "other branch change");
+    repository.forceCheckout(defaultBranch);
+    GitRevision newParent = simpleChange(repository, "foo.txt", "modified", "second");
+    repository.rebaseCmd(defaultBranch).branch("foo").run();
+
+    ImmutableList<GitLogEntry> log =
+        repository
+            .log("foo")
+            .includeFiles(true)
+            .includeMergeDiff(true)
+            .run();
+    assertThat(log.get(0).getBody()).contains("other branch change");
+    assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
+    assertThat(log.get(1).getBody()).contains("branch change");
+    assertThat(log.get(1).getFiles()).containsExactly("bar.txt");
+    assertThat(log.get(2).getCommit()).isEqualTo(newParent);
+  }
+
+  @Test
+  public void testRebaseConflict() throws Exception {
+    simpleChange(repository, "foo.txt", "", "first");
+    repository.branch("foo").run();
+    repository.forceCheckout("foo");
+    simpleChange(repository, "foo.txt", "branch modified", "branch change");
+    repository.forceCheckout(defaultBranch);
+    simpleChange(repository, "foo.txt", "modified", "second");
+    assertThat(assertThrows(RebaseConflictException.class, () ->
+        repository.rebaseCmd(defaultBranch).branch("foo")
+            .errorAdvice("Uninstall git and use folders as versioning system").run()))
+        .hasMessageThat().containsMatch("Merge conflict in foo.txt(\n|.)*"
+            + "Uninstall git and use folders as versioning system");
+  }
+
   private void checkLog(boolean body, boolean includeFiles) throws IOException, RepoException,
       ValidationException {
     workdir = Files.createTempDirectory("workdir");

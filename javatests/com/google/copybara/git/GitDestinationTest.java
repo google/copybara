@@ -826,7 +826,7 @@ public class GitDestinationTest {
 
     assertThat(rebaseConflictException).hasMessageThat()
         .containsMatch(
-            ".*Please consider to use flag nogit-destination-rebase to workaround.*");
+            ".*Please consider to use flag --nogit-destination-rebase to workaround.*");
     assertThatCheckout(destRepo, "HEAD")
         .containsFile("foo", "conflict")
         .containsFile("bar", "other file")

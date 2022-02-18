@@ -595,7 +595,9 @@ public class GitDestination implements Destination<GitRevision> {
         alternate.simpleCommand("reset", "--hard");
         ValidationException.checkCondition(localBranchRevision != null,
             "Unable to rebase because the local branch's revision was not resolvable.");
-        alternate.rebase(localBranchRevision.getSha1());
+        alternate.rebaseCmd(localBranchRevision.getSha1())
+            .errorAdvice("Please consider to use flag --nogit-destination-rebase to workaround")
+            .run();
         afterRebaseRev = alternate.resolveReference("HEAD");
         if (afterRebaseRev.getSha1().equals(localBranchRevision.getSha1())) {
           throw new EmptyChangeException("Empty change after rebase. The only affected"
