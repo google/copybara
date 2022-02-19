@@ -22,6 +22,7 @@ import com.google.common.base.Enums;
 import com.google.common.base.Preconditions;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.authoring.Author;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
@@ -89,5 +90,42 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
     } catch (ValidationException e) {
       throw Starlark.errorf("Error setting up remote http file: %s", e.getMessage());
     }
+  }
+
+  @StarlarkMethod(
+      name = "origin",
+      doc = "Defines a remote file origin. This is a WIP and experimental. Do not use. ",
+      parameters = {
+        @Param(
+            name = "unpack_method",
+            defaultValue = "None",
+            doc =
+                "The method by which to unpack the remote file. Currently 'zip' allowed. 'tar' and"
+                    + " 'as-is' to be added soon.",
+            named = true),
+        @Param(
+            name = "author",
+            defaultValue = "'Copybara <noreply@copybara.io>'",
+            doc = "Author to attribute the change to",
+            named = true),
+        // TODO(joshgoldman): support labels in addition to message
+        @Param(
+            name = "message",
+            defaultValue = "'Placeholder message'",
+            doc = "Message to attach to the change",
+            named = true)
+      })
+  @UsesFlags(RemoteFileOptions.class)
+  public RemoteArchiveOrigin remoteArchiveOrigin(String fileType, String author, String message)
+      throws EvalException, ValidationException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
+    return new RemoteArchiveOrigin(
+        fileType,
+        Author.parse(author),
+        message,
+        remoteFileOptions.getTransport(),
+        generalOptions.profiler(),
+        remoteFileOptions);
   }
 }

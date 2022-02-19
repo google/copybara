@@ -21,8 +21,10 @@ import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.DurationConverter;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.function.Supplier;
+import java.util.zip.ZipInputStream;
 
 /**
  * Options for loading files from a source other than the origin. Use with caution.
@@ -40,5 +42,9 @@ public class RemoteFileOptions implements Option {
 
   protected HttpStreamFactory getTransport() throws ValidationException {
     return transport.get();
+  }
+
+  public ZipInputStream getZipInputStream(InputStream inputStream) {
+    return new ZipInputStream(inputStream);
   }
 }

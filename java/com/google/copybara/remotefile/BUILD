@@ -27,11 +27,13 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
         "//third_party:guava",
