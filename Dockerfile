@@ -18,6 +18,10 @@ RUN ./cloudbuild.sh build //java/com/google/copybara:copybara_deploy.jar
 RUN mkdir -p /tmp/copybara && \
     cp bazel-bin/java/com/google/copybara/copybara_deploy.jar /tmp/copybara/
 
+FROM golang:latest AS buildtools
+RUN go get github.com/bazelbuild/buildtools/buildozer
+RUN go get github.com/bazelbuild/buildtools/buildifier
+
 FROM openjdk:11-jre-slim
 WORKDIR /usr/src/app
 ENV COPYBARA_CONFIG=copy.bara.sky \
@@ -26,6 +30,7 @@ ENV COPYBARA_CONFIG=copy.bara.sky \
     COPYBARA_WORKFLOW=default \
     COPYBARA_SOURCEREF=''
 COPY --from=build /tmp/copybara/ /opt/copybara/
+COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/bin/
 COPY .docker/entrypoint.sh /usr/local/bin/copybara
 RUN chmod +x /usr/local/bin/copybara
 RUN apt-get update && \
