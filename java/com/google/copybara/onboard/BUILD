@@ -34,6 +34,7 @@ java_library(
         "//third_party:autovalue",
         "//third_party:guava",
         "//third_party:jcommander",
+        "//third_party:jsr305",
         "//third_party:re2j",
     ],
 )

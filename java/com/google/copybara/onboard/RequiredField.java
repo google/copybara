@@ -20,6 +20,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.base.Predicate;
 import com.google.copybara.onboard.ConfigTemplate.FieldClass;
 import com.google.copybara.onboard.ConfigTemplate.Location;
+import javax.annotation.Nullable;
 
 /** An object that describes a RequiredField for a {@link ConfigTemplate} */
 @AutoValue
@@ -31,8 +32,17 @@ public abstract class RequiredField {
       Location location,
       String helpText,
       Predicate<String> predicate) {
-    return new com.google.copybara.onboard.AutoValue_RequiredField(
-        name, fieldClass, location, helpText, predicate);
+    return new AutoValue_RequiredField(name, fieldClass, location, helpText, predicate, null);
+  }
+
+  public static RequiredField createWithLambda(
+      String name,
+      FieldClass fieldClass,
+      Location location,
+      String helpText,
+      Predicate<String> predicate,
+      ConfigFieldPopulator<String> populator) {
+    return new AutoValue_RequiredField(name, fieldClass, location, helpText, predicate, populator);
   }
 
   public abstract String name();
@@ -44,4 +54,7 @@ public abstract class RequiredField {
   public abstract String helpText();
 
   public abstract Predicate<String> predicate();
+
+  @Nullable
+  public abstract ConfigFieldPopulator<String> populator();
 }
