@@ -307,7 +307,9 @@ public final class RegexTemplateTokens {
           fullPattern.append(String.format("(%s)", subPattern.pattern()));
           check(
               groupIndexes.get(token.getValue()).isEmpty() || repeatedGroups,
-              "Regex group is used in template multiple times: %s",
+              "Regex group is used in template multiple times: %s. "
+                  + "If you require multiple references to the same regex group, "
+                  + "set `repeated_groups=True`.",
               token.getValue());
           groupIndexes.put(token.getValue(), groupCount);
           groupCount += subPattern.groupCount() + 1;
