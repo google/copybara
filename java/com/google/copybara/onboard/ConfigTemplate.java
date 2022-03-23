@@ -31,7 +31,8 @@ public interface ConfigTemplate {
   /** Type of parameter */
   enum FieldClass {
     STRING,
-    INT
+    INT,
+    STARLARK
   }
 
   ImmutableSet<com.google.copybara.onboard.RequiredField> getRequiredFields();

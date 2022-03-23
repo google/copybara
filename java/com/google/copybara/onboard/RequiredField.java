@@ -47,7 +47,7 @@ public abstract class RequiredField {
 
   public abstract String name();
 
-  abstract FieldClass fieldClass();
+  public abstract FieldClass fieldClass();
 
   public abstract Location location();
 

@@ -51,6 +51,10 @@ public class ConfigBuilder {
         configInProgress.replace(String.format("::%s::", name), String.format("'%s'", value));
   }
 
+  public void setNamedStarlarkParameter(String name, String starlark) {
+    configInProgress = configInProgress.replace(String.format("::%s::", name), starlark);
+  }
+
   public void addStringKeywordParameter(String name, String value) {
     keywordParams.put(name, value);
   }
