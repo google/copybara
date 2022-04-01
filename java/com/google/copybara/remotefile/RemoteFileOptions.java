@@ -37,10 +37,10 @@ public class RemoteFileOptions implements Option {
       converter = DurationConverter.class)
   protected Duration connectionTimeout = Duration.ofMinutes(2);
 
-  Supplier<HttpStreamFactory> transport = Suppliers.memoize(() -> new GclientHttpStreamFactory(
-      connectionTimeout));
+  public Supplier<HttpStreamFactory> transport =
+      Suppliers.memoize(() -> new GclientHttpStreamFactory(connectionTimeout));
 
-  protected HttpStreamFactory getTransport() throws ValidationException {
+  public HttpStreamFactory getTransport() throws ValidationException {
     return transport.get();
   }
 

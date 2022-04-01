@@ -16,18 +16,28 @@
 
 package com.google.copybara.remotefile;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.Revision;
 import com.google.copybara.exception.RepoException;
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 
 /** A Revision for a remote file */
-class RemoteArchiveRevision implements Revision {
+public class RemoteArchiveRevision implements Revision {
 
-  final Path path;
+  private static final String ARCHIVE_VERSION_LABEL = "ARCHIVE_VERSION";
+  private static final String ARCHIVE_FULL_URL_LABEL = "ARCHIVE_FULL_URL ";
 
-  RemoteArchiveRevision(Path path) {
-    this.path = path;
+  final RemoteArchiveVersion version;
+
+  RemoteArchiveRevision(RemoteArchiveVersion version) {
+    this.version = version;
+  }
+
+  @Override
+  public String getUrl() {
+    return version.getFullUrl();
   }
 
   @Override
@@ -37,6 +47,15 @@ class RemoteArchiveRevision implements Revision {
 
   @Override
   public String asString() {
-    return path.toString();
+    return getUrl();
+  }
+
+  @Override
+  public ImmutableListMultimap<String, String> associatedLabels() {
+    return ImmutableListMultimap.of(
+        ARCHIVE_VERSION_LABEL,
+        nullToEmpty(version.getVersion()),
+        ARCHIVE_FULL_URL_LABEL,
+        nullToEmpty(getUrl()));
   }
 }

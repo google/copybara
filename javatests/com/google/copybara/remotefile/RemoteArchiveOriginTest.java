@@ -70,6 +70,8 @@ public final class RemoteArchiveOriginTest {
           + "b25lL2ZpcnN0LnR4dFVUBQADkXEWYnV4CwABBEnuCQAEU18BAFBLBQYAAAAABQAFALQBAACPAQAA"
           + "AAA=";
 
+  private static final String BASE_URL = "https://foo.zip";
+
   @Rule public final MockitoRule mocks = MockitoJUnit.rule();
   @Mock HttpStreamFactory transport;
   private Path workdir;
@@ -97,7 +99,9 @@ public final class RemoteArchiveOriginTest {
             "a message",
             transport,
             profiler,
-            remoteFileOptions);
+            remoteFileOptions,
+            BASE_URL,
+            new NoVersionSelector());
     underTest.resolve("foo");
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
@@ -123,7 +127,9 @@ public final class RemoteArchiveOriginTest {
             "a message",
             transport,
             profiler,
-            remoteFileOptions);
+            remoteFileOptions,
+            BASE_URL,
+            new NoVersionSelector());
     underTest.resolve("foo");
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
@@ -150,7 +156,9 @@ public final class RemoteArchiveOriginTest {
             "a message",
             transport,
             profiler,
-            remoteFileOptions);
+            remoteFileOptions,
+            BASE_URL,
+            new NoVersionSelector());
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.ALL_FILES,

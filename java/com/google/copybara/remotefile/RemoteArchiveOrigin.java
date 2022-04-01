@@ -16,8 +16,6 @@
 
 package com.google.copybara.remotefile;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.io.MoreFiles;
@@ -35,11 +33,13 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import javax.annotation.Nullable;
 
 /** An Origin class for remote files */
-class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
+public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
   private static final String LABEL_NAME = "RemoteArchiveOrigin";
 
@@ -49,6 +49,8 @@ class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
   private final HttpStreamFactory transport;
   private final Profiler profiler;
   private final RemoteFileOptions remoteFileOptions;
+  private final String baseUrl;
+  private final RemoteArchiveVersionSelector versionSelector;
 
   RemoteArchiveOrigin(
       String fileType,
@@ -56,19 +58,25 @@ class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
       String message,
       HttpStreamFactory transport,
       Profiler profiler,
-      RemoteFileOptions remoteFileOptions) {
+      RemoteFileOptions remoteFileOptions,
+      String baseUrl,
+      RemoteArchiveVersionSelector versionSelector) {
     this.fileType = fileType;
     this.author = author;
     this.message = message;
     this.transport = transport;
     this.profiler = profiler;
     this.remoteFileOptions = remoteFileOptions;
+    this.baseUrl = baseUrl;
+    this.versionSelector = versionSelector;
   }
 
   @Override
-  public RemoteArchiveRevision resolve(String reference) throws RepoException, ValidationException {
-    checkNotNull(reference);
-    return new RemoteArchiveRevision(Path.of(reference));
+  public RemoteArchiveRevision resolve(@Nullable String reference)
+      throws RepoException, ValidationException {
+    RemoteArchiveVersion version =
+        versionSelector.constructUrl(baseUrl, reference, remoteFileOptions);
+    return new RemoteArchiveRevision(version);
   }
 
   @Override
@@ -78,8 +86,8 @@ class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
       public void checkout(RemoteArchiveRevision ref, Path workdir) throws ValidationException {
         try {
           // TODO(joshgoldman): Add richer ref object and ability to restrict download by host/url
-          URL url = new URL(ref.path.toString());
-          InputStream returned = transport.open(new URL(ref.path.toString()));
+          URL url = new URL(Objects.requireNonNull(ref.getUrl()));
+          InputStream returned = transport.open(url);
           try (ProfilerTask ignored = profiler.start("remote_file_" + url);
               ZipInputStream zipInputStream = remoteFileOptions.getZipInputStream(returned)) {
             ZipEntry zipEntry;
@@ -95,7 +103,7 @@ class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
           }
         } catch (IOException e) {
           throw new ValidationException(
-              String.format("Could not unzip file: %s \n%s", ref.path, e.getMessage()));
+              String.format("Could not unzip file: %s \n%s", ref.getUrl(), e.getMessage()));
         }
       }
 

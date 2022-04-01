@@ -113,10 +113,25 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             name = "message",
             defaultValue = "'Placeholder message'",
             doc = "Message to attach to the change",
-            named = true)
+            named = true),
+        @Param(
+            name = "version_selector",
+            defaultValue = "None",
+            doc = "Object that contains version selecting logic",
+            named = true),
+        @Param(
+            name = "base_url",
+            named = true,
+            doc = "base URL to construct the full URL",
+            defaultValue = "None")
       })
   @UsesFlags(RemoteFileOptions.class)
-  public RemoteArchiveOrigin remoteArchiveOrigin(String fileType, String author, String message)
+  public RemoteArchiveOrigin remoteArchiveOrigin(
+      String fileType,
+      String author,
+      String message,
+      RemoteArchiveVersionSelector versionSelector,
+      String baseUrl)
       throws EvalException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
@@ -126,6 +141,16 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
         message,
         remoteFileOptions.getTransport(),
         generalOptions.profiler(),
-        remoteFileOptions);
+        remoteFileOptions,
+        baseUrl,
+        versionSelector);
+  }
+
+  @StarlarkMethod(
+      name = "no_version_selector",
+      doc = "A RemoteArchiveVersionSelector that ignores version and returns only base url",
+      documented = false)
+  public NoVersionSelector noVersionSelector() {
+    return new NoVersionSelector();
   }
 }

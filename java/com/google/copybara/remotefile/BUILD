@@ -38,6 +38,7 @@ java_library(
         "//third_party:google_http_client",
         "//third_party:guava",
         "//third_party:jcommander",
+        "//third_party:jsr305",
         "//third_party:starlark",
     ],
 )

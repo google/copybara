@@ -76,7 +76,11 @@ public final class RemoteFileModuleTest {
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPUTRED_HELLO_WORLD_ZIP_FILE)));
     RemoteArchiveOrigin underTest =
-        skylark.eval("o", "o = remotefiles.origin(unpack_method = 'zip', message = 'hello world')");
+        skylark.eval(
+            "o",
+            "o = remotefiles.origin(unpack_method = 'zip', message = 'hello world',"
+                + " version_selector = remotefiles.no_version_selector(), base_url ="
+                + " 'https://dirs.zip')");
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.ALL_FILES,
@@ -84,7 +88,7 @@ public final class RemoteFileModuleTest {
                 new Author("foo", "default@example.com"),
                 AuthoringMappingMode.PASS_THRU,
                 ImmutableSet.of()));
-    RemoteArchiveRevision revision = underTest.resolve("https://dirs.zip");
+    RemoteArchiveRevision revision = underTest.resolve(null);
     reader.checkout(revision, workdir);
     assertThatPath(workdir).containsFile("test.txt", "hello world\n");
   }
