@@ -50,6 +50,11 @@ public interface IntegrateLabel {
       public GitRevision getRevision() {
         return revision;
       }
+
+      @Override
+      public String toString() {
+        return "Merge of " + revision.getSha1();
+      }
     };
   }
 

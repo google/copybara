@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 /** Integrate changes from a url present in the migrated change label. */
@@ -144,6 +145,13 @@ public class GitIntegrateChanges implements StarlarkValue {
           throws ValidationException, RepoException {
         GitLogEntry head = getHeadCommit(repository);
 
+        if (!findCommonBaseline(repository, integrateLabel, head).isPresent()) {
+          console.warnFmt("Skipping creation of merge for '%s' as Copybara cannot find a common"
+              + " parent. This normally means that the integrate label reference is for an"
+              + " unrelated repository", integrateLabel);
+          return;
+        }
+
         String msg = integrateLabel.mergeMessage(messageInfo.labelsToAdd);
         // If there is already a merge, don't overwrite the merge but create a new one.
         // Otherwise amend the last commit as a merge.
@@ -240,7 +248,10 @@ public class GitIntegrateChanges implements StarlarkValue {
       private String computeExternalDiff(GitRepository repository, IntegrateLabel integrateLabel,
           Predicate<String> externalFiles, GitLogEntry head)
           throws ValidationException, RepoException {
-        String commonBaseline = findCommonBaseline(repository, integrateLabel, head);
+        String commonBaseline = findCommonBaseline(repository, integrateLabel, head)
+            // If common parent cannot be found, it is fine, since this is not using the commit
+            //history but just the content for diffing.
+            .orElse(head.getCommit().getSha1());
         // Create a patch of the changes from common baseline..feature head.
         byte[] diffs = repository.simpleCommandNoRedirectOutput("diff",
             commonBaseline + ".." + integrateLabel.getRevision().getSha1())
@@ -250,43 +261,6 @@ public class GitIntegrateChanges implements StarlarkValue {
         return DiffUtil.filterDiff(diffs, externalFiles);
       }
 
-      private String findCommonBaseline(GitRepository repository, IntegrateLabel integrateLabel,
-          GitLogEntry head) throws ValidationException {
-        GitRevision previousHead = Iterables.getFirst(head.getParents(), null);
-        if (previousHead == null) {
-          return head.getCommit().getSha1();
-        }
-        String sha1;
-        try {
-          sha1 = integrateLabel.getRevision().getSha1();
-        } catch (RepoException e) {
-          // There is a weird git submodule issue where the first time we fetch a reference but
-          // the local state (git-tree and workdir) doesn't have a reference to the submodule it
-          // fails trying to get the resolve the submodule. But the main fetch success, so a
-          // call to resolve would return the reference.
-          if (!e.getMessage().contains("Could not access submodule")) {
-            logger.atWarning().withCause(e).log(
-                "Cannot fetch/find integrate commit: %s.", integrateLabel);
-            return head.getCommit().getSha1();
-          }
-          try {
-            sha1 = integrateLabel.getRevision().getSha1();
-          } catch (RepoException retryException) {
-            logger.atWarning().withCause(retryException).log(
-                "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
-            return head.getCommit().getSha1();
-          }
-        }
-        try {
-          return repository.mergeBase(previousHead.getSha1(), sha1);
-        } catch (RepoException e) {
-          logger.atWarning().withCause(e).log(
-              "Cannot find common parent for previous head commit %s and integrate commit: %s.",
-              previousHead, integrateLabel);
-          return head.getCommit().getSha1();
-        }
-      }
-
       private void revertIfInternal(List<String> toRevert, Predicate<String> externalFiles,
           String file) {
         if (!externalFiles.test(file)) {
@@ -294,6 +268,50 @@ public class GitIntegrateChanges implements StarlarkValue {
         }
       }
     };
+
+    /**
+     * Tries to find the common commit between HEAD and the integrate label commit. If the
+     * integrate sha cannot be found it defaults to HEAD.
+     *
+     * If the sha can be found but a common parent cannot be found, it returns none. This
+     * normally means that the commit is from an unrelated repository.
+     */
+    private static Optional<String> findCommonBaseline(GitRepository repository,
+        IntegrateLabel integrateLabel, GitLogEntry head) throws ValidationException {
+      GitRevision previousHead = Iterables.getFirst(head.getParents(), null);
+      if (previousHead == null) {
+        return Optional.of(head.getCommit().getSha1());
+      }
+      String sha1;
+      try {
+        sha1 = integrateLabel.getRevision().getSha1();
+      } catch (RepoException e) {
+        // There is a weird git submodule issue where the first time we fetch a reference but
+        // the local state (git-tree and workdir) doesn't have a reference to the submodule it
+        // fails trying to get the resolve the submodule. But the main fetch success, so a
+        // call to resolve would return the reference.
+        if (!e.getMessage().contains("Could not access submodule")) {
+          logger.atWarning().withCause(e).log(
+              "Cannot fetch/find integrate commit: %s.", integrateLabel);
+          return Optional.of(head.getCommit().getSha1());
+        }
+        try {
+          sha1 = integrateLabel.getRevision().getSha1();
+        } catch (RepoException retryException) {
+          logger.atWarning().withCause(retryException).log(
+              "Cannot fetch/find integrate commit (2nd attempt): %s.", integrateLabel);
+          return Optional.of(head.getCommit().getSha1());
+        }
+      }
+      try {
+        return Optional.of(repository.mergeBase(previousHead.getSha1(), sha1));
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Cannot find common parent for previous head commit %s and integrate commit: %s.",
+            previousHead, integrateLabel);
+        return Optional.empty();
+      }
+    }
 
     private static GitLogEntry getHeadCommit(GitRepository repository) throws RepoException {
       return Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());

@@ -125,16 +125,46 @@ public class GitDestinationIntegrateTest {
   }
 
   @Test
-  public void testDefaultIntegration() throws ValidationException, IOException, RepoException {
+  public void testIntegrateForUnrelatedBranchesFail()
+      throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
+    GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
+    repo.simpleCommand("branch", "feature1");
+
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "not important");
+    GitLogEntry previous = getLastMigratedChange(primaryBranch);
+
+    migrateOriginChange(destination, "Test change\n"
+        + "\n"
+        + GitModule.DEFAULT_INTEGRATE_LABEL + "=file://" + repo.getWorkTree().toString()
+        + " feature1\n", "some content");
+
+    GitLogEntry commit = Iterables.getOnlyElement(
+        repo().log(primaryBranch).withLimit(1).run());
+    // Make sure merge with unrelated repo didn't happen and that the parent is the previous
+    // change for the this repo.
+    assertThat(commit.getParents()).containsExactly(previous.getCommit());
+  }
+
+  @Test
+  public void testDefaultIntegration() throws ValidationException, IOException, RepoException {
+    Path repoPath = Files.createTempDirectory("test");
+
+    // Create a common baseline between the two repos
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "not important");
+
+    GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
+    repo.simpleCommand("pull", "file://" + repoGitDir);
+
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
     repo.simpleCommand("branch", "feature2");
 
-    GitDestination destination = destinationWithDefaultIntegrates();
-    migrateOriginChange(destination, "Base change\n", "not important");
+    migrateOriginChange(destination, "Base change 2\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
@@ -187,7 +217,7 @@ public class GitDestinationIntegrateTest {
     Path gitDir = Files.createTempDirectory("gitdir");
     Path repoPath = Files.createTempDirectory("workdir");
     GitRepository repo = GitRepository.newBareRepo(gitDir, getGitEnv(), /*verbose=*/ true,
-        DEFAULT_TIMEOUT, /*noVerify=*/ false)
+            DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .init()
         .withWorkTree(repoPath);
 
@@ -200,7 +230,8 @@ public class GitDestinationIntegrateTest {
     // Just so that the migration doesn't fail since the git repo is a non-bare repo.
     repo.forceCheckout("feature1");
 
-    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'", String.format("push='%s'", primaryBranch));
+    GitDestination destination = destination("url = 'file://" + repo.getGitDir() + "'",
+        String.format("push='%s'", primaryBranch));
 
     migrateOriginChange(destination, "Test change\n"
         + "\n"
@@ -223,14 +254,18 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testFakeMerge() throws ValidationException, IOException, RepoException {
     Path repoPath = Files.createTempDirectory("test");
+    GitDestination destination = destination(FAKE_MERGE);
+    migrateOriginChange(destination, "Base change\n", "not important");
+
     GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
+    repo.simpleCommand("pull", "file://" + repoGitDir);
+
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
     repo.simpleCommand("branch", "feature1");
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
     repo.simpleCommand("branch", "feature2");
 
-    GitDestination destination = destination(FAKE_MERGE);
-    migrateOriginChange(destination, "Base change\n", "not important");
+    migrateOriginChange(destination, "Base change\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
 
     migrateOriginChange(destination, "Test change\n"
@@ -360,15 +395,19 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testGitHubSemiFakeMerge() throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
+    // Create a common baseline between the two repos
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "not important 2");
+
     GitRepository repo =
         gitUtil.mockRemoteRepo("github.com/example/test_repo").withWorkTree(workTree);
+    repo.simpleCommand("pull", "file://" + repoGitDir);
 
     GitRevision firstChange = singleChange(workTree, repo, "ignore_me", "Feature1 change");
     GitRevision secondChange = singleChange(workTree, repo, "ignore_me2", "Feature2 change");
 
     repo.simpleCommand("update-ref", "refs/pull/20/head", secondChange.getSha1());
 
-    GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
     GitHubPrIntegrateLabel labelObj = new GitHubPrIntegrateLabel(repo, options.general,
@@ -404,8 +443,8 @@ public class GitDestinationIntegrateTest {
     GitLogEntry merge = getLastMigratedChange(primaryBranch);
     assertThat(merge.getBody()).isEqualTo(
         "Merge pull request #20 from some_user:1234-foo.bar.baz%3\n"
-        + "\n"
-        + "DummyOrigin-RevId: test\n");
+            + "\n"
+            + "DummyOrigin-RevId: test\n");
 
     assertThat(Lists.transform(merge.getParents(), GitRevision::getSha1))
         .isEqualTo(Lists.newArrayList(previous.getCommit().getSha1(), secondChange.getSha1()));
@@ -435,7 +474,13 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testGerritSemiFakeMerge() throws ValidationException, IOException, RepoException {
     Path workTree = Files.createTempDirectory("test");
+
+    GitDestination destination = destinationWithDefaultIntegrates();
+    migrateOriginChange(destination, "Base change\n", "not important 2");
+
     GitRepository repo = gitUtil.mockRemoteRepo("example.com/gerrit").withWorkTree(workTree);
+
+    repo.simpleCommand("pull", "file://" + repoGitDir);
 
     String label = new GerritIntegrateLabel(repo, options.general, "https://example.com/gerrit",
         1020, 1, CHANGE_ID).toString();
@@ -449,7 +494,6 @@ public class GitDestinationIntegrateTest {
     repo.simpleCommand("update-ref", "refs/changes/20/1020/1", firstChange.getSha1());
     repo.simpleCommand("update-ref", "refs/changes/20/1020/2", secondChange.getSha1());
 
-    GitDestination destination = destinationWithDefaultIntegrates();
     GitLogEntry previous = createBaseDestinationChange(destination);
 
     migrateOriginChange(destination, "Test change\n"
@@ -486,8 +530,12 @@ public class GitDestinationIntegrateTest {
   @Test
   public void testGerritFakeMergeNoChangeId()
       throws ValidationException, IOException, RepoException {
+    GitDestination destination = destination(FAKE_MERGE);
+    migrateOriginChange(destination, "Base change\n", "not important 2");
+
     Path workTree = Files.createTempDirectory("test");
     GitRepository repo = gitUtil.mockRemoteRepo("example.com/gerrit").withWorkTree(workTree);
+    repo.simpleCommand("pull", "file://" + repoGitDir);
 
     String label = new GerritIntegrateLabel(repo, options.general, "https://example.com/gerrit",
         1020, 1, /*changeId=*/null).toString();
@@ -499,7 +547,6 @@ public class GitDestinationIntegrateTest {
     repo.simpleCommand("update-ref", "refs/changes/20/1020/1", firstChange.getSha1());
     GitTestUtil.createFakeGerritNodeDbMeta(repo, 1020, CHANGE_ID);
 
-    GitDestination destination = destination(FAKE_MERGE);
     GitLogEntry previous = createBaseDestinationChange(destination);
 
     migrateOriginChange(destination, "Test change\n"
@@ -613,6 +660,7 @@ public class GitDestinationIntegrateTest {
       throws IOException, RepoException, ValidationException {
     migrateOriginChange(destination, summary, "test.txt", content, "test");
   }
+
   private void migrateOriginChange(GitDestination destination, String summary,
       String file, String content,
       String originRef) throws IOException, RepoException, ValidationException {
