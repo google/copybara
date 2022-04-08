@@ -183,7 +183,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     Predicate<String> filter = null;
     for (String r : refspec) {
       Refspec refSpec = repo.createRefSpec(r);
-      filter = filter == null? refSpec::matchesOrigin: filter.or(refSpec::matchesOrigin);
+      filter = filter == null ? refSpec::matchesOrigin : filter.or(refSpec::matchesOrigin);
     }
     return filter;
   }
