@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -1765,6 +1766,23 @@ public class GitRepository {
   }
 
   /**
+   * Hook to rewrite exceptions thrown by the git invocation, e.g. user error.
+   */
+  protected void handlePushException(Exception e, PushCmd cmd)
+      throws RepoException, ValidationException {
+     /* Non-fast-forward errors in git mirror usually means that the destination
+        has commits that the origin doesn't. Usually by a user submitting directly
+        to the destination instead of using Copybara. */
+    if (e.getMessage().contains("(non-fast-forward)") || e.getMessage().contains("(fetch first)")) {
+      throw new NonFastForwardRepositoryException(String.format(
+          "Failed to push to %s %s, because local/origin history is behind destination",
+          cmd.url, cmd.getRefspecs()), e);
+    }
+    Throwables.throwIfInstanceOf(e, RepoException.class);
+    Throwables.throwIfInstanceOf(e, ValidationException.class);
+  }
+
+  /**
    * An object capable of performing a 'git push' operation to a remote repository.
    */
   public static class PushCmd {
@@ -1820,17 +1838,8 @@ public class GitRepository {
       String output = null;
       try {
         output = repo.runPush(this);
-      } catch (RepoException e) {
-        /* Non-fast-forward errors in git mirror usually means that the destination
-        has commits that the origin doesn't. Usually by a user submitting directly
-        to the destination instead of using Copybara. */
-        if (e.getMessage().contains("(non-fast-forward)")
-            || e.getMessage().contains("(fetch first)")) {
-          throw new NonFastForwardRepositoryException(String.format(
-              "Failed to push to %s %s, because local/origin history is behind destination", url,
-              refspecs), e);
-        }
-        throw e;
+      } catch (RepoException | ValidationException e) {
+        repo.handlePushException(e, this);
       }
       checkCondition(
           !PROTECTED_BRANCH.matcher(output).find(),
@@ -1841,7 +1850,6 @@ public class GitRepository {
           url);
       return output;
     }
-
   }
 
   /**
