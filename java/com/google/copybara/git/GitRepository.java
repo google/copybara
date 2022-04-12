@@ -681,6 +681,38 @@ public class GitRepository {
   }
 
   /**
+   * git branch command
+   */
+  public class BranchCmd {
+    private final String name;
+    @Nullable private final String startPoint;
+
+    private BranchCmd(String name, @Nullable String startPoint) {
+      this.name = checkNotNull(name);
+      this.startPoint = startPoint;
+    }
+
+    /** Create the branch from this commit. If not set, it uses current HEAD. */
+    @CheckReturnValue
+    public BranchCmd withStartPoint(String startPoint) {
+      return new BranchCmd(name, checkNotNull(startPoint));
+    }
+
+    void run() throws RepoException {
+      List<String> args = Lists.newArrayList("branch", name);
+      if (startPoint != null) {
+        args.add(startPoint);
+      }
+      simpleCommand(args);
+    }
+  }
+
+  /** Builder of git branch command. */
+  public BranchCmd branch(String name) {
+    return new BranchCmd(name, null);
+  }
+
+  /**
    * An add command bound to the repo that can be configured and then executed with {@link #run()}.
    */
   public class AddCmd {

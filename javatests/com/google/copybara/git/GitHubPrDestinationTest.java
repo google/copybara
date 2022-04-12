@@ -872,7 +872,7 @@ public class GitHubPrDestinationTest {
       if (tmpRepo.refExists(branch)) {
         tmpRepo.simpleCommand("checkout", branch);
       } else if (!branch.equals("main")) {
-        tmpRepo.simpleCommand("branch", branch);
+        tmpRepo.branch(branch).run();
         tmpRepo.simpleCommand("checkout", branch);
       }
     } else {

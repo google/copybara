@@ -93,7 +93,7 @@ public class GitOriginSubmodulesTest {
     r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "--reference",
         r1.getWorkTree().toString(), "../r1");
     commit(r2, "adding r1 submodule");
-    r2.simpleCommand("branch", "for_submodule");
+    r2.branch("for_submodule").run();
     // This commit shouldn't be read, since it is in main and r3 depends on 'for_submodule' branch:
     commitAdd(r2, ImmutableMap.of("foo", "2"));
 
@@ -286,8 +286,7 @@ public class GitOriginSubmodulesTest {
     r2.simpleCommand("submodule", "add", "-f", "--name", "r1.with.dot", "--reference",
         r2.getWorkTree().toString(), "../r1.with.dot");
     commit(r2, "adding r1.with.dot submodule");
-    r2.simpleCommand("branch", "for_submodule");
-
+    r2.branch("for_submodule").run();
 
     GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);
     GitRevision main = origin.resolve(primaryBranch);

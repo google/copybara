@@ -128,7 +128,7 @@ public class GitHubDestinationTest {
         primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
-    remote.simpleCommand("branch", "other");
+    remote.branch("other").run();
     WriterContext writerContext =
         new WriterContext("piper_to_github", "test", true, new DummyRevision("origin_ref1"),
             Glob.ALL_FILES.roots());
@@ -311,7 +311,7 @@ public class GitHubDestinationTest {
         primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
-    remote.simpleCommand("branch", "other");
+    remote.branch("other").run();
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
@@ -395,8 +395,8 @@ public class GitHubDestinationTest {
         primaryBranch,
         "first change",
         ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
-    remote.simpleCommand("branch", "other_12345");
-    remote.simpleCommand("branch", "other_6789");
+    remote.branch("other_12345").run();
+    remote.branch("other_6789").run();
     GitTesting.assertThatCheckout(remote, primaryBranch)
         .containsFile("foo.txt", "foo")
         .containsNoMoreFiles();
@@ -565,7 +565,7 @@ public class GitHubDestinationTest {
       if (tmpRepo.refExists(branch)) {
         tmpRepo.simpleCommand("checkout", branch);
       } else if (!branch.equals(primaryBranch)) {
-        tmpRepo.simpleCommand("branch", branch);
+        tmpRepo.branch(branch).run();
         tmpRepo.simpleCommand("checkout", branch);
       }
     }

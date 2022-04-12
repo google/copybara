@@ -291,7 +291,7 @@ public class GitOriginTest {
     Files.write(remote.resolve("foo.txt"), "".getBytes(UTF_8));
     repo.add().all().run();
     repo.simpleCommand("commit", "-m", "first");
-    repo.simpleCommand("branch", "foo");
+    repo.branch("foo").run();
     git("tag", "-m", "This is a tag", "0.1");
     repo.forceCheckout("foo");
     Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
@@ -435,7 +435,7 @@ public class GitOriginTest {
 
   @Test
   public void testMergeIncludeFiles() throws Exception {
-    repo.simpleCommand("branch", "foo");
+    repo.branch("foo").run();
     repo.forceCheckout("foo");
     writeFile(remote, "bar.txt", "");
     repo.add().all().run();
@@ -875,7 +875,7 @@ public class GitOriginTest {
   public void testIncludeBranchCommitLogNoCommitsInMerge() throws Exception {
 
     String author = "John Name <john@name.com>";
-    git("branch", "feature");
+    repo.branch("feature").run();
     git("checkout", "feature");
     singleFileCommit(author, "change1", "exclude/test2.txt", "some content2");
     git("checkout", defaultBranch);
@@ -933,8 +933,8 @@ public class GitOriginTest {
     // Don't remove or add an include change before this commit. This allow us to test that we
     // traverse parents and not children:
     singleFileCommit(author, "exclude1", "exclude1", "");
-    git("branch", "feature1");
-    git("branch", "feature2");
+    repo.branch("feature1").run();
+    repo.branch("feature2").run();
     singleFileCommit(author, "main_branch_change", "one.txt", "");
     Thread.sleep(1100); // Make sure one_change is shown before in git log.
     git("checkout", "feature1");
@@ -978,7 +978,7 @@ public class GitOriginTest {
   }
 
   private void createBranchMerge(String author) throws Exception {
-    git("branch", "feature");
+    repo.branch("feature").run();
     git("checkout", "feature");
     singleFileCommit(author, "change2", "test2.txt", "some content2");
     singleFileCommit(author, "change3", "test2.txt", "some content3");

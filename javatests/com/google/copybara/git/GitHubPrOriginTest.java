@@ -1084,8 +1084,8 @@ public class GitHubPrOriginTest {
 
     addFiles(
         remote, "base", ImmutableMap.<String, String>builder().put("a.txt", "").buildOrThrow());
-    remote.simpleCommand("branch", "testMerge");
-    remote.simpleCommand("branch", "primary");
+    remote.branch("testMerge").run();
+    remote.branch("primary").run();
 
     remote.forceCheckout("testMerge");
     addFiles(
@@ -1189,7 +1189,7 @@ public class GitHubPrOriginTest {
         (gitUtil.mockRemoteRepo("github.com/google/example"));
     String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
 
-    remote.simpleCommand("branch", "feature");
+    remote.branch("feature").run();
     String featureRef =
         addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
 
@@ -1247,7 +1247,7 @@ public class GitHubPrOriginTest {
     GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
     String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
 
-    remote.simpleCommand("branch", "feature");
+    remote.branch("feature").run();
     String featureRef =
         addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
 
@@ -1278,7 +1278,7 @@ public class GitHubPrOriginTest {
   public void testCheckout_nullMergeable_mergeCommitDoesntExist() throws Exception {
     GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
     String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
-    remote.simpleCommand("branch", "feature");
+    remote.branch("feature").run();
     String featureRef =
         addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
     remote.forceCheckout(baseRef);
@@ -1306,7 +1306,7 @@ public class GitHubPrOriginTest {
   public void testCheckout_nullMergeable_mergeCommitDoesntExistAndForce() throws Exception {
     GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
     String baseRef = addFiles(remote, "base", ImmutableMap.of("test.txt", "a"));
-    remote.simpleCommand("branch", "feature");
+    remote.branch("feature").run();
     String featureRef =
         addFiles(remote, "commit to feature branch", ImmutableMap.of("test.txt", "c"));
     remote.forceCheckout(baseRef);

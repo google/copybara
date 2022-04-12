@@ -100,7 +100,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repo.simpleCommand("commit", "foo.txt", "-m", "message");
-    repo.simpleCommand("branch", "bar");
+    repo.branch("bar").run();
     ImmutableMap<String, GitRevision> after = repo.showRef();
 
     assertThat(after.keySet()).containsExactly("refs/heads/" + defaultBranch, "refs/heads/bar");
@@ -129,6 +129,25 @@ public class GitRepositoryTest {
     assertThat("index 0000000..805c36b\n--- /dev/null\n").matches("(.*\n){2}");
     assertThat(diff).matches("(diff --git a/bar.txt b/bar.txt\nnew file mode 100644\n)"
         + "(.*\n){4}(\\+change content\n)(.*\n)");
+  }
+
+  @Test
+  public void testBranch() throws Exception {
+    GitRepository repo = repository.withWorkTree(workdir);
+    repo.init();
+
+    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+    repository.add().files("foo.txt").run();
+    repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    GitRevision headRef = repo.getHeadRef();
+
+    Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
+    repository.add().files("bar.txt").run();
+    repo.simpleCommand("commit", "bar.txt", "-m", "message_s");
+
+    repo.branch("test").withStartPoint(headRef.getSha1()).run();
+
+    assertThat(repo.showRef()).containsEntry("refs/heads/test", headRef);
   }
 
   @Test
@@ -286,7 +305,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "first");
-    repository.simpleCommand("branch", "foo");
+    repository.branch("foo").run();
     repository.forceCheckout("foo");
     Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
@@ -507,8 +526,8 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
-    repository.simpleCommand("branch", "deleted");
-    repository.simpleCommand("branch", "unchanged");
+    repository.branch("deleted").run();
+    repository.branch("unchanged").run();
 
     String fetchUrl = "file://" + repository.getGitDir();
 
@@ -755,7 +774,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
-    repository.simpleCommand("branch", "b1");
+    repository.branch("b1").run();
 
     Map<String, String> refsToShas =
         GitRepository.lsRemote(
@@ -907,7 +926,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "message");
-    repository.simpleCommand("branch", "other");
+    repository.branch("other").run();
 
     String remoteUrl = "file:///" + remote.getGitDir();
 
@@ -1091,7 +1110,7 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "first");
-    repository.simpleCommand("branch", "foo");
+    repository.branch("foo").run();
     repository.tag("main_tag").withAnnotatedTag("message").run();
     repository.forceCheckout("foo");
     Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));

@@ -116,7 +116,7 @@ public class LatestVersionSelectorTest {
   @Test
   public void testVersionSelector_branch() throws Exception {
     for (String b : ImmutableList.of("vAlpha1", "vBeta1", "vCharly10", "vCharly2")) {
-      git("branch", b);
+      repo.branch(b).run();
     }
 
     checkTagsCustomSelector(

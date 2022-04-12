@@ -277,7 +277,8 @@ public class GerritDestinationTest {
     String firstChangeIdLine = lastCommitChangeIdLine("origin_ref", repo());
 
     writeFile(workdir, "file2", "some more content");
-    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
+    repo().branch("master")
+        .withStartPoint(getGerritRef(repo(), "refs/for/master")).run();
     options.setForce(false);
     process(new DummyRevision("origin_ref2"));
 
@@ -298,7 +299,8 @@ public class GerritDestinationTest {
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
         .isEqualTo(GerritDestination.CHANGE_ID_LABEL + ": " + changeId);
 
-    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
+    repo().branch("master")
+        .withStartPoint(getGerritRef(repo(), "refs/for/master")).run();
 
     writeFile(workdir, "file", "some different content");
 
@@ -347,7 +349,7 @@ public class GerritDestinationTest {
 
   private String runForDefaults() throws IOException, ValidationException, RepoException {
     fakeOneCommitInDestination();
-    git("branch", "foo");
+    repo().branch("foo").run();
     writeFile(workdir, "file", "some content");
 
     String changeId = "Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd";
@@ -1397,7 +1399,8 @@ public class GerritDestinationTest {
     process(new DummyRevision("first_commit").withTimestamp(time1));
     GitTesting.assertAuthorTimestamp(repo(), getGerritRef(repo(), "refs/for/master"), time1);
 
-    git("branch", "master", getGerritRef(repo(), "refs/for/master"));
+    repo().branch("master")
+        .withStartPoint(getGerritRef(repo(), "refs/for/master")).run();
 
     writeFile(workdir, "test2.txt", "some more content");
     options.setForce(false);

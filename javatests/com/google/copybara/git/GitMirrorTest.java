@@ -91,7 +91,7 @@ public class GitMirrorTest {
     Files.write(originRepo.getWorkTree().resolve("test.txt"), "some content".getBytes(UTF_8));
     originRepo.add().files("test.txt").run();
     originRepo.simpleCommand("commit", "-m", "first file");
-    originRepo.simpleCommand("branch", "other");
+    originRepo.branch("other").run();
     primaryBranch = originRepo.getPrimaryBranch();
   }
 
@@ -555,8 +555,8 @@ public class GitMirrorTest {
             + "    actions = [test],"
             + ")";
     Migration mirror1 = loadMigration(cfg, "default");
-    originRepo.simpleCommand("branch", "foo1");
-    originRepo.simpleCommand("branch", "foo2");
+    originRepo.branch("foo1").run();
+    originRepo.branch("foo2").run();
     mirror1.run(workdir, ImmutableList.of());
 
     console.assertThat().onceInLog(MessageType.INFO, "REF: refs/heads/origin/" + primaryBranch);

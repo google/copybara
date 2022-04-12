@@ -130,7 +130,7 @@ public class GitDestinationIntegrateTest {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
-    repo.simpleCommand("branch", "feature1");
+    repo.branch("feature1").run();
 
     GitDestination destination = destinationWithDefaultIntegrates();
     migrateOriginChange(destination, "Base change\n", "not important");
@@ -160,9 +160,9 @@ public class GitDestinationIntegrateTest {
     repo.simpleCommand("pull", "file://" + repoGitDir);
 
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
-    repo.simpleCommand("branch", "feature1");
+    repo.branch("feature1").run();
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
-    repo.simpleCommand("branch", "feature2");
+    repo.branch("feature2").run();
 
     migrateOriginChange(destination, "Base change 2\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
@@ -222,7 +222,7 @@ public class GitDestinationIntegrateTest {
         .withWorkTree(repoPath);
 
     singleChange(repoPath, repo, "base.txt", "first change");
-    repo.simpleCommand("branch", "feature1");
+    repo.branch("feature1").run();
     repo.forceCheckout("feature1");
     GitRevision feature = singleChange(repoPath, repo, "foo/a", "Feature 1 change");
     repo.forceCheckout(primaryBranch);
@@ -261,9 +261,9 @@ public class GitDestinationIntegrateTest {
     repo.simpleCommand("pull", "file://" + repoGitDir);
 
     GitRevision feature1 = singleChange(repoPath, repo, "ignore_me", "Feature1 change");
-    repo.simpleCommand("branch", "feature1");
+    repo.branch("feature1").run();
     GitRevision feature2 = singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
-    repo.simpleCommand("branch", "feature2");
+    repo.branch("feature2").run();
 
     migrateOriginChange(destination, "Base change\n", "not important 2");
     GitLogEntry previous = getLastMigratedChange(primaryBranch);
@@ -317,9 +317,9 @@ public class GitDestinationIntegrateTest {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = GitRepository.newRepo(/*verbose*/ true, repoPath, getGitEnv()).init();
     singleChange(repoPath, repo, "ignore_me", "Feature1 change");
-    repo.simpleCommand("branch", "feature1");
+    repo.branch("feature1").run();
     singleChange(repoPath, repo, "ignore_me2", "Feature2 change");
-    repo.simpleCommand("branch", "feature2");
+    repo.branch("feature2").run();
 
     GitDestination destination = destination(INCLUDE_FILES);
     migrateOriginChange(destination, "Base change\n", "not important");
@@ -356,7 +356,7 @@ public class GitDestinationIntegrateTest {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = repo().withWorkTree(repoPath);
     singleChange(repoPath, repo, "ignore_base.txt", "original", "base change");
-    repo.simpleCommand("branch", "feature");
+    repo.branch("feature").run();
     singleChange(repoPath, repo, "ignore_base.txt", "modified", "more changes");
     repo.forceCheckout("feature");
     singleChange(repoPath, repo, "ignore_but_changed.txt", "feature", "external change");

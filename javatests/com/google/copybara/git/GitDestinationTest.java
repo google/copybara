@@ -649,7 +649,7 @@ public class GitDestinationTest {
     repo.add().files("dir/file").run();
     repo.simpleCommand("commit", "-m", "first commit");
 
-    repo.simpleCommand("branch", "foo");
+    repo.branch("foo").run();
 
     Files.write(workdir.resolve("dir/file"), "other".getBytes(UTF_8));
     repo.add().files("dir/file").run();
@@ -1173,8 +1173,8 @@ public class GitDestinationTest {
     scratchRepo.simpleCommand("commit", "-m", primaryBranch + "\n\n"
         + DummyOrigin.LABEL_NAME + ": should_not_happen");
 
-    scratchRepo.simpleCommand("branch", "b1");
-    scratchRepo.simpleCommand("branch", "b2");
+    scratchRepo.branch("b1").run();
+    scratchRepo.branch("b2").run();
 
     branchChange(scratchTree, scratchRepo, "b1", "b1-1\n\n"
         + DummyOrigin.LABEL_NAME + ": b1-origin");
