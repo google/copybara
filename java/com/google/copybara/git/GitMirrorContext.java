@@ -31,6 +31,7 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.BranchCmd;
+import com.google.copybara.git.GitRepository.CherryPickCmd;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
@@ -220,17 +221,12 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   public MergeResult merge(String branch, Sequence<?> commits, Object msg)
       throws RepoException, ValidationException, EvalException, IOException {
     checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
-    GitRepository withWorktree = this.repo.withWorkTree(dirFactory.newTempDir("mirror"));
-    try {
-      withWorktree.forceCheckout(branch);
-    } catch (RepoException e) {
-      throw new ValidationException("Cannot merge commits " + commits + " into branch " + branch
-          + " because of failure during merge checkout", e);
-    }
+    GitRepository withWorktree = forceCheckout(branch,
+        String.format(
+            "Cannot merge commits %s into branch %s because of failure during merge checkout",
+            commits, branch));
+
     String strMsg = SkylarkUtil.convertFromNoneable(msg, null);
-    // Clean everything before the merge
-    withWorktree.simpleCommand("reset", "--hard");
-    withWorktree.forceClean();
 
     List<String> cmd = Lists.newArrayList("merge");
     if (strMsg != null) {
@@ -248,6 +244,76 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       return MergeResult.error(e.getMessage());
     }
     return MergeResult.success();
+  }
+
+  @StarlarkMethod(
+      name = "cherry_pick",
+      doc = "Cherry-pick one or more commits to a branch",
+      parameters = {
+          @Param(name = "branch", named = true),
+          @Param(name = "commits", allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class)
+          }, named = true, doc = "Commits to cherry-pick. An expression like foo..bar can be"
+              + " used to cherry-pick several commits. Note that 'HEAD' will refer to the"
+              + " `branch` HEAD, since cherry-pick requires a checkout of the branch before"
+              + " cherry-picking."),
+          @Param(name = "add_commit_origin_info", named = true, defaultValue = "True",
+              doc =
+                  "Add information about the origin of the commit (sha-1) to the message of the new"
+                      + "commit"),
+          @Param(name = "merge_parent_number", named = true, defaultValue = "None",
+              doc = "Specify the parent number for cherry-picking merge commits"),
+          @Param(name = "allow_empty", named = true, defaultValue = "False",
+              doc = "Allow empty commits (noop commits)"),
+          @Param(name = "fast_forward", named = true, defaultValue = "False",
+              doc = "Fast-forward commits if possible"),
+      })
+  public MergeResult cherryPick(String branch, Sequence<?> commits, Boolean addCommitOriginInfo,
+      Object mergeParentNumber, Boolean allowEmpty, Boolean fastForward)
+      throws RepoException, ValidationException, EvalException, IOException {
+    checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
+    GitRepository withWorktree = forceCheckout(branch,
+        String.format(
+            "Cannot cherry-pick commits %s into branch %s because of failure during merge checkout",
+            commits, branch));
+
+    CherryPickCmd cmd = withWorktree.cherryPick(convertStringList(commits, "commits"))
+        .addCommitOriginInfo(addCommitOriginInfo)
+        .allowEmpty(allowEmpty)
+        .fastForward(fastForward);
+    Integer mergeParent = SkylarkUtil.convertFromNoneable(mergeParentNumber, null);
+    if (mergeParent != null) {
+      cmd = cmd.parentNumber(mergeParent);
+    }
+    try {
+      cmd.run();
+    } catch (RepoException e) {
+      logger.atWarning().withCause(e)
+          .log("Error running cherry-pick in action %s for branch %s and commits %s",
+              getActionName(), branch, commits);
+      try {
+        repo.abortCherryPick();
+      } catch (RepoException ex) {
+        logger.atWarning().withCause(ex).log("cherry-pick --abort failed.");
+      }
+
+      return MergeResult.error(e.getMessage());
+    }
+    return MergeResult.success();
+  }
+
+  private GitRepository forceCheckout(String branch, String errorMsg)
+      throws IOException, ValidationException, RepoException {
+    GitRepository withWorktree = this.repo.withWorkTree(dirFactory.newTempDir("mirror"));
+    try {
+      withWorktree.forceCheckout(branch);
+    } catch (RepoException e) {
+      throw new ValidationException(errorMsg, e);
+    }
+    // Clean everything before the merge
+    withWorktree.simpleCommand("reset", "--hard");
+    withWorktree.forceClean();
+    return withWorktree;
   }
 
   @StarlarkMethod(

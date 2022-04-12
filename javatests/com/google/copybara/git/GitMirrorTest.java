@@ -605,6 +605,51 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testCherrypick() throws Exception {
+    String primaryBranch = originRepo.getPrimaryBranch();
+    String cfg =
+        ""
+            + "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
+            + "     ctx.create_branch('my_branch', starting_point = 'HEAD~3')\n"
+            + "     ctx.cherry_pick('my_branch', ['HEAD.." + primaryBranch + "'])\n"
+            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'])\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+            + "    actions = [test],"
+            + ")";
+    Migration mirror1 = loadMigration(cfg, "default");
+    GitLogEntry one = repoChange(originRepo, "some_other_file", "1", "one");
+    GitLogEntry two = repoChange(originRepo, "some_other_file", "2", "two");
+    GitLogEntry three = repoChange(originRepo, "some_other_file", "3", "three");
+    GitLogEntry four = repoChange(originRepo, "some_other_file", "4", "four");
+
+    mirror1.run(workdir, ImmutableList.of());
+
+    ImmutableList<GitLogEntry> logCp = destRepo.log("my_branch").run();
+    ImmutableList<GitLogEntry> log = destRepo.log(primaryBranch).run();
+
+    assertThat(logCp.get(0).getBody()).containsMatch("four(.|\n)*"
+        + "cherry picked from commit " + four.getCommit().getSha1());
+    assertThat(logCp.get(0).getCommit().getSha1()).isNotEqualTo(four.getCommit().getSha1());
+
+    assertThat(logCp.get(1).getBody()).containsMatch("three(.|\n)*"
+        + "cherry picked from commit " + three.getCommit().getSha1());
+    assertThat(logCp.get(1).getCommit().getSha1()).isNotEqualTo(three.getCommit().getSha1());
+
+    assertThat(logCp.get(2).getBody()).containsMatch("two(.|\n)*"
+        + "cherry picked from commit " + two.getCommit().getSha1());
+    assertThat(logCp.get(2).getCommit().getSha1()).isNotEqualTo(two.getCommit().getSha1());
+
+    assertThat(logCp.get(3).getBody()).containsMatch("one");
+    assertThat(logCp.get(3).getCommit().getSha1()).isEqualTo(one.getCommit().getSha1());
+  }
+
+  @Test
   public void testMergeConflict() throws Exception {
     Migration mirror = mergeInit();
 

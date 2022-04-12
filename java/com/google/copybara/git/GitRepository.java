@@ -787,6 +787,10 @@ public class GitRepository {
     return new CherryPickCmd(ImmutableList.copyOf(commits), null, false, false, false);
   }
 
+  public void abortCherryPick() throws RepoException {
+    simpleCommand("cherry-pick", "--abort");
+  }
+
   /**
    * An add command bound to the repo that can be configured and then executed with {@link #run()}.
    */
@@ -955,7 +959,7 @@ public class GitRepository {
       logger.atSevere().withCause(e).log("Cherry-pick failed for %s", commit);
       // Abort the cherry-pick
       try {
-        this.simpleCommand("cherry-pick", "--abort");
+        this.abortCherryPick();
       } catch (RepoException ex) {
         logger.atWarning().withCause(ex).log("cherry-pick --abort failed.");
       }
