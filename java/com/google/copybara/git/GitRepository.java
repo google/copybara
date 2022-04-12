@@ -712,6 +712,81 @@ public class GitRepository {
     return new BranchCmd(name, null);
   }
 
+  /** A class that represents 'git cherry-pick' command and options */
+  public class CherryPickCmd {
+
+    private final ImmutableList<String> commits;
+    @Nullable
+    private final Integer parentNumber;
+    @Nullable
+    private final boolean addCommitOriginInfo;
+    @Nullable
+    private final boolean fastForward;
+    @Nullable
+    private final boolean allowEmpty;
+
+    public CherryPickCmd(ImmutableList<String> commit, @Nullable Integer parentNumber,
+        boolean addCommitOriginInfo, boolean fastForward,
+        boolean allowEmpty) {
+      this.commits = commit;
+      this.parentNumber = parentNumber;
+      this.addCommitOriginInfo = addCommitOriginInfo;
+      this.fastForward = fastForward;
+      this.allowEmpty = allowEmpty;
+    }
+
+    /** git cherry-pick -m parent-number: Allow to cherry-pick merges by specifying the parent */
+    @CheckReturnValue
+    public CherryPickCmd parentNumber(int parentNumber) {
+      return new CherryPickCmd(commits, parentNumber, addCommitOriginInfo, fastForward, allowEmpty);
+    }
+
+    /**
+     * Include an additional message saying where the commit is coming from. This is -x flag
+     * in git cherry-pick.
+     */
+    @CheckReturnValue
+    public CherryPickCmd addCommitOriginInfo(boolean addCommitOriginInfo) {
+      return new CherryPickCmd(commits, parentNumber, addCommitOriginInfo, fastForward, allowEmpty);
+    }
+
+    /** git cherry-pick --ff */
+    @CheckReturnValue
+    public CherryPickCmd fastForward(boolean fastForward) {
+      return new CherryPickCmd(commits, parentNumber, addCommitOriginInfo, fastForward, allowEmpty);
+    }
+
+    /** git cherry-pick --allow-empty */
+    @CheckReturnValue
+    public CherryPickCmd allowEmpty(boolean allowEmpty) {
+      return new CherryPickCmd(commits, parentNumber, addCommitOriginInfo, fastForward, allowEmpty);
+    }
+
+    public void run() throws RepoException {
+      List<String> args = Lists.newArrayList("cherry-pick");
+      if (parentNumber != null) {
+        args.add("-m");
+        args.add(parentNumber.toString());
+      }
+      if (addCommitOriginInfo) {
+        args.add("-x");
+      }
+      if (fastForward) {
+        args.add("--ff");
+      }
+      if (allowEmpty) {
+        args.add("--allow-empty");
+      }
+      args.addAll(commits);
+      simpleCommand(args);
+    }
+  }
+
+  @CheckReturnValue
+  public CherryPickCmd cherryPick(Iterable<String> commits) {
+    return new CherryPickCmd(ImmutableList.copyOf(commits), null, false, false, false);
+  }
+
   /**
    * An add command bound to the repo that can be configured and then executed with {@link #run()}.
    */

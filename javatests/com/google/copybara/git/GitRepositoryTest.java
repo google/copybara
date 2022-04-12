@@ -132,14 +132,40 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testCherrypick() throws Exception {
+    GitRepository repo = repository.withWorkTree(workdir);
+    repo.init();
+
+    GitRevision one = simpleChange(repo, "foo.txt", "1", "message_a");
+    GitRevision two = simpleChange(repo, "foo.txt", "2", "message_b");
+    GitRevision three = simpleChange(repo, "foo.txt", "3", "message_c");
+    GitRevision four = simpleChange(repo, "foo.txt", "4", "message_d");
+
+    String primaryBranch = repo.getPrimaryBranch();
+
+    repo.branch("test").withStartPoint(one.getSha1()).run();
+    repo.simpleCommand("checkout", "test");
+
+    repo.cherryPick(ImmutableList.of("HEAD.." + primaryBranch)).addCommitOriginInfo(true).run();
+
+    ImmutableList<GitLogEntry> head = repo.log("HEAD").run();
+
+    assertThat(head.get(0).getBody()).containsMatch("message_d(.|\n)*"
+        + "cherry picked from commit " + four.getSha1());
+    assertThat(head.get(1).getBody()).containsMatch("message_c(.|\n)*"
+        + "cherry picked from commit " + three.getSha1());
+    assertThat(head.get(2).getBody()).containsMatch("message_b(.|\n)*"
+        + "cherry picked from commit " + two.getSha1());
+    assertThat(head.get(3).getBody()).containsMatch("message_a");
+    assertThat(head.get(3).getBody()).doesNotContain("cherry picked from commit");
+  }
+
+  @Test
   public void testBranch() throws Exception {
     GitRepository repo = repository.withWorkTree(workdir);
     repo.init();
 
-    Files.write(workdir.resolve("foo.txt"), new byte[]{});
-    repository.add().files("foo.txt").run();
-    repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    GitRevision headRef = repo.getHeadRef();
+    GitRevision headRef = simpleChange(repo, "foo.txt", "", "message_a");
 
     Files.write(workdir.resolve("bar.txt"), "change content".getBytes(UTF_8));
     repository.add().files("bar.txt").run();
@@ -148,6 +174,15 @@ public class GitRepositoryTest {
     repo.branch("test").withStartPoint(headRef.getSha1()).run();
 
     assertThat(repo.showRef()).containsEntry("refs/heads/test", headRef);
+  }
+
+  private GitRevision simpleChange(GitRepository repo, String file, String content, String msg)
+      throws IOException, RepoException, CannotResolveRevisionException {
+    Files.write(workdir.resolve(file), content.getBytes(UTF_8));
+    repository.add().files(file).run();
+    repo.simpleCommand("commit", file, "-m", msg);
+    GitRevision headRef = repo.getHeadRef();
+    return headRef;
   }
 
   @Test
