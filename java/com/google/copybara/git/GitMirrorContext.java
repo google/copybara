@@ -323,7 +323,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           @Param(name = "name", named = true),
           @Param(name = "starting_point", named = true, defaultValue = "None"),
       })
-  public void create_branch(String branch, Object startingPoint)
+  public void createBranch(String branch, Object startingPoint)
       throws RepoException {
     BranchCmd cmd = repo.branch(branch);
     String starting = SkylarkUtil.convertFromNoneable(startingPoint, null);
