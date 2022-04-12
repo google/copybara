@@ -575,6 +575,36 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testCreateBranch() throws Exception {
+    String cfg =
+        ""
+            + "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
+            + "     ctx.create_branch('create_head')\n"
+            + "     ctx.create_branch('create_old', 'HEAD~1')\n"
+            + "     for k,v in ctx.references(['refs/heads/create*']).items():\n"
+            + "         ctx.console.info('REF: ' + k + ':' + v)\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+            + "    actions = [test],"
+            + ")";
+    Migration mirror1 = loadMigration(cfg, "default");
+    GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
+    GitLogEntry two = repoChange(originRepo, "some_other_file", "two", "new change");
+
+    mirror1.run(workdir, ImmutableList.of());
+
+    console.assertThat().onceInLog(MessageType.INFO,
+        "REF: refs/heads/create_old:" + one.getCommit().getSha1());
+    console.assertThat().onceInLog(MessageType.INFO,
+        "REF: refs/heads/create_head:" + two.getCommit().getSha1());
+  }
+
+  @Test
   public void testMergeConflict() throws Exception {
     Migration mirror = mergeInit();
 

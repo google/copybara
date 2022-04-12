@@ -30,6 +30,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitRepository.BranchCmd;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
@@ -113,10 +114,10 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
 
     try {
       repo.fetch(originUrl, prune, force,
-              refspecsToFetch.stream()
-                  .map(Refspec::toString)
-                  .collect(Collectors.toList()),
-              false);
+          refspecsToFetch.stream()
+              .map(Refspec::toString)
+              .collect(Collectors.toList()),
+          false);
     } catch (CannotResolveRevisionException e) {
       return false;
     }
@@ -160,7 +161,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       parameters = {
           @Param(name = "refspec", allowedTypes = {
               @ParamType(type = Sequence.class, generic1 = String.class)
-          }, named = true , defaultValue = "[]")
+          }, named = true, defaultValue = "[]")
       })
   public Dict<String, String> references(Sequence<?> refspec)
       throws ValidationException, EvalException {
@@ -168,7 +169,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     try {
       return Dict.immutableCopyOf(
           repo.showRef().entrySet().stream()
-              .filter(e ->  filter.test(e.getKey()))
+              .filter(e -> filter.test(e.getKey()))
               .collect(ImmutableMap.toImmutableMap(Entry::getKey, v -> v.getValue().getSha1())));
     } catch (RepoException e) {
       throw new ValidationException("Cannot list references in the local repository", e);
@@ -247,6 +248,23 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       return MergeResult.error(e.getMessage());
     }
     return MergeResult.success();
+  }
+
+  @StarlarkMethod(
+      name = "create_branch",
+      doc = "Merge one or more commits into a local branch.",
+      parameters = {
+          @Param(name = "name", named = true),
+          @Param(name = "starting_point", named = true, defaultValue = "None"),
+      })
+  public void create_branch(String branch, Object startingPoint)
+      throws RepoException {
+    BranchCmd cmd = repo.branch(branch);
+    String starting = SkylarkUtil.convertFromNoneable(startingPoint, null);
+    if (starting != null) {
+      cmd = cmd.withStartPoint(starting);
+    }
+    cmd.run();
   }
 
   private ImmutableList<Refspec> toRefSpec(Collection<String> strRefspecs)
