@@ -76,7 +76,7 @@ In order to do that, you need to do the following:
       * `git clone https://github.com/google/copybara.git`
   * Build:
       * `bazel build //java/com/google/copybara`
-	  * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
+      * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
   * Tests: `bazel test //...` if you want to ensure you are not using a broken version.
 
 ### System packages
