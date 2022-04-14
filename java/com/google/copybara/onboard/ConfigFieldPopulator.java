@@ -16,11 +16,12 @@
 
 package com.google.copybara.onboard;
 
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 
 /** An object to populate Config Template fields in Copybara Assisted Onboard */
 @FunctionalInterface
 public interface ConfigFieldPopulator<T> {
 
-  public T run() throws IOException;
+  public T run() throws IOException, ValidationException;
 }

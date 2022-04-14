@@ -29,6 +29,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
