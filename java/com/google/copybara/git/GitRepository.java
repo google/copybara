@@ -717,13 +717,9 @@ public class GitRepository {
   public class CherryPickCmd {
 
     private final ImmutableList<String> commits;
-    @Nullable
-    private final Integer parentNumber;
-    @Nullable
+    @Nullable private final Integer parentNumber;
     private final boolean addCommitOriginInfo;
-    @Nullable
     private final boolean fastForward;
-    @Nullable
     private final boolean allowEmpty;
 
     public CherryPickCmd(ImmutableList<String> commit, @Nullable Integer parentNumber,
