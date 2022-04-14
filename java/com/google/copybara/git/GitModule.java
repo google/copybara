@@ -2106,7 +2106,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "[]",
             doc =
-                "Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`,"
+                "Types of events to subscribe. Can  either be a list of event types or a dict of "
+                    + "event types to particular events of that type, e.g. "
+                    + "`['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.\n"
+                    + "Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`,"
                     + " `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`,"
                     + " `'STATUS'`, `'CHECK_RUNS'`"),
       },

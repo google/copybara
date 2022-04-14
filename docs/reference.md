@@ -2553,7 +2553,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the GitHub repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the GitHub API transport provided by this trigger.</p>
-events | `sequence of string` or `dict of sequence`<br><p>Type of events to subscribe. Valid values are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
+events | `sequence of string` or `dict of sequence`<br><p>Types of events to subscribe. Can  either be a list of event types or a dict of event types to particular events of that type, e.g. `['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.<br>Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
 
 
 
