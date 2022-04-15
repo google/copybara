@@ -77,7 +77,7 @@ public abstract class DestinationReader implements StarlarkValue {
       before = "This can be added to the transformations of your core.workflow:",
       code =
           "def _read_destination_file(ctx):\n"
-              + "    content = ctx.destination_reader().read_file(path = path/to/my_file.txt')\n"
+              + "    content = ctx.destination_reader().read_file(path = 'path/to/my_file.txt')\n"
               + "    ctx.console.info(content)\n\n"
               + "    transforms = [core.dynamic_transform(_read_destination_file)]\n",
       after =

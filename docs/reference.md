@@ -1392,7 +1392,7 @@ This can be added to the transformations of your core.workflow:
 
 ```python
 def _read_destination_file(ctx):
-    content = ctx.destination_reader().read_file(path = path/to/my_file.txt')
+    content = ctx.destination_reader().read_file(path = 'path/to/my_file.txt')
     ctx.console.info(content)
 
     transforms = [core.dynamic_transform(_read_destination_file)]
