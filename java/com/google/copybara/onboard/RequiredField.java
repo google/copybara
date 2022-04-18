@@ -35,7 +35,7 @@ public abstract class RequiredField {
     return new AutoValue_RequiredField(name, fieldClass, location, helpText, predicate, null);
   }
 
-  public static RequiredField createWithLambda(
+  public static RequiredField createWithFieldPopulator(
       String name,
       FieldClass fieldClass,
       Location location,
