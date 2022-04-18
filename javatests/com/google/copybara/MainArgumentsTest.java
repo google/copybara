@@ -45,7 +45,7 @@ public class MainArgumentsTest {
 
   @Before
   public void setup() {
-    mainArguments = new MainArguments();
+    mainArguments = new MainArguments(ImmutableList.of());
     fs = Jimfs.newFileSystem();
     options = new OptionsBuilder();
   }

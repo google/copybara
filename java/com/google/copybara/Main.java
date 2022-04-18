@@ -204,7 +204,7 @@ public class Main {
     try {
       ModuleSet moduleSet = newModuleSet(environment, fs, console);
 
-      final MainArguments mainArgs = new MainArguments();
+      final MainArguments mainArgs = new MainArguments(ImmutableList.copyOf(args));
       Options options = moduleSet.getOptions();
       jCommander = new JCommander(ImmutableList.builder()
           .addAll(options.getAll())
@@ -235,7 +235,7 @@ public class Main {
       GeneralOptions generalOptions = options.get(GeneralOptions.class);
       Path baseWorkdir = mainArgs.getBaseWorkdir(generalOptions, generalOptions.getFileSystem());
 
-      commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs());
+      commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs(), mainArgs);
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 
       // TODO(malcon): Remove this after 2019-09-15, once tested that temp features work.

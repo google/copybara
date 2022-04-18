@@ -30,15 +30,23 @@ public class CommandEnv {
 
   private final Path workdir;
   private final Options options;
+  @Nullable private final MainArguments mainArgs;
+
   private final ImmutableList<String> args;
-  @Nullable
-  private ConfigFileArgs configFileArgs;
+  @Nullable private ConfigFileArgs configFileArgs;
 
   @VisibleForTesting
-  public CommandEnv(Path workdir, Options options, ImmutableList<String> args) {
+  public CommandEnv(Path workdir, Options options, ImmutableList<String> args,
+      MainArguments mainArgs) {
     this.workdir = Preconditions.checkNotNull(workdir);
     this.options = Preconditions.checkNotNull(options);
     this.args = Preconditions.checkNotNull(args);
+    this.mainArgs = mainArgs;
+  }
+
+  @VisibleForTesting
+  public CommandEnv(Path workdir, Options options, ImmutableList<String> args) {
+    this(workdir, options, args, /*mainArgs*/ null);
   }
 
   /**
@@ -47,6 +55,12 @@ public class CommandEnv {
   @Nullable
   public ConfigFileArgs getConfigFileArgs() {
     return configFileArgs;
+  }
+
+
+  @Nullable
+  public MainArguments getMainArgs() {
+    return mainArgs;
   }
 
   /**

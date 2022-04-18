@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
@@ -42,6 +44,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 @Parameters(separators = "=")
 public final class MainArguments {
   private final Logger logger = Logger.getLogger(this.getClass().getName());
+
+  private final ImmutableList<String> rawArgs;
 
   public static final String COPYBARA_SKYLARK_CONFIG_FILENAME = "copy.bara.sky";
 
@@ -76,6 +80,14 @@ public final class MainArguments {
   @Parameter(names = "--work-dir", description = "Directory where all the transformations"
       + " will be performed. By default a temporary directory.")
   String baseWorkdir;
+
+  public MainArguments(ImmutableList<String> rawArgs) {
+    this.rawArgs = checkNotNull(rawArgs);
+  }
+
+  public ImmutableList<String> getRawArgs() {
+    return rawArgs == null ? ImmutableList.of() : rawArgs;
+  }
 
   /**
    * Returns the base working directory. This method should not be accessed directly by any other
