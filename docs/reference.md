@@ -159,6 +159,8 @@
     - [path.resolve_sibling](#pathresolve_sibling)
   - [PathAttributes](#pathattributes)
   - [SetReviewInput](#setreviewinput)
+  - [struct](#struct)
+    - [struct](#struct)
   - [transformation](#transformation)
   - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
@@ -4004,6 +4006,33 @@ symlink | `bool`<br><p>Returns true if it is a symlink</p>
 ## SetReviewInput
 
 Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input
+
+
+
+## struct
+
+Immutable struct type.
+
+<a id="struct" aria-hidden="true"></a>
+### struct
+
+Creates a new immutable struct. Structs with the same keys/values are equal. The struct's keys and values are passed in as keyword arguments.
+
+`StructImpl` `struct()`
+
+
+#### Example:
+
+
+##### Create a struct:
+
+Structs are immutable objects to group values.
+
+```python
+my_struct = struct(foo='bar')
+x = my_struct.foo
+```
+
 
 
 

@@ -69,6 +69,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkSemantics;
 
 final class ModuleLoader {
 
@@ -131,10 +132,17 @@ final class ModuleLoader {
   }
 
   private ImmutableList<DocFunction> processFunctions(Class<?> cls, String prefix) {
-    return Starlark.getMethodAnnotations(cls).entrySet().stream()
+
+    ImmutableList.Builder<DocFunction> functions = ImmutableList.builder();
+    Method self = Starlark.getSelfCallMethod(StarlarkSemantics.DEFAULT, cls);
+    if (self != null) {
+      functions.add(processStarlarkMethod(self, self.getAnnotation(StarlarkMethod.class), prefix));
+    }
+    functions.addAll(Starlark.getMethodAnnotations(cls).entrySet().stream()
         .filter(e -> !e.getValue().structField())
         .map(e -> processStarlarkMethod(e.getKey(), e.getValue(), prefix))
-        .collect(toImmutableList());
+        .collect(toImmutableList()));
+    return functions.build();
   }
 
   private DocFunction processStarlarkMethod(
@@ -191,9 +199,10 @@ final class ModuleLoader {
                 || method.getGenericReturnType().equals(void.class)
             ? null
             : skylarkTypeName(method.getGenericReturnType());
-
+    String name = prefix != null
+        ? (prefix + (annotation.selfCall() ? "" : "." + annotation.name())) : annotation.name();
     return new DocFunction(
-        prefix != null ? prefix + "." + annotation.name() : annotation.name(),
+        name,
         annotation.doc(),
         returnType,
         params.build(),

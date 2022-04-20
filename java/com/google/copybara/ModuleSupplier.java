@@ -99,7 +99,8 @@ public class ModuleSupplier {
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
         new Authoring.Module(console),
-        new RemoteFileModule(options));
+        new RemoteFileModule(options),
+        new StructModule());
   }
 
   /** Returns a new list of {@link Option}s. */
