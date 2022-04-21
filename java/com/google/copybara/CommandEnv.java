@@ -44,7 +44,9 @@ public class CommandEnv {
     this.mainArgs = mainArgs;
   }
 
-  @VisibleForTesting
+  /**
+   * Instantiate a new CommandEnv. Meant for use with construction of new CopybaraCmd objects
+   */
   public CommandEnv(Path workdir, Options options, ImmutableList<String> args) {
     this(workdir, options, args, /*mainArgs*/ null);
   }
