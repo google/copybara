@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.Glob;
 import java.util.ArrayList;
 import java.util.List;

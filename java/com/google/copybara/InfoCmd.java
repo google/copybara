@@ -34,6 +34,8 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.InfoFailedEvent;
 import com.google.copybara.monitor.EventMonitor.InfoFinishedEvent;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.TablePrinter;
 import com.google.copybara.util.console.Console;

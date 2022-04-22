@@ -16,8 +16,6 @@
 package com.google.copybara.testing;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.copybara.Change;
-import com.google.copybara.Changes;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
@@ -25,6 +23,8 @@ import com.google.copybara.Metadata;
 import com.google.copybara.MigrationInfo;
 import com.google.copybara.TransformWork;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Changes;
 import com.google.copybara.util.console.Console;
 import java.nio.file.Path;
 import java.time.ZoneId;

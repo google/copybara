@@ -21,13 +21,13 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Change;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.revision.Change;
 import com.google.copybara.util.Glob;
 import java.time.Instant;
 import org.junit.Test;

@@ -43,6 +43,7 @@ import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.Feedback;
 import com.google.copybara.folder.FolderModule;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.Parser;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;

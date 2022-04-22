@@ -18,7 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.DestinationEffect.DestinationRef;
-import com.google.copybara.DestinationEffect.OriginRef;
+import com.google.copybara.revision.OriginRef;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;

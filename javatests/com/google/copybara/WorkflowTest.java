@@ -61,6 +61,8 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRevision;
 import com.google.copybara.hg.HgRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.FileSubjects;

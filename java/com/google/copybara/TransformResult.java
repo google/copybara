@@ -20,6 +20,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.revision.Changes;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.nio.file.Path;

@@ -17,12 +17,12 @@
 package com.google.copybara.transform.metadata;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Change;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Change;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.IntentionalNoop;
 import java.io.IOException;

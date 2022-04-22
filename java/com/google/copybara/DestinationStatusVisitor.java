@@ -22,6 +22,8 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.Destination.DestinationStatus;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import javax.annotation.Nullable;

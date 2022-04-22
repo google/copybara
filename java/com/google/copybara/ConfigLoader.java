@@ -24,6 +24,7 @@ import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
 import java.io.IOException;

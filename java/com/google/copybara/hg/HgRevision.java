@@ -18,7 +18,7 @@ package com.google.copybara.hg;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.copybara.Revision;
+import com.google.copybara.revision.Revision;
 import java.time.ZonedDateTime;
 import javax.annotation.Nullable;
 

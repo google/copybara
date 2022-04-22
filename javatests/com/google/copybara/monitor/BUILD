@@ -23,6 +23,7 @@ all_tests(
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",

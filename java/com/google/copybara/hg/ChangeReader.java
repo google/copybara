@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.copybara.Change;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
@@ -32,6 +31,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;
 import com.google.copybara.hg.HgRepository.LogCmd;
+import com.google.copybara.revision.Change;
 import com.google.copybara.util.console.Console;
 import java.util.Optional;
 

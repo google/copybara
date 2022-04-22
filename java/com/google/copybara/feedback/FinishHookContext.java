@@ -24,13 +24,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
-import com.google.copybara.Revision;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.action.Action;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.transform.SkylarkConsole;
-
+import java.util.Map;
+import java.util.stream.Collectors;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -39,9 +40,6 @@ import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
-
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /** Skylark context for 'after migration' hooks. */
 @SuppressWarnings("unused")

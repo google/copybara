@@ -19,6 +19,8 @@ package com.google.copybara;
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import java.util.Optional;
 import javax.annotation.Nullable;
 

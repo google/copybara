@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.revision;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -26,7 +26,7 @@ import java.util.Map.Entry;
 import javax.annotation.Nullable;
 
 /**
- * A revision of {@link Origin}.
+ * A revision of {@code com.google.copybara.Origin}.
  *
  * <p>For example, in Git it would be a commit SHA-1.
  */
@@ -41,7 +41,8 @@ public interface Revision {
   ZonedDateTime readTimestamp() throws RepoException;
 
   /**
-   * String representation of the revision that can be parsed by {@link Origin#resolve(String)}.
+   * String representation of the revision that can be parsed by
+   * {@code com.google.copybara.Origin#resolve(String)}.
    *
    * <p> Unlike {@link #toString()} method, this method is guaranteed to be stable.
    */

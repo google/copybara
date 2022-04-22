@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.revision.Change;
 import com.google.copybara.testing.DummyRevision;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

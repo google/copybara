@@ -22,8 +22,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import java.util.Map;
-
 import javax.annotation.Nullable;
 
 /**

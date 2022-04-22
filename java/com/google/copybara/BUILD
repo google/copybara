@@ -73,9 +73,7 @@ copybara_reference(
 
 BASE_SRCS = [
     "BaselinesWithoutLabelVisitor.java",
-    "Change.java",
     "ChangeMessage.java",
-    "Changes.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
     "CheckoutPathAttributes.java",
@@ -95,7 +93,6 @@ BASE_SRCS = [
     "Option.java",
     "Options.java",
     "Origin.java",
-    "Revision.java",
     "SkylarkContext.java",
     "Transformation.java",
     "TransformResult.java",
@@ -143,6 +140,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:autovalue",
@@ -204,6 +202,7 @@ java_library(
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/remotefile",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/debug",

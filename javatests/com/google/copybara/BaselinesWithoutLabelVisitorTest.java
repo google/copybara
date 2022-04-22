@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.revision.Change;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.util.Glob;
 import java.time.ZoneId;

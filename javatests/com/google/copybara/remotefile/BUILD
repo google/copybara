@@ -29,6 +29,7 @@ all_tests(
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/remotefile",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/transform",

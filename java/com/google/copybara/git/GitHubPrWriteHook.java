@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Change;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
@@ -31,6 +30,7 @@ import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.revision.Change;
 import com.google.copybara.util.console.Console;
 import java.util.List;
 import javax.annotation.Nullable;

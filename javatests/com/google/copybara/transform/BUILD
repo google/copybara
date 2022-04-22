@@ -26,6 +26,7 @@ all_tests(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/util",

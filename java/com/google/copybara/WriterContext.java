@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.revision.Revision;
 import javax.annotation.Nullable;
 
 /**

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.revision;
 
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.authoring.Author;
 import java.time.ZonedDateTime;
 import java.util.Objects;
@@ -177,7 +176,11 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
     return extractFirstLine(message);
   }
 
-  static String extractFirstLine(String message) {
+  /**
+   * Get the first line of a message
+   * TODO(malcon): Move to a different class/package.
+   */
+  public static String extractFirstLine(String message) {
     int idx = message.indexOf('\n');
     return idx == -1 ? message : message.substring(0, idx);
   }

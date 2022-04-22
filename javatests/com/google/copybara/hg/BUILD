@@ -32,6 +32,7 @@ all_tests(
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/hg",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console/testing",

@@ -27,6 +27,8 @@ import com.google.common.collect.Lists;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.nio.file.Path;

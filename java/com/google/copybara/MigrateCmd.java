@@ -29,6 +29,7 @@ import com.google.copybara.config.Migration;
 import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;

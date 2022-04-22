@@ -1,4 +1,4 @@
-# Copyright 2021 Google Inc.
+# Copyright 2022 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,28 +16,13 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
-JAVACOPTS = [
-    "-Xlint:unchecked",
-    "-source",
-    "1.8",
-]
-
 java_library(
-    name = "action",
-    srcs = [
-        "Action.java",
-        "ActionContext.java",
-        "ActionResult.java",
-        "StarlarkAction.java",
-    ],
-    javacopts = JAVACOPTS,
+    name = "revision",
+    srcs = glob(["**/*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/revision",
-        "//java/com/google/copybara/transform",
-        "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:starlark",

@@ -31,6 +31,8 @@ import com.google.copybara.config.Config;
 import com.google.copybara.config.Migration;
 import com.google.copybara.config.SkylarkParser.ConfigWithDependencies;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;

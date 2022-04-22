@@ -19,8 +19,8 @@ package com.google.copybara.remotefile;
 import static com.google.common.base.Strings.nullToEmpty;
 
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.copybara.Revision;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.revision.Revision;
 import java.time.ZonedDateTime;
 
 /** A Revision for a remote file */

@@ -27,6 +27,8 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Change;
+import com.google.copybara.revision.Changes;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.testing.FileSubjects;

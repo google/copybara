@@ -24,13 +24,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.DestinationEffect;
 import com.google.copybara.DestinationEffect.DestinationRef;
-import com.google.copybara.DestinationEffect.OriginRef;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.OriginRef;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.console.Console;
-
+import java.util.ArrayList;
+import java.util.List;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
@@ -39,9 +40,6 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkValue;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A StarlarkContext for running Actions.

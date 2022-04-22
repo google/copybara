@@ -17,8 +17,8 @@
 package com.google.copybara.folder;
 
 import com.google.common.base.Preconditions;
-import com.google.copybara.Revision;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.revision.Revision;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 

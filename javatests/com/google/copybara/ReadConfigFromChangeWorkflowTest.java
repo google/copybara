@@ -23,6 +23,7 @@ import com.google.copybara.config.Config;
 import com.google.copybara.config.ConfigValidator;
 import com.google.copybara.config.ValidationResult;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;

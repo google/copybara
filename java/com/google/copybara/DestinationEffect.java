@@ -16,10 +16,10 @@
 
 package com.google.copybara;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.revision.OriginRef;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -204,54 +204,6 @@ public class DestinationEffect implements StarlarkValue {
      * This effect would be created on the former one.
      */
     STARTED,
-  }
-
-  /** Reference to the change/review read from the origin. */
-  @StarlarkBuiltin(
-      name = "origin_ref",
-      doc = "Reference to the change/review in the origin.")
-  public static class OriginRef implements StarlarkValue {
-    private final String ref;
-
-    @VisibleForTesting
-    public OriginRef(String id) {
-      this.ref = Preconditions.checkNotNull(id);
-    }
-
-    /** Origin reference*/
-    @StarlarkMethod(name = "ref", doc = "Origin reference ref", structField = true)
-    public String getRef() {
-      return ref;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      OriginRef originRef = (OriginRef) o;
-      return Objects.equals(ref, originRef.ref);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(ref);
-    }
-
-    @Override
-    public void repr(Printer printer) {
-      printer.append(toString());
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(this)
-          .add("ref", ref)
-          .toString();
-    }
   }
 
   /** Reference to the change/review created/updated on the destination. */

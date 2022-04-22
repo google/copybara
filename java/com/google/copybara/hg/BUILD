@@ -46,6 +46,7 @@ java_library(
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util:origin_util",
         "//java/com/google/copybara/util/console",

@@ -18,13 +18,13 @@ package com.google.copybara.hg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.Change;
 import com.google.copybara.ChangeVisitable.ChangesVisitor;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.revision.Change;
 
 /**
  * Utility methods for visiting Mercurial (Hg) repositories.
