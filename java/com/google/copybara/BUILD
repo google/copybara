@@ -134,6 +134,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/effect",

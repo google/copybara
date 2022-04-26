@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.copybara.approval.ApprovalsProvider;
+import com.google.copybara.approval.NoneApprovedProvider;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -83,6 +85,16 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
   @Nullable
   default String showDiff(R revisionFrom, R revisionTo) throws RepoException {
     return null;
+  }
+
+  /**
+   * Get an approvals provider that is able to find for each change its approval status (owner is in
+   * the org, has been reviewed, etc.)
+   *
+   * <p>By default we return all the changes without any approval.
+   */
+  default ApprovalsProvider getApprovalsProvider() {
+    return new NoneApprovedProvider();
   }
 
   /**
@@ -406,4 +418,5 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
           .toString();
     }
   }
+
 }

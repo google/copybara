@@ -734,10 +734,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           }
         }
       }
-      transformResult = transformResult
-          .withAskForConfirmation(workflow.isAskForConfirmation())
-          .withDiffInOrigin(isShowDiffInOrigin)
-          .withIdentity(workflow.getMigrationIdentity(changeIdentityRevision, transformWork));
+      transformResult =
+          transformResult
+              .withAskForConfirmation(workflow.isAskForConfirmation())
+              .withDiffInOrigin(isShowDiffInOrigin)
+              .withIdentity(workflow.getMigrationIdentity(changeIdentityRevision, transformWork))
+              .withApprovalsProvider(workflow.getOrigin().getApprovalsProvider());
 
       ImmutableList<DestinationEffect> result;
       try (ProfilerTask ignored = profiler().start(

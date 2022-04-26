@@ -48,6 +48,8 @@ import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.StarlarkAction;
+import com.google.copybara.approval.ApprovalsProvider;
+import com.google.copybara.approval.NoneApprovedProvider;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.GlobalMigrations;
@@ -2331,6 +2333,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       return fixed;
     }
     return url;
+  }
+
+  protected ApprovalsProvider approvalsProvider(String url) {
+    return new NoneApprovedProvider();
   }
 
   /** Validates the {@link Checker} provided to a feedback endpoint. */
