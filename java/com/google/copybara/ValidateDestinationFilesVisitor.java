@@ -77,7 +77,10 @@ class ValidateDestinationFilesVisitor extends SimpleFileVisitor<Path> {
       Collections.sort(invalidPaths);
       throw new NotADestinationFileException(String.format(
           "Attempted to write these files in the destination, but they are not covered by "
-          + "destination_files: %s.\nYour destination_files are %s.",
+          + "destination_files: %s.\nYour destination_files are %s.\n\n"
+              + "This is fixable by either excluding those files in origin_files (so that"
+              + " they are not migrated) or adding them as included to destination_files"
+              + " (to tell Copybara that it should write those files).",
           invalidPaths, destinationFiles));
     }
   }

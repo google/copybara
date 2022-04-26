@@ -42,6 +42,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationStartedEvent;
 import com.google.copybara.monitor.EventMonitor.EventMonitors;
@@ -548,9 +549,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       checkout(rev, processConsole, checkoutDir, "origin.checkout");
 
       Path originCopy = null;
+      Console console = workflow.getConsole();
       if (getReverseTransformForCheck() != null) {
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
-          workflow.getConsole().progress("Making a copy or the workdir for reverse checking");
+          console.progress("Making a copy or the workdir for reverse checking");
           originCopy = Files.createDirectories(workdir.resolve("origin"));
           try {
             FileUtil.copyFilesRecursively(checkoutDir, originCopy, FAIL_OUTSIDE_SYMLINKS);
@@ -568,14 +570,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       LazyResourceLoader<Endpoint> originApi = c -> reader.getFeedbackEndPoint(c);
       LazyResourceLoader<Endpoint> destinationApi = c-> writer.getFeedbackEndPoint(c);
       ResourceSupplier<DestinationReader> destinationReader = () ->
-          writer.getDestinationReader(workflow.getConsole(), destinationBaseline, checkoutDir);
+          writer.getDestinationReader(console, destinationBaseline, checkoutDir);
 
       TransformWork transformWork =
           new TransformWork(
               checkoutDir,
               metadata,
               changes,
-              workflow.getConsole(),
+              console,
               new MigrationInfo(workflow.getRevIdLabel(), writer),
               resolvedRef,
               originApi,
@@ -586,12 +588,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
-          status.throwException(workflow.getConsole(), workflow.getWorkflowOptions().ignoreNoop);
+          showInfoAboutNoop(console);
+          status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
         }
+      } catch (VoidOperationException e) {
+        // This happens if an inner secuence throws noop as an exception.
+        showInfoAboutNoop(console);
+        throw e;
       }
 
       if (getReverseTransformForCheck() != null) {
-        workflow.getConsole().progress("Checking that the transformations can be reverted");
+        console.progress("Checking that the transformations can be reverted");
         Path reverse;
         try (ProfilerTask ignored = profiler().start("reverse_copy")) {
           reverse = Files.createDirectories(workdir.resolve("reverse"));
@@ -614,14 +621,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                       reverse,
                       transformWork.getMetadata(),
                       changes,
-                      workflow.getConsole(),
+                      console,
                       new MigrationInfo(/*originLabel=*/ null, null),
                       resolvedRef,
                       destinationApi,
                       originApi,
                       () -> DestinationReader.NOT_IMPLEMENTED));
           if (status.isNoop()) {
-            status.throwException(workflow.getConsole(), workflow.getWorkflowOptions().ignoreNoop);
+            console.warnFmt("No-op detected running the transformations in reverse. The most"
+                + " probably cause is that the transformations are not reversible.");
+            status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
           }
         }
         String diff;
@@ -648,14 +657,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   + " flag.", e.getPath(), e.getGitDirPath(), OUTPUT_ROOT_FLAG));
         }
         if (!diff.trim().isEmpty()) {
-          workflow.getConsole().error("Non reversible transformations:\n"
-              + DiffUtil.colorize(workflow.getConsole(), diff));
+          console.errorFmt("Copybara detected non-reversible transformations. This is detected"
+              + " by running the transformations forward and then reversing them. The result was"
+              + " a non-empty diff (If transformations were reversible, the diff should be none):\n"
+              + "%s\n"
+                  + "Reversible workflows are recommended so that workflows can run in both"
+                  + " directions. For example for upstreaming internal changes. This feature can"
+                  + " be deactivated by setting core.workflow(..., reversible_check = False)"
+                  + " field.", DiffUtil.colorize(console, diff));
           throw new ValidationException(
               String.format("Workflow '%s' is not reversible", workflow.getName()));
         }
       }
 
-      workflow.getConsole()
+      console
           .progress("Checking that destination_files covers all files in transform result");
       new ValidateDestinationFilesVisitor(getDestinationFiles(), checkoutDir)
           .verifyFilesToWrite();
@@ -684,7 +699,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
 
           PrefixConsole baselineConsole = new PrefixConsole("Migrating baseline for diff: ",
-              workflow.getConsole());
+              console);
           checkout(destinationBaseline.getOriginRevision(), baselineConsole, baselineWorkdir,
               "origin.baseline.checkout");
 
@@ -733,6 +748,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Verify
           .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
       return result;
+    }
+
+    private void showInfoAboutNoop(Console console) {
+      console.warnFmt("No-op detected, this could happen for several reasons:\n\n"
+              + "    - origin_files doesn't include the files. Current origin_files: %s\n\n"
+              + "    - Previous transformations didn't do what you were expecting. You can"
+              + "inspect the work directory state (if run locally) at %s\n\n"
+              + "    - Current version of the config doesn't work for an older (or newer)"
+              + " revision being migrated. This can be fixed by either wrapping the failing"
+              + " transformation with %s"
+              + " so that it is ignored or, if your origin supports it, using"
+              + " %s flag to sync the config version to the change"
+              + " being migrated.",
+          console.colorize(AnsiColor.YELLOW, workflow.getOriginFiles().toString()),
+          console.colorize(AnsiColor.YELLOW, workdir.toString()),
+          console.colorize(AnsiColor.YELLOW,
+              "core.transform([your_transformation], ignore_noop = True)"),
+          console.colorize(AnsiColor.YELLOW, "--read-config-from-change"));
     }
 
     private void checkout(

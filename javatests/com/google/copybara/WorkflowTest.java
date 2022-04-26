@@ -2064,7 +2064,7 @@ public class WorkflowTest {
       String msg =
           console().getMessages().stream()
               .filter(
-                  m -> m.getType() == MessageType.ERROR && m.getText().contains("Non reversible"))
+                  m -> m.getType() == MessageType.ERROR && m.getText().contains("non-reversible"))
               .findFirst()
               .get()
               .getText();
