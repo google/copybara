@@ -1,4 +1,4 @@
-# Copyright 2018s Google Inc.
+# Copyright 2022 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//javatests/com/google/copybara:test.bzl", "all_tests")
-
 licenses(["notice"])
 
-all_tests(
-    tests = glob(["*Test.java"]),
+package(default_visibility = ["//visibility:public"])
+
+java_library(
+    name = "effect",
+    srcs = glob(["**/*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara/authoring",
-        "//java/com/google/copybara/effect",
-        "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/doc:annotations",  # Used for doc generation
         "//java/com/google/copybara/revision",
-        "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
-        "//java/com/google/copybara/util/console/testing",
-        "//third_party:guava_testlib",
+        "//third_party:guava",
+        "//third_party:jsr305",
+        "//third_party:starlark",
     ],
 )

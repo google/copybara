@@ -30,6 +30,7 @@ all_tests(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/revision",

@@ -22,9 +22,9 @@ import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination;
-import com.google.copybara.DestinationEffect;
-import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.WriterContext;
+import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.testing.GitTesting;

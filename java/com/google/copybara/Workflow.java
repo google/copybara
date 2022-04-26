@@ -36,6 +36,7 @@ import com.google.copybara.action.Action;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
+import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CommandLineException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;

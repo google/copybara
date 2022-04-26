@@ -79,7 +79,6 @@ BASE_SRCS = [
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",
-    "DestinationEffect.java",
     "DestinationReader.java",
     "DestinationStatusVisitor.java",
     "Endpoint.java",
@@ -137,6 +136,7 @@ java_library(
     deps = [
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/jcommander:validators",
@@ -195,6 +195,7 @@ java_library(
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format",
         "//java/com/google/copybara/git",

@@ -50,6 +50,7 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/doc:annotations",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/git/github:util",

@@ -22,10 +22,10 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.DestinationEffect;
-import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.effect.DestinationEffect.DestinationRef;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.OriginRef;
 import com.google.copybara.transform.SkylarkConsole;

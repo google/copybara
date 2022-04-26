@@ -24,14 +24,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
-import com.google.copybara.DestinationEffect;
-import com.google.copybara.DestinationEffect.DestinationRef;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
 import com.google.copybara.action.ActionResult.Result;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
+import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.effect.DestinationEffect.DestinationRef;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -39,15 +39,12 @@ import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
-
-import net.starlark.java.eval.Dict;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import javax.annotation.Nullable;
+import net.starlark.java.eval.Dict;
 
 /**
  * Mirror one or more refspects between git repositories.

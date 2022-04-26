@@ -25,11 +25,11 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.Destination.Writer;
-import com.google.copybara.DestinationEffect;
-import com.google.copybara.DestinationEffect.Type;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.hg.HgRepository.HgLogEntry;

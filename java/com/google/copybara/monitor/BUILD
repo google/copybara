@@ -26,6 +26,7 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",

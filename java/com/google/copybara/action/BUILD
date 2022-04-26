@@ -34,6 +34,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/transform",
