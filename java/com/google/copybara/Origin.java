@@ -92,13 +92,13 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
   interface Reader<R extends Revision> extends ChangeVisitable<R> {
 
     /**
-     * Checks out the revision {@code ref} from the repository into {@code workdir} directory. This
-     * method is not on {@link Revision} in order to prevent {@link Destination} implementations
-     * from getting access to the code pre-transformation.
+     * Checks out the revision {@code ref} from the repository into the {@code checkoutDir} 
+     * directory. This method is not on {@link Revision} in order to prevent {@link Destination}
+     * implementations from getting access to the code pre-transformation.
      *
      * @throws RepoException if any error happens during the checkout or workdir preparation.
      */
-    void checkout(R ref, Path workdir) throws RepoException, ValidationException;
+    void checkout(R ref, Path checkoutDir) throws RepoException, ValidationException;
 
     /**
      * Returns the changes that happen in the interval (fromRef, toRef].
