@@ -17,6 +17,7 @@
 package com.google.copybara.transform.debug;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
@@ -28,6 +29,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
 
+/**
+ * Workflow debugging tools
+ */
+@Parameters(separators = "=")
 public class DebugOptions implements Option {
 
   @Parameter(names = "--debug-metadata-break",

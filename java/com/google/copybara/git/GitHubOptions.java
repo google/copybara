@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.common.annotations.VisibleForTesting;
@@ -39,6 +40,7 @@ import javax.annotation.Nullable;
 /**
  * Options related to GitHub
  */
+@Parameters(separators = "=")
 public class GitHubOptions implements Option {
 
   protected final GeneralOptions generalOptions;

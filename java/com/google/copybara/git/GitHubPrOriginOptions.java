@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.Option;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Set;
  * <p>Intentionally empty so that we have the necessary infrastructure when
  * we add github options.
  */
+@Parameters(separators = "=")
 public class GitHubPrOriginOptions implements Option {
 
   @Parameter(names = "--github-required-label",

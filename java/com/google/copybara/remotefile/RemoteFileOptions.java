@@ -17,6 +17,7 @@
 package com.google.copybara.remotefile;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
@@ -29,6 +30,7 @@ import java.util.zip.ZipInputStream;
 /**
  * Options for loading files from a source other than the origin. Use with caution.
  */
+@Parameters(separators = "=")
 public class RemoteFileOptions implements Option {
 
   @Parameter(

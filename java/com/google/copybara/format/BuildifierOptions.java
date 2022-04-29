@@ -24,7 +24,7 @@ import com.google.copybara.Option;
  * Specifies how Buildifier is executed.
  */
 @Parameters(separators = "=")
-public class BuildifierOptions implements Option{
+public class BuildifierOptions implements Option {
   @Parameter(names = "--buildifier-bin",
       description = "Binary to use for buildifier (Default is /usr/bin/buildifier)",
       hidden = true)

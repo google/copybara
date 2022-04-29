@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
 
 /**
@@ -25,6 +26,7 @@ import com.google.copybara.Option;
  * <p>Intentionally empty so that we have the necessary infrastructure when
  * we add github options.
  */
+@Parameters(separators = "=")
 public final class GitHubDestinationOptions implements Option {
 
   static final String GITHUB_DESTINATION_PR_BRANCH = "--github-destination-pr-branch";
