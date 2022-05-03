@@ -40,6 +40,7 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.transform.debug.DebugOptions;
@@ -100,6 +101,7 @@ public class ModuleSupplier {
         new MetadataModule(),
         new Authoring.Module(console),
         new RemoteFileModule(options),
+        new Re2Module(),
         new StructModule());
   }
 

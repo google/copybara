@@ -203,6 +203,7 @@ java_library(
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/re2",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",

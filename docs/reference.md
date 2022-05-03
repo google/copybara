@@ -158,6 +158,20 @@
     - [path.resolve](#pathresolve)
     - [path.resolve_sibling](#pathresolve_sibling)
   - [PathAttributes](#pathattributes)
+  - [re2](#re2)
+    - [re2.compile](#re2compile)
+  - [re2_matcher](#re2_matcher)
+    - [re2_matcher.end](#re2_matcherend)
+    - [re2_matcher.find](#re2_matcherfind)
+    - [re2_matcher.group](#re2_matchergroup)
+    - [re2_matcher.group_count](#re2_matchergroup_count)
+    - [re2_matcher.matches](#re2_matchermatches)
+    - [re2_matcher.replace_all](#re2_matcherreplace_all)
+    - [re2_matcher.replace_first](#re2_matcherreplace_first)
+    - [re2_matcher.start](#re2_matcherstart)
+  - [re2_pattern](#re2_pattern)
+    - [re2_pattern.matcher](#re2_patternmatcher)
+    - [re2_pattern.matches](#re2_patternmatches)
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
@@ -4000,6 +4014,177 @@ Name | Description
 ---- | -----------
 size | `int`<br><p>The size of the file. Throws an error if file size > 2GB.</p>
 symlink | `bool`<br><p>Returns true if it is a symlink</p>
+
+
+
+## re2
+
+Set of functions to work with regexes in Copybara.
+
+<a id="re2.compile" aria-hidden="true"></a>
+### re2.compile
+
+Create a regex pattern
+
+[`re2_pattern`](#re2_pattern) `re2.compile(regex)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+regex | `string`<br><p></p>
+
+
+#### Example:
+
+
+##### Simple regex:
+
+Patterns need to be compiled before using them:
+
+```python
+re2.compile("a(.*)b").matches('accccb')
+```
+
+
+
+
+## re2_matcher
+
+A RE2 regex pattern matcher object to perform regexes in Starlark
+
+<a id="re2_matcher.end" aria-hidden="true"></a>
+### re2_matcher.end
+
+Return the end position of a matching group
+
+`int` `re2_matcher.end(group=0)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+group | `int` or `string`<br><p></p>
+
+<a id="re2_matcher.find" aria-hidden="true"></a>
+### re2_matcher.find
+
+Return true if the string matches the regex pattern.
+
+`bool` `re2_matcher.find(start=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+start | `int` or `NoneType`<br><p>The input position where the search begins</p>
+
+<a id="re2_matcher.group" aria-hidden="true"></a>
+### re2_matcher.group
+
+Return a matching group
+
+`string` `re2_matcher.group(group=0)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+group | `int` or `string`<br><p></p>
+
+<a id="re2_matcher.group_count" aria-hidden="true"></a>
+### re2_matcher.group_count
+
+Return the number of groups found for a match
+
+`int` `re2_matcher.group_count()`
+
+<a id="re2_matcher.matches" aria-hidden="true"></a>
+### re2_matcher.matches
+
+Return true if the string matches the regex pattern.
+
+`bool` `re2_matcher.matches()`
+
+<a id="re2_matcher.replace_all" aria-hidden="true"></a>
+### re2_matcher.replace_all
+
+Replace all instances matching the regex
+
+`string` `re2_matcher.replace_all(replacement=0)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+replacement | `string`<br><p></p>
+
+<a id="re2_matcher.replace_first" aria-hidden="true"></a>
+### re2_matcher.replace_first
+
+Replace the first instance matching the regex
+
+`string` `re2_matcher.replace_first(replacement=0)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+replacement | `string`<br><p></p>
+
+<a id="re2_matcher.start" aria-hidden="true"></a>
+### re2_matcher.start
+
+Return the start position of a matching group
+
+`int` `re2_matcher.start(group=0)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+group | `int` or `string`<br><p></p>
+
+
+
+## re2_pattern
+
+A RE2 regex pattern object to perform regexes in Starlark
+
+<a id="re2_pattern.matcher" aria-hidden="true"></a>
+### re2_pattern.matcher
+
+Return true if the string matches the regex pattern
+
+[`re2_matcher`](#re2_matcher) `re2_pattern.matcher(input)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+input | `string`<br><p></p>
+
+<a id="re2_pattern.matches" aria-hidden="true"></a>
+### re2_pattern.matches
+
+Return true if the string matches the regex pattern
+
+`bool` `re2_pattern.matches(input)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+input | `string`<br><p></p>
 
 
 
