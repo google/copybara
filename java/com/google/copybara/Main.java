@@ -238,10 +238,6 @@ public class Main {
       commandEnv = new CommandEnv(baseWorkdir, options, cmdToRun.getArgs(), mainArgs);
       generalOptions.console().progressFmt("Running %s", subcommand.name());
 
-      // TODO(malcon): Remove this after 2019-09-15, once tested that temp features work.
-      logger.atInfo().log("Temporary features test: %s",
-          options.get(GeneralOptions.class).isTemporaryFeature("TEST_TEMP_FEATURES", true));
-
       ExitCode exitCode = subcommand.run(commandEnv);
       return new CommandResult(exitCode, subcommand, commandEnv);
 
@@ -424,7 +420,7 @@ public class Main {
       LogManager.getLogManager().readConfiguration(new ByteArrayInputStream((
           "handlers=java.util.logging.FileHandler\n"
               + ".level=INFO\n"
-              + "java.util.logging.FileHandler.level=" + level +"\n"
+              + "java.util.logging.FileHandler.level=" + level + "\n"
               + "java.util.logging.FileHandler.pattern="
               + baseDir + "/copybara-%g.log\n"
               + "java.util.logging.FileHandler.count=10\n"
