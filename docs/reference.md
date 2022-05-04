@@ -2650,14 +2650,6 @@ partial_fetch | `bool`<br><p>This is an experimental feature that only works for
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
 actions | `sequence`<br><p>Experimental feature. A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 
-
-
-**Command line flags:**
-
-Name | Type | Description
----- | ---- | -----------
-<span style="white-space: nowrap;">`--git-mirror-force`</span> | *boolean* | Force push even if it is not fast-forward
-
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
 

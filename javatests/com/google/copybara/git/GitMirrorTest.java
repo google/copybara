@@ -317,13 +317,6 @@ public class GitMirrorTest {
   }
 
   @Test
-  public void testMirrorNoConflictIfGitMirrorForce() throws Exception {
-    options.gitMirrorOptions.forcePush = true;
-    Migration mirror = prepareForConflict();
-    mirror.run(workdir, ImmutableList.of());
-  }
-
-  @Test
   public void testMirrorNoConflictIfForce() throws Exception {
     options.setForce(true);
     Migration mirror = prepareForConflict();

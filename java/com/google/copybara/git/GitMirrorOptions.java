@@ -16,9 +16,7 @@
 
 package com.google.copybara.git;
 
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 
 /**
@@ -27,16 +25,5 @@ import com.google.copybara.Option;
 @Parameters(separators = "=")
 public class GitMirrorOptions implements Option {
 
-  public GitMirrorOptions() {
-  }
-
-  // TODO(malcon): Remove once internal references removed.
-  @Deprecated
-  public GitMirrorOptions(GeneralOptions ignore1, GitOptions ignore2) {
-  }
-
-  // TODO(malcon): Deprecate and use --force instead
-  @Parameter(names = "--git-mirror-force",
-      description = "Force push even if it is not fast-forward")
-  boolean forcePush = false;
+  public GitMirrorOptions() {}
 }
