@@ -59,7 +59,7 @@ java_library(
 java_library(
     name = "jcommander",
     exports = [
-        "@maven//:com_beust_jcommander",
+        "@JCommander//:jcommander",
     ],
 )
 

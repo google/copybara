@@ -20,7 +20,6 @@ def copybara_maven_repositories():
         maven_install,
         name = DEFAULT_REPOSITORY_NAME,
         artifacts = [
-            "com.beust:jcommander:1.48",
             "com.google.auto.value:auto-value-annotations:1.9",
             "com.google.auto.value:auto-value:1.9",
             "com.google.auto:auto-common:1.2.1",
