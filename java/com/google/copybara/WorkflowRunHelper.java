@@ -754,7 +754,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       console.warnFmt("No-op detected, this could happen for several reasons:\n\n"
               + "    - origin_files doesn't include the files. Current origin_files: %s\n\n"
               + "    - Previous transformations didn't do what you were expecting. You can"
-              + "inspect the work directory state (if run locally) at %s\n\n"
+              + "      inspect the work directory state (if run locally) at %s\n\n"
               + "    - Current version of the config doesn't work for an older (or newer)"
               + " revision being migrated. This can be fixed by either wrapping the failing"
               + " transformation with %s"
