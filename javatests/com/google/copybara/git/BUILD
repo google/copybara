@@ -32,6 +32,7 @@ all_tests(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",

@@ -34,6 +34,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
+import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
@@ -93,6 +94,7 @@ public class GitOrigin implements Origin<GitRevision> {
   @Nullable private final String configPath;
   @Nullable private final String workflowName;
   protected final boolean primaryBranchMigrationMode;
+  private final ApprovalsProvider approvalsProvider;
 
   GitOrigin(
       GeneralOptions generalOptions,
@@ -110,7 +112,8 @@ public class GitOrigin implements Origin<GitRevision> {
       @Nullable LatestVersionSelector versionSelector,
       @Nullable String configPath,
       @Nullable String workflowName,
-      boolean primaryBranchMigrationMode) {
+      boolean primaryBranchMigrationMode,
+      ApprovalsProvider approvalsProvider) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -131,6 +134,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.configPath = configPath;
     this.workflowName = workflowName;
     this.primaryBranchMigrationMode = primaryBranchMigrationMode;
+    this.approvalsProvider = approvalsProvider;
   }
 
   @VisibleForTesting
@@ -140,6 +144,11 @@ public class GitOrigin implements Origin<GitRevision> {
       return gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
     }
     return gitOptions.cachedBareRepoForUrl(repoUrl);
+  }
+
+  @Override
+  public ApprovalsProvider getApprovalsProvider() {
+    return approvalsProvider;
   }
 
   @Override
@@ -479,13 +488,14 @@ public class GitOrigin implements Origin<GitRevision> {
       boolean partialClone, boolean primaryBranchMigrationMode,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
       @Nullable LatestVersionSelector versionSelector,
-      String configPath, String workflowName) {
+      String configPath, String workflowName,
+      ApprovalsProvider approvalsProvider) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
         submoduleStrategy, includeBranchCommitLogs, firstParent, partialClone,
         patchTransformation, describeVersion, versionSelector,
-        configPath, workflowName, primaryBranchMigrationMode);
+        configPath, workflowName, primaryBranchMigrationMode, approvalsProvider);
   }
 
   @Override

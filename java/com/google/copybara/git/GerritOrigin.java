@@ -32,6 +32,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
+import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.EmptyChangeException;
@@ -87,7 +88,8 @@ public class GerritOrigin extends GitOrigin {
       @Nullable String branch,
       boolean describeVersion,
       boolean ignoreGerritNoop,
-      boolean primaryBranchMigrationMode) {
+      boolean primaryBranchMigrationMode,
+      ApprovalsProvider approvalsProvider) {
     super(
         generalOptions,
         repoUrl,
@@ -103,7 +105,8 @@ public class GerritOrigin extends GitOrigin {
         /*versionSelector=*/null,
         /*configPath=*/null,
         /*workflowName=*/null,
-        primaryBranchMigrationMode);
+        primaryBranchMigrationMode,
+        approvalsProvider);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -176,7 +179,8 @@ public class GerritOrigin extends GitOrigin {
       @Nullable String branch,
       boolean describeVersion,
       boolean ignoreGerritNoop,
-      boolean primaryBranchMigrationMode) {
+      boolean primaryBranchMigrationMode,
+      ApprovalsProvider approvalsProvider) {
 
     return new GerritOrigin(
         options.get(GeneralOptions.class),
@@ -194,7 +198,8 @@ public class GerritOrigin extends GitOrigin {
         branch,
         describeVersion,
         ignoreGerritNoop,
-        primaryBranchMigrationMode);
+        primaryBranchMigrationMode,
+        approvalsProvider);
   }
 
   @Override

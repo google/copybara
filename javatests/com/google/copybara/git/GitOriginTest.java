@@ -23,6 +23,7 @@ import static com.google.copybara.testing.git.GitTestUtil.writeFile;
 import static com.google.copybara.util.Glob.createGlob;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -37,6 +38,7 @@ import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Workflow;
+import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -167,6 +169,19 @@ public class GitOriginTest {
                 + "repoType=GIT, "
                 + "primaryBranchMigrationMode=false"
                 + "}");
+  }
+
+  @Test
+  public void testApprovalsProvider() throws Exception {
+    ApprovalsProvider provider = mock(ApprovalsProvider.class);
+    options.gitOrigin.approvalsProvider = provider;
+    
+    origin = skylark.eval("result",
+        "result = git.origin(\n"
+            + "    url = 'https://my-server.org/copybara',\n"
+            + "    ref = 'main',\n"
+            + ")");
+    assertThat(origin.getApprovalsProvider()).isEqualTo(provider);
   }
 
   @Test
