@@ -2092,9 +2092,18 @@ public class GitRepository {
         cmd.add("--");
         cmd.addAll(paths);
       }
-
-      CommandOutput output = repo.simpleCommand(cmd.toArray(new String[0]));
-      return parseLog(output.getStdout(), includeBody);
+      logger.atInfo().log("Executing: %s", cmd);
+      // Avoid logging since git log can return LOT of entries.
+      CommandOutput output = limit > 0 && limit < 10
+          ? repo.simpleCommand(cmd)
+          : repo.simpleCommandNoRedirectOutput(cmd.toArray(new String[0]));
+      ImmutableList<GitLogEntry> res = parseLog(output.getStdout(), includeBody);
+      logger.atInfo().log("Log command returned %s entries", res.size());
+      if (!res.isEmpty()) {
+        logger.atInfo().log("First commit: %s", res.get(0));
+        logger.atInfo().log("Last commit: %s", Iterables.getLast(res));
+      }
+      return res;
     }
 
     private ImmutableList<GitLogEntry> parseLog(String log, boolean includeBody)
