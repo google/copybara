@@ -20,6 +20,7 @@ import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -62,6 +63,7 @@ public class Mirror implements Migration {
   private final String destination;
   private final List<Refspec> refspec;
   private final GitMirrorOptions mirrorOptions;
+  private final GitDestinationOptions gitDestinationOptions;
   private final boolean prune;
   private final boolean partialFetch;
   private final ConfigFile mainConfigFile;
@@ -69,9 +71,9 @@ public class Mirror implements Migration {
   private final Iterable<Action> actions;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
-      String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions, boolean prune,
-      boolean partialFetch, ConfigFile mainConfigFile, @Nullable String description,
-      ImmutableList<Action> actions) {
+      String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions,
+      GitDestinationOptions gitDestinationOptions, boolean prune, boolean partialFetch,
+      ConfigFile mainConfigFile, @Nullable String description, ImmutableList<Action> actions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -79,6 +81,7 @@ public class Mirror implements Migration {
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
     this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
+    this.gitDestinationOptions = gitDestinationOptions;
     this.prune = prune;
     this.partialFetch = partialFetch;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
@@ -93,6 +96,13 @@ public class Mirror implements Migration {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
 
       GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+
+      if (!Strings.isNullOrEmpty(gitDestinationOptions.committerName)) {
+        repo.simpleCommand("config", "user.name", gitDestinationOptions.committerName);
+      }
+      if (!Strings.isNullOrEmpty(gitDestinationOptions.committerEmail)) {
+        repo.simpleCommand("config", "user.email", gitDestinationOptions.committerEmail);
+      }
 
       if (Iterables.isEmpty(actions)) {
         defaultMirror(repo);

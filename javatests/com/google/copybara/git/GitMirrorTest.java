@@ -73,12 +73,17 @@ public class GitMirrorTest {
   public void setup() throws Exception {
     workdir = Files.createTempDirectory("workdir");
     console = new TestingConsole();
+
     options =
         new OptionsBuilder()
-            .setEnvironment(GitTestUtil.getGitEnv().getEnvironment())
+            .setEnvironment(new GitEnvironment(System.getenv()).getEnvironment())
             .setOutputRootToTmpDir()
             .setWorkdirToRealTempDir()
             .setConsole(console);
+
+    options.gitDestination.committerEmail = "copybara@example.com";
+    options.gitDestination.committerName = "Copy Bara";
+
     originRepo = newBareRepo(Files.createTempDirectory("gitdir"), getGitEnv(),
         /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
         .withWorkTree(Files.createTempDirectory("worktree"));
@@ -253,7 +258,7 @@ public class GitMirrorTest {
 
   private GitRepository bareRepo(Path path) {
     return newBareRepo(
-        path, new GitEnvironment(options.general.getEnvironment()), options.general.isVerbose(),
+        path, new GitEnvironment(getGitEnv().getEnvironment()), options.general.isVerbose(),
         DEFAULT_TIMEOUT, /*noVerify=*/ false);
   }
 
@@ -335,7 +340,7 @@ public class GitMirrorTest {
         GitRepository.newRepo(
                 /*verbose*/ true,
                 otherRepoPath,
-                new GitEnvironment(options.general.getEnvironment()))
+                new GitEnvironment(getGitEnv().getEnvironment()))
             .init();
     Files.write(other.getWorkTree().resolve("test2.txt"), "some content".getBytes(UTF_8));
     other.add().files("test2.txt").run();
@@ -530,6 +535,9 @@ public class GitMirrorTest {
   }
   @Test
   public void testRebase() throws Exception {
+    options.gitDestination.committerEmail = "internal_system@example.com";
+    options.gitDestination.committerName = "Internal System";
+
     String cfg =
         ""
             + "def _rebase(ctx):\n"
@@ -564,6 +572,7 @@ public class GitMirrorTest {
 
     ImmutableList<GitLogEntry> log = destRepo.log("internal").run();
     assertThat(log.get(0).getBody()).contains(destChange.getBody());
+    assertThat(log.get(0).getCommitter()).isEqualTo(options.gitDestination.getCommitter());
     assertThat(log.get(1).getCommit()).isEqualTo(originChange.getCommit());
   }
 
