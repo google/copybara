@@ -18,7 +18,10 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -30,6 +33,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A walker which adds all files not matching a glob to the index of a Git repo using {@code git
@@ -69,12 +73,12 @@ final class AddExcludedFilesToIndex {
    * Adds all the excluded files and submodules.
    */
   void add() throws RepoException, IOException {
-    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), pathMatcher);
+    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), pathMatcher, repo.getWorkTree());
     Files.walkFileTree(repo.getWorkTree(), visitor);
 
     int size = 0;
     List<String> current = new ArrayList<>();
-    for (String path : visitor.excluded) {
+    for (String path : visitor.excludedFiles.values()) {
       current.add(path);
       size += path.length();
       // Split the executions in chunks of 6K. 8K triggers arg max in some systems, so
@@ -99,11 +103,14 @@ final class AddExcludedFilesToIndex {
 
     private final Path gitDir;
     private final PathMatcher destinationFiles;
-    private final List<String> excluded = new ArrayList<>();
+    private final Path root;
+    private final SetMultimap<Path, String> excludedFiles = HashMultimap.create();
+    private final Set<Path> someMatchInDir = Sets.newHashSet();
 
-    private ExcludesFinder(Path gitDir, PathMatcher destinationFiles) {
+    private ExcludesFinder(Path gitDir, PathMatcher destinationFiles, Path root) {
       this.gitDir = gitDir;
       this.destinationFiles = destinationFiles;
+      this.root = root;
     }
 
     @Override
@@ -117,11 +124,30 @@ final class AddExcludedFilesToIndex {
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!destinationFiles.matches(file)) {
-        excluded.add(file.toString());
+      if (destinationFiles.matches(file)) {
+        // Tell parent dir that one of its children is affected
+        someMatchInDir.add(file.getParent());
+      } else {
+        excludedFiles.put(file.getParent(), file.toString());
+        if (Files.isHidden(file)) {
+          // Dir is not affected but 'git add dir' doesn't work for 'dir/.file'.
+          someMatchInDir.add(file.getParent());
+        }
       }
       return FileVisitResult.CONTINUE;
     }
 
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+      if (someMatchInDir.contains(dir)) {
+        // Tell parent dir that one of its children is affected
+        someMatchInDir.add(dir.getParent());
+      } else if (!root.equals(dir)) {
+        // If everything inside the dir is affected, replace it with the folder itself
+        excludedFiles.removeAll(dir);
+        excludedFiles.put(dir.getParent(), dir.toString());
+      }
+      return super.postVisitDirectory(dir, exc);
+    }
   }
 }
