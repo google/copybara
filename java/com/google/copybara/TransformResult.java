@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.approval.ApprovalsProvider.ApprovalsResult;
+import com.google.copybara.approval.ChangeWithApprovals;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -531,10 +532,9 @@ public final class TransformResult {
     return labelFinder;
   }
 
-  /**
-   * Get the approvals provider from the Origin
-   */
-  public ApprovalsResult getOriginApprovals(Console console)
+  /** Get the approvals provider from the Origin */
+  public ApprovalsResult getOriginApprovals(
+      ImmutableList<ChangeWithApprovals> changes, Console console)
       throws ValidationException, RepoException {
     return approvalsProvider.computeApprovals(changes, console);
   }

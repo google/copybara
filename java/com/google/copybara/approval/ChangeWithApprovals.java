@@ -20,34 +20,49 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.revision.Change;
+import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.Collection;
 import java.util.Objects;
 
 /**
- * Approvals for a change reference
+ * Approvals for a change reference TODO(malcon): Rename this to Statement
+ * (https://github.com/in-toto/attestation/tree/v0.1.0/spec#predicate)
  */
 public class ChangeWithApprovals {
 
   private final Change<?> change;
-  private final ImmutableList<Approval> approvals;
+  private final ImmutableList<? extends StatementPredicate> predicates;
 
-  public ChangeWithApprovals(Change<?> change, ImmutableList<Approval> approvals) {
+  public ChangeWithApprovals(Change<?> change) {
+    this(change, ImmutableList.of());
+  }
+
+  public ChangeWithApprovals(
+      Change<?> change, ImmutableList<? extends StatementPredicate> predicates) {
     this.change = Preconditions.checkNotNull(change);
-    this.approvals = Preconditions.checkNotNull(approvals);
+    this.predicates = predicates;
   }
 
   public Change<?> getChange() {
     return change;
   }
 
-  public ImmutableList<Approval> getApprovals() {
-    return approvals;
+  public ImmutableList<? extends StatementPredicate> getPredicates() {
+    return predicates;
+  }
+
+  @CheckReturnValue
+  public ChangeWithApprovals addApprovals(Collection<? extends StatementPredicate> approvals) {
+    return new ChangeWithApprovals(
+        change,
+        ImmutableList.<StatementPredicate>builder().addAll(predicates).addAll(approvals).build());
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("change", change)
-        .add("approvals", approvals)
+        .add("predicates", predicates)
         .toString();
   }
 
@@ -60,12 +75,11 @@ public class ChangeWithApprovals {
       return false;
     }
     ChangeWithApprovals that = (ChangeWithApprovals) o;
-    return Objects.equals(change, that.change)
-        && Objects.equals(approvals, that.approvals);
+    return Objects.equals(change, that.change) && Objects.equals(predicates, that.predicates);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(change, approvals);
+    return Objects.hash(change, predicates);
   }
 }

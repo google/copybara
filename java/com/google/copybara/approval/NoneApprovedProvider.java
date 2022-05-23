@@ -16,23 +16,16 @@
 
 package com.google.copybara.approval;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
-import com.google.copybara.revision.Changes;
 import com.google.copybara.util.console.Console;
 
 /** An approval provider that return all the changes as not approved */
 public class NoneApprovedProvider implements ApprovalsProvider {
 
   @Override
-  public ApprovalsResult computeApprovals(Changes changes, Console console)
-      throws RepoException, ValidationException {
-    return new ApprovalsResult(
-        changes.getCurrent().stream()
-            .map(c -> new ChangeWithApprovals(c, ImmutableList.of()))
-            .collect(toImmutableList()));
+  public ApprovalsResult computeApprovals(
+      ImmutableList<ChangeWithApprovals> changes, Console console) {
+    return new ApprovalsResult(changes);
   }
 }

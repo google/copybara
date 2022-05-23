@@ -19,7 +19,6 @@ package com.google.copybara.approval;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.revision.Changes;
 import com.google.copybara.util.console.Console;
 
 /** An approvals validator that is provided by the origin */
@@ -28,15 +27,14 @@ public interface ApprovalsProvider {
   /**
    * Given a list of changes, return a list of changes that have approvals
    *
-   * @param changes changes object that contain both 'current' and also the previous changed
-   *     imported (in case of iterative).
+   * @param changes changes to be verified with the existing approvals.
    * @param console console, in case some message need to be printed
    * @throws RepoException if access to the origin system fails because of being unavailable, server
    *     error, etc.
    * @throws ValidationException if failure is attributable to the user setup (e.g. permission
    *     errors, etc.)
    */
-  ApprovalsResult computeApprovals(Changes changes, Console console)
+  ApprovalsResult computeApprovals(ImmutableList<ChangeWithApprovals> changes, Console console)
       throws RepoException, ValidationException;
 
   /**
