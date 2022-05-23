@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.ALWAYS_TRUE;
 import static com.google.copybara.testing.git.GitTestUtil.mockGitHubNotFound;
+import static com.google.copybara.testing.git.GitTestUtil.mockGitHubUnauthorized;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponse;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseAndValidateRequest;
 import static com.google.copybara.testing.git.GitTestUtil.mockResponseWithStatus;
@@ -610,6 +611,16 @@ public class GitHubEndpointTest {
     runFeedback(ImmutableList.<String>builder()
         .add("res = ctx.destination.get_authenticated_user()")
         .addAll(checkFieldStarLark("res", "login", "'tester'"))
+        .build());
+  }
+
+  @Test
+  public void testGetAuthenticatedUser_not_authorized() throws Exception {
+    gitUtil.mockApi(eq("GET"), contains("user"), mockGitHubUnauthorized());
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_authenticated_user()")
+        .add("if res:\n"
+            + "    fail('Should return none')")
         .build());
   }
 

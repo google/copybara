@@ -442,7 +442,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
     try {
       return apiSupplier.load(console).getAuthenticatedUser();
     } catch (GitHubApiException e) {
-      return returnNullOnNotFound(e);
+      return returnNullOnNotFoundOrUnauthorized(e);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_authenticated_user: %s", e.getMessage());
     }
@@ -451,6 +451,14 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   @Nullable
   private <T> T returnNullOnNotFound(GitHubApiException e) throws EvalException {
     SkylarkUtil.check(e.getResponseCode() == ResponseCode.NOT_FOUND, "%s", e.getMessage());
+    return null;
+  }
+
+  @Nullable
+  private <T> T returnNullOnNotFoundOrUnauthorized(GitHubApiException e) throws EvalException {
+    SkylarkUtil.check(e.getResponseCode() == ResponseCode.NOT_FOUND
+            || e.getResponseCode() == ResponseCode.UNAUTHORIZED,
+        "%s", e.getMessage());
     return null;
   }
 

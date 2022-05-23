@@ -130,10 +130,18 @@ public class GitTestUtil {
             + "}", 404, ALWAYS_TRUE);
   }
 
-  public static LowLevelHttpRequest mockGitHubUnprocessable() {
+  public static LowLevelHttpRequest mockGitHubUnauthorized() {
     return mockResponseWithStatus(
         "{\n"
             + "\"message\" : \"Not Found\",\n"
+            + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
+            + "}", 401, ALWAYS_TRUE);
+  }
+
+  public static LowLevelHttpRequest mockGitHubUnprocessable() {
+    return mockResponseWithStatus(
+        "{\n"
+            + "\"message\" : \"Unauthorized\",\n"
             + "\"documentation_url\" : \"https://developer.github.com/v3\"\n"
             + "}", 422, ALWAYS_TRUE);
   }
