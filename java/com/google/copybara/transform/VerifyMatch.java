@@ -29,6 +29,7 @@ import com.google.copybara.TransformationStatus;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.treestate.TreeState.FileState;
 import com.google.copybara.util.Glob;
+import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 import java.io.IOException;
@@ -117,8 +118,13 @@ public final class VerifyMatch implements Transformation {
           continue;
         }
         String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
-        if (verifyNoMatch == batchPattern.matcher(originalFileContent).find()) {
-          errors.add(checkoutDir.relativize(file.getPath()).toString());
+        Matcher matcher = batchPattern.matcher(originalFileContent);
+        if (verifyNoMatch == matcher.find()) {
+          String error = checkoutDir.relativize(file.getPath()).toString();
+          if (verifyNoMatch) {
+            error += String.format(": Match found at %d - '%s'", matcher.start(), matcher.group());
+          }
+          errors.add(error);
         }
       }
       return errors;

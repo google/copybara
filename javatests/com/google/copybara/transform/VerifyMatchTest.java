@@ -120,7 +120,8 @@ public final class VerifyMatchTest {
     assertThrows(ValidationException.class, () -> transform(transformation));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
+        .onceInLog(MessageType.ERROR,
+            "file1.txt: Match found at 0 - 'foo'' failed validation 'Verify match 'foo'.*");
   }
 
   @Test
