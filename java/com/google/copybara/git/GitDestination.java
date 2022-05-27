@@ -528,6 +528,7 @@ public class GitDestination implements Destination<GitRevision> {
       // repo.simpleCommand(add --all)
       AddExcludedFilesToIndex excludedAdder =
           new AddExcludedFilesToIndex(scratchClone, pathMatcher);
+      excludedAdder.prepare(transformResult.getPath());
       excludedAdder.findSubmodules(console);
 
       GitRepository alternate = scratchClone.withWorkTree(transformResult.getPath());

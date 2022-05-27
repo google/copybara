@@ -60,6 +60,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
+import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
@@ -695,6 +696,73 @@ public class GitDestinationTest {
             EmptyChangeException.class,
             () -> process(newWriter(), new DummyRevision("origin_ref")));
     assertThat(thrown).hasMessageThat().contains("empty change");
+  }
+
+  @Test
+  public void testExcludes_add() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    GitTestUtil.writeFile(workdir, "sub/foo", "unrelated");
+    repo().withWorkTree(workdir).add().files("sub/foo").run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("sub/foo"));
+    GitTestUtil.writeFile(workdir, "sub/tools/foo/other", "some content");
+    destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
+    process(newWriter(), new DummyRevision("origin_ref"));
+    GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
+    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
+  }
+
+  @Test
+  public void testExcludes_move_excluded() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    GitTestUtil.writeFile(workdir, "sub/foo", "some content");
+    repo().withWorkTree(workdir).add().files("sub/foo").run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("sub/foo"));
+    GitTestUtil.writeFile(workdir, "sub/tools/foo/other", "some content");
+    destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
+    process(newWriter(), new DummyRevision("origin_ref"));
+    GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
+    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
+  }
+
+  @Test
+  public void testExcludes_move_included() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    GitTestUtil.writeFile(workdir, "sub/foo", "unrelated");
+    GitTestUtil.writeFile(workdir, "sub/tools/foo/other", "some content");
+    repo().withWorkTree(workdir).add().all().run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("sub/foo"));
+    Files.delete(workdir.resolve("sub/tools/foo/other"));
+    GitTestUtil.writeFile(workdir, "sub/tools/foo/new_other", "some content");
+    destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
+    process(newWriter(), new DummyRevision("origin_ref"));
+    GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
+    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other", "sub/tools/foo/new_other");
+  }
+
+  @Test
+  public void testExcludes_delete() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    GitTestUtil.writeFile(workdir, "sub/foo", "some content");
+    GitTestUtil.writeFile(workdir, "sub/tools/foo/other", "some content");
+    repo().withWorkTree(workdir).add().all().run();
+    repo().withWorkTree(workdir).simpleCommand("commit", "-m", "first commit");
+
+    Files.delete(workdir.resolve("sub/foo"));
+    Files.delete(workdir.resolve("sub/tools/foo/other"));
+    destinationFiles = Glob.createGlob(ImmutableList.of("sub/tools/foo/**"), ImmutableList.of());
+    process(newWriter(), new DummyRevision("origin_ref"));
+    GitLogEntry entry = repo().log("HEAD").includeFiles(true).withLimit(1).run().get(0);
+    assertThat(entry.getFiles()).containsExactly("sub/tools/foo/other");
   }
 
   @Test
