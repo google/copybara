@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -334,7 +335,8 @@ public class GitOriginSubmodulesTest {
         "file://" + r1.getWorkTree(), "r1");
 
     commit(r2, "adding r3->r1 submodule");
-    MoreFiles.deleteRecursively(r1.getGitDir()); // Nuke r1 to verify r3 is read
+    // Nuke r1 to verify r3 is read
+    MoreFiles.deleteRecursively(r1.getGitDir(), RecursiveDeleteOption.ALLOW_INSECURE);
     GitOrigin origin = origin("file://" + r2.getGitDir(), primaryBranch);
     GitRevision main = origin.resolve(primaryBranch);
     origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
