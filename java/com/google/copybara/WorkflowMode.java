@@ -78,12 +78,17 @@ public enum WorkflowMode {
       O lastRev = null;
       if (isHistorySupported(runHelper)) {
         lastRev = maybeGetLastRev(runHelper);
-        ChangesResponse<O> response = runHelper.getChanges(lastRev, current);
-        if (response.isEmpty()) {
-          manageNoChangesDetectedForSquash(runHelper, current, lastRev, response.getEmptyReason());
+        if (runHelper.workflowOptions().importSameVersion) {
+          current = lastRev; // Import the last imported version.
         } else {
-          detectedChanges = response.getChanges();
-          conditionalChanges = response.getConditionalChanges();
+          ChangesResponse<O> response = runHelper.getChanges(lastRev, current);
+          if (response.isEmpty()) {
+            manageNoChangesDetectedForSquash(
+                runHelper, current, lastRev, response.getEmptyReason());
+          } else {
+            detectedChanges = response.getChanges();
+            conditionalChanges = response.getConditionalChanges();
+          }
         }
       }
 
@@ -104,7 +109,9 @@ public enum WorkflowMode {
       // Remove changes that don't affect origin_files
       ImmutableList<Change<O>> changes = filterChanges(
           detectedChanges, conditionalChanges, helperForChanges);
-      if (changes.isEmpty() && isHistorySupported(runHelper)) {
+      if (changes.isEmpty()
+          && isHistorySupported(runHelper)
+          && !runHelper.workflowOptions().importSameVersion) {
         manageNoChangesDetectedForSquash(runHelper, current, lastRev, NO_CHANGES);
       }
 

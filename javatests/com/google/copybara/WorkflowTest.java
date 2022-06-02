@@ -3104,6 +3104,75 @@ public class WorkflowTest {
   }
 
   @Test
+  public void sameVersionWithDiff() throws Exception {
+    Path originPath = Files.createTempDirectory("origin");
+    Path destinationPath = Files.createTempDirectory("destination");
+    GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+    GitRepository destination =
+        GitRepository.newRepo(/*verbose*/ true, destinationPath, getGitEnv()).init();
+    String primaryBranch = origin.getPrimaryBranch();
+
+    String config =
+        "core.workflow("
+            + "    name = '"
+            + "default"
+            + "',"
+            + String.format(
+                "    origin = git.origin( url = 'file://%s', ref = '%s'),\n",
+                origin.getWorkTree(), primaryBranch)
+            + "    destination = git.destination("
+            + "        url = 'file://"
+            + destination.getWorkTree()
+            + "',\n"
+            + "        push = '"
+            + primaryBranch
+            + "',\n"
+            + "    ),\n"
+            + "    authoring = "
+            + authoring
+            + ","
+            + "    mode = '"
+            + WorkflowMode.ITERATIVE
+            + "',"
+            + ")\n";
+
+    Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
+    origin.add().files("foo.txt").run();
+    origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    String firstCommit = origin.parseRef("HEAD");
+
+    options.gitDestination.committerName = "Foo";
+    options.gitDestination.committerEmail = "foo@foo.com";
+    options.workflowOptions.initHistory = true;
+    options.setForce(true);
+    destination.simpleCommand("config", "receive.denyCurrentBranch", "ignore");
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of(firstCommit));
+
+    destination.simpleCommand("checkout", destination.getPrimaryBranch());
+
+    Files.write(destinationPath.resolve("bar.txt"), "a bar".getBytes(UTF_8));
+    destination.add().files("bar.txt").run();
+    destination.simpleCommand("commit", "-a", "-m", "something different");
+
+    // Fails with empty change exception when importSaveVersion is false
+    options.workflowOptions.importSameVersion = true;
+    options.setForce(false);
+    options.workflowOptions.initHistory = false;
+    loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
+    // bar.txt present in because it was reverted
+    assertThat(
+            destination
+                .log("HEAD")
+                .withLimit(1)
+                .includeFiles(true)
+                .run()
+                .iterator()
+                .next()
+                .getFiles())
+        .contains("bar.txt");
+  }
+
+  @Test
   @SuppressWarnings("unchecked")
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");

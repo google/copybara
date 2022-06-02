@@ -520,7 +520,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           authoring.getAllowlist());
     }
 
-    WorkflowMode effectiveMode = generalOptions.squash ? WorkflowMode.SQUASH : mode;
+    WorkflowMode effectiveMode =
+        generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
     Workflow<Revision, ?> workflow =
         new Workflow<>(
             workflowName,

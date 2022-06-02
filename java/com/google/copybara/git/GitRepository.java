@@ -2014,11 +2014,9 @@ public class GitRepository {
           grepString, includeMergeDiff, skip);
     }
 
-    /**
-     * If files affected by the commit should be included in the response.
-     */
+    /** If files affected by the commit should be included in the response. */
     @CheckReturnValue
-    LogCmd includeFiles(boolean includeStat) {
+    public LogCmd includeFiles(boolean includeStat) {
       return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
           grepString, includeMergeDiff, skip);
     }

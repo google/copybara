@@ -64,6 +64,13 @@ public class WorkflowOptions implements Option {
 
   static final String INIT_HISTORY_FLAG = "--init-history";
 
+  @Parameter(
+      names = "--same-version",
+      description =
+          "Re-import the last version imported. This is useful for example to check that"
+              + " a refactor in a copy.bara.sky file doesn't introduce accidental changes.")
+  public boolean importSameVersion;
+
   @Parameter(names = INIT_HISTORY_FLAG,
       description = "Import all the changes from the beginning of the history up to the resolved"
           + " ref. For 'ITERATIVE' workflows this will import individual changes since the first "
