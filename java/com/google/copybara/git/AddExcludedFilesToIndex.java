@@ -19,17 +19,22 @@ package com.google.copybara.git;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
+import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.TreeSet;
 
 /**
  * A walker which adds all files not matching a glob to the index of a Git repo using {@code git
@@ -38,11 +43,72 @@ import java.util.List;
 final class AddExcludedFilesToIndex {
   private final GitRepository repo;
   private final PathMatcher pathMatcher;
+  private final Path workTree;
   private ArrayList<String> addBackSubmodules;
+  private final TreeSet<Path> toExclude = new TreeSet();
 
   AddExcludedFilesToIndex(GitRepository repo, PathMatcher pathMatcher) {
     this.repo = Preconditions.checkNotNull(repo);
+    this.workTree = Preconditions.checkNotNull(repo.getWorkTree());
     this.pathMatcher = Preconditions.checkNotNull(pathMatcher);
+  }
+
+  void prepare(Path workdir) throws RepoException, IOException {
+
+    HashSet<Path> included = new HashSet<>();
+    ArrayList<Path> prevExcluded = new ArrayList<>();
+    ImmutableList<TreeElement> head;
+    try {
+      head = repo.lsTree(repo.resolveReference("HEAD"), null, true, true);
+    } catch (CannotResolveRevisionException e) {
+      // Destination is empty. Nothing to revert
+      return;
+    }
+    for (TreeElement treeElement : head) {
+      Path relative = Paths.get(treeElement.getPath());
+      if (pathMatcher.matches(workTree.resolve(treeElement.getPath()))) {
+        addPathAndParents(included, relative);
+      } else {
+        prevExcluded.add(relative);
+        if (Files.isHidden(relative)) {
+          // File is not included but 'git add dir' doesn't work for 'dir/.file'.
+          addPathAndParents(included, relative.getParent());
+        }
+      }
+    }
+
+    Files.walkFileTree(
+        workdir,
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            addPathAndParents(included, workdir.relativize(file));
+            return super.visitFile(file, attrs);
+          }
+        });
+
+    for (Path path : prevExcluded) {
+      Path search = Paths.get("");
+      for (int i = 0; i < path.getNameCount(); i++) {
+        search = search.resolve(path.getName(i));
+        if (search.equals(path)) {
+          toExclude.add(search);
+          break;
+        } else if (!included.contains(search)) {
+          toExclude.add(search);
+          break;
+        }
+      }
+    }
+  }
+
+  private void addPathAndParents(HashSet<Path> included, Path path) {
+    while (path != null && !included.contains(path)) {
+      Preconditions.checkArgument(!path.isAbsolute());
+      included.add(path);
+      path = path.getParent();
+    }
   }
 
   /**
@@ -69,14 +135,11 @@ final class AddExcludedFilesToIndex {
    * Adds all the excluded files and submodules.
    */
   void add() throws RepoException, IOException {
-    ExcludesFinder visitor = new ExcludesFinder(repo.getGitDir(), pathMatcher);
-    Files.walkFileTree(repo.getWorkTree(), visitor);
-
     int size = 0;
     List<String> current = new ArrayList<>();
-    for (String path : visitor.excluded) {
-      current.add(path);
-      size += path.length();
+    for (Path path : toExclude) {
+      current.add(path.toString());
+      size += path.toString().length();
       // Split the executions in chunks of 6K. 8K triggers arg max in some systems, so
       // this is a reasonable number to get some batching benefit.
       if (size > 6 * 1024) {
@@ -93,35 +156,5 @@ final class AddExcludedFilesToIndex {
       repo.simpleCommand("reset", "--", "--quiet", addBackSubmodule);
       repo.add().force().files(ImmutableList.of(addBackSubmodule)).run();
     }
-  }
-
-  private static final class ExcludesFinder extends SimpleFileVisitor<Path> {
-
-    private final Path gitDir;
-    private final PathMatcher destinationFiles;
-    private final List<String> excluded = new ArrayList<>();
-
-    private ExcludesFinder(Path gitDir, PathMatcher destinationFiles) {
-      this.gitDir = gitDir;
-      this.destinationFiles = destinationFiles;
-    }
-
-    @Override
-    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-        throws IOException {
-      if (dir.equals(gitDir)) {
-        return FileVisitResult.SKIP_SUBTREE;
-      }
-      return FileVisitResult.CONTINUE;
-    }
-
-    @Override
-    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-      if (!destinationFiles.matches(file)) {
-        excluded.add(file.toString());
-      }
-      return FileVisitResult.CONTINUE;
-    }
-
   }
 }
