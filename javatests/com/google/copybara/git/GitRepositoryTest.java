@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.GitRepository.StatusCode.DELETED;
 import static com.google.copybara.git.GitRepository.StatusCode.MODIFIED;
@@ -902,6 +903,35 @@ public class GitRepositoryTest {
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getPath()).isEqualTo("foo/foo.txt");
     assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
+  }
+
+  @Test
+  public void testLsTreeWithUnicodeChars() throws Exception {
+    Files.write(Files.createDirectories(workdir.resolve("foo"))
+        .resolve("someFile \320\263.test"), new byte[]{});
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "message");
+    GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
+        "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
+    ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getPath()).isEqualTo("foo/someFile \320\263.test");
+    assertThat(result.get(0).getType()).isEqualTo(GitObjectType.BLOB);
+  }
+
+  @Test
+  public void testLsTreeDontDoubleEscape() throws Exception {
+    Files.write(Files.createDirectories(workdir.resolve("foo"))
+        .resolve("one\t.test"), new byte[]{});
+    Files.write(Files.createDirectories(workdir.resolve("foo"))
+        .resolve("two\\t.test"), new byte[]{});
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "message");
+    GitRevision rev = new GitRevision(repository, repository.parseRef("HEAD"),
+        "this is review text", /*reference=*/null, ImmutableListMultimap.of(), /*url=*/null);
+    ImmutableList<TreeElement> result = repository.lsTree(rev, "foo/", false, false);
+    assertThat(result.stream().map(TreeElement::getPath).collect(toImmutableList()))
+        .containsExactly("foo/one\t.test", "foo/two\\t.test");
   }
 
   @Test

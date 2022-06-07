@@ -1242,12 +1242,16 @@ public class GitRepository {
     if (fullName) {
       args.add("--full-name");
     }
+
+    args.add("-z");
+
     if (treeish != null) {
       args.add("--");
       args.add(treeish);
     }
+
     String stdout = simpleCommand(args).getStdout();
-    for (String line : Splitter.on('\n').split(stdout)) {
+    for (String line : Splitter.on('\0').split(stdout)) {
       if (line.isEmpty()) {
         continue;
       }
@@ -1258,9 +1262,7 @@ public class GitRepository {
       // We ignore the mode for now
       GitObjectType objectType = GitObjectType.valueOf(matcher.group(2).toUpperCase());
       String sha1 = matcher.group(3);
-      String path = matcher.group(4)
-          // Per ls-tree documentation. Replace those escaped characters.
-          .replace("\\\\", "\\").replace("\\t", "\t").replace("\\n", "\n");
+      String path = matcher.group(4);
 
       result.add(new TreeElement(objectType, sha1, path));
     }
