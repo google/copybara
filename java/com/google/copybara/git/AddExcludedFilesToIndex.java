@@ -45,7 +45,7 @@ final class AddExcludedFilesToIndex {
   private final PathMatcher pathMatcher;
   private final Path workTree;
   private ArrayList<String> addBackSubmodules;
-  private final TreeSet<Path> toExclude = new TreeSet();
+  private final TreeSet<Path> toExclude = new TreeSet<>();
 
   AddExcludedFilesToIndex(GitRepository repo, PathMatcher pathMatcher) {
     this.repo = Preconditions.checkNotNull(repo);
