@@ -1094,6 +1094,7 @@ public class GitRepository {
             .filter(s -> !s.isEmpty())
             .map(s -> "/" + s)
             .collect(Collectors.toList()));
+    argv.add("--no-cone");
     return simpleCommand(argv.build());
   }
 

@@ -22,6 +22,9 @@ apt-get -y install openjdk-11-jre-headless
 apt-get -y install openjdk-11-jdk-headless
 apt-get -y install mercurial
 
+add-apt-repository ppa:git-core/ppa -y
+apt install git -y
+
 apt-get -y install quilt
 
 log "Extracting Bazel"
