@@ -29,6 +29,7 @@ import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -681,11 +682,10 @@ public class GitRepositoryTest {
     local = local.enablePartialFetch();
 
     local.withWorkTree(workdir).setSparseCheckout(ImmutableSet.of("foo", "bar"));
-    Path sparseCheckout =
-        local.getGitDir().resolve("info/sparse-checkout");
-
-    List<String> paths = Files.readAllLines(sparseCheckout);
-    assertThat(paths).containsExactly("/foo", "/bar");
+    String sparseCheckout =
+        local.withWorkTree(workdir).simpleCommand("sparse-checkout", "list").getStdout();
+    assertThat(Splitter.on("\n").trimResults().omitEmptyStrings().splitToList(sparseCheckout))
+        .containsExactly("foo", "bar");
   }
 
   @Test

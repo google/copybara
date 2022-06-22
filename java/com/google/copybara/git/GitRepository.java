@@ -1092,9 +1092,8 @@ public class GitRepository {
     argv.addAll(
         checkoutPaths.stream()
             .filter(s -> !s.isEmpty())
-            .map(s -> "/" + s)
             .collect(Collectors.toList()));
-    argv.add("--no-cone");
+    argv.add("--cone");
     return simpleCommand(argv.build());
   }
 
