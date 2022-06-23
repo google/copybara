@@ -61,6 +61,7 @@ all_tests(
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:starlark",
+        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )
@@ -101,6 +102,7 @@ all_tests(
         "//third_party:jimfs",
         "//third_party:mockito",
         "//third_party:starlark",
+        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )

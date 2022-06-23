@@ -38,6 +38,8 @@ import com.google.copybara.testing.profiler.RecordingListener;
 import com.google.copybara.testing.profiler.RecordingListener.EventType;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.testing.junit.testparameterinjector.TestParameterInjector;
+import com.google.testing.junit.testparameterinjector.TestParameters;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,9 +47,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
+@RunWith(TestParameterInjector.class)
 public class GitMirrorTest {
 
   public static final String NATIVE_MIRROR_IN_STARLARK_FUNC = "def _native_mirror(ctx):\n"
@@ -516,7 +517,7 @@ public class GitMirrorTest {
 
   @Test
   public void testMerge() throws Exception {
-    Migration mirror = mergeInit();
+    Migration mirror = mergeInit("FF");
 
     GitLogEntry destChange = repoChange(destRepo, "some_file", "Content", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
@@ -531,8 +532,46 @@ public class GitMirrorTest {
 
     // OSS branch is updated with origin version.
     assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
-
   }
+
+  @Test
+  public void testSuccessfulMergeWithoutFastForwarding()
+      throws IOException, RepoException, ValidationException {
+    Migration mirror = mergeInit("NO_FF");
+
+    GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    GitLogEntry merge = lastChange(destRepo, primaryBranch);
+
+    // merge has more than 1 parent from not fast forwarding
+    assertThat(merge.getParents().size()).isGreaterThan(1);
+    assertThat(destRepo.simpleCommand("log").getStdout()).contains("Merge branch");
+
+    // expecting the destination repo to have a merge commit that the origin does not
+    assertThat(lastChange(destRepo, primaryBranch).getCommit())
+        .isNotEqualTo(lastChange(originRepo, primaryBranch).getCommit());
+  }
+
+  @Test
+  @TestParameters({"{fastForwardOption: \"FF\"}", "{fastForwardOption: \"FF_ONLY\"}"})
+  public void testSuccessfulMergeWithFastForwarding(String fastForwardOption)
+      throws IOException, RepoException, ValidationException {
+    Migration mirror = mergeInit(fastForwardOption);
+    GitRevision firstCommit = lastChange(destRepo, primaryBranch).getCommit();
+    GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    GitLogEntry merge = lastChange(destRepo, primaryBranch);
+
+    assertThat(merge.getParents()).containsExactly(firstCommit);
+
+    // OSS branch is updated with origin version.
+    assertThat(lastChange(destRepo, "oss").getCommit()).isEqualTo(originChange.getCommit());
+  }
+
   @Test
   public void testRebase() throws Exception {
     options.gitDestination.committerEmail = "internal_system@example.com";
@@ -690,8 +729,9 @@ public class GitMirrorTest {
   }
 
   @Test
-  public void testMergeConflict() throws Exception {
-    Migration mirror = mergeInit();
+  @TestParameters({"{fastForwardOption: \"FF\"}", "{fastForwardOption: \"FF_ONLY\"}"})
+  public void testMergeConflict(String fastForwardOption) throws Exception {
+    Migration mirror = mergeInit(fastForwardOption);
 
     GitLogEntry destChange = repoChange(destRepo, "some_file", "Hello", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_file", "Bye", "new change");
@@ -704,7 +744,8 @@ public class GitMirrorTest {
     }))).hasMessageThat().contains("Conflict merging refs/heads/" + primaryBranch);
   }
 
-  private Migration mergeInit() throws IOException, ValidationException, RepoException {
+  private Migration mergeInit(String fastForwardOption)
+      throws IOException, ValidationException, RepoException {
     String cfg =
         ""
             + ("def _merger(ctx):\n"
@@ -717,7 +758,10 @@ public class GitMirrorTest {
                 + " ':refs/heads/copybara/destination_fetch'])\n"
                 + "     if exist:\n"
                 + "         result = ctx.merge(branch = 'copybara/destination_fetch',           "
-                + "              commits = ['refs/heads/copybara/origin_fetch'])\n"
+                + "              commits = ['refs/heads/copybara/origin_fetch'],"
+                + "fast_forward = "
+                + String.format("'%s'", fastForwardOption)
+                + ")\n"
                 + "         if result.error:\n"
                 + "             return ctx.error('Conflict merging ' + branch + ' into"
                 + " destination: ' + result.error_msg)\n"

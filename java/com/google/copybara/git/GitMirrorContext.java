@@ -17,7 +17,9 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.config.SkylarkUtil.convertStringList;
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
@@ -41,7 +43,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
@@ -115,10 +116,11 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     validateFetch(refspecsToFetch, this.refspecs, "origin");
 
     try {
-      repo.fetch(originUrl, prune, force,
-          refspecsToFetch.stream()
-              .map(Refspec::toString)
-              .collect(Collectors.toList()),
+      repo.fetch(
+          originUrl,
+          prune,
+          force,
+          refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           false);
     } catch (CannotResolveRevisionException e) {
       return false;
@@ -140,15 +142,17 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToFetch =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
-    validateFetch(refspecsToFetch,
-        refspecs.stream().map(Refspec::invert).collect(Collectors.toList()),
+    validateFetch(
+        refspecsToFetch,
+        refspecs.stream().map(Refspec::invert).collect(toImmutableList()),
         "destination");
 
     try {
-      FetchResult fetch = repo.fetch(destinationUrl, prune, force,
-          refspecsToFetch.stream()
-              .map(Refspec::toString)
-              .collect(Collectors.toList()),
+      repo.fetch(
+          destinationUrl,
+          prune,
+          force,
+          refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           false);
     } catch (CannotResolveRevisionException e) {
       return false;
@@ -209,17 +213,42 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     repo.runPush(repo.push().prune(prune).withRefspecs(destinationUrl, refspecsToPush));
   }
 
+  private enum FastForwardMode {
+    FF,
+    FF_ONLY,
+    NO_FF;
+
+    public String toGitFlag() {
+      switch (this) {
+        case FF_ONLY:
+          return "--ff-only";
+        case NO_FF:
+          return "--no-ff";
+        case FF:
+          return "--ff";
+      }
+      return "";
+    }
+  }
+
   @StarlarkMethod(
       name = "merge",
       doc = "Merge one or more commits into a local branch.",
       parameters = {
-          @Param(name = "branch", named = true),
-          @Param(name = "commits", allowedTypes = {
-              @ParamType(type = Sequence.class, generic1 = String.class)
-          }, named = true),
-          @Param(name = "msg", named = true, defaultValue = "None"),
+        @Param(name = "branch", named = true),
+        @Param(
+            name = "commits",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true),
+        @Param(name = "msg", named = true, defaultValue = "None"),
+        @Param(
+            name = "fast_forward",
+            defaultValue = "\"FF\"",
+            doc = "Valid values are FF (default), NO_FF, FF_ONLY.",
+            named = true,
+            allowedTypes = {@ParamType(type = String.class)})
       })
-  public MergeResult merge(String branch, Sequence<?> commits, Object msg)
+  public MergeResult merge(String branch, Sequence<?> commits, Object msg, String fastForwardOption)
       throws RepoException, ValidationException, EvalException, IOException {
     checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
     GitRepository withWorktree = prepareWorktreeForMerge(branch,
@@ -232,6 +261,9 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       cmd.add("-m");
       cmd.add(strMsg);
     }
+    FastForwardMode ffMode = stringToEnum("fast_forward", fastForwardOption, FastForwardMode.class);
+    cmd.add(ffMode.toGitFlag());
+
     cmd.addAll(convertStringList(commits, "commits"));
 
     try {
@@ -391,10 +423,10 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   private void validateFetch(List<Refspec> refspecs, List<Refspec> allowedRefspecs,
       String where)
       throws ValidationException {
-    List<Refspec> notAllowed = refspecs.stream()
-        .filter(
-            r -> allowedRefspecs.stream().noneMatch(a -> a.matchesOrigin(r.getOrigin())))
-        .collect(Collectors.toList());
+    ImmutableList<Refspec> notAllowed =
+        refspecs.stream()
+            .filter(r -> allowedRefspecs.stream().noneMatch(a -> a.matchesOrigin(r.getOrigin())))
+            .collect(toImmutableList());
 
     checkCondition(notAllowed.isEmpty(),
         "Action tried to fetch from %s one or more refspec not covered by git.mirror"
@@ -403,11 +435,13 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
 
   private void validatePush(List<Refspec> refspecs, List<Refspec> allowedRefspecs,
       boolean forPush) throws ValidationException {
-    List<Refspec> notAllowed = refspecs.stream()
-        .filter(
-            r -> allowedRefspecs.stream().noneMatch(a -> a.invert()
-                .matchesOrigin(r.getDestination())))
-        .collect(Collectors.toList());
+    ImmutableList<Refspec> notAllowed =
+        refspecs.stream()
+            .filter(
+                r ->
+                    allowedRefspecs.stream()
+                        .noneMatch(a -> a.invert().matchesOrigin(r.getDestination())))
+            .collect(toImmutableList());
 
     checkCondition(notAllowed.isEmpty(),
         "Action tried to %s destination one or more refspec not covered by git.mirror"
