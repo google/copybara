@@ -75,6 +75,14 @@ java_library(
     exports = [
         "@maven//:junit_junit",
     ],
+
+)
+
+java_library(
+    name = "testparameterinjector",
+    exports = [
+        "@maven//:com_google_testparameterinjector_test_parameter_injector",
+    ],
 )
 
 java_library(

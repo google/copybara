@@ -35,6 +35,7 @@ def copybara_maven_repositories():
             "com.google.http-client:google-http-client:jar:1.27.0",
             "com.google.jimfs:jimfs:1.2",
             "com.google.re2j:re2j:1.6",
+            "com.google.testparameterinjector:test-parameter-injector:1.8",
             "com.google.truth:truth:1.1.3",
             "com.googlecode.java-diff-utils:diffutils:1.3.0",
             "commons-codec:commons-codec:jar:1.11",
