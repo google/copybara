@@ -140,11 +140,12 @@ public final class QuiltTransformation implements Transformation {
       throws IOException {
     // Creates quiltrc file and sets up QUILTRC environment variable.
     ImmutableMap<String, String> quiltOptions = ImmutableMap.of(
+      "QUILT_NO_DIFF_TIMESTAMPS", "1",
       "QUILT_DIFF_OPTS", "--show-c-function",
       // Uses the "-p ab" format in order to keep patch files' content independent of the parent
       // directory's name.
-      "QUILT_DIFF_ARGS", "--no-timestamps -p ab",
-      "QUILT_REFRESH_ARGS", "--no-timestamps -p ab",
+      "QUILT_DIFF_ARGS", "-p ab --no-index",
+      "QUILT_REFRESH_ARGS", "-p ab --no-index",
       "QUILT_PATCHES_PREFIX", "yes");
     // It overwrites any existing copybara.quiltrc file, which is OK because it is in the
     // temporary directory and its content is always the same.

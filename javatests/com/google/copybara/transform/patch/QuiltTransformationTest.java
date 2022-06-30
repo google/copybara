@@ -46,8 +46,6 @@ public final class QuiltTransformationTest {
 
   private static final String OLDDIFF =
       ""
-          + "Index: b/file1.txt\n"
-          + "===================================================================\n"
           + "--- a/file1.txt\n"
           + "+++ b/file1.txt\n"
           + "@@ -1,3 +1,3 @@\n"
@@ -56,8 +54,6 @@ public final class QuiltTransformationTest {
           + "+bar\n"
           + " line3\n"
           + "\\ No newline at end of file\n"
-          + "Index: b/file2.txt\n"
-          + "===================================================================\n"
           + "--- a/file2.txt\n"
           + "+++ b/file2.txt\n"
           + "@@ -1 +1 @@\n"
@@ -138,26 +134,22 @@ public final class QuiltTransformationTest {
   @Test
   public void transformationUpdatePatchTest() throws Exception {
     String expectedNewDiff =
-      ""
-          + "Index: b/file1.txt\n"
-          + "===================================================================\n"
-          + "--- a/file1.txt\n"
-          + "+++ b/file1.txt\n"
-          + "@@ -1,5 +1,5 @@\n"
-          + " new line\n"
-          + " \n"
-          + " line1\n"
-          + "-foo\n"
-          + "+bar\n"
-          + " line3\n"
-          + "\\ No newline at end of file\n"
-          + "Index: b/file2.txt\n"
-          + "===================================================================\n"
-          + "--- a/file2.txt\n"
-          + "+++ b/file2.txt\n"
-          + "@@ -1 +1 @@\n"
-          + "-bar\n"
-          + "+new bar\n";
+        ""
+            + "--- a/file1.txt\n"
+            + "+++ b/file1.txt\n"
+            + "@@ -1,5 +1,5 @@\n"
+            + " new line\n"
+            + " \n"
+            + " line1\n"
+            + "-foo\n"
+            + "+bar\n"
+            + " line3\n"
+            + "\\ No newline at end of file\n"
+            + "--- a/file2.txt\n"
+            + "+++ b/file2.txt\n"
+            + "@@ -1 +1 @@\n"
+            + "-bar\n"
+            + "+new bar\n";
     Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
