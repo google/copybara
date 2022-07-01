@@ -25,11 +25,11 @@ import com.google.copybara.jcommander.DurationConverter;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.function.Supplier;
-import java.util.zip.ZipInputStream;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 
-/**
- * Options for loading files from a source other than the origin. Use with caution.
- */
+/** Options for loading files from a source other than the origin. Use with caution. */
 @Parameters(separators = "=")
 public class RemoteFileOptions implements Option {
 
@@ -46,7 +46,17 @@ public class RemoteFileOptions implements Option {
     return transport.get();
   }
 
-  public ZipInputStream getZipInputStream(InputStream inputStream) {
-    return new ZipInputStream(inputStream);
+  public ArchiveInputStream createArchiveInputStream(
+      InputStream inputStream, RemoteFileType fileType) throws ValidationException {
+    switch (fileType) {
+      case JAR:
+      case ZIP:
+        return new ZipArchiveInputStream(inputStream);
+      case TAR:
+        return new TarArchiveInputStream(inputStream);
+      default:
+        throw new ValidationException(
+            String.format("Failed to get archive input stream for file type: %s", fileType));
+    }
   }
 }

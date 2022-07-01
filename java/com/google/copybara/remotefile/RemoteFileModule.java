@@ -16,6 +16,7 @@
 
 package com.google.copybara.remotefile;
 
+import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static net.starlark.java.eval.Starlark.errorf;
 
 import com.google.common.base.Enums;
@@ -54,36 +55,38 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       doc = "A tarball for a specific SHA1 on GitHub. Experimental.",
       documented = false,
       parameters = {
-          @Param(
-              name = "project",
-              named = true,
-              defaultValue = "[]",
-              doc = "The GitHub project from which to load the file, e.g. google/copybara"),
-          @Param(
-              name = "revision",
-              named = true,
-              defaultValue = "[]",
-              doc = "The revision to download from the project, typically a commit SHA1."),
-          @Param(
-              name = "type",
-              named = true,
-              defaultValue = "'TARBALL'",
-              doc = "Archive type to download, options are 'TARBALL' or 'ZIP'."),
-          })
+        @Param(
+            name = "project",
+            named = true,
+            defaultValue = "[]",
+            doc = "The GitHub project from which to load the file, e.g. google/copybara"),
+        @Param(
+            name = "revision",
+            named = true,
+            defaultValue = "[]",
+            doc = "The revision to download from the project, typically a commit SHA1."),
+        @Param(
+            name = "type",
+            named = true,
+            defaultValue = "'TARBALL'",
+            doc = "Archive type to download, options are 'TARBALL' or 'ZIP'."),
+      })
   @UsesFlags(RemoteFileOptions.class)
-  public GithubArchive gitHubTarball(
-      String project,
-      String revision,
-      String type)
+  public GithubArchive gitHubTarball(String project, String revision, String type)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
     try {
-      return new GithubArchive(project,
+      return new GithubArchive(
+          project,
           revision,
-          Enums.getIfPresent(GithubArchive.Type.class, type).toJavaUtil()
-              .orElseThrow(() -> errorf("Unsupported archive type: '%s'. "
-                      + "Supported values: %s", type, Arrays.asList(GithubArchive.Type.values()))),
+          Enums.getIfPresent(GithubArchive.Type.class, type)
+              .toJavaUtil()
+              .orElseThrow(
+                  () ->
+                      errorf(
+                          "Unsupported archive type: '%s'. " + "Supported values: %s",
+                          type, Arrays.asList(GithubArchive.Type.values()))),
           remoteFileOptions.getTransport(),
           generalOptions.profiler(),
           generalOptions.console());
@@ -98,10 +101,10 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       parameters = {
         @Param(
             name = "unpack_method",
-            defaultValue = "None",
+            defaultValue = "'AS_IS'",
             doc =
-                "The method by which to unpack the remote file. Currently 'zip' allowed. 'tar' and"
-                    + " 'as-is' to be added soon.",
+                "The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and"
+                    + " 'AS_IS' are supported.",
             named = true),
         @Param(
             name = "author",
@@ -135,8 +138,9 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
+    RemoteFileType remoteFileType = stringToEnum("unpack_method", fileType, RemoteFileType.class);
     return new RemoteArchiveOrigin(
-        fileType,
+        remoteFileType,
         Author.parse(author),
         message,
         remoteFileOptions.getTransport(),

@@ -34,16 +34,16 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 import javax.annotation.Nullable;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 
 /** An Origin class for remote files */
 public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
   private static final String LABEL_NAME = "RemoteArchiveOrigin";
 
-  final String fileType;
+  final RemoteFileType fileType;
   private final Author author;
   private final String message;
   private final HttpStreamFactory transport;
@@ -53,7 +53,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
   private final RemoteArchiveVersionSelector versionSelector;
 
   RemoteArchiveOrigin(
-      String fileType,
+      RemoteFileType fileType,
       Author author,
       String message,
       HttpStreamFactory transport,
@@ -82,28 +82,49 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
   @Override
   public Reader<RemoteArchiveRevision> newReader(Glob originFiles, Authoring authoring) {
     return new Reader<RemoteArchiveRevision>() {
+
+      private void writeArchiveAsIs(RemoteArchiveRevision ref, Path workdir, InputStream returned)
+          throws IOException {
+        String filename = ref.getUrl().substring(baseUrl.lastIndexOf("/") + 1);
+        MoreFiles.asByteSink(workdir.resolve(filename)).writeFrom(returned);
+      }
+
+      private void writeArchiveByUnpacking(Path workdir, InputStream returned)
+          throws IOException, ValidationException {
+        ArchiveEntry archiveEntry;
+        try (ArchiveInputStream inputStream =
+            remoteFileOptions.createArchiveInputStream(returned, fileType)) {
+          while (((archiveEntry = inputStream.getNextEntry()) != null)) {
+            if (!originFiles
+                    .relativeTo(workdir.toAbsolutePath())
+                    .matches(workdir.resolve(Path.of(archiveEntry.getName())))
+                || archiveEntry.isDirectory()) {
+              continue;
+            }
+            Files.createDirectories(workdir.resolve(archiveEntry.getName()).getParent());
+            MoreFiles.asByteSink(workdir.resolve(archiveEntry.getName())).writeFrom(inputStream);
+          }
+        }
+      }
+
       @Override
       public void checkout(RemoteArchiveRevision ref, Path workdir) throws ValidationException {
         try {
           // TODO(joshgoldman): Add richer ref object and ability to restrict download by host/url
           URL url = new URL(Objects.requireNonNull(ref.getUrl()));
-          InputStream returned = transport.open(url);
+
           try (ProfilerTask ignored = profiler.start("remote_file_" + url);
-              ZipInputStream zipInputStream = remoteFileOptions.getZipInputStream(returned)) {
-            ZipEntry zipEntry;
-            while (((zipEntry = zipInputStream.getNextEntry()) != null)) {
-              if (originFiles
-                      .relativeTo(workdir.toAbsolutePath())
-                      .matches(workdir.resolve(Path.of(zipEntry.getName())))
-                  && !zipEntry.isDirectory()) {
-                Files.createDirectories(workdir.resolve(zipEntry.getName()).getParent());
-                MoreFiles.asByteSink(workdir.resolve(zipEntry.getName())).writeFrom(zipInputStream);
-              }
+              InputStream returned = transport.open(url)) {
+            if (fileType == RemoteFileType.AS_IS) {
+              writeArchiveAsIs(ref, workdir, returned);
+            } else {
+              writeArchiveByUnpacking(workdir, returned);
             }
           }
         } catch (IOException e) {
           throw new ValidationException(
-              String.format("Could not unzip file: %s \n%s", ref.getUrl(), e.getMessage()));
+              String.format(
+                  "Could not checkout archive file at %s: \n%s", ref.getUrl(), e.getMessage()));
         }
       }
 

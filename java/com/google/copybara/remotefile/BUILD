@@ -36,6 +36,7 @@ java_library(
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
+        "//third_party:apache_commons_compress",
         "//third_party:google_http_client",
         "//third_party:guava",
         "//third_party:jcommander",
