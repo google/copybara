@@ -59,7 +59,7 @@ public class OriginUtil {
         logLines(generalOptions.console(), getPrefix("Stderr"), result.getStderr());
       } catch (BadExitStatusWithOutputException e) {
         logLines(generalOptions.console(), getPrefix("Stdout"), e.getOutput().getStdout());
-        logLines(generalOptions.console(), getPrefix("Sderr"), e.getOutput().getStderr());
+        logLines(generalOptions.console(), getPrefix("Stderr"), e.getOutput().getStderr());
         throw new RepoException("Error executing the checkout hook: " + checkoutHook, e);
       } catch (CommandException e) {
         throw new RepoException("Error executing the checkout hook: " + checkoutHook, e);
