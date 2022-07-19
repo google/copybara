@@ -131,7 +131,7 @@ public final class Command implements StarlarkValue {
 
   @Override
   public void repr(Printer printer) {
-    Printer.format(printer, "buildozer.cmd(%s, reverse = %s)", command, reverse);
+    printer.append(String.format("buildozer.cmd(%s, reverse = %s)", command, reverse));
   }
 
   /**

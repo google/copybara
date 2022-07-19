@@ -96,16 +96,6 @@ public class StructModule implements StarlarkValue {
     }
 
     @Override
-    public void str(Printer printer) {
-      repr(printer);
-    }
-
-    @Override
-    public void debugPrint(Printer printer) {
-      repr(printer);
-    }
-
-    @Override
     public boolean isImmutable() {
       return true;
     }
