@@ -28,6 +28,13 @@ java_library(
 )
 
 java_library(
+    name = "apache_commons_compress",
+    exports = [
+        "@maven//:org_apache_commons_commons_compress",
+    ],
+)
+
+java_library(
     name = "autocommon",
     exports = [
         "@maven//:com_google_auto_auto_common",

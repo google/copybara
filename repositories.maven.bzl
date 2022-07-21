@@ -44,6 +44,7 @@ def copybara_maven_repositories():
             "net.bytebuddy:byte-buddy:1.9.10",
             "org.mockito:mockito-core:4.5.1",
             "org.objenesis:objenesis:1.0",
+            "org.apache.commons:commons-compress:1.21",
         ],
         repositories = [
             "https://maven.google.com",
