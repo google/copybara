@@ -152,7 +152,7 @@ def copybara_repositories():
             "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.19.1/bazel-gazelle-v0.19.1.tar.gz",
         ],
     )
-    
+
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
@@ -161,5 +161,5 @@ def copybara_repositories():
         urls = [
             "https://github.com/cbeust/jcommander/archive/05254453c0a824f719bd72dac66fa686525752a5.zip",
         ],
-        build_file = "third_party/jcommander.BUILD"
+        build_file = Label("//external/third_party:jcommander.BUILD"),
     )

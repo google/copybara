@@ -82,7 +82,6 @@ java_library(
     exports = [
         "@maven//:junit_junit",
     ],
-
 )
 
 java_library(
