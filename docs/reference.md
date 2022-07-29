@@ -2298,7 +2298,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Defines a feedback trigger based on updates on a Gerrit change.
 
-`trigger` `git.gerrit_trigger(url, checker=None)`
+`trigger` `git.gerrit_trigger(url, checker=None, events=[])`
 
 
 #### Parameters:
@@ -2307,6 +2307,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
+events | `sequence of string` or `dict of sequence` or `NoneType`<br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`</p>
 
 
 

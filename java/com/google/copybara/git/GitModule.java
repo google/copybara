@@ -66,6 +66,7 @@ import com.google.copybara.git.GitHubPrOrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.LatestVersionSelector.VersionElementType;
+import com.google.copybara.git.gerritapi.GerritEventType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubEventType;
@@ -2073,18 +2074,72 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             doc = "A checker for the Gerrit API transport provided by this trigger.",
             named = true),
+        @Param(
+            name = "events",
+            allowedTypes = {
+                @ParamType(type = Sequence.class, generic1 = String.class),
+                @ParamType(type = Dict.class, generic1 = Sequence.class),
+                @ParamType(type = NoneType.class),
+            },
+            named = true,
+            defaultValue = "[]",
+            doc =
+                "Types of events to monitor. Optional. Can either be a list of event types or "
+                    + "a dict of event types to particular events of that type, e.g. "
+                    + "`['LABELS']` or `{'LABELS': 'my_label_name'}`.\n"
+                    + "Valid values for event types are: `'LABELS'`"),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
-  public GerritTrigger gerritTrigger(String url, Object checkerObj, StarlarkThread thread)
+  public GerritTrigger gerritTrigger(
+      String url,
+      Object checkerObj,
+      Object events,
+      StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GERRIT_TRIGGER);
+    ImmutableSet<GerritEventTrigger> parsedEvents = handleGerritEventTypes(events);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
-    return new GerritTrigger(gerritOptions.newGerritApiSupplier(url, checker), url,
+    return new GerritTrigger(
+        gerritOptions.newGerritApiSupplier(url, checker),
+        url,
+        parsedEvents,
         getGeneralConsole());
+  }
+
+  private ImmutableSet<GerritEventTrigger> handleGerritEventTypes(Object events)
+      throws EvalException {
+    LinkedHashSet<GerritEventTrigger> eventBuilder = new LinkedHashSet<>();
+    LinkedHashSet<GerritEventType> types = new LinkedHashSet<>();
+
+    if (events instanceof Sequence) {
+      for (String e : Sequence.cast(events, String.class, "events")) {
+        GerritEventType eventType = stringToEnum("events", e, GerritEventType.class);
+
+        check(eventBuilder.add(GerritEventTrigger.create(eventType, ImmutableSet.of())),
+            "Repeated element %s", e);
+      }
+    } else if (events instanceof Dict) {
+      Dict<String, StarlarkList<String>> dict = SkylarkUtil.castOfSequence(
+          events,
+          String.class,
+          String.class,
+          "events");
+      for (Entry<String, StarlarkList<String>> event : dict.entrySet()) {
+        GerritEventType eventType = stringToEnum("events", event.getKey(), GerritEventType.class);
+
+        check(types.add(eventType), "Repeated element %s", event);
+        eventBuilder.add(
+            GerritEventTrigger.create(
+                eventType,
+                ImmutableSet.copyOf(event.getValue())));
+      }
+    }
+
+    return ImmutableSet.copyOf(eventBuilder);
   }
 
   @SuppressWarnings("unused")

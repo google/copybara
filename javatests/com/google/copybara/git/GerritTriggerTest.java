@@ -47,9 +47,30 @@ public class GerritTriggerTest {
   public void testParsing() throws Exception {
     GerritTrigger gerritTrigger =
         skylarkTestExecutor.eval(
-            "e", "e = git.gerrit_trigger(url = 'https://test.googlesource.com/example')");
+            "e", "e = git.gerrit_trigger("
+                + "url = 'https://test.googlesource.com/example',"
+                + "events = ['LABELS'])");
     assertThat(gerritTrigger.describe())
-        .containsExactly("type", "gerrit_trigger", "url", "https://test.googlesource.com/example");
+        .containsExactly("type", "gerrit_trigger",
+          "url", "https://test.googlesource.com/example",
+                "events", "LABELS");
+    assertThat(gerritTrigger.getEndpoint().describe())
+        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+  }
+
+  @Test
+  public void testParsing_Dict() throws Exception {
+    GerritTrigger gerritTrigger =
+        skylarkTestExecutor.eval(
+            "e", "e = git.gerrit_trigger("
+                + "url = 'https://test.googlesource.com/example',"
+                + "events = {'LABELS': ['foo', 'bar']})");
+    assertThat(gerritTrigger.describe())
+        .containsExactly("type", "gerrit_trigger",
+          "url", "https://test.googlesource.com/example",
+                "events", "LABELS",
+                "SUBTYPES_LABELS", "foo",
+                "SUBTYPES_LABELS", "bar");
     assertThat(gerritTrigger.getEndpoint().describe())
         .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
   }
@@ -61,11 +82,14 @@ public class GerritTriggerTest {
             "e",
             "e = git.gerrit_trigger(\n"
                 + "url = 'https://test.googlesource.com/example', \n"
+                + "events = ['LABELS'],\n"
                 + "checker = testing.dummy_checker(),\n"
                 + ")\n");
 
     assertThat(gerritTrigger.describe())
-        .containsExactly("type", "gerrit_trigger", "url", "https://test.googlesource.com/example");
+        .containsExactly("type", "gerrit_trigger",
+          "url", "https://test.googlesource.com/example",
+          "events", "LABELS");
     assertThat(gerritTrigger.getEndpoint().describe())
         .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
   }

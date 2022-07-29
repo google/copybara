@@ -16,14 +16,17 @@
 
 package com.google.copybara.git;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Trigger;
 import com.google.copybara.git.gerritapi.GerritApi;
 import com.google.copybara.util.console.Console;
+import java.util.stream.Collectors;
 
 /** A  feedback trigger based on updates on a Gerrit change.
  */
@@ -31,11 +34,17 @@ public class GerritTrigger implements Trigger {
 
   private final LazyResourceLoader<GerritApi> apiSupplier;
   private final String url;
+  private final ImmutableSet<GerritEventTrigger> events;
   private final Console console;
 
-  GerritTrigger(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
+  GerritTrigger(
+      LazyResourceLoader<GerritApi> apiSupplier,
+      String url,
+      ImmutableSet<GerritEventTrigger> events,
+      Console console) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
+    this.events = Preconditions.checkNotNull(events);
     this.console = console;
   }
 
@@ -46,13 +55,27 @@ public class GerritTrigger implements Trigger {
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.of("type", "gerrit_trigger", "url", url);
+    ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
+    builder.put("type", "gerrit_trigger");
+    builder.put("url", url);
+    builder.putAll("events",
+        events.stream().map(s -> s.type().name()).collect(Collectors.toList()));
+    for (GerritEventTrigger trigger : events) {
+      if (trigger.subtypes().isEmpty()) {
+        continue;
+      }
+      builder.putAll(
+          String.format("SUBTYPES_%s", trigger.type().name()),
+          trigger.subtypes());
+    }
+    return builder.build();
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("url", url)
+        .add("event_types", Joiner.on(",").join(events))
         .toString();
   }
 }
