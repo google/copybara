@@ -12,25 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM l.gcr.io/google/bazel:latest AS build
-
-WORKDIR /usr/src/copybara
-
+FROM gcr.io/cloud-builders/bazel:latest AS build
 COPY . .
-
-RUN bazel build //java/com/google/copybara:copybara_deploy.jar \
-    && mkdir -p /tmp/copybara \
-    && cp bazel-bin/java/com/google/copybara/copybara_deploy.jar /tmp/copybara/
-
-# Fails currently
-# RUN bazel test //...
+RUN ./cloudbuild.sh build //java/com/google/copybara:copybara_deploy.jar
+RUN mkdir -p /tmp/copybara && \
+    cp bazel-bin/java/com/google/copybara/copybara_deploy.jar /tmp/copybara/
 
 FROM golang:latest AS buildtools
-
 RUN go get github.com/bazelbuild/buildtools/buildozer
 RUN go get github.com/bazelbuild/buildtools/buildifier
 
-FROM openjdk:8-jre-slim
+FROM openjdk:11-jre-slim
+WORKDIR /usr/src/app
 ENV COPYBARA_CONFIG=copy.bara.sky \
     COPYBARA_SUBCOMMAND=migrate \
     COPYBARA_OPTIONS='' \
@@ -39,12 +32,7 @@ ENV COPYBARA_CONFIG=copy.bara.sky \
 COPY --from=build /tmp/copybara/ /opt/copybara/
 COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/bin/
 COPY .docker/entrypoint.sh /usr/local/bin/copybara
-
 RUN chmod +x /usr/local/bin/copybara
-
-# Install git for fun times
-RUN apt-get update \
-    && apt-get install -y git \
-    && apt-get clean
-
-WORKDIR /usr/src/app
+RUN apt-get update && \
+    apt-get install -y git && \
+    apt-get clean
