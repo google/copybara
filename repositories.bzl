@@ -132,6 +132,13 @@ def copybara_repositories():
         strip_prefix = "rules_cc-ea5c5422a6b9e79e6432de3b2b29bbd84eb41081",
         url = "https://github.com/bazelbuild/rules_cc/archive/ea5c5422a6b9e79e6432de3b2b29bbd84eb41081.zip",
     )
+    # LICENSE: The Apache Software License, Version 2.0
+    maybe(
+        http_archive,
+        name = "rules_license",
+        sha256 = "00ccc0df21312c127ac4b12880ab0f9a26c1cff99442dc6c5a331750360de3c3",
+        url = "https://mirror.bazel.build/github.com/bazelbuild/rules_license/releases/download/0.0.3/rules_license-0.0.3.tar.gz",
+    )
 
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
