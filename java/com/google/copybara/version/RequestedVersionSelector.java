@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Google Inc.
+ * Copyright (C) 2022 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,23 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.version;
 
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
+import java.util.Optional;
 import javax.annotation.Nullable;
-import net.starlark.java.eval.StarlarkValue;
 
 /**
- * Select a version to migrate based on the reference passed as a parameter, the state of the remote
- * repository and a custom logic.
+ * Given a requested version, it return it as the selected version. None otherwise.
  */
-public interface VersionSelector extends StarlarkValue {
+public class RequestedVersionSelector implements VersionSelector {
 
-  /** Compute the version to migrate */
-  String selectVersion(
-      @Nullable String requestedRef,
-      GitRepository repo,
-      String url,
-      Console console) throws RepoException, ValidationException;
-
-  /** Return the refspec needed to monitor for changes */
-  String asGitRefspec();
+  @Override
+  public Optional<String> select(VersionList versionList, @Nullable String requestedRef,
+      Console console)
+      throws ValidationException, RepoException {
+    return Optional.ofNullable(requestedRef);
+  }
 }

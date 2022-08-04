@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.version;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
-import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.transform.RegexTemplateTokens;
+import com.google.copybara.templatetoken.RegexTemplateTokens;
 import com.google.copybara.util.console.Console;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -35,26 +35,28 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.syntax.Location;
 
+/**
+ * Given a {@link VersionList} and a regex template, finds the latest version that matches
+ * the regex.
+ */
 public class LatestVersionSelector implements VersionSelector {
 
-  private final String refspec;
   private final TreeMap<Integer, VersionElementType> groupTypes;
   private final RegexTemplateTokens template;
 
-  LatestVersionSelector(
+  public LatestVersionSelector(
       String refspec, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes,
       Location location)
       throws EvalException {
-    this.refspec = Preconditions.checkNotNull(refspec);
-    this.groupTypes = Preconditions.checkNotNull(groupTypes);
-    template = new RegexTemplateTokens(refspec, groups, true, location);
+    this.groupTypes = checkNotNull(groupTypes);
+    template = new RegexTemplateTokens(checkNotNull(refspec), groups, true, location);
   }
 
   @Override
@@ -94,26 +96,15 @@ public class LatestVersionSelector implements VersionSelector {
   }
 
   @Override
-  public String asGitRefspec() {
-    return refspec.replaceAll("\\$\\{.*}", "*").replaceAll("\\*.*", "*");
+  public ImmutableSet<SearchPattern> searchPatterns() {
+    return ImmutableSet.of(new SearchPattern(template.getTokens()));
   }
 
   @Override
-  public String selectVersion(
-      @Nullable String requestedRef,
-      GitRepository repo,
-      String url,
-      Console console) throws RepoException, ValidationException {
-    if (!Strings.isNullOrEmpty(requestedRef)) {
-      if (requestedRef.startsWith("force:")) {
-        return requestedRef.substring("force:".length());
-      }
-      console.warnFmt(
-          "Ignoring '%s' as git.version_selector is being used. Run with "
-              + "--nogit-origin-version-selector to override.",
-          requestedRef);
-    }
-    Set<String> refs = repo.lsRemote(url, ImmutableList.of(asGitRefspec())).keySet();
+  public Optional<String> select(VersionList versionList, @Nullable String requestedRef,
+      Console console)
+      throws ValidationException, RepoException {
+    ImmutableSet<String> refs = versionList.list();
 
     ImmutableListMultimap<String, Integer> groupIndexes = template.getGroupIndexes();
     List<Object> latest = new ArrayList<>();
@@ -135,20 +126,12 @@ public class LatestVersionSelector implements VersionSelector {
         latestRef = ref;
       }
     }
-
-    checkCondition(latestRef != null,
-        "version_selector didn't match any version for '%s'", template.getBefore().pattern());
-
-    // It is rare that a branch and a tag has the same name. The reason for this is that
-    // destinations expect that the context_reference is a non-full reference. Also it is
-    // more readable when we use it in transformations.
-    if (latestRef.startsWith("refs/heads/")) {
-      return latestRef.substring("refs/heads/".length());
+    if (latestRef == null) {
+      console.warnFmt("version_selector didn't match any version for '%s'",
+          template.getBefore().pattern());
     }
-    if (latestRef.startsWith("refs/tags/")) {
-      return latestRef.substring("refs/tags/".length());
-    }
-    return latestRef;
+
+    return Optional.ofNullable(latestRef);
   }
 
   private boolean isAfter(List<Object> old, List<Object> newer) {

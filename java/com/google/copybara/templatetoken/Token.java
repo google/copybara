@@ -31,6 +31,16 @@ public final class Token {
     this.type = Preconditions.checkNotNull(type);
   }
 
+  /** Create an interpolation token */
+  public static Token interpolation(String name) {
+    return new Token(name, TokenType.INTERPOLATION);
+  }
+
+  /** Create a literal token */
+  public static Token literal(String name) {
+    return new Token(name, TokenType.LITERAL);
+  }
+
   public String getValue() {
     return value;
   }

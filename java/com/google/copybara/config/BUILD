@@ -36,6 +36,7 @@ java_library(
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
+        "//java/com/google/copybara/starlark",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/util",
         "//third_party:error_prone",

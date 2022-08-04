@@ -41,14 +41,20 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
+import com.google.copybara.git.version.RefspecVersionList;
 import com.google.copybara.revision.Change;
+import com.google.copybara.templatetoken.Token;
+import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.version.VersionSelector;
+import com.google.copybara.version.VersionSelector.SearchPattern;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -88,11 +94,15 @@ public class GitOrigin implements Origin<GitRevision> {
   private final boolean includeBranchCommitLogs;
   boolean firstParent;
   private final boolean partialFetch;
-  @Nullable private final PatchTransformation patchTransformation;
+  @Nullable
+  private final PatchTransformation patchTransformation;
   protected final boolean describeVersion;
-  @Nullable private final LatestVersionSelector versionSelector;
-  @Nullable private final String configPath;
-  @Nullable private final String workflowName;
+  @Nullable
+  private final VersionSelector versionSelector;
+  @Nullable
+  private final String configPath;
+  @Nullable
+  private final String workflowName;
   protected final boolean primaryBranchMigrationMode;
   private final ApprovalsProvider approvalsProvider;
 
@@ -109,7 +119,7 @@ public class GitOrigin implements Origin<GitRevision> {
       boolean partialClone,
       @Nullable PatchTransformation patchTransformation,
       boolean describeVersion,
-      @Nullable LatestVersionSelector versionSelector,
+      @Nullable VersionSelector versionSelector,
       @Nullable String configPath,
       @Nullable String workflowName,
       boolean primaryBranchMigrationMode,
@@ -170,18 +180,47 @@ public class GitOrigin implements Origin<GitRevision> {
             GeneralOptions.FORCE, reference);
         ref = reference;
       } else {
-        ref = versionSelector.selectVersion(reference, getRepository(), repoUrl, console);
-        checkCondition(ref != null, "Cannot find any matching version for latest_version");
+        GitRepository repository = getRepository();
+        ImmutableList<Refspec> specs = getVersionSelectorRefspec(repository);
+        RefspecVersionList list = new RefspecVersionList(repository, specs, repoUrl);
+        Optional<String> res = versionSelector.select(list, reference, console);
+        checkCondition(res.isPresent(), "Cannot find any matching version for latest_version");
+        ref = res.get();
+        // It is rare that a branch and a tag has the same name. The reason for this is that
+        // destinations expect that the context_reference is a non-full reference. Also it is
+        // more readable when we use it in transformations.
+        if (ref.startsWith("refs/heads/")) {
+          ref = ref.substring("refs/heads/".length());
+        }
+        if (ref.startsWith("refs/tags/")) {
+          ref = ref.substring("refs/tags/".length());
+        }
+
       }
     } else if (Strings.isNullOrEmpty(reference)) {
       checkCondition(getConfigRef() != null, "No reference was passed as a command line argument "
-              + "for %s and no default reference was configured in the config file", repoUrl);
+          + "for %s and no default reference was configured in the config file", repoUrl);
       ref = getConfigRef();
     } else {
       ref = reference;
     }
 
     return resolveStringRef(ref);
+  }
+
+  private ImmutableList<Refspec> getVersionSelectorRefspec(GitRepository repository)
+      throws ValidationException {
+    checkNotNull(versionSelector, "version selector presence should be checked outside of"
+        + " the method call");
+    ImmutableList.Builder<Refspec> specs = ImmutableList.builder();
+    ImmutableSet<String> refspecs = versionSelector.searchPatterns().stream()
+        .anyMatch(SearchPattern::isAll)
+        ? ImmutableSet.of("refs/*")
+        : toRefspec();
+    for (String prefix : refspecs) {
+      specs.add(repository.createRefSpec(prefix));
+    }
+    return specs.build();
   }
 
   private GitRevision resolveStringRef(String ref) throws RepoException, ValidationException {
@@ -487,7 +526,7 @@ public class GitOrigin implements Origin<GitRevision> {
       SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
       boolean partialClone, boolean primaryBranchMigrationMode,
       @Nullable PatchTransformation patchTransformation, boolean describeVersion,
-      @Nullable LatestVersionSelector versionSelector,
+      @Nullable VersionSelector versionSelector,
       String configPath, String workflowName,
       ApprovalsProvider approvalsProvider) {
     return new GitOrigin(
@@ -522,9 +561,38 @@ public class GitOrigin implements Origin<GitRevision> {
       builder.put("ref", configRef);
     }
     if (versionSelector != null) {
-      builder.put("refspec", versionSelector.asGitRefspec());
+      builder.putAll("refspec", toRefspec());
     }
     return builder.build();
+  }
+
+  private ImmutableSet<String> toRefspec() {
+    ImmutableSet<SearchPattern> searchPatterns = versionSelector.searchPatterns();
+    if (searchPatterns.stream().anyMatch(SearchPattern::isAll)) {
+      return ImmutableSet.of("refs/*");
+    }
+    ImmutableSet.Builder<String> refspecs = ImmutableSet.builder();
+    for (SearchPattern searchPattern : searchPatterns) {
+      if (searchPattern.isNone()) {
+        continue;
+      }
+      StringBuilder patternBuilder = new StringBuilder();
+      for (Token token : searchPattern.tokens()) {
+        if (token.getType() == TokenType.LITERAL) {
+          patternBuilder.append(token.getValue());
+        } else {
+          // Only support prefixes for now.
+          patternBuilder.append("*");
+          break;
+        }
+      }
+      String pattern = patternBuilder.toString();
+      if (!pattern.startsWith("refs/")) {
+        pattern = "refs/*";
+      }
+      refspecs.add(pattern);
+    }
+    return refspecs.build();
   }
 
   @Nullable

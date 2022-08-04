@@ -31,10 +31,10 @@ import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USE_MERGE;
-import static com.google.copybara.git.LatestVersionSelector.VersionElementType.ALPHABETIC;
-import static com.google.copybara.git.LatestVersionSelector.VersionElementType.NUMERIC;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
 import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
+import static com.google.copybara.version.LatestVersionSelector.VersionElementType.ALPHABETIC;
+import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -65,7 +65,6 @@ import com.google.copybara.git.GitHubPrOrigin.ReviewState;
 import com.google.copybara.git.GitHubPrOrigin.StateFilter;
 import com.google.copybara.git.GitIntegrateChanges.Strategy;
 import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
-import com.google.copybara.git.LatestVersionSelector.VersionElementType;
 import com.google.copybara.git.gerritapi.GerritEventType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
@@ -75,6 +74,11 @@ import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.version.LatestVersionSelector;
+import com.google.copybara.version.LatestVersionSelector.VersionElementType;
+import com.google.copybara.version.OrderedVersionSelector;
+import com.google.copybara.version.RequestedVersionSelector;
+import com.google.copybara.version.VersionSelector;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -2317,10 +2321,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
             defaultValue = "{'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'}"),
       },
-  useStarlarkThread = true)
-  public LatestVersionSelector versionSelector(
-      String refspec, Dict<?, ?> groups,
-      StarlarkThread thread) // <String, String>
+      useStarlarkThread = true)
+  public VersionSelector versionSelector(
+      String refspec, Dict<?, ?> groups, StarlarkThread thread) // <String, String>
       throws EvalException {
     Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "refspec_groups");
     check(
@@ -2364,6 +2367,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         refspec, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
     ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
     check(extraGroups.isEmpty(), "Extra refspec_groups not used in pattern: %s", extraGroups);
+
+    if (options.get(GeneralOptions.class).isForced()) {
+      return new OrderedVersionSelector(ImmutableList.of(
+          new RequestedVersionSelector(),
+          versionPicker));
+    }
     return versionPicker;
   }
 

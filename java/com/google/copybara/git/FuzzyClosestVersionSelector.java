@@ -15,97 +15,46 @@
  */
 package com.google.copybara.git;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
-
-import com.google.common.base.CharMatcher;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.version.RefspecVersionList.TagVersionList;
+import com.google.copybara.git.version.RequestedShaVersionSelector;
 import com.google.copybara.util.console.Console;
-import java.util.List;
+import com.google.copybara.version.CorrectorVersionSelector;
+import com.google.copybara.version.OrderedVersionSelector;
+import com.google.copybara.version.RequestedExactMatchSelector;
+import com.google.copybara.version.RequestedVersionSelector;
 import javax.annotation.Nullable;
 
 /**
  * A VersionSelector that heuristically tries to match a version to a git tag. This is best effort
  * and only recommended for testing.
  */
-public class FuzzyClosestVersionSelector implements VersionSelector {
+public class FuzzyClosestVersionSelector {
 
-  @Override
   public String selectVersion(@Nullable String requestedRef, GitRepository repo, String url,
       Console console) throws ValidationException {
-    return tryFindVersion(requestedRef, url, repo, console);
-  }
-
-  private static String tryFindVersion(
-      String version, String url, GitRepository repo, Console console) throws ValidationException {
-    ValidationException.checkCondition(!Strings.isNullOrEmpty(version),
+    // Move this check where it is used
+    ValidationException.checkCondition(!Strings.isNullOrEmpty(requestedRef),
         "Fuzzy version finding requires a ref to be explicitly specified");
-    if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(version).matches()) {
-      return version;
-    }
-    List<String> tags = getTags(url, repo, console);
-    if (tags.contains(version)) {
-      return version;
-    }
-    String cleanedVersion = stripVersion(version);
-    for (String tag : tags) {
-      if (stripVersion(tag).equals(cleanedVersion)) {
-        console.infoFmt("Assuming version %s references %s (%s)", version, tag, cleanedVersion);
-        return tag;
-      }
-    }
-    return version;
-  }
 
-  private static String stripVersion(String version) {
-    String strippedPrefix = CharMatcher.inRange('0', '9').negate().trimLeadingFrom(version);
-    String normalizedSeparator = CharMatcher.anyOf(",;-_").replaceFrom(strippedPrefix, '.');
-    String strippedVersion = "";
-    int index = 0;
-    CharMatcher isVersionPart = CharMatcher.inRange('0', '9').or(CharMatcher.is('.'));
-
-    while (index < normalizedSeparator.length()) {
-      if (normalizedSeparator.regionMatches(true, index, "RC", 0, 2)) {
-        strippedVersion += "RC";
-        index += 2;
-        continue;
-      }
-      if (normalizedSeparator.regionMatches(true, index, "PL", 0, 2)) {
-        strippedVersion += "PL";
-        index += 2;
-        continue;
-      }
-      if (isVersionPart.matches(normalizedSeparator.charAt(index))) {
-        strippedVersion += normalizedSeparator.charAt(index);
-        index++;
-        continue;
-      }
-      // fast-forward through strings that might contain but not start with RC/PL
-      while (index < normalizedSeparator.length()
-          && !isVersionPart.matches(normalizedSeparator.charAt(index))) {
-        index++;
-      }
-    }
-    return strippedVersion;
-  }
-
-  private static ImmutableList<String> getTags(String url, GitRepository repo, Console console) {
+    OrderedVersionSelector selector = new OrderedVersionSelector(ImmutableList.of(
+        new RequestedShaVersionSelector(),
+        new RequestedExactMatchSelector(),
+        new CorrectorVersionSelector(console),
+        new RequestedVersionSelector()
+    ));
     try {
-      return repo.lsRemote(url, ImmutableList.of("refs/tags/*"))
-          .keySet()
-          .stream()
-          .map(s -> s.substring("refs/tags/".length()))
-          .collect(toImmutableList());
-    } catch (RepoException | ValidationException e) {
+      return selector.select(new TagVersionList(repo, url), requestedRef, console).get();
+    } catch (RepoException e) {
+      // Technically this could be a real RepoException, but the current interface
+      //
       console.warnFmt("Unable to obtain tags for %s. %s", url, e);
+      return requestedRef;
     }
-    return ImmutableList.of();
-  }
-
-  @Override
-  public String asGitRefspec() {
-    return "refs/tags/*";
+    // TODO(malcon): I think the old implementation returns requestedRef if cannot find a version.
+    // check what we do in the diff and match the logic.
   }
 }

@@ -65,6 +65,7 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util:origin_util",
         "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/version",
         "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:flogger",

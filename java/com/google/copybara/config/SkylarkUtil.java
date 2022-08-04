@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LabelFinder;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.starlark.StarlarkUtil;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.errorprone.annotations.FormatMethod;
@@ -45,6 +46,8 @@ import net.starlark.java.eval.StarlarkList;
 
 /**
  * Utilities for dealing with Skylark parameter objects and converting them to Java ones.
+ * TODO(malcon): Move methods to StarlarkUtil and keep this one for config specific ones
+ * (And rename to StarlarkConfigUtil)
  */
 public final class SkylarkUtil {
   private static final Pattern LABEL_VAR = Pattern
@@ -91,13 +94,11 @@ public final class SkylarkUtil {
   }
 
   /** Checks a condition or throw {@link EvalException}. */
-   /** Checks a condition or throw {@link EvalException}. */
   @FormatMethod
   public static void check(boolean condition, @FormatString String format, Object... args)
       throws EvalException {
-    if (!condition) {
-      throw Starlark.errorf(format, args);
-    }
+    // TODO(malcon): Remove this method and inline this call:
+    StarlarkUtil.check(condition, format, args);
   }
   /**
    * A utility for resolving list of string labels to values

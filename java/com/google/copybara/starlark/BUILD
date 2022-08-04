@@ -1,4 +1,4 @@
-# Copyright 2018 Google Inc.
+# Copyright 2022 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +16,18 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
+JAVACOPTS = [
+    "-Xlint:unchecked",
+    "-source",
+    "1.8",
+]
+
 java_library(
-    name = "templatetoken",
+    name = "starlark",
     srcs = glob(["**/*.java"]),
-    javacopts = [
-        "-Xlint:unchecked",
-        "-source",
-        "1.8",
-    ],
+    javacopts = JAVACOPTS,
     deps = [
-        "//java/com/google/copybara/starlark",
-        "//third_party:guava",
-        "//third_party:jsr305",
-        "//third_party:re2j",
+        "//third_party:error_prone",
         "//third_party:starlark",
     ],
 )

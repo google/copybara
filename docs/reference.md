@@ -2621,7 +2621,7 @@ It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration.
 
 Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using `force:reference` in the CLI will force to use that reference instead.
 
-`LatestVersionSelector` `git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
+`VersionSelector` `git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
 
 
 #### Parameters:

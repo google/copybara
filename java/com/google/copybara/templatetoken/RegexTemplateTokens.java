@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.google.copybara.transform;
+package com.google.copybara.templatetoken;
 
-import static com.google.copybara.config.SkylarkUtil.check;
+import static com.google.copybara.starlark.StarlarkUtil.check;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.copybara.templatetoken.Parser;
-import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;

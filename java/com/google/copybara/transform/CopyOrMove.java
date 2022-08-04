@@ -28,6 +28,7 @@ import com.google.copybara.TransformationStatus;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.templatetoken.RegexTemplateTokens;
 import com.google.copybara.templatetoken.Token;
 import com.google.copybara.templatetoken.Token.TokenType;
 import com.google.copybara.util.FileUtil;

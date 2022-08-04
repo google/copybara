@@ -28,14 +28,17 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
+// TODO(malcon): Move some of these tests to java.com.google.copybara.version test and leave only
+// integration tests with git here.
 @RunWith(JUnit4.class)
 public class LatestVersionSelectorTest {
 
@@ -46,11 +49,12 @@ public class LatestVersionSelectorTest {
   private GitRepository repo;
   private SkylarkTestExecutor skylark;
   private String cliReference;
+  private TestingConsole console;
 
   @Before
   public void setup() throws Exception {
     options = new OptionsBuilder();
-    TestingConsole console = new TestingConsole();
+    console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
         .setOutputRootToTmpDir();
@@ -90,13 +94,6 @@ public class LatestVersionSelectorTest {
     options.general.setForceForTest(true);
     createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
     checkTags("foo");
-  }
-
-  @Test
-  public void testVersionSelector_forcePrefix() throws Exception {
-    cliReference = "force:1.0.0";
-    createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
-    checkTags("1.0.0");
   }
 
   @Test
@@ -161,7 +158,9 @@ public class LatestVersionSelectorTest {
     ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
     assertThat(e)
         .hasMessageThat()
-        .contains("didn't match any version for 'refs/tags/([0-9]+)\\.([0-9]+)\\.([0-9]+)'");
+        .contains("Cannot find any matching version for latest_version");
+    console.assertThat().onceInLog(MessageType.WARNING,
+        ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
   }
 
   private void checkTags(String expectedResult) throws Exception {

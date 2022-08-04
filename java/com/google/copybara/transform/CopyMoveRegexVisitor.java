@@ -18,6 +18,7 @@ package com.google.copybara.transform;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.templatetoken.RegexTemplateTokens;
 import java.io.IOException;
 import java.nio.file.CopyOption;
 import java.nio.file.DirectoryNotEmptyException;
