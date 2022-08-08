@@ -19,9 +19,9 @@ load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_vers
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-    RULES_JVM_EXTERNAL_TAG = "3.0"
+    RULES_JVM_EXTERNAL_TAG = "4.2"
 
-    RULES_JVM_EXTERNAL_SHA = "62133c125bf4109dfd9d2af64830208356ce4ef8b165a6ef15bbff7460b35c3a"
+    RULES_JVM_EXTERNAL_SHA = "cd1a77b7b02e8e008439ca76fd34f5b07aecb8c752961f9640dea15e9e5ba1ca"
 
     maybe(
         http_archive,
