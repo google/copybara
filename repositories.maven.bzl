@@ -37,6 +37,7 @@ def copybara_maven_repositories():
             "com.google.re2j:re2j:1.6",
             "com.google.testparameterinjector:test-parameter-injector:1.8",
             "com.google.truth:truth:1.1.3",
+            "com.google.truth.extensions:truth-java8-extension:0.41",
             "com.googlecode.java-diff-utils:diffutils:1.3.0",
             "commons-codec:commons-codec:jar:1.11",
             "junit:junit:4.13.2",

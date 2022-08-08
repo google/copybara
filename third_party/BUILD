@@ -110,6 +110,7 @@ java_library(
     testonly = 1,
     exports = [
         "@maven//:com_google_truth_truth",
+	"@maven//:com_google_truth_extensions_truth_java8_extension",
         "@maven//:com_googlecode_java_diff_utils_diffutils",
     ],
 )
