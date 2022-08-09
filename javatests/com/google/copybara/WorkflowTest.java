@@ -43,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.config.Config;
@@ -72,6 +73,7 @@ import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.RecordsProcessCallDestination.ProcessedChange;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingEventMonitor;
+import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
@@ -137,6 +139,7 @@ public class WorkflowTest {
   private TransformWork transformWork;
   private boolean setRevId;
   private boolean smartPrune;
+  private boolean mergeImport;
   private boolean migrateNoopChangesField;
   private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
 
@@ -173,6 +176,7 @@ public class WorkflowTest {
     transformWork = TransformWorks.of(workdir, "example", console);
     setRevId = true;
     smartPrune = false;
+    mergeImport = false;
     migrateNoopChangesField = false;
     extraWorkflowFields = ImmutableList.of();
   }
@@ -203,6 +207,7 @@ public class WorkflowTest {
         + "    authoring = " + authoring + ",\n"
         + "    set_rev_id = " + (setRevId ? "True" : "False") + ",\n"
         + "    smart_prune = " + (smartPrune ? "True" : "False") + ",\n"
+        + "    merge_import = " + (mergeImport ? "True" : "False") + ",\n"
         + "    migrate_noop_changes = " + (migrateNoopChangesField ? "True" : "False") + ",\n"
         + "    mode = '" + mode + "',\n"
         + (extraWorkflowFields.isEmpty()
@@ -1933,6 +1938,123 @@ public class WorkflowTest {
     assertThat(destination.processed).hasSize(1);
     assertThat(destination.processed.get(0).getBaseline()).isEqualTo("42");
     return destination.processed.get(0).getAffectedFilesForSmartPrune();
+  }
+
+  @Test
+  public void mergeImport_mergeSuccess_fileDeleteSuccess_squash() throws Exception {
+    mergeImport = true;
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+
+    // populate the baseline
+    writeFile(base1, "foo.txt", "a\nb\nc\n");
+    writeFile(base1, "to_delete.txt", "I will be deleted");
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /*matchesGlob=*/ true);
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // a second change that isn't baseline
+    Path base2 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "bar.txt", "Another file");
+    origin.addChange(1, base2, "change 1", /*matchesGlob=*/ true);
+
+    // fake a destination-only change
+    Path base3 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    writeFile(base3, "foo.txt", "a\nb\nc\nbar");
+    destination.processed.add(
+        new ProcessedChange(
+            TransformResults.of(base3, new DummyRevision("1")),
+            ImmutableMap.of("/foo.txt", "a\nb\nc\nbar", "/to_delete.txt", "I will be deleted"),
+            "1",
+            Glob.createGlob(ImmutableList.of(destinationFiles)),
+            false));
+
+    // new origin change and run workflow again
+    writeFile(base2, "foo.txt", "foo\na\nb\nc\n");
+    Files.delete(base2.resolve("to_delete.txt"));
+    // set last revision and reload workflow for it to take effect
+    origin.addChange(2, base2, "change 2", true);
+    options.setLastRevision(origin.changes.get(0).asString());
+    workflow = skylarkWorkflow("default", SQUASH);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(
+            destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
+        .isEqualTo("foo\na\nb\nc\nbar");
+    assertThat(destination.processed.get(1).getWorkdir().get("/to_delete.txt"))
+        .isEqualTo("I will be deleted");
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .containsKey("/to_delete.txt"))
+        .isFalse();
+  }
+
+  @Test
+  public void mergeImport_mergeSuccess_fileDeleteSuccess_changeRequest() throws Exception {
+    mergeImport = true;
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+
+    // populate the baseline
+    writeFile(base1, "foo.txt", "a\nb\nc\n");
+    writeFile(base1, "to_delete.txt", "I will be deleted");
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /*matchesGlob=*/ true);
+
+    // a second change that isn't baseline
+    Path base2 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "bar.txt", "Another file");
+    origin.addChange(1, base2, "change 1", /*matchesGlob=*/ true);
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // fake a destination-only change
+    Path base3 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    writeFile(base3, "foo.txt", "a\nb\nc\nbar");
+    destination.processed.add(
+        new ProcessedChange(
+            TransformResults.of(base3, new DummyRevision("1")),
+            ImmutableMap.of("/foo.txt", "a\nb\nc\nbar", "/to_delete.txt", "I will be deleted"),
+            "1",
+            Glob.createGlob(ImmutableList.of(destinationFiles)),
+            false));
+
+    // new origin change and run workflow again
+    writeFile(base2, "foo.txt", "foo\na\nb\nc\n");
+    Files.delete(base2.resolve("to_delete.txt"));
+    origin.addChange(2, base2, "change 2", true);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(
+            destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
+        .isEqualTo("foo\na\nb\nc\nbar");
+    assertThat(destination.processed.get(1).getWorkdir().get("/to_delete.txt"))
+        .isEqualTo("I will be deleted");
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .containsKey("/to_delete.txt"))
+        .isFalse();
   }
 
   @Test

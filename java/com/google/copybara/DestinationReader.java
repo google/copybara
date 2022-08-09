@@ -20,6 +20,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
+import java.nio.file.Path;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -32,39 +33,48 @@ import net.starlark.java.eval.StarlarkValue;
     documented = true)
 public abstract class DestinationReader implements StarlarkValue {
 
-  public static final DestinationReader NOT_IMPLEMENTED = new DestinationReader() {
-    @Override
-    public String readFile(String path) throws RepoException {
-      throw new RepoException("Reading files is not implemented by this destination");
-    }
+  public static final DestinationReader NOT_IMPLEMENTED =
+      new DestinationReader() {
+        @Override
+        public String readFile(String path) throws RepoException {
+          throw new RepoException("Reading files is not implemented by this destination");
+        }
 
-    @Override
-    public void copyDestinationFiles(Glob path) throws RepoException {
-      throw new RepoException("Reading files is not implemented by this destination");
-    }
+        @Override
+        public void copyDestinationFiles(Glob path) throws RepoException {
+          throw new RepoException("Reading files is not implemented by this destination");
+        }
 
-    @Override
-    public boolean exists(String path) {
-      return false;
-    }
-  };
+        @Override
+        public void copyDestinationFilesToDirectory(Glob glob, Path directory)
+            throws RepoException {
+          throw new RepoException("Reading files is not implemented by this destination");
+        }
 
-  public static final DestinationReader NOOP_DESTINATION_READER = new DestinationReader() {
-    @Override
-    public String readFile(String path) {
-      return  "";
-    }
+        @Override
+        public boolean exists(String path) {
+          return false;
+        }
+      };
 
-    @Override
-    public void copyDestinationFiles(Glob path) {
-      return;
-    }
+  public static final DestinationReader NOOP_DESTINATION_READER =
+      new DestinationReader() {
+        @Override
+        public String readFile(String path) {
+          return "";
+        }
 
-    @Override
-    public boolean exists(String path) {
-      return false;
-    }
-  };
+        @Override
+        public void copyDestinationFiles(Glob path) {}
+
+        @Override
+        public void copyDestinationFilesToDirectory(Glob glob, Path directory) {}
+
+        @Override
+        public boolean exists(String path) {
+          return false;
+        }
+      };
 
   @StarlarkMethod(
       name = "read_file",
@@ -111,7 +121,15 @@ public abstract class DestinationReader implements StarlarkValue {
               + "will cause errors if they are not covered by destination_files and not moved or "
               + "deleted.")
   @SuppressWarnings("unused")
+  // TODO(joshgoldman): refactor this out in favor of directory-specific version
   public abstract void copyDestinationFiles(Glob glob) throws RepoException, ValidationException;
+
+  /**
+   * Similar to {@code copyDestinationFiles()} but specifies a destination directory (instead of
+   * using the default working directory workdir.
+   */
+  public abstract void copyDestinationFilesToDirectory(Glob glob, Path directory)
+      throws RepoException, ValidationException;
 
   @StarlarkMethod(
       name = "file_exists",

@@ -124,16 +124,16 @@ public enum WorkflowMode {
       if (runHelper.isSquashWithoutHistory()) {
         changes = ImmutableList.of();
       }
-
       helperForChanges.migrate(
-              current,
-              lastRev,
-              runHelper.getConsole(),
-              metadata,
-              // Squash notes an Skylark API expect last commit to be the first one.
+          current,
+          lastRev,
+          runHelper.getConsole(),
+          metadata,
+          // Squash notes an Skylark API expect last commit to be the first one.
           new Changes(changes.reverse(), ImmutableList.of()),
-              /*destinationBaseline=*/null,
-              runHelper.getResolvedRef());
+          /*destinationBaseline=*/ null,
+          runHelper.getResolvedRef(),
+          lastRev);
     }
   },
 
@@ -197,7 +197,8 @@ public enum WorkflowMode {
                   // Use the current change since we might want to create different
                   // reviews in the destination. Will not work if we want to group
                   // all the changes in the same Github PR
-                  change.getRevision());
+                  change.getRevision(),
+                  null);
           migratedChanges++;
           for (DestinationEffect effect : result) {
             if (effect.getType() != Type.NOOP) {
@@ -253,7 +254,12 @@ public enum WorkflowMode {
           : Optional.of(
               new Baseline<O>(runHelper.workflowOptions().changeBaseline, /*originRevision=*/null));
 
-      runChangeRequest(runHelper, baseline);
+      runChangeRequest(
+          runHelper,
+          baseline,
+          runHelper.workflowOptions().baselineForMergeImport == null
+              ? baseline.get().getOriginRevision()
+              : runHelper.originResolveLastRev(runHelper.workflowOptions().baselineForMergeImport));
     }},
     @DocField(
         description = "Import **from** the Source-of-Truth. This mode is useful when, despite the"
@@ -291,7 +297,7 @@ public enum WorkflowMode {
             runHelper.getOriginLabelName(),
             CHANGE_REQUEST_FROM_SOT_LIMIT_FLAG));
       }
-      runChangeRequest(runHelper, Optional.of(destinationBaseline));
+      runChangeRequest(runHelper, Optional.of(destinationBaseline), null);
     }
 
     @Nullable
@@ -363,8 +369,10 @@ public enum WorkflowMode {
   }
 
   private static <O extends Revision, D extends Revision> void runChangeRequest(
-        WorkflowRunHelper<O, D> runHelper, Optional<Baseline<O>> baseline)
-        throws ValidationException, RepoException, IOException {
+      WorkflowRunHelper<O, D> runHelper,
+      Optional<Baseline<O>> baseline,
+      @Nullable O baselineForMergeImport)
+      throws ValidationException, RepoException, IOException {
     checkCondition(baseline.isPresent(),
         "Cannot find matching parent commit in the destination. Use '%s' flag to force a"
             + " parent commit to use as baseline in the destination.",
@@ -421,7 +429,8 @@ public enum WorkflowMode {
         // Squash notes an Skylark API expect last commit to be the first one.
         new Changes(changes.reverse(), ImmutableList.of()),
         baseline.get(),
-        runHelper.getResolvedRef());
+        runHelper.getResolvedRef(),
+        baselineForMergeImport);
   }
 
   private static <O extends Revision, D extends Revision> void manageNoChangesDetectedForSquash(

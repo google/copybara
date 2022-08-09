@@ -418,6 +418,12 @@ public final class GeneralOptions implements Option {
       hidden = true)
   private ImmutableMap<String, String> temporaryFeatures = ImmutableMap.of();
 
+  @Parameter(names = "--diff3-bin", description = "Diff3 bin used in merge import")
+  private String diff3Bin = "/usr/bin/diff3";
+
+  public String getDiff3Bin() {
+    return diff3Bin;
+  }
 
   /**
    * Temporary features is mean to be used by Copybara team for guarding new codepaths. Should

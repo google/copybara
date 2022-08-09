@@ -33,12 +33,13 @@ import java.util.HashSet;
  * only changes are defined by files that exist in the destination workdir, but not in the origin
  * baseline or in the origin workdir.
  */
-final class MergeImportTool {
+public final class MergeImportTool {
 
   private final Console console;
   private final Diff3Util diff3Util;
 
-  MergeImportTool(Console console, Diff3Util diff3Util) {
+  // TODO refactor to accept a diffing tool
+  public MergeImportTool(Console console, Diff3Util diff3Util) {
     this.console = console;
     this.diff3Util = diff3Util;
   }

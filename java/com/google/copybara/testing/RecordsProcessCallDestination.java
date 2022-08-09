@@ -24,9 +24,12 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.Endpoint;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
@@ -46,12 +49,15 @@ import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZonedDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -137,6 +143,64 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     @Override
     public Endpoint getFeedbackEndPoint(Console console) {
       return endpoint;
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(
+        Console console, @Nullable Baseline<?> baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return new DestinationReader() {
+        @Override
+        public String readFile(String path) throws RepoException {
+          throw new UnsupportedOperationException(
+              "Read file not supported in RecordsProcessCallDestination");
+        }
+
+        @Override
+        public void copyDestinationFiles(Glob glob) throws RepoException, ValidationException {
+          ProcessedChange processedChange = Iterables.getLast(processed);
+          PathMatcher matcher = glob.relativeTo(Paths.get(""));
+          for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+            Path p = Paths.get(e.getKey());
+            if (matcher.matches(p)) {
+              try {
+                Files.createDirectories(workdir.resolve(p).getParent());
+                Files.writeString(p, e.getValue());
+              } catch (IOException ex) {
+                throw new RepoException("Copy destination files failed", ex);
+              }
+            }
+          }
+        }
+
+        @Override
+        public void copyDestinationFilesToDirectory(Glob glob, Path directory)
+            throws RepoException, ValidationException {
+          if (processed.isEmpty()) {
+            return;
+          }
+          ProcessedChange processedChange = Iterables.getLast(processed);
+          PathMatcher matcher = glob.relativeTo(Paths.get(""));
+          for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+            Path p = Paths.get(e.getKey());
+            if (matcher.matches(p)) {
+              try {
+                Path resolvedPath = directory.resolve(Paths.get("/").relativize(p));
+                Files.createDirectories(resolvedPath.getParent());
+                Files.writeString(resolvedPath, e.getValue());
+              } catch (IOException ex) {
+                throw new RepoException("Copy destination files failed", ex);
+              }
+            }
+          }
+        }
+
+        @Override
+        public boolean exists(String path) {
+          throw new UnsupportedOperationException(
+              "File reads not supported in RecordsProcessCallDestination");
+        }
+      };
     }
 
     @Override
@@ -259,7 +323,7 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     private final boolean dryRun;
     public boolean pending;
 
-    private ProcessedChange(
+    public ProcessedChange(
         TransformResult transformResult,
         ImmutableMap<String, String> workdir,
         String baseline,

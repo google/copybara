@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 /** Diff utilities that shell out to diff3 commandline tool */
-final class Diff3Util {
+public final class Diff3Util {
 
   private final String diff3Bin;
   private final Map<String, String> environmentVariables;

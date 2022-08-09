@@ -367,6 +367,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + "allows to disable it for that mode. Destinations might ignore the flag.",
             defaultValue = "True",
             positional = false),
+        // TODO: deprecate this in favor of merge_import param, which will take enum and bool
         @Param(
             name = "smart_prune",
             named = true,
@@ -375,6 +376,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " a best-effort approach in restoring the non-affected snippets. For now we"
                     + " only revert the non-affected files. This only works for CHANGE_REQUEST"
                     + " mode.",
+            defaultValue = "False",
+            positional = false),
+        @Param(
+            name = "merge_import",
+            named = true,
+            doc =
+                "A migration mode that shells out to diff3 to merge all files. The inputs to diff3"
+                    + " are (1) origin file (2) baseline file (3) destination file. This can be"
+                    + " used to perpetuate destination-only changes in non source of truth"
+                    + " repoistories.",
             defaultValue = "False",
             positional = false),
         @Param(
@@ -455,6 +466,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
+      Boolean mergeImport,
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
@@ -558,6 +570,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             changeIdentity,
             setRevId,
             smartPrune,
+            mergeImport,
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);

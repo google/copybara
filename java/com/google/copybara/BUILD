@@ -213,6 +213,7 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/version",
+        "//third_party:error_prone",
         "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jcommander",

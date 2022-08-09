@@ -616,6 +616,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--debug-file-break`</span> | *string* | Stop when file matching the glob changes
 <span style="white-space: nowrap;">`--debug-metadata-break`</span> | *boolean* | Stop when message and/or author changes
 <span style="white-space: nowrap;">`--debug-transform-break`</span> | *string* | Stop when transform description matches
+<span style="white-space: nowrap;">`--diff3-bin`</span> | *string* | Diff3 bin used in merge import
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
@@ -1300,7 +1301,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1324,6 +1325,7 @@ after_workflow | `sequence`<br><p>Run a feedback workflow after all the changes 
 change_identity | `string` or `NoneType`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
 set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
 smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
+merge_import | `bool`<br><p>A migration mode that shells out to diff3 to merge all files. The inputs to diff3 are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repoistories.</p>
 migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
@@ -1336,6 +1338,7 @@ reversible_check_ignore_files | [`glob`](#glob) or `NoneType`<br><p>Ignore the f
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--baseline-for-merge-import`</span> | *string* | Origin baseline to use for merge import. This overrides any inferred origin baseline
 <span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
 <span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
 <span style="white-space: nowrap;">`--change-request-parent, --change_request_parent`</span> | *string* | Commit revision to be used as parent when importing a commit using CHANGE_REQUEST workflow mode. This shouldn't be needed in general as Copybara is able to detect the parent commit message.

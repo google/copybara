@@ -56,10 +56,15 @@ public class GitDestinationReader extends DestinationReader {
 
   @Override
   public void copyDestinationFiles(Glob glob) throws RepoException {
+    copyDestinationFilesToDirectory(glob, workDir);
+  }
+
+  @Override
+  public void copyDestinationFilesToDirectory(Glob glob, Path directory) throws RepoException {
     ImmutableList<TreeElement> treeElements = repository.lsTree(baseline, null, true, true);
-    PathMatcher pathMatcher = glob.relativeTo(workDir);
+    PathMatcher pathMatcher = glob.relativeTo(directory);
     for (TreeElement file : treeElements) {
-      Path path = workDir.resolve(file.getPath());
+      Path path = directory.resolve(file.getPath());
       if (pathMatcher.matches(path)) {
         try {
           Files.createDirectories(path.getParent());
@@ -68,7 +73,7 @@ public class GitDestinationReader extends DestinationReader {
         }
       }
     }
-    repository.checkout(glob, workDir, baseline);
+    repository.checkout(glob, directory, baseline);
   }
 
   @Override

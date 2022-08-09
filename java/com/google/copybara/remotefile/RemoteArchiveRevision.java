@@ -47,7 +47,7 @@ public class RemoteArchiveRevision implements Revision {
 
   @Override
   public String asString() {
-    return getUrl();
+    return version.getVersion();
   }
 
   @Override

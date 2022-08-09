@@ -227,6 +227,12 @@ public class WorkflowOptions implements Option {
           + " works for SQUASH and ITERATIVE")
   public boolean diffInOrigin = false;
 
+  @Parameter(
+      names = "--baseline-for-merge-import",
+      description =
+          "Origin baseline to use for merge import. This overrides any inferred origin baseline")
+  String baselineForMergeImport = null;
+
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {
     if (defaultAuthor == null) {

@@ -51,14 +51,17 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
 import com.google.copybara.revision.Revision;
+import com.google.copybara.util.Diff3Util;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.util.MergeImportTool;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -243,12 +246,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                     "Validating last migration: ", workflow.getConsole()),
                                 metadata == null
                                     ? new Metadata(
-                                    change.getMessage(), change.getAuthor(),
-                                    ImmutableSetMultimap.of())
+                                        change.getMessage(),
+                                        change.getAuthor(),
+                                        ImmutableSetMultimap.of())
                                     : metadata,
                                 changes,
                                 /*destinationBaseline=*/ null,
-                                lastRev));
+                                lastRev,
+                                null));
                 throw new ValidationException(
                     "Migration of last-rev '"
                         + lastRev.asString()
@@ -391,7 +396,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param changes changes included in this migration
      * @param destinationBaseline it not null, use this baseline in the destination
      * @param changeIdentityRevision the revision to be used for computing the change identity
+     * @param originBaselineForMergeImport the revision to populate baseline for merge_import mode
      */
+    @CanIgnoreReturnValue
     final ImmutableList<DestinationEffect> migrate(
         O rev,
         @Nullable O lastRev,
@@ -399,7 +406,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Metadata metadata,
         Changes changes,
         @Nullable Baseline<O> destinationBaseline,
-        @Nullable O changeIdentityRevision)
+        @Nullable O changeIdentityRevision,
+        @Nullable O originBaselineForMergeImport)
         throws IOException, RepoException, ValidationException {
       ImmutableList<DestinationEffect> effects = ImmutableList.of();
       try {
@@ -407,8 +415,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
         effects =
             doMigrate(
-                rev, lastRev, processConsole, metadata, changes, destinationBaseline,
-                changeIdentityRevision);
+                rev,
+                lastRev,
+                processConsole,
+                metadata,
+                changes,
+                destinationBaseline,
+                changeIdentityRevision,
+                originBaselineForMergeImport);
       } catch (RedundantChangeException e) {
         effects =
             ImmutableList.of(
@@ -533,7 +547,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Metadata metadata,
         Changes changes,
         @Nullable Baseline<O> destinationBaseline,
-        @Nullable O changeIdentityRevision)
+        @Nullable O changeIdentityRevision,
+        @Nullable O originBaselineForPrune)
         throws IOException, RepoException, ValidationException {
       Path checkoutDir = workdir.resolve("checkout");
       try (ProfilerTask ignored = profiler().start("prepare_workdir")) {
@@ -690,39 +705,53 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               transformWork::getAllLabels,
               workflow.getRevIdLabel());
 
+      if (workflow.isMergeImport() && originBaselineForPrune != null) {
+        Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
+        destinationReader
+            .get()
+            .copyDestinationFilesToDirectory(
+                workflow.getDestinationFiles(), destinationFilesWorkdir);
+        Path baselineWorkdir =
+            checkoutBaselineAndTransform(
+                lastRev,
+                metadata,
+                changes,
+                originBaselineForPrune,
+                console,
+                originApi,
+                destinationApi,
+                destinationReader);
+
+        MergeImportTool mergeImportTool =
+            new MergeImportTool(
+                console,
+                new Diff3Util(
+                    workflow.getGeneralOptions().getDiff3Bin(),
+                    workflow.getGeneralOptions().getEnvironment()));
+        try (ProfilerTask ignored = profiler().start("merge_tool")) {
+          mergeImportTool.mergeImport(
+              checkoutDir,
+              destinationFilesWorkdir,
+              baselineWorkdir,
+              Files.createDirectories(workdir.resolve("diff3")));
+        }
+      }
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
         if (workflow.isSmartPrune() && workflow.getWorkflowOptions().canUseSmartPrune()) {
           ValidationException.checkCondition(destinationBaseline.getOriginRevision() != null,
               "smart_prune is not compatible with %s flag for now",
               WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG);
-          Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
-
-          PrefixConsole baselineConsole = new PrefixConsole("Migrating baseline for diff: ",
-              console);
-          checkout(destinationBaseline.getOriginRevision(), baselineConsole, baselineWorkdir,
-              "origin.baseline.checkout");
-
-          TransformWork baselineTransformWork =
-              new TransformWork(
-                  baselineWorkdir,
-                  // We don't care about the message or author and this guarantees that it will
-                  // work with the transformations
+          Path baselineWorkdir =
+              checkoutBaselineAndTransform(
+                  lastRev,
                   metadata,
-                  // We don't care about the changes that are imported.
                   changes,
-                  baselineConsole,
-                  new MigrationInfo(workflow.getRevIdLabel(), writer),
-                  resolvedRef,
+                  destinationBaseline.getOriginRevision(),
+                  console,
                   originApi,
                   destinationApi,
-                  destinationReader)
-                  // Again, we don't care about this
-                  .withLastRev(lastRev)
-                  .withCurrentRev(destinationBaseline.getOriginRevision());
-          try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
-            getTransformation().transform(baselineTransformWork);
-          }
+                  destinationReader);
           try {
             ImmutableList<DiffFile> affectedFiles = DiffUtil
                 .diffFiles(baselineWorkdir, checkoutDir, workflow.getGeneralOptions().isVerbose(),
@@ -750,6 +779,44 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Verify
           .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
       return result;
+    }
+
+    private Path checkoutBaselineAndTransform(
+        O lastRev,
+        Metadata metadata,
+        Changes changes,
+        O baseline,
+        Console console,
+        LazyResourceLoader<Endpoint> originApi,
+        LazyResourceLoader<Endpoint> destinationApi,
+        ResourceSupplier<DestinationReader> destinationReader)
+        throws IOException, RepoException, ValidationException {
+      Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
+
+      PrefixConsole baselineConsole = new PrefixConsole("Migrating baseline for diff: ", console);
+      checkout(baseline, baselineConsole, baselineWorkdir, "origin.baseline.checkout");
+
+      TransformWork baselineTransformWork =
+          new TransformWork(
+                  baselineWorkdir,
+                  // We don't care about the message or author and this guarantees that it will
+                  // work with the transformations
+                  metadata,
+                  // We don't care about the changes that are imported.
+                  changes,
+                  baselineConsole,
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  resolvedRef,
+                  originApi,
+                  destinationApi,
+                  destinationReader)
+              // Again, we don't care about this
+              .withLastRev(lastRev)
+              .withCurrentRev(baseline);
+      try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
+        getTransformation().transform(baselineTransformWork);
+      }
+      return baselineWorkdir;
     }
 
     private void showInfoAboutNoop(Console console) {
