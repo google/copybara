@@ -18,6 +18,7 @@ licenses(["notice"])
 
 all_tests(
     tests = [
+        "LatestVersionSelectorTest.java",
         "OrderedVersionSelectorTest.java",
         "RequestedExactMatchSelectorTest.java",
         "RequestedVersionSelectorTest.java",
@@ -27,6 +28,7 @@ all_tests(
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/templatetoken",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//java/com/google/copybara/version",

@@ -48,15 +48,17 @@ import net.starlark.java.syntax.Location;
  */
 public class LatestVersionSelector implements VersionSelector {
 
+  private final String format;
   private final TreeMap<Integer, VersionElementType> groupTypes;
   private final RegexTemplateTokens template;
 
   public LatestVersionSelector(
-      String refspec, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes,
+      String format, Map<String, Pattern> groups, TreeMap<Integer, VersionElementType> groupTypes,
       Location location)
       throws EvalException {
+    this.format = format;
     this.groupTypes = checkNotNull(groupTypes);
-    template = new RegexTemplateTokens(checkNotNull(refspec), groups, true, location);
+    template = new RegexTemplateTokens(checkNotNull(format), groups, true, location);
   }
 
   @Override
@@ -169,4 +171,8 @@ public class LatestVersionSelector implements VersionSelector {
         .collect(toImmutableList());
   }
 
+  @Override
+  public String toString() {
+    return String.format("core.latest_version(format = '%s')", format);
+  }
 }

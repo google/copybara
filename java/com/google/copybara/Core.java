@@ -23,6 +23,8 @@ import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.transform.Transformations.toTransformation;
+import static com.google.copybara.version.LatestVersionSelector.VersionElementType.ALPHABETIC;
+import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -62,10 +64,17 @@ import com.google.copybara.transform.TodoReplace.Mode;
 import com.google.copybara.transform.VerifyMatch;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.util.Glob;
+import com.google.copybara.version.LatestVersionSelector;
+import com.google.copybara.version.LatestVersionSelector.VersionElementType;
+import com.google.copybara.version.OrderedVersionSelector;
+import com.google.copybara.version.RequestedVersionSelector;
+import com.google.copybara.version.VersionSelector;
+import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
@@ -1755,6 +1764,90 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     } catch (IllegalFormatException e) {
       throw Starlark.errorf("Invalid format: %s: %s", format, e.getMessage());
     }
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "latest_version",
+      doc = "Selects the latest version that matches the format.  Using --force"
+          + " in the CLI will force to use the reference passed as argument instead.",
+      parameters = {
+          @Param(
+              name = "format",
+              doc = "The format of the version. If using it for git, it has to use the complete"
+                  + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
+              named = true),
+          @Param(
+              name = "regex_groups",
+              named = true, doc =
+              "A set of named regexes that can be used to match part of the versions. Copybara"
+                  + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
+                  + " following nomenclature n0, n1, n2 for the version part (will use numeric"
+                  + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
+                  + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
+                  + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
+                  + " order is not important, use s(N+1) where N ist he latest sorted field."
+                  + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
+          defaultValue = "{}"),
+      },
+      useStarlarkThread = true)
+  @Example(title = "Version selector for Git tags",
+  before = "Example of how to match tags that follow semantic versioning",
+  code = "core.latest_version(\n"
+      + "    format = \"refs/tags/${n0}.${n1}.${n2}\","
+      + "    regex_groups = {\n"
+      + "        'n0': '[0-9]+',"
+      + "        'n1': '[0-9]+',"
+      + "        'n2': '[0-9]+',"
+      + "    }"
+      + ")")
+  public VersionSelector versionSelector(
+      String regex, Dict<?, ?> groups, StarlarkThread thread) // <String, String>
+      throws EvalException {
+    Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "regex_groups");
+
+    TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
+    Pattern regexKey = Pattern.compile("([sn])([0-9])");
+    for (String s : groupsMap.keySet()) {
+      Matcher matcher = regexKey.matcher(s);
+      check(
+          matcher.matches(),
+          "Incorrect key for regex_group. Should be in the "
+              + "format of n0, n1, etc. or s0, s1, etc. Value: %s",
+          s);
+      VersionElementType type = matcher.group(1).equals("s") ? ALPHABETIC : NUMERIC;
+      int num = Integer.parseInt(matcher.group(2));
+      check(
+          !elements.containsKey(num) || elements.get(num) == type,
+          "Cannot use same n in both s%s and n%s: %s",
+          num,
+          num,
+          s);
+      elements.put(num, type);
+    }
+    for (Integer num : elements.keySet()) {
+      if (num > 0) {
+        check(
+            elements.containsKey(num - 1),
+            "Cannot have s%s or n%s if s%s or n%s" + " doesn't exist",
+            num,
+            num,
+            num - 1,
+            num - 1);
+      }
+    }
+
+    LatestVersionSelector versionPicker = new LatestVersionSelector(
+        regex, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
+    ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
+    check(extraGroups.isEmpty(), "Extra regex_groups not used in pattern: %s", extraGroups);
+
+    if (generalOptions.isForced()) {
+      return new OrderedVersionSelector(ImmutableList.of(
+          new RequestedVersionSelector(),
+          versionPicker));
+    }
+    return versionPicker;
   }
 
   private static ImmutableList<Action> convertFeedbackActions(

@@ -79,6 +79,7 @@ import com.google.copybara.version.LatestVersionSelector.VersionElementType;
 import com.google.copybara.version.OrderedVersionSelector;
 import com.google.copybara.version.RequestedVersionSelector;
 import com.google.copybara.version.VersionSelector;
+import com.google.copybara.version.VersionSelector.SearchPattern;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
@@ -241,7 +242,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'. Version"
+                + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
@@ -292,10 +294,29 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         primaryBranchMigration,
         patchTransformation,
         convertDescribeVersion(describeVersion),
-        convertFromNoneable(versionSelector, null),
+        validateVersionSelector(versionSelector),
         mainConfigFile.path(),
         workflowName,
         approvalsProvider(url));
+  }
+
+  @Nullable
+  private VersionSelector validateVersionSelector(Object versionSelector) throws EvalException {
+    VersionSelector selector = convertFromNoneable(versionSelector, null);
+
+    if (selector == null) {
+      return  null;
+    }
+
+    for (SearchPattern searchPattern : selector.searchPatterns()) {
+      if (searchPattern.isNone() || searchPattern.isAll()) {
+        continue;
+      }
+      check(searchPattern.tokens().get(0).getValue().startsWith("refs/"),
+          "Git version selector matches complete references (e.g. 'refs/tags/${n})'. The"
+              + " version selector provided doesn't start with the 'refs/' prefix: %s", selector);
+    }
+    return selector;
   }
 
   @Nullable
@@ -1069,7 +1090,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'"),
+            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'. Version"
+                + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
@@ -2298,9 +2320,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @StarlarkMethod(
       name = "latest_version",
       doc =
-          "Customize what version of the available branches and tags to pick."
-              + " By default it ignores the reference passed as parameter. Using `force:reference`"
-              + " in the CLI will force to use that reference instead.",
+          "DEPRECATED: Use core.latest_version.\n\n"
+              + "Customize what version of the available branches and tags to pick."
+              + " By default it ignores the reference passed as parameter. Using --force"
+              + " in the CLI will force to use the reference passed as argument instead.",
       parameters = {
         @Param(
             name = "refspec_format",
@@ -2326,12 +2349,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String refspec, Dict<?, ?> groups, StarlarkThread thread) // <String, String>
       throws EvalException {
     Map<String, String> groupsMap = Dict.cast(groups, String.class, String.class, "refspec_groups");
-    check(
-        refspec.startsWith("refs/"),
-        "Wrong value '%s'. Refspec has to"
-            + " start with 'refs/'. For example 'refs/tags/${v0}.${v1}.${v2}'",
-        refspec);
-
     TreeMap<Integer, VersionElementType> elements = new TreeMap<>();
     Pattern regexKey = Pattern.compile("([sn])([0-9])");
     for (String s : groupsMap.keySet()) {

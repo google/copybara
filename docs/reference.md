@@ -32,6 +32,7 @@
     - [core.feedback](#corefeedback)
     - [core.filter_replace](#corefilter_replace)
     - [core.format](#coreformat)
+    - [core.latest_version](#corelatest_version)
     - [core.move](#coremove)
     - [core.remove](#coreremove)
     - [core.replace](#corereplace)
@@ -867,6 +868,36 @@ Parameter | Description
 --------- | -----------
 format | `string`<br><p>The format string</p>
 args | `sequence`<br><p>The arguments to format</p>
+
+<a id="core.latest_version" aria-hidden="true"></a>
+### core.latest_version
+
+Selects the latest version that matches the format.  Using --force in the CLI will force to use the reference passed as argument instead.
+
+`VersionSelector` `core.latest_version(format, regex_groups={})`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+format | `string`<br><p>The format of the version. If using it for git, it has to use the completerefspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')</p>
+regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
+
+
+#### Example:
+
+
+##### Version selector for Git tags:
+
+Example of how to match tags that follow semantic versioning
+
+```python
+core.latest_version(
+    format = "refs/tags/${n0}.${n1}.${n2}",    regex_groups = {
+        'n0': '[0-9]+',        'n1': '[0-9]+',        'n2': '[0-9]+',    })
+```
+
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -2404,7 +2435,7 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 patch | [`transformation`](#transformation) or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
@@ -2619,7 +2650,9 @@ It will look for `COPYBARA_INTEGRATE_REVIEW` label during the worklow migration.
 <a id="git.latest_version" aria-hidden="true"></a>
 ### git.latest_version
 
-Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using `force:reference` in the CLI will force to use that reference instead.
+DEPRECATED: Use core.latest_version.
+
+Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using --force in the CLI will force to use the reference passed as argument instead.
 
 `VersionSelector` `git.latest_version(refspec_format="refs/tags/${n0}.${n1}.${n2}", refspec_groups={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})`
 
@@ -2672,7 +2705,7 @@ first_parent | `bool`<br><p>If true, it only uses the first parent when looking 
 partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 patch | [`transformation`](#transformation) or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br>   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br></p>
-version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'</p>
+version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 
 <a id="git.review_input" aria-hidden="true"></a>

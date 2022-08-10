@@ -37,10 +37,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-// TODO(malcon): Move some of these tests to java.com.google.copybara.version test and leave only
-// integration tests with git here.
 @RunWith(JUnit4.class)
-public class LatestVersionSelectorTest {
+public class LatestVersionSelectorForGitTest {
 
   private static final String COMMIT_TIME = "2037-02-16T13:00:00Z";
   private String url;
@@ -77,40 +75,6 @@ public class LatestVersionSelectorTest {
   }
 
   @Test
-  public void testVersionSelector() throws Exception {
-    createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
-    checkTags("1.21.1");
-  }
-
-  @Test
-  public void testVersionSelector_notActive() throws Exception {
-    options.gitOrigin.noGitVersionSelector = true;
-    createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
-    checkTags("foo");
-  }
-
-  @Test
-  public void testVersionSelector_notActiveBecauseOfForce() throws Exception {
-    options.general.setForceForTest(true);
-    createTags("foo", "1.0.0", "1.1.9", "1.9.1", "1.21.1");
-    checkTags("foo");
-  }
-
-  @Test
-  public void testVersionSelector_custom() throws Exception {
-    createTags("99.99.99",
-        "Foo-a-2-a",
-        "Foo-b-1-b",
-        "Foo-c-10-c",
-        "Foo-c-10-d");
-    checkTagsCustomSelector(
-        "refspec_format = 'refs/tags/Foo-${s1}-${n0}-${s2}',"
-            + " refspec_groups = {'s1' : '[a-c]', 'n0' : '[0-9]+', 's2' : '[a-z]+'}",
-        "Foo-c-10-d",
-        "refs/tags/Foo-*");
-  }
-
-  @Test
   public void testVersionSelector_branch() throws Exception {
     for (String b : ImmutableList.of("vAlpha1", "vBeta1", "vCharly10", "vCharly2")) {
       repo.branch(b).run();
@@ -124,35 +88,6 @@ public class LatestVersionSelectorTest {
   }
 
   @Test
-  public void testVersionSelector_extraGroups() {
-    ValidationException e = assertThrows(ValidationException.class, () -> checkTagsCustomSelector(
-        "refspec_format = 'refs/tags/${n0}',"
-            + " refspec_groups = {'n0' : '20200609', 'n1' : 'OOOPS'}",
-        "20200609",
-        "refs/tags/*"));
-    assertThat(e)
-        .hasMessageThat()
-        .contains("Extra refspec_groups not used in pattern: [n1]");
-  }
-
-  @Test
-  public void testVersionSelector_customDate() throws Exception {
-    createTags(
-        "20109999.999",
-        "20100310.1",
-        "20110310.1",
-        "20110410.1",
-        "20110411.10",
-        "20110411.1");
-    checkTagsCustomSelector(""
-            + "refspec_format = 'refs/tags/${n0}.${n1}',"
-            + "refspec_groups = {"
-            + "    'n0' : '20[0-9]{2}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])',"
-            + "    'n1' : '[0-9]{1,3}'}",
-        "20110411.10", "refs/tags/*");
-  }
-
-  @Test
   public void testVersionSelector_noMatch() throws Exception {
     createTags("1.0", "1.1", "1.2");
     ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
@@ -161,6 +96,23 @@ public class LatestVersionSelectorTest {
         .contains("Cannot find any matching version for latest_version");
     console.assertThat().onceInLog(MessageType.WARNING,
         ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
+  }
+
+  @Test
+  public void testVersionSelector_norefspec() throws Exception {
+    createTags("1.0", "1.1", "1.2");
+
+    assertThat(assertThrows(ValidationException.class,
+        () ->
+            skylark.eval("result", "result = "
+                + "git.origin(\n"
+                + "    url = '" + url + "',\n"
+                + "    version_selector = core.latest_version("
+                + "              format = 'v${n0}',"
+                + "              regex_groups = { 'n0': '1-9'}),\n"
+                + ")")))
+        .hasMessageThat()
+        .contains("The version selector provided doesn't start with the 'refs/' prefix");
   }
 
   private void checkTags(String expectedResult) throws Exception {
