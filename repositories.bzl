@@ -19,9 +19,9 @@ load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_vers
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-    RULES_JVM_EXTERNAL_TAG = "3.0"
+    RULES_JVM_EXTERNAL_TAG = "4.2"
 
-    RULES_JVM_EXTERNAL_SHA = "62133c125bf4109dfd9d2af64830208356ce4ef8b165a6ef15bbff7460b35c3a"
+    RULES_JVM_EXTERNAL_SHA = "cd1a77b7b02e8e008439ca76fd34f5b07aecb8c752961f9640dea15e9e5ba1ca"
 
     maybe(
         http_archive,
@@ -132,6 +132,7 @@ def copybara_repositories():
         strip_prefix = "rules_cc-ea5c5422a6b9e79e6432de3b2b29bbd84eb41081",
         url = "https://github.com/bazelbuild/rules_cc/archive/ea5c5422a6b9e79e6432de3b2b29bbd84eb41081.zip",
     )
+
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,

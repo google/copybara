@@ -22,6 +22,7 @@ java_library(
 
 java_library(
     name = "guava_testlib",
+    testonly = 1,
     exports = [
         "@maven//:com_google_guava_guava_testlib",
     ],
@@ -79,6 +80,7 @@ java_library(
 
 java_library(
     name = "junit",
+    testonly = 1,
     exports = [
         "@maven//:junit_junit",
     ],
@@ -86,6 +88,7 @@ java_library(
 
 java_library(
     name = "testparameterinjector",
+    testonly = 1,
     exports = [
         "@maven//:com_google_testparameterinjector_test_parameter_injector",
     ],
@@ -109,8 +112,8 @@ java_library(
     name = "truth",
     testonly = 1,
     exports = [
+        "@maven//:com_google_truth_extensions_truth_java8_extension",
         "@maven//:com_google_truth_truth",
-	"@maven//:com_google_truth_extensions_truth_java8_extension",
         "@maven//:com_googlecode_java_diff_utils_diffutils",
     ],
 )

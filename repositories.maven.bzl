@@ -13,42 +13,46 @@
 # limitations under the License.
 
 load("@rules_jvm_external//:defs.bzl", "DEFAULT_REPOSITORY_NAME", "maven_install")
+load("@rules_jvm_external//:specs.bzl", "maven")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
+
+COPYBARA_MAVEN_ARTIFACTS = [
+    maven.artifact("com.google.auto.value", "auto-value-annotations", "1.9"),
+    maven.artifact("com.google.auto.value", "auto-value", "1.9"),
+    maven.artifact("com.google.auto", "auto-common", "1.2.1"),
+    maven.artifact("com.google.code.findbugs", "jsr305", "3.0.2", neverlink = True),
+    maven.artifact("com.google.code.gson", "gson", "2.8.5"),
+    maven.artifact("com.google.flogger", "flogger-system-backend", "0.7.4"),
+    maven.artifact("com.google.flogger", "flogger", "0.7.4"),
+    maven.artifact("com.google.guava", "failureaccess", "1.0.1"),
+    maven.artifact("com.google.guava", "guava-testlib", "31.1-jre", testonly = True),
+    maven.artifact("com.google.guava", "guava", "31.1-jre"),
+    maven.artifact("com.google.http-client", "google-http-client-gson", "1.27.0"),
+    maven.artifact("com.google.http-client", "google-http-client-test", "1.27.0", testonly = True),
+    maven.artifact("com.google.http-client", "google-http-client", "1.27.0"),
+    maven.artifact("com.google.jimfs", "jimfs", "1.2"),
+    maven.artifact("com.google.re2j", "re2j", "1.6"),
+    maven.artifact("com.google.testparameterinjector", "test-parameter-injector", "1.8", testonly = True),
+    maven.artifact("com.google.truth", "truth", "1.1.3", testonly = True),
+    maven.artifact("com.google.truth.extensions", "truth-java8-extension", "0.41", testonly = True),
+    maven.artifact("com.googlecode.java-diff-utils", "diffutils", "1.3.0"),
+    maven.artifact("commons-codec", "commons-codec", "1.11"),
+    maven.artifact("junit", "junit", "4.13.2", testonly = True),
+    maven.artifact("net.bytebuddy", "byte-buddy-agent", "1.9.10", testonly = True),
+    maven.artifact("net.bytebuddy", "byte-buddy", "1.9.10", testonly = True),
+    maven.artifact("org.mockito", "mockito-core", "4.5.1", testonly = True),
+    maven.artifact("org.objenesis", "objenesis", "1.0", testonly = True),
+    maven.artifact("org.apache.commons", "commons-compress", "1.21"),
+]
+
+COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES = [
+    "https://maven.google.com",
+]
 
 def copybara_maven_repositories():
     maybe(
         maven_install,
         name = DEFAULT_REPOSITORY_NAME,
-        artifacts = [
-            "com.google.auto.value:auto-value-annotations:1.9",
-            "com.google.auto.value:auto-value:1.9",
-            "com.google.auto:auto-common:1.2.1",
-            "com.google.code.findbugs:jsr305:3.0.2",
-            "com.google.code.gson:gson:jar:2.8.5",
-            "com.google.flogger:flogger-system-backend:0.7.4",
-            "com.google.flogger:flogger:0.7.4",
-            "com.google.guava:failureaccess:1.0.1",
-            "com.google.guava:guava-testlib:31.1-jre",
-            "com.google.guava:guava:31.1-jre",
-            "com.google.http-client:google-http-client-gson:jar:1.27.0",
-            "com.google.http-client:google-http-client-test:jar:1.27.0",
-            "com.google.http-client:google-http-client:jar:1.27.0",
-            "com.google.jimfs:jimfs:1.2",
-            "com.google.re2j:re2j:1.6",
-            "com.google.testparameterinjector:test-parameter-injector:1.8",
-            "com.google.truth:truth:1.1.3",
-            "com.google.truth.extensions:truth-java8-extension:0.41",
-            "com.googlecode.java-diff-utils:diffutils:1.3.0",
-            "commons-codec:commons-codec:jar:1.11",
-            "junit:junit:4.13.2",
-            "net.bytebuddy:byte-buddy-agent:1.9.10",
-            "net.bytebuddy:byte-buddy:1.9.10",
-            "org.mockito:mockito-core:4.5.1",
-            "org.objenesis:objenesis:1.0",
-            "org.apache.commons:commons-compress:1.21",
-        ],
-        repositories = [
-            "https://maven.google.com",
-            "https://repo1.maven.org/maven2",
-        ],
+        artifacts = COPYBARA_MAVEN_ARTIFACTS,
+        repositories = COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES + ["https://repo1.maven.org/maven2"],
     )
