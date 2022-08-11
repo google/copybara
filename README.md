@@ -122,7 +122,7 @@ http_archive(
   name = "com_github_google_copybara",
   sha256 = "{{ sha256sum }}"
   strip_prefix = "copybara-{{ commit }}",
-  url = "https://github.com/google/copybara/archive/{{ commit }}",
+  url = "https://github.com/google/copybara/archive/{{ commit }}.zip",
 )
 
 load("@com_github_google_copybara//:repositories.bzl", "copybara_repositories")
