@@ -65,6 +65,22 @@ public final class Diff3UtilTest {
     assertThat(output.getStdout()).isEqualTo(mergedFile);
   }
 
+  @Test
+  public void testMergeConflictPropagatedToCommandOutput() throws Exception {
+    writeFile(left, "left.txt", "a\nb\nc\n");
+    writeFile(right, "right.txt", "d\ne\nf\n");
+    writeFile(baseline, "baseline.txt", "g\nh\ni");
+
+    CommandOutputWithStatus output =
+        underTest.diff(
+            left.resolve("left.txt"),
+            right.resolve("right.txt"),
+            baseline.resolve("baseline.txt"),
+            workdir);
+
+    assertThat(output.getTerminationStatus().getExitCode()).isEqualTo(1);
+  }
+
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);
     Files.createDirectories(path);

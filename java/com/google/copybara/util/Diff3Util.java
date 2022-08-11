@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
@@ -48,7 +49,13 @@ final class Diff3Util {
     try {
       output = new CommandRunner(cmd).withVerbose(true).execute();
     } catch (BadExitStatusWithOutputException e) {
-      throw new IOException("Error executing 'diff3'", e);
+      if (e.getOutput().getTerminationStatus().getExitCode() == 1) {
+        return new CommandOutputWithStatus(
+            e.getOutput().getTerminationStatus(),
+            e.getOutput().getStdout().getBytes(StandardCharsets.UTF_8),
+            e.getOutput().getStderr().getBytes(StandardCharsets.UTF_8));
+      }
+      throw new CommandException(cmd, e);
     }
     return output;
   }
