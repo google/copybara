@@ -108,6 +108,19 @@
     - [git.mirror](#gitmirror)
     - [git.origin](#gitorigin)
     - [git.review_input](#gitreview_input)
+  - [git.mirrorContext](#gitmirrorcontext)
+    - [git.mirrorContext.cherry_pick](#gitmirrorcontextcherry_pick)
+    - [git.mirrorContext.create_branch](#gitmirrorcontextcreate_branch)
+    - [git.mirrorContext.destination_fetch](#gitmirrorcontextdestination_fetch)
+    - [git.mirrorContext.destination_push](#gitmirrorcontextdestination_push)
+    - [git.mirrorContext.error](#gitmirrorcontexterror)
+    - [git.mirrorContext.merge](#gitmirrorcontextmerge)
+    - [git.mirrorContext.noop](#gitmirrorcontextnoop)
+    - [git.mirrorContext.origin_fetch](#gitmirrorcontextorigin_fetch)
+    - [git.mirrorContext.rebase](#gitmirrorcontextrebase)
+    - [git.mirrorContext.record_effect](#gitmirrorcontextrecord_effect)
+    - [git.mirrorContext.references](#gitmirrorcontextreferences)
+    - [git.mirrorContext.success](#gitmirrorcontextsuccess)
   - [git_merge_result](#git_merge_result)
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_objadd_label)
@@ -2733,6 +2746,203 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
 <span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
+
+
+
+## git.mirrorContext
+
+Expose methods to `git.mirror` actions to perform operations over git repositories
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+action_name | `string`<br><p>The name of the current action.</p>
+cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
+console | [`Console`](#console)<br><p>Get an instance of the console to report errors or warnings</p>
+params | `dict`<br><p>Parameters for the function if created with core.action</p>
+refs | `sequence`<br><p>A list containing string representations of the entities that triggered the event</p>
+
+<a id="git.mirrorContext.cherry_pick" aria-hidden="true"></a>
+### git.mirrorContext.cherry_pick
+
+Cherry-pick one or more commits to a branch
+
+[`git_merge_result`](#git_merge_result) `git.mirrorContext.cherry_pick(branch, commits, add_commit_origin_info=True, merge_parent_number=None, allow_empty=False, fast_forward=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+branch | `string`<br><p></p>
+commits | `sequence of string`<br><p>Commits to cherry-pick. An expression like foo..bar can be used to cherry-pick several commits. Note that 'HEAD' will refer to the `branch` HEAD, since cherry-pick requires a checkout of the branch before cherry-picking.</p>
+add_commit_origin_info | `bool`<br><p>Add information about the origin of the commit (sha-1) to the message of the newcommit</p>
+merge_parent_number | `unknown`<br><p>Specify the parent number for cherry-picking merge commits</p>
+allow_empty | `bool`<br><p>Allow empty commits (noop commits)</p>
+fast_forward | `bool`<br><p>Fast-forward commits if possible</p>
+
+<a id="git.mirrorContext.create_branch" aria-hidden="true"></a>
+### git.mirrorContext.create_branch
+
+Merge one or more commits into a local branch.
+
+`git.mirrorContext.create_branch(name, starting_point=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name | `string`<br><p></p>
+starting_point | `unknown`<br><p></p>
+
+<a id="git.mirrorContext.destination_fetch" aria-hidden="true"></a>
+### git.mirrorContext.destination_fetch
+
+Fetch from the destination a list of refspecs. Note that fetch happens without pruning.
+
+`bool` `git.mirrorContext.destination_fetch(refspec, prune=True)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+refspec | `sequence of string`<br><p></p>
+prune | `bool`<br><p></p>
+
+<a id="git.mirrorContext.destination_push" aria-hidden="true"></a>
+### git.mirrorContext.destination_push
+
+Push to the destination a list of refspecs.
+
+`git.mirrorContext.destination_push(refspec, prune=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+refspec | `sequence of string`<br><p></p>
+prune | `bool`<br><p></p>
+
+<a id="git.mirrorContext.error" aria-hidden="true"></a>
+### git.mirrorContext.error
+
+Returns an error action result.
+
+`dynamic.action_result` `git.mirrorContext.error(msg)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string`<br><p>The error message</p>
+
+<a id="git.mirrorContext.merge" aria-hidden="true"></a>
+### git.mirrorContext.merge
+
+Merge one or more commits into a local branch.
+
+[`git_merge_result`](#git_merge_result) `git.mirrorContext.merge(branch, commits, msg=None, fast_forward="FF")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+branch | `string`<br><p></p>
+commits | `sequence of string`<br><p></p>
+msg | `unknown`<br><p></p>
+fast_forward | `string`<br><p>Valid values are FF (default), NO_FF, FF_ONLY.</p>
+
+<a id="git.mirrorContext.noop" aria-hidden="true"></a>
+### git.mirrorContext.noop
+
+Returns a no op action result with an optional message.
+
+`dynamic.action_result` `git.mirrorContext.noop(msg=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+msg | `string` or `NoneType`<br><p>The no op message</p>
+
+<a id="git.mirrorContext.origin_fetch" aria-hidden="true"></a>
+### git.mirrorContext.origin_fetch
+
+Fetch from the origin a list of refspecs. Note that fetch happens without pruning.
+
+`bool` `git.mirrorContext.origin_fetch(refspec, prune=True)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+refspec | `sequence of string`<br><p></p>
+prune | `bool`<br><p></p>
+
+<a id="git.mirrorContext.rebase" aria-hidden="true"></a>
+### git.mirrorContext.rebase
+
+Rebase one or more commits into a local branch.
+
+[`git_merge_result`](#git_merge_result) `git.mirrorContext.rebase(upstream, branch, newBase=None, conflict_advice=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+upstream | `string`<br><p>upstream branch with new changes</p>
+branch | `string`<br><p>Current branch with specific commits that we want to rebase in top of the new `upstream` changes</p>
+newBase | `unknown`<br><p>Move the rebased changes to a new branch (--into parameter in git rebase)</p>
+conflict_advice | `unknown`<br><p>Additional information on how to solve the issue in case if conflict</p>
+
+<a id="git.mirrorContext.record_effect" aria-hidden="true"></a>
+### git.mirrorContext.record_effect
+
+Records an effect of the current action.
+
+`git.mirrorContext.record_effect(summary, origin_refs, destination_ref, errors=[], type="UPDATED")`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+summary | `string`<br><p>The summary of this effect</p>
+origin_refs | `sequence of `[`origin_ref`](#origin_ref)<br><p>The origin refs</p>
+destination_ref | [`destination_ref`](#destination_ref)<br><p>The destination ref</p>
+errors | `sequence of string`<br><p>An optional list of errors</p>
+type | `string`<br><p>The type of migration effect:<br><ul><li><b>'CREATED'</b>: A new review or change was created.</li><li><b>'UPDATED'</b>: An existing review or change was updated.</li><li><b>'NOOP'</b>: The change was a noop.</li><li><b>'NOOP_AGAINST_PENDING_CHANGE'</b>: The change was a noop, relativeto an existing pending change.</li><li><b>'INSUFFICIENT_APPROVALS'</b>: The effect couldn't happen because the change doesn't have enough approvals.</li><li><b>'ERROR'</b>: A user attributable error happened that prevented the destination from creating/updating the change. <li><b>'STARTED'</b>: The initial effect of a migration that depends on a previous one. This allows to have 'dependant' migrations defined by users.<br>An example of this: a workflow migrates code from a Gerrit review to a GitHub PR, and a feedback migration migrates the test results from a CI in GitHub back to the Gerrit change.<br>This effect would be created on the former one.</li></ul></p>
+
+<a id="git.mirrorContext.references" aria-hidden="true"></a>
+### git.mirrorContext.references
+
+Return a map of reference -> sha-1 for local references matching the refspec or all if no refspec is passed.
+
+`dict[string, string]` `git.mirrorContext.references(refspec=[])`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+refspec | `sequence of string`<br><p></p>
+
+<a id="git.mirrorContext.success" aria-hidden="true"></a>
+### git.mirrorContext.success
+
+Returns a successful action result.
+
+`dynamic.action_result` `git.mirrorContext.success()`
 
 
 
