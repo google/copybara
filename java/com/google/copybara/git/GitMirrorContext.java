@@ -53,6 +53,9 @@ import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
+/**
+ * Expose methods to `git.mirror` actions to perform operations over git repositories
+ */
 @StarlarkBuiltin(
     name = "git.mirrorContext",
     doc = "Expose methods to `git.mirror` actions to perform operations over git repositories")
