@@ -19,20 +19,21 @@ import javax.annotation.Nullable;
 
 /** A class to represent Version for RemoteArchive Endpoints */
 public final class RemoteArchiveVersion {
-  private final String fullUrl;
-  @Nullable private final String version;
 
-  public RemoteArchiveVersion(String fullUrl, @Nullable String version) {
-    this.fullUrl = fullUrl;
+  private final String fullUrl;
+  private final String version;
+
+  public RemoteArchiveVersion(String fullUrl, String version) {
     this.version = version;
+    this.fullUrl = fullUrl;
   }
 
   public String getFullUrl() {
-    return fullUrl;
+    return this.fullUrl;
   }
 
   @Nullable
   public String getVersion() {
-    return version;
+    return this.version;
   }
 }

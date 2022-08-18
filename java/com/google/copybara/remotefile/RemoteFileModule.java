@@ -16,6 +16,7 @@
 
 package com.google.copybara.remotefile;
 
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static net.starlark.java.eval.Starlark.errorf;
 
@@ -27,11 +28,15 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.version.VersionList;
+import com.google.copybara.version.VersionSelector;
 import java.util.Arrays;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -100,61 +105,90 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       doc = "Defines a remote file origin. This is a WIP and experimental. Do not use. ",
       parameters = {
         @Param(
-            name = "unpack_method",
-            defaultValue = "'AS_IS'",
-            doc =
-                "The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and"
-                    + " 'AS_IS' are supported.",
-            named = true),
-        @Param(
             name = "author",
             defaultValue = "'Copybara <noreply@copybara.io>'",
             doc = "Author to attribute the change to",
-            named = true),
+            named = true,
+            allowedTypes = {@ParamType(type = String.class)}),
         // TODO(joshgoldman): support labels in addition to message
         @Param(
             name = "message",
             defaultValue = "'Placeholder message'",
             doc = "Message to attach to the change",
-            named = true),
+            named = true,
+            allowedTypes = {@ParamType(type = String.class)}),
         @Param(
+            name = "unpack_method",
+            defaultValue = "'AS_IS'",
+            doc =
+                "The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and"
+                    + " 'AS_IS' are supported.",
+            named = true,
+            allowedTypes = {@ParamType(type = String.class)}),
+        @Param(
+            name = "archive_source",
+            named = true,
+            doc =
+                "Template or literal URL to download archive from. Optionally you can use"
+                    + " ${VERSION} in your URL string as placeholder for later resolved versions"
+                    + " during origin checkout. E.g."
+                    + " 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'",
+            defaultValue = "''",
+            allowedTypes = {@ParamType(type = String.class)}),
+        @Param(
+            name = "version_list",
+            named = true,
+            defaultValue = "None",
+            doc = "Version list to select versions on. Omit to create a versionless origin.",
+            allowedTypes = {
+              @ParamType(type = VersionList.class),
+              @ParamType(type = NoneType.class)
+            }),
+        @Param(
+            name = "origin_version_selector",
+            named = true,
+            defaultValue = "None",
+            doc =
+                "Version selector used to select on version_list. Omit to create a versionless"
+                    + " origin.",
+            allowedTypes = {
+              @ParamType(type = VersionSelector.class),
+              @ParamType(type = NoneType.class)
+            }),
+        @Param( // TODO(linjordan): remove
             name = "version_selector",
             defaultValue = "None",
-            doc = "Object that contains version selecting logic",
+            doc = "Object that contains version selecting logic. DEPRECATED.",
             named = true),
-        @Param(
+        @Param( // TODO(linjordan): remove
             name = "base_url",
             named = true,
-            doc = "base URL to construct the full URL",
+            doc = "base URL to construct the full URL. DEPRECATED.",
             defaultValue = "None")
       })
   @UsesFlags(RemoteFileOptions.class)
   public RemoteArchiveOrigin remoteArchiveOrigin(
-      String fileType,
       String author,
       String message,
-      RemoteArchiveVersionSelector versionSelector,
-      String baseUrl)
-      throws EvalException, ValidationException {
+      String fileType,
+      String archiveSourceURL,
+      Object versionList,
+      Object versionSelector,
+      Object unusedVersionSelector, // TODO(linjordan): remove
+      Object baseURL // TODO(linjordan): remove
+      ) throws EvalException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
     RemoteFileType remoteFileType = stringToEnum("unpack_method", fileType, RemoteFileType.class);
     return new RemoteArchiveOrigin(
-        remoteFileType,
         Author.parse(author),
         message,
-        remoteFileOptions.getTransport(),
         generalOptions.profiler(),
+        generalOptions.console(),
         remoteFileOptions,
-        baseUrl,
-        versionSelector);
-  }
-
-  @StarlarkMethod(
-      name = "no_version_selector",
-      doc = "A RemoteArchiveVersionSelector that ignores version and returns only base url",
-      documented = false)
-  public NoVersionSelector noVersionSelector() {
-    return new NoVersionSelector();
+        remoteFileType,
+        archiveSourceURL,
+        convertFromNoneable(versionList, null),
+        convertFromNoneable(versionSelector, null));
   }
 }

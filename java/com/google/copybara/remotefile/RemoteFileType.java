@@ -20,5 +20,5 @@ public enum RemoteFileType {
   JAR,
   ZIP,
   TAR,
-  AS_IS
+  AS_IS;
 }

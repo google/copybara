@@ -16,6 +16,7 @@
 
 package com.google.copybara.remotefile;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.io.MoreFiles;
@@ -27,7 +28,12 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
+import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Console;
+import com.google.copybara.version.VersionList;
+import com.google.copybara.version.VersionSelector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -43,40 +49,78 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
   private static final String LABEL_NAME = "RemoteArchiveOrigin";
 
-  final RemoteFileType fileType;
   private final Author author;
   private final String message;
-  private final HttpStreamFactory transport;
   private final Profiler profiler;
+  private final Console console;
   private final RemoteFileOptions remoteFileOptions;
-  private final String baseUrl;
-  private final RemoteArchiveVersionSelector versionSelector;
+  private final String archiveSourceUrl;
+  private final VersionList versionList;
+  private final VersionSelector versionSelector;
+  private final RemoteFileType remoteFileType;
 
   RemoteArchiveOrigin(
-      RemoteFileType fileType,
       Author author,
       String message,
-      HttpStreamFactory transport,
       Profiler profiler,
+      Console console,
       RemoteFileOptions remoteFileOptions,
-      String baseUrl,
-      RemoteArchiveVersionSelector versionSelector) {
-    this.fileType = fileType;
+      RemoteFileType remoteFileType,
+      String archiveSourceUrl,
+      VersionList versionList,
+      VersionSelector versionSelector) {
+    this.remoteFileType = remoteFileType;
     this.author = author;
     this.message = message;
-    this.transport = transport;
     this.profiler = profiler;
+    this.console = console;
     this.remoteFileOptions = remoteFileOptions;
-    this.baseUrl = baseUrl;
+    this.archiveSourceUrl = archiveSourceUrl;
+    this.versionList = versionList;
     this.versionSelector = versionSelector;
   }
 
+  /**
+   * @param versionRef the version to target. If left null/empty, we will deduce intended version
+   *     from what was supplied to the RemoteArchiveOrigin constructor.
+   */
   @Override
-  public RemoteArchiveRevision resolve(@Nullable String reference)
+  public RemoteArchiveRevision resolve(@Nullable String versionRef)
       throws RepoException, ValidationException {
-    RemoteArchiveVersion version =
-        versionSelector.constructUrl(baseUrl, reference, remoteFileOptions);
-    return new RemoteArchiveRevision(version);
+    // It's a versionless import.
+    if (versionList == null || versionSelector == null) {
+      return new RemoteArchiveRevision(new RemoteArchiveVersion(archiveSourceUrl, ""));
+    }
+
+    try {
+      String version =
+          !Strings.isNullOrEmpty(versionRef)
+              ? versionRef
+              : versionSelector
+                  .select(versionList, versionRef, console)
+                  .orElseThrow(
+                      () -> new ValidationException("Version selector returned no results."));
+      String fullUrl =
+          new LabelTemplate(archiveSourceUrl)
+              .resolve(
+                  label -> {
+                    if (!label.equals("VERSION")) {
+                      throw new IllegalArgumentException(
+                          String.format(
+                              "Archive source templates only support '${VERSION}' labels, but found"
+                                  + " '%s'",
+                              label));
+                    }
+                    return version;
+                  });
+      RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, version);
+      return new RemoteArchiveRevision(remoteArchiveVersion);
+    } catch (LabelNotFoundException | IllegalArgumentException | ValidationException e) {
+      throw new ValidationException(
+          String.format(
+              "Could not resolve archive URL template %s with error '%s'",
+              archiveSourceUrl, e.getMessage()));
+    }
   }
 
   @Override
@@ -85,7 +129,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
       private void writeArchiveAsIs(RemoteArchiveRevision ref, Path workdir, InputStream returned)
           throws IOException {
-        String filename = ref.getUrl().substring(baseUrl.lastIndexOf("/") + 1);
+        String filename = ref.getUrl().substring(archiveSourceUrl.lastIndexOf("/") + 1);
         MoreFiles.asByteSink(workdir.resolve(filename)).writeFrom(returned);
       }
 
@@ -93,7 +137,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
           throws IOException, ValidationException {
         ArchiveEntry archiveEntry;
         try (ArchiveInputStream inputStream =
-            remoteFileOptions.createArchiveInputStream(returned, fileType)) {
+            remoteFileOptions.createArchiveInputStream(returned, remoteFileType)) {
           while (((archiveEntry = inputStream.getNextEntry()) != null)) {
             if (!originFiles
                     .relativeTo(workdir.toAbsolutePath())
@@ -112,10 +156,10 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
         try {
           // TODO(joshgoldman): Add richer ref object and ability to restrict download by host/url
           URL url = new URL(Objects.requireNonNull(ref.getUrl()));
-
+          HttpStreamFactory transport = remoteFileOptions.getTransport();
           try (ProfilerTask ignored = profiler.start("remote_file_" + url);
               InputStream returned = transport.open(url)) {
-            if (fileType == RemoteFileType.AS_IS) {
+            if (remoteFileType == RemoteFileType.AS_IS) {
               writeArchiveAsIs(ref, workdir, returned);
             } else {
               writeArchiveByUnpacking(workdir, returned);
