@@ -27,6 +27,10 @@ Examples uses of Copybara include:
     authoritative repository. Any merge conflicts are dealt with in the same way as an out-of-date
     change within the authoritative repository.
 
+One of the main features of Copybara is that it is stateless, or more specifically, that it stores
+the state in the destination repository (As a label in the commit message). This allows several
+users (or a service) to use Copybara for the same config/repositories and get the same result.
+
 Currently, the only supported type of repository is Git. Copybara also supports
 reading from Mercurial repositories, but the feature is still experimental.
 Support for other repositories types will be added in the future.
