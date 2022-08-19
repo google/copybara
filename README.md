@@ -83,8 +83,8 @@ In order to do that, you need to do the following:
       * `bazel build //java/com/google/copybara:copybara_deploy.jar` to create an executable uberjar.
   * Tests: `bazel test //...` if you want to ensure you are not using a broken version. Note that
     certain tests require the underlying tool to be installed(e.g. Mercurial, Quilt, etc.). It is
-	fine to skip those tests if your Pull Request is unrelated to those modules (And our CI will
-	run all the tests anyway).
+    fine to skip those tests if your Pull Request is unrelated to those modules (And our CI will
+    run all the tests anyway).
 
 ### System packages
 
