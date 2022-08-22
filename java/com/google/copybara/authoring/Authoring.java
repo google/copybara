@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.doc.annotations.Example;
-import com.google.copybara.util.console.Console;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -102,8 +101,6 @@ public final class Authoring implements StarlarkValue {
       name = "authoring",
       doc = "The authors mapping between an origin and a destination")
   public static final class Module implements StarlarkValue {
-
-    public Module(Console console) {}
 
     @StarlarkMethod(
         name = "overwrite",

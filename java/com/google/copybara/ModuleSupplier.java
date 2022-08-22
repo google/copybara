@@ -99,7 +99,7 @@ public class ModuleSupplier {
             options.get(WorkflowOptions.class), options.get(BuildozerOptions.class)),
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
-        new Authoring.Module(console),
+        new Authoring.Module(),
         new RemoteFileModule(options),
         new Re2Module(),
         new StructModule());
