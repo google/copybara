@@ -102,6 +102,7 @@ all_tests(
         "//third_party:mockito",
         "//third_party:shell",
         "//third_party:starlark",
+        "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
 )

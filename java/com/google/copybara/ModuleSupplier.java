@@ -102,7 +102,8 @@ public class ModuleSupplier {
         new Authoring.Module(),
         new RemoteFileModule(options),
         new Re2Module(),
-        new StructModule());
+        new StructModule(),
+        new StarlarkDateTimeModule());
   }
 
   /** Returns a new list of {@link Option}s. */
