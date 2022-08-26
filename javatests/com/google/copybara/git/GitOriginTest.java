@@ -311,8 +311,8 @@ public class GitOriginTest {
     repo.forceCheckout("foo");
     Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
     repo.add().all().run();
-    git("tag", "-m", "This is a tag", "0.2");
     repo.simpleCommand("commit", "-m", "branch change");
+    git("tag", "-m", "This is a tag", "0.2");
     repo.forceCheckout(defaultBranch);
     Files.write(remote.resolve("foo.txt"), "modified".getBytes(UTF_8));
     repo.add().all().run();
@@ -324,7 +324,7 @@ public class GitOriginTest {
         .isNotEqualTo(labels.get("GIT_DESCRIBE_REQUESTED_VERSION"));
     assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT").stream().anyMatch(x -> x.contains("0.1")))
         .isTrue();
-    assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.1")))
+    assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.2")))
         .isTrue();
   }
 
@@ -816,17 +816,13 @@ public class GitOriginTest {
     // The rest can come in a different order depending on the time difference, as git log
     // ordering is undefined for same time.
     List<String> visitedMsgList = Lists.transform(visited, Change::firstLineMessage);
-    assertThat(visitedMsgList).hasSize(6);
-    assertThat(visitedMsgList.get(0)).contains("Merge branch 'feature'");
-    assertThat(visitedMsgList.get(1)).contains("main2");
-    assertThat(visitedMsgList.get(2)).contains("change3");
-    assertThat(visitedMsgList.get(3)).contains("main1");
-    assertThat(visitedMsgList.get(4)).contains("change2");
-    assertThat(visitedMsgList.get(5)).contains("first file");
+    assertThat(visitedMsgList)
+        .containsExactly(
+            "Merge branch 'feature'", "main2", "change3", "main1", "change2", "first file");
 
-    changes = reader.changes(/*fromRef=*/null, lastCommitRef).getChanges();
-    assertThat(Lists.transform(changes.reverse(), Change::getRevision)).isEqualTo(
-        Lists.transform(visited, Change::getRevision));
+    changes = reader.changes(/*fromRef=*/ null, lastCommitRef).getChanges();
+    assertThat(Lists.transform(changes.reverse(), Change::getRevision))
+        .isEqualTo(Lists.transform(visited, Change::getRevision));
     assertThat(changes.reverse().get(0).isMerge()).isTrue();
     assertThat(visited.get(0).isMerge()).isTrue();
   }
@@ -924,16 +920,16 @@ public class GitOriginTest {
     ImmutableList<? extends Change<?>> includedChanges = checkChangesMergeNoop(true);
     List<String> msgList =
         includedChanges.stream().map(Change::getMessage).collect(Collectors.toList());
-    assertThat(msgList).hasSize(8);
-    assertThat(msgList.get(0)).contains("Merge branch 'feature2'");
-    assertThat(msgList.get(1)).contains("change3");
-    assertThat(msgList.get(2)).contains("change2");
-    assertThat(msgList.get(3)).contains("change1");
-    assertThat(msgList.get(4)).contains("Merge branch 'feature1'");
-    assertThat(msgList.get(5)).contains("feature1");
-    assertThat(msgList.get(6)).contains("exclude1");
-    assertThat(msgList.get(7)).contains("main_branch_change");
-
+    assertThat(msgList.stream().map(String::trim).collect(Collectors.toList()))
+        .containsExactly(
+            "Merge branch 'feature2'",
+            "change3",
+            "change2",
+            "change1",
+            "Merge branch 'feature1'",
+            "feature1",
+            "exclude1",
+            "main_branch_change");
   }
 
   @SuppressWarnings("unchecked")
