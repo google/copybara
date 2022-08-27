@@ -396,7 +396,7 @@ A transformation which is the opposite of creating a build target. When run norm
 
 Parameter | Description
 --------- | -----------
-target | `string`<br><p>Target to create, including the package, e.g. 'foo:bar'</p>
+target | `string`<br><p>Target to delete, including the package, e.g. 'foo:bar'</p>
 rule_type | `string`<br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
 recreate_commands | `sequence of string` or `sequence of Command`<br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 before | `string`<br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
