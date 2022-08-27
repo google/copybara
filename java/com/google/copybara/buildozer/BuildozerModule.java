@@ -155,7 +155,7 @@ public final class BuildozerModule implements StarlarkValue {
       parameters = {
         @Param(
             name = "target",
-            doc = "Target to create, including the package, e.g. 'foo:bar'",
+            doc = "Target to delete, including the package, e.g. 'foo:bar'",
             named = true),
         @Param(
             name = "rule_type",
