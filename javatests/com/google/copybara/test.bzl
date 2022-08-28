@@ -12,7 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def all_tests(tests, deps, tags = [], shard_count = 1, data = []):
+"""
+This file contains macros used in the copybara project.
+"""
+
+# buildifier: disable=unnamed-macro
+def all_tests(tests, deps, tags = [], shard_count = 1, data = [], env = {}):
+    """
+    This macro encapsulates the java_test rules used in the copybara project.
+
+    Args:
+          tests: list[string], List of test files to create java_tests from.
+          deps: list[string], List of dependencies.
+          tags: list[string], Test categorization.
+          shard_count: int, Number of parallel shards to use to run the test.
+          data: list[string], Files needed at runtime by java tests.
+          env: dict[string, string], Test environment variables.
+    """
     for file in tests:
         # TODO(malcon): Skip files not ending as *Test.java
         relative_target = file[:-5]
@@ -39,4 +55,5 @@ def all_tests(tests, deps, tags = [], shard_count = 1, data = []):
             ],
             tags = tags,
             shard_count = shard_count,
+            env = env,
         )

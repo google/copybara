@@ -1180,33 +1180,79 @@ public class GitRepositoryTest {
   }
 
   @Test
-  public void hasSameTree() throws Exception {
-    String branch = "test";
-    // mock remote repo
-    GitRepository mockRemoteRepo = repository.withWorkTree(workdir);
-    mockRemoteRepo.init();
-    mockRemoteRepo.simpleCommand("checkout", "-b", branch);
-    Files.write(workdir.resolve("foo.txt"), new byte[]{});
+  public void testHasSameTreeTrue() throws Exception {
+    //                     * +(baz.txt("baz"))
+    //                     |
+    // +(baz.txt("baz")) * * +(bar.txt("bar"))
+    //                    \|
+    //                     * +(foo.txt(""))
+    repository.simpleCommand("checkout", "-b", defaultBranch);
+    Files.writeString(workdir.resolve("foo.txt"), "");
     repository.add().files("foo.txt").run();
-    mockRemoteRepo.simpleCommand("commit", "foo.txt", "-m", "message_a");
-    String sha1 =  mockRemoteRepo.resolveReference("HEAD").getSha1();
+    repository.simpleCommand("commit", "-m", "add foo");
+    String firstCommitSha1 = repository.resolveReference("HEAD").getSha1();
 
-    // mock local repo
-    Path localWorkTree = Files.createTempDirectory("localWorkTree");
-    Path localGitDir = Files.createTempDirectory("localGitDir");
-    GitRepository localRepo = mockRepository(localGitDir, localWorkTree);
-    localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch, false);
-    localRepo.forceCheckout(sha1);
+    Files.writeString(workdir.resolve("bar.txt"), "bar");
+    repository.add().files("bar.txt").run();
+    repository.simpleCommand("commit", "-m", "add bar");
 
-    // mock the same sha1 at remote and local
-    for (GitRepository repo : ImmutableList.of(localRepo, mockRemoteRepo)){
-      Files.write(repo.getWorkTree().resolve("foo.txt"), "update content".getBytes(UTF_8));
-      repo.simpleCommand("commit", "foo.txt", "-m", "update msg");
-    }
+    Files.writeString(workdir.resolve("baz.txt"), "baz");
+    repository.add().files("baz.txt").run();
+    repository.simpleCommand("commit", "-m", "add baz");
 
-    String remoteHeadSha1 = mockRemoteRepo.resolveReference("HEAD").getSha1();
+    String lastCommitSha1 = repository.resolveReference("HEAD").getSha1();
 
-    assertThat(localRepo.hasSameTree(remoteHeadSha1)).isTrue();
+    // go to first commit of main branch and create branch "test"
+    repository.simpleCommand("checkout", firstCommitSha1);
+    repository.simpleCommand("checkout", "-b", "test");
+
+    Files.writeString(workdir.resolve("baz.txt"), "baz");
+    repository.add().files("baz.txt").run();
+    repository.simpleCommand("commit", "-m", "add baz");
+    String branchedCommitSha1 = repository.resolveReference("HEAD").getSha1();
+
+    // go back to tip of main branch
+    repository.simpleCommand("checkout", lastCommitSha1);
+
+    assertThat(repository.hasSameTree(branchedCommitSha1)).isTrue();
+  }
+
+  @Test
+  public void testHasSameTreeFalse() throws Exception {
+    //                         * +(baz.txt, "baz")
+    //                         |
+    // +(baz.txt("not baz")) * * +(bar.txt, "bar")
+    //                        \|
+    //                         * +(foo.txt(""))
+    repository.simpleCommand("checkout", "-b", defaultBranch);
+    Files.writeString(workdir.resolve("foo.txt"), "");
+    repository.add().files("foo.txt").run();
+    repository.simpleCommand("commit", "-m", "message_a");
+    String firstCommitSha1 = repository.resolveReference("HEAD").getSha1();
+
+    Files.writeString(workdir.resolve("bar.txt"), "bar");
+    repository.add().files("bar.txt").run();
+    repository.simpleCommand("commit", "-m", "add bar");
+
+    Files.writeString(workdir.resolve("baz.txt"), "baz");
+    repository.add().files("baz.txt").run();
+    repository.simpleCommand("commit", "-m", "add baz");
+
+    String lastCommitSha1 = repository.resolveReference("HEAD").getSha1();
+
+    // go to first commit of main branch and create branch "test"
+    repository.simpleCommand("checkout", firstCommitSha1);
+    repository.simpleCommand("checkout", "-b", "test");
+
+    Files.writeString(workdir.resolve("baz.txt"), "not baz");
+    repository.add().files("baz.txt").run();
+    repository.simpleCommand("commit", "-m", "add baz");
+    String branchedCommitSha1 = repository.resolveReference("HEAD").getSha1();
+
+    // go back to tip of main branch
+    repository.simpleCommand("checkout", lastCommitSha1);
+
+    assertThat(repository.hasSameTree(branchedCommitSha1)).isFalse();
   }
 
   @Test

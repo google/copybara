@@ -20,6 +20,7 @@ package(default_visibility = ["//visibility:public"])
 licenses(["notice"])
 
 all_tests(
+    env = {"LC_CTYPE": "en_US.UTF-8"},
     tags = ["local"],
     tests = glob(
         ["**/*.java"],
