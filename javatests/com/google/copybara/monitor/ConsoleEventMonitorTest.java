@@ -75,7 +75,7 @@ public class ConsoleEventMonitorTest {
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create(
             "workflow",
-            new DummyRevision("1111"),
+            newChange("1111"),
             ImmutableList.of(newChange("2222"), newChange("3333")));
     Info<?> info = Info.create(ImmutableMultimap.of("origin", "foo"),
         ImmutableMultimap.of("dest", "bar"), ImmutableList.of(workflow));

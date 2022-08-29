@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Destination.DestinationStatus;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
@@ -62,8 +63,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -75,7 +74,7 @@ import javax.annotation.Nullable;
  */
 public class Workflow<O extends Revision, D extends Revision> implements Migration {
 
-  private final Logger logger = Logger.getLogger(this.getClass().getName());
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   static final String COPYBARA_CONFIG_PATH_IDENTITY_VAR = "copybara_config_path";
   static final String COPYBARA_WORKFLOW_NAME_IDENTITY_VAR = "copybara_workflow_name";
@@ -268,11 +267,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
           () -> origin.resolve(sourceRef));
 
-      logger.log(Level.INFO, String.format(
+      logger.atInfo().log(
               "Running Copybara for workflow '%s' and ref '%s': %s",
               name, resolvedRef.asString(),
-              this.toString()));
-      logger.log(Level.INFO, String.format("Using working directory : %s", workdir));
+              this);
+      logger.atInfo().log("Using working directory : %s", workdir);
       ImmutableList.Builder<DestinationEffect> allEffects = ImmutableList.builder();
       WorkflowRunHelper<O, D> helper = newRunHelper(workdir, resolvedRef, sourceRef,
           event -> {
@@ -375,6 +374,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                               ? null
                               : origin.resolve(destinationStatus.getBaseline()));
 
+              Change<O> lastMigratedChange = null;
+              try {
+                lastMigratedChange = generalOptions.repoTask(
+                    "origin.last_migrated",
+                    () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
+              }  catch (RepoException | ValidationException e) {
+                logger.atInfo().withCause(e).log("Error resolving change for %s", lastMigrated);
+              }
               ImmutableList<Change<O>> allChanges =
                   generalOptions.repoTask(
                       "origin.changes",
@@ -402,7 +409,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               }
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
-                      String.format("workflow_%s", name), lastMigrated, affectedChanges);
+                      String.format("workflow_%s", name), lastMigrated, lastMigratedChange,
+                      affectedChanges);
 
               return Info.create(
                   getOriginDescription(),
@@ -616,7 +624,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     List<DestinationEffect> hookDestinationEffects = new ArrayList<>();
     for (Action action : actions) {
       try (ProfilerTask ignored2 = profiler().start(action.getName())) {
-        logger.log(Level.INFO, "Running after migration hook: " + action.getName());
+        logger.atInfo().log("Running after migration hook: %s", action.getName());
         FinishHookContext context =
             new FinishHookContext(
                 action,

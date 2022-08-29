@@ -721,8 +721,13 @@ public class WorkflowTest {
 
     assertThat(
         Iterables.getOnlyElement(
-            workflow.getInfo().migrationReferences()).getLastMigrated().asString()).isEqualTo("3");
-
+            workflow.getInfo().migrationReferences()).getLastMigrated().asString())
+        .isEqualTo("3");
+    assertThat(
+        Iterables.getOnlyElement(
+            workflow.getInfo().migrationReferences()).getLastMigratedChange().
+            getRevision().asString())
+        .isEqualTo("3");
     origin.addSimpleChange(/*timestamp*/ 4);
     origin.addSimpleChange(/*timestamp*/ 5);
 

@@ -168,7 +168,7 @@ public class InfoTest {
           }
         }, getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
-        MigrationReference.create("workflow", new DummyRevision("1111"), ImmutableList.of());
+        MigrationReference.create("workflow", new DummyRevision("1111"), null, ImmutableList.of());
     Info<?> mockedInfo = Info.create(
         dummyOriginDescription,
         dummyDestinationDescription,
@@ -203,7 +203,11 @@ public class InfoTest {
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create(
             "workflow",
-            new DummyRevision("1111"),
+            newChange(
+                "1111",
+                "Baseline change",
+                ZonedDateTime.ofInstant(
+                    Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00"))),
             ImmutableList.of(
                 newChange(
                     "2222",
