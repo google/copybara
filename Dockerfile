@@ -19,8 +19,8 @@ RUN mkdir -p /tmp/copybara && \
     cp bazel-bin/java/com/google/copybara/copybara_deploy.jar /tmp/copybara/
 
 FROM golang:latest AS buildtools
-RUN go get github.com/bazelbuild/buildtools/buildozer
-RUN go get github.com/bazelbuild/buildtools/buildifier
+RUN go install github.com/bazelbuild/buildtools/buildozer@latest
+RUN go install github.com/bazelbuild/buildtools/buildifier@latest
 
 FROM openjdk:11-jre-slim
 WORKDIR /usr/src/app
