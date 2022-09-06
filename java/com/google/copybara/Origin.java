@@ -224,7 +224,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
 
       private static <R extends Revision> ImmutableList<R> parents(Change<R> change) {
         return Preconditions.checkNotNull(change.getParents(),
-            "Don't use forChangesWithParents for changes that don't support parents: ",
+            "Don't use forChangesWithParents for changes that don't support parents: %s",
             change);
       }
 
