@@ -51,7 +51,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
 import com.google.copybara.revision.Revision;
-import com.google.copybara.util.Diff3Util;
+import com.google.copybara.util.CommandLineDiffUtil;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
@@ -725,15 +725,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         MergeImportTool mergeImportTool =
             new MergeImportTool(
                 console,
-                new Diff3Util(
-                    workflow.getGeneralOptions().getDiff3Bin(),
+                new CommandLineDiffUtil(
+                    workflow.getGeneralOptions().getDiffBin(),
                     workflow.getGeneralOptions().getEnvironment()));
         try (ProfilerTask ignored = profiler().start("merge_tool")) {
           mergeImportTool.mergeImport(
               checkoutDir,
               destinationFilesWorkdir,
               baselineWorkdir,
-              Files.createDirectories(workdir.resolve("diff3")));
+              Files.createDirectories(workdir.resolve("merge_import")));
         }
       }
       if (destinationBaseline != null) {

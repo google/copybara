@@ -382,10 +382,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "merge_import",
             named = true,
             doc =
-                "A migration mode that shells out to diff3 to merge all files. The inputs to diff3"
-                    + " are (1) origin file (2) baseline file (3) destination file. This can be"
-                    + " used to perpetuate destination-only changes in non source of truth"
-                    + " repoistories.",
+                "A migration mode that shells out to a diffing tool (default is diff3) to merge all"
+                    + " files. The inputs to the diffing tool are (1) origin file (2) baseline file"
+                    + " (3) destination file. This can be used to perpetuate destination-only"
+                    + " changes in non source of truth repositories.",
             defaultValue = "False",
             positional = false),
         @Param(

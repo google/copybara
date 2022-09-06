@@ -25,14 +25,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 
-/** Diff utilities that shell out to diff3 commandline tool */
-public final class Diff3Util {
+/** Diff utilities that shell out to a diffing commandline tool */
+public final class CommandLineDiffUtil {
 
-  private final String diff3Bin;
+  final String diffBin;
   private final Map<String, String> environmentVariables;
 
-  public Diff3Util(String diff3Bin, Map<String, String> environmentVariables) {
-    this.diff3Bin = diff3Bin;
+  public CommandLineDiffUtil(String diffBin, Map<String, String> environmentVariables) {
+    this.diffBin = diffBin;
     this.environmentVariables = environmentVariables;
   }
 
@@ -41,7 +41,7 @@ public final class Diff3Util {
     // myfile oldfile yourfile
     String mArg = "-m";
     ArrayList<String> argv =
-        Lists.newArrayList(diff3Bin, lhs.toString(), baseline.toString(), rhs.toString(), mArg);
+        Lists.newArrayList(diffBin, lhs.toString(), baseline.toString(), rhs.toString(), mArg);
     Command cmd =
         new Command(
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());

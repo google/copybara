@@ -40,8 +40,8 @@ public final class MergeImportToolTest {
   private Path originWorkdir;
   private Path destinationWorkdir;
   private Path baselineWorkdir;
-  private Path diff3Workdir;
-  private Diff3Util diff3Util;
+  private Path diffToolWorkdir;
+  private CommandLineDiffUtil commandLineDiffUtil;
   private MergeImportTool underTest;
   private TestingConsole console;
 
@@ -51,10 +51,10 @@ public final class MergeImportToolTest {
     originWorkdir = createDir(rootPath, "origin");
     destinationWorkdir = createDir(rootPath, "destination");
     baselineWorkdir = createDir(rootPath, "baseline");
-    diff3Workdir = createDir(rootPath, "diff3");
+    diffToolWorkdir = createDir(rootPath, "diffTool");
     console = new TestingConsole();
-    diff3Util = new Diff3Util(DIFF3_BIN, null);
-    underTest = new MergeImportTool(console, diff3Util);
+    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null);
+    underTest = new MergeImportTool(console, commandLineDiffUtil);
   }
 
   @Test
@@ -65,7 +65,7 @@ public final class MergeImportToolTest {
     writeFile(originWorkdir, fileName, "foo\n".concat(commonFileContents));
     writeFile(destinationWorkdir, fileName, commonFileContents.concat("bar\n"));
 
-    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diff3Workdir);
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
         .isEqualTo("foo\n".concat(commonFileContents).concat("bar\n"));
@@ -78,7 +78,7 @@ public final class MergeImportToolTest {
     String destinationFileContents = "destination only stuff";
     writeFile(destinationWorkdir, destinationFilename, "destination only stuff");
 
-    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diff3Workdir);
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
     assertThat(Files.readString(originWorkdir.resolve(destinationFilename)))
         .isEqualTo(destinationFileContents);
@@ -92,7 +92,7 @@ public final class MergeImportToolTest {
     writeFile(baselineWorkdir, fileName, fileContents);
     writeFile(destinationWorkdir, fileName, fileContents);
 
-    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diff3Workdir);
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
     assertThat(Files.exists(originWorkdir.resolve(fileName))).isFalse();
   }
@@ -104,7 +104,7 @@ public final class MergeImportToolTest {
     writeFile(originWorkdir, fileName, "d\ne\nf\n");
     writeFile(destinationWorkdir, fileName, "g\nh\ni");
 
-    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diff3Workdir);
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
     assertThat(console.getMessages().stream().map(Message::getText).collect(Collectors.toList()))
         .contains(String.format("Merge error for path %s", originWorkdir.resolve(fileName)));

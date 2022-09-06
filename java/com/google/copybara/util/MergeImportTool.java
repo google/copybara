@@ -36,16 +36,16 @@ import java.util.HashSet;
 public final class MergeImportTool {
 
   private final Console console;
-  private final Diff3Util diff3Util;
+  private final CommandLineDiffUtil commandLineDiffUtil;
 
   // TODO refactor to accept a diffing tool
-  public MergeImportTool(Console console, Diff3Util diff3Util) {
+  public MergeImportTool(Console console, CommandLineDiffUtil commandLineDiffUtil) {
     this.console = console;
-    this.diff3Util = diff3Util;
+    this.commandLineDiffUtil = commandLineDiffUtil;
   }
 
   /**
-   * A command that calls diff3 to merge files in the working directories
+   * A command that shells out to a diffing tool to merge files in the working directories
    *
    * <p>The origin is treated as the source of truth. Files that exist at baseline and destination
    * but not in the origin will be deleted. Files that exist in the destination but not in the
@@ -56,10 +56,10 @@ public final class MergeImportTool {
    * @param destinationWorkdir A copy of the destination repository state, already populated by the
    *     caller
    * @param baselineWorkdir A copy of the baseline repository state, already populated by the caller
-   * @param diff3Workdir A working directory for the Diff3Util
+   * @param diffToolWorkdir A working directory for the CommandLineDiffUtil
    */
   public void mergeImport(
-      Path originWorkdir, Path destinationWorkdir, Path baselineWorkdir, Path diff3Workdir)
+      Path originWorkdir, Path destinationWorkdir, Path baselineWorkdir, Path diffToolWorkdir)
       throws IOException {
     HashSet<Path> visitedSet = new HashSet<>();
     HashSet<Path> mergeErrorPaths = new HashSet<>();
@@ -80,14 +80,16 @@ public final class MergeImportTool {
               return FileVisitResult.CONTINUE;
             }
             try {
-              output = diff3Util.diff(file, destinationFile, baselineFile, diff3Workdir);
+              output =
+                  commandLineDiffUtil.diff(file, destinationFile, baselineFile, diffToolWorkdir);
               visitedSet.add(relativeFile);
               if (output.getTerminationStatus().getExitCode() == 1) {
                 mergeErrorPaths.add(file);
                 return FileVisitResult.CONTINUE;
               }
             } catch (CommandException e) {
-              throw new IOException("Could not execute diff3", e);
+              throw new IOException(
+                  String.format("Could not execute diff tool %s", commandLineDiffUtil.diffBin), e);
             }
             Files.write(file, output.getStdoutBytes());
 

@@ -29,14 +29,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public final class Diff3UtilTest {
+public final class CommandLineDiffUtilTest {
 
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
   private Path left;
   private Path right;
   private Path baseline;
   private Path workdir;
-  Diff3Util underTest;
+  CommandLineDiffUtil underTest;
 
   @Before
   public void setUp() throws Exception {
@@ -45,7 +45,7 @@ public final class Diff3UtilTest {
     right = createDir(rootPath, "right");
     baseline = createDir(rootPath, "baseline");
     workdir = createDir(rootPath, "workdir");
-    underTest = new Diff3Util("/usr/bin/diff3", null);
+    underTest = new CommandLineDiffUtil("/usr/bin/diff3", null);
   }
 
   @Test
