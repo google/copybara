@@ -223,6 +223,8 @@ If you have any questions about how Copybara works, please contact us at our
   ```
   test --test_output=streamed
   ```
+## License
+This project is licensed under [Apache License 2.0](LICENSE)
 
 ## Thanks to all contributors ❤
  <a href = "https://github.com/google/copybara/graphs/contributors">
