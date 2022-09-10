@@ -222,3 +222,8 @@ If you have any questions about how Copybara works, please contact us at our
   ```
   test --test_output=streamed
   ```
+
+## Thanks to all contributors ❤
+ <a href = "https://github.com/google/copybara/graphs/contributors">
+   <img src = "https://contrib.rocks/image?repo=google/copybara"/>
+ </a>
