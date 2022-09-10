@@ -208,6 +208,7 @@ We are still working on the documentation. Here are some resources:
   * [Reference documentation](docs/reference.md)
   * [Examples](docs/examples.md)
   * [Tutorial on how to get started](https://blog.kubesimplify.com/moving-code-between-git-repositories-with-copybara)
+  * [Contributing Guidelines](CONTRIBUTING.md)
 
 ## Contact us
 
