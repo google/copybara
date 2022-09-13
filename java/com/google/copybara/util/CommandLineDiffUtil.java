@@ -30,10 +30,13 @@ public final class CommandLineDiffUtil {
 
   final String diffBin;
   private final Map<String, String> environmentVariables;
+  private final boolean verbose;
 
-  public CommandLineDiffUtil(String diffBin, Map<String, String> environmentVariables) {
+  public CommandLineDiffUtil(
+      String diffBin, Map<String, String> environmentVariables, boolean verbose) {
     this.diffBin = diffBin;
     this.environmentVariables = environmentVariables;
+    this.verbose = verbose;
   }
 
   public CommandOutputWithStatus diff(Path lhs, Path rhs, Path baseline, Path workDir)
@@ -47,7 +50,7 @@ public final class CommandLineDiffUtil {
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());
     CommandOutputWithStatus output;
     try {
-      output = new CommandRunner(cmd).withVerbose(true).execute();
+      output = new CommandRunner(cmd).withVerbose(verbose).execute();
     } catch (BadExitStatusWithOutputException e) {
       if (e.getOutput().getTerminationStatus().getExitCode() == 1) {
         return new CommandOutputWithStatus(

@@ -45,7 +45,7 @@ public final class CommandLineDiffUtilTest {
     right = createDir(rootPath, "right");
     baseline = createDir(rootPath, "baseline");
     workdir = createDir(rootPath, "workdir");
-    underTest = new CommandLineDiffUtil("/usr/bin/diff3", null);
+    underTest = new CommandLineDiffUtil("/usr/bin/diff3", null, false);
   }
 
   @Test
