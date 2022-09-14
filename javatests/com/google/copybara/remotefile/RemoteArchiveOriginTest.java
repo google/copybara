@@ -16,12 +16,14 @@
 
 package com.google.copybara.remotefile;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.testing.FakeTicker;
 import com.google.copybara.Origin.Reader;
@@ -406,7 +408,21 @@ public final class RemoteArchiveOriginTest {
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
     reader.checkout(underTest.resolve(null), workdir);
-    
+
     assertThatPath(workdir).containsNoFiles("test.txt", "hello world\n");
+  }
+
+  @Test
+  public void testDescribe() throws Exception {
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+    ImmutableSetMultimap<String, String> description =
+        underTest.describe(
+            Glob.createGlob(ImmutableList.of("path/to/file.txt"), ImmutableList.of()));
+
+    assertThat(description).containsEntry("url", "https://foo.tar");
+    assertThat(description).containsEntry("type", "remote_archive.origin");
+    assertThat(description).containsEntry("root", "path/to");
   }
 }

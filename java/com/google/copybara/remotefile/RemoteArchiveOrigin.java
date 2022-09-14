@@ -19,6 +19,7 @@ package com.google.copybara.remotefile;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.Origin;
 import com.google.copybara.authoring.Author;
@@ -194,5 +195,20 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
   @Override
   public String getLabelName() {
     return LABEL_NAME;
+  }
+
+  @Override
+  public String getType() {
+    return "remote_archive.origin";
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    ImmutableSetMultimap.Builder<String, String> builder =
+        ImmutableSetMultimap.<String, String>builder()
+            .put("type", getType())
+            .put("url", archiveSourceUrl) // the unresolved url
+            .putAll("root", originFiles.roots());
+    return builder.build();
   }
 }
