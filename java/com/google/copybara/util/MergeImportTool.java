@@ -113,6 +113,7 @@ public final class MergeImportTool {
             }
             // destination only file - keep it
             if (!Files.exists(originFile) && !Files.exists(baselineFile)) {
+              Files.createDirectories(originWorkdir.resolve(relativeFile).getParent());
               Files.copy(file, originWorkdir.resolve(relativeFile));
             }
             // file was deleted in origin, propagate to destination

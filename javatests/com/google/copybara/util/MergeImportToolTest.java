@@ -74,7 +74,7 @@ public final class MergeImportToolTest {
   @Test
   public void testDestinationOnlyFilePersists() throws Exception {
     // file only exists in destination, not in baseline or origin
-    String destinationFilename = "destination.txt";
+    String destinationFilename = "foo/destination.txt";
     String destinationFileContents = "destination only stuff";
     writeFile(destinationWorkdir, destinationFilename, "destination only stuff");
 
