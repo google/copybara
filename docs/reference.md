@@ -1358,6 +1358,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--same-version`</span> | *boolean* | Re-import the last version imported. This is useful for example to check that a refactor in a copy.bara.sky file doesn't introduce accidental changes.
 <span style="white-space: nowrap;">`--squash-skip-history`</span> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 <span style="white-space: nowrap;">`--threads`</span> | *int* | Number of threads to use when running transformations that change lot of files
+<span style="white-space: nowrap;">`--threads-for-merge-import`</span> | *int* | Number of threads to use for executing the diff tool for the merge import mode.
 <span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
 <span style="white-space: nowrap;">`--to-folder`</span> | *boolean* | Sometimes a user wants to test what the outcome would be for a workflow without changing the configuration or adding an auxiliary testing workflow. This flags allowsto change an existing workflow to use folder.destination
 <span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity

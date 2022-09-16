@@ -86,7 +86,6 @@ BASE_SRCS = [
     "Info.java",
     "LazyResourceLoader.java",
     "LabelFinder.java",
-    "LocalParallelizer.java",
     "Metadata.java",
     "MigrationInfo.java",
     "Option.java",
@@ -134,6 +133,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara:local_parallelizer",
         "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/doc:annotations",
@@ -172,6 +172,16 @@ java_library(
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:shell",
+    ],
+)
+
+java_library(
+    name = "local_parallelizer",
+    srcs = ["LocalParallelizer.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//third_party:guava",
     ],
 )
 

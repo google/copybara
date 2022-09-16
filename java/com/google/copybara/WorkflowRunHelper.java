@@ -728,7 +728,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 new CommandLineDiffUtil(
                     workflow.getGeneralOptions().getDiffBin(),
                     workflow.getGeneralOptions().getEnvironment(),
-                    workflow.isVerbose()));
+                    workflow.isVerbose()),
+                    workflow.getWorkflowOptions().threadsForMergeImport);
         try (ProfilerTask ignored = profiler().start("merge_tool")) {
           mergeImportTool.mergeImport(
               checkoutDir,

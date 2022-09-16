@@ -233,6 +233,12 @@ public class WorkflowOptions implements Option {
           "Origin baseline to use for merge import. This overrides any inferred origin baseline")
   String baselineForMergeImport = null;
 
+  @Parameter(
+      names = "--threads-for-merge-import",
+      description =
+          "Number of threads to use for executing the diff tool for the merge import mode.")
+  int threadsForMergeImport = 40;
+
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {
     if (defaultAuthor == null) {

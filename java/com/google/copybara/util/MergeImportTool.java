@@ -16,6 +16,11 @@
 
 package com.google.copybara.util;
 
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.flogger.FluentLogger;
+import com.google.copybara.LocalParallelizer;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
@@ -25,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * A tool that assists with Merge Imports
@@ -35,13 +41,19 @@ import java.util.HashSet;
  */
 public final class MergeImportTool {
 
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+
   private final Console console;
   private final CommandLineDiffUtil commandLineDiffUtil;
+  private final int threadsForMergeImport;
+  private static final int THREADS_MIN_SIZE = 5;
 
   // TODO refactor to accept a diffing tool
-  public MergeImportTool(Console console, CommandLineDiffUtil commandLineDiffUtil) {
+  public MergeImportTool(Console console, CommandLineDiffUtil commandLineDiffUtil,
+      int threadsForMergeImport) {
     this.console = console;
     this.commandLineDiffUtil = commandLineDiffUtil;
+    this.threadsForMergeImport = threadsForMergeImport;
   }
 
   /**
@@ -60,9 +72,10 @@ public final class MergeImportTool {
    */
   public void mergeImport(
       Path originWorkdir, Path destinationWorkdir, Path baselineWorkdir, Path diffToolWorkdir)
-      throws IOException {
+      throws IOException, ValidationException {
     HashSet<Path> visitedSet = new HashSet<>();
     HashSet<Path> mergeErrorPaths = new HashSet<>();
+    HashSet<FilePathInformation> filesToProcess = new HashSet<>();
 
     SimpleFileVisitor<Path> originWorkdirFileVisitor =
         new SimpleFileVisitor<Path>() {
@@ -79,18 +92,9 @@ public final class MergeImportTool {
             if (!Files.exists(destinationFile) || !Files.exists(baselineFile)) {
               return FileVisitResult.CONTINUE;
             }
-            try {
-              output =
-                  commandLineDiffUtil.diff(file, destinationFile, baselineFile, diffToolWorkdir);
-              visitedSet.add(relativeFile);
-              if (output.getTerminationStatus().getExitCode() == 1) {
-                mergeErrorPaths.add(file);
-              }
-            } catch (CommandException e) {
-              throw new IOException(
-                  String.format("Could not execute diff tool %s", commandLineDiffUtil.diffBin), e);
-            }
-            Files.write(file, output.getStdoutBytes());
+            filesToProcess.add(
+                FilePathInformation.create(file, relativeFile, baselineFile, destinationFile));
+
 
             return FileVisitResult.CONTINUE;
           }
@@ -124,10 +128,94 @@ public final class MergeImportTool {
         };
 
     Files.walkFileTree(originWorkdir, originWorkdirFileVisitor);
+    logger.atInfo().log("Using %d thread(s) for merging files", threadsForMergeImport);
+    List<OperationResults> results =
+        new LocalParallelizer(threadsForMergeImport, THREADS_MIN_SIZE).run(
+            ImmutableSet.copyOf(filesToProcess), new BatchCaller(diffToolWorkdir));
+    for (OperationResults result : results) {
+      visitedSet.addAll(result.visitedFiles());
+      mergeErrorPaths.addAll(result.mergeErrorPaths());
+    }
     Files.walkFileTree(destinationWorkdir, destinationWorkdirFileVisitor);
     if (!mergeErrorPaths.isEmpty()) {
       mergeErrorPaths.forEach(
           path -> console.warn(String.format("Merge error for path %s", path.toString())));
     }
+  }
+
+  private class BatchCaller
+      implements LocalParallelizer.TransformFunc<FilePathInformation, OperationResults> {
+
+    private final Path diffToolWorkdir;
+
+    BatchCaller(Path diffToolWorkdir) {
+      this.diffToolWorkdir = diffToolWorkdir;
+    }
+
+    @Override
+    public OperationResults run(Iterable<FilePathInformation> elements) throws IOException {
+      HashSet<Path> visitedSet = new HashSet<>();
+      HashSet<Path> mergeErrorPaths = new HashSet<>();
+
+      for (FilePathInformation paths : elements) {
+        Path file = paths.file();
+        Path relativeFile = paths.relativeFile();
+        Path baselineFile = paths.baselineFile();
+        Path destinationFile = paths.destinationFile();
+        CommandOutputWithStatus output;
+        if (!Files.exists(destinationFile) || !Files.exists(baselineFile)) {
+          continue;
+        }
+        try {
+          output = commandLineDiffUtil.diff(file, destinationFile, baselineFile, diffToolWorkdir);
+          visitedSet.add(relativeFile);
+          if (output.getTerminationStatus().getExitCode() == 1) {
+            mergeErrorPaths.add(file);
+          }
+        } catch (CommandException e) {
+          throw new IOException(
+              String.format("Could not execute diff tool %s", commandLineDiffUtil.diffBin), e);
+        }
+        Files.write(file, output.getStdoutBytes());
+      }
+
+      return OperationResults.create(
+          ImmutableSet.copyOf(visitedSet), ImmutableSet.copyOf(mergeErrorPaths));
+    }
+  }
+
+  /** A class that will contain Path information for a file from the origin workdir. */
+  @AutoValue
+  abstract static class FilePathInformation {
+    static FilePathInformation create(
+        Path file, Path relativeFile, Path baselineFile, Path destinationFile) {
+      return new AutoValue_MergeImportTool_FilePathInformation(
+          file, relativeFile, baselineFile, destinationFile);
+    }
+
+    abstract Path file();
+
+    abstract Path relativeFile();
+
+    abstract Path baselineFile();
+
+    abstract Path destinationFile();
+  }
+
+  /**
+   * Contains the results of a batch job performed by LocalParallelizer, which includes the Paths of
+   * which files were visited, and which files had merge errors reported by the external diffing
+   * tool.
+   */
+  @AutoValue
+  abstract static class OperationResults {
+    static OperationResults create(
+        ImmutableSet<Path> visitedFiles, ImmutableSet<Path> mergeErrorPaths) {
+      return new AutoValue_MergeImportTool_OperationResults(visitedFiles, mergeErrorPaths);
+    }
+
+    abstract ImmutableSet<Path> visitedFiles();
+
+    abstract ImmutableSet<Path> mergeErrorPaths();
   }
 }

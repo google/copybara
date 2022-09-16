@@ -54,7 +54,7 @@ public final class MergeImportToolTest {
     diffToolWorkdir = createDir(rootPath, "diffTool");
     console = new TestingConsole();
     commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null, false);
-    underTest = new MergeImportTool(console, commandLineDiffUtil);
+    underTest = new MergeImportTool(console, commandLineDiffUtil, 10);
   }
 
   @Test
