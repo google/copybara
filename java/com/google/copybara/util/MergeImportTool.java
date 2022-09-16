@@ -85,7 +85,6 @@ public final class MergeImportTool {
               visitedSet.add(relativeFile);
               if (output.getTerminationStatus().getExitCode() == 1) {
                 mergeErrorPaths.add(file);
-                return FileVisitResult.CONTINUE;
               }
             } catch (CommandException e) {
               throw new IOException(
