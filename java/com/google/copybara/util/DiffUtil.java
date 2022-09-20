@@ -62,6 +62,17 @@ public class DiffUtil {
   }
 
   /**
+   * Calculates the diff with --ignore-cr-at-eol set
+   *
+   * <p>Returns the diff as an encoding-independent {@code byte[]}.
+   */
+  public static byte[] diffWithIgnoreCrAtEol(
+      Path one, Path other, boolean verbose, Map<String, String> environment)
+      throws IOException, InsideGitDirException {
+    return new FoldersDiff(verbose, environment).withIgnoreCrAtEol().run(one, other);
+  }
+
+  /**
    * Filter a diff output to only include diffs for original files that match a filter.
    */
   public static String filterDiff(byte[] diff, Predicate<String> pathFilter) {
@@ -172,6 +183,7 @@ public class DiffUtil {
     private final boolean zOption;
     private final boolean noIndex;
     private final boolean verbose;
+    private final boolean ignoreCrAtEol;
     private final Map<String, String> environment;
 
     private FoldersDiff(boolean verbose, Map<String, String> environment) {
@@ -181,34 +193,48 @@ public class DiffUtil {
       noRenames = false;
       zOption = false;
       noIndex = false;
+      ignoreCrAtEol = false;
     }
 
-    private FoldersDiff(boolean verbose, Map<String, String> environment, boolean nameStatus,
-        boolean noRenames, boolean zOption, boolean noIndex) {
+    private FoldersDiff(
+        boolean verbose,
+        Map<String, String> environment,
+        boolean nameStatus,
+        boolean noRenames,
+        boolean zOption,
+        boolean noIndex,
+        boolean ignoreCrAtEol) {
       this.verbose = verbose;
       this.environment = environment;
       this.nameStatus = nameStatus;
       this.noRenames = noRenames;
       this.zOption = zOption;
       this.noIndex = noIndex;
+      this.ignoreCrAtEol = ignoreCrAtEol;
     }
 
     @CheckReturnValue
     private FoldersDiff withNameStatus() {
-      return new FoldersDiff(verbose, environment, /*nameStatus=*/true, noRenames, zOption,
-          noIndex);
+      return new FoldersDiff(
+          verbose, environment, /*nameStatus=*/ true, noRenames, zOption, noIndex, ignoreCrAtEol);
     }
 
     @CheckReturnValue
     private FoldersDiff withNoRenames() {
-      return new FoldersDiff(verbose, environment, nameStatus, /*noRenames=*/true, zOption,
-          noIndex);
+      return new FoldersDiff(
+          verbose, environment, nameStatus, /*noRenames=*/ true, zOption, noIndex, ignoreCrAtEol);
     }
 
     @CheckReturnValue
     private FoldersDiff withZOption() {
-      return new FoldersDiff(verbose, environment, nameStatus, noRenames, /*zOption=*/true,
-          noIndex);
+      return new FoldersDiff(
+          verbose, environment, nameStatus, noRenames, /*zOption=*/ true, noIndex, ignoreCrAtEol);
+    }
+
+    @CheckReturnValue
+    private FoldersDiff withIgnoreCrAtEol() {
+      return new FoldersDiff(
+          verbose, environment, nameStatus, noRenames, zOption, noIndex, /*ignoreCrAtEol=*/ true);
     }
 
     private byte[] run(Path one, Path other) throws IOException, InsideGitDirException {
@@ -228,6 +254,9 @@ public class DiffUtil {
       }
       if (zOption) {
         params.add("-z");
+      }
+      if (ignoreCrAtEol) {
+        params.add("--ignore-cr-at-eol");
       }
       params.add("--");
       params.add(root.relativize(one).toString());

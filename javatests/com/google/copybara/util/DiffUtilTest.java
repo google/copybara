@@ -88,6 +88,28 @@ public class DiffUtilTest {
   }
 
   @Test
+  public void crAtEolDiff() throws Exception {
+    writeFile(left, "file1.txt", "foo\r\n");
+    writeFile(right, "file1.txt", "foo\n");
+
+    byte[] diffContentsIgnoreCr =
+        DiffUtil.diffWithIgnoreCrAtEol(left, right, VERBOSE, System.getenv());
+    String diffContents =
+        new String(DiffUtil.diff(left, right, VERBOSE, System.getenv()), StandardCharsets.UTF_8);
+
+    assertThat(diffContentsIgnoreCr).isEmpty();
+    assertThat(diffContents)
+        .isEqualTo(
+            "diff --git a/left/file1.txt b/right/file1.txt\n"
+                + "index e48b03e..257cc56 100644\n"
+                + "--- a/left/file1.txt\n"
+                + "+++ b/right/file1.txt\n"
+                + "@@ -1 +1 @@\n"
+                + "-foo\r\n"
+                + "+foo\n");
+  }
+
+  @Test
   public void testFilterDiff() throws Exception {
     writeFile(left, "file1.txt", "foo-left");
     writeFile(left, "file2.txt", "bar-left");
