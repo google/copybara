@@ -889,7 +889,8 @@ public class GitRepositoryTest {
                 new GitEnvironment(System.getenv()), /*maxLogLines*/
                 -1));
 
-    assertThat(e).hasMessageThat().contains("Error running ls-remote for '" + url + "'");
+    assertThat(e).hasMessageThat()
+            .contains("Permission denied running ls-remote for '" + url + "'");
   }
 
   @Test

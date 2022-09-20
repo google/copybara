@@ -162,6 +162,7 @@ public class GitRepository {
   public static final String GIT_DESCRIBE_FIRST_PARENT = "GIT_DESCRIBE_FIRST_PARENT";
   // Closest tag, if any
   public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
+  public static final String HTTP_PERMISSION_DENIED = "The requested URL returned error: 403";
 
   /**
    * The location of the {@code .git} directory. The is also the value of the {@code --git-dir}
@@ -242,7 +243,7 @@ public class GitRepository {
       throws InvalidRefspecException {
     try {
       // Skip calling CLI for common refspecs that we know are safe. CLI can take 50-100ms.
-      if (BASIC_REFSPEC.matcher(refspec).matches()){
+      if (BASIC_REFSPEC.matcher(refspec).matches()) {
         return;
       }
       executeGit(
@@ -323,7 +324,7 @@ public class GitRepository {
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
     return rev.withLabels(
         ImmutableListMultimap.of(
-            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev ,false),
+            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
             GIT_DESCRIBE_FIRST_PARENT, describe(rev, true),
             GIT_DESCRIBE_ABBREV, Strings.nullToEmpty(describe(rev, false, "--tag", "--abbrev=0")))
     );
@@ -420,6 +421,7 @@ public class GitRepository {
     }
     if (stdErr.contains("Permission denied")
         || stdErr.contains("Could not read from remote repository")
+        || stdErr.contains(HTTP_PERMISSION_DENIED)
         || stdErr.contains("Repository not found")) {
       throw new AccessValidationException(stdErr);
     }
@@ -486,14 +488,19 @@ public class GitRepository {
     try {
       output = executeGit(cwd, args, gitEnv, false, maxLogLines);
     } catch (BadExitStatusWithOutputException e) {
-      String errMsg = String.format(
-          "Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
-          url, refs, e.getOutput().getTerminationStatus().getExitCode(),
-          e.getOutput().getStderr());
-      if (e.getOutput().getStderr().contains(
-          "Please make sure you have the correct access rights")) {
-         throw new ValidationException(errMsg, e);
+      if (e.getOutput().getStderr().contains("Please make sure you have the correct access rights")
+              || e.getOutput().getStderr().contains(HTTP_PERMISSION_DENIED)) {
+        String errMsg = String.format(
+                "Permission denied running ls-remote for '%s' and refs '%s': Exit code %s,"
+                        + " Output:\n%s",
+                url, refs, e.getOutput().getTerminationStatus().getExitCode(),
+                e.getOutput().getStderr());
+         throw new AccessValidationException(errMsg, e);
       }
+      String errMsg = String.format(
+              "Error running ls-remote for '%s' and refs '%s': Exit code %s, Output:\n%s",
+              url, refs, e.getOutput().getTerminationStatus().getExitCode(),
+              e.getOutput().getStderr());
       throw new RepoException(errMsg, e);
     } catch (CommandException e) {
       throw new RepoException(
@@ -681,7 +688,7 @@ public class GitRepository {
     try {
       return simpleCommand(cmd.toArray(new String[0])).getStderr();
     } catch (RepoException e) {
-      if (e.getMessage().contains("The requested URL returned error: 403")) {
+      if (e.getMessage().contains(HTTP_PERMISSION_DENIED)) {
         throw new AccessValidationException("Permission error pushing to " + pushCmd.url, e);
       }
       throw e;
