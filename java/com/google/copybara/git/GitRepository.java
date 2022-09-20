@@ -678,7 +678,14 @@ public class GitRepository {
       }
     }
 
-    return simpleCommand(cmd.toArray(new String[0])).getStderr();
+    try {
+      return simpleCommand(cmd.toArray(new String[0])).getStderr();
+    } catch (RepoException e) {
+      if (e.getMessage().contains("The requested URL returned error: 403")) {
+        throw new AccessValidationException("Permission error pushing to " + pushCmd.url, e);
+      }
+      throw e;
+    }
   }
 
   /**
