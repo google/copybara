@@ -18,6 +18,7 @@ package com.google.copybara.profiler;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -25,7 +26,7 @@ import java.util.List;
  */
 public class RecordingListener implements Listener {
 
-  private final List<Task> finishedTasks = new ArrayList<>();
+  private final List<Task> finishedTasks = Collections.synchronizedList(new ArrayList<>());
 
   @Override
   public void taskStarted(Task task) {
