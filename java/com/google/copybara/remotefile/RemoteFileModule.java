@@ -43,8 +43,7 @@ import net.starlark.java.eval.StarlarkValue;
 /** Module for helpers to load files from a source other than the origin. Use with caution. */
 @StarlarkBuiltin(
     name = "remotefiles",
-    doc = "Functions to access remote files not in either repo.",
-    documented = false)
+    doc = "Functions to access remote files not in either repo.")
 @UsesFlags(RemoteFileOptions.class)
 public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
 

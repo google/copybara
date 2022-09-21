@@ -186,6 +186,9 @@
   - [re2_pattern](#re2_pattern)
     - [re2_pattern.matcher](#re2_patternmatcher)
     - [re2_pattern.matches](#re2_patternmatches)
+  - [remotefiles](#remotefiles)
+    - [remotefiles.github_archive](#remotefilesgithub_archive)
+    - [remotefiles.origin](#remotefilesorigin)
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
@@ -4431,6 +4434,70 @@ Parameter | Description
 --------- | -----------
 input | `string`<br><p></p>
 
+
+
+## remotefiles
+
+Functions to access remote files not in either repo.
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--remote-http-files-connection-timeout`</span> | *duration* | Timeout for the fetch operation, e.g. 30s.  Example values: 30s, 20m, 1h, etc.
+
+<a id="remotefiles.github_archive" aria-hidden="true"></a>
+### remotefiles.github_archive
+
+A tarball for a specific SHA1 on GitHub. Experimental.
+
+`remote_http_file.GitHubArchive` `remotefiles.github_archive(project=[], revision=[], type='TARBALL')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+project | `string`<br><p>The GitHub project from which to load the file, e.g. google/copybara</p>
+revision | `string`<br><p>The revision to download from the project, typically a commit SHA1.</p>
+type | `string`<br><p>Archive type to download, options are 'TARBALL' or 'ZIP'.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--remote-http-files-connection-timeout`</span> | *duration* | Timeout for the fetch operation, e.g. 30s.  Example values: 30s, 20m, 1h, etc.
+
+<a id="remotefiles.origin" aria-hidden="true"></a>
+### remotefiles.origin
+
+Defines a remote file origin. This is a WIP and experimental. Do not use. 
+
+`origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_selector=None, base_url=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+author | `string`<br><p>Author to attribute the change to</p>
+message | `string`<br><p>Message to attach to the change</p>
+unpack_method | `string`<br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and 'AS_IS' are supported.</p>
+archive_source | `string`<br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
+version_list | `VersionList` or `NoneType`<br><p>Version list to select versions on. Omit to create a versionless origin.</p>
+origin_version_selector | `VersionSelector` or `NoneType`<br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
+version_selector | `unknown`<br><p>Object that contains version selecting logic. DEPRECATED.</p>
+base_url | `unknown`<br><p>base URL to construct the full URL. DEPRECATED.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--remote-http-files-connection-timeout`</span> | *duration* | Timeout for the fetch operation, e.g. 30s.  Example values: 30s, 20m, 1h, etc.
 
 
 ## SetReviewInput
