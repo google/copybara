@@ -93,7 +93,7 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo\n");
 
     byte[] diffContentsIgnoreCr =
-        DiffUtil.diffWithIgnoreCrAtEol(left, right, VERBOSE, System.getenv());
+        DiffUtil.diffFileWithIgnoreCrAtEol(left, right, VERBOSE, System.getenv());
     String diffContents =
         new String(DiffUtil.diff(left, right, VERBOSE, System.getenv()), StandardCharsets.UTF_8);
 

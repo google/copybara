@@ -62,14 +62,17 @@ public class DiffUtil {
   }
 
   /**
-   * Calculates the diff with --ignore-cr-at-eol set
+   * Calculates the diff between two files with --ignore-cr-at-eol set
    *
-   * <p>Returns the diff as an encoding-independent {@code byte[]}.
+   * <p>Returns the signle file diff as an encoding-independent {@code byte[]}
    */
-  public static byte[] diffWithIgnoreCrAtEol(
+  public static byte[] diffFileWithIgnoreCrAtEol(
       Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return new FoldersDiff(verbose, environment).withIgnoreCrAtEol().run(one, other);
+    return new FoldersDiff(verbose, environment)
+        .withIgnoreCrAtEol()
+        .withSingleFile()
+        .run(one, other);
   }
 
   /**
@@ -184,6 +187,7 @@ public class DiffUtil {
     private final boolean noIndex;
     private final boolean verbose;
     private final boolean ignoreCrAtEol;
+    private final boolean singleFile;
     private final Map<String, String> environment;
 
     private FoldersDiff(boolean verbose, Map<String, String> environment) {
@@ -194,6 +198,7 @@ public class DiffUtil {
       zOption = false;
       noIndex = false;
       ignoreCrAtEol = false;
+      singleFile = false;
     }
 
     private FoldersDiff(
@@ -203,7 +208,8 @@ public class DiffUtil {
         boolean noRenames,
         boolean zOption,
         boolean noIndex,
-        boolean ignoreCrAtEol) {
+        boolean ignoreCrAtEol,
+        boolean singleFile) {
       this.verbose = verbose;
       this.environment = environment;
       this.nameStatus = nameStatus;
@@ -211,37 +217,84 @@ public class DiffUtil {
       this.zOption = zOption;
       this.noIndex = noIndex;
       this.ignoreCrAtEol = ignoreCrAtEol;
+      this.singleFile = singleFile;
     }
 
     @CheckReturnValue
     private FoldersDiff withNameStatus() {
       return new FoldersDiff(
-          verbose, environment, /*nameStatus=*/ true, noRenames, zOption, noIndex, ignoreCrAtEol);
+          verbose,
+          environment,
+          /*nameStatus=*/ true,
+          noRenames,
+          zOption,
+          noIndex,
+          ignoreCrAtEol,
+          singleFile);
     }
 
     @CheckReturnValue
     private FoldersDiff withNoRenames() {
       return new FoldersDiff(
-          verbose, environment, nameStatus, /*noRenames=*/ true, zOption, noIndex, ignoreCrAtEol);
+          verbose,
+          environment,
+          nameStatus,
+          /*noRenames=*/ true,
+          zOption,
+          noIndex,
+          ignoreCrAtEol,
+          singleFile);
     }
 
     @CheckReturnValue
     private FoldersDiff withZOption() {
       return new FoldersDiff(
-          verbose, environment, nameStatus, noRenames, /*zOption=*/ true, noIndex, ignoreCrAtEol);
+          verbose,
+          environment,
+          nameStatus,
+          noRenames,
+          /*zOption=*/ true,
+          noIndex,
+          ignoreCrAtEol,
+          singleFile);
     }
 
     @CheckReturnValue
     private FoldersDiff withIgnoreCrAtEol() {
       return new FoldersDiff(
-          verbose, environment, nameStatus, noRenames, zOption, noIndex, /*ignoreCrAtEol=*/ true);
+          verbose,
+          environment,
+          nameStatus,
+          noRenames,
+          zOption,
+          noIndex,
+          /*ignoreCrAtEol=*/ true,
+          singleFile);
+    }
+
+    @CheckReturnValue
+    private FoldersDiff withSingleFile() {
+      return new FoldersDiff(
+          verbose,
+          environment,
+          nameStatus,
+          noRenames,
+          zOption,
+          noIndex,
+          ignoreCrAtEol,
+          /*singleFile=*/ true);
     }
 
     private byte[] run(Path one, Path other) throws IOException, InsideGitDirException {
-      Preconditions.checkArgument(one.getParent().equals(other.getParent()),
+      Preconditions.checkArgument(
+          singleFile || one.getParent().equals(other.getParent()),
           "Paths 'one' and 'other' must be sibling directories.");
       GitEnvironment gitEnv = new GitEnvironment(environment);
-      checkNotInsideGitRepo(one, verbose, gitEnv);
+      if (singleFile) {
+        checkNotInsideGitRepo(one.getParent(), verbose, gitEnv);
+      } else {
+        checkNotInsideGitRepo(one, verbose, gitEnv);
+      }
       Path root = one.getParent();
       List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color",
           // Be careful, no test coverage for this:

@@ -21,6 +21,7 @@ LOCAL_TESTS = {
     "InfoTest.java": 3,
     "MigrateCmdTest.java": 2,
     "util/DiffUtilTest.java": 5,
+    "util/AutoPatchUtilTest.java": 2,
     "WorkflowTest.java": 5,
 }
 
