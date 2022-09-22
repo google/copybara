@@ -21,6 +21,7 @@ import static com.google.copybara.TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.ITERATIVE;
 import static com.google.copybara.WorkflowMode.SQUASH;
+import static com.google.copybara.git.GitRepository.GIT_DESCRIBE_ABBREV;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
@@ -43,7 +44,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.jimfs.Jimfs;
-import com.google.copybara.Destination.Writer;
+import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.config.Config;
@@ -3323,6 +3324,7 @@ public class WorkflowTest {
     Files.write(originPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
+    origin.tag("1_0_0").run();
     String firstCommit = origin.parseRef("HEAD");
 
     Files.write(destinationPath.resolve("foo.txt"), "not important".getBytes(UTF_8));
@@ -3333,7 +3335,6 @@ public class WorkflowTest {
     Files.write(originPath.resolve("foo.txt"), "foo".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "change1");
-
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
@@ -3350,6 +3351,9 @@ public class WorkflowTest {
         .containsExactly("file://" + origin.getWorkTree());
     assertThat(info.destinationDescription().get("url"))
         .containsExactly("file://" + destination.getWorkTree());
+    Iterable<MigrationReference<Revision>> refs = info.migrationReferences();
+    assertThat(Iterables.getFirst(refs, null).getLastMigrated()
+        .associatedLabel(GIT_DESCRIBE_ABBREV)).containsExactly("1_0_0");
   }
 
   @Test

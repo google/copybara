@@ -720,7 +720,8 @@ public class GitOriginTest {
     singleFileCommit("John Name <john@name.com>", commitMessage, "test.txt", "content");
 
     assertThat(newReader().change(getLastCommitRef()).getLabels())
-        .containsExactlyEntriesIn(ImmutableMultimap.of("foo", "bar", "baz", "bar"));
+        .containsAtLeast("foo", "bar", "baz", "bar");
+    assertThat(newReader().change(getLastCommitRef()).getLabels()).containsKey("GIT_SHA1");
   }
 
   @Test

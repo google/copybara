@@ -390,9 +390,17 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       "origin.changes",
                       () -> {
                         ChangesResponse<O> changes = oReader.changes(lastMigrated, lastResolved);
-                        return changes.isEmpty()
-                            ? ImmutableList.of()
-                            : ImmutableList.copyOf(changes.getChanges());
+                        // Add additional labels to first and last available
+                        if (!changes.isEmpty()) {
+                          ArrayList<Change<O>> annotated = new ArrayList<>(changes.getChanges());
+                          int i = 0;
+                          annotateChange(annotated, i);
+                          if (annotated.size() > 1) {
+                            annotateChange(annotated, annotated.size() - 1);
+                          }
+                          return ImmutableList.copyOf(annotated);
+                        }
+                        return ImmutableList.of();
                       });
               WorkflowRunHelper<O, D> helper =
                   newRunHelper(
@@ -420,6 +428,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                   getDestinationDescription(),
                   ImmutableList.of(migrationRef));
             });
+  }
+
+  private void annotateChange(ArrayList<Change<O>> annotated, int i) throws ValidationException {
+    Change<O> c = annotated.get(i);
+    try {
+     Revision rev = origin.resolve(c.getRef());
+     annotated.set(i, c.withLabels(rev.associatedLabels()));
+   } catch (RepoException re) {
+     logger.atInfo().log("Failed to annotate change %s", c);
+   }
   }
 
   @Nullable

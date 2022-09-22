@@ -141,9 +141,11 @@ public final class GitRevision implements Revision {
         .add("url", url)
         .add("reference", reference)
         .add("sha1", this.sha1)
+        .add("labels", this.associatedLabels)
         .toString();
   }
 
+  @Override
   @Nullable
   public String getUrl() {
     return url;
