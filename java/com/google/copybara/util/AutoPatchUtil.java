@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /** A utility class to automatically generate patch files */
-final class AutoPatchUtil {
+public final class AutoPatchUtil {
 
   private AutoPatchUtil() {}
 
@@ -42,7 +42,8 @@ final class AutoPatchUtil {
       Path writePath,
       boolean verbose,
       Map<String, String> environment,
-      String patchFilePrefix)
+      String patchFilePrefix,
+      String patchFileNameSuffix)
       throws IOException, InsideGitDirException {
 
     ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
@@ -50,13 +51,13 @@ final class AutoPatchUtil {
       String fileName = diffFile.getName();
       Path onePath = one.resolve(fileName);
       Path otherPath = other.resolve(fileName);
-      if (!Files.exists(onePath)) {
+      if (!Files.exists(otherPath)) {
         continue;
       }
       String diffString =
           new String(
               DiffUtil.diffFileWithIgnoreCrAtEol(onePath, otherPath, verbose, environment), UTF_8);
-      Path patchFilePath = writePath.resolve(fileName);
+      Path patchFilePath = writePath.resolve(fileName.concat(patchFileNameSuffix));
       Files.createDirectories(patchFilePath.getParent());
       Files.writeString(patchFilePath, patchFilePrefix.concat(diffString));
     }

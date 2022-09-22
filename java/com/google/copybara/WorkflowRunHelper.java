@@ -51,6 +51,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
 import com.google.copybara.revision.Revision;
+import com.google.copybara.util.AutoPatchUtil;
 import com.google.copybara.util.CommandLineDiffUtil;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
@@ -736,6 +737,23 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               destinationFilesWorkdir,
               baselineWorkdir,
               Files.createDirectories(workdir.resolve("merge_import")));
+        }
+        if (!workflow.getPatchFilePrefix().isBlank()) {
+          try {
+            AutoPatchUtil.generatePatchFiles(
+                baselineWorkdir,
+                destinationFilesWorkdir,
+                checkoutDir.resolve(workflow.getWorkflowOptions().autoPatchFileDirectory),
+                workflow.isVerbose(),
+                workflow.getGeneralOptions().getEnvironment(),
+                workflow.getPatchFilePrefix(),
+                workflow.getWorkflowOptions().autoPatchFileSuffix);
+          } catch (InsideGitDirException e) {
+            console.errorFmt(
+                "Could not automatically generate patch files. Error received is %s",
+                e.getMessage());
+            throw new ValidationException("Error automatically generating patch files", e);
+          }
         }
       }
       if (destinationBaseline != null) {
