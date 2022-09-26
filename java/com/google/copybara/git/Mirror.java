@@ -62,7 +62,6 @@ public class Mirror implements Migration {
   private final String origin;
   private final String destination;
   private final List<Refspec> refspec;
-  private final GitMirrorOptions mirrorOptions;
   private final GitDestinationOptions gitDestinationOptions;
   private final boolean prune;
   private final boolean partialFetch;
@@ -71,7 +70,7 @@ public class Mirror implements Migration {
   private final Iterable<Action> actions;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
-      String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions,
+      String destination, List<Refspec> refspec,
       GitDestinationOptions gitDestinationOptions, boolean prune, boolean partialFetch,
       ConfigFile mainConfigFile, @Nullable String description, ImmutableList<Action> actions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -80,7 +79,6 @@ public class Mirror implements Migration {
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
-    this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
     this.gitDestinationOptions = gitDestinationOptions;
     this.prune = prune;
     this.partialFetch = partialFetch;
@@ -113,7 +111,7 @@ public class Mirror implements Migration {
               new SkylarkConsole(generalOptions.console()), sourceRefs, refspec, origin,
               destination, generalOptions.isForced(),
               repo, generalOptions.getDirFactory(),
-              Dict.empty());
+              Dict.empty(), gitOptions);
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();

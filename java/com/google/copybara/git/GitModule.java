@@ -513,7 +513,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 fixHttp(origin, thread.getCallerLocation()),
                 fixHttp(destination, thread.getCallerLocation()),
                 refspecs,
-                options.get(GitMirrorOptions.class),
                 options.get(GitDestinationOptions.class),
                 prune,
                 partialFetch,

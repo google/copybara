@@ -92,7 +92,6 @@ import javax.annotation.Nullable;
  * A class for manipulating Git repositories
  */
 public class GitRepository {
-
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   public static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofMinutes(15);
@@ -443,6 +442,12 @@ public class GitRepository {
   @CheckReturnValue
   public PushCmd push() {
     return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false);
+  }
+
+  @CheckReturnValue
+  public MergeCmd merge(String branch, List<String> commits) {
+    return MergeCmd.create(
+        this, branch, commits, (Map<String, String> unusedMap) -> true);
   }
 
   @CheckReturnValue
@@ -1943,6 +1948,74 @@ public class GitRepository {
           refspecs,
           url);
       return output;
+    }
+  }
+
+  /** An object capable of performing a 'git merge' operation to a git repository. */
+  public static class MergeCmd {
+    protected String branch;
+    protected String mergeMessage;
+    protected String fastForward;
+    protected GitRepository repo;
+    protected List<String> commits;
+    Function<Map<String, String>, Boolean> validator;
+
+    public MergeCmd(
+        GitRepository repo,
+        String branch,
+        String mergeMessage,
+        List<String> commits,
+        String fastForward, Function<Map<String, String>, Boolean> validator) {
+      Preconditions.checkArgument(
+          Arrays.asList("--no-ff", "--ff-only", "--ff").contains(fastForward));
+      this.repo = checkNotNull(repo);
+      this.validator = validator;
+      this.branch = checkNotNull(branch);
+      this.mergeMessage = mergeMessage;
+      this.fastForward = checkNotNull(fastForward);
+      this.commits = checkNotNull(commits);
+    }
+
+    public static MergeCmd create(
+        GitRepository repo,
+        String branch,
+        List<String> commits,
+        Function<Map<String, String>, Boolean> validator) {
+      return new MergeCmd(repo, branch, "", commits, "--ff", validator);
+    }
+
+    public MergeCmd withFFMode(String ffMode) {
+      return new MergeCmd(repo, branch, mergeMessage, commits, ffMode, validator);
+    }
+
+    public MergeCmd withMessage(String message) {
+      return new MergeCmd(repo, branch, message, commits, fastForward, validator);
+    }
+
+    // TODO(linjordan) add chaining-setters if ever used in future like we do for other *Cmd.
+
+    public void run(Map<String, String> configs) throws RepoException {
+      Preconditions.checkArgument(
+          validator.apply(configs), "Error could not validate git configs in %s", configs);
+      List<String> command = Lists.newArrayList();
+
+      for (Map.Entry<String, String> entry : configs.entrySet()) {
+        command.addAll(
+            Lists.newArrayList("-c", String.format("%s=%s", entry.getKey(), entry.getValue())));
+      }
+      command.addAll(Lists.newArrayList("merge", branch));
+
+      if (!Strings.isNullOrEmpty(mergeMessage)) {
+        command.addAll(Lists.newArrayList("-m", mergeMessage));
+      }
+
+      command.add(fastForward);
+      command.addAll(commits);
+
+      if (repo.noVerify) {
+        command.add("--no-verify");
+      }
+      repo.simpleCommand(command);
     }
   }
 

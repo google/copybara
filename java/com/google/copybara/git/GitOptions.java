@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.util.FileUtil.resolveDirInCache;
 
+import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
@@ -27,6 +28,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -43,6 +45,16 @@ public class GitOptions implements Option {
   public String getCredentialHelperStorePath() {
     return credentialHelperStorePath;
   }
+
+  @DynamicParameter(
+      names = "--git-cmd-config",
+      description =
+          "This is a repeatable flag used to set command level configurations, currently only"
+              + " applies to git merge operations. E.g. copybara copy.bara.sky --git-cmd-config"
+              + " google.foo=bar --git-cmd-config google.baz=qux would make git operations done by"
+              + " copybara under the hood use the -c flags: git -c google.foo=bar -c google.baz=qux"
+              + " ...")
+  Map<String, String> gitOptionsParams = new HashMap<>();
 
   @Parameter(names = "--git-credential-helper-store-file",
       description = "Credentials store file to be used. See "

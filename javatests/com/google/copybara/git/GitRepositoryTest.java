@@ -351,11 +351,19 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "second");
-    repository.simpleCommand("merge", "foo");
+    repository
+        .merge("foo", ImmutableList.of())
+        .withFFMode("--ff")
+        .withMessage("")
+        .run(ImmutableMap.of("google.foo", "true", "google.bar", "false"));
 
     ImmutableList<GitLogEntry> log =
-        repository.log(defaultBranch).includeFiles(true).firstParent(true).includeMergeDiff(true)
-        .run();
+        repository
+            .log(defaultBranch)
+            .includeFiles(true)
+            .firstParent(true)
+            .includeMergeDiff(true)
+            .run();
     assertThat(log.get(0).getBody()).contains("Merge");
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
 

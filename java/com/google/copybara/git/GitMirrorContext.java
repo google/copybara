@@ -24,7 +24,6 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionContext;
@@ -70,10 +69,11 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   private List<Refspec> refspecs;
   private String originUrl;
   private String destinationUrl;
+  private final GitOptions gitOptions;
 
   GitMirrorContext(Action currentAction, SkylarkConsole console, List<String> sourceRefs,
       List<Refspec> refspecs, String originUrl, String destinationUrl, boolean force,
-      GitRepository repo, DirFactory dirFactory, Dict<?, ?> params) {
+      GitRepository repo, DirFactory dirFactory, Dict<?, ?> params, GitOptions gitOptions) {
     super(currentAction, console, ImmutableMap.of(), params);
     this.sourceRefs = sourceRefs;
     this.refspecs = checkNotNull(refspecs);
@@ -82,17 +82,19 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     this.force = force;
     this.repo = repo;
     this.dirFactory = dirFactory;
+    this.gitOptions = gitOptions;
   }
 
   @Override
   public GitMirrorContext withParams(Dict<?, ?> params) {
     return new GitMirrorContext(
         action, console, sourceRefs, refspecs, originUrl, destinationUrl, force, repo,
-        dirFactory, params);
+        dirFactory, params, gitOptions);
   }
 
   @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
       + " warnings", structField = true)
+  @Override
   public Console getConsole() {
     return console;
   }
@@ -258,27 +260,30 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   public MergeResult merge(String branch, Sequence<?> commits, Object msg, String fastForwardOption)
       throws RepoException, ValidationException, EvalException, IOException {
     checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
-    GitRepository withWorktree = prepareWorktreeForMerge(branch,
-        String.format("Cannot merge commits %s into"
-                + " branch %s because of failure during merge checkout", commits, branch));
+    GitRepository withWorktree =
+        prepareWorktreeForMerge(
+            branch,
+            String.format(
+                "Cannot merge commits %s into"
+                    + " branch %s because of failure during merge checkout",
+                commits, branch));
+
     String strMsg = SkylarkUtil.convertFromNoneable(msg, null);
 
-    List<String> cmd = Lists.newArrayList("merge");
-    if (strMsg != null) {
-      cmd.add("-m");
-      cmd.add(strMsg);
-    }
     FastForwardMode ffMode = stringToEnum("fast_forward", fastForwardOption, FastForwardMode.class);
-    cmd.add(ffMode.toGitFlag());
 
-    cmd.addAll(convertStringList(commits, "commits"));
+    List<String> commitsList = convertStringList(commits, "commits");
 
     try {
-      withWorktree.simpleCommand(cmd);
+      withWorktree
+          .merge(branch, commitsList)
+          .withFFMode(ffMode.toGitFlag())
+          .withMessage(strMsg)
+          .run(gitOptions.gitOptionsParams);
     } catch (RepoException e) {
-      logger.atWarning().withCause(e)
-          .log("Error running merge in action %s for branch %s and commits %s", getActionName(),
-              branch, commits);
+      logger.atWarning().withCause(e).log(
+          "Error running merge in action %s for branch %s and commits %s",
+          getActionName(), branch, commits);
       return MergeResult.error(e.getMessage());
     }
     return MergeResult.success();
