@@ -74,16 +74,18 @@ public class PatchTransformation implements Transformation {
 
   public void patch(Console console, Path checkoutDir, @Nullable Path gitDir)
       throws ValidationException, InsideGitDirException {
-    try {
     for (int i = 0; i < patches.size(); i++) {
       ConfigFile patch = patches.get(i);
-      console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
-      options.patch(
-          checkoutDir, patch.readContentBytes(), excludedPaths, strip, reverse, gitDir);
-    }
-    } catch (IOException ioException) {
-      console.errorFmt("Error applying patch: %s", ioException.getMessage());
-      throw new ValidationException("Error applying patch.", ioException);
+      try {
+        console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
+        options.patch(
+            checkoutDir, patch.readContentBytes(), excludedPaths, strip, reverse, gitDir);
+      } catch (IOException ioException) {
+        String msg = String.format("Error applying patch %s: %s", patch.getIdentifier(),
+            ioException.getMessage());
+        console.error(msg);
+        throw new ValidationException(msg, ioException);
+      }
     }
   }
 
