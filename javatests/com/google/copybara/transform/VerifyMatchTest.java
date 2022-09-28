@@ -86,10 +86,25 @@ public final class VerifyMatchTest {
         assertThrows(ValidationException.class, () -> transform(transformation));
     assertThat(e)
         .hasMessageThat()
-        .contains("1 file(s) failed the validation of Verify match 'foo'");
+        .contains("1 file(s) failed the validation of verify_match 'foo',"
+            + " located at copy.bara.sky:1:22");
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
+        .onceInLog(MessageType.ERROR,
+            "Error validating 'verify_match 'foo'': "
+                + "file1.txt - Expected string was not present..*");
+  }
+
+  @Test
+  public void testSimpleMatchFails_customMsg() throws Exception {
+    VerifyMatch transformation = eval("core.verify_match(\n"
+        + "  regex = 'customMsg',\n"
+        + "  failure_message = 'Oh Noes',\n"
+        + ")");
+    Path file1 = checkoutDir.resolve("file1.txt");
+    writeFile(file1, "bar");
+    assertThrows(ValidationException.class, () -> transform(transformation));
+    console.assertThat().onceInLog(MessageType.ERROR, ".*Oh Noes.*");
   }
 
   @Test
@@ -104,9 +119,10 @@ public final class VerifyMatchTest {
         assertThrows(ValidationException.class, () -> transform(transformation.reverse()));
     assertThat(e)
         .hasMessageThat()
-        .contains("1 file(s) failed the validation of Verify match 'foo'");
+        .contains("1 file(s) failed the validation of verify_match 'foo',"
+            + " located at copy.bara.sky:1:22.");
       console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'file1.txt' failed validation 'Verify match 'foo'.*");
+          "Error validating 'verify_match 'foo'': file1.txt - Expected string was not present.");
   }
 
   @Test
@@ -120,8 +136,10 @@ public final class VerifyMatchTest {
     assertThrows(ValidationException.class, () -> transform(transformation));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR,
-            "file1.txt: Match found at 0 - 'foo'' failed validation 'Verify match 'foo'.*");
+        .onceInLog(
+            MessageType.ERROR,
+            ".*Error validating 'verify_match 'foo'': file1.txt - Unexpected match found at"
+                + " char 0 - 'foo'..*");
   }
 
   @Test
@@ -145,9 +163,11 @@ public final class VerifyMatchTest {
     assertThrows(ValidationException.class, () -> transform(transformation));
     console
         .assertThat()
-        .onceInLog(MessageType.ERROR, "File 'file1.txt' failed validation 'Verify match 'foo'.*");
-      console.assertThat().onceInLog(MessageType.ERROR,
-          "File 'folder/file1.txt' failed validation 'Verify match 'foo'.*");
+        .onceInLog(MessageType.ERROR, "Error validating 'verify_match 'foo'': "
+            + "folder/file1.txt - Expected string was not present..*");
+    console.assertThat().onceInLog(MessageType.ERROR,
+        "Error validating 'verify_match 'foo'': folder/file1.txt - "
+            + "Expected string was not present.*");
   }
 
   @Test

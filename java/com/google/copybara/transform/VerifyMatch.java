@@ -37,6 +37,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.syntax.Location;
@@ -53,13 +55,17 @@ public final class VerifyMatch implements Transformation {
   private final Glob fileMatcherBuilder;
   private final LocalParallelizer parallelizer;
   private final Location location;
+  private final Optional<String> failureMessage;
 
   private VerifyMatch(Pattern pattern, boolean verifyNoMatch, boolean alsoOnReversal,
-      Glob fileMatcherBuilder, LocalParallelizer parallelizer, Location location) {
+      Glob fileMatcherBuilder, Optional<String> failureMessage, LocalParallelizer parallelizer,
+      Location location) {
     this.pattern = checkNotNull(pattern);
     this.verifyNoMatch = verifyNoMatch;
     this.alsoOnReversal = alsoOnReversal;
     this.fileMatcherBuilder = checkNotNull(fileMatcherBuilder);
+    this.failureMessage = checkNotNull(failureMessage);
+
     this.parallelizer = parallelizer;
     this.location = checkNotNull(location);
   }
@@ -87,8 +93,7 @@ public final class VerifyMatch implements Transformation {
     int size = 0;
     for (String error : errors) {
       size++;
-      work.getConsole().error(String.format("File '%s' failed validation '%s'.", error,
-                                            describe()));
+      work.getConsole().error(String.format("Error validating '%s': %s", describe(), error));
     }
     work.getTreeState().notifyNoChange();
 
@@ -122,7 +127,13 @@ public final class VerifyMatch implements Transformation {
         if (verifyNoMatch == matcher.find()) {
           String error = checkoutDir.relativize(file.getPath()).toString();
           if (verifyNoMatch) {
-            error += String.format(": Match found at %d - '%s'", matcher.start(), matcher.group());
+            error += String.format(" - Unexpected match found at char %d - '%s'.\n",
+                matcher.start(), matcher.group());
+          } else {
+            error += " - Expected string was not present.\n";
+          }
+          if (failureMessage.isPresent()) {
+            error += failureMessage.get() + "\n";
           }
           errors.add(error);
         }
@@ -133,7 +144,7 @@ public final class VerifyMatch implements Transformation {
 
   @Override
   public String describe() {
-    return String.format("Verify match '%s'", pattern);
+    return String.format("verify_match '%s'", pattern);
   }
 
   @Override
@@ -150,14 +161,15 @@ public final class VerifyMatch implements Transformation {
   }
 
   public static VerifyMatch create(Location location, String regEx, Glob paths,
-      boolean verifyNoMatch, boolean alsoOnReversal, LocalParallelizer parallelizer)
-      throws EvalException {
+      boolean verifyNoMatch, boolean alsoOnReversal, @Nullable String failureMessage,
+      LocalParallelizer parallelizer) throws EvalException {
     Pattern parsed;
     try {
       parsed = Pattern.compile(regEx, Pattern.MULTILINE);
     } catch (PatternSyntaxException ex) {
       throw Starlark.errorf("Regex '%s' is invalid: %s", regEx, ex.getMessage());
     }
-    return new VerifyMatch(parsed, verifyNoMatch, alsoOnReversal, paths, parallelizer, location);
+    return new VerifyMatch(parsed, verifyNoMatch, alsoOnReversal, paths,
+        Optional.ofNullable(failureMessage), parallelizer, location);
   }
 }

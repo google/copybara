@@ -1276,7 +1276,7 @@ noop_behavior | `string` or `NoneType`<br><p>How to handle no-op transformations
 
 Verifies that a RegEx matches (or not matches) the specified files. Does not transform anything, but will stop the workflow if it fails.
 
-[`transformation`](#transformation) `core.verify_match(regex, paths=glob(["**"]), verify_no_match=False, also_on_reversal=False)`
+[`transformation`](#transformation) `core.verify_match(regex, paths=glob(["**"]), verify_no_match=False, also_on_reversal=False, failure_message=None)`
 
 
 #### Parameters:
@@ -1287,6 +1287,7 @@ regex | `string`<br><p>The regex pattern to verify. To satisfy the validation, t
 paths | [`glob`](#glob) or `NoneType`<br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 verify_no_match | `bool`<br><p>If true, the transformation will verify that the RegEx does not match.</p>
 also_on_reversal | `bool`<br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
+failure_message | `unknown`<br><p>Optional string that will be included in the failure message.</p>
 
 <a id="core.workflow" aria-hidden="true"></a>
 ### core.workflow

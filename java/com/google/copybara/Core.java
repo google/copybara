@@ -1397,6 +1397,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "If true, the check will also apply on the reversal. The default behavior is to"
                     + " not verify the pattern on reversal.",
             defaultValue = "False"),
+        @Param(
+            name = "failure_message",
+            named = true,
+            doc = "Optional string that will be included in the failure message.",
+            defaultValue = "None")
       },
       useStarlarkThread = true)
   @DocDefault(field = "paths", value = "glob([\"**\"])")
@@ -1405,6 +1410,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object paths,
       Boolean verifyNoMatch,
       Boolean alsoOnReversal,
+      Object failureMessage,
       StarlarkThread thread)
       throws EvalException {
     return VerifyMatch.create(
@@ -1413,6 +1419,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(paths, Glob.ALL_FILES),
         verifyNoMatch,
         alsoOnReversal,
+        SkylarkUtil.convertOptionalString(failureMessage),
         workflowOptions.parallelizer());
   }
 
