@@ -22,6 +22,7 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -738,7 +739,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               baselineWorkdir,
               Files.createDirectories(workdir.resolve("merge_import")));
         }
-        if (!workflow.getPatchFilePrefix().isBlank()) {
+        if (!Strings.isNullOrEmpty(workflow.getPatchFilePrefix())) {
           try {
             AutoPatchUtil.generatePatchFiles(
                 baselineWorkdir,
