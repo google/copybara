@@ -147,13 +147,19 @@ public class WorkflowOptions implements Option {
           + "used.")
   boolean readConfigFromChange = false;
 
+  @Parameter(
+      names = READ_CONFIG_FROM_CHANGE + "-disable",
+      description = READ_CONFIG_FROM_CHANGE
+          + " is a arity 0 flag, this flag overrides it to override it being enabled.", arity = 1)
+  boolean disableReadConfigFromChange = false;
+
   @Parameter(names = "--read-config-from-head-paths",
       description = "When "+ READ_CONFIG_FROM_CHANGE + " flag is used, read the following"
           + " path from head instead. This flag allows to unblock migrations due to config"
           + " libraries bugs. The paths accept globs syntax (**, ?, etc.)",
       converter = GlobConverter.class, hidden = true)
   @Nullable
-  public Glob readConfigFromChangePaths= null;
+  public Glob readConfigFromChangePaths = null;
 
   @Parameter(names = "--nosmart-prune",
       description = "Disable smart prunning")
@@ -180,6 +186,7 @@ public class WorkflowOptions implements Option {
     this.threadsMinSize = other.threadsMinSize;
     this.noTransformationJoin = other.noTransformationJoin;
     this.readConfigFromChange = other.readConfigFromChange;
+    this.disableReadConfigFromChange = other.disableReadConfigFromChange;
     this.readConfigFromChangePaths = other.readConfigFromChangePaths;
     this.noSmartPrune = other.noSmartPrune;
     this.toFolder = other.toFolder;
@@ -265,7 +272,7 @@ public class WorkflowOptions implements Option {
   }
 
   public boolean isReadConfigFromChange() {
-    return readConfigFromChange;
+    return readConfigFromChange && !disableReadConfigFromChange;
   }
 
   private final Supplier<LocalParallelizer> parallelizerSupplier =
