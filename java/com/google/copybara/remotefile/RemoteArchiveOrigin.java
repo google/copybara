@@ -199,7 +199,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
   @Override
   public String getType() {
-    return "remote_archive.origin";
+    return "remotefiles.origin";
   }
 
   @Override

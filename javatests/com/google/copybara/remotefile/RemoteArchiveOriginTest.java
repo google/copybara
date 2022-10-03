@@ -422,7 +422,7 @@ public final class RemoteArchiveOriginTest {
             Glob.createGlob(ImmutableList.of("path/to/file.txt"), ImmutableList.of()));
 
     assertThat(description).containsEntry("url", "https://foo.tar");
-    assertThat(description).containsEntry("type", "remote_archive.origin");
+    assertThat(description).containsEntry("type", "remotefiles.origin");
     assertThat(description).containsEntry("root", "path/to");
   }
 }
