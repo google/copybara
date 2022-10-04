@@ -242,7 +242,7 @@ public class WorkflowOptions implements Option {
   @Parameter(
       names = "--auto-patch-file-directory",
       description = "When auto_generate_patch mode is enabled, save patchfiles to this directory")
-  String autoPatchFileDirectory = "AUTOPATCHES/";
+  String autoPatchFileDirectory = "GOIMPORT/AUTOPATCHES/";
 
   @Parameter(
       names = "--auto-patch-file-suffix",

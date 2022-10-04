@@ -740,15 +740,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               Files.createDirectories(workdir.resolve("merge_import")));
         }
         if (!Strings.isNullOrEmpty(workflow.getPatchFilePrefix())) {
+          Path relativeConfigFile = Path.of(workflow.getMainConfigFile().getIdentifier());
           try {
             AutoPatchUtil.generatePatchFiles(
                 baselineWorkdir,
                 destinationFilesWorkdir,
-                checkoutDir.resolve(workflow.getWorkflowOptions().autoPatchFileDirectory),
+                checkoutDir.resolve(
+                    relativeConfigFile.resolveSibling(
+                        workflow.getWorkflowOptions().autoPatchFileDirectory)),
                 workflow.isVerbose(),
                 workflow.getGeneralOptions().getEnvironment(),
                 workflow.getPatchFilePrefix(),
-                workflow.getWorkflowOptions().autoPatchFileSuffix);
+                workflow.getWorkflowOptions().autoPatchFileSuffix,
+                relativeConfigFile.getParent());
           } catch (InsideGitDirException e) {
             console.errorFmt(
                 "Could not automatically generate patch files. Error received is %s",

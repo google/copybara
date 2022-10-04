@@ -43,7 +43,8 @@ public final class AutoPatchUtil {
       boolean verbose,
       Map<String, String> environment,
       String patchFilePrefix,
-      String patchFileNameSuffix)
+      String patchFileNameSuffix,
+      Path configDirectory)
       throws IOException, InsideGitDirException {
 
     ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
@@ -57,7 +58,9 @@ public final class AutoPatchUtil {
       String diffString =
           new String(
               DiffUtil.diffFileWithIgnoreCrAtEol(onePath, otherPath, verbose, environment), UTF_8);
-      Path patchFilePath = writePath.resolve(fileName.concat(patchFileNameSuffix));
+      Path patchFilePath =
+          writePath.resolve(
+              configDirectory.relativize(Path.of(fileName.concat(patchFileNameSuffix))));
       Files.createDirectories(patchFilePath.getParent());
       Files.writeString(patchFilePath, patchFilePrefix.concat(diffString));
     }
