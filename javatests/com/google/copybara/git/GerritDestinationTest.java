@@ -131,6 +131,8 @@ public class GerritDestinationTest {
 
   private static final String CONSTANT_CHANGE_ID = "I" + Strings.repeat("a", 40);
   private static final String BASE_URL = "https://user:SECRET@copybara-not-real.com";
+  private static final Pattern USER_ERROR_REGEX_PATTERN =
+      Pattern.compile("(2 is restricted)|(submit requirement[\\w-,.:!' ]*is unsatisfied)");
 
   private String url;
   private String fetch;
@@ -872,6 +874,66 @@ public class GerritDestinationTest {
                   console));
 
     assertThat(validationException).hasMessageThat().contains("2 is restricted");
+  }
+
+  @Test
+  public void gerritSubmit_unsatisfiedRequirement() throws Exception {
+    options.gerrit.gerritChangeId = null;
+    fetch = "master";
+    writeFile(workdir, "file", "some content");
+    url = BASE_URL + "/foo/bar";
+    repoGitDir = gitUtil.mockRemoteRepo("user:SECRET@copybara-not-real.com/foo/bar").getGitDir();
+    gitUtil.mockApi(
+        eq("GET"),
+        startsWith(BASE_URL + "/changes/"),
+        mockResponse(
+            "["
+                + "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"NEW\""
+                + "}]"));
+    AtomicBoolean submitCalled = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/revisions/.*/review"),
+        mockResponseWithStatus("submit requirement 'Presubmit-Verified' is unsatisfied.", 409));
+
+    gitUtil.mockApi(
+        eq("POST"),
+        matches(BASE_URL + "/changes/.*/submit"),
+        mockResponseAndValidateRequest(
+            "{"
+                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  status : \"submitted\""
+                + "}",
+            new MockRequestAssertion(
+                "Always true with side-effect",
+                s -> {
+                  submitCalled.set(true);
+                  return true;
+                })));
+
+    options.setForce(true);
+    DummyRevision originRef = new DummyRevision("origin_ref");
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+    WriterContext writerContext =
+        new WriterContext(
+            "GerritDestinationTest", "test", false, originRef, Glob.ALL_FILES.roots());
+    ValidationException validationException =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                destination
+                    .newWriter(writerContext)
+                    .write(
+                        TransformResults.of(workdir, originRef)
+                            .withSummary("Test message")
+                            .withIdentity(originRef.asString()),
+                        glob,
+                        console));
+
+    assertThat(validationException).hasMessageThat().containsMatch(USER_ERROR_REGEX_PATTERN);
   }
 
   @Test

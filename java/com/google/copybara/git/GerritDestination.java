@@ -102,6 +102,8 @@ public final class GerritDestination implements Destination<GitRevision> {
   static class GerritWriteHook implements WriteHook {
 
     private static final Pattern GERRIT_URL_LINE = Pattern.compile(".*: *(http(s)?://[^ ]+)( .*)?");
+    private static final Pattern USER_ERROR_REGEX_PATTERN =
+        Pattern.compile("(2 is restricted)|(submit requirement[\\w-,.:!' ]*is unsatisfied)");
 
     private final GerritOptions gerritOptions;
     private final String repoUrl;
@@ -297,8 +299,10 @@ public final class GerritDestination implements Destination<GitRevision> {
         ChangeInfo resultInfo =
             gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
         console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
-      } catch(RepoException e) {
-        if (e.getMessage().contains("2 is restricted")) {
+      } catch (RepoException e) {
+        Matcher matcher = USER_ERROR_REGEX_PATTERN.matcher(e.getMessage());
+
+        if (matcher.find()) {
           throw new ValidationException(e.getMessage(), e);
         }
         throw e;
