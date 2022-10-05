@@ -20,6 +20,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.TransformResult;
 import com.google.copybara.exception.RepoException;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.function.Function;
 
 /**
  * Utility methods related to {@link TransformResult}.
@@ -38,6 +40,28 @@ public class TransformResults {
         path, originRef, originRef.getAuthor(), "test summary\n", originRef, workflowName,
         TransformWorks.EMPTY_CHANGES, originRef.contextReference(),  /*setRevId=*/ true,
         ImmutableList::of, DummyOrigin.LABEL_NAME)
+        .withIdentity(originRef.asString());
+  }
+
+  /** Creates an instance for testing with a specific labelFinder function */
+  public static TransformResult of(
+      Path path,
+      DummyRevision originRef,
+      String workflowName,
+      Function<String, Collection<String>> labelFinder)
+      throws RepoException {
+    return new TransformResult(
+            path,
+            originRef,
+            originRef.getAuthor(),
+            "test summary\n",
+            originRef,
+            workflowName,
+            TransformWorks.EMPTY_CHANGES,
+            originRef.contextReference(),
+            /*setRevId=*/ true,
+            labelFinder,
+            DummyOrigin.LABEL_NAME)
         .withIdentity(originRef.asString());
   }
 }
