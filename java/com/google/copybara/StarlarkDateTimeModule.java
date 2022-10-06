@@ -19,10 +19,12 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.copybara.exception.ValidationException;
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneRulesException;
 import java.util.Objects;
@@ -107,7 +109,7 @@ public class StarlarkDateTimeModule implements StarlarkValue {
       switch (operator) {
         case MINUS:
           return new StarlarkTimeDelta(
-              ChronoUnit.SECONDS.between(zonedDateTime, otherDateTime.zonedDateTime));
+              ChronoUnit.SECONDS.between(otherDateTime.zonedDateTime, zonedDateTime));
           // TODO(linjordan) - PLUS between StarklarkDatetime and StarlarkTimeDelta in the future
         default:
           throw new EvalException(String.format("Glob does not support %s operator", operator));
@@ -135,6 +137,34 @@ public class StarlarkDateTimeModule implements StarlarkValue {
         doc = "Returns the time in epoch seconds for the starlark_datetime instance")
     public long getTimeInEpochSeconds() {
       return this.zonedDateTime.toEpochSecond();
+    }
+
+    @SuppressWarnings("GoodTime")
+    @StarlarkMethod(
+        name = "strftime",
+        doc =
+            "Returns a string representation of the StarlarkDateTime object with your chosen"
+                + " formatting",
+        parameters = {
+          @Param(
+              name = "format",
+              doc =
+                  "Format string used to present StarlarkDateTime object. See"
+                      + " https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html"
+                      + " for patterns.",
+              allowedTypes = {@ParamType(type = String.class)},
+              named = true),
+        })
+    public String formatToString(String format) throws ValidationException {
+      try {
+        return zonedDateTime.format(DateTimeFormatter.ofPattern(format));
+      } catch (DateTimeException | IllegalArgumentException e) {
+        throw new ValidationException(
+            String.format(
+                "The StarlarkDateTime object '%s' could not be formatted using format string '%s':",
+                this, format),
+            e);
+      }
     }
 
     @Override

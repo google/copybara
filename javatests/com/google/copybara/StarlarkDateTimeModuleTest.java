@@ -90,10 +90,10 @@ public final class StarlarkDateTimeModuleTest {
   @Test
   @TestParameters({
     "{leftEpoch: 1664663728, rightEpoch: 1664663728, expectedSeconds: 0}",
-    "{leftEpoch: 1600000000, rightEpoch: 1600450305, expectedSeconds: 450305}",
-    "{leftEpoch: 1600450305, rightEpoch: 1600000000, expectedSeconds: -450305}",
-    "{leftEpoch: 1664808418, rightEpoch: -1, expectedSeconds: -1664808419}",
-    "{leftEpoch: -1, rightEpoch: 1664750128, expectedSeconds: 1664750129}"
+    "{leftEpoch: 1600000000, rightEpoch: 1600450305, expectedSeconds: -450305}",
+    "{leftEpoch: 1600450305, rightEpoch: 1600000000, expectedSeconds: 450305}",
+    "{leftEpoch: 1664808418, rightEpoch: -1, expectedSeconds: 1664808419}",
+    "{leftEpoch: -1, rightEpoch: 1664750128, expectedSeconds: -1664750129}"
   })
   @SuppressWarnings("GoodTime")
   public void testSecondsBetweenStarlarkDateTime(
@@ -108,5 +108,25 @@ public final class StarlarkDateTimeModuleTest {
                     + "timedelta = (my_datetime - my_other_datetime)",
                 leftEpoch, rightEpoch));
     assertThat(timeDelta.totalSeconds()).isEqualTo(expectedSeconds);
+  }
+
+  @Test
+  @TestParameters({
+    "{formatString: 'dd-LLL-yyyy', expectedTimeString: '06-Oct-2022'}",
+    "{formatString: 'MM-dd-yyyy HH:mm:ss a VV', expectedTimeString: '10-06-2022 11:23:49 AM"
+        + " America/New_York'}"
+  })
+  @SuppressWarnings("GoodTime")
+  public void testStarlarkDateTimeStrftime(String formatString, String expectedTimeString)
+      throws Exception {
+    long epochSeconds = 1665069829; // Thursday, October 6, 2022 11:23:49 AM in America/New_York
+    String actualTimeString =
+        executor.eval(
+            "time_string",
+            String.format(
+                "time_string = datetime.fromtimestamp(timestamp = %s, tz ="
+                    + " 'America/New_York').strftime(format = '%s')",
+                epochSeconds, formatString));
+    assertThat(actualTimeString).isEqualTo(expectedTimeString);
   }
 }
