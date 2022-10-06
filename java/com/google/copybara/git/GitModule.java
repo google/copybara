@@ -190,6 +190,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
+        @Param(
             name = "include_branch_commit_logs",
             defaultValue = "False",
             named = true,
@@ -242,27 +254,31 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'. Version"
-                + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
+            doc =
+                "Select a custom version (tag)to migrate"
+                    + " instead of 'ref'. Version"
+                    + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
-                @ParamType(type = Boolean.class),
+              @ParamType(type = Boolean.class),
             },
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
-                + " and instead try to establish the default git branch. If this fails, it will "
-                + "fall back to the 'ref' param.\n"
-                + "This is intended to help migrating to the new standard of using 'main' without "
-                + "breaking users relying on the legacy default."),
+            doc =
+                "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and"
+                    + " instead try to establish the default git branch. If this fails, it will"
+                    + " fall back to the 'ref' param.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin origin(
       String url,
       Object ref,
       String submodules,
+      Object excludedSubmodules,
       Boolean includeBranchCommitLogs,
       Boolean firstParent,
       Boolean partialFetch,
@@ -282,12 +298,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + " to migrate");
     }
 
+    List<String> excludedSubmoduleList =
+        Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
+    checkSubmoduleConfig(submodules, excludedSubmoduleList);
+
     return GitOrigin.newGitOrigin(
         options,
         fixHttp(url, thread.getCallerLocation()),
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GIT,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        excludedSubmoduleList,
         includeBranchCommitLogs,
         firstParent,
         partialFetch,
@@ -573,6 +594,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
+        @Param(
             name = "first_parent",
             defaultValue = "True",
             named = true,
@@ -641,22 +674,24 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
-                @ParamType(type = Boolean.class),
+              @ParamType(type = Boolean.class),
             },
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
-                + " and instead try to establish the default git branch. If this fails, it will "
-                + "fall back to the 'ref' param.\n"
-                + "This is intended to help migrating to the new standard of using 'main' without "
-                + "breaking users relying on the legacy default."),
+            doc =
+                "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and"
+                    + " instead try to establish the default git branch. If this fails, it will"
+                    + " fall back to the 'ref' param.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin gerritOrigin(
       String url,
       Object ref,
       String submodules,
+      Object excludedSubmodules,
       Boolean firstParent,
       Boolean partialFetch,
       Object checkerObj,
@@ -673,6 +708,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
+    List<String> excludedSubmoduleList =
+        Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
+    checkSubmoduleConfig(submodules, excludedSubmoduleList);
+
     if (!Strings.isNullOrEmpty(refField)) {
       getGeneralConsole().warn(
           "'ref' field detected in configuration. git.gerrit_origin"
@@ -683,6 +722,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           refField,
           GitRepoType.GERRIT,
           stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+          excludedSubmoduleList,
           /*includeBranchCommitLogs=*/ false,
           firstParent,
           partialFetch,
@@ -698,6 +738,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         options,
         url,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        excludedSubmoduleList,
         firstParent,
         partialFetch,
         convertFromNoneable(checkerObj, null),
@@ -826,6 +867,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
         @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
+        @Param(
             name = "baseline_from_branch",
             named = true,
             doc =
@@ -947,6 +1000,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Sequence<?> requiredCheckRuns, // <String>
       Sequence<?> retryableLabels, // <String>
       String submodules,
+      Object excludedSubmodules,
       Boolean baselineFromBranch,
       Boolean firstParent,
       Boolean partialClone,
@@ -962,6 +1016,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     checkNotEmpty(url, "url");
     check(GITHUB_COM.isGitHubUrl(url), "Invalid Github URL: %s", url);
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
+
+    List<String> excludedSubmoduleList =
+        Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
+    checkSubmoduleConfig(submodules, excludedSubmoduleList);
 
     String reviewStateString = convertFromNoneable(reviewStateParam, null);
     Sequence<String> reviewApproversStrings = convertFromNoneable(reviewApproversParam, null);
@@ -1007,6 +1065,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         ImmutableSet.copyOf(
             Sequence.cast(retryableLabels, String.class, GitHubUtil.RETRYABLE_LABELS)),
         stringToEnum("submodules", submodules, SubmoduleStrategy.class),
+        excludedSubmoduleList,
         baselineFromBranch,
         firstParent,
         partialClone,
@@ -1046,6 +1105,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "'NO'",
             named = true,
             doc = "Download submodules. Valid values: NO, YES, RECURSIVE."),
+        @Param(
+            name = "excluded_submodules",
+            defaultValue = "[]",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            named = true,
+            positional = false,
+            doc =
+                "A list of names (not paths, e.g. \"foo\" is the submodule name if [submodule"
+                    + " \"foo\"] appears in the .gitmodules file) of submodules that will not be"
+                    + " download even if 'submodules' is set to YES or RECURSIVE. "),
         @Param(
             name = "first_parent",
             defaultValue = "True",
@@ -1090,27 +1161,31 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = "Select a custom version (tag)to migrate" + " instead of 'ref'. Version"
-                + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
+            doc =
+                "Select a custom version (tag)to migrate"
+                    + " instead of 'ref'. Version"
+                    + " selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')"),
         @Param(
             name = "primary_branch_migration",
             allowedTypes = {
-                @ParamType(type = Boolean.class),
+              @ParamType(type = Boolean.class),
             },
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main'"
-                + " and instead try to establish the default git branch. If this fails, it will "
-                + "fall back to the 'ref' param.\n"
-                + "This is intended to help migrating to the new standard of using 'main' without "
-                + "breaking users relying on the legacy default."),
+            doc =
+                "When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and"
+                    + " instead try to establish the default git branch. If this fails, it will"
+                    + " fall back to the 'ref' param.\n"
+                    + "This is intended to help migrating to the new standard of using 'main'"
+                    + " without breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
   public GitOrigin githubOrigin(
       String url,
       Object ref,
       String submodules,
+      Object excludedSubmodules,
       Boolean firstParent,
       Boolean partialFetch,
       Object patch,
@@ -1128,6 +1203,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               + " to migrate");
     }
 
+    List<String> excludedSubmoduleList =
+        Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
+    checkSubmoduleConfig(submodules, excludedSubmoduleList);
+
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
@@ -1137,6 +1216,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GITHUB,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
+        excludedSubmoduleList,
         /*includeBranchCommitLogs=*/ false,
         firstParent,
         partialFetch,
@@ -1145,7 +1225,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertDescribeVersion(describeVersion),
         convertFromNoneable(versionSelector, null),
         mainConfigFile.path(),
-        workflowName, approvalsProvider(url));
+        workflowName,
+        approvalsProvider(url));
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -2431,5 +2512,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   @Override
   public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
     this.printHandler = printHandler;
+  }
+
+  private void checkSubmoduleConfig(String submodules, List<String> excludedSubmodules)
+      throws EvalException {
+    check(
+        !submodules.equals("NO") || excludedSubmodules.isEmpty(),
+        "Expected excluded submodule list to be empty when submodules is NO, but got %s",
+        excludedSubmodules);
   }
 }

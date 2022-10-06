@@ -2329,7 +2329,7 @@ Implicit labels that can be used/exposed:
   - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
-`origin` `git.gerrit_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None, ignore_gerrit_noop=False, primary_branch_migration=False)`
+`origin` `git.gerrit_origin(url, ref=None, submodules='NO', excluded_submodules=[], first_parent=True, partial_fetch=False, api_checker=None, patch=None, branch=None, describe_version=None, ignore_gerrit_noop=False, primary_branch_migration=False)`
 
 
 #### Parameters:
@@ -2339,6 +2339,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string` or `NoneType`<br><p>DEPRECATED. Use git.origin for submitted branches.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+excluded_submodules | `sequence of string`<br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files..</p>
 api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
@@ -2445,7 +2446,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`origin` `git.github_origin(url, ref=None, submodules='NO', first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False)`
+`origin` `git.github_origin(url, ref=None, submodules='NO', excluded_submodules=[], first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False)`
 
 
 #### Parameters:
@@ -2455,6 +2456,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string` or `NoneType`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+excluded_submodules | `sequence of string`<br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 patch | [`transformation`](#transformation) or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
@@ -2571,7 +2573,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-`origin` `git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], required_check_runs=[], retryable_labels=[], submodules='NO', baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
+`origin` `git.github_pr_origin(url, use_merge=False, required_labels=[], required_status_context_names=[], required_check_runs=[], retryable_labels=[], submodules='NO', excluded_submodules=[], baseline_from_branch=False, first_parent=True, partial_fetch=False, state='OPEN', review_state=None, review_approvers=["COLLABORATOR", "MEMBER", "OWNER"], api_checker=None, patch=None, branch=None, describe_version=None)`
 
 
 #### Parameters:
@@ -2585,6 +2587,7 @@ required_status_context_names | `sequence of string`<br><p>A list of names of se
 required_check_runs | `sequence of string`<br><p>A list of check runs which must all have a value of 'success' in order to import the PR.<br><br>See https://docs.github.com/en/rest/guides/getting-started-with-the-checks-api</p>
 retryable_labels | `sequence of string`<br><p>Required labels to import the PR that should be retried. This parameter must be a subset of required_labels.</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+excluded_submodules | `sequence of string`<br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 baseline_from_branch | `bool`<br><p>WARNING: Use this field only for github -> git CHANGE_REQUEST workflows.<br>When the field is set to true for CHANGE_REQUEST workflows it will find the baseline comparing the Pull Request with the base branch instead of looking for the *-RevId label in the commit message.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
@@ -2714,7 +2717,7 @@ actions | `sequence`<br><p>Experimental feature. A list of mirror actions to per
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-`origin` `git.origin(url, ref=None, submodules='NO', include_branch_commit_logs=False, first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False)`
+`origin` `git.origin(url, ref=None, submodules='NO', excluded_submodules=[], include_branch_commit_logs=False, first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False)`
 
 
 #### Parameters:
@@ -2724,6 +2727,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the URL of the git repository</p>
 ref | `string` or `NoneType`<br><p>Represents the default reference that will be used for reading the revision from the git repository. For example: 'master'</p>
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
+excluded_submodules | `sequence of string`<br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 include_branch_commit_logs | `bool`<br><p>Whether to include raw logs of branch commits in the migrated change message.WARNING: This field is deprecated in favor of 'first_parent' one. This setting *only* affects merge commits.</p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
@@ -4441,6 +4445,8 @@ input | `string`<br><p></p>
 
 Functions to access remote files not in either repo.
 
+
+
 **Command line flags:**
 
 Name | Type | Description
@@ -4499,6 +4505,7 @@ base_url | `unknown`<br><p>base URL to construct the full URL. DEPRECATED.</p>
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--remote-http-files-connection-timeout`</span> | *duration* | Timeout for the fetch operation, e.g. 30s.  Example values: 30s, 20m, 1h, etc.
+
 
 
 ## SetReviewInput

@@ -65,6 +65,7 @@ public class GerritOrigin extends GitOrigin {
   private final GitOriginOptions gitOriginOptions;
   private final GerritOptions gerritOptions;
   private final SubmoduleStrategy submoduleStrategy;
+  private final List<String> excludedSubmodules;
   private final boolean includeBranchCommitLogs;
   private final boolean partialFetch;
   @Nullable private final Checker endpointChecker;
@@ -80,6 +81,7 @@ public class GerritOrigin extends GitOrigin {
       GitOriginOptions gitOriginOptions,
       GerritOptions gerritOptions,
       SubmoduleStrategy submoduleStrategy,
+      List<String> excludedSubmodules,
       boolean includeBranchCommitLogs,
       boolean firstParent,
       boolean partialFetch,
@@ -98,13 +100,15 @@ public class GerritOrigin extends GitOrigin {
         gitOptions,
         gitOriginOptions,
         submoduleStrategy,
+        excludedSubmodules,
         includeBranchCommitLogs,
         firstParent,
         partialFetch,
-        patchTransformation, describeVersion,
-        /*versionSelector=*/null,
-        /*configPath=*/null,
-        /*workflowName=*/null,
+        patchTransformation,
+        describeVersion,
+        /*versionSelector=*/ null,
+        /*configPath=*/ null,
+        /*workflowName=*/ null,
         primaryBranchMigrationMode,
         approvalsProvider);
     this.generalOptions = checkNotNull(generalOptions);
@@ -112,6 +116,7 @@ public class GerritOrigin extends GitOrigin {
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.gerritOptions = checkNotNull(gerritOptions);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
+    this.excludedSubmodules = excludedSubmodules;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.endpointChecker = endpointChecker;
     this.patchTransformation = patchTransformation;
@@ -172,6 +177,7 @@ public class GerritOrigin extends GitOrigin {
       Options options,
       String url,
       SubmoduleStrategy submoduleStrategy,
+      List<String> excludedSubmodules,
       boolean firstParent,
       boolean partialFetch,
       @Nullable Checker endpointChecker,
@@ -190,6 +196,7 @@ public class GerritOrigin extends GitOrigin {
         options.get(GitOriginOptions.class),
         options.get(GerritOptions.class),
         submoduleStrategy,
+        excludedSubmodules,
         /*includeBranchCommitLogs=*/ false,
         firstParent,
         partialFetch,
@@ -213,12 +220,13 @@ public class GerritOrigin extends GitOrigin {
         generalOptions,
         includeBranchCommitLogs,
         submoduleStrategy,
+        excludedSubmodules,
         firstParent,
         partialFetch,
         patchTransformation,
         describeVersion,
-        /*configPath=*/null,
-        /*workflowName=*/null) {
+        /*configPath=*/ null,
+        /*workflowName=*/ null) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(

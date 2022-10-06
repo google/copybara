@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -79,6 +80,20 @@ public class GitOriginSubmodulesTest {
             + "    ref = '%s',\n"
             + "    submodules = 'RECURSIVE',\n"
             + ")", url, primary));
+  }
+
+  private GitOrigin origin(String url, String primary, String excludedSubmodulesExpr)
+      throws ValidationException {
+    return skylark.eval(
+        "result",
+        String.format(
+            "result = git.origin(\n"
+                + "    url = '%s',\n"
+                + "    ref = '%s',\n"
+                + "    submodules = 'RECURSIVE',\n"
+                + "    excluded_submodules = %s,\n"
+                + ")",
+            url, primary, excludedSubmodulesExpr));
   }
 
   /**
@@ -344,6 +359,64 @@ public class GitOriginSubmodulesTest {
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
         .containsFile("r1/foo", "1");
+  }
+
+  @Test
+  public void testExcludedSubmoduleNotDownloaded() throws Exception {
+    Path base = Files.createTempDirectory("testDownloadFilter");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+
+    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "file://" + r1.getWorkTree(), "r1");
+    commit(r2, "adding r2->r1 submodule");
+
+    String excludedSubmodules = "[\"r1\"]";
+    GitOrigin origin =
+        origin("file://" + r2.getGitDir(), r2.getPrimaryBranch(), excludedSubmodules);
+    GitRevision main = origin.resolve(r2.getPrimaryBranch());
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFiles("foo")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testNonExcludedSubmoduleDownloaded() throws Exception {
+    Path base = Files.createTempDirectory("testDownloadFilter");
+    GitRepository r1 = createRepoWithFoo(base, "r1");
+    GitRepository r2 = createRepoWithFoo(base, "r2");
+
+    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "file://" + r1.getWorkTree(), "r1");
+    commit(r2, "adding r2->r1 submodule");
+
+    String excludedSubmodules = "[\"foo\"]";
+    GitOrigin origin =
+        origin("file://" + r2.getGitDir(), r2.getPrimaryBranch(), excludedSubmodules);
+    GitRevision main = origin.resolve(r2.getPrimaryBranch());
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
+
+    FileSubjects.assertThatPath(checkoutDir)
+        .containsFiles(GITMODULES)
+        .containsFiles("foo")
+        .containsFiles("r1/foo")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testInvalidSubmodulesConfigThrows() {
+    assertThrows(
+        ValidationException.class,
+        () ->
+            skylark.eval(
+                "result",
+                "result = git.origin(\n"
+                    + "    url = '%s',\n"
+                    + "    ref = '%s',\n"
+                    + "    submodules = 'NO',\n"
+                    + "    excluded_submodules = [\"foo\"],\n"
+                    + ")"));
   }
 
   private void commitAdd(GitRepository repo, Map<String, String> files)

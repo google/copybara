@@ -119,6 +119,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final Set<String> requiredCheckRunsField;
   private final Set<String> retryableLabelsField;
   private final SubmoduleStrategy submoduleStrategy;
+  private final List<String> excludedSubmodules;
   private final Console console;
   private final boolean baselineFromBranch;
   private final Boolean firstParent;
@@ -146,6 +147,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       Set<String> requiredCheckRuns,
       Set<String> retryableLabels,
       SubmoduleStrategy submoduleStrategy,
+      List<String> excludedSubmodules,
       boolean baselineFromBranch,
       Boolean firstParent,
       Boolean partialClone,
@@ -169,6 +171,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.requiredCheckRunsField = checkNotNull(requiredCheckRuns);
     this.retryableLabelsField = checkNotNull(retryableLabels);
     this.submoduleStrategy = checkNotNull(submoduleStrategy);
+    this.excludedSubmodules = excludedSubmodules;
     console = generalOptions.console();
     this.baselineFromBranch = baselineFromBranch;
     this.firstParent = firstParent;
@@ -586,6 +589,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         generalOptions,
         /*includeBranchCommitLogs=*/ false,
         submoduleStrategy,
+        excludedSubmodules,
         firstParent,
         partialFetch,
         patchTransformation,

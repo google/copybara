@@ -54,6 +54,7 @@ import com.google.copybara.version.VersionSelector.SearchPattern;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -91,6 +92,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private final GitOptions gitOptions;
   private final GitOriginOptions gitOriginOptions;
   private final SubmoduleStrategy submoduleStrategy;
+  private final List<String> excludedSubmodules;
   private final boolean includeBranchCommitLogs;
   boolean firstParent;
   private final boolean partialFetch;
@@ -114,6 +116,7 @@ public class GitOrigin implements Origin<GitRevision> {
       GitOptions gitOptions,
       GitOriginOptions gitOriginOptions,
       SubmoduleStrategy submoduleStrategy,
+      List<String> excludedSubmodules,
       boolean includeBranchCommitLogs,
       boolean firstParent,
       boolean partialClone,
@@ -135,6 +138,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
     this.submoduleStrategy = submoduleStrategy;
+    this.excludedSubmodules = excludedSubmodules;
     this.includeBranchCommitLogs = includeBranchCommitLogs;
     this.firstParent = firstParent;
     this.partialFetch = partialClone;
@@ -163,9 +167,22 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public Reader<GitRevision> newReader(Glob originFiles, Authoring authoring) {
-    return new ReaderImpl(repoUrl, originFiles, authoring,
-        gitOptions, gitOriginOptions, generalOptions, includeBranchCommitLogs, submoduleStrategy,
-        firstParent, partialFetch, patchTransformation, describeVersion, configPath, workflowName);
+    return new ReaderImpl(
+        repoUrl,
+        originFiles,
+        authoring,
+        gitOptions,
+        gitOriginOptions,
+        generalOptions,
+        includeBranchCommitLogs,
+        submoduleStrategy,
+        excludedSubmodules,
+        firstParent,
+        partialFetch,
+        patchTransformation,
+        describeVersion,
+        configPath,
+        workflowName);
   }
 
   @Override
@@ -250,6 +267,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final GeneralOptions generalOptions;
     private final boolean includeBranchCommitLogs;
     private final SubmoduleStrategy submoduleStrategy;
+    private final List<String> excludedSubmodules;
     private final boolean firstParent;
     private final boolean partialFetch;
     @Nullable private final PatchTransformation patchTransformation;
@@ -257,12 +275,16 @@ public class GitOrigin implements Origin<GitRevision> {
     private final String configPath;
     private final String workflowName;
 
-    ReaderImpl(String repoUrl, Glob originFiles, Authoring authoring,
+    ReaderImpl(
+        String repoUrl,
+        Glob originFiles,
+        Authoring authoring,
         GitOptions gitOptions,
         GitOriginOptions gitOriginOptions,
         GeneralOptions generalOptions,
         boolean includeBranchCommitLogs,
         SubmoduleStrategy submoduleStrategy,
+        List<String> excludedSubmodules,
         boolean firstParent,
         boolean partialFetch,
         @Nullable PatchTransformation patchTransformation,
@@ -277,6 +299,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.generalOptions = checkNotNull(generalOptions);
       this.includeBranchCommitLogs = includeBranchCommitLogs;
       this.submoduleStrategy = checkNotNull(submoduleStrategy);
+      this.excludedSubmodules = excludedSubmodules;
       this.firstParent = firstParent;
       this.partialFetch = partialFetch;
       this.patchTransformation = patchTransformation;
@@ -364,6 +387,13 @@ public class GitOrigin implements Origin<GitRevision> {
         return;
       }
       for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
+        if (excludedSubmodules.contains(submodule.getName())) {
+          generalOptions
+              .console()
+              .infoFmt("Submodule '%s' is excluded, skipping checkout", submodule.getName());
+          continue;
+        }
+
         ImmutableList<TreeElement> elements = repo.lsTree(ref, submodule.getPath(), false, false);
         if (elements.size() != 1) {
           throw new RepoException(String
@@ -516,22 +546,43 @@ public class GitOrigin implements Origin<GitRevision> {
         .toString();
   }
 
-  /**
-   * Builds a new {@link GitOrigin}.
-   */
-  static GitOrigin newGitOrigin(Options options, String url, String ref, GitRepoType type,
-      SubmoduleStrategy submoduleStrategy, boolean includeBranchCommitLogs, boolean firstParent,
-      boolean partialClone, boolean primaryBranchMigrationMode,
-      @Nullable PatchTransformation patchTransformation, boolean describeVersion,
+  /** Builds a new {@link GitOrigin}. */
+  static GitOrigin newGitOrigin(
+      Options options,
+      String url,
+      String ref,
+      GitRepoType type,
+      SubmoduleStrategy submoduleStrategy,
+      List<String> excludedSubmodules,
+      boolean includeBranchCommitLogs,
+      boolean firstParent,
+      boolean partialClone,
+      boolean primaryBranchMigrationMode,
+      @Nullable PatchTransformation patchTransformation,
+      boolean describeVersion,
       @Nullable VersionSelector versionSelector,
-      String configPath, String workflowName,
+      String configPath,
+      String workflowName,
       ApprovalsProvider approvalsProvider) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
-        url, ref, type, options.get(GitOptions.class), options.get(GitOriginOptions.class),
-        submoduleStrategy, includeBranchCommitLogs, firstParent, partialClone,
-        patchTransformation, describeVersion, versionSelector,
-        configPath, workflowName, primaryBranchMigrationMode, approvalsProvider);
+        url,
+        ref,
+        type,
+        options.get(GitOptions.class),
+        options.get(GitOriginOptions.class),
+        submoduleStrategy,
+        excludedSubmodules,
+        includeBranchCommitLogs,
+        firstParent,
+        partialClone,
+        patchTransformation,
+        describeVersion,
+        versionSelector,
+        configPath,
+        workflowName,
+        primaryBranchMigrationMode,
+        approvalsProvider);
   }
 
   @Override
