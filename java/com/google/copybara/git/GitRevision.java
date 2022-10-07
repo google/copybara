@@ -100,13 +100,6 @@ public final class GitRevision implements Revision {
          .put("GIT_SHA1", sha1)
          .put("GIT_SHORT_SHA1", sha1.substring(0, 7));
     }
-    // TODO(chriscampos): Do not use hard coded labels for these values
-    if (!associatedLabels.containsKey(GitRepository.GIT_REVISION_ORIGIN)) {
-      labelBuilder.put(GitRepository.GIT_REVISION_ORIGIN, "Git");
-    }
-    if (!associatedLabels.containsKey(GitRepository.GIT_REVISION_VERSION)) {
-      labelBuilder.put(GitRepository.GIT_REVISION_VERSION, sha1);
-    }
     this.associatedLabels = labelBuilder.build();
     this.url = url;
   }
@@ -182,10 +175,6 @@ public final class GitRevision implements Revision {
 
   @Override
   public ImmutableList<String> associatedLabel(String label) {
-    if (label.equals(GitRepository.GIT_REVISION_CLOSEST_VERSION)
-        && !associatedLabels.containsKey(GitRepository.GIT_REVISION_CLOSEST_VERSION)) {
-      return associatedLabel(GitRepository.GIT_DESCRIBE_CHANGE_VERSION);
-    }
     // We only return git describe if specifically ask for this label
     if (label.equals(GitRepository.GIT_DESCRIBE_CHANGE_VERSION)) {
       return populateDescribe();

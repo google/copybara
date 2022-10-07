@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -327,54 +326,6 @@ public class GitOriginTest {
         .isTrue();
     assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.2")))
         .isTrue();
-  }
-
-  @Test
-  public void testRevisionVersionTags() throws Exception {
-    String author = "John Name <john@name.com>";
-    singleFileCommit(author, "change2", "test.txt", "some content2");
-    git("tag", "-m", "This is a tag", "0.1");
-    GitRevision head = origin().resolve(defaultBranch);
-
-    assertThat(head.associatedLabel(GitRepository.GIT_REVISION_ORIGIN)).contains("Git");
-    assertThat(head.associatedLabel(GitRepository.GIT_REVISION_CLOSEST_VERSION)).contains("0.1");
-    assertThat(head.associatedLabel(GitRepository.GIT_REVISION_VERSION)).contains(head.getSha1());
-  }
-
-  @Test
-  public void testRevisionLabelValueSetting() throws Exception {
-    String sha1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-    ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
-    labels.put(GitRepository.GIT_REVISION_ORIGIN, "Git2");
-    labels.put(GitRepository.GIT_REVISION_VERSION, "v1.7.8");
-
-    /* Pre defined label values passed in */
-    GitRevision revWithLabelMap =
-        new GitRevision(
-            repo, sha1, /*reviewReference*/ null, /*reference*/ null, labels.build(), url);
-    GitRevision revDefaultLabels =
-        new GitRevision(
-            repo,
-            sha1, /*reviewReference*/
-            null, /*reference*/
-            null,
-            ImmutableListMultimap.of(),
-            url);
-
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_ORIGIN)).hasSize(1);
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_ORIGIN)).contains("Git2");
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_ORIGIN))
-        .doesNotContain("Git");
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_VERSION)).hasSize(1);
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_VERSION))
-        .contains("v1.7.8");
-    assertThat(revWithLabelMap.associatedLabel(GitRepository.GIT_REVISION_VERSION))
-        .doesNotContain(sha1);
-
-    assertThat(revDefaultLabels.associatedLabel(GitRepository.GIT_REVISION_ORIGIN)).hasSize(1);
-    assertThat(revDefaultLabels.associatedLabel(GitRepository.GIT_REVISION_ORIGIN)).contains("Git");
-    assertThat(revDefaultLabels.associatedLabel(GitRepository.GIT_REVISION_VERSION)).hasSize(1);
-    assertThat(revDefaultLabels.associatedLabel(GitRepository.GIT_REVISION_VERSION)).contains(sha1);
   }
 
   @Test
