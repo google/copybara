@@ -65,16 +65,13 @@ public final class AutoPatchUtilTest {
         System.getenv(),
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
-        Path.of(SOME_DIR));
+        Path.of(SOME_DIR),
+        true);
 
     assertThat(Files.readString(out.resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "diff --git a/file1.txt b/../../../right/some/dir/file1.txt\n"
-                    + "index 5ca5c10..5fcb760 100644\n"
-                    + "--- a/file1.txt\n"
-                    + "+++ b/../../../right/some/dir/file1.txt\n"
-                    + "@@ -1 +1 @@\n"
+                "@@ -1 +1 @@\n"
                     + "-foo-left\n"
                     + "\\ No newline at end of file\n"
                     + "+foo-right\n"
@@ -82,11 +79,7 @@ public final class AutoPatchUtilTest {
     assertThat(Files.readString(out.resolve("file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "diff --git a/file2.txt b/../../../right/some/dir/file2.txt\n"
-                    + "index 81f8493..6d761ee 100644\n"
-                    + "--- a/file2.txt\n"
-                    + "+++ b/../../../right/some/dir/file2.txt\n"
-                    + "@@ -1 +1 @@\n"
+                "@@ -1 +1 @@\n"
                     + "-bar-left\n"
                     + "\\ No newline at end of file\n"
                     + "+bar-right\n"
@@ -108,7 +101,8 @@ public final class AutoPatchUtilTest {
         System.getenv(),
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
-        Path.of(SOME_DIR));
+        Path.of(SOME_DIR),
+        true);
 
     assertThat(Files.exists(out.resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
     assertThat(Files.exists(out.resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();

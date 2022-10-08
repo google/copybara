@@ -1345,6 +1345,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--auto-patch-file-directory`</span> | *string* | When auto_generate_patch mode is enabled, save patchfiles to this directory
 <span style="white-space: nowrap;">`--auto-patch-file-suffix`</span> | *string* | When auto_generate_patch mode is enabled, save patch files using this suffix
+<span style="white-space: nowrap;">`--auto-patch-strip-file-names`</span> | *boolean* | When combined with automatic patch file generation (and merge_import mode), strips the filenames from the generated patch files
 <span style="white-space: nowrap;">`--baseline-for-merge-import`</span> | *string* | Origin baseline to use for merge import. This overrides any inferred origin baseline
 <span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
 <span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s

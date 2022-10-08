@@ -44,7 +44,8 @@ public final class AutoPatchUtil {
       Map<String, String> environment,
       String patchFilePrefix,
       String patchFileNameSuffix,
-      Path configDirectory)
+      Path configDirectory,
+      boolean stripFileNames)
       throws IOException, InsideGitDirException {
 
     ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
@@ -58,11 +59,30 @@ public final class AutoPatchUtil {
       String diffString =
           new String(
               DiffUtil.diffFileWithIgnoreCrAtEol(onePath, otherPath, verbose, environment), UTF_8);
+      if (stripFileNames) {
+        diffString = stripFileNames(diffString);
+      }
       Path patchFilePath =
           writePath.resolve(
               configDirectory.relativize(Path.of(fileName.concat(patchFileNameSuffix))));
       Files.createDirectories(patchFilePath.getParent());
       Files.writeString(patchFilePath, patchFilePrefix.concat(diffString));
     }
+  }
+
+  // Reimplementation of golang packaging code
+  private static String stripFileNames(String diffString) {
+    String parsedDiffString = diffString.substring(diffString.indexOf("\n@@") + "\n".length());
+    String diffChunk = parsedDiffString;
+    int i = 0;
+    while (parsedDiffString.length() > 0) {
+      i = parsedDiffString.indexOf("\n@@") + "\n".length();
+      if (i <= 0 || i >= parsedDiffString.length()) {
+        break;
+      }
+      diffChunk = diffChunk.concat(parsedDiffString.substring(0, i));
+      parsedDiffString = parsedDiffString.substring(i);
+    }
+    return diffChunk;
   }
 }
