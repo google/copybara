@@ -1339,6 +1339,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "A checker that can check leaks or other checks in the commit created. ",
             named = true,
             positional = false),
+        @Param(
+            name = "push_options",
+            allowedTypes = {
+              @ParamType(type = Sequence.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A sequence of git push options that can pass into push command. Defaults to none which represents no push options.",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1352,6 +1362,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Boolean primaryBranchMigration,
       Object checker,
+      Object pushOptions,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1365,6 +1376,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               "Skipping git checker for git.destination. Note that this could"
                   + " cause leaks or other problems");
     }
+    Iterable<String> resolvedPushOptions = Starlark.isNullOrNone(pushOptions)
+            ? ImmutableList.of()
+            : Sequence.cast(pushOptions, String.class, "push_options");
     return new GitDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1384,7 +1398,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        maybeChecker);
+        maybeChecker,
+        resolvedPushOptions);
   }
 
   @SuppressWarnings("unused")
@@ -1612,7 +1627,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        checkerObj);
+        checkerObj,
+        ImmutableList.of());
   }
 
   @SuppressWarnings("unused")

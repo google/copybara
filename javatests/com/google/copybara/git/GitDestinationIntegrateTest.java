@@ -352,6 +352,25 @@ public class GitDestinationIntegrateTest {
   }
 
   @Test
+  public void testPushOptionsTrigger() throws Exception {
+    RepoException e = assertThrows(RepoException.class, () -> migrateOriginChange(
+        destination(
+            "url = '" + url + "'",
+            String.format("fetch = '%s'", primaryBranch),
+            String.format("push = '%s'", primaryBranch),
+            "integrates = []",
+            "push_options = ['ci.skip']"),
+        "Test change\n\n"
+            + GitModule.DEFAULT_INTEGRATE_LABEL + "=http://should_not_be_used\n", "some content"));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("--push-option=ci.skip");
+    assertThat(e)
+        .hasMessageThat()
+        .contains("the receiving end does not support push options");
+  }
+
+  @Test
   public void testIncludeFilesOutdatedBranch() throws Exception {
     Path repoPath = Files.createTempDirectory("test");
     GitRepository repo = repo().withWorkTree(repoPath);

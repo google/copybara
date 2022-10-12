@@ -615,7 +615,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 gerritSubmit,
                 primaryBranchMigrationMode),
             integrates,
-            checker),
+            checker,
+            ImmutableList.of()),
         submit);
   }
 

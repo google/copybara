@@ -442,7 +442,7 @@ public class GitRepository {
 
   @CheckReturnValue
   public PushCmd push() {
-    return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false);
+    return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false, ImmutableList.of());
   }
 
   @CheckReturnValue
@@ -676,6 +676,12 @@ public class GitRepository {
 
     if (noVerify) {
       cmd.add("--no-verify");
+    }
+
+    if(!pushCmd.pushOptions.isEmpty()) {
+      for(String option : pushCmd.pushOptions) {
+        cmd.add("--push-option=" + option);
+      }
     }
 
     if (pushCmd.url != null) {
@@ -1887,6 +1893,8 @@ public class GitRepository {
     private final ImmutableList<Refspec> refspecs;
     private final boolean prune;
 
+    private final ImmutableList<String> pushOptions;
+
     @Nullable
     public String getUrl() {
       return url;
@@ -1903,24 +1911,30 @@ public class GitRepository {
 
     @CheckReturnValue
     public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,
-        boolean prune) {
+        boolean prune, ImmutableList<String> pushOptions) {
       this.repo = checkNotNull(repo);
       this.url = url;
       this.refspecs = checkNotNull(refspecs);
       Preconditions.checkArgument(refspecs.isEmpty() || url != null, "refspec can only be"
           + " used when a url is passed");
       this.prune = prune;
+      this.pushOptions = pushOptions;
     }
 
     @CheckReturnValue
     public PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
       return new PushCmd(repo, checkNotNull(url), ImmutableList.copyOf(refspecs),
-          prune);
+          prune, pushOptions);
     }
 
     @CheckReturnValue
     public PushCmd prune(boolean prune) {
-      return new PushCmd(repo, url, this.refspecs, prune);
+      return new PushCmd(repo, url, this.refspecs, prune, pushOptions);
+    }
+
+    @CheckReturnValue
+    public PushCmd pushOptions(Iterable<String> pushOptions) {
+      return new PushCmd(repo, url, refspecs, prune, ImmutableList.copyOf(pushOptions));
     }
 
     /**
