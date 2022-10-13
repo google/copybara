@@ -48,6 +48,7 @@ import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.xml.XmlModule;
 import java.nio.file.FileSystem;
 import java.util.Map;
 import java.util.function.Function;
@@ -102,6 +103,7 @@ public class ModuleSupplier {
         new Authoring.Module(),
         new RemoteFileModule(options),
         new Re2Module(),
+        new XmlModule(),
         new StructModule(),
         new StarlarkDateTimeModule());
   }

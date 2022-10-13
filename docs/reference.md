@@ -216,6 +216,8 @@
     - [ctx.set_message](#ctxset_message)
     - [ctx.success](#ctxsuccess)
     - [ctx.write_path](#ctxwrite_path)
+  - [xml](#xml)
+    - [xml.xpath](#xmlxpath)
 
 
 
@@ -4887,5 +4889,27 @@ Parameter | Description
 --------- | -----------
 path | [`Path`](#path)<br><p>The Path to write to</p>
 content | `string`<br><p>The content of the file</p>
+
+
+
+## xml
+
+Set of functions to work with XML in Copybara.
+
+<a id="xml.xpath" aria-hidden="true"></a>
+### xml.xpath
+
+Run an xpath expression
+
+`unknown` `xml.xpath(content, expression, type)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+content | `string`<br><p>The XML content</p>
+expression | `string`<br><p>XPath expression</p>
+type | `string`<br><p>The type of the return value, see http://www.w3.org/TR/xpathfor more details. For now we support STRING, BOOLEAN & NUMBER.</p>
 
 
