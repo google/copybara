@@ -13,9 +13,6 @@ log "Fetching dependencies"
 log "Running apt-get update --fix-missing"
 
 apt-get update --fix-missing
-# Mercurial does not have an up-to-date .deb package
-# The official release needs to be installed with pip.
-apt-get -y install python3-pip
 apt-get install locales
 # upgrade jdk
 apt-get -y install openjdk-11-jre-headless
