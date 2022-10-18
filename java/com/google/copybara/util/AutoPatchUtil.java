@@ -60,7 +60,7 @@ public final class AutoPatchUtil {
           new String(
               DiffUtil.diffFileWithIgnoreCrAtEol(onePath, otherPath, verbose, environment), UTF_8);
       if (stripFileNames) {
-        diffString = stripFileNames(diffString);
+        diffString = stripFileNamesAndLineNumbers(diffString);
       }
       Path patchFilePath =
           writePath.resolve(
@@ -71,7 +71,7 @@ public final class AutoPatchUtil {
   }
 
   // Reimplementation of golang packaging code
-  private static String stripFileNames(String diffString) {
+  private static String stripFileNamesAndLineNumbers(String diffString) {
     String parsedDiffString = diffString.substring(diffString.indexOf("\n@@") + "\n".length());
     String diffChunk = parsedDiffString;
     int i = 0;
@@ -83,6 +83,8 @@ public final class AutoPatchUtil {
       diffChunk = diffChunk.concat(parsedDiffString.substring(0, i));
       parsedDiffString = parsedDiffString.substring(i);
     }
+    // strip line numbers - of format @@ -1,1 +1,1 @@, sometimes of form @@ -1 +1 @@
+    diffChunk = diffChunk.replaceAll("@@ -(\\d+)(,\\d+)? \\+(\\d+)(,\\d+)? @@", "@@");
     return diffChunk;
   }
 }

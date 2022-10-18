@@ -71,7 +71,7 @@ public final class AutoPatchUtilTest {
     assertThat(Files.readString(out.resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@ -1 +1 @@\n"
+                "@@\n"
                     + "-foo-left\n"
                     + "\\ No newline at end of file\n"
                     + "+foo-right\n"
@@ -79,7 +79,7 @@ public final class AutoPatchUtilTest {
     assertThat(Files.readString(out.resolve("file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
-                "@@ -1 +1 @@\n"
+                "@@\n"
                     + "-bar-left\n"
                     + "\\ No newline at end of file\n"
                     + "+bar-right\n"
