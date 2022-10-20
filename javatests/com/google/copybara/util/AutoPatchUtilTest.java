@@ -42,6 +42,17 @@ public final class AutoPatchUtilTest {
   private Path right;
   private Path out;
 
+  String fileFormat =
+      "public static %s() {\n"
+          + "  System.out.println(\"%s\");\n"
+          + "}\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          + "public static common() {"
+          + "  System.out.println(\"common\");\n"
+          + "}\n\n\n\n\n\n\n\n\n\n\n\n\n"
+          + "public static %sAgain() {\n"
+          + "  System.out.println(\"%s again\");"
+          + "}";
+
   @Before
   public void setUp() throws IOException {
     Path rootPath = tmpFolder.getRoot().toPath();
@@ -54,8 +65,18 @@ public final class AutoPatchUtilTest {
   public void patchFilesGeneratedAndWritten() throws Exception {
     writeFile(left, SOME_DIR.concat("/file1.txt"), "foo-left");
     writeFile(left, SOME_DIR.concat("/file2.txt"), "bar-left");
+    writeFile(
+        left,
+        SOME_DIR.concat("/file3.java"),
+        String.format(fileFormat, "foo", "foo", "foo", "foo"));
+
+    writeFile(left, SOME_DIR.concat("/file3.txt"), "foo-left\n\nsome common content\n\nfoo-left");
     writeFile(right, SOME_DIR.concat("/file1.txt"), "foo-right");
     writeFile(right, SOME_DIR.concat("/file2.txt"), "bar-right");
+    writeFile(
+        right,
+        SOME_DIR.concat("/file3.java"),
+        String.format(fileFormat, "bar", "bar", "bar", "bar"));
 
     AutoPatchUtil.generatePatchFiles(
         left,
@@ -83,6 +104,27 @@ public final class AutoPatchUtilTest {
                     + "-bar-left\n"
                     + "\\ No newline at end of file\n"
                     + "+bar-right\n"
+                    + "\\ No newline at end of file\n"));
+    assertThat(Files.readString(out.resolve("file3.java".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isEqualTo(
+            PATCH_FILE_PREFIX.concat(
+                "@@\n"
+                    + "-public static foo() {\n"
+                    + "-  System.out.println(\"foo\");\n"
+                    + "+public static bar() {\n"
+                    + "+  System.out.println(\"bar\");\n"
+                    + " }\n"
+                    + " \n"
+                    + " \n"
+                    + "@@ public static common() {  System.out.println(\"common\");\n"
+                    + " \n"
+                    + " \n"
+                    + " \n"
+                    + "-public static fooAgain() {\n"
+                    + "-  System.out.println(\"foo again\");}\n"
+                    + "\\ No newline at end of file\n"
+                    + "+public static barAgain() {\n"
+                    + "+  System.out.println(\"bar again\");}\n"
                     + "\\ No newline at end of file\n"));
   }
 

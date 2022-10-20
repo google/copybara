@@ -20,6 +20,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.DiffUtil.DiffFile;
+import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,7 +50,11 @@ public final class AutoPatchUtil {
       throws IOException, InsideGitDirException {
 
     ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
+    // TODO: make this configurable
     for (DiffFile diffFile : diffFiles) {
+      if (!diffFile.getOperation().equals(Operation.MODIFIED)) {
+        continue;
+      }
       String fileName = diffFile.getName();
       Path onePath = one.resolve(fileName);
       Path otherPath = other.resolve(fileName);
@@ -73,11 +78,12 @@ public final class AutoPatchUtil {
   // Reimplementation of golang packaging code
   private static String stripFileNamesAndLineNumbers(String diffString) {
     String parsedDiffString = diffString.substring(diffString.indexOf("\n@@") + "\n".length());
-    String diffChunk = parsedDiffString;
+    String diffChunk = "";
     int i = 0;
     while (parsedDiffString.length() > 0) {
       i = parsedDiffString.indexOf("\n@@") + "\n".length();
       if (i <= 0 || i >= parsedDiffString.length()) {
+        diffChunk = diffChunk.concat(parsedDiffString);
         break;
       }
       diffChunk = diffChunk.concat(parsedDiffString.substring(0, i));
