@@ -18,9 +18,11 @@ package com.google.copybara.config;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.util.FileUtil;
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * An object representing a configuration file and that it can be used to resolve
@@ -51,6 +53,21 @@ public interface ConfigFile {
    * @throws CannotResolveLabel if the path cannot be resolved to a content
    */
   ConfigFile resolve(String path) throws CannotResolveLabel;
+
+  /**
+   * Resolve a set of configs paths in a batch. This can by implementors to check existence or
+   * preload the bytes of the content in batch/parallel.
+   * @param paths a set of paths
+   * @return a map from paths to {@link ConfigFile}
+   * @throws CannotResolveLabel if any of the paths cannot be resolved
+   */
+  default ImmutableMap<String, ConfigFile> resolveAll(Set<String> paths) throws CannotResolveLabel {
+    ImmutableMap.Builder<String , ConfigFile> result = ImmutableMap.builder();
+    for (String path : paths) {
+      result.put(path, resolve(path));
+    }
+    return result.buildOrThrow();
+  }
 
   /**
    * Resolved, non-relative name of the config file.

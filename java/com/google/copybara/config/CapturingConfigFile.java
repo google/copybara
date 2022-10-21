@@ -46,6 +46,17 @@ class CapturingConfigFile implements ConfigFile {
   }
 
   @Override
+  public ImmutableMap<String, ConfigFile> resolveAll(Set<String> paths) throws CannotResolveLabel {
+    ImmutableMap.Builder<String, ConfigFile> result = ImmutableMap.builder();
+    for (Map.Entry<String, ConfigFile> e : wrapped.resolveAll(paths).entrySet()) {
+      CapturingConfigFile capturingConfigFile = new CapturingConfigFile(e.getValue());
+      result.put(e.getKey(), capturingConfigFile);
+      children.add(capturingConfigFile);
+    }
+    return result.buildOrThrow();
+  }
+
+  @Override
   public String path() {
     return wrapped.path();
   }
