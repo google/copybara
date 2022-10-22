@@ -317,7 +317,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
      */
     default ImmutableList<R> findBaselinesWithoutLabel(R startRevision, int limit)
         throws RepoException, ValidationException {
-      throw new ValidationException("Origin does't support this workflow mode");
+      throw new ValidationException("Origin doesn't support this workflow mode");
     }
 
     class FindLatestWithLabel<R extends Revision> implements ChangesVisitor {
