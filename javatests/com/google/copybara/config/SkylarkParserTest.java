@@ -55,6 +55,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
 import org.junit.Test;
@@ -350,6 +351,23 @@ public class SkylarkParserTest {
     String subfolderVal = parser.eval("subfolder_val", content);
     assertThat(subfolderVal).isEqualTo("subfolder_foo");
     assertThat(val).isEqualTo("main_foo");
+  }
+
+  /**
+   * Test load same file twice
+   */
+  @Test
+  public void testLoadSameFileTwice() throws Exception {
+    parser.addConfigFile("foo.bara.sky", ""
+            + "one = 1\n"
+            + "two = 2\n");
+
+    String content = ""
+        + "load('foo', 'one')\n"
+        + "load('foo', 'two')\n"
+        + "val = one + two\n"
+        + "\n";
+    assertThat(parser.<StarlarkInt>eval("val", content)).isEqualTo(StarlarkInt.of(3));
   }
 
   @Test

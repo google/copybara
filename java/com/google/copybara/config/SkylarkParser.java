@@ -231,6 +231,7 @@ public class SkylarkParser {
       // process loads
       Map<String, Module> loadedModules = new HashMap<>();
       ImmutableMap<String, String> fileToLoad = prog.getLoads().stream()
+              .distinct()
               .collect(toImmutableMap(
                       l -> l + BARA_SKY,
                       l -> l));
