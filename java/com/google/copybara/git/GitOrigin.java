@@ -418,7 +418,7 @@ public class GitOrigin implements Origin<GitRevision> {
               true, /*force*/
               true,
               ImmutableList.of("refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*"),
-              partialFetch);
+              partialFetch, Optional.empty());
         }
         GitRevision submoduleRef =
             subRepo.resolveReferenceWithContext(

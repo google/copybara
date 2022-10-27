@@ -43,6 +43,7 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
@@ -187,7 +188,7 @@ public class Mirror implements Migration {
     Profiler profiler = generalOptions.profiler();
     try (ProfilerTask ignore1 = profiler.start("fetch")) {
       repo.fetch(origin, /*prune=*/true,
-          /*force=*/true, fetchRefspecs, partialFetch);
+          /*force=*/true, fetchRefspecs, partialFetch, Optional.empty());
     }
 
     if (generalOptions.dryRunMode) {

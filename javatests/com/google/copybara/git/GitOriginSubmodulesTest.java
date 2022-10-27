@@ -43,6 +43,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -393,7 +394,7 @@ public class GitOriginSubmodulesTest {
         false,
         true,
         ImmutableList.of("refs/heads/*:refs/heads/*"),
-        false);
+        false, Optional.empty());
     String primaryBranch = r2.getPrimaryBranch();
 
     OptionsBuilder options = new OptionsBuilder()

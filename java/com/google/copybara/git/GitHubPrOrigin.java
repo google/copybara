@@ -330,7 +330,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
               /*prune=*/ false,
               /*force=*/ true,
               refspec,
-              partialFetch);
+              partialFetch, Optional.empty());
     } catch (CannotResolveRevisionException e) {
 
       if (actuallyUseMerge && prData.isMergeable() == null && forceImport()) {
@@ -344,7 +344,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
                   /*prune=*/ false,
                   /*force=*/ true,
                   refspec,
-                  partialFetch);
+                  partialFetch, Optional.empty());
           e = null;
         } catch (CannotResolveRevisionException e2) {
           // Report the error from the second fetch instead of the original fetch

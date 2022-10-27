@@ -56,6 +56,7 @@ import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RepositoryUtil;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
@@ -288,7 +289,13 @@ public class GitRepository {
     if (isSha1Reference(ref)) {
       // Tags are fetched by the default refspec
       try {
-        fetch(url, /*prune=*/ false, /*force=*/ true, ImmutableList.of(), partialFetch);
+        fetch(
+            url,
+            /*prune=*/ false,
+            /*force=*/ true,
+            ImmutableList.of(),
+            partialFetch,
+            Optional.empty());
       } catch (CannotResolveRevisionException e) {
         // Some servers are configured without HEAD. That is fine, we'll try fetching the SHA
         // instead.
@@ -308,14 +315,14 @@ public class GitRepository {
           /*prune=*/ false,
           /*force=*/ true,
           ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"),
-          partialFetch);
+          partialFetch, Optional.empty());
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
       fetch(
           url,
           /*prune=*/ false,
           /*force=*/ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch);
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch, Optional.empty());
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     }
   }
@@ -368,10 +375,14 @@ public class GitRepository {
    * @return the set of fetched references and what action was done ( rejected, new reference,
    * updated, etc.)
    */
+  @CanIgnoreReturnValue
   public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-      boolean partialFetch) throws RepoException, ValidationException {
+      boolean partialFetch, Optional<Integer> depth) throws RepoException, ValidationException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
+    if (depth.isPresent()) {
+      args.add(String.format("--depth=%d", depth.get()));
+    }
     if (partialFetch) {
       args.add("--filter=blob:none");
     }

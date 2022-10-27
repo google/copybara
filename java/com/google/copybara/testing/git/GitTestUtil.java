@@ -57,6 +57,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
@@ -411,10 +412,16 @@ public class GitTestUtil {
     }
 
     @Override
-    public FetchResult fetch(String url, boolean prune, boolean force,
-        Iterable<String> refspecs, boolean partialFetch) throws RepoException, ValidationException {
+    public FetchResult fetch(
+        String url,
+        boolean prune,
+        boolean force,
+        Iterable<String> refspecs,
+        boolean partialFetch,
+        Optional<Integer> depth)
+        throws RepoException, ValidationException {
       validator.validateFetch(url, prune, force, refspecs);
-      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch);
+      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch, Optional.empty());
     }
 
     @Override
