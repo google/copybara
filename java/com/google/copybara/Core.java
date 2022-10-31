@@ -1809,38 +1809,56 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "latest_version",
-      doc = "Selects the latest version that matches the format.  Using --force"
-          + " in the CLI will force to use the reference passed as argument instead.",
+      doc =
+          "Selects the latest version that matches the format.  Using --force"
+              + " in the CLI will force to use the reference passed as argument instead.",
       parameters = {
-          @Param(
-              name = "format",
-              doc = "The format of the version. If using it for git, it has to use the complete"
-                  + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
-              named = true),
-          @Param(
-              name = "regex_groups",
-              named = true, doc =
-              "A set of named regexes that can be used to match part of the versions. Copybara"
-                  + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
-                  + " following nomenclature n0, n1, n2 for the version part (will use numeric"
-                  + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
-                  + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
-                  + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
-                  + " order is not important, use s(N+1) where N ist he latest sorted field."
-                  + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
-          defaultValue = "{}"),
+        @Param(
+            name = "format",
+            doc =
+                "The format of the version. If using it for git, it has to use the complete"
+                    + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
+            named = true),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            doc =
+                "A set of named regexes that can be used to match part of the versions. Copybara"
+                    + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
+                    + " following nomenclature n0, n1, n2 for the version part (will use numeric"
+                    + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
+                    + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
+                    + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
+                    + " order is not important, use s(N+1) where N ist he latest sorted field."
+                    + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
+            defaultValue = "{}"),
       },
       useStarlarkThread = true)
-  @Example(title = "Version selector for Git tags",
-  before = "Example of how to match tags that follow semantic versioning",
-  code = "core.latest_version(\n"
-      + "    format = \"refs/tags/${n0}.${n1}.${n2}\","
-      + "    regex_groups = {\n"
-      + "        'n0': '[0-9]+',"
-      + "        'n1': '[0-9]+',"
-      + "        'n2': '[0-9]+',"
-      + "    }"
-      + ")")
+  @Example(
+      title = "Version selector for Git tags",
+      before = "Example of how to match tags that follow semantic versioning",
+      code =
+          "core.latest_version(\n"
+              + "    format = \"refs/tags/${n0}.${n1}.${n2}\","
+              + "    regex_groups = {\n"
+              + "        'n0': '[0-9]+',"
+              + "        'n1': '[0-9]+',"
+              + "        'n2': '[0-9]+',"
+              + "    }"
+              + ")")
+  @Example(
+      title =
+          "Version selector for Git tags with mixed version semantics with X.Y.Z and X.Y tagging",
+      before = "Edge case example: we allow a '.' literal prefix for numeric regex groups.",
+      code =
+          "core.latest_version(\n"
+              + "    format = \"refs/tags/${n0}.${n1}${n2}\","
+              + "    regex_groups = {\n"
+              + "        'n0': '[0-9]+',"
+              + "        'n1': '[0-9]+',"
+              + "        'n2': '(.[0-9]+)?',"
+              + "    }"
+              + ")")
   public VersionSelector versionSelector(
       String regex, Dict<?, ?> groups, StarlarkThread thread) // <String, String>
       throws EvalException {
