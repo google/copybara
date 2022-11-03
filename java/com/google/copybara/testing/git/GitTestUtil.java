@@ -403,7 +403,7 @@ public class GitTestUtil {
           gitDir,
           workTree,
           generalOptions.isVerbose(),
-          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.fetchTimeout, false);
+          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.repoTimeout, false);
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

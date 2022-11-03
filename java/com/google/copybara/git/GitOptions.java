@@ -137,7 +137,7 @@ public class GitOptions implements Option {
     GitRepository repo =
         GitRepository.newBareRepo(
             path, getGitEnvironment(generalOptions.getEnvironment()),
-            generalOptions.isVerbose(), generalOptions.fetchTimeout, gitNoVerify);
+            generalOptions.isVerbose(), generalOptions.repoTimeout, gitNoVerify);
     return initRepo(repo);
   }
 

@@ -175,7 +175,7 @@ public class GitRepository {
 
   private final boolean verbose;
   private final GitEnvironment gitEnv;
-  private final Duration fetchTimeout;
+  private final Duration repoTimeout;
   protected final boolean noVerify;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
@@ -184,19 +184,19 @@ public class GitRepository {
 
   protected GitRepository(
       Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv,
-      Duration fetchTimeout, boolean noVerify) {
+      Duration repoTimeout, boolean noVerify) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
     this.gitEnv = checkNotNull(gitEnv);
-    this.fetchTimeout = checkNotNull(fetchTimeout);
+    this.repoTimeout = checkNotNull(repoTimeout);
     this.noVerify = noVerify;
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv,
-      Duration fetchTimeout, boolean noVerify) {
-    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, fetchTimeout, noVerify);
+      Duration repoTimeout, boolean noVerify) {
+    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, repoTimeout, noVerify);
   }
 
   /**
@@ -209,8 +209,8 @@ public class GitRepository {
 
   /** Create a new bare repository */
   public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose,
-      Duration fetchTimeout, boolean noVerify) {
-    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, fetchTimeout, noVerify);
+      Duration repoTimeout, boolean noVerify) {
+    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, repoTimeout, noVerify);
   }
 
   /**
@@ -405,7 +405,7 @@ public class GitRepository {
     }
 
     ImmutableMap<String, GitRevision> before = showRef();
-    CommandOutputWithStatus output = gitAllowNonZeroExit(NO_INPUT, args, fetchTimeout);
+    CommandOutputWithStatus output = gitAllowNonZeroExit(NO_INPUT, args, repoTimeout);
     if (output.getTerminationStatus().success()) {
       ImmutableMap<String, GitRevision> after = showRef();
       return new FetchResult(before, after);
@@ -661,7 +661,7 @@ public class GitRepository {
    */
   public GitRepository withWorkTree(Path newWorkTree) {
     return new GitRepository(
-        this.gitDir, newWorkTree, this.verbose, this.gitEnv, fetchTimeout, this.noVerify);
+        this.gitDir, newWorkTree, this.verbose, this.gitEnv, repoTimeout, this.noVerify);
   }
 
   /**

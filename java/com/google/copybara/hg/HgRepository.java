@@ -77,12 +77,12 @@ public class HgRepository {
    */
   private final Path hgDir;
   private final boolean verbose;
-  private final Duration fetchTimeout;
+  private final Duration repoTimeout;
 
-  public HgRepository(Path hgDir, boolean verbose, Duration fetchTimeout) {
+  public HgRepository(Path hgDir, boolean verbose, Duration repoTimeout) {
     this.hgDir = checkNotNull(hgDir);
     this.verbose = verbose;
-    this.fetchTimeout = checkNotNull(fetchTimeout);
+    this.repoTimeout = checkNotNull(repoTimeout);
   }
 
   /**
@@ -141,7 +141,7 @@ public class HgRepository {
     }
 
     try {
-      hg(hgDir, builder.build(), fetchTimeout);
+      hg(hgDir, builder.build(), repoTimeout);
     } catch (RepoException e) {
       if (INVALID_HG_REPOSITORY.matcher(e.getMessage()).find()){
         throw new ValidationException("Repository not found: " + e.getMessage());

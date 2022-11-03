@@ -324,11 +324,12 @@ public final class GeneralOptions implements Option {
       description = "Verbose output.")
   boolean verbose;
 
+  // TODO(linjordan) - remove --fetch-timeout after fixing external references.
   @Parameter(
-      names = {"--fetch-timeout"},
-      description = "Fetch timeout",
+      names = {"--fetch-timeout", "--repo-timeout"},
+      description = "Fetch timeout Please use --repo-timeout over the deprecated --fetch-timeout.",
       converter = DurationConverter.class)
-  public Duration fetchTimeout = CommandRunner.DEFAULT_TIMEOUT;
+  public Duration repoTimeout = CommandRunner.DEFAULT_TIMEOUT;
 
   @Parameter(
       names = {"--commands-timeout"},

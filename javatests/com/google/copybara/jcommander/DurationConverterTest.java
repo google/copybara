@@ -39,20 +39,20 @@ public class DurationConverterTest {
 
   @Test
   public void testParsing() throws Exception {
-    checkFetchTimeout("0s", Duration.ZERO);
-    checkFetchTimeout("20s", Duration.ofSeconds(20));
-    checkFetchTimeout("20m", Duration.ofMinutes(20));
-    checkFetchTimeout("20h", Duration.ofHours(20));
-    checkFetchTimeout("20d", Duration.ofDays(20));
+    checkRepoTimeout("0s", Duration.ZERO);
+    checkRepoTimeout("20s", Duration.ofSeconds(20));
+    checkRepoTimeout("20m", Duration.ofMinutes(20));
+    checkRepoTimeout("20h", Duration.ofHours(20));
+    checkRepoTimeout("20d", Duration.ofDays(20));
     ParameterException e =
-        assertThrows(ParameterException.class, () -> checkFetchTimeout("20a", Duration.ZERO));
+        assertThrows(ParameterException.class, () -> checkRepoTimeout("20a", Duration.ZERO));
     assertThat(e)
         .hasMessageThat()
         .contains(
             "Invalid value for duration '20a', " + "valid value examples: 10s, 10m, 10h or 10d");
   }
 
-  private void checkFetchTimeout(String flagValue, Duration expected) throws IOException {
+  private void checkRepoTimeout(String flagValue, Duration expected) throws IOException {
     ImmutableMap<String, String> envWithHome =
         ImmutableMap.of("HOME", Files.createTempDirectory("foo").toString());
 
@@ -60,8 +60,8 @@ public class DurationConverterTest {
         new TestingConsole());
     Options options = moduleSupplier.create().getOptions();
     JCommander jCommander = new JCommander(options.getAll());
-    jCommander.parse("--fetch-timeout", flagValue);
-    assertThat(options.get(GeneralOptions.class).fetchTimeout)
+    jCommander.parse("--repo-timeout", flagValue);
+    assertThat(options.get(GeneralOptions.class).repoTimeout)
         .isEquivalentAccordingToCompareTo(expected);
   }
 }
