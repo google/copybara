@@ -22,7 +22,6 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -71,6 +70,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -738,7 +738,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               baselineWorkdir,
               Files.createDirectories(workdir.resolve("merge_import")));
         }
-        if (!Strings.isNullOrEmpty(workflow.getPatchFilePrefix())) {
+        if (workflow.getAutoPatchfileConfiguration() != null) {
           Path relativeConfigFile = Path.of(workflow.getMainConfigFile().getIdentifier());
           try {
             AutoPatchUtil.generatePatchFiles(
@@ -746,13 +746,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 destinationFilesWorkdir,
                 checkoutDir.resolve(
                     relativeConfigFile.resolveSibling(
-                        workflow.getWorkflowOptions().autoPatchFileDirectory)),
+                        Objects.requireNonNull(
+                            workflow.getAutoPatchfileConfiguration().directory()))),
                 workflow.isVerbose(),
                 workflow.getGeneralOptions().getEnvironment(),
-                workflow.getPatchFilePrefix(),
-                workflow.getWorkflowOptions().autoPatchFileSuffix,
+                workflow.getAutoPatchfileConfiguration().header(),
+                workflow.getAutoPatchfileConfiguration().suffix(),
                 relativeConfigFile.getParent(),
-                workflow.getWorkflowOptions().stripAutoPatchFileNames);
+                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers());
           } catch (InsideGitDirException e) {
             console.errorFmt(
                 "Could not automatically generate patch files. Error received is %s",

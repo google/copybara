@@ -388,6 +388,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " changes in non source of truth repositories.",
             defaultValue = "False",
             positional = false),
+        // TODO: deprecate after auto_patchfile_* fields are released
         @Param(
             name = "auto_generate_patch_prefix",
             named = true,
@@ -405,6 +406,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " to the contents of every patch file. Providing a patch file prefix,"
                     + " provided merge_import is enabled, will automatically generate patch files.",
             positional = false,
+            defaultValue = "None"),
+        @Param(
+            name = "autopatch_config",
+            doc = "Configuration that describes the setting for automatic patch file generation",
+            allowedTypes = {
+              @ParamType(type = AutoPatchfileConfiguration.class),
+              @ParamType(type = NoneType.class),
+            },
+            positional = false,
+            named = true,
             defaultValue = "None"),
         @Param(
             name = "migrate_noop_changes",
@@ -486,6 +497,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean smartPrune,
       Boolean mergeImport,
       Object autoGeneratePatchPrefix,
+      Object autoPatchFileConfigurationObj,
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
@@ -560,6 +572,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           authoring.getAllowlist());
     }
 
+    AutoPatchfileConfiguration autoPatchfileConfiguration =
+        convertFromNoneable(autoPatchFileConfigurationObj, null);
+
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
     Workflow<Revision, ?> workflow =
@@ -590,7 +605,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             setRevId,
             smartPrune,
             mergeImport,
-            convertFromNoneable(autoGeneratePatchPrefix, null),
+            autoPatchfileConfiguration,
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
@@ -1940,5 +1955,56 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @Override
   public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
     this.printHandler = printHandler;
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "autopatch_config",
+      doc = "Describes in the configuration for automatic patch file generation",
+      parameters = {
+        @Param(
+            name = "header",
+            doc = "A string to include at the beginning of each patch file",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "None"),
+        @Param(
+            name = "suffix",
+            doc = "Suffix to use when saving patch files",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "'.patch'"),
+        @Param(
+            name = "directory",
+            doc = "Directory in which to save the patch files.",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "'AUTOPATCHES'"),
+        @Param(
+            name = "strip_file_names_and_line_numbers",
+            doc = "When true, strip filenames and line numbers from patch files",
+            named = true,
+            positional = false,
+            defaultValue = "False")
+      })
+  public AutoPatchfileConfiguration autoPatchfileConfiguration(
+      Object fileContentsPrefix, Object suffix, Object directory, boolean stripFileNames) {
+    return AutoPatchfileConfiguration.create(
+        convertFromNoneable(fileContentsPrefix, null),
+        convertFromNoneable(suffix, null),
+        convertFromNoneable(directory, null),
+        stripFileNames);
   }
 }

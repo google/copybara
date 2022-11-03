@@ -25,6 +25,7 @@
     - [console.warn](#consolewarn)
   - [core](#core)
     - [core.action](#coreaction)
+    - [core.autopatch_config](#coreautopatch_config)
     - [core.copy](#corecopy)
     - [core.dynamic_feedback](#coredynamic_feedback)
     - [core.dynamic_transform](#coredynamic_transform)
@@ -42,6 +43,7 @@
     - [core.transform](#coretransform)
     - [core.verify_match](#coreverify_match)
     - [core.workflow](#coreworkflow)
+  - [core.autopatch_config](#coreautopatch_config)
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_readercopy_destination_files)
@@ -651,6 +653,23 @@ Parameter | Description
 impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
+<a id="core.autopatch_config" aria-hidden="true"></a>
+### core.autopatch_config
+
+Describes in the configuration for automatic patch file generation
+
+[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+header | `string` or `NoneType`<br><p>A string to include at the beginning of each patch file</p>
+suffix | `string` or `NoneType`<br><p>Suffix to use when saving patch files</p>
+directory | `string` or `NoneType`<br><p>Directory in which to save the patch files.</p>
+strip_file_names_and_line_numbers | `bool`<br><p>When true, strip filenames and line numbers from patch files</p>
+
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
 
@@ -927,6 +946,7 @@ core.latest_version(
     format = "refs/tags/${n0}.${n1}${n2}",    regex_groups = {
         'n0': '[0-9]+',        'n1': '[0-9]+',        'n2': '(.[0-9]+)?',    })
 ```
+
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -1317,7 +1337,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, auto_generate_patch_prefix=None, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, auto_generate_patch_prefix=None, autopatch_config=None, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1343,6 +1363,7 @@ set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the des
 smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
 merge_import | `bool`<br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
 auto_generate_patch_prefix | `string` or `NoneType`<br><p>Enables an operation, to be combined with merge_import mode, that automatically generates patch files showing destination only changes. These patch files are intended for human consumption and are not used in the workflow. merge_import mode allows users to perpetuate destiantion-only changes (i.e. changes to non-Source-of-truth repositories). This operation will create patch files that show the destination-only changes. This prefix is attached to the contents of every patch file. Providing a patch file prefix, provided merge_import is enabled, will automatically generate patch files.</p>
+autopatch_config | [`core.autopatch_config`](#coreautopatch_config) or `NoneType`<br><p>Configuration that describes the setting for automatic patch file generation</p>
 migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
@@ -1383,6 +1404,12 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
 <span style="white-space: nowrap;">`--to-folder`</span> | *boolean* | Sometimes a user wants to test what the outcome would be for a workflow without changing the configuration or adding an auxiliary testing workflow. This flags allowsto change an existing workflow to use folder.destination
 <span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity
+
+
+
+## core.autopatch_config
+
+The configuration that describes automatic patch file generation
 
 
 
