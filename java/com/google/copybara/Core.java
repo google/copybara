@@ -388,25 +388,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " changes in non source of truth repositories.",
             defaultValue = "False",
             positional = false),
-        // TODO: deprecate after auto_patchfile_* fields are released
-        @Param(
-            name = "auto_generate_patch_prefix",
-            named = true,
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = NoneType.class),
-            },
-            doc =
-                "Enables an operation, to be combined with merge_import mode, that automatically"
-                    + " generates patch files showing destination only changes. These patch files"
-                    + " are intended for human consumption and are not used in the workflow."
-                    + " merge_import mode allows users to perpetuate destiantion-only changes (i.e."
-                    + " changes to non-Source-of-truth repositories). This operation will create"
-                    + " patch files that show the destination-only changes. This prefix is attached"
-                    + " to the contents of every patch file. Providing a patch file prefix,"
-                    + " provided merge_import is enabled, will automatically generate patch files.",
-            positional = false,
-            defaultValue = "None"),
         @Param(
             name = "autopatch_config",
             doc = "Configuration that describes the setting for automatic patch file generation",
@@ -496,7 +477,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean setRevId,
       Boolean smartPrune,
       Boolean mergeImport,
-      Object autoGeneratePatchPrefix,
       Object autoPatchFileConfigurationObj,
       Boolean migrateNoopChanges,
       Object customRevIdField,

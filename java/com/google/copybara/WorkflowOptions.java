@@ -246,23 +246,6 @@ public class WorkflowOptions implements Option {
           "Number of threads to use for executing the diff tool for the merge import mode.")
   int threadsForMergeImport = 40;
 
-  @Parameter(
-      names = "--auto-patch-file-directory",
-      description = "When auto_generate_patch mode is enabled, save patchfiles to this directory")
-  String autoPatchFileDirectory = "GOIMPORT/AUTOPATCHES/";
-
-  @Parameter(
-      names = "--auto-patch-file-suffix",
-      description = "When auto_generate_patch mode is enabled, save patch files using this suffix")
-  String autoPatchFileSuffix = ".patch";
-
-  @Parameter(
-      names = "--auto-patch-strip-file-names",
-      description =
-          "When combined with automatic patch file generation (and merge_import mode), strips the"
-              + " filenames from the generated patch files")
-  boolean stripAutoPatchFileNames = false;
-
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {
     if (defaultAuthor == null) {

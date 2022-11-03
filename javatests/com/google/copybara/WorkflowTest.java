@@ -1993,7 +1993,6 @@ public class WorkflowTest {
     autoPatchfileSuffix = "'.patch'";
     autoPatchfileDirectory = "'GOIMPORT/AUTOPATCHES/'";
     autoPatchfileStripFilenamesAndLineNumbers = true;
-    options.workflowOptions.stripAutoPatchFileNames = true;
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
@@ -2036,7 +2035,6 @@ public class WorkflowTest {
     origin.addChange(2, base2, "change 2", true);
     options.setLastRevision(origin.changes.get(0).asString());
     // options reset
-    options.workflowOptions.stripAutoPatchFileNames = true;
     workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
