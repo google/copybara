@@ -591,17 +591,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork transformWork =
           new TransformWork(
-              checkoutDir,
-              metadata,
-              changes,
-              console,
-              new MigrationInfo(workflow.getRevIdLabel(), writer),
-              resolvedRef,
-              originApi,
-              destinationApi,
-              destinationReader)
+                  checkoutDir,
+                  metadata,
+                  changes,
+                  console,
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  resolvedRef,
+                  originApi,
+                  destinationApi,
+                  destinationReader)
               .withLastRev(lastRev)
-              .withCurrentRev(rev);
+              .withCurrentRev(rev)
+              .withDestinationInfo(writer.getDestinationInfo());
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
@@ -632,18 +633,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
 
         try (ProfilerTask ignored = profiler().start("reverse_transform")) {
-          TransformationStatus status = getReverseTransformForCheck()
-              .transform(
-                  new TransformWork(
-                      reverse,
-                      transformWork.getMetadata(),
-                      changes,
-                      console,
-                      new MigrationInfo(/*originLabel=*/ null, null),
-                      resolvedRef,
-                      destinationApi,
-                      originApi,
-                      () -> DestinationReader.NOT_IMPLEMENTED));
+          TransformationStatus status =
+              getReverseTransformForCheck()
+                  .transform(
+                      new TransformWork(
+                              reverse,
+                              transformWork.getMetadata(),
+                              changes,
+                              console,
+                              new MigrationInfo(/* originLabel= */ null, null),
+                              resolvedRef,
+                              destinationApi,
+                              originApi,
+                              () -> DestinationReader.NOT_IMPLEMENTED)
+                          .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
                 + " probably cause is that the transformations are not reversible.");
@@ -695,17 +698,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult =
           new TransformResult(
-              checkoutDir,
-              rev,
-              transformWork.getAuthor(),
-              transformWork.getMessage(),
-              resolvedRef,
-              workflow.getName(),
-              changes,
-              rawSourceRef,
-              workflow.isSetRevId(),
-              transformWork::getAllLabels,
-              workflow.getRevIdLabel());
+                  checkoutDir,
+                  rev,
+                  transformWork.getAuthor(),
+                  transformWork.getMessage(),
+                  resolvedRef,
+                  workflow.getName(),
+                  changes,
+                  rawSourceRef,
+                  workflow.isSetRevId(),
+                  transformWork::getAllLabels,
+                  workflow.getRevIdLabel())
+              .withDestinationInfo(transformWork.getDestinationInfo());
 
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
         Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
@@ -838,7 +842,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   destinationReader)
               // Again, we don't care about this
               .withLastRev(lastRev)
-              .withCurrentRev(baseline);
+              .withCurrentRev(baseline)
+              .withDestinationInfo(writer.getDestinationInfo());
       try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
         getTransformation().transform(baselineTransformWork);
       }

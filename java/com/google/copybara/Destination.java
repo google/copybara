@@ -98,6 +98,19 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
         throws ValidationException, RepoException {
       return DestinationReader.NOT_IMPLEMENTED;
     }
+
+    /**
+     * Returns the {@link DestinationInfo} object for this destination.
+     *
+     * <p>This object will be used to store configuration values and other information specific to
+     * the destination.
+     *
+     * @return a DestinationInfo object if the destination supports it, null otherwise.
+     */
+    @Nullable
+    default DestinationInfo getDestinationInfo() {
+      return null;
+    }
   }
 
   /**

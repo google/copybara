@@ -202,6 +202,7 @@
     - [ctx.add_text_before_labels](#ctxadd_text_before_labels)
     - [ctx.create_symlink](#ctxcreate_symlink)
     - [ctx.destination_api](#ctxdestination_api)
+    - [ctx.destination_info](#ctxdestination_info)
     - [ctx.destination_reader](#ctxdestination_reader)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
@@ -4685,6 +4686,13 @@ target | [`Path`](#path)<br><p>The target path</p>
 Returns an api handle for the destination repository. Methods available depend on the destination type. Use with extreme caution, as external calls can make workflow non-deterministic and possibly irreversible. Can have side effects in dry-runmode.
 
 [`endpoint`](#endpoint) `ctx.destination_api()`
+
+<a id="ctx.destination_info" aria-hidden="true"></a>
+### ctx.destination_info
+
+Returns an object to store additional configuration and data for the destination. An object is only returned if supported by the destination.
+
+`DestinationInfo` `ctx.destination_info()`
 
 <a id="ctx.destination_reader" aria-hidden="true"></a>
 ### ctx.destination_reader

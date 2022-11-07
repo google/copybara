@@ -77,6 +77,7 @@ BASE_SRCS = [
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",
+    "DestinationInfo.java",
     "DestinationReader.java",
     "DestinationStatusVisitor.java",
     "Endpoint.java",

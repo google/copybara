@@ -27,6 +27,7 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
+import com.google.copybara.testing.RecordsProcessCallDestination.DestinationInfoImpl;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.StarlarkMode;
@@ -103,16 +104,29 @@ public class ReadConfigFromChangeWorkflowTest {
     assertThat(destination.processed.get(1).getWorkdir()).containsExactly("file2", "b");
     assertThat(destination.processed.get(2).getDestinationFiles().toString()).contains("file3");
     assertThat(destination.processed.get(2).getWorkdir()).containsExactly("file3", "b");
+
+    DestinationInfoImpl destinationInfo1 =
+        (DestinationInfoImpl) destination.processed.get(0).getDestinationInfo();
+    assertThat((Iterable<?>) destinationInfo1.getValues("filename")).containsExactly("file1");
+    DestinationInfoImpl destinationInfo2 =
+        (DestinationInfoImpl) destination.processed.get(1).getDestinationInfo();
+    assertThat((Iterable<?>) destinationInfo2.getValues("filename")).containsExactly("file2");
+    DestinationInfoImpl destinationInfo3 =
+        (DestinationInfoImpl) destination.processed.get(2).getDestinationInfo();
+    assertThat((Iterable<?>) destinationInfo3.getValues("filename")).containsExactly("file3");
   }
 
   private String mutatingWorkflow(String suffix) {
-    return "core.workflow("
+    return "def _dynamicTransform(ctx):\n"
+        + "    ctx.destination_info().add_value('filename', 'file" + suffix + "')\n"
+        + "core.workflow("
         + "    name = 'default',"
         + "    origin = testing.origin(),"
         + "    mode = 'ITERATIVE',"
         + "    origin_files = glob(['file" + suffix + "']),"
         + "    destination_files = glob(['file" + suffix + "']),"
         + "    destination = testing.destination(),"
+        + "    transformations = [core.dynamic_transform(_dynamicTransform)],"
         + "    authoring = authoring.pass_thru('foo <foo@foo.com>')"
         + ")";
   }
