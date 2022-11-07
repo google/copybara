@@ -2655,6 +2655,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--github-skip-required-check-runs`</span> | *boolean* | Skip checking check runs for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
 
 <a id="git.github_trigger" aria-hidden="true"></a>
 ### git.github_trigger

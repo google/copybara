@@ -37,6 +37,7 @@ import static com.google.copybara.version.LatestVersionSelector.VersionElementTy
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
+import com.google.copybara.Origin;
 import com.google.copybara.Transformation;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.action.Action;
@@ -85,6 +87,7 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -991,7 +994,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       useStarlarkThread = true)
   @UsesFlags(GitHubPrOriginOptions.class)
   @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
-  public GitHubPrOrigin githubPrOrigin(
+  public Origin<GitRevision> githubPrOrigin(
       String url,
       Boolean merge,
       Sequence<?> requiredLabels, // <String>
@@ -1044,6 +1047,30 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
     GitHubPrOriginOptions prOpts = options.get(GitHubPrOriginOptions.class);
+    if (prOpts.repo != null) {
+      Iterator<String> split = Splitter.on(" ").split(prOpts.repo).iterator();
+      String repo = split.next();
+      String ref = split.hasNext() ? split.next() : "main";
+      return new GitOrigin(
+              options.get(GeneralOptions.class),
+              repo,
+              ref,
+              GitRepoType.GIT,
+              options.get(GitOptions.class),
+              options.get(GitOriginOptions.class),
+              stringToEnum("submodules", submodules, SubmoduleStrategy.class),
+              excludedSubmoduleList,
+              false,
+              firstParent,
+              partialClone,
+              patchTransformation,
+              convertDescribeVersion(describeVersion),
+              null,
+              mainConfigFile.path(),
+              workflowName,
+              false,
+              approvalsProvider(repo));
+    }
     return new GitHubPrOrigin(
         fixHttp(url, thread.getCallerLocation()),
         prOpts.overrideMerge != null ? prOpts.overrideMerge : merge,
