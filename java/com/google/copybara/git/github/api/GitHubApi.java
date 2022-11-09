@@ -461,6 +461,16 @@ public class GitHubApi {
     }
   }
 
+  /**
+   * This HTTP request call requires admin:read permissions at the org level for some response
+   * values. https://docs.github.com/en/rest/orgs/orgs#get-an-organization
+   */
+  public Organization getOrganization(String org) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_an_organization")) {
+      return transport.get(Organization.class, "orgs/%s", org);
+    }
+  }
+
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

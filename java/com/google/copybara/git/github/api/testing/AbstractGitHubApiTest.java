@@ -52,6 +52,7 @@ import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.git.github.api.Label;
+import com.google.copybara.git.github.api.Organization;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
@@ -686,6 +687,13 @@ public abstract class AbstractGitHubApiTest {
     assertThat(installation.getAppSlug()).isEqualTo("github-actions");
     assertThat(installation.getTargetType()).isEqualTo("Organization");
     assertThat(installation.getRepositorySelection()).isEqualTo("selected");
+  }
+
+  @Test
+  public void testGetOrganization() throws Exception {
+    trainMockGet("/orgs/test-org", getResource("get_organization_testdata.json"));
+    Organization organization = api.getOrganization("test-org");
+    assertThat(organization.getTwoFactorRequirementEnabled()).isTrue();
   }
 
   protected byte[] getResource(String testfile) throws IOException {
