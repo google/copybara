@@ -453,6 +453,15 @@ public class GitHubApi {
     }
   }
 
+  /**
+   * This HTTP request call requires admin:read permissions at the org level.
+   * https://docs.github.com/en/rest/orgs/orgs#list-app-installations-for-an-organization
+   */
+  public Installations getInstallations(String org) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_installations")) {
+      return transport.get(String.format("orgs/%s/installations", org), Installations.class);
+    }
+  }
 
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {

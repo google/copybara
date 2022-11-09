@@ -30,6 +30,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -45,6 +46,8 @@ import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubCommit;
+import com.google.copybara.git.github.api.Installation;
+import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.git.github.api.Label;
@@ -667,6 +670,16 @@ public abstract class AbstractGitHubApiTest {
         getResource("pulls_comment_12345_testdata.json"));
     api.postComment("example/project", 12345, comment);
     assertThat(validator.called).isTrue();
+  }
+
+  @Test
+  public void testGetInstallions() throws Exception {
+    trainMockGet("/orgs/octo-org/installations", getResource("get_installations_testdata.json"));
+    Installations installations = api.getInstallations("octo-org");
+    Installation installation = Iterables.getOnlyElement(installations.getInstallations());
+    assertThat(installation.getAppSlug()).isEqualTo("github-actions");
+    assertThat(installation.getTargetType()).isEqualTo("Organization");
+    assertThat(installation.getRepositorySelection()).isEqualTo("selected");
   }
 
   protected byte[] getResource(String testfile) throws IOException {
