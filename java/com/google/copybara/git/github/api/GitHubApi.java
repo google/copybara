@@ -538,4 +538,20 @@ public class GitHubApi {
     }
     throw e;
   }
+
+  /** https://docs.github.com/en/rest/issues/comments#list-issue-comments */
+  public ImmutableList<IssueComment> listIssueComments(String projectId, int issueNumber)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_list_issue_comments")) {
+      return paginatedGet(
+          "github_api_list_issue_comments",
+          new TypeToken<PaginatedList<IssueComment>>() {}.getType(),
+          "Issue comment",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.groot-preview+json"),
+          "repos/%s/issues/%d/comments?per_page=%d",
+          projectId,
+          issueNumber,
+          MAX_PER_PAGE);
+    }
+  }
 }

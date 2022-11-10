@@ -36,6 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
+import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
@@ -51,6 +52,7 @@ import com.google.copybara.git.github.api.Installation;
 import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
+import com.google.copybara.git.github.api.IssueComment;
 import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults;
 import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults.IssuesAndPullRequestsSearchResult;
 import com.google.copybara.git.github.api.Label;
@@ -704,6 +706,26 @@ public abstract class AbstractGitHubApiTest {
     trainMockGet("/orgs/test-org", getResource("get_organization_testdata.json"));
     Organization organization = api.getOrganization("test-org");
     assertThat(organization.getTwoFactorRequirementEnabled()).isTrue();
+  }
+
+  @Test
+  public void testListIssueComments() throws Exception {
+    trainMockGet(
+        "/repos/example/project/issues/12345/comments?per_page=100",
+        getResource("list_issue_comments_testdata.json"));
+
+    IssueComment comment =
+        Iterables.getOnlyElement(api.listIssueComments("example/project", 12345));
+
+    assertThat(comment.getBody()).isEqualTo("Me too");
+    assertThat(comment.getId()).isEqualTo(1);
+    assertThat(comment.getAuthorAssociation()).isEqualTo(AuthorAssociation.COLLABORATOR);
+    assertThat(comment.getCreatedAt()).isEqualTo(ZonedDateTime.parse("2011-04-14T16:00:49Z"));
+    assertThat(comment.getUpdatedAt()).isEqualTo(ZonedDateTime.parse("2011-04-14T16:00:49Z"));
+    User user = comment.getUser();
+    assertThat(user.getLogin()).isEqualTo("octocat");
+    assertThat(user.getId()).isEqualTo(1);
+    assertThat(user.getType()).isEqualTo("User");
   }
 
   protected byte[] getResource(String testfile) throws IOException {

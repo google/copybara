@@ -45,6 +45,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
+import com.google.copybara.git.github.api.IssueComment;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
@@ -591,6 +592,23 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       apiSupplier.load(console).postComment(project, prNumber.toInt("number"), comment);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling post_issue_comment: %s", e.getMessage());
+    }
+  }
+
+  @StarlarkMethod(
+      name = "list_issue_comments",
+      doc = "Lists comments for an issue",
+      parameters = {
+        @Param(name = "number", named = true, doc = "Issue or Pull Request number"),
+      })
+  public Sequence<IssueComment> listIssueComments(StarlarkInt issueNumber)
+      throws EvalException, RepoException {
+    try {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return StarlarkList.immutableCopyOf(
+          apiSupplier.load(console).listIssueComments(project, issueNumber.toInt("number")));
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling list_issue_comments: %s", e.getMessage());
     }
   }
 

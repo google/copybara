@@ -19,11 +19,18 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.time.ZonedDateTime;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
-/**
- * Represents issue comments returned by https://api.github.com/repos/REPO_ID/issues/comments
- */
-public class IssueComment {
+/** Represents issue comments returned by https://api.github.com/repos/REPO_ID/issues/comments */
+@StarlarkBuiltin(
+    name = "github_api_issue_comment_obj",
+    doc =
+        "Information about an issue comment as defined in"
+            + " https://docs.github.com/en/rest/issues/comments. This is a subset of the available"
+            + " fields in GitHub")
+public class IssueComment implements StarlarkValue {
   @Key private long id;
   @Key private User user;
   @Key private String body;
@@ -37,14 +44,17 @@ public class IssueComment {
         : AuthorAssociation.valueOf(authorAssociation);
   }
 
+  @StarlarkMethod(name = "id", doc = "Comment identifier", structField = true)
   public long getId() {
     return id;
   }
 
+  @StarlarkMethod(name = "user", doc = "Comment user", structField = true)
   public User getUser() {
     return user;
   }
 
+  @StarlarkMethod(name = "body", doc = "Body of the comment", structField = true)
   public String getBody() {
     return body;
   }

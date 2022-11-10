@@ -139,6 +139,7 @@
     - [github_api_obj.get_pull_requests](#github_api_objget_pull_requests)
     - [github_api_obj.get_reference](#github_api_objget_reference)
     - [github_api_obj.get_references](#github_api_objget_references)
+    - [github_api_obj.list_issue_comments](#github_api_objlist_issue_comments)
     - [github_api_obj.new_destination_ref](#github_api_objnew_destination_ref)
     - [github_api_obj.new_origin_ref](#github_api_objnew_origin_ref)
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
@@ -3227,6 +3228,20 @@ ref | `string`<br><p>The name of the reference. For example: "refs/heads/branchN
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
 `sequence of github_api_ref_obj` `github_api_obj.get_references()`
+
+<a id="github_api_obj.list_issue_comments" aria-hidden="true"></a>
+### github_api_obj.list_issue_comments
+
+Lists comments for an issue
+
+`sequence of github_api_issue_comment_obj` `github_api_obj.list_issue_comments(number)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `int`<br><p>Issue or Pull Request number</p>
 
 <a id="github_api_obj.new_destination_ref" aria-hidden="true"></a>
 ### github_api_obj.new_destination_ref

@@ -685,6 +685,21 @@ public class GitHubEndpointTest {
         .buildRequest(eq("POST"), contains("google/example/issues"));
   }
 
+  @Test
+  public void testListComments() throws Exception {
+    gitUtil.mockApi(
+        eq("GET"),
+        contains("/comments"),
+        mockResponse(toJson(ImmutableList.of(ImmutableMap.of("id", 1, "body", "Me too")))));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add("res = ctx.destination.list_issue_comments(number = 12345)[0]")
+            .addAll(checkFieldStarLark("res", "id", "1"))
+            .addAll(checkFieldStarLark("res", "body", "'Me too'"))
+            .build());
+    verify(gitUtil.httpTransport()).buildRequest(eq("GET"), contains("issues/12345/comments"));
+  }
+
   private String toJson(Object obj) throws IOException {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }
