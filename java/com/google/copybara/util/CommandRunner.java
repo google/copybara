@@ -290,7 +290,7 @@ private static class DefaultExecutor implements CommandExecutor {
     }
     String msg = String.format(
         "Command '%s' killed by Copybara after timeout (%ds)."
-            + " If this fails during a fetch use --repo-timeout flag.\n"
+            + " If this fails during a fetch or push use --repo-timeout flag.\n"
             + "Exit info: %s",
         cmd.getCommandLineElements()[0],
         timeout.getSeconds(),

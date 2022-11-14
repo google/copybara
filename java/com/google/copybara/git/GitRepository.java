@@ -95,7 +95,7 @@ import javax.annotation.Nullable;
 public class GitRepository {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
-  public static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofMinutes(15);
+  public static final Duration DEFAULT_REPO_TIMEOUT = Duration.ofMinutes(15);
 
   // TODO(malcon): Make this generic (Using URIish.java)
   private static final Pattern FULL_URI = Pattern.compile(
@@ -200,11 +200,11 @@ public class GitRepository {
   }
 
   /**
-   * Creates a new repository in the given directory with a default fetch timeout. The new repo is
+   * Creates a new repository in the given directory with a default repo timeout. The new repo is
    * not bare.
    */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
-    return newRepo(verbose, path, gitEnv, DEFAULT_FETCH_TIMEOUT, /*noVerify=*/false);
+    return newRepo(verbose, path, gitEnv, DEFAULT_REPO_TIMEOUT, /*noVerify=*/false);
   }
 
   /** Create a new bare repository */
@@ -221,10 +221,11 @@ public class GitRepository {
     try {
       String version =
           executeGit(
-              Paths.get(StandardSystemProperty.USER_DIR.value()),
-              ImmutableList.of("version"),
-              gitEnv,
-              /*verbose=*/ false)
+                  Paths.get(StandardSystemProperty.USER_DIR.value()),
+                  ImmutableList.of("version"),
+                  gitEnv,
+                  /*verbose=*/ false,
+                  /*timeout=*/ Optional.empty())
               .getStdout();
       return Optional.of(version);
     } catch (CommandException e) {
@@ -250,7 +251,8 @@ public class GitRepository {
           cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           gitEnv,
-          /*verbose=*/ false);
+          /*verbose=*/ false, 
+          /*timeout=*/Optional.empty());
     } catch (CommandException e) {
       Optional<String> version = version(gitEnv);
       throw new InvalidRefspecException(
@@ -502,7 +504,7 @@ public class GitRepository {
 
     CommandOutputWithStatus output;
     try {
-      output = executeGit(cwd, args, gitEnv, false, maxLogLines);
+      output = executeGit(cwd, args, gitEnv, false, maxLogLines, Optional.empty());
     } catch (BadExitStatusWithOutputException e) {
       if (e.getOutput().getStderr().contains("Please make sure you have the correct access rights")
               || e.getOutput().getStderr().contains(HTTP_PERMISSION_DENIED)) {
@@ -702,7 +704,7 @@ public class GitRepository {
     }
 
     try {
-      return simpleCommand(cmd.toArray(new String[0])).getStderr();
+      return simpleCommand(repoTimeout, cmd).getStderr();
     } catch (RepoException e) {
       if (e.getMessage().contains(HTTP_PERMISSION_DENIED)) {
         throw new AccessValidationException("Permission error pushing to " + pushCmd.url, e);
@@ -889,7 +891,7 @@ public class GitRepository {
       }
       params.add("--");
       Iterables.addAll(params, files);
-      git(getCwd(), addGitDirAndWorkTreeParams(params));
+      git(getCwd(), Optional.empty(), addGitDirAndWorkTreeParams(params));
     }
   }
 
@@ -1150,7 +1152,7 @@ public class GitRepository {
 
   // TODO(malcon): Create a CommitCmd object builder
   public void commit(@Nullable String author, boolean amend, @Nullable ZonedDateTime timestamp,
-      String message)
+      String message) 
       throws RepoException, ValidationException {
     if (isEmptyStaging() && !amend) {
       String baseline = "unknown";
@@ -1187,7 +1189,7 @@ public class GitRepository {
       } else {
         params.add("-m", message);
       }
-      git(getCwd(), addGitDirAndWorkTreeParams(params.build()));
+      git(getCwd(), Optional.empty(), addGitDirAndWorkTreeParams(params.build()));
     } catch (IOException e) {
       throw new RepoException(
           "Could not commit change: Failed to write file " + descriptionFile, e);
@@ -1211,7 +1213,7 @@ public class GitRepository {
   }
 
   public List<StatusFile> status() throws RepoException {
-    CommandOutput output = git(getCwd(),
+    CommandOutput output = git(getCwd(), Optional.empty(),
         addGitDirAndWorkTreeParams(ImmutableList.of("status", "--porcelain")));
     ImmutableList.Builder<StatusFile> builder = ImmutableList.builder();
     for (String line : Splitter.on('\n').split(output.getStdout())) {
@@ -1361,17 +1363,19 @@ public class GitRepository {
       throw new RepoException("Cannot create directories: " + e.getMessage(), e);
     }
     if (workTree != null && workTree.resolve(".git").equals(gitDir)) {
-      git(workTree, ImmutableList.of("init", "."));
+      git(workTree, Optional.empty(), ImmutableList.of("init", "."));
     } else {
-      git(gitDir, ImmutableList.of("init", "--bare"));
+      git(gitDir, Optional.empty(), ImmutableList.of("init", "--bare"));
     }
     return this;
   }
 
-  public GitRepository withCredentialHelper(String credentialHelper)
-      throws RepoException {
-    git(gitDir, ImmutableList.of("config", "--local", "credential.helper",
-        checkNotNull(credentialHelper)));
+  @CanIgnoreReturnValue
+  public GitRepository withCredentialHelper(String credentialHelper) throws RepoException {
+    git(
+        gitDir,
+        Optional.empty(),
+        ImmutableList.of("config", "--local", "credential.helper", checkNotNull(credentialHelper)));
     return this;
   }
 
@@ -1402,24 +1406,45 @@ public class GitRepository {
    * <p>Git commands usually write to stdout, but occasionally they write to stderr. It's
    * responsibility of the client to consume the output from the correct source.
    *
-   * <p>WARNING: Please consider creating a higher level function instead of calling this method.
-   * At some point we will deprecate.
+   * <p>WARNING: Please consider creating a higher level function instead of calling this method. At
+   * some point we will deprecate.
    *
+   * @param timeout the timeout duration to pass to {@code git} command runner
    * @param argv the arguments to pass to {@code git}, starting with the sub-command name
    */
+  @CanIgnoreReturnValue
+  public CommandOutput simpleCommand(@Nullable Duration timeout, String... argv)
+      throws RepoException {
+    return simpleCommand(timeout, Arrays.asList(argv));
+  }
+
+  @CanIgnoreReturnValue
   public CommandOutput simpleCommand(String... argv) throws RepoException {
     return simpleCommand(Arrays.asList(argv));
   }
 
+  @CanIgnoreReturnValue
+  public CommandOutput simpleCommand(Duration timeout, List<String> argv)
+      throws RepoException {
+    return git(getCwd(), Optional.ofNullable(timeout), addGitDirAndWorkTreeParams(argv));
+  }
+
+  @CanIgnoreReturnValue
   public CommandOutput simpleCommand(List<String> argv) throws RepoException {
-    return git(getCwd(), addGitDirAndWorkTreeParams(argv));
+    return git(getCwd(), Optional.empty(), addGitDirAndWorkTreeParams(argv));
   }
 
   CommandOutput simpleCommandNoRedirectOutput(String... argv) throws RepoException {
     Iterable<String> params = addGitDirAndWorkTreeParams(Arrays.asList(argv));
     try {
       // Use maxLoglines 0 and verbose=false to avoid redirection
-      return executeGit(getCwd(), params, gitEnv, /*verbose*/ false, /*maxLoglines*/ 0);
+      return executeGit(
+          getCwd(),
+          params,
+          gitEnv,
+          /* verbose= */ false,
+          /* maxLogLines= */ 0,
+          /** timeout= */ Optional.empty());
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
 
@@ -1475,7 +1500,7 @@ public class GitRepository {
    * @param params the argv to pass to Git, excluding the initial {@code git}
    */
   public CommandOutput git(Path cwd, String... params) throws RepoException {
-    return git(cwd, Arrays.asList(params));
+    return git(cwd, Optional.empty(), Arrays.asList(params));
   }
 
   /**
@@ -1490,9 +1515,11 @@ public class GitRepository {
    * @param cwd the directory in which to execute the command
    * @param params params the argv to pass to Git, excluding the initial {@code git}
    */
-  protected CommandOutput git(Path cwd, Iterable<String> params) throws RepoException {
+  @CanIgnoreReturnValue
+  protected CommandOutput git(Path cwd, Optional<Duration> timeout, Iterable<String> params)
+      throws RepoException {
     try {
-      return executeGit(cwd, params, gitEnv, verbose);
+      return executeGit(cwd, params, gitEnv, verbose, timeout);
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
 
@@ -1553,14 +1580,25 @@ public class GitRepository {
     }
   }
 
+  @CanIgnoreReturnValue
   private static CommandOutputWithStatus executeGit(
-      Path cwd, Iterable<String> params, GitEnvironment gitEnv, boolean verbose)
+      Path cwd,
+      Iterable<String> params,
+      GitEnvironment gitEnv,
+      boolean verbose,
+      Optional<Duration> timeout)
       throws CommandException {
-    return executeGit(cwd, params, gitEnv, verbose, DEFAULT_MAX_LOG_LINES);
+    return executeGit(cwd, params, gitEnv, verbose, DEFAULT_MAX_LOG_LINES, timeout);
   }
 
+  @CanIgnoreReturnValue
   private static CommandOutputWithStatus executeGit(
-      Path cwd, Iterable<String> params, GitEnvironment gitEnv, boolean verbose, int maxLogLines)
+      Path cwd,
+      Iterable<String> params,
+      GitEnvironment gitEnv,
+      boolean verbose,
+      int maxLogLines,
+      Optional<Duration> timeout)
       throws CommandException {
     List<String> allParams = new ArrayList<>(Iterables.size(params) + 1);
     allParams.add(gitEnv.resolveGitBinary());
@@ -1568,9 +1606,13 @@ public class GitRepository {
     Command cmd =
         new Command(
             Iterables.toArray(allParams, String.class), gitEnv.getEnvironment(), cwd.toFile());
-    CommandRunner runner = new CommandRunner(cmd).withVerbose(verbose);
-    return
-        maxLogLines >= 0 ? runner.withMaxStdOutLogLines(maxLogLines).execute() : runner.execute();
+
+    CommandRunner runner =
+        (timeout.isPresent() ? new CommandRunner(cmd, timeout.get()) : new CommandRunner(cmd))
+            .withVerbose(verbose);
+    return maxLogLines >= 0
+        ? runner.withMaxStdOutLogLines(maxLogLines).execute()
+        : runner.execute();
   }
 
   @Override
@@ -1677,8 +1719,11 @@ public class GitRepository {
     }
     args.add("-m", message);
 
-    return new GitRevision(this,
-        git(getCwd(), addGitDirAndWorkTreeParams(args.build())).getStdout().trim());
+    return new GitRevision(
+        this,
+        git(getCwd(), Optional.empty(), addGitDirAndWorkTreeParams(args.build()))
+            .getStdout()
+            .trim());
   }
 
   /**

@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -1106,6 +1107,41 @@ public class GitRepositoryTest {
 
     assertThat(remote.refExists(defaultBranch)).isTrue();
     assertThat(remote.refExists("other")).isFalse();
+  }
+
+  @Test
+  public void testPushWithZeroTimeout() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("remote"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT,
+            /*noVerify=*/ false).init();
+    Files.writeString(workdir.resolve("foo.txt"), "");
+
+    GitRepository origin =
+        GitRepository.newBareRepo(
+                gitDir, getGitEnv(), /*verbose=*/ true, Duration.ZERO, /*noVerify=*/ false)
+            .withWorkTree(workdir).init();
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "-m", "message");
+
+    String remoteUrl = "file:///" + remote.getGitDir();
+
+    RepoException expected =
+        assertThrows(
+            RepoException.class,
+            () ->
+                origin
+                    .push()
+                    .withRefspecs(remoteUrl, ImmutableList.of(origin.createRefSpec("+*:*")))
+                    .run());
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Command 'git' killed by Copybara after timeout (0s). If this fails during a fetch or"
+                + " push use --repo-timeout flag.");
   }
 
   @Test
