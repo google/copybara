@@ -9,6 +9,7 @@
   "state": "open",
   "locked": false,
   "title": "[TEST] example pull request one",
+  "draft": false,
   "user": {
     "login": "googletestuser",
     "id": 123456,

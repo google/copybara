@@ -1771,6 +1771,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "is used, that checker will only apply to API calls.",
             named = true,
             positional = false),
+        @Param(
+            name = "draft",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "Flag create pull request as draft or not."),
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1813,6 +1819,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean updateDescription,
       Boolean primaryBranchMigrationMode,
       Object checker,
+      boolean isDraft,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -1831,6 +1838,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         destinationRef,
         convertFromNoneable(prBranch, null),
         partialFetch,
+        isDraft,
         generalOptions,
         options.get(GitHubOptions.class),
         destinationOptions,

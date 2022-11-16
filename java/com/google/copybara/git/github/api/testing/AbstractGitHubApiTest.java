@@ -340,11 +340,15 @@ public abstract class AbstractGitHubApiTest {
                 && cpr.getHead().equals("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")),
         getResource("pulls_12345_testdata.json"));
     // The test does not actually use the data in the CreatePullRequest
-    PullRequest pullRequest = api.createPullRequest("example/project",
-        new CreatePullRequest("title",
-            "[TEST] example pull request one",
-            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"));
+    PullRequest pullRequest =
+        api.createPullRequest(
+            "example/project",
+            new CreatePullRequest(
+                "title",
+                "[TEST] example pull request one",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "aabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                false));
 
     assertThat(pullRequest.getNumber()).isEqualTo(12345);
     assertThat(pullRequest.getState()).isEqualTo("open");
@@ -699,7 +703,7 @@ public abstract class AbstractGitHubApiTest {
    **/
   public static class TestCreatePullRequest extends CreatePullRequest {
     public TestCreatePullRequest() {
-      super("invalid", "invalid", "invalid", "invalid");
+      super("invalid", "invalid", "invalid", "invalid", false);
     }
   }
 

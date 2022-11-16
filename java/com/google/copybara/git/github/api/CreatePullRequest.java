@@ -42,6 +42,9 @@ public class CreatePullRequest extends GenericJson {
   @Key
   private String base;
 
+  @Key
+  private final boolean draft;
+
   public String getTitle() {
     return title;
   }
@@ -62,10 +65,15 @@ public class CreatePullRequest extends GenericJson {
     this.title = title;
   }
 
-  public CreatePullRequest(String title, String body, String head, String base) {
+  public boolean getDraft() {
+    return draft;
+  }
+
+  public CreatePullRequest(String title, String body, String head, String base, boolean draft) {
     this.title = Preconditions.checkNotNull(title);
     this.body = Preconditions.checkNotNull(body);
     this.head = Preconditions.checkNotNull(head);
     this.base = Preconditions.checkNotNull(base);
+    this.draft = draft;
   }
 }

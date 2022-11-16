@@ -38,6 +38,7 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
   @Key private Boolean mergeable;
+  @Key private boolean draft;
 
   @StarlarkMethod(name = "head", doc = "Information about head", structField = true)
   public Revision getHead() {
@@ -47,6 +48,11 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @StarlarkMethod(name = "base", doc = "Information about base", structField = true)
   public Revision getBase() {
     return base;
+  }
+
+  @StarlarkMethod(name = "draft", doc = "Whether pull request is a draft", structField = true)
+  public boolean getDraft() {
+    return draft;
   }
 
   @Nullable
