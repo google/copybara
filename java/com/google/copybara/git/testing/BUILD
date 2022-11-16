@@ -22,8 +22,6 @@ java_library(
     srcs = glob(["**/*.java"]),
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     visibility = ["//visibility:public"],
     deps = [

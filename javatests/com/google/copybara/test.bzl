@@ -40,8 +40,6 @@ def all_tests(tests, deps, tags = [], shard_count = 1, data = [], env = {}):
             srcs = [file],
             javacopts = [
                 "-Xlint:unchecked",
-                "-source",
-                "1.8",
                 "-Xep:FutureReturnValueIgnored:OFF",
             ],
             test_class = test_class,

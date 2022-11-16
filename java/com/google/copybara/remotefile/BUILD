@@ -21,8 +21,6 @@ java_library(
     srcs = glob(["*.java"]),
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     deps = [
         "//java/com/google/copybara:base",

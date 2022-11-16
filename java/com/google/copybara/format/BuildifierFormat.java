@@ -84,7 +84,7 @@ public class BuildifierFormat implements Transformation {
     ImmutableList.Builder<String> paths = ImmutableList.builder();
     Files.walkFileTree(
         work.getCheckoutDir(),
-        new SimpleFileVisitor<Path>() {
+        new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
               throws IOException {

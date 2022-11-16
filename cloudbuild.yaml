@@ -3,7 +3,7 @@
 steps:
 - name: gcr.io/cloud-builders/bazel@sha256:28e9905ce9d18d9439e0ee61c396b83e9538ef71cac7ebefaec32a81957792bf
   entrypoint: "bash"
-  args: ["-c", "./cloudbuild.sh test ... --test_output=errors --sandbox_tmpfs_path=/tmp -j 1000"]
+  args: ["-c", "./cloudbuild.sh test  --java_language_version=11 --tool_java_language_version=11 --java_runtime_version=remotejdk_11  --test_output=errors --subcommands  --sandbox_tmpfs_path=/tmp -j 1000 -- ..."]
 options:
   machine_type: N1_HIGHCPU_32
 timeout: 30m

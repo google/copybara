@@ -29,8 +29,6 @@ exports_files(
 
 JAVACOPTS = [
     "-Xlint:unchecked",
-    "-source",
-    "1.8",
 ]
 
 java_binary(
