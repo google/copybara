@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Map.Entry;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -91,6 +92,16 @@ public interface Revision {
    */
   @Nullable default String getUrl() {
     return null;
+  }
+
+  /**
+   * String that represents the revision type.
+   *
+   * <p>The purpose of this string is to be used as an identifier in other systems. Once it has been
+   * defined, it shouldn't be changed.
+   */
+  default Optional<String> getRevisionType() {
+    return Optional.empty();
   }
 
   /**

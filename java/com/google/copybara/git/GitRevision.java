@@ -28,6 +28,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.revision.Revision;
 import java.time.ZonedDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
@@ -149,6 +150,11 @@ public final class GitRevision implements Revision {
   @Nullable
   public String getUrl() {
     return url;
+  }
+
+  @Override
+  public Optional<String> getRevisionType() {
+    return Optional.of("Git");
   }
 
   @Override

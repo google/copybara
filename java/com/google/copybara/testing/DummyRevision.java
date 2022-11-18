@@ -43,6 +43,7 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -226,6 +227,10 @@ public class DummyRevision implements Revision {
   public String getUrl() {
     return url;
   }
+
+  public Optional<String> getRevisionType() {
+    return Optional.of("Other");
+  };
 
   public ImmutableListMultimap<String, String> getLabels() {
     return ImmutableListMultimap.<String, String>builder().putAll(associatedLabels())
