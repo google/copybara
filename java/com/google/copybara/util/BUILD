@@ -26,8 +26,6 @@ java_library(
     ),
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     deps = [
         "//java/com/google/copybara:local_parallelizer",
@@ -51,8 +49,6 @@ java_library(
     srcs = ["OriginUtil.java"],
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     deps = [
         "//java/com/google/copybara:general_options",

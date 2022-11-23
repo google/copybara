@@ -29,8 +29,6 @@ exports_files(
 
 JAVACOPTS = [
     "-Xlint:unchecked",
-    "-source",
-    "1.8",
 ]
 
 java_binary(
@@ -79,6 +77,7 @@ BASE_SRCS = [
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",
+    "DestinationInfo.java",
     "DestinationReader.java",
     "DestinationStatusVisitor.java",
     "Endpoint.java",
@@ -223,6 +222,8 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/version",
+        "//java/com/google/copybara/xml",
+        "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:flogger",
         "//third_party:guava",

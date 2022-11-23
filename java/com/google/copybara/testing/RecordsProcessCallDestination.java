@@ -24,9 +24,11 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.Endpoint;
 import com.google.copybara.Origin.Baseline;
@@ -62,6 +64,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * A destination for testing which doesn't write the workdir anywhere and simply records when
@@ -204,6 +212,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
+    public DestinationInfo getDestinationInfo() {
+      return getNewDestinationInfo();
+    }
+
+    @Override
     public boolean supportsHistory() {
       return true;
     }
@@ -314,6 +327,61 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     return "Destination-RevId";
   }
 
+  /**
+   * Class that implements a simple version of DestinationInfo for testing purposes.
+   */
+  @StarlarkBuiltin(
+      name = "testing.destination_info",
+      doc = "DestinationInfo object used for testing. Can store a simple string to string mapping.",
+      documented = false)
+  public static class DestinationInfoImpl implements DestinationInfo, StarlarkValue {
+    private final ImmutableMultimap.Builder<String, String> values;
+
+    public DestinationInfoImpl() {
+      values = ImmutableMultimap.builder();
+    }
+
+    @StarlarkMethod(
+        name = "add_value",
+        doc = "Adds a key-value pair.",
+        parameters = {
+          @Param(
+              name = "key",
+              doc = "Key that will map to the value",
+              allowedTypes = {@ParamType(type = String.class)}),
+          @Param(
+              name = "value",
+              doc = "The string value itself",
+              allowedTypes = {@ParamType(type = String.class)})
+        })
+    public void addValue(String key, String value) {
+      values.put(key, value);
+    }
+
+    @StarlarkMethod(
+        name = "get_values",
+        doc = "Gets values that map to a given key.",
+        parameters = {
+          @Param(
+              name = "key",
+              doc = "Issue ID to modify",
+              allowedTypes = {@ParamType(type = String.class)})
+        })
+    public StarlarkList<String> getValues(String key) {
+      return StarlarkList.immutableCopyOf(values.build().get(key));
+    }
+  }
+
+  /**
+   * Returns a new DestinationInfo object that this destination's Writer will use.
+   *
+   * <p>This function can be overridden to use other DestinationInfo objects for testing purposes.
+   * @return the new DestinationInfoImpl object.
+   */
+  public DestinationInfo getNewDestinationInfo() {
+    return new DestinationInfoImpl();
+  }
+
   public static class ProcessedChange {
 
     private final TransformResult transformResult;
@@ -370,6 +438,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
     public String getRevIdLabel() {
       return transformResult.getRevIdLabel();
+    }
+
+    public DestinationInfo getDestinationInfo() {
+      return transformResult.getDestinationInfo();
     }
 
     @Nullable

@@ -75,6 +75,13 @@ public class LatestVersionSelector implements VersionSelector {
 
       @Override
       public Comparable<?> convert(String val) {
+        // Handles case for (.[0-9]+)?
+        if (val.startsWith(".")) {
+          val = val.substring(1);
+        }
+        if (val.isEmpty()) {
+          return Integer.MIN_VALUE;
+        }
         return Integer.parseInt(val);
       }
     },
@@ -143,15 +150,8 @@ public class LatestVersionSelector implements VersionSelector {
     Preconditions.checkArgument(old.size() == newer.size());
     for (int i = 0; i < old.size(); i++) {
       int comp = compareElement(old.get(i), newer.get(i));
-      switch (comp) {
-        case -1:
-          return true;
-        case 1:
-          return false;
-        case 0:
-          continue;
-        default:
-          throw new IllegalStateException("Bad compareTo result: " + comp);
+      if (comp != 0) {
+        return comp < 0;
       }
     }
     return false; // Everything equal
@@ -160,7 +160,6 @@ public class LatestVersionSelector implements VersionSelector {
   @SuppressWarnings("unchecked")
   private int compareElement(Object o, Object n) {
     return ((Comparable) o).compareTo(n);
-
   }
 
   public ImmutableList<String> getUnmatchedGroups() {

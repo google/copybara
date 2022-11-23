@@ -67,7 +67,7 @@ public class HgOptions implements Option {
     Path hgDir = repoPath.resolve(HGDIR_PATH);
 
     HgRepository repo =
-        new HgRepository(hgDir, generalOptions.isVerbose(), generalOptions.fetchTimeout);
+        new HgRepository(hgDir, generalOptions.isVerbose(), generalOptions.repoTimeout);
     if (Files.notExists(hgDir)) {
       repo.init();
     }

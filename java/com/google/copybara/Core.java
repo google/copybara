@@ -389,22 +389,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             positional = false),
         @Param(
-            name = "auto_generate_patch_prefix",
-            named = true,
+            name = "autopatch_config",
+            doc = "Configuration that describes the setting for automatic patch file generation",
             allowedTypes = {
-              @ParamType(type = String.class),
+              @ParamType(type = AutoPatchfileConfiguration.class),
               @ParamType(type = NoneType.class),
             },
-            doc =
-                "Enables an operation, to be combined with merge_import mode, that automatically"
-                    + " generates patch files showing destination only changes. These patch files"
-                    + " are intended for human consumption and are not used in the workflow."
-                    + " merge_import mode allows users to perpetuate destiantion-only changes (i.e."
-                    + " changes to non-Source-of-truth repositories). This operation will create"
-                    + " patch files that show the destination-only changes. This prefix is attached"
-                    + " to the contents of every patch file. Providing a patch file prefix,"
-                    + " provided merge_import is enabled, will automatically generate patch files.",
             positional = false,
+            named = true,
             defaultValue = "None"),
         @Param(
             name = "migrate_noop_changes",
@@ -485,7 +477,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean setRevId,
       Boolean smartPrune,
       Boolean mergeImport,
-      Object autoGeneratePatchPrefix,
+      Object autoPatchFileConfigurationObj,
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
@@ -560,6 +552,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           authoring.getAllowlist());
     }
 
+    AutoPatchfileConfiguration autoPatchfileConfiguration =
+        convertFromNoneable(autoPatchFileConfigurationObj, null);
+
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
     Workflow<Revision, ?> workflow =
@@ -590,7 +585,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             setRevId,
             smartPrune,
             mergeImport,
-            convertFromNoneable(autoGeneratePatchPrefix, null),
+            autoPatchfileConfiguration,
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
@@ -1809,38 +1804,56 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "latest_version",
-      doc = "Selects the latest version that matches the format.  Using --force"
-          + " in the CLI will force to use the reference passed as argument instead.",
+      doc =
+          "Selects the latest version that matches the format.  Using --force"
+              + " in the CLI will force to use the reference passed as argument instead.",
       parameters = {
-          @Param(
-              name = "format",
-              doc = "The format of the version. If using it for git, it has to use the complete"
-                  + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
-              named = true),
-          @Param(
-              name = "regex_groups",
-              named = true, doc =
-              "A set of named regexes that can be used to match part of the versions. Copybara"
-                  + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
-                  + " following nomenclature n0, n1, n2 for the version part (will use numeric"
-                  + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
-                  + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
-                  + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
-                  + " order is not important, use s(N+1) where N ist he latest sorted field."
-                  + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
-          defaultValue = "{}"),
+        @Param(
+            name = "format",
+            doc =
+                "The format of the version. If using it for git, it has to use the complete"
+                    + "refspec (e.g. 'refs/tags/${n0}.${n1}.${n2}')",
+            named = true),
+        @Param(
+            name = "regex_groups",
+            named = true,
+            doc =
+                "A set of named regexes that can be used to match part of the versions. Copybara"
+                    + " uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the"
+                    + " following nomenclature n0, n1, n2 for the version part (will use numeric"
+                    + " sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed"
+                    + " but the numbers cannot be repeated. In other words n0, s1, n2 is valid but"
+                    + " not n0, s0, n1. n0 has more priority than n1. If there are fields where"
+                    + " order is not important, use s(N+1) where N ist he latest sorted field."
+                    + " Example {\"n0\": \"[0-9]+\", \"s1\": \"[a-z]+\"}",
+            defaultValue = "{}"),
       },
       useStarlarkThread = true)
-  @Example(title = "Version selector for Git tags",
-  before = "Example of how to match tags that follow semantic versioning",
-  code = "core.latest_version(\n"
-      + "    format = \"refs/tags/${n0}.${n1}.${n2}\","
-      + "    regex_groups = {\n"
-      + "        'n0': '[0-9]+',"
-      + "        'n1': '[0-9]+',"
-      + "        'n2': '[0-9]+',"
-      + "    }"
-      + ")")
+  @Example(
+      title = "Version selector for Git tags",
+      before = "Example of how to match tags that follow semantic versioning",
+      code =
+          "core.latest_version(\n"
+              + "    format = \"refs/tags/${n0}.${n1}.${n2}\","
+              + "    regex_groups = {\n"
+              + "        'n0': '[0-9]+',"
+              + "        'n1': '[0-9]+',"
+              + "        'n2': '[0-9]+',"
+              + "    }"
+              + ")")
+  @Example(
+      title =
+          "Version selector for Git tags with mixed version semantics with X.Y.Z and X.Y tagging",
+      before = "Edge case example: we allow a '.' literal prefix for numeric regex groups.",
+      code =
+          "core.latest_version(\n"
+              + "    format = \"refs/tags/${n0}.${n1}${n2}\","
+              + "    regex_groups = {\n"
+              + "        'n0': '[0-9]+',"
+              + "        'n1': '[0-9]+',"
+              + "        'n2': '(.[0-9]+)?',"
+              + "    }"
+              + ")")
   public VersionSelector versionSelector(
       String regex, Dict<?, ?> groups, StarlarkThread thread) // <String, String>
       throws EvalException {
@@ -1922,5 +1935,56 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @Override
   public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
     this.printHandler = printHandler;
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "autopatch_config",
+      doc = "Describes in the configuration for automatic patch file generation",
+      parameters = {
+        @Param(
+            name = "header",
+            doc = "A string to include at the beginning of each patch file",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "None"),
+        @Param(
+            name = "suffix",
+            doc = "Suffix to use when saving patch files",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "'.patch'"),
+        @Param(
+            name = "directory",
+            doc = "Directory in which to save the patch files.",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true,
+            positional = false,
+            defaultValue = "'AUTOPATCHES'"),
+        @Param(
+            name = "strip_file_names_and_line_numbers",
+            doc = "When true, strip filenames and line numbers from patch files",
+            named = true,
+            positional = false,
+            defaultValue = "False")
+      })
+  public AutoPatchfileConfiguration autoPatchfileConfiguration(
+      Object fileContentsPrefix, Object suffix, Object directory, boolean stripFileNames) {
+    return AutoPatchfileConfiguration.create(
+        convertFromNoneable(fileContentsPrefix, null),
+        convertFromNoneable(suffix, null),
+        convertFromNoneable(directory, null),
+        stripFileNames);
   }
 }

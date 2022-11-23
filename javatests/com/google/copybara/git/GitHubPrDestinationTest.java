@@ -149,6 +149,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             MockRequestAssertion.equals("{\"base\":\"main\","
                         + "\"body\":\"custom body\","
+                        + "\"draft\":false,"
                         + "\"head\":\"feature\","
                         + "\"title\":\"custom title\"}")));
 
@@ -199,6 +200,7 @@ public class GitHubPrDestinationTest {
                 + "}",
             MockRequestAssertion.equals("{\"base\":\"main\","
                 + "\"body\":\"Body first a\","
+                + "\"draft\":false,"
                 + "\"head\":\"feature\","
                 + "\"title\":\"Title first a\"}")));
 
@@ -312,8 +314,8 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\""
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"main\",\"body\":\"Internal change.\\n\",\"head\":\"feature\","
-                        + "\"title\":\"Internal change.\"}")));
+                "{\"base\":\"main\",\"body\":\"Internal change.\\n"
+                    + "\",\"draft\":false,\"head\":\"feature\",\"title\":\"Internal change.\"}")));
 
     GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
         + "    url = 'https://github.com/foo',"
@@ -444,7 +446,7 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\"\n"
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"main\",\"body\":\"test summary\\n\",\"head\":\""
+                    "{\"base\":\"main\",\"body\":\"test summary\\n\",\"draft\":false,\"head\":\""
                         + "feature"
                         + "\",\"title\":\"test summary\"}")));
 
@@ -601,7 +603,7 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\""
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
+                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"draft\":false,\"head\":\""
                         + branchName
                         + "\",\"title\":\"test summary\"}")));
 
@@ -788,7 +790,7 @@ public class GitHubPrDestinationTest {
                 + "  \"body\": \"test summary\""
                 + "}",
             MockRequestAssertion.equals(
-                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"head\":\""
+                    "{\"base\":\"other\",\"body\":\"test summary\\n\",\"draft\":false,\"head\":\""
                         + expectedBranchName
                         + "\",\"title\":\"test summary\"}")));
 

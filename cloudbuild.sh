@@ -13,13 +13,7 @@ log "Fetching dependencies"
 log "Running apt-get update --fix-missing"
 
 apt-get update --fix-missing
-# Mercurial does not have an up-to-date .deb package
-# The official release needs to be installed with pip.
-apt-get -y install python3-pip
 apt-get install locales
-# upgrade jdk
-apt-get -y install openjdk-11-jre-headless
-apt-get -y install openjdk-11-jdk-headless
 apt-get -y install mercurial
 
 add-apt-repository ppa:git-core/ppa -y
@@ -49,7 +43,7 @@ export LC_ALL=en_US.UTF-8
 locale-gen en_US.UTF-8
 update-locale LANG=en_US.UTF-8
 
-log "Running Bazel"
-bazel "$@"
+echo "Running 'bazel $@'"
+time bazel "$@"
 
 log "Done"

@@ -25,7 +25,7 @@ import com.google.copybara.shell.CommandResult;
  * An exception that represents a program that did not exit with 0 exit code.
  *
  * <p>The reason for this class is that {@link Command#execute} doesn't populate {@link
- * CommandResult#stderr} when throwing a {@link BadExitStatusException}
+ * CommandResult#getStderr()} when throwing a {@link BadExitStatusException}
  * exception. This class allows us to collect the error and store in this alternative exception.
  */
 public class BadExitStatusWithOutputException extends AbnormalTerminationException {

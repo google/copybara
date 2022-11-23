@@ -17,7 +17,7 @@
 package com.google.copybara.config;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -225,15 +225,23 @@ public class SkylarkParser {
         for (SyntaxError error : ex.errors()) {
           console.error(error.toString());
         }
-        checkCondition(false, "Error loading config file.");
-        return null; // unreachable
+        throw new ValidationException("Error loading config file.");
       }
 
       // process loads
       Map<String, Module> loadedModules = new HashMap<>();
-      for (String load : prog.getLoads()) {
-        Module loadedModule = eval(content.resolve(load + BARA_SKY));
-        loadedModules.put(load, loadedModule);
+      ImmutableMap<String, String> fileToLoad = prog.getLoads().stream()
+              .distinct()
+              .collect(toImmutableMap(
+                      l -> l + BARA_SKY,
+                      l -> l));
+
+      for (Entry<String, ConfigFile> entry :
+          content
+              // Resolve all in one call so that the implementor can do it in batch/parallel.
+              .resolveAll(fileToLoad.keySet()).entrySet()) {
+        Module loadedModule = eval(entry.getValue());
+        loadedModules.put(fileToLoad.get(entry.getKey()), loadedModule);
       }
 
       // execute

@@ -325,10 +325,10 @@ public final class GeneralOptions implements Option {
   boolean verbose;
 
   @Parameter(
-      names = {"--fetch-timeout"},
-      description = "Fetch timeout",
+      names = {"--repo-timeout"},
+      description = "Repository operation timeout duration.",
       converter = DurationConverter.class)
-  public Duration fetchTimeout = CommandRunner.DEFAULT_TIMEOUT;
+  public Duration repoTimeout = CommandRunner.DEFAULT_TIMEOUT;
 
   @Parameter(
       names = {"--commands-timeout"},

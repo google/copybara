@@ -42,4 +42,6 @@ public interface ConfigTemplate {
   boolean validate(String configInProgress);
 
   String getTemplateString();
+
+  String name();
 }

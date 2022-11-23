@@ -95,7 +95,7 @@ public class GitHubPrOriginTest {
   private OptionsBuilder options;
   private TestingConsole console;
   private SkylarkTestExecutor skylark;
-  private static String sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  private static final String sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
   private final Authoring authoring = new Authoring(new Author("foo", "default@example.com"),
       AuthoringMappingMode.PASS_THRU, ImmutableSet.of());
@@ -790,6 +790,23 @@ public class GitHubPrOriginTest {
     FileSubjects.assertThatPath(workdir)
         .containsFile("other.txt", "")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testCheckoutLocalRepo() throws Exception {
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/random/repo");
+        addFiles(
+            remote,
+            "base",
+            ImmutableMap.<String, String>builder().put("test.txt", "a").buildOrThrow());
+    options.githubPrOrigin.repo = "https://github.com/random/repo " + remote.getPrimaryBranch();
+    GitOrigin origin = skylark.eval("r", "r = git.github_pr_origin("
+            + "url = 'https://github.com/google/example')");
+    origin.newReader(Glob.ALL_FILES, authoring)
+            .checkout(origin.resolve("refs/heads/" + remote.getPrimaryBranch()), workdir);
+    FileSubjects.assertThatPath(workdir)
+            .containsFile("test.txt", "a")
+            .containsNoMoreFiles();
   }
 
   @Test

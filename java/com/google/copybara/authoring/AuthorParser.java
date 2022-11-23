@@ -17,8 +17,13 @@
 package com.google.copybara.authoring;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.concurrent.ExecutionException;
 
 /**
  * A parser for the standard author format {@code "Name <email>"}.
@@ -34,11 +39,32 @@ public class AuthorParser {
   private static final Pattern IN_QUOTES =
       Pattern.compile("(\".+\")|(\'.+\')");
 
+  private static final LoadingCache<String, Author> CACHE =
+      CacheBuilder.newBuilder()
+          .maximumSize(1000000)
+          .build(
+              new CacheLoader<String, Author>() {
+                @Override
+                public Author load(String key) throws Exception {
+                  return internalParse(key);
+                }
+              });
   /**
    * Parses a Git author {@code string} into an {@link Author}.
    */
   public static Author parse(String author) throws InvalidAuthorException {
     Preconditions.checkNotNull(author);
+    try {
+      // Use a cache since repetitive load (thru --read-config-from-change) configs that
+      // define authors have a penalty because of the regex check/group.
+      return CACHE.get(author);
+    } catch (ExecutionException e) {
+      Throwables.propagateIfPossible(e.getCause(), InvalidAuthorException.class);
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static Author internalParse(String author) throws InvalidAuthorException {
     if (IN_QUOTES.matcher(author).matches()) {
       author = author.substring(1, author.length() - 1); //strip quotes
     }

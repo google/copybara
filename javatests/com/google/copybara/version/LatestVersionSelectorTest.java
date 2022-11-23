@@ -132,6 +132,19 @@ public class LatestVersionSelectorTest {
         "20110411.10");
   }
 
+  @Test
+  public void testVersionSelector_optionalGroups() throws Exception {
+    runTest(
+        ""
+            + "format = '${n0}.${n1}${n2}',"
+            + "regex_groups = {"
+            + "    'n0' : '[0-9]+',"
+            + "    'n1' : '[0-9]+', 'n2' : '(.[0-9]+)?'}",
+        ImmutableSet.of("1.9", "1.1.1", "1.9.11", "1.5.3", "1.9.2", "1.9.12", "2.15."),
+        null,
+        "1.9.12");
+  }
+
   private void runTest(String arguments, ImmutableSet<String> versionList,
       String requestedRef, @Nullable String expected) throws ValidationException, RepoException {
     VersionSelector v = skylark.eval("v", "v = core.latest_version(" + arguments + ")");

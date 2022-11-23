@@ -82,6 +82,10 @@ public class GitHubPrOriginOptions implements Option {
   @Parameter(names = "--github-pr-merge", description = "Override merge bit from config", arity = 1)
   public Boolean overrideMerge = null;
 
+  @Parameter(names = "--github-use-repo", description = "Use a different git repository instead",
+          arity = 1)
+  public String repo = null;
+
   /**
    * Compute the labels that should be required by git.github_pr_origin for importing a Pull
    * Request.

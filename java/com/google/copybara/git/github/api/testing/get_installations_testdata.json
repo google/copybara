@@ -1,0 +1,56 @@
+{
+  "total_count": 1,
+  "installations": [
+    {
+      "id": 25381,
+      "account": {
+        "login": "octo-org",
+        "id": 6811672,
+        "node_id": "MDEyOk9yZ2FuaXphdGlvbjY4MTE2NzI=",
+        "avatar_url": "https://avatars3.githubusercontent.com/u/6811672?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/octo-org",
+        "html_url": "https://github.com/octo-org",
+        "followers_url": "https://api.github.com/users/octo-org/followers",
+        "following_url": "https://api.github.com/users/octo-org/following{/other_user}",
+        "gists_url": "https://api.github.com/users/octo-org/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/octo-org/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/octo-org/subscriptions",
+        "organizations_url": "https://api.github.com/users/octo-org/orgs",
+        "repos_url": "https://api.github.com/users/octo-org/repos",
+        "events_url": "https://api.github.com/users/octo-org/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/octo-org/received_events",
+        "type": "Organization",
+        "site_admin": false
+      },
+      "repository_selection": "selected",
+      "access_tokens_url": "https://api.github.com/app/installations/25381/access_tokens",
+      "repositories_url": "https://api.github.com/installation/repositories",
+      "html_url": "https://github.com/organizations/octo-org/settings/installations/25381",
+      "app_id": 2218,
+      "target_id": 6811672,
+      "target_type": "Organization",
+      "permissions": {
+        "deployments": "write",
+        "metadata": "read",
+        "pull_requests": "read",
+        "statuses": "read"
+      },
+      "events": [
+        "deployment",
+        "deployment_status"
+      ],
+      "created_at": "2017-05-16T08:47:09.000-07:00",
+      "updated_at": "2017-06-06T11:23:23.000-07:00",
+      "single_file_name": "config.yml",
+      "has_multiple_single_files": true,
+      "single_file_paths": [
+        "config.yml",
+        ".github/issue_TEMPLATE.md"
+      ],
+      "app_slug": "github-actions",
+      "suspended_at": null,
+      "suspended_by": null
+    }
+  ]
+}

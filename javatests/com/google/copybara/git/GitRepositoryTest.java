@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -60,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
@@ -351,11 +353,19 @@ public class GitRepositoryTest {
     Files.write(workdir.resolve("foo.txt"), "modified".getBytes(UTF_8));
     repository.add().all().run();
     repository.simpleCommand("commit", "-m", "second");
-    repository.simpleCommand("merge", "foo");
+    repository
+        .merge("foo", ImmutableList.of())
+        .withFFMode("--ff")
+        .withMessage("")
+        .run(ImmutableMap.of("google.foo", "true", "google.bar", "false"));
 
     ImmutableList<GitLogEntry> log =
-        repository.log(defaultBranch).includeFiles(true).firstParent(true).includeMergeDiff(true)
-        .run();
+        repository
+            .log(defaultBranch)
+            .includeFiles(true)
+            .firstParent(true)
+            .includeMergeDiff(true)
+            .run();
     assertThat(log.get(0).getBody()).contains("Merge");
     assertThat(log.get(0).getFiles()).containsExactly("bar.txt");
 
@@ -608,7 +618,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     FetchResult result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"), false);
+        ImmutableList.of("refs/*:refs/*"), false, Optional.empty());
 
     assertThat(result.getDeleted()).isEmpty();
     assertThat(result.getUpdated()).isEmpty();
@@ -622,7 +632,7 @@ public class GitRepositoryTest {
     repository.simpleCommand("branch", "-D", "deleted");
 
     result = dest.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"), false);
+        ImmutableList.of("refs/*:refs/*"), false, Optional.empty());
 
     assertThat(result.getDeleted().keySet()).containsExactly("refs/heads/deleted");
     assertThat(result.getUpdated().keySet()).containsExactly("refs/heads/" + defaultBranch);
@@ -658,7 +668,7 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"), true);
+        ImmutableList.of("refs/*:refs/*"), true, Optional.empty());
     CommandOutput commandOutput =
         local.simpleCommand("config", "--get-regexp", "remote..*.partialclonefilter");
     assertThat(commandOutput.getStdout()).contains("blob:none");
@@ -703,11 +713,51 @@ public class GitRepositoryTest {
     String fetchUrl = "file://" + repository.getGitDir();
 
     local.fetch(fetchUrl, /*prune=*/true, /*force=*/true,
-        ImmutableList.of("refs/*:refs/*"), false);
+        ImmutableList.of("refs/*:refs/*"), false, Optional.empty());
     local.withWorkTree(localWorkdir).forceCheckout(defaultBranch, ImmutableSet.of("a"));
 
     assertThat(Files.exists(localWorkdir.resolve("a/foo.txt"))).isTrue();
     assertThat(Files.exists(localWorkdir.resolve("b/bar.txt"))).isFalse();
+  }
+
+  @Test
+  public void testFetchWithDepth() throws Exception {
+    Path localWorkdir = Files.createTempDirectory("workdir");
+    GitRepository local =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("localDir"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT,
+            /*noVerify=*/ false);
+    local.init();
+
+    writeFile(workdir, "a/foo.txt", "a");
+    repository.add().files("a/foo.txt").run();
+    repository.simpleCommand("commit", "a/foo.txt", "-m", "message for commit 1");
+
+    writeFile(workdir, "b/bar.txt", "b");
+    repository.add().files("b/bar.txt").run();
+    repository.simpleCommand("commit", "b/bar.txt", "-m", "message for commit 2");
+
+    writeFile(workdir, "c/baz.txt", "c");
+    repository.add().files("c/baz.txt").run();
+    repository.simpleCommand("commit", "c/baz.txt", "-m", "message for commit 3");
+
+    String fetchUrl = "file://" + repository.getGitDir();
+    local.fetch(
+        fetchUrl,
+        /*prune=*/ true,
+        /*force=*/ true,
+        ImmutableList.of("refs/*:refs/*"),
+        false,
+        Optional.of(2));
+
+    assertThat(local.simpleCommand("rev-list", "--count", "HEAD").getStdout().trim())
+        .isEqualTo("2");
+    assertThat(local.simpleCommand("log").getStdout()).contains("message for commit 3");
+    assertThat(local.simpleCommand("log").getStdout()).contains("message for commit 2");
+    assertThat(local.simpleCommand("log").getStdout()).doesNotContain("message for commit 1");
   }
 
   @Test
@@ -719,10 +769,10 @@ public class GitRepositoryTest {
 
       @Override
       public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-          boolean partialFetch)
+          boolean partialFetch, Optional<Integer> depth)
           throws RepoException, ValidationException {
         requestedFetches.add(refspecs);
-        return super.fetch(url, prune, force, refspecs, partialFetch);
+        return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
       }
     }.init();
 
@@ -754,10 +804,10 @@ public class GitRepositoryTest {
 
       @Override
       public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-          boolean partialFetch)
+          boolean partialFetch, Optional<Integer> depth)
           throws RepoException, ValidationException {
         requestedFetches.add(refspecs);
-        return super.fetch(url, prune, force, refspecs, partialFetch);
+        return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
       }
     }.init();
 
@@ -787,7 +837,7 @@ public class GitRepositoryTest {
         () ->
             dest.fetch(
                 fetchUrl, /*prune=*/ true, /*force=*/ true, ImmutableList.of("refs/*:refs/*"),
-                false));
+                false, Optional.empty()));
   }
 
   @Test
@@ -1057,6 +1107,41 @@ public class GitRepositoryTest {
 
     assertThat(remote.refExists(defaultBranch)).isTrue();
     assertThat(remote.refExists("other")).isFalse();
+  }
+
+  @Test
+  public void testPushWithZeroTimeout() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+            Files.createTempDirectory("remote"),
+            getGitEnv(),
+            /*verbose=*/ true,
+            DEFAULT_TIMEOUT,
+            /*noVerify=*/ false).init();
+    Files.writeString(workdir.resolve("foo.txt"), "");
+
+    GitRepository origin =
+        GitRepository.newBareRepo(
+                gitDir, getGitEnv(), /*verbose=*/ true, Duration.ZERO, /*noVerify=*/ false)
+            .withWorkTree(workdir).init();
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "-m", "message");
+
+    String remoteUrl = "file:///" + remote.getGitDir();
+
+    RepoException expected =
+        assertThrows(
+            RepoException.class,
+            () ->
+                origin
+                    .push()
+                    .withRefspecs(remoteUrl, ImmutableList.of(origin.createRefSpec("+*:*")))
+                    .run());
+    assertThat(expected)
+        .hasMessageThat()
+        .contains(
+            "Command 'git' killed by Copybara after timeout (0s). If this fails during a fetch or"
+                + " push use --repo-timeout flag.");
   }
 
   @Test

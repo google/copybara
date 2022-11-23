@@ -113,7 +113,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean setRevId;
   private final boolean smartPrune;
   private final boolean mergeImport;
-  private final String patchFilePrefix;
+  private final AutoPatchfileConfiguration autoPatchfileConfiguration;
   private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
   private final ImmutableList<Action> afterAllMigrationActions;
@@ -147,7 +147,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean setRevId,
       boolean smartPrune,
       boolean mergeImport,
-      String patchFilePrefix,
+      @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
       boolean migrateNoopChanges,
       @Nullable String customRevId,
       boolean checkout) {
@@ -183,7 +183,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
-    this.patchFilePrefix = patchFilePrefix;
+    this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.migrateNoopChanges = migrateNoopChanges;
   }
 
@@ -684,8 +684,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mergeImport;
   }
 
-  String getPatchFilePrefix() {
-    return patchFilePrefix;
+  @Nullable
+  AutoPatchfileConfiguration getAutoPatchfileConfiguration() {
+    return autoPatchfileConfiguration;
   }
 
   public boolean isMigrateNoopChanges() {

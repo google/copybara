@@ -61,6 +61,7 @@ public final class TransformResult {
   private final String revIdLabel;
   private final boolean confirmedInOrigin;
   private final ApprovalsProvider approvalsProvider;
+  @Nullable private final DestinationInfo destinationInfo;
 
   private static ZonedDateTime readTimestampOrCurrentTime(Revision originRef) throws RepoException {
     ZonedDateTime refTimestamp = originRef.readTimestamp();
@@ -86,19 +87,20 @@ public final class TransformResult {
         author,
         readTimestampOrCurrentTime(currentRevision),
         summary,
-        /*baseline=*/ null,
-        /*askForConfirmation=*/ false,
+        /* baseline= */ null,
+        /* askForConfirmation= */ false,
         requestedRevision,
-        /*changeIdentity=*/ null,
+        /* changeIdentity= */ null,
         workflowName,
         changes,
         rawSourceRef,
         setRevId,
-        /*affectedFilesForSmartPrune=*/ null,
+        /* affectedFilesForSmartPrune= */ null,
         labelFinder,
         revIdLabel,
-        /*confirmedInOrigin=*/ false,
-        /*approvalsProvider=*/ null);
+        /* confirmedInOrigin= */ false,
+        /* approvalsProvider= */ null,
+        /* destinationInfo= */ null);
   }
 
   private TransformResult(
@@ -119,7 +121,8 @@ public final class TransformResult {
       Function<String, Collection<String>> labelFinder,
       String revIdLabel,
       boolean confirmedInOrigin,
-      @Nullable ApprovalsProvider approvalsProvider) {
+      @Nullable ApprovalsProvider approvalsProvider,
+      @Nullable DestinationInfo destinationInfo) {
     this.path = Preconditions.checkNotNull(path);
     this.currentRevision = Preconditions.checkNotNull(currentRevision);
     this.author = Preconditions.checkNotNull(author);
@@ -138,6 +141,7 @@ public final class TransformResult {
     this.revIdLabel = Preconditions.checkNotNull(revIdLabel);
     this.confirmedInOrigin = confirmedInOrigin;
     this.approvalsProvider = approvalsProvider;
+    this.destinationInfo = destinationInfo;
   }
 
   @CheckReturnValue
@@ -161,7 +165,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   /**
@@ -188,7 +193,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -211,7 +217,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -234,7 +241,8 @@ public final class TransformResult {
         labelFinder,
         revIdLabel,
         confirmedInOrigin,
-        approvalsProvider);
+        approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -257,7 +265,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -280,7 +289,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -303,7 +313,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -328,7 +339,8 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -351,7 +363,8 @@ public final class TransformResult {
         Preconditions.checkNotNull(labelMapper),
         this.revIdLabel,
         this.confirmedInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
   }
 
   @CheckReturnValue
@@ -374,7 +387,32 @@ public final class TransformResult {
         this.labelFinder,
         this.revIdLabel,
         diffInOrigin,
-        this.approvalsProvider);
+        this.approvalsProvider,
+        this.destinationInfo);
+  }
+
+  @CheckReturnValue
+  public TransformResult withDestinationInfo(DestinationInfo destinationInfo) {
+    return new TransformResult(
+        this.path,
+        this.currentRevision,
+        this.author,
+        this.timestamp,
+        this.summary,
+        this.baseline,
+        this.askForConfirmation,
+        this.requestedRevision,
+        this.changeIdentity,
+        this.workflowName,
+        this.changes,
+        this.rawSourceRef,
+        this.setRevId,
+        this.affectedFilesForSmartPrune,
+        this.labelFinder,
+        this.revIdLabel,
+        this.confirmedInOrigin,
+        this.approvalsProvider,
+        destinationInfo);
   }
 
   /**
@@ -530,6 +568,12 @@ public final class TransformResult {
    */
   public Function<String, Collection<String>> getLabelFinder() {
     return labelFinder;
+  }
+
+  /** A function that retrieves the DestinationInfo object supplied by the destination. */
+  @Nullable
+  public DestinationInfo getDestinationInfo() {
+    return destinationInfo;
   }
 
   /** Get the approvals provider from the Origin */

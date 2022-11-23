@@ -18,8 +18,6 @@ package(default_visibility = ["//visibility:public"])
 
 JAVACOPTS = [
     "-Xlint:unchecked",
-    "-source",
-    "1.8",
 ]
 
 java_library(

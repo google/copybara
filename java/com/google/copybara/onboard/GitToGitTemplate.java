@@ -88,4 +88,9 @@ final class GitToGitTemplate implements ConfigTemplate {
         + "    transformations = transformations,\n"
         + ")";
   }
+
+  @Override
+  public String name() {
+    return "git_to_git";
+  }
 }

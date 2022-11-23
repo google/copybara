@@ -113,7 +113,13 @@ public final class SubmodulesInDestinationTest {
 
     Path scratchTree = Files.createTempDirectory("SubmodulesInDestinationTest-scratchTree");
     GitRepository scratchRepo = repo().withWorkTree(scratchTree);
-    scratchRepo.simpleCommand("submodule", "add", "file://" + submodule.getGitDir(), "submodule");
+    scratchRepo.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "file://" + submodule.getGitDir(),
+        "submodule");
     scratchRepo.simpleCommand("commit", "-m", "commit submodule");
 
     Files.write(workdir.resolve("test42"), new byte[] {42});
@@ -170,7 +176,13 @@ public final class SubmodulesInDestinationTest {
     Files.createDirectories(scratchTree.resolve("foo"));
     Files.write(scratchTree.resolve("foo/a"), new byte[] {1});
     scratchRepo.add().files("foo/a").run();
-    scratchRepo.simpleCommand("submodule", "add", "file://" + submodule.getGitDir(), "foo/b");
+    scratchRepo.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "file://" + submodule.getGitDir(),
+        "foo/b");
     scratchRepo.simpleCommand("commit", "-m", "commit submodule and foo/a");
 
     // Create a commit that removes foo/a and adds foo/c

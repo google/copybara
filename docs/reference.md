@@ -25,6 +25,7 @@
     - [console.warn](#consolewarn)
   - [core](#core)
     - [core.action](#coreaction)
+    - [core.autopatch_config](#coreautopatch_config)
     - [core.copy](#corecopy)
     - [core.dynamic_feedback](#coredynamic_feedback)
     - [core.dynamic_transform](#coredynamic_transform)
@@ -42,6 +43,7 @@
     - [core.transform](#coretransform)
     - [core.verify_match](#coreverify_match)
     - [core.workflow](#coreworkflow)
+  - [core.autopatch_config](#coreautopatch_config)
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_readercopy_destination_files)
@@ -200,6 +202,7 @@
     - [ctx.add_text_before_labels](#ctxadd_text_before_labels)
     - [ctx.create_symlink](#ctxcreate_symlink)
     - [ctx.destination_api](#ctxdestination_api)
+    - [ctx.destination_info](#ctxdestination_info)
     - [ctx.destination_reader](#ctxdestination_reader)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
@@ -216,6 +219,8 @@
     - [ctx.set_message](#ctxset_message)
     - [ctx.success](#ctxsuccess)
     - [ctx.write_path](#ctxwrite_path)
+  - [xml](#xml)
+    - [xml.xpath](#xmlxpath)
 
 
 
@@ -623,13 +628,13 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--disable-reversible-check`</span> | *boolean* | If set, all workflows will be executed without reversible_check, overriding the  workflow config and the normal behavior for CHANGE_REQUEST mode.
 <span style="white-space: nowrap;">`--dry-run`</span> | *boolean* | Run the migration in dry-run mode. Some destination implementations might have some side effects (like creating a code review), but never submit to a main branch.
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
-<span style="white-space: nowrap;">`--fetch-timeout`</span> | *duration* | Fetch timeout.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--force`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
 <span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
+<span style="white-space: nowrap;">`--repo-timeout`</span> | *duration* | Repository operation timeout duration.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
 <span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior to execution, but this might break legacy configs. Options are LOOSE, STRICT
 <span style="white-space: nowrap;">`-v, --verbose`</span> | *boolean* | Verbose output.
@@ -648,6 +653,23 @@ Parameter | Description
 --------- | -----------
 impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
+
+<a id="core.autopatch_config" aria-hidden="true"></a>
+### core.autopatch_config
+
+Describes in the configuration for automatic patch file generation
+
+[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+header | `string` or `NoneType`<br><p>A string to include at the beginning of each patch file</p>
+suffix | `string` or `NoneType`<br><p>Suffix to use when saving patch files</p>
+directory | `string` or `NoneType`<br><p>Directory in which to save the patch files.</p>
+strip_file_names_and_line_numbers | `bool`<br><p>When true, strip filenames and line numbers from patch files</p>
 
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
@@ -902,7 +924,7 @@ format | `string`<br><p>The format of the version. If using it for git, it has t
 regex_groups | `dict`<br><p>A set of named regexes that can be used to match part of the versions. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. Use the following nomenclature n0, n1, n2 for the version part (will use numeric sorting) or s0, s1, s2 (alphabetic sorting). Note that there can be mixed but the numbers cannot be repeated. In other words n0, s1, n2 is valid but not n0, s0, n1. n0 has more priority than n1. If there are fields where order is not important, use s(N+1) where N ist he latest sorted field. Example {"n0": "[0-9]+", "s1": "[a-z]+"}</p>
 
 
-#### Example:
+#### Examples:
 
 
 ##### Version selector for Git tags:
@@ -913,6 +935,17 @@ Example of how to match tags that follow semantic versioning
 core.latest_version(
     format = "refs/tags/${n0}.${n1}.${n2}",    regex_groups = {
         'n0': '[0-9]+',        'n1': '[0-9]+',        'n2': '[0-9]+',    })
+```
+
+
+##### Version selector for Git tags with mixed version semantics with X.Y.Z and X.Y tagging:
+
+Edge case example: we allow a '.' literal prefix for numeric regex groups.
+
+```python
+core.latest_version(
+    format = "refs/tags/${n0}.${n1}${n2}",    regex_groups = {
+        'n0': '[0-9]+',        'n1': '[0-9]+',        'n2': '(.[0-9]+)?',    })
 ```
 
 
@@ -1305,7 +1338,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, auto_generate_patch_prefix=None, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, autopatch_config=None, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1330,7 +1363,7 @@ change_identity | `string` or `NoneType`<br><p>By default, Copybara hashes sever
 set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
 smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
 merge_import | `bool`<br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
-auto_generate_patch_prefix | `string` or `NoneType`<br><p>Enables an operation, to be combined with merge_import mode, that automatically generates patch files showing destination only changes. These patch files are intended for human consumption and are not used in the workflow. merge_import mode allows users to perpetuate destiantion-only changes (i.e. changes to non-Source-of-truth repositories). This operation will create patch files that show the destination-only changes. This prefix is attached to the contents of every patch file. Providing a patch file prefix, provided merge_import is enabled, will automatically generate patch files.</p>
+autopatch_config | [`core.autopatch_config`](#coreautopatch_config) or `NoneType`<br><p>Configuration that describes the setting for automatic patch file generation</p>
 migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
@@ -1343,8 +1376,6 @@ reversible_check_ignore_files | [`glob`](#glob) or `NoneType`<br><p>Ignore the f
 
 Name | Type | Description
 ---- | ---- | -----------
-<span style="white-space: nowrap;">`--auto-patch-file-directory`</span> | *string* | When auto_generate_patch mode is enabled, save patchfiles to this directory
-<span style="white-space: nowrap;">`--auto-patch-file-suffix`</span> | *string* | When auto_generate_patch mode is enabled, save patch files using this suffix
 <span style="white-space: nowrap;">`--baseline-for-merge-import`</span> | *string* | Origin baseline to use for merge import. This overrides any inferred origin baseline
 <span style="white-space: nowrap;">`--change-request-from-sot-limit`</span> | *int* | Number of origin baseline changes to use for trying to match one in the destination. It can be used if the are many parent changes in the origin that are a no-op in the destination
 <span style="white-space: nowrap;">`--change-request-from-sot-retry`</span> | *list* | Number of retries and delay between retries when we cannot find the baseline in the destination for CHANGE_REQUEST_FROM_SOT. For example '10,30,60' will retry three times. The first retry will be delayed 10s, the second one 30s and the third one 60s
@@ -1362,6 +1393,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--nosmart-prune`</span> | *boolean* | Disable smart prunning
 <span style="white-space: nowrap;">`--notransformation-join`</span> | *boolean* | By default Copybara tries to join certain transformations in one so that it is more efficient. This disables the feature.
 <span style="white-space: nowrap;">`--read-config-from-change`</span> | *boolean* | For each imported origin change, load the workflow's origin_files, destination_files and transformations from the config version of that change. The rest of the fields (more importantly, origin and destination) cannot change and the version from the first config will be used.
+<span style="white-space: nowrap;">`--read-config-from-change-disable`</span> | *boolean* | --read-config-from-change is a arity 0 flag, this flag overrides it to override it being enabled.
 <span style="white-space: nowrap;">`--same-version`</span> | *boolean* | Re-import the last version imported. This is useful for example to check that a refactor in a copy.bara.sky file doesn't introduce accidental changes.
 <span style="white-space: nowrap;">`--squash-skip-history`</span> | *boolean* | Avoid exposing the history of changes that are being migrated. This is useful when we want to migrate a new repository but we don't want to expose all the change history to metadata.squash_notes.
 <span style="white-space: nowrap;">`--threads`</span> | *int* | Number of threads to use when running transformations that change lot of files
@@ -1369,6 +1401,12 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
 <span style="white-space: nowrap;">`--to-folder`</span> | *boolean* | Sometimes a user wants to test what the outcome would be for a workflow without changing the configuration or adding an auxiliary testing workflow. This flags allowsto change an existing workflow to use folder.destination
 <span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity
+
+
+
+## core.autopatch_config
+
+The configuration that describes automatic patch file generation
 
 
 
@@ -2470,7 +2508,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Creates changes in a new pull request in the destination.
 
-`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None)`
+`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None, draft=False)`
 
 
 #### Parameters:
@@ -2489,6 +2527,7 @@ api_checker | `checker` or `NoneType`<br><p>A checker for the GitHub API endpoin
 update_description | `bool`<br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 checker | `checker` or `NoneType`<br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+draft | `bool`<br><p>Flag create pull request as draft or not.</p>
 
 
 #### Examples:
@@ -2615,6 +2654,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--github-skip-required-check-runs`</span> | *boolean* | Skip checking check runs for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
 
 <a id="git.github_trigger" aria-hidden="true"></a>
 ### git.github_trigger
@@ -2819,7 +2859,7 @@ starting_point | `unknown`<br><p></p>
 
 Fetch from the destination a list of refspecs. Note that fetch happens without pruning.
 
-`bool` `git.mirrorContext.destination_fetch(refspec, prune=True)`
+`bool` `git.mirrorContext.destination_fetch(refspec, prune=True, depth=None)`
 
 
 #### Parameters:
@@ -2828,6 +2868,7 @@ Parameter | Description
 --------- | -----------
 refspec | `sequence of string`<br><p></p>
 prune | `bool`<br><p></p>
+depth | `int` or `NoneType`<br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
 
 <a id="git.mirrorContext.destination_push" aria-hidden="true"></a>
 ### git.mirrorContext.destination_push
@@ -2894,7 +2935,7 @@ msg | `string` or `NoneType`<br><p>The no op message</p>
 
 Fetch from the origin a list of refspecs. Note that fetch happens without pruning.
 
-`bool` `git.mirrorContext.origin_fetch(refspec, prune=True)`
+`bool` `git.mirrorContext.origin_fetch(refspec, prune=True, depth=None)`
 
 
 #### Parameters:
@@ -2903,6 +2944,7 @@ Parameter | Description
 --------- | -----------
 refspec | `sequence of string`<br><p></p>
 prune | `bool`<br><p></p>
+depth | `int` or `NoneType`<br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
 
 <a id="git.mirrorContext.rebase" aria-hidden="true"></a>
 ### git.mirrorContext.rebase
@@ -4646,6 +4688,13 @@ Returns an api handle for the destination repository. Methods available depend o
 
 [`endpoint`](#endpoint) `ctx.destination_api()`
 
+<a id="ctx.destination_info" aria-hidden="true"></a>
+### ctx.destination_info
+
+Returns an object to store additional configuration and data for the destination. An object is only returned if supported by the destination.
+
+`DestinationInfo` `ctx.destination_info()`
+
 <a id="ctx.destination_reader" aria-hidden="true"></a>
 ### ctx.destination_reader
 
@@ -4887,5 +4936,27 @@ Parameter | Description
 --------- | -----------
 path | [`Path`](#path)<br><p>The Path to write to</p>
 content | `string`<br><p>The content of the file</p>
+
+
+
+## xml
+
+Set of functions to work with XML in Copybara.
+
+<a id="xml.xpath" aria-hidden="true"></a>
+### xml.xpath
+
+Run an xpath expression
+
+`unknown` `xml.xpath(content, expression, type)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+content | `string`<br><p>The XML content</p>
+expression | `string`<br><p>XPath expression</p>
+type | `string`<br><p>The type of the return value, see http://www.w3.org/TR/xpathfor more details. For now we support STRING, BOOLEAN & NUMBER.</p>
 
 

@@ -63,6 +63,9 @@ public class MigrateCmd implements CopybaraCmd {
     ImmutableList<String> sourceRefs = configFileArgs.getSourceRefs();
     String workflowName = configFileArgs.getWorkflowName();
     updateEnvironment(workflowName);
+    GeneralOptions generalOptions = commandEnv.getOptions().get(GeneralOptions.class);
+    Console console = generalOptions.console();
+    console.verboseFmt("Executing workflow '%s'", workflowName);
     run(
         commandEnv.getOptions(),
         configLoaderProvider.newLoader(

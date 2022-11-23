@@ -18,13 +18,13 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 import static com.google.copybara.config.SkylarkUtil.convertStringList;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionContext;
@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Predicate;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -49,7 +50,9 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -70,10 +73,11 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   private List<Refspec> refspecs;
   private String originUrl;
   private String destinationUrl;
+  private final GitOptions gitOptions;
 
   GitMirrorContext(Action currentAction, SkylarkConsole console, List<String> sourceRefs,
       List<Refspec> refspecs, String originUrl, String destinationUrl, boolean force,
-      GitRepository repo, DirFactory dirFactory, Dict<?, ?> params) {
+      GitRepository repo, DirFactory dirFactory, Dict<?, ?> params, GitOptions gitOptions) {
     super(currentAction, console, ImmutableMap.of(), params);
     this.sourceRefs = sourceRefs;
     this.refspecs = checkNotNull(refspecs);
@@ -82,17 +86,19 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     this.force = force;
     this.repo = repo;
     this.dirFactory = dirFactory;
+    this.gitOptions = gitOptions;
   }
 
   @Override
   public GitMirrorContext withParams(Dict<?, ?> params) {
     return new GitMirrorContext(
         action, console, sourceRefs, refspecs, originUrl, destinationUrl, force, repo,
-        dirFactory, params);
+        dirFactory, params, gitOptions);
   }
 
   @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
       + " warnings", structField = true)
+  @Override
   public Console getConsole() {
     return console;
   }
@@ -108,27 +114,42 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
 
   @StarlarkMethod(
       name = "origin_fetch",
-      doc = "Fetch from the origin a list of refspecs. Note that fetch happens without"
-          + " pruning.",
+      doc =
+          "Fetch from the origin a list of refspecs. Note that fetch happens without" + " pruning.",
       parameters = {
-          @Param(name = "refspec", allowedTypes = {
-              @ParamType(type = Sequence.class, generic1 = String.class)
-          }, named = true),
-          @Param(name = "prune", defaultValue = "True", named = true)
+        @Param(
+            name = "refspec",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true),
+        @Param(name = "prune", defaultValue = "True", named = true),
+        @Param(
+            name = "depth",
+            defaultValue = "None",
+            doc =
+                "Sets number of commits to fetch. Setting to None (the default) means no limit to"
+                    + " that number.",
+            allowedTypes = {
+              @ParamType(type = StarlarkInt.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true)
       })
-  public boolean originFetch(Sequence<?> refspec, boolean prune)
+  public boolean originFetch(Sequence<?> refspec, boolean prune, Object depth)
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToFetch =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
     validateFetch(refspecsToFetch, this.refspecs, "origin");
-
+    StarlarkInt depthConverted = convertFromNoneable(depth, null);
+    Optional<Integer> depthOptional =
+        (depthConverted == null) ? Optional.empty() : Optional.of(depthConverted.toInt("depth"));
     try {
       repo.fetch(
           originUrl,
           prune,
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          false);
+          false,
+          depthOptional);
     } catch (CannotResolveRevisionException e) {
       return false;
     }
@@ -137,15 +158,28 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
 
   @StarlarkMethod(
       name = "destination_fetch",
-      doc = "Fetch from the destination a list of refspecs. Note that fetch happens without"
-          + " pruning.",
+      doc =
+          "Fetch from the destination a list of refspecs. Note that fetch happens without"
+              + " pruning.",
       parameters = {
-          @Param(name = "refspec", allowedTypes = {
-              @ParamType(type = Sequence.class, generic1 = String.class)
-          }, named = true),
-          @Param(name = "prune", defaultValue = "True", named = true)
+        @Param(
+            name = "refspec",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true),
+        @Param(name = "prune", defaultValue = "True", named = true),
+        @Param(
+            name = "depth",
+            defaultValue = "None",
+            doc =
+                "Sets number of commits to fetch. Setting to None (the default) means no limit to"
+                    + " that number.",
+            allowedTypes = {
+              @ParamType(type = StarlarkInt.class),
+              @ParamType(type = NoneType.class),
+            },
+            named = true),
       })
-  public boolean destinationFetch(Sequence<?> refspec, boolean prune)
+  public boolean destinationFetch(Sequence<?> refspec, boolean prune, Object depth)
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToFetch =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
@@ -153,14 +187,17 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
         refspecsToFetch,
         refspecs.stream().map(Refspec::invert).collect(toImmutableList()),
         "destination");
-
+    StarlarkInt depthConverted = convertFromNoneable(depth, null);
+    Optional<Integer> depthOptional =
+        (depthConverted == null) ? Optional.empty() : Optional.of(depthConverted.toInt(""));
     try {
       repo.fetch(
           destinationUrl,
           prune,
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          false);
+          false,
+          depthOptional);
     } catch (CannotResolveRevisionException e) {
       return false;
     }
@@ -258,27 +295,30 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   public MergeResult merge(String branch, Sequence<?> commits, Object msg, String fastForwardOption)
       throws RepoException, ValidationException, EvalException, IOException {
     checkCondition(!commits.isEmpty(), "At least one commit should be passed to merge");
-    GitRepository withWorktree = prepareWorktreeForMerge(branch,
-        String.format("Cannot merge commits %s into"
-                + " branch %s because of failure during merge checkout", commits, branch));
+    GitRepository withWorktree =
+        prepareWorktreeForMerge(
+            branch,
+            String.format(
+                "Cannot merge commits %s into"
+                    + " branch %s because of failure during merge checkout",
+                commits, branch));
+
     String strMsg = SkylarkUtil.convertFromNoneable(msg, null);
 
-    List<String> cmd = Lists.newArrayList("merge");
-    if (strMsg != null) {
-      cmd.add("-m");
-      cmd.add(strMsg);
-    }
     FastForwardMode ffMode = stringToEnum("fast_forward", fastForwardOption, FastForwardMode.class);
-    cmd.add(ffMode.toGitFlag());
 
-    cmd.addAll(convertStringList(commits, "commits"));
+    List<String> commitsList = convertStringList(commits, "commits");
 
     try {
-      withWorktree.simpleCommand(cmd);
+      withWorktree
+          .merge(branch, commitsList)
+          .withFFMode(ffMode.toGitFlag())
+          .withMessage(strMsg)
+          .run(gitOptions.gitOptionsParams);
     } catch (RepoException e) {
-      logger.atWarning().withCause(e)
-          .log("Error running merge in action %s for branch %s and commits %s", getActionName(),
-              branch, commits);
+      logger.atWarning().withCause(e).log(
+          "Error running merge in action %s for branch %s and commits %s",
+          getActionName(), branch, commits);
       return MergeResult.error(e.getMessage());
     }
     return MergeResult.success();

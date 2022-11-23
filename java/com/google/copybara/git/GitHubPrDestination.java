@@ -67,6 +67,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private final String destinationRef;
   private final String prBranch;
   private final boolean partialFetch;
+  private final boolean draft;
   private final boolean primaryBranchMigrationMode;
 
   private final GeneralOptions generalOptions;
@@ -92,6 +93,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       String destinationRef,
       @Nullable String prBranch,
       boolean partialFetch,
+      boolean draft,
       GeneralOptions generalOptions,
       GitHubOptions gitHubOptions,
       GitDestinationOptions destinationOptions,
@@ -111,6 +113,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
     this.partialFetch = partialFetch;
+    this.draft = draft;
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
     this.destinationOptions = Preconditions.checkNotNull(destinationOptions);
@@ -181,7 +184,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         generalOptions,
         gitHubPrWriteHook,
         state,
-        /*nonFastForwardPush=*/ true,
+        /* nonFastForwardPush= */ true,
         integrates,
         destinationOptions.lastRevFirstParent,
         destinationOptions.ignoreIntegrationErrors,
@@ -263,7 +266,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
               api.updatePullRequest(
                   getProjectName(),
                   pr.getNumber(),
-                  new UpdatePullRequest(title, prBody, /*state=*/ null));
+                  new UpdatePullRequest(title, prBody, /* state= */ null));
             }
             result.add(
                 new DestinationEffect(
@@ -284,7 +287,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         PullRequest pr =
             api.createPullRequest(
                 getProjectName(),
-                new CreatePullRequest(title, prBody, prBranch, getDestinationRef()));
+                new CreatePullRequest(title, prBody, prBranch, getDestinationRef(), draft));
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);

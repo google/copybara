@@ -25,8 +25,6 @@ java_plugin(
     ]),
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     processor_class = "com.google.copybara.doc.AnnotationProcessor",
     visibility = [
@@ -67,8 +65,6 @@ java_library(
     exported_plugins = [":document"],
     javacopts = [
         "-Xlint:unchecked",
-        "-source",
-        "1.8",
     ],
     visibility = [
         "//visibility:public",

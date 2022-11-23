@@ -43,6 +43,7 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
@@ -62,7 +63,6 @@ public class Mirror implements Migration {
   private final String origin;
   private final String destination;
   private final List<Refspec> refspec;
-  private final GitMirrorOptions mirrorOptions;
   private final GitDestinationOptions gitDestinationOptions;
   private final boolean prune;
   private final boolean partialFetch;
@@ -71,7 +71,7 @@ public class Mirror implements Migration {
   private final Iterable<Action> actions;
 
   Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
-      String destination, List<Refspec> refspec, GitMirrorOptions mirrorOptions,
+      String destination, List<Refspec> refspec,
       GitDestinationOptions gitDestinationOptions, boolean prune, boolean partialFetch,
       ConfigFile mainConfigFile, @Nullable String description, ImmutableList<Action> actions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -80,7 +80,6 @@ public class Mirror implements Migration {
     this.origin = Preconditions.checkNotNull(origin);
     this.destination = Preconditions.checkNotNull(destination);
     this.refspec = Preconditions.checkNotNull(refspec);
-    this.mirrorOptions = Preconditions.checkNotNull(mirrorOptions);
     this.gitDestinationOptions = gitDestinationOptions;
     this.prune = prune;
     this.partialFetch = partialFetch;
@@ -113,7 +112,7 @@ public class Mirror implements Migration {
               new SkylarkConsole(generalOptions.console()), sourceRefs, refspec, origin,
               destination, generalOptions.isForced(),
               repo, generalOptions.getDirFactory(),
-              Dict.empty());
+              Dict.empty(), gitOptions);
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();
@@ -189,7 +188,7 @@ public class Mirror implements Migration {
     Profiler profiler = generalOptions.profiler();
     try (ProfilerTask ignore1 = profiler.start("fetch")) {
       repo.fetch(origin, /*prune=*/true,
-          /*force=*/true, fetchRefspecs, partialFetch);
+          /*force=*/true, fetchRefspecs, partialFetch, Optional.empty());
     }
 
     if (generalOptions.dryRunMode) {

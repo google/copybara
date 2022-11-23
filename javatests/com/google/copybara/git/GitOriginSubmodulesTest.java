@@ -43,6 +43,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -106,8 +107,17 @@ public class GitOriginSubmodulesTest {
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
     // Build a relative url submodule
-    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "--reference",
-        r1.getWorkTree().toString(), "../r1");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "r1",
+        "--reference",
+        r1.getWorkTree().toString(),
+        "../r1");
     commit(r2, "adding r1 submodule");
     r2.branch("for_submodule").run();
     // This commit shouldn't be read, since it is in main and r3 depends on 'for_submodule' branch:
@@ -115,8 +125,15 @@ public class GitOriginSubmodulesTest {
 
     GitRepository r3 = createRepoWithFoo(base, "r3");
     // Build an absolute url submodule
-    r3.simpleCommand("submodule", "add", "--branch", "for_submodule",
-        "file://" + r2.getWorkTree(), "r2");
+    r3.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "--branch",
+        "for_submodule",
+        "file://" + r2.getWorkTree(),
+        "r2");
     commit(r3, "adding r2 submodule");
 
     String primary = r2.getPrimaryBranch();
@@ -152,8 +169,17 @@ public class GitOriginSubmodulesTest {
 
     // Create parent repo pointing to the current state of subrepo
     GitRepository rootRepo = createRepoWithFoo(base, "rootRepo");
-    rootRepo.simpleCommand("submodule", "add", "-f", "--name", "childRepo1", "--reference",
-        rootRepo.getWorkTree().toString(), "../childRepo1");
+    rootRepo.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "childRepo1",
+        "--reference",
+        rootRepo.getWorkTree().toString(),
+        "../childRepo1");
     commit(rootRepo, "adding childRepo1 submodule");
     String primary = rootRepo.getPrimaryBranch();
 
@@ -193,7 +219,16 @@ public class GitOriginSubmodulesTest {
     GitRepository r2 = createRepoWithFoo(base, "r2");
     String primary = r1.getPrimaryBranch();
     // Build a relative url submodule
-    r2.simpleCommand("submodule", "add", "-f", "--branch", primary, "--name", "r1",
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--branch",
+        primary,
+        "--name",
+        "r1",
         "file://" + r1.getWorkTree());
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
     // Replace main with '.'. This is a valid branch reference but I haven't found a way of
@@ -221,8 +256,18 @@ public class GitOriginSubmodulesTest {
     GitRepository r2 = createRepoWithFoo(base, "r2");
     String primaryBranch = r1.getPrimaryBranch();
 
-    r2.simpleCommand("submodule", "add", "-f", "--branch", primaryBranch, "--name", "r1",
-        "file://" + r1.getWorkTree(), "subfolder/r1");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--branch",
+        primaryBranch,
+        "--name",
+        "r1",
+        "file://" + r1.getWorkTree(),
+        "subfolder/r1");
     Path moduleCfg = r2.getWorkTree().resolve(GITMODULES);
     // Replace main with '.'. This is a valid branch reference but I haven't found a way of
     // adding it with the submodule command.
@@ -255,7 +300,15 @@ public class GitOriginSubmodulesTest {
     GitRepository r2 = createRepoWithFoo(base, "r2");
     String primaryBranch = r1.getPrimaryBranch();
 
-    r2.simpleCommand("submodule", "add", "--branch", primaryBranch, "--name", "r1",
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "--branch",
+        primaryBranch,
+        "--name",
+        "r1",
         "file://" + r1.getWorkTree());
     commit(r2, "adding r1 submodule");
     GitRevision r2FirstSha1 = r2.showRef().get("refs/heads/" + primaryBranch);
@@ -264,7 +317,7 @@ public class GitOriginSubmodulesTest {
     addFile(r1, "foo", "foo");
     commit(r1, "bar change");
 
-    r2.simpleCommand("submodule", "update", "--remote");
+    r2.simpleCommand("-c", "protocol.file.allow=always", "submodule", "update", "--remote");
     r2.add().all().run();
     commit(r2, "updating r1 submodule");
 
@@ -299,8 +352,17 @@ public class GitOriginSubmodulesTest {
     String primaryBranch = r2.getPrimaryBranch();
 
     // Build a relative url submodule
-    r2.simpleCommand("submodule", "add", "-f", "--name", "r1.with.dot", "--reference",
-        r2.getWorkTree().toString(), "../r1.with.dot");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "r1.with.dot",
+        "--reference",
+        r2.getWorkTree().toString(),
+        "../r1.with.dot");
     commit(r2, "adding r1.with.dot submodule");
     r2.branch("for_submodule").run();
 
@@ -332,7 +394,7 @@ public class GitOriginSubmodulesTest {
         false,
         true,
         ImmutableList.of("refs/heads/*:refs/heads/*"),
-        false);
+        false, Optional.empty());
     String primaryBranch = r2.getPrimaryBranch();
 
     OptionsBuilder options = new OptionsBuilder()
@@ -346,8 +408,16 @@ public class GitOriginSubmodulesTest {
     };
     skylark = new SkylarkTestExecutor(options);
 
-    r2.simpleCommand("submodule", "add", "-f", "--name", "r1",
-        "file://" + r1.getWorkTree(), "r1");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "r1",
+        "file://" + r1.getWorkTree(),
+        "r1");
 
     commit(r2, "adding r3->r1 submodule");
     // Nuke r1 to verify r3 is read
@@ -367,7 +437,16 @@ public class GitOriginSubmodulesTest {
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
 
-    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "file://" + r1.getWorkTree(), "r1");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "r1",
+        "file://" + r1.getWorkTree(),
+        "r1");
     commit(r2, "adding r2->r1 submodule");
 
     String excludedSubmodules = "[\"r1\"]";
@@ -388,7 +467,16 @@ public class GitOriginSubmodulesTest {
     GitRepository r1 = createRepoWithFoo(base, "r1");
     GitRepository r2 = createRepoWithFoo(base, "r2");
 
-    r2.simpleCommand("submodule", "add", "-f", "--name", "r1", "file://" + r1.getWorkTree(), "r1");
+    r2.simpleCommand(
+        "-c",
+        "protocol.file.allow=always",
+        "submodule",
+        "add",
+        "-f",
+        "--name",
+        "r1",
+        "file://" + r1.getWorkTree(),
+        "r1");
     commit(r2, "adding r2->r1 submodule");
 
     String excludedSubmodules = "[\"foo\"]";

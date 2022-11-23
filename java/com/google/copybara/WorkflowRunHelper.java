@@ -22,7 +22,6 @@ import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -71,6 +70,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -591,17 +591,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork transformWork =
           new TransformWork(
-              checkoutDir,
-              metadata,
-              changes,
-              console,
-              new MigrationInfo(workflow.getRevIdLabel(), writer),
-              resolvedRef,
-              originApi,
-              destinationApi,
-              destinationReader)
+                  checkoutDir,
+                  metadata,
+                  changes,
+                  console,
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  resolvedRef,
+                  originApi,
+                  destinationApi,
+                  destinationReader)
               .withLastRev(lastRev)
-              .withCurrentRev(rev);
+              .withCurrentRev(rev)
+              .withDestinationInfo(writer.getDestinationInfo());
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
@@ -632,18 +633,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         }
 
         try (ProfilerTask ignored = profiler().start("reverse_transform")) {
-          TransformationStatus status = getReverseTransformForCheck()
-              .transform(
-                  new TransformWork(
-                      reverse,
-                      transformWork.getMetadata(),
-                      changes,
-                      console,
-                      new MigrationInfo(/*originLabel=*/ null, null),
-                      resolvedRef,
-                      destinationApi,
-                      originApi,
-                      () -> DestinationReader.NOT_IMPLEMENTED));
+          TransformationStatus status =
+              getReverseTransformForCheck()
+                  .transform(
+                      new TransformWork(
+                              reverse,
+                              transformWork.getMetadata(),
+                              changes,
+                              console,
+                              new MigrationInfo(/* originLabel= */ null, null),
+                              resolvedRef,
+                              destinationApi,
+                              originApi,
+                              () -> DestinationReader.NOT_IMPLEMENTED)
+                          .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
                 + " probably cause is that the transformations are not reversible.");
@@ -695,17 +698,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult =
           new TransformResult(
-              checkoutDir,
-              rev,
-              transformWork.getAuthor(),
-              transformWork.getMessage(),
-              resolvedRef,
-              workflow.getName(),
-              changes,
-              rawSourceRef,
-              workflow.isSetRevId(),
-              transformWork::getAllLabels,
-              workflow.getRevIdLabel());
+                  checkoutDir,
+                  rev,
+                  transformWork.getAuthor(),
+                  transformWork.getMessage(),
+                  resolvedRef,
+                  workflow.getName(),
+                  changes,
+                  rawSourceRef,
+                  workflow.isSetRevId(),
+                  transformWork::getAllLabels,
+                  workflow.getRevIdLabel())
+              .withDestinationInfo(transformWork.getDestinationInfo());
 
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
         Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
@@ -738,7 +742,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               baselineWorkdir,
               Files.createDirectories(workdir.resolve("merge_import")));
         }
-        if (!Strings.isNullOrEmpty(workflow.getPatchFilePrefix())) {
+        if (workflow.getAutoPatchfileConfiguration() != null) {
           Path relativeConfigFile = Path.of(workflow.getMainConfigFile().getIdentifier());
           try {
             AutoPatchUtil.generatePatchFiles(
@@ -746,12 +750,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 destinationFilesWorkdir,
                 checkoutDir.resolve(
                     relativeConfigFile.resolveSibling(
-                        workflow.getWorkflowOptions().autoPatchFileDirectory)),
+                        Objects.requireNonNull(
+                            workflow.getAutoPatchfileConfiguration().directory()))),
                 workflow.isVerbose(),
                 workflow.getGeneralOptions().getEnvironment(),
-                workflow.getPatchFilePrefix(),
-                workflow.getWorkflowOptions().autoPatchFileSuffix,
-                relativeConfigFile.getParent());
+                workflow.getAutoPatchfileConfiguration().header(),
+                workflow.getAutoPatchfileConfiguration().suffix(),
+                relativeConfigFile.getParent(),
+                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers());
           } catch (InsideGitDirException e) {
             console.errorFmt(
                 "Could not automatically generate patch files. Error received is %s",
@@ -836,7 +842,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   destinationReader)
               // Again, we don't care about this
               .withLastRev(lastRev)
-              .withCurrentRev(baseline);
+              .withCurrentRev(baseline)
+              .withDestinationInfo(writer.getDestinationInfo());
       try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
         getTransformation().transform(baselineTransformWork);
       }

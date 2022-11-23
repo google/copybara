@@ -147,13 +147,19 @@ public class WorkflowOptions implements Option {
           + "used.")
   boolean readConfigFromChange = false;
 
+  @Parameter(
+      names = READ_CONFIG_FROM_CHANGE + "-disable",
+      description = READ_CONFIG_FROM_CHANGE
+          + " is a arity 0 flag, this flag overrides it to override it being enabled.", arity = 1)
+  boolean disableReadConfigFromChange = false;
+
   @Parameter(names = "--read-config-from-head-paths",
       description = "When "+ READ_CONFIG_FROM_CHANGE + " flag is used, read the following"
           + " path from head instead. This flag allows to unblock migrations due to config"
           + " libraries bugs. The paths accept globs syntax (**, ?, etc.)",
       converter = GlobConverter.class, hidden = true)
   @Nullable
-  public Glob readConfigFromChangePaths= null;
+  public Glob readConfigFromChangePaths = null;
 
   @Parameter(names = "--nosmart-prune",
       description = "Disable smart prunning")
@@ -180,6 +186,7 @@ public class WorkflowOptions implements Option {
     this.threadsMinSize = other.threadsMinSize;
     this.noTransformationJoin = other.noTransformationJoin;
     this.readConfigFromChange = other.readConfigFromChange;
+    this.disableReadConfigFromChange = other.disableReadConfigFromChange;
     this.readConfigFromChangePaths = other.readConfigFromChangePaths;
     this.noSmartPrune = other.noSmartPrune;
     this.toFolder = other.toFolder;
@@ -239,16 +246,6 @@ public class WorkflowOptions implements Option {
           "Number of threads to use for executing the diff tool for the merge import mode.")
   int threadsForMergeImport = 40;
 
-  @Parameter(
-      names = "--auto-patch-file-directory",
-      description = "When auto_generate_patch mode is enabled, save patchfiles to this directory")
-  String autoPatchFileDirectory = "GOIMPORT/AUTOPATCHES/";
-
-  @Parameter(
-      names = "--auto-patch-file-suffix",
-      description = "When auto_generate_patch mode is enabled, save patch files using this suffix")
-  String autoPatchFileSuffix = ".patch";
-
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {
     if (defaultAuthor == null) {
@@ -258,7 +255,7 @@ public class WorkflowOptions implements Option {
   }
 
   public boolean isReadConfigFromChange() {
-    return readConfigFromChange;
+    return readConfigFromChange && !disableReadConfigFromChange;
   }
 
   private final Supplier<LocalParallelizer> parallelizerSupplier =
