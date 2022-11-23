@@ -134,7 +134,7 @@ public interface Console extends AutoCloseable {
       throws IOException {
     throw new IllegalStateException("Interactive prompt not allowed in " + this.getClass());
   }
-
+  // TODO(malcon): Delete method
   default String askWithErrorMessage(
       InputStream input,
       PrintStream output,

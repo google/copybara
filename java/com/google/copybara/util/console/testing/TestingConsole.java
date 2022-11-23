@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertAbout;
 import static com.google.copybara.util.console.Message.MessageType.VERBOSE;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.CapturingConsole;
@@ -101,14 +102,22 @@ public final class TestingConsole extends CapturingConsole {
   @Override
   public String ask(String msg, @Nullable String defaultAnswer, Predicate<String> validator)
       throws IOException {
-    Preconditions.checkState(!programmedStringResponses.isEmpty(), "No more programmed responses.");
-    info(msg);
-    infoFmt("Responding with %s", programmedStringResponses.peekFirst());
-    String response = programmedStringResponses.removeFirst();
-    if (!validator.test(response)) {
-      throw new IOException("Invalid input");
+    while (true) {
+      Preconditions.checkState(!programmedStringResponses.isEmpty(),
+          "No more programmed responses for msg: '%s', defaultAnswer: '%s'",
+          msg, defaultAnswer);
+      info(msg);
+      infoFmt("Responding with %s", programmedStringResponses.peekFirst());
+      String response = programmedStringResponses.removeFirst();
+      if (Strings.isNullOrEmpty(response) && defaultAnswer != null) {
+        return defaultAnswer;
+      }
+      if (validator.test(response)) {
+        return response;
+      } else {
+        warnFmt("Invalid response: %s", response);
+      }
     }
-    return response;
   }
 
   @Override

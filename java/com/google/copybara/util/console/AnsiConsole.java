@@ -110,6 +110,7 @@ public final class AnsiConsole implements Console {
       error("Invalid answer: " + answer);
       output.print(BLUE.write("Question: ") + msg);
     }
+    // TODO(malcon): Refactor console to throw interrupted in this case.
     throw new IOException("Cancelled by user");
   }
 

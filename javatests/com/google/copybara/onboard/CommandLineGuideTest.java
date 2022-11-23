@@ -25,6 +25,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.util.console.Message;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,18 +85,16 @@ public final class CommandLineGuideTest {
     console
         .respondWithString(urlPrefix.concat("origin"))
         .respondWithString(urlPrefix.concat("destination"))
-        .respondWithString("not a valid email");
+        .respondWithString("not a valid email")
+        .respondWithString("Foo <good.email@example.com>");
     optionsBuilder.setConsole(console);
 
     CommandLineGuide.runForCommandLine(
         new CommandEnv(
             temp, skylark.createModuleSet().getOptions(), ImmutableList.of("copy.bara.sky")));
-    assertThat(
-            Joiner.on('\n')
-                .join(
-                    console.getMessages().stream()
-                        .map(Message::getText)
-                        .collect(Collectors.toList())))
-        .contains("Invalid response");
+    console.assertThat().timesInLog(2, MessageType.INFO,
+        "What should be the value for field email");
+    console.assertThat().onceInLog(MessageType.WARNING,
+        "Invalid response: not a valid email");
   }
 }

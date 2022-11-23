@@ -1,0 +1,178 @@
+/*
+ * Copyright (C) 2022 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.google.copybara.onboard.core;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.copybara.onboard.core.AskInputProvider.Mode;
+import com.google.copybara.util.console.testing.TestingConsole;
+import java.util.Optional;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
+@RunWith(JUnit4.class)
+public class InputProviderResolverImplTest {
+
+  private static final Input<String> ONE =
+      Input.create("InputProviderResolverImplTestOne",
+          "just for test", null, String.class,
+          s -> s);
+  private static final Input<String> TWO =
+      Input.create("InputProviderResolverImplTestTwo",
+          "just for test", null, String.class,
+          s -> s);
+  private static final Input<String> THREE =
+      Input.create("InputProviderResolverImplTestThree",
+          "just for test", null, String.class,
+          s -> s);
+
+  private TestingConsole console;
+
+  @Before
+  public void setup() {
+    console = new TestingConsole();
+  }
+
+  @Test
+  public void testSimple() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new DepProvider(ONE, TWO),
+        new DepProvider(TWO, THREE),
+        new ConstantProvider<>(THREE, "hello")
+    ), Mode.AUTO, console);
+    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("hello"));
+  }
+
+  @Test
+  public void testConsoleInserted() throws CannotProvideException, InterruptedException {
+    console.respondWithString("my value");
+    console.respondWithString("my value");
+    console.respondWithString("my value");
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new DepProvider(ONE, TWO),
+        new DepProvider(TWO, THREE),
+        new ConstantProvider<>(THREE, "hello")
+    ), Mode.CONFIRM, console);
+    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("my value"));
+  }
+
+  @Test
+  public void testCache() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new DepProvider(ONE, TWO, TWO),
+        new OnlyOnce(TWO)
+    ), Mode.AUTO, console);
+    // Cached under the same root call to resolve
+    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
+    // Cached between root calls to resolve
+    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
+  }
+
+  @Test
+  public void testNotFound() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new ConstantProvider<>(ONE, "hello")), Mode.AUTO, console);
+    assertThat(resolver.resolve(TWO)).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testLoop() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new DepProvider(ONE, TWO),
+        new DepProvider(TWO, THREE),
+        new DepProvider(THREE, ONE)
+    ), Mode.AUTO, console);
+    assertThat(assertThrows(IllegalStateException.class,
+        () -> resolver.resolve(ONE))).hasMessageThat()
+        .contains("Loop detected trying to resolver input: InputProviderResolverImplTestOne"
+            + " -> InputProviderResolverImplTestTwo -> InputProviderResolverImplTestThree"
+            + " -> *InputProviderResolverImplTestOne");
+  }
+
+  /**
+   * A provider that just uses the resolver to return its dependency
+   */
+  private static final class DepProvider implements InputProvider {
+
+    private final Input<String> provides;
+    private final Input<String>[] dependencies;
+
+    public DepProvider(Input<String> provides, Input<String> ... dependencies) {
+      this.provides = provides;
+
+      this.dependencies = dependencies;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
+        throws InterruptedException, CannotProvideException {
+      if (input == provides) {
+        StringBuilder sb = new StringBuilder();
+        for (Input<String> dependency : dependencies) {
+          Optional<String> resolve = db.resolve(dependency);
+          if (resolve.isEmpty()) {
+            return Optional.empty();
+          }
+          sb.append(resolve.get());
+        }
+        return (Optional<T>) Optional.of(sb.toString());
+      }
+      throw new IllegalStateException("Shouldn't happen");
+    }
+
+    @Override
+    public ImmutableMap<Input<?>, Integer> provides() {
+      return defaultPriority(ImmutableSet.of(provides));
+    }
+  }
+
+  private final class OnlyOnce implements InputProvider {
+
+    private final Input<String> input;
+
+    public OnlyOnce(Input<String> input) {
+      this.input = input;
+    }
+
+    private boolean called = false;
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
+        throws InterruptedException, CannotProvideException {
+      checkArgument(input == this.input);
+      if (called) {
+        return (Optional<T>) Optional.of("BAD");
+      } else {
+        called = true;
+        return (Optional<T>) Optional.of("GOOD");
+      }
+    }
+
+    @Override
+    public ImmutableMap<Input<?>, Integer> provides() {
+      return defaultPriority(ImmutableSet.of(input));
+    }
+  }
+}

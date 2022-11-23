@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.LogSubjects.LogSubject;
-import java.io.IOException;
 import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
@@ -175,10 +174,15 @@ public final class TestingConsoleTest {
   }
 
   @Test
-  public void testPredicateCausesAssertionError() throws Exception {
-    Console console = new TestingConsole().respondWithString("Lorem Ipsum!");
-    assertThrows(
-        IOException.class,
-        () -> console.ask("Have anything to say?", "foo", x -> x.equals("Hello world!")));
+  public void testPredicateAsksAgain() throws Exception {
+    TestingConsole console = new TestingConsole()
+        .respondWithString("Lorem Ipsum!")
+        .respondWithString("Hello world!");
+
+    assertThat(console.ask("Have anything to say?", "foo",
+        x -> x.equals("Hello world!"))).isEqualTo("Hello world!");
+
+    console.assertThat().timesInLog(2, MessageType.INFO, "Have anything to say?");
+    console.assertThat().onceInLog(MessageType.WARNING, "Invalid response: Lorem Ipsum!");
   }
 }
