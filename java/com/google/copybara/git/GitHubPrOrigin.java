@@ -257,7 +257,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   /** Given a commit SHA, use the GitHub API to (try to) look up info for a corresponding PR. */
   private PullRequest getPrFromSha(String project, String sha)
       throws RepoException, ValidationException {
-    GitHubApi gitHubApi = gitHubOptions.newGitHubApi(project);
+    GitHubApi gitHubApi = gitHubOptions.newGitHubRestApi(project);
     IssuesAndPullRequestsSearchResults searchResults =
         gitHubApi.getIssuesOrPullRequestsSearchResults(
             new IssuesAndPullRequestsSearchRequestParams(
@@ -287,13 +287,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private PullRequest getPrFromNumber(String project, long prNumber)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      return gitHubOptions.newGitHubApi(project).getPullRequest(project, prNumber);
+      return gitHubOptions.newGitHubRestApi(project).getPullRequest(project, prNumber);
     }
   }
 
   private GitRevision getRevisionForPR(String project, PullRequest prData)
       throws RepoException, ValidationException {
-    GitHubApi api = gitHubOptions.newGitHubApi(project);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(project);
     int prNumber = (int) prData.getNumber();
     boolean actuallyUseMerge = this.useMerge;
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();

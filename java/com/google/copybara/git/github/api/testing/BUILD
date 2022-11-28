@@ -19,13 +19,16 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "abstract_gitapi_test",
     testonly = 1,
-    srcs = ["AbstractGitHubApiTest.java"],
+    srcs = [
+        "AbstractGitHubApiTest.java",
+        "AbstractGitHubGraphQLApiTest.java",
+    ],
     data = glob(["*_testdata.json"]),
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/profiler",
-        "//third_party:google_http_client",
+        "//java/com/google/copybara/testing/git",
         "//third_party:guava",
         "//third_party:junit",
         "//third_party:mockito",

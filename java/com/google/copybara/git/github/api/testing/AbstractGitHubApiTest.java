@@ -19,14 +19,14 @@ package com.google.copybara.git.github.api.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter.ASC;
 import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter.CREATED;
+import static com.google.copybara.testing.git.GitTestUtil.createValidator;
+import static com.google.copybara.testing.git.GitTestUtil.getResource;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -70,9 +70,8 @@ import com.google.copybara.git.github.api.UserPermissionLevel;
 import com.google.copybara.git.github.api.UserPermissionLevel.GitHubUserPermission;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
+import com.google.copybara.testing.git.GitTestUtil.JsonValidator;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -681,7 +680,7 @@ public abstract class AbstractGitHubApiTest {
     trainMockPost("/repos/example/project/issues/12345/comments", validator,
         getResource("pulls_comment_12345_testdata.json"));
     api.postComment("example/project", 12345, comment);
-    assertThat(validator.called).isTrue();
+    assertThat(validator.wasCalled()).isTrue();
   }
 
   @Test
@@ -721,14 +720,6 @@ public abstract class AbstractGitHubApiTest {
     assertThat(user.getType()).isEqualTo("User");
   }
 
-  protected byte[] getResource(String testfile) throws IOException {
-    return Files.readAllBytes(
-        Paths.get(System.getenv("TEST_SRCDIR"))
-          .resolve(System.getenv("TEST_WORKSPACE"))
-          .resolve("java/com/google/copybara/git/github/api/testing")
-          .resolve(testfile));
-  }
-
   @Test
   public void testGetIssuesOrPullRequestsSearchResults() throws Exception {
     String sha = "a06cc12413a862266a1bf1148436eb783e101bc9";
@@ -746,10 +737,6 @@ public abstract class AbstractGitHubApiTest {
     IssuesAndPullRequestsSearchResult searchResult =
         Iterables.getOnlyElement(searchResults.getItems());
     assertThat(searchResult.getNumber()).isEqualTo(16);
-  }
-
-  private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {
-    return new JsonValidator<>(clazz, predicate);
   }
 
   /**
@@ -785,32 +772,6 @@ public abstract class AbstractGitHubApiTest {
   public static class TestUpdateReferenceRequest extends UpdateReferenceRequest {
     public TestUpdateReferenceRequest() {
       super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);
-    }
-  }
-
-  private static class JsonValidator<T> implements Predicate<String> {
-    private boolean called;
-    private final Class<T> clazz;
-    private final Predicate<T> predicate;
-
-    JsonValidator(Class<T> clazz, Predicate<T> predicate) {
-      this.clazz = Preconditions.checkNotNull(clazz);
-      this.predicate = Preconditions.checkNotNull(predicate);
-    }
-
-    @Override
-    public boolean test(String s) {
-      try {
-        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
-        called = true;
-        return predicate.test(requestObject);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    boolean wasCalled() {
-      return called;
     }
   }
 }

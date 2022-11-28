@@ -29,6 +29,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.json.Json;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
@@ -152,7 +153,17 @@ public class GitTestUtil {
   }
 
   public void mockRemoteGitRepos(Validator validator) throws IOException {
-    mockRemoteGitRepos(validator, /*credentialsRepo=*/ null);
+    try {
+      mockRemoteGitRepos(
+          validator,
+          // if a credentials repo was set, use it.
+          /* credentialsRepo= */ (optionsBuilder.git.getCredentialHelperStorePath() != null)
+              ? optionsBuilder.git.cachedBareRepoForUrl(
+                  optionsBuilder.git.getCredentialHelperStorePath())
+              : null);
+    } catch (RepoException e) {
+      throw new IOException(e);
+    }
   }
 
   public void mockRemoteGitRepos(Validator validator, GitRepository credentialsRepo)
@@ -484,6 +495,15 @@ public class GitTestUtil {
     Files.write(basePath.resolve(relativePath), content.getBytes(UTF_8));
   }
 
+  public static byte[] getResource(String testfile) throws IOException {
+    return Files.readAllBytes(
+        Paths.get(System.getenv("TEST_SRCDIR"))
+            .resolve(System.getenv("TEST_WORKSPACE"))
+            .resolve(
+                "java/com/google/copybara/git/github/api/testing")
+            .resolve(testfile));
+  }
+
   /**
    * Wrapper for predicate to allow readable test failures.
    */
@@ -526,5 +546,36 @@ public class GitTestUtil {
     public String toString() {
       return text;
     }
+  }
+
+  /** Class used to validate JSON object matches predicate */
+  public static class JsonValidator<T> implements Predicate<String> {
+    private boolean called;
+    private final Class<T> clazz;
+    private final Predicate<T> predicate;
+
+    JsonValidator(Class<T> clazz, Predicate<T> predicate) {
+      this.clazz = Preconditions.checkNotNull(clazz);
+      this.predicate = Preconditions.checkNotNull(predicate);
+    }
+
+    @Override
+    public boolean test(String s) {
+      try {
+        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
+        called = true;
+        return predicate.test(requestObject);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public boolean wasCalled() {
+      return called;
+    }
+  }
+
+  public static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {
+    return new JsonValidator<>(clazz, predicate);
   }
 }

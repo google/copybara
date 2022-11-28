@@ -1,0 +1,47 @@
+{
+    "data": {
+        "repository": {
+            "ref": {
+                "target": {
+                    "id": "C_kwDOAacf2NoAKDczNzJlNTViYTlmM2E5Yjk2ODUwMjFlN2RlOTRjMGE5NjNlNGY3NDk",
+                    "history": {
+                        "nodes": [
+                            {
+                                "id": "C_kwDOAacf2NoAKGZlNWFhY2UzMTE2ODQ5ZjQ3M2VlMjk1ZjY4ZjY5NmQ1NDg3OGJmYjg",
+                                "oid": "fe5aace3116849f473ee295f68f696d54878bfb8",
+                                "associatedPullRequests": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "title": "update bazel",
+                                                "mergedBy": {
+                                                    "login": "copybara_author"
+                                                },
+                                                "author": {
+                                                    "login": "copybara_author"
+                                                },
+                                                "reviewDecision": "APPROVED",
+                                                "latestOpinionatedReviews": {
+                                                    "edges": [
+                                                        {
+                                                            "node": {
+                                                                "author": {
+                                                                    "login": "copybara_reviewer"
+                                                                },
+                                                                "state": "APPROVED"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

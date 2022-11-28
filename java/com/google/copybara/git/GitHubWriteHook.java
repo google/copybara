@@ -86,7 +86,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       return;
     }
     String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubApi(configProjectName);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName);
 
     for (Change<?> change : originChanges) {
       Dict<String, String> labelDict = change.getLabelsForSkylark();
@@ -128,7 +128,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       return baseEffects.build();
     }
     String projectId = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubApi(projectId);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId);
 
     for (Change<?> change : originChanges) {
       Dict<String, String> labelDict = change.getLabelsForSkylark();

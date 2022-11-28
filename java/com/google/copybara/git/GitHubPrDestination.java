@@ -215,7 +215,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GitHubApi api = gitHubOptions.newGitHubApi(getProjectName());
+        GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName());
 
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
