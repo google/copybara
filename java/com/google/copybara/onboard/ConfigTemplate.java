@@ -25,7 +25,6 @@ public interface ConfigTemplate {
   enum Location {
     NAMED,
     KEYWORD,
-    ;
   }
 
   /** Type of parameter */

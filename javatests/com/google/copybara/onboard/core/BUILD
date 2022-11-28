@@ -18,7 +18,7 @@ licenses(["notice"])
 
 all_tests(
     tests = glob(
-        ["*Test.java"],
+        ["**/*Test.java"],
     ),
     deps = [
         "//java/com/google/copybara/onboard/core",
