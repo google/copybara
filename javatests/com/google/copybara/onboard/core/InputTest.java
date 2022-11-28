@@ -26,9 +26,10 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class InputTest {
 
+  @SuppressWarnings("unused")
   @Test
   public void testNoTwoWithSameName() {
-    Input.create("testNoTwoWithSameName", "doesn't matter",
+    Input<String> unused = Input.create("testNoTwoWithSameName", "doesn't matter",
         null, String.class, s -> s);
 
     assertThat(assertThrows(
