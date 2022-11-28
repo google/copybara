@@ -112,7 +112,7 @@ public class AskInputProvider implements InputProvider {
                 return true;
               }
               try {
-                input.convert(s);
+                var unused = input.convert(s);
                 return true;
               } catch (Exception e) {
                 console.error(e.getMessage());
