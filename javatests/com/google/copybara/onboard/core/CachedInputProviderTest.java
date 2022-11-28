@@ -58,7 +58,7 @@ public class CachedInputProviderTest {
     );
     assertThat(provider.provides()).containsExactly(INPUT, DEFAULT_PRIORITY);
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("42"));
-    val[0]= "other";
+    val[0] = "other";
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("42"));
   }
 
