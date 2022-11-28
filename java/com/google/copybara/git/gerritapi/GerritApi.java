@@ -79,6 +79,17 @@ public class GerritApi {
     }
   }
 
+  public SubmitRequirementResultInfo checkSubmitRequirement(
+      String changeId, SubmitRequirementInput submitRequirementInput)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("gerrit_check_submit_requirement")) {
+      return transport.post(
+          "/changes/" + changeId + "/check.submit_requirement",
+          submitRequirementInput,
+          SubmitRequirementResultInfo.class);
+    }
+  }
+
   public Map<String, ProjectInfo> listProjects(ListProjectsInput listProjectsInput)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_list_projects")) {

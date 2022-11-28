@@ -54,6 +54,10 @@ public class ChangeInfo implements StarlarkValue {
   @Key private boolean submittable;
   @Key("_number") private long number;
   @Key private AccountInfo owner;
+
+  @Key("submit_requirements")
+  private List<SubmitRequirementResultInfo> submitRequirements;
+
   @Key private Map<String, LabelInfo> labels;
   @Key private List<ChangeMessageInfo> messages;
   @Key("current_revision") private String currentRevision;
@@ -209,6 +213,20 @@ public class ChangeInfo implements StarlarkValue {
     return owner;
   }
 
+  public ImmutableList<SubmitRequirementResultInfo> getSubmitRequirements() {
+    return submitRequirements == null
+        ? ImmutableList.of()
+        : ImmutableList.copyOf(submitRequirements);
+  }
+
+  @StarlarkMethod(
+      name = "submit_requirements",
+      doc = "A list of the evaluated submit requirements for the change.",
+      structField = true)
+  public List<SubmitRequirementResultInfo> getSubmitRequirementsForSkylark() {
+    return ImmutableList.copyOf(getSubmitRequirements());
+  }
+
   public ImmutableMap<String, LabelInfo> getLabels() {
     return labels == null ? ImmutableMap.of() : ImmutableMap.copyOf(labels);
   }
@@ -294,6 +312,7 @@ public class ChangeInfo implements StarlarkValue {
         .add("submittable", submittable)
         .add("number", number)
         .add("owner", owner)
+        .add("submitRequirements", submitRequirements)
         .add("labels", labels)
         .add("messages", messages)
         .add("currentRevision", currentRevision)

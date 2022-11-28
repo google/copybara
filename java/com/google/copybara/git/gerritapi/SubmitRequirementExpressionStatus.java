@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2022 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,10 @@
 
 package com.google.copybara.git.gerritapi;
 
-/**
- * Fields to include in the response {@link ChangeInfo}.
- */
-public enum IncludeResult {
-  LABELS,
-  DETAILED_LABELS,
-  CURRENT_REVISION,
-  ALL_REVISIONS,
-  DOWNLOAD_COMMANDS,
-  CURRENT_COMMIT,
-  ALL_COMMITS,
-  CURRENT_FILES,
-  ALL_FILES,
-  DETAILED_ACCOUNTS,
-  REVIEWER_UPDATES,
-  MESSAGES,
-  CURRENT_ACTIONS,
-  CHANGE_ACTIONS,
-  REVIEWED,
-  SUBMITTABLE,
-  WEB_LINKS,
-  CHECK,
-  COMMIT_FOOTERS,
-  PUSH_CERTIFICATES,
-  SUBMIT_REQUIREMENTS
+/** Status describing the result of evaluating the submit requirement expression. */
+public enum SubmitRequirementExpressionStatus {
+  PASS,
+  FAIL,
+  ERROR,
+  NOT_EVALUATED
 }

@@ -93,6 +93,7 @@
   - [gerritapi.ParentCommitInfo](#gerritapiparentcommitinfo)
   - [gerritapi.ReviewResult](#gerritapireviewresult)
   - [gerritapi.RevisionInfo](#gerritapirevisioninfo)
+  - [gerritapi.SubmitRequirementExpressionInfo](#gerritapisubmitrequirementexpressioninfo)
   - [git](#git)
     - [git.destination](#gitdestination)
     - [git.gerrit_api](#gitgerrit_api)
@@ -2072,6 +2073,7 @@ project | `string`<br><p>The name of the project.</p>
 revisions | `dict[string, gerritapi.RevisionInfo]`<br><p>All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.</p>
 status | `string`<br><p>The status of the change (NEW, MERGED, ABANDONED).</p>
 subject | `string`<br><p>The subject of the change (header line of the commit message).</p>
+submit_requirements | `sequence of SubmitRequirementResultInfo`<br><p>A list of the evaluated submit requirements for the change.</p>
 submittable | `bool`<br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
 submitted | `string`<br><p>The timestamp of when the change was submitted.</p>
 topic | `string`<br><p>The topic to which this change belongs.</p>
@@ -2215,6 +2217,21 @@ kind | `string`<br><p>The change kind. Valid values are REWORK, TRIVIAL_REBASE, 
 patchset_number | `int`<br><p>The patch set number, or edit if the patch set is an edit.</p>
 ref | `string`<br><p>The Git reference for the patch set.</p>
 uploader | [`gerritapi.AccountInfo`](#gerritapiaccountinfo)<br><p>The uploader of the patch set as an AccountInfo entity.</p>
+
+
+
+## gerritapi.SubmitRequirementExpressionInfo
+
+Result of evaluating submit requirement expression
+
+
+#### Fields:
+
+Name | Description
+---- | -----------
+expression | `string`<br><p>The submit requirement expression as a string.</p>
+fulfilled | `bool`<br><p>If true, this submit requirement result was created from a legacy SubmitRecord. Otherwise, it was created by evaluating a submit requirement.</p>
+status | `string`<br><p>The status of the submit requirement evaluation.</p>
 
 
 

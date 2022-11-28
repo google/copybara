@@ -26,6 +26,8 @@ import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_COMMIT;
 import static com.google.copybara.git.gerritapi.IncludeResult.CURRENT_REVISION;
 import static com.google.copybara.git.gerritapi.IncludeResult.DETAILED_LABELS;
 import static com.google.copybara.git.gerritapi.IncludeResult.SUBMITTABLE;
+import static com.google.copybara.git.gerritapi.SubmitRequirementExpressionStatus.PASS;
+import static com.google.copybara.git.gerritapi.SubmitRequirementResultStatus.SATISFIED;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -38,6 +40,7 @@ import com.google.api.client.testing.http.MockHttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -270,6 +273,19 @@ public class GerritApiTest {
     LabelInfo labelInfo = Iterables.getOnlyElement(labels.values());
     assertThat(labelInfo.getAll().get(0).getDate().format(DateTimeFormatter.ISO_DATE_TIME))
         .isEqualTo("2017-01-01T12:00:00Z");
+
+    ImmutableList<SubmitRequirementResultInfo> submitRequirements = change.getSubmitRequirements();
+    assertThat(submitRequirements).isNotEmpty();
+    assertThat(submitRequirements).hasSize(1);
+    SubmitRequirementResultInfo submitRequirement = submitRequirements.get(0);
+    assertThat(submitRequirement.getName()).isEqualTo("Code-Review");
+    assertThat(submitRequirement.getStatus()).isEqualTo(SATISFIED);
+    assertThat(submitRequirement.getisLegacy()).isFalse();
+    SubmitRequirementExpressionInfo expressionInfo =
+        submitRequirement.getSubmittabilityExpressionResult();
+    assertThat(expressionInfo.getExpression()).isEqualTo("label:Code-Review=+2");
+    assertThat(expressionInfo.getStatus()).isEqualTo(PASS);
+    assertThat(expressionInfo.getFulfilled()).isEqualTo(true);
   }
 
   @Test
@@ -295,6 +311,29 @@ public class GerritApiTest {
     change = gerritApi.restoreChange(CHANGE_ID, RestoreInput.createWithoutComment());
     assertThat(change.getId()).contains(CHANGE_ID);
     assertThat(change.getStatus()).isEqualTo(NEW);
+  }
+
+  @Test
+  public void testCheckSubmitRequirement() throws Exception {
+    mockResponse(
+        new CheckRequest("POST", "/changes/" + CHANGE_ID + "/check.submit_requirement"),
+        "" + ")]}'\n" + mockCheckSubmitRequirementResult());
+
+    SubmitRequirementInput submitRequirementInput =
+        new SubmitRequirementInput("Code-Review", "label:Code-Review=+2");
+    SubmitRequirementResultInfo result =
+        gerritApi.checkSubmitRequirement(CHANGE_ID, submitRequirementInput);
+
+    assertThat(apiCalled.get()).isTrue();
+    assertThat(result.getName()).isEqualTo(submitRequirementInput.getName());
+    assertThat(result.getStatus()).isEqualTo(SATISFIED);
+    assertThat(result.getisLegacy()).isFalse();
+
+    SubmitRequirementExpressionInfo expressionInfo = result.getSubmittabilityExpressionResult();
+    assertThat(expressionInfo.getExpression())
+        .isEqualTo(submitRequirementInput.getSubmittabilityExpression());
+    assertThat(expressionInfo.getStatus()).isEqualTo(PASS);
+    assertThat(expressionInfo.getFulfilled()).isEqualTo(true);
   }
 
   @Test
@@ -458,122 +497,135 @@ public class GerritApiTest {
   }
 
   private static String mockChangeInfo(ChangeStatus status, boolean detail) {
-    String change = "{\n"
-        + "  'id': 'copybara-project~"
-        + CHANGE_ID
-        + "',\n"
-        + "  'project': 'copybara-project',\n"
-        + "  'branch': 'master',\n"
-        + "  'hashtags': [],\n"
-        + "  'change_id': '"
-        + CHANGE_ID
-        + "',\n"
-        + "  'subject': 'JUST A TEST',\n"
-        + "    'status': '"
-        + status
-        + "',\n"
-        + "  'created': '2017-12-01 17:33:30.000000000',\n"
-        + "  'updated': '2017-12-01 17:33:30.000000000',\n"
-        + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
-        + "  'submittable': true,\n"
-        + "  'insertions': 2,\n"
-        + "  'deletions': 10,\n"
-        + "  'unresolved_comment_count': 0,\n"
-        + "  'has_review_started': true,\n"
-        + "  '_number': 1082,\n"
-        + "  'owner': {\n"
-        + "    '_account_id': 12345\n"
-        + "  },\n"
-        + "  'labels': {\n"
-        + "    'Code-Review': {\n"
-        + "      'all': [\n"
-        + "        {\n"
-        + "          'value': 2,\n"
-        + "          'date': '2017-01-01 12:00:00.000000000',\n"
-        + "          'permitted_voting_range': {\n"
-        + "            'min': 2,\n"
-        + "            'max': 2\n"
-        + "          },\n"
-        + "          '_account_id': 123456\n"
-        + "        },\n"
-        + "        {\n"
-        + "          'value': 0,\n"
-        + "          '_account_id': 123456\n"
-        + "        },\n"
-        + "        {\n"
-        + "          'value': 0,\n"
-        + "          '_account_id': 123456\n"
-        + "        }\n"
-        + "      ],\n"
-        + "      'values': {\n"
-        + "        '-2': 'Do not submit',\n"
-        + "        '-1': 'I would prefer that you didn\\u0027t submit this',\n"
-        + "        ' 0': 'No score',\n"
-        + "        '+1': 'Looks good to me, but someone else must approve',\n"
-        + "        '+2': 'Looks good to me, approved'\n"
-        + "      },\n"
-        + "      'default_value': 0\n"
-        + "    }\n"
-        + "},\n"
-        + "  'current_revision': 'f33bd8687ae27c25254a21012b3c9b4a546db779',\n"
-        + "  'revisions': {\n"
-        + "    'f33bd8687ae27c25254a21012b3c9b4a546db779': {\n"
-        + "      'kind': 'REWORK',\n"
-        + "      '_number': 1,\n"
-        + "      'created': '2017-12-07 19:11:59.000000000',\n"
-        + "      'uploader': {\n"
-        + "        '_account_id': 12345\n"
-        + "      },\n"
-        + "      'ref': 'refs/changes/11/11111/1',\n"
-        + "      'fetch': {\n"
-        + "        'https': {\n"
-        + "          'url': 'https://foo.bar/copybara/test',\n"
-        + "          'ref': 'refs/changes/11/11111/1'\n"
-        + "        }\n"
-        + "      },\n"
-        + "      'commit': {\n"
-        + "        'parents': [\n"
-        + "          {\n"
-        + "            'commit': 'e6b7772add9d2137fd5f879192bd249dfc4d0a00',\n"
-        + "            'subject': 'Parent commit description.'\n"
-        + "          }\n"
-        + "        ],\n"
-        + "        'author': {\n"
-        + "          'name': 'Glorious Copybara',\n"
-        + "          'email': 'no-reply@glorious-copybara.com',\n"
-        + "          'date': '2017-12-01 00:00:00.000000000',\n"
-        + "          'tz': -480\n"
-        + "        },\n"
-        + "        'committer': {\n"
-        + "          'name': 'Glorious Copybara',\n"
-        + "          'email': 'no-reply@glorious-copybara.com',\n"
-        + "          'date': '2017-12-01 00:00:00.000000000',\n"
-        + "          'tz': -480\n"
-        + "        },\n"
-        + "        'subject': 'JUST A TEST',\n"
-        + "        'message': 'JUST A TEST\\n\\nSecond line of description.\n'\n"
-        + "      }\n"
-        + "    }\n"
-        + "  },\n"
-        + "  'messages': [\n"
-        + "      {\n"
-        + "        'id': 'e6aa8a323fd948cc9986dd4d8b4c253487bab253',\n"
-        + "        'tag': 'autogenerated:gerrit:newPatchSet',\n"
-        + "        'author': {\n"
-        + "          '_account_id': 12345,\n"
-        + "          'name': 'Glorious Copybara',\n"
-        + "          'email': 'no-reply@glorious-copybara.com'\n"
-        + "        },\n"
-        + "        'real_author': {\n"
-        + "          '_account_id': 12345,\n"
-        + "          'name': 'Glorious Copybara',\n"
-        + "          'email': 'no-reply@glorious-copybara.com'\n"
-        + "        },\n"
-        + "        'date': '2017-12-01 00:00:00.000000000',\n"
-        + "        'message': 'Uploaded patch set 1.',\n"
-        + "        '_revision_number': 1\n"
-        + "      }\n"
-        + "  ]";
+    String change =
+        "{\n"
+            + "  'id': 'copybara-project~"
+            + CHANGE_ID
+            + "',\n"
+            + "  'project': 'copybara-project',\n"
+            + "  'branch': 'master',\n"
+            + "  'hashtags': [],\n"
+            + "  'change_id': '"
+            + CHANGE_ID
+            + "',\n"
+            + "  'subject': 'JUST A TEST',\n"
+            + "    'status': '"
+            + status
+            + "',\n"
+            + "  'created': '2017-12-01 17:33:30.000000000',\n"
+            + "  'updated': '2017-12-01 17:33:30.000000000',\n"
+            + "  'submit_type': 'MERGE_IF_NECESSARY',\n"
+            + "  'submittable': true,\n"
+            + "  'insertions': 2,\n"
+            + "  'deletions': 10,\n"
+            + "  'unresolved_comment_count': 0,\n"
+            + "  'has_review_started': true,\n"
+            + "  '_number': 1082,\n"
+            + "  'owner': {\n"
+            + "    '_account_id': 12345\n"
+            + "  },\n"
+            + "  'submit_requirements': [\n"
+            + "    {\n"
+            + "      'name': 'Code-Review',\n"
+            + "      'status': 'SATISFIED',\n"
+            + "      'submittability_expression_result': {\n"
+            + "        'expression': 'label:Code-Review=+2',\n"
+            + "        'fulfilled': true,\n"
+            + "        'status': 'PASS'\n"
+            + "      },\n"
+            + "      'is_legacy': false\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  'labels': {\n"
+            + "    'Code-Review': {\n"
+            + "      'all': [\n"
+            + "        {\n"
+            + "          'value': 2,\n"
+            + "          'date': '2017-01-01 12:00:00.000000000',\n"
+            + "          'permitted_voting_range': {\n"
+            + "            'min': 2,\n"
+            + "            'max': 2\n"
+            + "          },\n"
+            + "          '_account_id': 123456\n"
+            + "        },\n"
+            + "        {\n"
+            + "          'value': 0,\n"
+            + "          '_account_id': 123456\n"
+            + "        },\n"
+            + "        {\n"
+            + "          'value': 0,\n"
+            + "          '_account_id': 123456\n"
+            + "        }\n"
+            + "      ],\n"
+            + "      'values': {\n"
+            + "        '-2': 'Do not submit',\n"
+            + "        '-1': 'I would prefer that you didn\\u0027t submit this',\n"
+            + "        ' 0': 'No score',\n"
+            + "        '+1': 'Looks good to me, but someone else must approve',\n"
+            + "        '+2': 'Looks good to me, approved'\n"
+            + "      },\n"
+            + "      'default_value': 0\n"
+            + "    }\n"
+            + "},\n"
+            + "  'current_revision': 'f33bd8687ae27c25254a21012b3c9b4a546db779',\n"
+            + "  'revisions': {\n"
+            + "    'f33bd8687ae27c25254a21012b3c9b4a546db779': {\n"
+            + "      'kind': 'REWORK',\n"
+            + "      '_number': 1,\n"
+            + "      'created': '2017-12-07 19:11:59.000000000',\n"
+            + "      'uploader': {\n"
+            + "        '_account_id': 12345\n"
+            + "      },\n"
+            + "      'ref': 'refs/changes/11/11111/1',\n"
+            + "      'fetch': {\n"
+            + "        'https': {\n"
+            + "          'url': 'https://foo.bar/copybara/test',\n"
+            + "          'ref': 'refs/changes/11/11111/1'\n"
+            + "        }\n"
+            + "      },\n"
+            + "      'commit': {\n"
+            + "        'parents': [\n"
+            + "          {\n"
+            + "            'commit': 'e6b7772add9d2137fd5f879192bd249dfc4d0a00',\n"
+            + "            'subject': 'Parent commit description.'\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        'author': {\n"
+            + "          'name': 'Glorious Copybara',\n"
+            + "          'email': 'no-reply@glorious-copybara.com',\n"
+            + "          'date': '2017-12-01 00:00:00.000000000',\n"
+            + "          'tz': -480\n"
+            + "        },\n"
+            + "        'committer': {\n"
+            + "          'name': 'Glorious Copybara',\n"
+            + "          'email': 'no-reply@glorious-copybara.com',\n"
+            + "          'date': '2017-12-01 00:00:00.000000000',\n"
+            + "          'tz': -480\n"
+            + "        },\n"
+            + "        'subject': 'JUST A TEST',\n"
+            + "        'message': 'JUST A TEST\\n\\nSecond line of description.\n'\n"
+            + "      }\n"
+            + "    }\n"
+            + "  },\n"
+            + "  'messages': [\n"
+            + "      {\n"
+            + "        'id': 'e6aa8a323fd948cc9986dd4d8b4c253487bab253',\n"
+            + "        'tag': 'autogenerated:gerrit:newPatchSet',\n"
+            + "        'author': {\n"
+            + "          '_account_id': 12345,\n"
+            + "          'name': 'Glorious Copybara',\n"
+            + "          'email': 'no-reply@glorious-copybara.com'\n"
+            + "        },\n"
+            + "        'real_author': {\n"
+            + "          '_account_id': 12345,\n"
+            + "          'name': 'Glorious Copybara',\n"
+            + "          'email': 'no-reply@glorious-copybara.com'\n"
+            + "        },\n"
+            + "        'date': '2017-12-01 00:00:00.000000000',\n"
+            + "        'message': 'Uploaded patch set 1.',\n"
+            + "        '_revision_number': 1\n"
+            + "      }\n"
+            + "  ]";
     if (detail) {
       return change
           + ",\n"
@@ -601,7 +653,20 @@ public class GerritApiTest {
     }
   }
 
-  private String mockAddReviewerResult(){
+  private String mockCheckSubmitRequirementResult() {
+    return "{\n"
+        + "  \"name\": \"Code-Review\",\n"
+        + "  \"status\": \"SATISFIED\",\n"
+        + "  \"submittability_expression_result\": {\n"
+        + "    \"expression\": \"label:Code-Review=+2\",\n"
+        + "    \"fulfilled\": true,\n"
+        + "    \"status\": \"PASS\"\n"
+        + "  },\n"
+        + "  \"is_legacy\": false\n"
+        + "}";
+  }
+
+  private String mockAddReviewerResult() {
     return "{\n"
         + "    \"input\": \"test@google.com\"\n"
         + "  }";
