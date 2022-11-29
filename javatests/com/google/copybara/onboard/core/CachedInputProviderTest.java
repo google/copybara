@@ -37,8 +37,8 @@ public class CachedInputProviderTest {
     }
   };
   private static final Input<String> INPUT = Input.create("CachedInputProviderTest",
-      "just for test", null, String.class, s -> s);
-  
+      "just for test", null, String.class, (s, resolver) -> s);
+
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {
     String[] val = {"42"};

@@ -39,19 +39,19 @@ public class AskInputProviderTest {
     }
   };
   private static final Input<String> INPUT = Input.create("AskInputProviderTest",
-      "just for test", null, String.class, s -> s);
+      "just for test", null, String.class, (s, resolver) -> s);
 
   private static final Input<Integer> INT_INPUT = Input.create("AskInputProviderTestInt",
-      "just for test", null, Integer.class, Integer::valueOf);
+      "just for test", null, Integer.class, (s, resolver) -> Integer.valueOf(s));
 
   private static final Input<String> INPUT_WITH_DEFAULT = Input.create(
       "AskInputProviderTestWithDefault", "just for test", "aaaa",
-      String.class, s -> s);
+      String.class, (s, resolver) -> s);
 
   private static final Input<Integer> CANNOT_CONVERT = Input.create(
       "AskInputProviderTestCannotConvert",
       "just for test", null, Integer.class,
-      value -> {
+      (value, resolver) -> {
         try {
           return Integer.valueOf(value);
         } catch (NumberFormatException e) {

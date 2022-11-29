@@ -36,10 +36,10 @@ public class ConstantProviderTest {
     }
   };
   private static final Input<String> INPUT = Input.create("InputProviderResolver",
-      "just for test", null, String.class, s -> s);
+      "just for test", null, String.class, (s, resolver) -> s);
 
   private static final Input<Integer> OTHER = Input.create("InputProviderResolverOther",
-      "just for test", null, Integer.class, Integer::valueOf);
+      "just for test", null, Integer.class, (s, resolver) -> Integer.valueOf(s));
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {

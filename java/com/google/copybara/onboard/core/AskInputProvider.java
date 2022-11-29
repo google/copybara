@@ -41,10 +41,10 @@ public class AskInputProvider implements InputProvider {
   }
 
   @Override
-  public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
+  public <T> Optional<T> resolve(Input<T> input, InputProviderResolver resolver)
       throws InterruptedException, CannotProvideException {
-    Optional<T> res = delegate.resolve(input, db);
-    return mode.handleInput(input, res, console);
+    Optional<T> res = delegate.resolve(input, resolver);
+    return mode.handleInput(input, res, console, resolver);
   }
 
   @Override
@@ -62,7 +62,7 @@ public class AskInputProvider implements InputProvider {
     FAIL {
       @Override
       <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-          Console console) throws CannotProvideException {
+          Console console, InputProviderResolver resolver) throws CannotProvideException {
         Optional<T> result = inputOrDefault(input, res);
         if (result.isPresent()) {
           return result;
@@ -77,9 +77,10 @@ public class AskInputProvider implements InputProvider {
      */
     CONFIRM {
       @Override
-      <T> Optional<T> handleInput(Input<T> input, Optional<T> res, Console console)
+      <T> Optional<T> handleInput(Input<T> input, Optional<T> res, Console console,
+          InputProviderResolver resolver)
           throws InterruptedException {
-        return askUser(input, inputOrDefault(input, res), console);
+        return askUser(input, inputOrDefault(input, res), console, resolver);
       }
     },
     /**
@@ -89,18 +90,19 @@ public class AskInputProvider implements InputProvider {
     AUTO {
       @Override
       <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-          Console console) throws InterruptedException {
+          Console console, InputProviderResolver resolver) throws InterruptedException {
         Optional<T> defaultVal = inputOrDefault(input, res);
         if (defaultVal.isPresent()) {
           console.infoFmt("Inferred value for '%s(%s)': %s", input.description(),
               input.name(), defaultVal.get());
           return defaultVal;
         }
-        return askUser(input, defaultVal, console);
+        return askUser(input, defaultVal, console, resolver);
       }
     };
 
-    private static <T> Optional<T> askUser(Input<T> input, Optional<T> defaultVal, Console console)
+    private static <T> Optional<T> askUser(Input<T> input, Optional<T> defaultVal, Console console,
+        InputProviderResolver resolver)
         throws InterruptedException {
       try {
         String askResult = console.ask(
@@ -112,8 +114,11 @@ public class AskInputProvider implements InputProvider {
                 return true;
               }
               try {
-                var unused = input.convert(s);
+                var unused = input.convert(s, resolver);
                 return true;
+              } catch (IllegalStateException e) {
+                // Don't ignore internal errors
+                throw e;
               } catch (Exception e) {
                 console.error(e.getMessage());
                 return false;
@@ -122,7 +127,7 @@ public class AskInputProvider implements InputProvider {
         if (DEFAULT_PLACE_HOLDER.equals(askResult) && defaultVal.isPresent()) {
           return defaultVal;
         }
-        return Optional.of(input.convert(askResult));
+        return Optional.of(input.convert(askResult, resolver));
       } catch (IOException e) {
         // We only throw IO on user cancellation. We need to fix that.
         throw new InterruptedException(e.getMessage());
@@ -143,7 +148,7 @@ public class AskInputProvider implements InputProvider {
     }
 
     abstract <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-        Console console)
+        Console console, InputProviderResolver resolver)
         throws CannotProvideException, InterruptedException;
   }
 }

@@ -38,7 +38,7 @@ public class PrioritizedInputProviderTest {
   private static final Input<String> INPUT =
       Input.create("PrioritizedInputProviderTest",
       "just for test", null, String.class,
-          s -> s);
+          (s, resolver) -> s);
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {

@@ -85,8 +85,9 @@ public final class Input<T> {
     return type;
   }
 
-  public T convert(String value) throws CannotConvertException {
-    return converter.convert(value);
+  public T convert(String value, InputProviderResolver resolver)
+      throws CannotConvertException, InterruptedException {
+    return converter.convert(value, resolver);
   }
 
   @Override

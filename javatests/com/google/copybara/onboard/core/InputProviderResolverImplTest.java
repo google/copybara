@@ -37,15 +37,33 @@ public class InputProviderResolverImplTest {
   private static final Input<String> ONE =
       Input.create("InputProviderResolverImplTestOne",
           "just for test", null, String.class,
-          s -> s);
+          (s, resolver) -> s);
   private static final Input<String> TWO =
       Input.create("InputProviderResolverImplTestTwo",
           "just for test", null, String.class,
-          s -> s);
+          (s, resolver) -> s);
   private static final Input<String> THREE =
       Input.create("InputProviderResolverImplTestThree",
           "just for test", null, String.class,
-          s -> s);
+          (s, resolver) -> s);
+
+  private static final Input<String> RESOLVE =
+      Input.<String>create("InputProviderResolverImplTestResolve",
+          "just for test", null, String.class,
+          (s, resolver) -> {
+            try {
+              Optional<String> val = resolver.resolve(TWO);
+              if (val.isPresent()) {
+                return val.get();
+              } else {
+                throw new CannotConvertException(
+                    String.format("Cannot convert %s", s));
+              }
+            } catch (CannotProvideException e) {
+              throw new CannotConvertException(String.format(
+                  "Cannot convert %s: %s", s, e.getMessage()));
+            }
+          });
 
   private TestingConsole console;
 
@@ -108,6 +126,29 @@ public class InputProviderResolverImplTest {
         .contains("Loop detected trying to resolver input: InputProviderResolverImplTestOne"
             + " -> InputProviderResolverImplTestTwo -> InputProviderResolverImplTestThree"
             + " -> *InputProviderResolverImplTestOne");
+  }
+
+  @Test
+  public void testResolveConverterLoop() throws CannotProvideException, InterruptedException {
+    console.respondWithString("is ignore");
+    console.respondWithString("is ignore");
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new DepProvider(TWO, RESOLVE),
+        new ConstantProvider<>(RESOLVE, null)
+    ), Mode.AUTO, console);
+    assertThat(assertThrows(IllegalStateException.class,
+        () -> resolver.resolve(RESOLVE)))
+        .hasMessageThat().contains("Loop detected");
+  }
+
+  @Test
+  public void testResolveConverter() throws CannotProvideException, InterruptedException {
+    console.respondWithString("is ignore");
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new ConstantProvider<>(TWO, "other"),
+        new ConstantProvider<>(RESOLVE, null)
+    ), Mode.AUTO, console);
+    assertThat(resolver.resolve(RESOLVE)).isEqualTo(Optional.of("other"));
   }
 
   /**

@@ -30,12 +30,12 @@ public class InputTest {
   @Test
   public void testNoTwoWithSameName() {
     Input<String> unused = Input.create("testNoTwoWithSameName", "doesn't matter",
-        null, String.class, s -> s);
+        null, String.class, (s, resolver) -> s);
 
     assertThat(assertThrows(
         IllegalStateException.class, () ->
             Input.create("testNoTwoWithSameName", "still doesn't matter",
-                null, String.class, s -> s)
+                null, String.class, (s, resolver) -> s)
     )).hasMessageThat().contains("Two calls for the same Input name 'testNoTwoWithSameName'");
   }
 }
