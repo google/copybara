@@ -83,6 +83,14 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
+  public void testOptionalResolve() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
+        new ConstantProvider<>(ONE, null)
+    ), Mode.FAIL, console);
+    assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
+  }
+
+  @Test
   public void testConsoleInserted() throws CannotProvideException, InterruptedException {
     console.respondWithString("my value");
     console.respondWithString("my value");

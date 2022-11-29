@@ -30,4 +30,15 @@ public interface InputProviderResolver {
    * @throws CannotProvideException if there is a failure during the resolution
    */
   <T> Optional<T> resolve(Input<T> input) throws InterruptedException, CannotProvideException;
+
+  /**
+   * Resolve an input that might not have a value but that it is optional.
+   */
+  default <T> Optional<T> resolveOptional(Input<T> input) throws InterruptedException {
+    try {
+      return resolve(input);
+    } catch (CannotProvideException e) {
+      return Optional.empty();
+    }
+  }
 }
