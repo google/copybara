@@ -108,14 +108,15 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
-  public void testNotFound() throws CannotProvideException, InterruptedException {
+  public void testNotFoundStillAsks() throws CannotProvideException, InterruptedException {
+    console.respondWithString("take this");
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
         new ConstantProvider<>(ONE, "hello")), Mode.AUTO, console);
-    assertThat(resolver.resolve(TWO)).isEqualTo(Optional.empty());
+    assertThat(resolver.resolve(TWO)).isEqualTo(Optional.of("take this"));
   }
 
   @Test
-  public void testLoop() throws CannotProvideException, InterruptedException {
+  public void testLoop() {
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
         new DepProvider(ONE, TWO),
         new DepProvider(TWO, THREE),
@@ -129,7 +130,7 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
-  public void testResolveConverterLoop() throws CannotProvideException, InterruptedException {
+  public void testResolveConverterLoop() {
     console.respondWithString("is ignore");
     console.respondWithString("is ignore");
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(

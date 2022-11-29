@@ -19,6 +19,7 @@ package com.google.copybara.onboard.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -88,6 +89,13 @@ public final class Input<T> {
   public T convert(String value, InputProviderResolver resolver)
       throws CannotConvertException, InterruptedException {
     return converter.convert(value, resolver);
+  }
+
+  /**
+   * Return all registered inputs
+   */
+  public static Map<String, Input<?>> registeredInputs() {
+    return ImmutableMap.copyOf(INPUTS);
   }
 
   @Override

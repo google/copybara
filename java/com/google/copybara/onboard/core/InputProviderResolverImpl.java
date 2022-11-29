@@ -20,10 +20,12 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.util.console.Console;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 
@@ -34,8 +36,10 @@ import java.util.Optional;
  */
 public final class InputProviderResolverImpl implements InputProviderResolver {
 
+  private final Mode askMode;
+  private final Console console;
   private final ImmutableSet<String> loopDetector;
-  private final ImmutableMap<Input<?>, InputProvider> inputProviders;
+  private final Map<Input<?>, InputProvider> inputProviders;
 
   public static InputProviderResolver create(Collection<InputProvider> providers,
       AskInputProvider.Mode askMode, Console console) {
@@ -45,10 +49,10 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
         map.put(provides, provider);
       }
     }
-    ImmutableMap.Builder<Input<?>, InputProvider> builder = ImmutableMap.builder();
+    Map<Input<?>, InputProvider> providersMap = new HashMap<>();
 
     for (Entry<Input<?>, Collection<InputProvider>> entry : map.asMap().entrySet()) {
-      builder.put(entry.getKey(),
+      providersMap.put(entry.getKey(),
           // Cache any result
           new CachedInputProvider(
               // Ask user for input depending on the mode
@@ -57,11 +61,14 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
                   new PrioritizedInputProvider(entry.getKey(), entry.getValue()),
                   askMode, console)));
     }
-    return new InputProviderResolverImpl(builder.build(), ImmutableSet.of());
+    return new InputProviderResolverImpl(providersMap, askMode, console, ImmutableSet.of());
   }
 
-  private InputProviderResolverImpl(ImmutableMap<Input<?>, InputProvider> inputProviders,
+  private InputProviderResolverImpl(Map<Input<?>, InputProvider> inputProviders,
+      Mode askMode, Console console,
       ImmutableSet<String> loopDetector) {
+    this.askMode = askMode;
+    this.console = console;
     this.loopDetector = loopDetector;
     this.inputProviders = inputProviders;
   }
@@ -77,16 +84,23 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
           + Joiner.on(" -> ").join(loopDetector) + " -> *" + input.name());
     }
     InputProvider inputProvider = inputProviders.get(input);
+    // Register an on-demand provider for an Input that is not provided by any InputProvider.
+    // This is going to mean that we ask the user for the value (if the mode allows it).
     if (inputProvider == null) {
-      // No provider means that we cannot resolve the Input
-      return Optional.empty();
+      CachedInputProvider newProvider = new CachedInputProvider(
+          new AskInputProvider(new ConstantProvider<>(input, null), askMode, console));
+      inputProviders.put(input, newProvider);
+      return newProvider.resolve(input, this);
     }
 
     verify(inputProvider.provides().containsKey(input),
         "Something went wrong, InputProvider %s doesn't provide %s",
         inputProvider, input);
 
-    return inputProvider.resolve(input, new InputProviderResolverImpl(inputProviders,
+    return inputProvider.resolve(input, new InputProviderResolverImpl(
+        inputProviders,
+        askMode,
+        console,
         ImmutableSet.<String>builder().addAll(loopDetector).add(input.name()).build()));
   }
 }
