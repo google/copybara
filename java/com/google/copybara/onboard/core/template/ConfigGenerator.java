@@ -27,4 +27,9 @@ public interface ConfigGenerator {
 
   String generate(InputProviderResolver inputProviders)
       throws CannotProvideException, InterruptedException;
+
+  /**
+   * Name of the template.
+   */
+  String name();
 }

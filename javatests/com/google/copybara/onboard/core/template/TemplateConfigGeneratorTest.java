@@ -48,6 +48,11 @@ public class TemplateConfigGeneratorTest {
         + "") {
 
       @Override
+      public String name() {
+        return "test";
+      }
+
+      @Override
       protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
         return ImmutableMap.of(
             Field.required("foo"), "hello",
@@ -71,6 +76,11 @@ public class TemplateConfigGeneratorTest {
         + "foo = \"::foo::\",\n"
         + "  \t    ::keyword_params::\n"
         + "") {
+
+      @Override
+      public String name() {
+        return "test";
+      }
 
       @Override
       protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
