@@ -42,7 +42,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
   private final Map<Input<?>, InputProvider> inputProviders;
 
   public static InputProviderResolver create(Collection<InputProvider> providers,
-      AskInputProvider.Mode askMode, Console console) {
+      AskInputProvider.Mode askMode, Console console) throws CannotProvideException {
     HashMultimap<Input<?>, InputProvider> map = HashMultimap.create();
     for (InputProvider provider : providers) {
       for (Input<?> provides : provider.provides().keySet()) {

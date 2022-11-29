@@ -48,7 +48,7 @@ public class AskInputProvider implements InputProvider {
   }
 
   @Override
-  public ImmutableMap<Input<?>, Integer> provides() {
+  public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
     return delegate.provides();
   }
 

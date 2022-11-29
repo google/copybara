@@ -35,7 +35,12 @@ public class PrioritizedInputProvider implements InputProvider {
   public PrioritizedInputProvider(Input<?> input, Collection<InputProvider> providers) {
     this.input = input;
     for (InputProvider provider : providers) {
-      Integer priority = provider.provides().get(input);
+      Integer priority = null;
+      try {
+        priority = provider.provides().get(input);
+      } catch (CannotProvideException e) {
+        e.printStackTrace();
+      }
       this.providers.add(new PrioritizedEntry(provider,
           checkNotNull(priority, "Provider %s doesn't provide %s", provider, input)));
     }
@@ -54,7 +59,7 @@ public class PrioritizedInputProvider implements InputProvider {
   }
 
   @Override
-  public ImmutableMap<Input<?>, Integer> provides() {
+  public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
     // Doesn't matter much but just in case we wrap this in other provider in
     // the future.
     return ImmutableMap.of(input, providers.iterator().next().priority);

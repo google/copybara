@@ -50,7 +50,7 @@ public class CachedInputProvider implements InputProvider {
   }
 
   @Override
-  public ImmutableMap<Input<?>, Integer> provides() {
+  public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
     return provider.provides();
   }
 }

@@ -124,7 +124,7 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
-  public void testLoop() {
+  public void testLoop() throws CannotProvideException {
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
         new DepProvider(ONE, TWO),
         new DepProvider(TWO, THREE),
@@ -138,7 +138,7 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
-  public void testResolveConverterLoop() {
+  public void testResolveConverterLoop() throws CannotProvideException {
     console.respondWithString("is ignore");
     console.respondWithString("is ignore");
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
@@ -193,7 +193,7 @@ public class InputProviderResolverImplTest {
     }
 
     @Override
-    public ImmutableMap<Input<?>, Integer> provides() {
+    public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
       return defaultPriority(ImmutableSet.of(provides));
     }
   }
@@ -221,7 +221,7 @@ public class InputProviderResolverImplTest {
     }
 
     @Override
-    public ImmutableMap<Input<?>, Integer> provides() {
+    public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
       return defaultPriority(ImmutableSet.of(input));
     }
   }

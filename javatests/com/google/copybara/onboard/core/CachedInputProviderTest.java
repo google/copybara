@@ -51,7 +51,7 @@ public class CachedInputProviderTest {
           }
 
           @Override
-          public ImmutableMap<Input<?>, Integer> provides() {
+          public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
             return defaultPriority(ImmutableSet.of(INPUT));
           }
         }

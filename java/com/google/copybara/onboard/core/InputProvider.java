@@ -36,7 +36,7 @@ public interface InputProvider {
    * Return the Set of {@link Input} objects that this {@link InputProvider} can provide, with its
    * associated priority. The higher, the more priority.
    */
-  ImmutableMap<Input<?>, Integer> provides();
+  ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException;
 
   int DEFAULT_PRIORITY = 100;
 

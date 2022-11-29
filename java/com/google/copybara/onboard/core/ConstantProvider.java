@@ -55,7 +55,7 @@ public class ConstantProvider<V> implements InputProvider {
   }
 
   @Override
-  public ImmutableMap<Input<?>, Integer> provides() {
+  public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
     return ImmutableMap.of(input, priority);
   }
 }
