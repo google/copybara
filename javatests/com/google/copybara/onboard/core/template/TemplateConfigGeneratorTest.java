@@ -19,6 +19,7 @@ package com.google.copybara.onboard.core.template;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
@@ -53,6 +54,11 @@ public class TemplateConfigGeneratorTest {
       }
 
       @Override
+      public ImmutableSet<Input<?>> consumes() {
+        return ImmutableSet.of();
+      }
+
+      @Override
       protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
         return ImmutableMap.of(
             Field.required("foo"), "hello",
@@ -80,6 +86,11 @@ public class TemplateConfigGeneratorTest {
       @Override
       public String name() {
         return "test";
+      }
+
+      @Override
+      public ImmutableSet<Input<?>> consumes() {
+        return ImmutableSet.of();
       }
 
       @Override

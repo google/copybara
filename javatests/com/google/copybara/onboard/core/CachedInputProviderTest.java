@@ -36,6 +36,7 @@ public class CachedInputProviderTest {
       throw new IllegalStateException("Shouldn't be called in this test!");
     }
   };
+
   private static final Input<String> INPUT = Input.create("CachedInputProviderTest",
       "just for test", null, String.class, (s, resolver) -> s);
 

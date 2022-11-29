@@ -78,7 +78,7 @@ public class InputProviderResolverImplTest {
         new DepProvider(ONE, TWO),
         new DepProvider(TWO, THREE),
         new ConstantProvider<>(THREE, "hello")
-    ), Mode.AUTO, console);
+    ), ImmutableList.of(), Mode.AUTO, console);
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("hello"));
   }
 
@@ -86,7 +86,7 @@ public class InputProviderResolverImplTest {
   public void testOptionalResolve() throws CannotProvideException, InterruptedException {
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
         new ConstantProvider<>(ONE, null)
-    ), Mode.FAIL, console);
+    ), ImmutableList.of(), Mode.FAIL, console);
     assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
   }
 
@@ -99,7 +99,7 @@ public class InputProviderResolverImplTest {
         new DepProvider(ONE, TWO),
         new DepProvider(TWO, THREE),
         new ConstantProvider<>(THREE, "hello")
-    ), Mode.CONFIRM, console);
+    ), ImmutableList.of(), Mode.CONFIRM, console);
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("my value"));
   }
 
@@ -108,7 +108,7 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
         new DepProvider(ONE, TWO, TWO),
         new OnlyOnce(TWO)
-    ), Mode.AUTO, console);
+    ), ImmutableList.of(), Mode.AUTO, console);
     // Cached under the same root call to resolve
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
     // Cached between root calls to resolve
@@ -119,7 +119,7 @@ public class InputProviderResolverImplTest {
   public void testNotFoundStillAsks() throws CannotProvideException, InterruptedException {
     console.respondWithString("take this");
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new ConstantProvider<>(ONE, "hello")), Mode.AUTO, console);
+        new ConstantProvider<>(ONE, "hello")), ImmutableList.of(), Mode.AUTO, console);
     assertThat(resolver.resolve(TWO)).isEqualTo(Optional.of("take this"));
   }
 
@@ -129,7 +129,7 @@ public class InputProviderResolverImplTest {
         new DepProvider(ONE, TWO),
         new DepProvider(TWO, THREE),
         new DepProvider(THREE, ONE)
-    ), Mode.AUTO, console);
+    ), ImmutableList.of(), Mode.AUTO, console);
     assertThat(assertThrows(IllegalStateException.class,
         () -> resolver.resolve(ONE))).hasMessageThat()
         .contains("Loop detected trying to resolver input: InputProviderResolverImplTestOne"
@@ -141,10 +141,12 @@ public class InputProviderResolverImplTest {
   public void testResolveConverterLoop() throws CannotProvideException {
     console.respondWithString("is ignore");
     console.respondWithString("is ignore");
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new DepProvider(TWO, RESOLVE),
-        new ConstantProvider<>(RESOLVE, null)
-    ), Mode.AUTO, console);
+    InputProviderResolver resolver = InputProviderResolverImpl.create(
+        ImmutableList.of(
+            new DepProvider(TWO, RESOLVE),
+            new ConstantProvider<>(RESOLVE, null)),
+        ImmutableList.of(),
+        Mode.AUTO, console);
     assertThat(assertThrows(IllegalStateException.class,
         () -> resolver.resolve(RESOLVE)))
         .hasMessageThat().contains("Loop detected");
@@ -154,9 +156,10 @@ public class InputProviderResolverImplTest {
   public void testResolveConverter() throws CannotProvideException, InterruptedException {
     console.respondWithString("is ignore");
     InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new ConstantProvider<>(TWO, "other"),
-        new ConstantProvider<>(RESOLVE, null)
-    ), Mode.AUTO, console);
+            new ConstantProvider<>(TWO, "other"),
+            new ConstantProvider<>(RESOLVE, null)),
+        ImmutableList.of(),
+        Mode.AUTO, console);
     assertThat(resolver.resolve(RESOLVE)).isEqualTo(Optional.of("other"));
   }
 

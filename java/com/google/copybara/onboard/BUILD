@@ -25,10 +25,13 @@ java_library(
     srcs = glob(["*.java"]),
     javacopts = JAVACOPTS,
     deps = [
+        ":options",
+        "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/onboard/core",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
@@ -37,5 +40,19 @@ java_library(
         "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:re2j",
+        "//third_party:starlark",
+    ],
+)
+
+java_library(
+    name = "options",
+    srcs = glob(["GeneratorOptions.java"]),
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara/jcommander:converters",
+        "//java/com/google/copybara/onboard/core",
+        "//third_party:guava",
+        "//third_party:jcommander",
     ],
 )

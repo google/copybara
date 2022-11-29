@@ -18,7 +18,9 @@ package com.google.copybara.onboard;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
+import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.template.Field;
 import com.google.copybara.onboard.core.template.TemplateConfigGenerator;
@@ -68,6 +70,15 @@ public final class GitToGitGenerator extends TemplateConfigGenerator {
   @Override
   public String name() {
     return "git_to_git";
+  }
+
+  @Override
+  public ImmutableSet<Input<?>> consumes() {
+    return ImmutableSet.of(
+        Inputs.GIT_ORIGIN_URL,
+        Inputs.GIT_DESTINATION_URL,
+        Inputs.DEFAULT_AUTHOR,
+        Inputs.MIGRATION_NAME);
   }
 
   @Override

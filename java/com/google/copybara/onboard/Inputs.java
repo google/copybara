@@ -16,14 +16,18 @@
 
 package com.google.copybara.onboard;
 
+import com.google.common.base.Joiner;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.Converter;
 import com.google.copybara.onboard.core.Input;
+import com.google.copybara.onboard.core.template.ConfigGenerator;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Standard {@link Input}s that can be used by config generators.
@@ -56,8 +60,24 @@ public class Inputs {
               "Invalid author. Format \"foo <foo@example.com>\": " + e.getMessage());
         }
       });
-  
+
+  public static final Input<Path> GENERATOR_FOLDER = Input.create(
+      "generator_folder", "The folder where the config will be create",
+      null, Path.class, (first, resolver) -> Paths.get(first));
+
   public static final Input<String> MIGRATION_NAME = Input.create(
       "migration_name", "Migration name",
       null, String.class, (s, resolver) -> s);
+
+  public static final Input<ConfigGenerator> TEMPLATE = Input.create(
+      "template_name", "Template to use for generating the config",
+      null, ConfigGenerator.class, (s, resolver) -> {
+        ConfigGenerator configGenerator = resolver.getGenerators().get(s);
+        if (configGenerator != null) {
+          return configGenerator;
+        }
+        throw new CannotConvertException(
+            String.format("Invalid template '%s'. Available templates: %s",
+                s, Joiner.on(", ").join(resolver.getGenerators().keySet())));
+      });
 }

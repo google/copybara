@@ -20,8 +20,11 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
+import com.google.copybara.onboard.core.template.ConfigGenerator;
 import com.google.copybara.util.console.Console;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,13 +39,24 @@ import java.util.Optional;
  */
 public final class InputProviderResolverImpl implements InputProviderResolver {
 
+  private final ImmutableMap<String, ConfigGenerator> generators;
   private final Mode askMode;
   private final Console console;
   private final ImmutableSet<String> loopDetector;
   private final Map<Input<?>, InputProvider> inputProviders;
 
   public static InputProviderResolver create(Collection<InputProvider> providers,
-      AskInputProvider.Mode askMode, Console console) throws CannotProvideException {
+      ImmutableList<ConfigGenerator> generators,
+      Mode askMode, Console console) throws CannotProvideException {
+    ImmutableMap.Builder<String, ConfigGenerator> generatorMap = ImmutableMap.builder();
+
+    for (ConfigGenerator generator : generators) {
+      // force the generator to initialize its Inputs so tha they are declared in the registry
+      var ignore = generator.consumes();
+      generatorMap.put(generator.name(), generator);
+    }
+
+
     HashMultimap<Input<?>, InputProvider> map = HashMultimap.create();
     for (InputProvider provider : providers) {
       for (Input<?> provides : provider.provides().keySet()) {
@@ -61,12 +75,14 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
                   new PrioritizedInputProvider(entry.getKey(), entry.getValue()),
                   askMode, console)));
     }
-    return new InputProviderResolverImpl(providersMap, askMode, console, ImmutableSet.of());
+    return new InputProviderResolverImpl(
+        providersMap, generatorMap.build(), askMode,console, ImmutableSet.of());
   }
 
   private InputProviderResolverImpl(Map<Input<?>, InputProvider> inputProviders,
-      Mode askMode, Console console,
+      ImmutableMap<String, ConfigGenerator> generators, Mode askMode, Console console,
       ImmutableSet<String> loopDetector) {
+    this.generators = generators;
     this.askMode = askMode;
     this.console = console;
     this.loopDetector = loopDetector;
@@ -99,8 +115,13 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
 
     return inputProvider.resolve(input, new InputProviderResolverImpl(
         inputProviders,
+        generators,
         askMode,
         console,
         ImmutableSet.<String>builder().addAll(loopDetector).add(input.name()).build()));
+  }
+
+  public ImmutableMap<String, ConfigGenerator> getGenerators() {
+    return generators;
   }
 }

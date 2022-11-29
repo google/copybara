@@ -16,6 +16,8 @@
 
 package com.google.copybara.onboard.core;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.copybara.onboard.core.template.ConfigGenerator;
 import java.util.Optional;
 
 /**
@@ -26,6 +28,7 @@ public interface InputProviderResolver {
 
   /**
    * Given an {@link Input}, resolve to the corresponding value if possible
+   *
    * @throws InterruptedException if user cancels the request (e.g. Ctrl break on the console)
    * @throws CannotProvideException if there is a failure during the resolution
    */
@@ -40,5 +43,12 @@ public interface InputProviderResolver {
     } catch (CannotProvideException e) {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Config generators registered in the system
+   */
+  default ImmutableMap<String, ConfigGenerator> getGenerators() {
+    return ImmutableMap.of();
   }
 }

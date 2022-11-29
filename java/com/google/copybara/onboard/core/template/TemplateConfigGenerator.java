@@ -19,13 +19,16 @@ package com.google.copybara.onboard.core.template;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
+import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.template.Field.Location;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -48,7 +51,20 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
   @Override
   public String generate(InputProviderResolver resolver)
       throws CannotProvideException, InterruptedException {
-    ImmutableMap<Field, Object> fields = resolve(resolver);
+
+    ImmutableSet<Input<?>> consumes = consumes();
+    ImmutableMap<Field, Object> fields = resolve(new InputProviderResolver() {
+      @Override
+      public <T> Optional<T> resolve(Input<T> input)
+          throws InterruptedException, CannotProvideException {
+        if (!consumes.contains(input)) {
+          throw new IllegalStateException(
+              String.format("Non-declared input in template: %s. Add it to consumes() method",
+                  input));
+        }
+        return resolver.resolve(input);
+      }
+    });
     String config = template;
     for (Entry<Field, Object> e : fields.entrySet()) {
       if (e.getKey().location() == Location.NAMED) {

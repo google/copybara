@@ -18,6 +18,7 @@ package com.google.copybara.onboard;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.onboard.core.CannotProvideException;
@@ -39,9 +40,9 @@ public class GitToGitGeneratorTest {
     console.respondWithString("http://example.com/destination");
     console.respondWithString("author <author@example.com>");
     console.respondWithString("my_name");
-    
+
     String config = gitToGitGenerator.generate(InputProviderResolverImpl.create(
-        ImmutableSet.of(), Mode.AUTO, console));
+        ImmutableSet.of(), ImmutableList.of(), Mode.AUTO, console));
     assertThat(config).isEqualTo(""
         + "core.workflow(\n"
         + "    name = 'my_name',\n"

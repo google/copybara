@@ -40,6 +40,7 @@ import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -135,7 +136,8 @@ public class ModuleSupplier {
         new PatchingOptions(generalOptions),
         workflowOptions,
         new RemoteFileOptions(),
-        new DebugOptions(generalOptions)));
+        new DebugOptions(generalOptions),
+        new GeneratorOptions()));
   }
 
   /**

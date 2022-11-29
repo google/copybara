@@ -39,6 +39,7 @@ public interface InputProvider {
   ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException;
 
   int DEFAULT_PRIORITY = 100;
+  int COMMAND_LINE_PRIORITY = 1000;
 
   /**
    * Given a set of Input returns a map of the Input to default priority. This is a helper function

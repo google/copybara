@@ -16,7 +16,9 @@
 
 package com.google.copybara.onboard.core.template;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
+import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
 
 /**
@@ -32,4 +34,7 @@ public interface ConfigGenerator {
    * Name of the template.
    */
   String name();
+
+  /** List of {@link Input}s that the generator consumes */
+  ImmutableSet<Input<?>> consumes();
 }

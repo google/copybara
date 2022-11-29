@@ -40,6 +40,7 @@ import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.DurationConverter;
+import com.google.copybara.onboard.GeneratorCmd;
 import com.google.copybara.onboard.OnboardCmd;
 import com.google.copybara.profiler.ConsoleProfilerListener;
 import com.google.copybara.profiler.Listener;
@@ -286,6 +287,7 @@ public class Main {
         new ValidateCmd(validator, consumer, configLoaderProvider),
         new HelpCmd(jcommander),
         new OnboardCmd(),
+        new GeneratorCmd(),
         new VersionCmd());
   }
 

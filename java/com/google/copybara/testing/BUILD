@@ -41,6 +41,7 @@ java_library(
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/transform/debug",

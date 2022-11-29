@@ -39,6 +39,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.transform.debug.DebugOptions;
@@ -77,6 +78,7 @@ public class OptionsBuilder {
   public DebugOptions debug = new DebugOptions(general);
   public RemoteFileOptions remoteFile = new RemoteFileOptions();
   public BuildifierOptions buildifier = new BuildifierOptions();
+  public GeneratorOptions generator = new GeneratorOptions();
 
   public String buildozerBin = null;
 
@@ -161,7 +163,8 @@ public class OptionsBuilder {
     return ImmutableList
         .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
             gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier, buildozer);
+            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier, buildozer,
+            generator);
   }
 
   public final Options build() {
