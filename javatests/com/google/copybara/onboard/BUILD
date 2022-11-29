@@ -28,6 +28,7 @@ all_tests(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/onboard",
+        "//java/com/google/copybara/onboard/core",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
