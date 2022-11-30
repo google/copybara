@@ -2875,7 +2875,7 @@ starting_point | `unknown`<br><p></p>
 
 Fetch from the destination a list of refspecs. Note that fetch happens without pruning.
 
-`bool` `git.mirrorContext.destination_fetch(refspec, prune=True, depth=None)`
+`bool` `git.mirrorContext.destination_fetch(refspec, prune=True, depth=None, partial_fetch=False)`
 
 
 #### Parameters:
@@ -2885,6 +2885,7 @@ Parameter | Description
 refspec | `sequence of string`<br><p></p>
 prune | `bool`<br><p></p>
 depth | `int` or `NoneType`<br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
+partial_fetch | `bool`<br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
 
 <a id="git.mirrorContext.destination_push" aria-hidden="true"></a>
 ### git.mirrorContext.destination_push
@@ -2951,7 +2952,7 @@ msg | `string` or `NoneType`<br><p>The no op message</p>
 
 Fetch from the origin a list of refspecs. Note that fetch happens without pruning.
 
-`bool` `git.mirrorContext.origin_fetch(refspec, prune=True, depth=None)`
+`bool` `git.mirrorContext.origin_fetch(refspec, prune=True, depth=None, partial_fetch=False)`
 
 
 #### Parameters:
@@ -2961,6 +2962,7 @@ Parameter | Description
 refspec | `sequence of string`<br><p></p>
 prune | `bool`<br><p></p>
 depth | `int` or `NoneType`<br><p>Sets number of commits to fetch. Setting to None (the default) means no limit to that number.</p>
+partial_fetch | `bool`<br><p>If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not used)</p>
 
 <a id="git.mirrorContext.rebase" aria-hidden="true"></a>
 ### git.mirrorContext.rebase

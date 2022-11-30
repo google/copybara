@@ -43,6 +43,7 @@ import com.google.testing.junit.testparameterinjector.TestParameters;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.function.ThrowingRunnable;
@@ -517,7 +518,7 @@ public class GitMirrorTest {
 
   @Test
   public void testMerge() throws Exception {
-    Migration mirror = mergeInit("FF");
+    Migration mirror = mergeInit("FF", /* partialFetch= */ false);
 
     GitLogEntry destChange = repoChange(destRepo, "some_file", "Content", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_other_file", "Content", "new change");
@@ -535,9 +536,39 @@ public class GitMirrorTest {
   }
 
   @Test
+  @TestParameters({
+    "{partialFetch: true, expectedConfigMatcher: \"(remote..*.partialclonefilter blob:none((.|\\n"
+        + ")*))\"}",
+    "{partialFetch: false, expectedConfigMatcher: \"^$\"}"
+  })
+  public void testMirrorWithPartialFetch_toggleOnOff(
+      boolean partialFetch, String expectedConfigMatcher)
+      throws IOException, RepoException, ValidationException {
+    Migration mirror = mergeInit("NO_FF", /* partialFetch= */ partialFetch);
+
+    GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
+
+    mirror.run(workdir, ImmutableList.of());
+
+    GitLogEntry merge = lastChange(destRepo, primaryBranch);
+
+    assertThat(
+            options
+                .git
+                .cachedBareRepoForUrl(
+                    "file://" + originRepo.getGitDir().toAbsolutePath().toString())
+                .gitAllowNonZeroExit(
+                    new byte[] {},
+                    ImmutableList.of("config", "--get-regexp", "remote..*.partialclonefilter"),
+                    Duration.ofMinutes(15))
+                .getStdout())
+        .matches(expectedConfigMatcher);
+  }
+
+  @Test
   public void testSuccessfulMergeWithoutFastForwarding()
       throws IOException, RepoException, ValidationException {
-    Migration mirror = mergeInit("NO_FF");
+    Migration mirror = mergeInit("NO_FF", /* partialFetch= */ false);
 
     GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
 
@@ -558,7 +589,7 @@ public class GitMirrorTest {
   @TestParameters({"{fastForwardOption: \"FF\"}", "{fastForwardOption: \"FF_ONLY\"}"})
   public void testSuccessfulMergeWithFastForwarding(String fastForwardOption)
       throws IOException, RepoException, ValidationException {
-    Migration mirror = mergeInit(fastForwardOption);
+    Migration mirror = mergeInit(fastForwardOption, /* partialFetch= */ false);
     GitRevision firstCommit = lastChange(destRepo, primaryBranch).getCommit();
     GitLogEntry originChange = repoChange(originRepo, "testfile", "test content", "commit");
 
@@ -731,7 +762,7 @@ public class GitMirrorTest {
   @Test
   @TestParameters({"{fastForwardOption: \"FF\"}", "{fastForwardOption: \"FF_ONLY\"}"})
   public void testMergeConflict(String fastForwardOption) throws Exception {
-    Migration mirror = mergeInit(fastForwardOption);
+    Migration mirror = mergeInit(fastForwardOption, /* partialFetch= */ false);
 
     GitLogEntry destChange = repoChange(destRepo, "some_file", "Hello", "destination only");
     GitLogEntry originChange = repoChange(originRepo, "some_file", "Bye", "new change");
@@ -744,17 +775,22 @@ public class GitMirrorTest {
     }))).hasMessageThat().contains("Conflict merging refs/heads/" + primaryBranch);
   }
 
-  private Migration mergeInit(String fastForwardOption)
+  private Migration mergeInit(String fastForwardOption, boolean partialFetch)
       throws IOException, ValidationException, RepoException {
+    String partialFetchString = partialFetch ? "True" : "False";
     String cfg =
         ""
             + ("def _merger(ctx):\n"
                 + "     ctx.console.info('Hello this is mirror!')\n"
                 + "     branch = ctx.params['branch']\n"
                 + "     oss_branch = ctx.params['oss_branch']\n"
-                + "     ctx.origin_fetch(refspec = [branch +"
+                + "     ctx.origin_fetch("
+                + String.format("partial_fetch=%s", partialFetchString)
+                + ", refspec = [branch +"
                 + " ':refs/heads/copybara/origin_fetch'])\n"
-                + "     exist = ctx.destination_fetch(refspec = [branch +"
+                + "     exist = ctx.destination_fetch("
+                + String.format("partial_fetch=%s", partialFetchString)
+                + ", refspec = [branch +"
                 + " ':refs/heads/copybara/destination_fetch'])\n"
                 + "     if exist:\n"
                 + "         result = ctx.merge(branch = 'copybara/destination_fetch',           "
@@ -800,12 +836,12 @@ public class GitMirrorTest {
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
-    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
-        .getStdout();
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", primaryBranch, "-s")
-        .getStdout()).isEqualTo(origPrimary);
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "oss", "-s")
-        .getStdout()).isEqualTo(origPrimary);
+    String origPrimary =
+        originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s").getStdout();
+    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", primaryBranch, "-s").getStdout())
+        .isEqualTo(origPrimary);
+    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "oss", "-s").getStdout())
+        .isEqualTo(origPrimary);
     return mirror;
   }
 

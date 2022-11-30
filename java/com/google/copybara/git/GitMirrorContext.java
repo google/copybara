@@ -132,9 +132,16 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
               @ParamType(type = StarlarkInt.class),
               @ParamType(type = NoneType.class),
             },
-            named = true)
+            named = true),
+        @Param(
+            name = "partial_fetch",
+            defaultValue = "False",
+            named = true,
+            doc =
+                "If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not"
+                    + " used)"),
       })
-  public boolean originFetch(Sequence<?> refspec, boolean prune, Object depth)
+  public boolean originFetch(Sequence<?> refspec, boolean prune, Object depth, boolean partialFetch)
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToFetch =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
@@ -148,7 +155,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           prune,
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          false,
+          partialFetch,
           depthOptional);
     } catch (CannotResolveRevisionException e) {
       return false;
@@ -178,8 +185,16 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
               @ParamType(type = NoneType.class),
             },
             named = true),
+        @Param(
+            name = "partial_fetch",
+            defaultValue = "False",
+            named = true,
+            doc =
+                "If true, partially fetch only the minimum needed (e.g. don't fetch blobs if not"
+                    + " used)"),
       })
-  public boolean destinationFetch(Sequence<?> refspec, boolean prune, Object depth)
+  public boolean destinationFetch(
+      Sequence<?> refspec, boolean prune, Object depth, boolean partialFetch)
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToFetch =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
@@ -196,7 +211,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           prune,
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
-          false,
+          partialFetch,
           depthOptional);
     } catch (CannotResolveRevisionException e) {
       return false;
