@@ -23,6 +23,9 @@ import com.google.copybara.Option;
 import com.google.copybara.jcommander.MapConverter;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 
+/**
+ * Options for the generator command
+ */
 @Parameters(separators = "=")
 public class GeneratorOptions implements Option {
 

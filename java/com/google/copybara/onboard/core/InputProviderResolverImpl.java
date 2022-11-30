@@ -76,7 +76,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
                   askMode, console)));
     }
     return new InputProviderResolverImpl(
-        providersMap, generatorMap.build(), askMode,console, ImmutableSet.of());
+        providersMap, generatorMap.build(), askMode, console, ImmutableSet.of());
   }
 
   private InputProviderResolverImpl(Map<Input<?>, InputProvider> inputProviders,

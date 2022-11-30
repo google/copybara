@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard;
 
+import com.beust.jcommander.Parameters;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +46,8 @@ import java.util.Optional;
  *
  * TODO(malcon, joshgoldman): Rename to 'GenerateCmd' once we remove old version
  */
+@Parameters(separators = "=",
+    commandDescription = "Generates a config file by asking/inferring field information")
 public class GeneratorCmd implements CopybaraCmd {
 
   @Override
@@ -53,10 +56,10 @@ public class GeneratorCmd implements CopybaraCmd {
     GeneratorOptions genOpts = commandEnv.getOptions().get(GeneratorOptions.class);
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
 
-    InputProviderResolver resolver = InputProviderResolverImpl.create(
-        inputProviders(genOpts), generators(), genOpts.askMode, console);
 
     try {
+      InputProviderResolver resolver = InputProviderResolverImpl.create(
+          inputProviders(genOpts), generators(), genOpts.askMode, console);
       Optional<Path> path = resolver.resolve(Inputs.GENERATOR_FOLDER);
       if (path.isEmpty()) {
         console.error("Cannot infer a path to place the generated config");
