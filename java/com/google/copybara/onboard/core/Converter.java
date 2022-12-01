@@ -27,6 +27,5 @@ public interface Converter<T> {
    *
    * @throws CannotConvertException if the conversion is not possible (e.g. wrong input).
    */
-  T convert(String value, InputProviderResolver resolver)
-      throws CannotConvertException, InterruptedException;
+  T convert(String value, InputProviderResolver resolver) throws CannotConvertException;
 }

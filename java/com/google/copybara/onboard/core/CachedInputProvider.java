@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * A simple {@code DataProvider} that caches the request to avoid calling populators or asking
- * the user for the same value several times.
+ * A simple {@code DataProvider} that caches the request to avoid calling populators or asking the
+ * user for the same value several times.
  */
 public class CachedInputProvider implements InputProvider {
 
@@ -52,5 +52,10 @@ public class CachedInputProvider implements InputProvider {
   @Override
   public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
     return provider.provides();
+  }
+
+  @Override
+  public String toString() {
+    return "Cached(" + provider + ')';
   }
 }

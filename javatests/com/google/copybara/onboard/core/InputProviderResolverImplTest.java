@@ -62,6 +62,8 @@ public class InputProviderResolverImplTest {
             } catch (CannotProvideException e) {
               throw new CannotConvertException(String.format(
                   "Cannot convert %s: %s", s, e.getMessage()));
+            } catch (InterruptedException e) {
+              throw new RuntimeException("Unexpected", e);
             }
           });
 
@@ -138,6 +140,30 @@ public class InputProviderResolverImplTest {
   }
 
   @Test
+  public void testBadReturnType() throws CannotProvideException, InterruptedException {
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(
+                new InputProvider() {
+                  @Override
+                  public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db) {
+                    return (Optional<T>) Optional.of(42);
+                  }
+
+                  @Override
+                  public ImmutableMap<Input<?>, Integer> provides() {
+                    return defaultPriority(ImmutableSet.of(ONE));
+                  }
+                }),
+            ImmutableList.of(),
+            Mode.AUTO,
+            console);
+    assertThat(assertThrows(IllegalStateException.class, () -> resolver.resolve(ONE)))
+        .hasMessageThat()
+        .containsMatch(".*InputProviderResolverImplTestOne.*requires an object of type.*");
+  }
+
+  @Test
   public void testResolveConverterLoop() throws CannotProvideException {
     console.respondWithString("is ignore");
     console.respondWithString("is ignore");
@@ -196,7 +222,7 @@ public class InputProviderResolverImplTest {
     }
 
     @Override
-    public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
+    public ImmutableMap<Input<?>, Integer> provides() {
       return defaultPriority(ImmutableSet.of(provides));
     }
   }
@@ -210,10 +236,10 @@ public class InputProviderResolverImplTest {
     }
 
     private boolean called = false;
+
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
-        throws InterruptedException, CannotProvideException {
+    public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db) {
       checkArgument(input == this.input);
       if (called) {
         return (Optional<T>) Optional.of("BAD");
@@ -224,7 +250,7 @@ public class InputProviderResolverImplTest {
     }
 
     @Override
-    public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
+    public ImmutableMap<Input<?>, Integer> provides() {
       return defaultPriority(ImmutableSet.of(input));
     }
   }

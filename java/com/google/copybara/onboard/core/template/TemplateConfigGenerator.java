@@ -126,4 +126,9 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
    */
   protected abstract ImmutableMap<Field, Object> resolve(InputProviderResolver resolver)
       throws InterruptedException, CannotProvideException;
+
+  @Override
+  public String toString() {
+    return name();
+  }
 }

@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.Optional;
 
 /**
- * An {@link InputProvider} that first tries to use a delegate {@code InputProvider}, then
- * use the default and then maybe ask the user for a value as last resort.
+ * An {@link InputProvider} that first tries to use a delegate {@code InputProvider}, then use the
+ * default and then maybe ask the user for a value as last resort.
  */
 public class AskInputProvider implements InputProvider {
 
@@ -52,78 +52,78 @@ public class AskInputProvider implements InputProvider {
     return delegate.provides();
   }
 
-  /**
-   * The different modes to ask the user for input given a result from an InputProvider
-   */
+  /** The different modes to ask the user for input given a result from an InputProvider */
   public enum Mode {
-    /**
-     * Fail if it requires to ask the user for input
-     */
+    /** Fail if it requires to ask the user for input */
     FAIL {
       @Override
-      <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-          Console console, InputProviderResolver resolver) throws CannotProvideException {
+      <T> Optional<T> handleInput(
+          Input<T> input, Optional<T> res, Console console, InputProviderResolver resolver)
+          throws CannotProvideException {
         Optional<T> result = inputOrDefault(input, res);
         if (result.isPresent()) {
           return result;
         }
-        throw new CannotProvideException(String.format(
-            "Couldn't infer a value for %s(%s)", input.name(), input.description()));
+        throw new CannotProvideException(
+            String.format("Couldn't infer a value for %s(%s)", input.name(), input.description()));
       }
     },
     /**
-     * Use the delegate but confirm the selection with the user
-     * by using the result as the default for the question.
+     * Use the delegate but confirm the selection with the user by using the result as the default
+     * for the question.
      */
     CONFIRM {
       @Override
-      <T> Optional<T> handleInput(Input<T> input, Optional<T> res, Console console,
-          InputProviderResolver resolver)
+      <T> Optional<T> handleInput(
+          Input<T> input, Optional<T> res, Console console, InputProviderResolver resolver)
           throws InterruptedException {
         return askUser(input, inputOrDefault(input, res), console, resolver);
       }
     },
-    /**
-     * Only ask the user for input if the delegate cannot find a value
-     * for an input.
-     */
+    /** Only ask the user for input if the delegate cannot find a value for an input. */
     AUTO {
       @Override
-      <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-          Console console, InputProviderResolver resolver) throws InterruptedException {
+      <T> Optional<T> handleInput(
+          Input<T> input, Optional<T> res, Console console, InputProviderResolver resolver)
+          throws InterruptedException {
         Optional<T> defaultVal = inputOrDefault(input, res);
         if (defaultVal.isPresent()) {
-          console.infoFmt("Inferred value for '%s(%s)': %s", input.description(),
-              input.name(), defaultVal.get());
+          console.infoFmt(
+              "Inferred value for '%s(%s)': %s",
+              input.description(), input.name(), defaultVal.get());
           return defaultVal;
         }
         return askUser(input, defaultVal, console, resolver);
       }
     };
 
-    private static <T> Optional<T> askUser(Input<T> input, Optional<T> defaultVal, Console console,
-        InputProviderResolver resolver)
+    private static <T> Optional<T> askUser(
+        Input<T> input, Optional<T> defaultVal, Console console, InputProviderResolver resolver)
         throws InterruptedException {
       try {
-        String askResult = console.ask(
-            String.format("Value for %s(%s)%s? ", input.description(), input.name(),
-                defaultVal.map(t -> "[" + t + "]").orElse("")),
-            defaultVal.isPresent() ? DEFAULT_PLACE_HOLDER : null,
-            s -> {
-              if (s.equals(DEFAULT_PLACE_HOLDER) && defaultVal.isPresent()) {
-                return true;
-              }
-              try {
-                var unused = input.convert(s, resolver);
-                return true;
-              } catch (IllegalStateException e) {
-                // Don't ignore internal errors
-                throw e;
-              } catch (Exception e) {
-                console.error(e.getMessage());
-                return false;
-              }
-            });
+        String askResult =
+            console.ask(
+                String.format(
+                    "Value for %s(%s)%s? ",
+                    input.description(),
+                    input.name(),
+                    defaultVal.map(t -> "[" + t + "]").orElse("")),
+                defaultVal.isPresent() ? DEFAULT_PLACE_HOLDER : null,
+                s -> {
+                  if (s.equals(DEFAULT_PLACE_HOLDER) && defaultVal.isPresent()) {
+                    return true;
+                  }
+                  try {
+                    var unused = input.convert(s, resolver);
+                    return true;
+                  } catch (IllegalStateException e) {
+                    // Don't ignore internal errors
+                    throw e;
+                  } catch (Exception e) {
+                    console.error(e.getMessage());
+                    return false;
+                  }
+                });
         if (DEFAULT_PLACE_HOLDER.equals(askResult) && defaultVal.isPresent()) {
           return defaultVal;
         }
@@ -132,8 +132,12 @@ public class AskInputProvider implements InputProvider {
         // We only throw IO on user cancellation. We need to fix that.
         throw new InterruptedException(e.getMessage());
       } catch (CannotConvertException e) {
-        throw new IllegalStateException(String.format("Error processing %s."
-            + " This is a copybara error. It should be catch by the validator", input), e);
+        throw new IllegalStateException(
+            String.format(
+                "Error processing %s."
+                    + " This is a copybara error. It should be catch by the validator",
+                input),
+            e);
       }
     }
 
@@ -147,8 +151,13 @@ public class AskInputProvider implements InputProvider {
       return Optional.empty();
     }
 
-    abstract <T> Optional<T> handleInput(Input<T> input, Optional<T> res,
-        Console console, InputProviderResolver resolver)
+    abstract <T> Optional<T> handleInput(
+        Input<T> input, Optional<T> res, Console console, InputProviderResolver resolver)
         throws CannotProvideException, InterruptedException;
+  }
+
+  @Override
+  public String toString() {
+    return "AskInput(" + delegate + ')';
   }
 }

@@ -34,17 +34,27 @@ import java.nio.file.Paths;
  */
 public class Inputs {
 
-  private static final Converter<URL> URL_CONVERTER = (s, resolver) -> {
-    try {
-      return new URL(s);
-    } catch (MalformedURLException e) {
-      throw new CannotConvertException("Invalid url " + s + ": " + e);
-    }
+  private Inputs() {}
 
-  };
+  private static final Converter<URL> URL_CONVERTER =
+      (s, resolver) -> {
+        try {
+          return new URL(s);
+        } catch (MalformedURLException e) {
+          throw new CannotConvertException("Invalid url " + s + ": " + e);
+        }
+      };
   public static final Input<URL> GIT_ORIGIN_URL = Input.create(
       "git_origin_url", "Git URL to serve as origin repository",
       null, URL.class, URL_CONVERTER);
+
+  public static final Input<String> CURRENT_VERSION =
+      Input.create(
+          "current_version",
+          "Current imported version or version wanted",
+          null,
+          String.class,
+          (value, resolver) -> value);
 
   public static final Input<URL> GIT_DESTINATION_URL = Input.create(
       "git_destination_url", "Git URL to serve as origin repository",

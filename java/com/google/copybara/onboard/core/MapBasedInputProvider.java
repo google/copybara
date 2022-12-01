@@ -37,15 +37,12 @@ public class MapBasedInputProvider implements InputProvider {
 
   @Override
   public <T> Optional<T> resolve(Input<T> input, InputProviderResolver resolver)
-      throws InterruptedException, CannotProvideException {
+      throws CannotProvideException {
     for (String s : map.keySet()) {
       Input<?> ourInput = findInput(s);
       if (ourInput == input) {
         try {
           return Optional.of(input.convert(map.get(s), resolver));
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw e;
         } catch (Exception e) {
           // This could be console.error instead and return Optional.empty()
           // So the user can correct in the iterative mode.

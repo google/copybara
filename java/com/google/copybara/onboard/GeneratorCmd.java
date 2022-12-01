@@ -58,8 +58,9 @@ public class GeneratorCmd implements CopybaraCmd {
 
 
     try {
-      InputProviderResolver resolver = InputProviderResolverImpl.create(
-          inputProviders(genOpts), generators(), genOpts.askMode, console);
+      InputProviderResolver resolver =
+          InputProviderResolverImpl.create(
+              inputProviders(genOpts, commandEnv, console), generators(), genOpts.askMode, console);
       Optional<Path> path = resolver.resolve(Inputs.GENERATOR_FOLDER);
       if (path.isEmpty()) {
         console.error("Cannot infer a path to place the generated config");
@@ -85,7 +86,9 @@ public class GeneratorCmd implements CopybaraCmd {
     return ExitCode.SUCCESS;
   }
 
-  protected ImmutableList<InputProvider> inputProviders(GeneratorOptions genOpts) {
+  protected ImmutableList<InputProvider> inputProviders(
+      GeneratorOptions genOpts, CommandEnv commandEnv, Console console)
+      throws CannotProvideException {
 
     ImmutableMap<String, String> inputs = genOpts.inputs;
     // Special case --template to make it easier for users.
