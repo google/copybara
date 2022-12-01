@@ -644,10 +644,16 @@ public class GitOriginTest {
     assertThat(changes.get(1).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION"))
         .contains("0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7));
 
+    assertThat(changes.get(1).getRevision().associatedLabel("GIT_SEQUENTIAL_REVISION_NUMBER"))
+        .contains("3");
+
     assertThat(changes.get(2).getMessage()).isEqualTo("change4\n");
 
     assertThat(changes.get(2).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION")).
         contains("0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7));
+
+    assertThat(changes.get(2).getRevision().associatedLabel("GIT_SEQUENTIAL_REVISION_NUMBER"))
+        .contains("4");
 
     TransformWork work = TransformWorks.of(Paths.get(""), "some msg", console).withChanges(
         new Changes(changes.reverse(), ImmutableList.of())
@@ -668,6 +674,8 @@ public class GitOriginTest {
       assertThat(change.getDateTime())
           .isAtMost(ZonedDateTime.now(ZoneId.systemDefault()).plusSeconds(1));
     }
+
+    assertThat(work.getLabel("GIT_SEQUENTIAL_REVISION_NUMBER")).isEqualTo("4");
   }
 
   @Test

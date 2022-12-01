@@ -160,6 +160,7 @@ public class GitRepository {
   public static final String GIT_DESCRIBE_REQUESTED_VERSION = "GIT_DESCRIBE_REQUESTED_VERSION";
   public static final String GIT_DESCRIBE_CHANGE_VERSION = "GIT_DESCRIBE_CHANGE_VERSION";
   public static final String GIT_DESCRIBE_FIRST_PARENT = "GIT_DESCRIBE_FIRST_PARENT";
+  public static final String GIT_SEQUENTIAL_REVISION_NUMBER = "GIT_SEQUENTIAL_REVISION_NUMBER";
   // Closest tag, if any
   public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
   public static final String HTTP_PERMISSION_DENIED = "The requested URL returned error: 403";
