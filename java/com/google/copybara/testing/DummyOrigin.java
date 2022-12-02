@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -118,7 +119,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
         "" + changes.size(), changes.size() + " change", author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
         contextRef, /*referenceLabels=*/ ImmutableListMultimap.of(),
-        true, previousChanges, null));
+        true, previousChanges, null, Optional.empty()));
     return this;
   }
 
@@ -148,7 +149,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
         "" + changes.size(), message, author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
         /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
-        matchesGlob, previousChanges, ""));
+        matchesGlob, previousChanges, "", Optional.empty()));
     return this;
   }
 
