@@ -127,14 +127,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       "Patch the checkout dir. The difference with `patch.apply` transformation is"
           + " that here we can apply it using three-way";
   private static final String DESCRIBE_VERSION_FIELD_DOC =
-      "Download tags and use 'git describe' to create two labels with a meaningful version:<br><br>"
-          + "   - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being"
-          + " migrated. The value changes per change in `ITERATIVE` mode and will be the latest"
-          + " migrated change in `SQUASH` (In other words, doesn't include excluded changes). this"
-          + " is normally what users want to use.<br>"
-          + "   - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version."
-          + " Constant in `ITERATIVE` mode and includes filtered changes.<br>"
-          + "`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>";
+      "Download tags and use 'git describe' to create four labels with a meaningful version"
+          + " identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or"
+          + " changes being migrated. The value changes per change in `ITERATIVE` mode and will be"
+          + " the latest migrated change in `SQUASH` (In other words, doesn't include excluded"
+          + " changes). this is normally what users want to use.<br> -"
+          + " `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version."
+          + " Constant in `ITERATIVE` mode and includes filtered changes.<br> "
+          + " -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br> "
+          + " -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to"
+          + " the SHA1 if not applicable.<br>";
 
   /**
    * Primary branch name that will be ignored if autodetect is enabled.
