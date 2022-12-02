@@ -18,6 +18,7 @@ package com.google.copybara.onboard;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Option;
 import com.google.copybara.jcommander.MapConverter;
@@ -33,15 +34,18 @@ public class GeneratorOptions implements Option {
       names = {"--generator-ask"},
       description = "Config generator mode when a value is not found. Valid modes:"
           + "auto, confirm, fail")
-  Mode askMode = Mode.CONFIRM;
+  @VisibleForTesting
+  public Mode askMode = Mode.CONFIRM;
 
   @Parameter(
       names = {"--template"},
       description = "Name of the template to use for generating the config")
-  String template;
+  @VisibleForTesting
+  public String template;
 
   @Parameter(
       names = {"--inputs"},
       description = "Inputs for code generation", converter = MapConverter.class)
+  @VisibleForTesting
   ImmutableMap<String, String> inputs = ImmutableMap.of();
 }
