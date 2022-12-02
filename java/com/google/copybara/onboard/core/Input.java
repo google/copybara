@@ -16,12 +16,14 @@
 
 package com.google.copybara.onboard.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -95,6 +97,27 @@ public final class Input<T> {
    */
   public static Map<String, Input<?>> registeredInputs() {
     return ImmutableMap.copyOf(INPUTS);
+  }
+
+  /**
+   * Validate that the value is of the Input type and cast it to the generic T of InputProvider
+   * interface.
+   *
+   * <p>This class can be used mainly to validate that the type is the correct one and a convenient
+   * and safe way of doing the cast required by the interface.
+   */
+  @SuppressWarnings("unchecked") // The cast is safe as we are checking with the input type.
+  public <V> Optional<V> asValue(T value) {
+    if (value == null) {
+      return Optional.empty();
+    }
+    checkArgument(
+        type.isAssignableFrom(value.getClass()),
+        "Incorrect type for Input %s: expecting %s type but got %s",
+        name,
+        type.getName(),
+        value.getClass().getName());
+    return (Optional<V>) Optional.of(value);
   }
 
   @Override
