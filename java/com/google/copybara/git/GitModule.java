@@ -2220,9 +2220,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "events",
             allowedTypes = {
-                @ParamType(type = Sequence.class, generic1 = String.class),
-                @ParamType(type = Dict.class, generic1 = Sequence.class),
-                @ParamType(type = NoneType.class),
+              @ParamType(type = Sequence.class, generic1 = String.class),
+              @ParamType(type = Dict.class, generic1 = Sequence.class),
+              @ParamType(type = NoneType.class),
             },
             named = true,
             defaultValue = "[]",
@@ -2230,16 +2230,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "Types of events to monitor. Optional. Can either be a list of event types or "
                     + "a dict of event types to particular events of that type, e.g. "
                     + "`['LABELS']` or `{'LABELS': 'my_label_name'}`.\n"
-                    + "Valid values for event types are: `'LABELS'`"),
+                    + "Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`"),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(
-      String url,
-      Object checkerObj,
-      Object events,
-      StarlarkThread thread)
-      throws EvalException {
+      String url, Object checkerObj, Object events, StarlarkThread thread) throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);

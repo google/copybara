@@ -21,5 +21,6 @@ package com.google.copybara.git.gerritapi;
 public enum GerritEventType {
   UNKNOWN, // Used if we don't know the event type.
 
-  LABELS;
+  LABELS,
+  SUBMIT_REQUIREMENTS;
 }

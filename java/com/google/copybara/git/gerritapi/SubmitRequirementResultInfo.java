@@ -17,6 +17,7 @@
 package com.google.copybara.git.gerritapi;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -68,5 +69,15 @@ public class SubmitRequirementResultInfo implements StarlarkValue {
       structField = true)
   public SubmitRequirementExpressionInfo getSubmittabilityExpressionResult() {
     return submittabilityExpressionResult;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("name", name)
+        .add("status", status)
+        .add("submittabilityExpressionResult", submittabilityExpressionResult)
+        .add("isLegacy", isLegacy)
+        .toString();
   }
 }

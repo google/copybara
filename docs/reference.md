@@ -2418,7 +2418,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
-events | `sequence of string` or `dict of sequence` or `NoneType`<br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`</p>
+events | `sequence of string` or `dict of sequence` or `NoneType`<br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
 
 
 
