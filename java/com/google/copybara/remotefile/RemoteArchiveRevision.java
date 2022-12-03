@@ -31,7 +31,7 @@ public class RemoteArchiveRevision implements Revision {
 
   final RemoteArchiveVersion version;
 
-  RemoteArchiveRevision(RemoteArchiveVersion version) {
+  public RemoteArchiveRevision(RemoteArchiveVersion version) {
     this.version = version;
   }
 

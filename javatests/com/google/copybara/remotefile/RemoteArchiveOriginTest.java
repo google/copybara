@@ -19,6 +19,9 @@ package com.google.copybara.remotefile;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -26,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.io.BaseEncoding;
 import com.google.common.testing.FakeTicker;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -35,9 +39,11 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.version.VersionList;
+import com.google.copybara.version.VersionResolver;
 import com.google.copybara.version.VersionSelector;
 import java.io.ByteArrayInputStream;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -153,21 +159,26 @@ public final class RemoteArchiveOriginTest {
   @Mock HttpStreamFactory transport;
   @Mock VersionSelector versionSelector;
   @Mock VersionList versionList;
+  @Mock VersionResolver versionResolver;
   private Path workdir;
   private Profiler profiler;
   private FakeTicker ticker;
   private RemoteFileOptions remoteFileOptions;
   private Authoring authoring;
   private Console console;
+  private GeneralOptions generalOptions;
+
 
   @Before
   public void setUp() throws Exception {
     workdir = Files.createTempDirectory("workdir");
     ticker = new FakeTicker().setAutoIncrementStep(Duration.ofMillis(1));
-    profiler = new Profiler(ticker);
+    // profiler = new Profiler(ticker);
     remoteFileOptions = new RemoteFileOptions();
     remoteFileOptions.transport = () -> transport;
-    console = new TestingConsole();
+    generalOptions =
+        new GeneralOptions(System.getenv(), FileSystems.getDefault(), new TestingConsole());
+    generalOptions.setVersionSelectorUseCliRefForTest(false);
     authoring =
         new Authoring(
             new Author("foo", "default@example.com"),
@@ -179,18 +190,20 @@ public final class RemoteArchiveOriginTest {
       String archiveSourceURL,
       VersionList versionList,
       VersionSelector versionSelector,
-      RemoteFileType remoteFileType)
+      VersionResolver versionResolver,
+      RemoteFileType remoteFileType
+      )
       throws Exception {
     return new RemoteArchiveOrigin(
         Author.parse("Copybara <noreply@copybara.io>"),
         "a message",
-        profiler,
-        console,
+        generalOptions,
         remoteFileOptions,
         remoteFileType,
         archiveSourceURL,
         versionList,
-        versionSelector);
+        versionSelector,
+        versionResolver);
   }
 
   @Test
@@ -203,7 +216,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, RemoteFileType.ZIP);
+            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
 
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
@@ -220,7 +233,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, RemoteFileType.ZIP);
+            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
@@ -240,7 +253,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, RemoteFileType.ZIP);
+            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -258,7 +271,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, RemoteFileType.JAR);
+            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -275,7 +288,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, RemoteFileType.JAR);
+            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -293,7 +306,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, RemoteFileType.JAR);
+            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -311,7 +324,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -329,7 +342,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -347,7 +360,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -367,7 +380,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, RemoteFileType.AS_IS);
+            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.AS_IS);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -385,7 +398,11 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.${VERSION}.zip", versionList, versionSelector, RemoteFileType.AS_IS);
+            "https://foo.${VERSION}.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.AS_IS);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -403,7 +420,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
@@ -413,10 +430,39 @@ public final class RemoteArchiveOriginTest {
   }
 
   @Test
+  public void testArchiveCheckoutWithVersionResolver() throws Exception {
+    generalOptions.setVersionSelectorUseCliRefForTest(true);
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.1"));
+    when(versionList.list()).thenReturn(ImmutableSet.of());
+    when(transport.open(new URL("https://v0.1.1.tar")))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
+    when(versionResolver.resolve(eq("v0.1.1"), any()))
+        .thenReturn(
+            new RemoteArchiveRevision(new RemoteArchiveVersion("https://v0.1.1.tar", "v0.1.1")));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://${VERSION}.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR);
+    Reader<RemoteArchiveRevision> reader =
+        underTest.newReader(
+            Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
+    reader.checkout(underTest.resolve("v0.1.1"), workdir);
+
+    verify(versionResolver, times(1)).resolve(eq("v0.1.1"), any());
+    assertThatPath(workdir).containsNoFiles("test.txt", "hello world\n");
+  }
+
+  @Test
   public void testDescribe() throws Exception {
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, RemoteFileType.TAR);
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
     ImmutableSetMultimap<String, String> description =
         underTest.describe(
             Glob.createGlob(ImmutableList.of("path/to/file.txt"), ImmutableList.of()));

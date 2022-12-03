@@ -29,6 +29,7 @@ import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.version.VersionList;
+import com.google.copybara.version.VersionResolver;
 import com.google.copybara.version.VersionSelector;
 import java.util.Arrays;
 import net.starlark.java.annot.Param;
@@ -154,6 +155,18 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = VersionSelector.class),
               @ParamType(type = NoneType.class)
             }),
+        @Param(
+            name = "version_resolver",
+            named = true,
+            defaultValue = "None",
+            doc =
+                "Version resolvers are used to resolve refs to specific versions. Primarily used"
+                    + " when command line refs are provided and accompanied by the '--force' or"
+                    + " '--version-selector-use-cli-ref' flag.",
+            allowedTypes = {
+              @ParamType(type = VersionResolver.class),
+              @ParamType(type = NoneType.class)
+            }),
         @Param( // TODO(linjordan): remove
             name = "version_selector",
             defaultValue = "None",
@@ -173,6 +186,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       String archiveSourceURL,
       Object versionList,
       Object versionSelector,
+      Object versionResolver,
       Object unusedVersionSelector, // TODO(linjordan): remove
       Object baseURL // TODO(linjordan): remove
       ) throws EvalException, ValidationException {
@@ -182,12 +196,12 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
     return new RemoteArchiveOrigin(
         Author.parse(author),
         message,
-        generalOptions.profiler(),
-        generalOptions.console(),
+        generalOptions,
         remoteFileOptions,
         remoteFileType,
         archiveSourceURL,
         convertFromNoneable(versionList, null),
-        convertFromNoneable(versionSelector, null));
+        convertFromNoneable(versionSelector, null),
+        convertFromNoneable(versionResolver, null));
   }
 }

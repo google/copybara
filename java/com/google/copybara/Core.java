@@ -1894,11 +1894,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         regex, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
     ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
     check(extraGroups.isEmpty(), "Extra regex_groups not used in pattern: %s", extraGroups);
-
-    if (generalOptions.isForced()) {
-      return new OrderedVersionSelector(ImmutableList.of(
-          new RequestedVersionSelector(),
-          versionPicker));
+    if (generalOptions.isForced() || generalOptions.isVersionSelectorUseCliRef()) {
+      return new OrderedVersionSelector(
+          ImmutableList.of(new RequestedVersionSelector(), versionPicker));
     }
     return versionPicker;
   }
