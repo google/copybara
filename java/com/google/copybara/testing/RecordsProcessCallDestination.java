@@ -60,6 +60,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -84,12 +85,19 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
   @Nullable
   private Consumer<TransformResult> hook;
+  @Nullable Path filePrefix;
 
   public RecordsProcessCallDestination() {
     this(ImmutableList.of());
   }
   public RecordsProcessCallDestination(ImmutableList<ImmutableList<String>> errors) {
     this.programmedErrors = new ArrayDeque<>(errors);
+  }
+
+  public static RecordsProcessCallDestination withFilePrefix(Path filePrefix) {
+    RecordsProcessCallDestination toReturn = new RecordsProcessCallDestination();
+    toReturn.filePrefix = filePrefix;
+    return toReturn;
   }
 
   private final DummyEndpoint endpoint = new DummyEndpoint();
@@ -160,8 +168,12 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       return new DestinationReader() {
         @Override
         public String readFile(String path) throws RepoException {
-          throw new UnsupportedOperationException(
-              "Read file not supported in RecordsProcessCallDestination");
+          try {
+            Objects.requireNonNull(filePrefix);
+            return Files.readString(filePrefix.resolve(path));
+          } catch (IOException e) {
+            throw new RepoException(String.format("Could not read file at path %s", path), e);
+          }
         }
 
         @Override
