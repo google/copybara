@@ -51,4 +51,9 @@ public interface InputProviderResolver {
   default ImmutableMap<String, ConfigGenerator> getGenerators() {
     return ImmutableMap.of();
   }
+
+  /** Given a Starlark string, convert it to their corresponding object. */
+  default <T> T parseStarlark(String starlark, Class<T> type) throws CannotConvertException {
+    throw new CannotConvertException("Parsing Starlark not supported");
+  }
 }

@@ -40,6 +40,7 @@ import java.util.Optional;
 public final class InputProviderResolverImpl implements InputProviderResolver {
 
   private final ImmutableMap<String, ConfigGenerator> generators;
+  private final Converter<Object> starlarkConverter;
   private final Mode askMode;
   private final Console console;
   private final ImmutableSet<String> loopDetector;
@@ -48,6 +49,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
   public static InputProviderResolver create(
       Collection<InputProvider> providers,
       ImmutableList<ConfigGenerator> generators,
+      Converter<Object> starlarkConverter,
       Mode askMode,
       Console console)
       throws CannotProvideException {
@@ -80,16 +82,23 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
                   console)));
     }
     return new InputProviderResolverImpl(
-        providersMap, generatorMap.build(), askMode, console, ImmutableSet.of());
+        providersMap,
+        generatorMap.buildOrThrow(),
+        starlarkConverter,
+        askMode,
+        console,
+        ImmutableSet.of());
   }
 
   private InputProviderResolverImpl(
       Map<Input<?>, InputProvider> inputProviders,
       ImmutableMap<String, ConfigGenerator> generators,
+      Converter<Object> starlarkConverter,
       Mode askMode,
       Console console,
       ImmutableSet<String> loopDetector) {
     this.generators = generators;
+    this.starlarkConverter = starlarkConverter;
     this.askMode = askMode;
     this.console = console;
     this.loopDetector = loopDetector;
@@ -130,6 +139,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
         new InputProviderResolverImpl(
             inputProviders,
             generators,
+            starlarkConverter,
             askMode,
             console,
             ImmutableSet.<String>builder().addAll(loopDetector).add(input.name()).build()));
@@ -156,5 +166,16 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
   @Override
   public ImmutableMap<String, ConfigGenerator> getGenerators() {
     return generators;
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public <T> T parseStarlark(String starlark, Class<T> type) throws CannotConvertException {
+    Object convert = starlarkConverter.convert(starlark, this);
+    if (type.isAssignableFrom(convert.getClass())) {
+      throw new CannotConvertException(
+          String.format("Invalid input: %s. Not of type %s", starlark, type.getName()));
+    }
+    return (T) convert;
   }
 }

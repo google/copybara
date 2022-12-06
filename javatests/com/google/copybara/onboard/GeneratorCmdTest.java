@@ -32,9 +32,11 @@ import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,6 +59,13 @@ public class GeneratorCmdTest {
     optionsBuilder = new OptionsBuilder();
     optionsBuilder.setConsole(console).setOutputRootToTmpDir();
     optionsBuilder.setForce(true);
+    File buildifier = Paths.get(System.getenv("TEST_SRCDIR"))
+        .resolve(System.getenv("TEST_WORKSPACE"))
+        .resolve("javatests/com/google/copybara/onboard")
+        .resolve("buildifier")
+        .toFile();
+    optionsBuilder.buildifier.buildifierBin = buildifier.getAbsolutePath();
+
     Path userHomeForTest = Files.createTempDirectory("home");
     optionsBuilder.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
     optionsBuilder.setHomeDir(userHomeForTest.toString());
@@ -115,7 +124,7 @@ public class GeneratorCmdTest {
 
   private ExitCode runCommand(String... params)
       throws ValidationException, IOException, RepoException {
-    GeneratorCmd generatorCmd = new GeneratorCmd();
+    GeneratorCmd generatorCmd = new GeneratorCmd(skylark.createModuleSet());
     return generatorCmd.run(new CommandEnv(workdir,
         optionsBuilder.build(),
         ImmutableList.copyOf(params)));

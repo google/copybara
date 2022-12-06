@@ -21,7 +21,9 @@ all_tests(
         ["**/*Test.java"],
     ),
     deps = [
+        "//java/com/google/copybara/onboard",
         "//java/com/google/copybara/onboard/core",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:truth",

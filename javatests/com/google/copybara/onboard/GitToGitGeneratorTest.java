@@ -41,8 +41,16 @@ public class GitToGitGeneratorTest {
     console.respondWithString("author <author@example.com>");
     console.respondWithString("my_name");
 
-    String config = gitToGitGenerator.generate(InputProviderResolverImpl.create(
-        ImmutableSet.of(), ImmutableList.of(), Mode.AUTO, console));
+    String config =
+        gitToGitGenerator.generate(
+            InputProviderResolverImpl.create(
+                ImmutableSet.of(),
+                ImmutableList.of(),
+                (s, r) -> {
+                  throw new IllegalStateException();
+                },
+                Mode.AUTO,
+                console));
     assertThat(config).isEqualTo(""
         + "core.workflow(\n"
         + "    name = 'my_name',\n"

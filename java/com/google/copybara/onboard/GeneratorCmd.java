@@ -16,15 +16,19 @@
 
 package com.google.copybara.onboard;
 
+
 import com.beust.jcommander.Parameters;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.ModuleSet;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.format.BuildifierOptions;
+import com.google.copybara.git.GitOptions;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.ConstantProvider;
 import com.google.copybara.onboard.core.InputProvider;
@@ -32,23 +36,34 @@ import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.InputProviderResolverImpl;
 import com.google.copybara.onboard.core.MapBasedInputProvider;
 import com.google.copybara.onboard.core.template.ConfigGenerator;
+import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Optional;
 
 /**
  * A command that generates a config file based on user and inferred inputs.
  *
- * TODO(malcon, joshgoldman): Rename to 'GenerateCmd' once we remove old version
+ * <p>TODO(malcon, joshgoldman): Rename to 'GenerateCmd' once we remove old version
  */
-@Parameters(separators = "=",
+@Parameters(
+    separators = "=",
     commandDescription = "Generates a config file by asking/inferring field information")
 public class GeneratorCmd implements CopybaraCmd {
+
+  protected static final int PERCENTAGE_SIMILAR = 30;
+
+  private final ModuleSet moduleSet;
+
+  public GeneratorCmd(ModuleSet moduleSet) {
+    this.moduleSet = moduleSet;
+  }
 
   @Override
   public ExitCode run(CommandEnv commandEnv)
@@ -56,11 +71,14 @@ public class GeneratorCmd implements CopybaraCmd {
     GeneratorOptions genOpts = commandEnv.getOptions().get(GeneratorOptions.class);
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
 
-
     try {
       InputProviderResolver resolver =
           InputProviderResolverImpl.create(
-              inputProviders(genOpts, commandEnv, console), generators(), genOpts.askMode, console);
+              inputProviders(genOpts, commandEnv, console),
+              generators(),
+              new StarlarkConverter(moduleSet, console),
+              genOpts.askMode,
+              console);
       Optional<Path> path = resolver.resolve(Inputs.GENERATOR_FOLDER);
       if (path.isEmpty()) {
         console.error("Cannot infer a path to place the generated config");
@@ -72,8 +90,12 @@ public class GeneratorCmd implements CopybaraCmd {
         return ExitCode.COMMAND_LINE_ERROR;
       }
       String config = template.get().generate(resolver);
+
       Path configDestination = path.get().resolve("copy.bara.sky");
       Files.write(configDestination, config.getBytes(StandardCharsets.UTF_8));
+
+      format(commandEnv, configDestination);
+
       console.infoFmt("%s created", configDestination);
 
     } catch (InterruptedException e) {
@@ -86,6 +108,22 @@ public class GeneratorCmd implements CopybaraCmd {
     return ExitCode.SUCCESS;
   }
 
+  private void format(CommandEnv commandEnv, Path config) throws CannotProvideException {
+    GeneralOptions generalOptions = commandEnv.getOptions().get(GeneralOptions.class);
+    BuildifierOptions buildifierOptions = commandEnv.getOptions().get(BuildifierOptions.class);
+    Command cmd =
+        new Command(
+            new String[] {buildifierOptions.buildifierBin, "-type=bzl", config.toString()},
+            /* environmentVariables= */ null,
+            config.getParent().toFile());
+    try {
+      CommandOutputWithStatus unused =
+          generalOptions.newCommandRunner(cmd).withVerbose(generalOptions.isVerbose()).execute();
+    } catch (CommandException e) {
+      throw new CannotProvideException("Cannot format generated config " + config, e);
+    }
+  }
+
   protected ImmutableList<InputProvider> inputProviders(
       GeneratorOptions genOpts, CommandEnv commandEnv, Console console)
       throws CannotProvideException {
@@ -93,16 +131,22 @@ public class GeneratorCmd implements CopybaraCmd {
     ImmutableMap<String, String> inputs = genOpts.inputs;
     // Special case --template to make it easier for users.
     if (genOpts.template != null) {
-      inputs = ImmutableMap.<String, String>builder().putAll(inputs).put(
-          Inputs.TEMPLATE.name(),
-          genOpts.template
-      ).build();
+      inputs =
+          ImmutableMap.<String, String>builder()
+              .putAll(inputs)
+              .put(Inputs.TEMPLATE.name(), genOpts.template)
+              .buildOrThrow();
     }
     return ImmutableList.of(
-        new ConstantProvider<>(Inputs.GENERATOR_FOLDER,
-            Paths.get(StandardSystemProperty.USER_DIR.value())),
-        new MapBasedInputProvider(inputs, InputProvider.COMMAND_LINE_PRIORITY)
-    );
+        new ConstantProvider<>(
+            Inputs.GENERATOR_FOLDER, commandEnv.getOptions().get(GeneralOptions.class).getCwd()),
+        new ConfigHeuristicsInputProvider(
+            commandEnv.getOptions().get(GitOptions.class),
+            commandEnv.getOptions().get(GeneralOptions.class),
+            ImmutableSet.of(),
+            PERCENTAGE_SIMILAR,
+            console),
+        new MapBasedInputProvider(inputs, InputProvider.COMMAND_LINE_PRIORITY));
   }
 
   protected ImmutableList<ConfigGenerator> generators() {

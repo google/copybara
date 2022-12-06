@@ -23,7 +23,10 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.onboard.StarlarkConverter;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
+import com.google.copybara.testing.OptionsBuilder;
+import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.util.Optional;
 import org.junit.Before;
@@ -48,47 +51,62 @@ public class InputProviderResolverImplTest {
           (s, resolver) -> s);
 
   private static final Input<String> RESOLVE =
-      Input.<String>create("InputProviderResolverImplTestResolve",
-          "just for test", null, String.class,
+      Input.<String>create(
+          "InputProviderResolverImplTestResolve",
+          "just for test",
+          null,
+          String.class,
           (s, resolver) -> {
             try {
               Optional<String> val = resolver.resolve(TWO);
               if (val.isPresent()) {
                 return val.get();
               } else {
-                throw new CannotConvertException(
-                    String.format("Cannot convert %s", s));
+                throw new CannotConvertException(String.format("Cannot convert %s", s));
               }
             } catch (CannotProvideException e) {
-              throw new CannotConvertException(String.format(
-                  "Cannot convert %s: %s", s, e.getMessage()));
+              throw new CannotConvertException(
+                  String.format("Cannot convert %s: %s", s, e.getMessage()));
             } catch (InterruptedException e) {
               throw new RuntimeException("Unexpected", e);
             }
           });
 
   private TestingConsole console;
+  private StarlarkConverter starlarkConverter;
 
   @Before
   public void setup() {
     console = new TestingConsole();
+    OptionsBuilder options = new OptionsBuilder();
+    SkylarkTestExecutor starlark = new SkylarkTestExecutor(options);
+    starlarkConverter = new StarlarkConverter(starlark.createModuleSet(), console);
   }
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new DepProvider(ONE, TWO),
-        new DepProvider(TWO, THREE),
-        new ConstantProvider<>(THREE, "hello")
-    ), ImmutableList.of(), Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(
+                new DepProvider(ONE, TWO),
+                new DepProvider(TWO, THREE),
+                new ConstantProvider<>(THREE, "hello")),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("hello"));
   }
 
   @Test
   public void testOptionalResolve() throws CannotProvideException, InterruptedException {
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new ConstantProvider<>(ONE, null)
-    ), ImmutableList.of(), Mode.FAIL, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new ConstantProvider<>(ONE, null)),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.FAIL,
+            console);
     assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
   }
 
@@ -97,20 +115,28 @@ public class InputProviderResolverImplTest {
     console.respondWithString("my value");
     console.respondWithString("my value");
     console.respondWithString("my value");
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new DepProvider(ONE, TWO),
-        new DepProvider(TWO, THREE),
-        new ConstantProvider<>(THREE, "hello")
-    ), ImmutableList.of(), Mode.CONFIRM, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(
+                new DepProvider(ONE, TWO),
+                new DepProvider(TWO, THREE),
+                new ConstantProvider<>(THREE, "hello")),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.CONFIRM,
+            console);
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("my value"));
   }
 
   @Test
   public void testCache() throws CannotProvideException, InterruptedException {
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new DepProvider(ONE, TWO, TWO),
-        new OnlyOnce(TWO)
-    ), ImmutableList.of(), Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new DepProvider(ONE, TWO, TWO), new OnlyOnce(TWO)),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     // Cached under the same root call to resolve
     assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
     // Cached between root calls to resolve
@@ -120,18 +146,28 @@ public class InputProviderResolverImplTest {
   @Test
   public void testNotFoundStillAsks() throws CannotProvideException, InterruptedException {
     console.respondWithString("take this");
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new ConstantProvider<>(ONE, "hello")), ImmutableList.of(), Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new ConstantProvider<>(ONE, "hello")),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     assertThat(resolver.resolve(TWO)).isEqualTo(Optional.of("take this"));
   }
 
   @Test
   public void testLoop() throws CannotProvideException {
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-        new DepProvider(ONE, TWO),
-        new DepProvider(TWO, THREE),
-        new DepProvider(THREE, ONE)
-    ), ImmutableList.of(), Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(
+                new DepProvider(ONE, TWO),
+                new DepProvider(TWO, THREE),
+                new DepProvider(THREE, ONE)),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     assertThat(assertThrows(IllegalStateException.class,
         () -> resolver.resolve(ONE))).hasMessageThat()
         .contains("Loop detected trying to resolver input: InputProviderResolverImplTestOne"
@@ -156,6 +192,7 @@ public class InputProviderResolverImplTest {
                   }
                 }),
             ImmutableList.of(),
+            starlarkConverter,
             Mode.AUTO,
             console);
     assertThat(assertThrows(IllegalStateException.class, () -> resolver.resolve(ONE)))
@@ -167,12 +204,13 @@ public class InputProviderResolverImplTest {
   public void testResolveConverterLoop() throws CannotProvideException {
     console.respondWithString("is ignore");
     console.respondWithString("is ignore");
-    InputProviderResolver resolver = InputProviderResolverImpl.create(
-        ImmutableList.of(
-            new DepProvider(TWO, RESOLVE),
-            new ConstantProvider<>(RESOLVE, null)),
-        ImmutableList.of(),
-        Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new DepProvider(TWO, RESOLVE), new ConstantProvider<>(RESOLVE, null)),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     assertThat(assertThrows(IllegalStateException.class,
         () -> resolver.resolve(RESOLVE)))
         .hasMessageThat().contains("Loop detected");
@@ -181,11 +219,14 @@ public class InputProviderResolverImplTest {
   @Test
   public void testResolveConverter() throws CannotProvideException, InterruptedException {
     console.respondWithString("is ignore");
-    InputProviderResolver resolver = InputProviderResolverImpl.create(ImmutableList.of(
-            new ConstantProvider<>(TWO, "other"),
-            new ConstantProvider<>(RESOLVE, null)),
-        ImmutableList.of(),
-        Mode.AUTO, console);
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(
+                new ConstantProvider<>(TWO, "other"), new ConstantProvider<>(RESOLVE, null)),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.AUTO,
+            console);
     assertThat(resolver.resolve(RESOLVE)).isEqualTo(Optional.of("other"));
   }
 

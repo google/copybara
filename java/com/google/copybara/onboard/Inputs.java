@@ -23,7 +23,9 @@ import com.google.copybara.authoring.InvalidAuthorException;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.Converter;
 import com.google.copybara.onboard.core.Input;
+import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.template.ConfigGenerator;
+import com.google.copybara.util.Glob;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -59,6 +61,27 @@ public class Inputs {
   public static final Input<URL> GIT_DESTINATION_URL = Input.create(
       "git_destination_url", "Git URL to serve as origin repository",
       null, URL.class, URL_CONVERTER);
+
+  public static final Input<Glob> ORIGIN_GLOB =
+      Input.create(
+          "origin_glob",
+          "Glob of files to be migrated from the origin",
+          Glob.ALL_FILES,
+          Glob.class,
+          new Converter<Glob>() {
+            @Override
+            public Glob convert(String value, InputProviderResolver resolver)
+                throws CannotConvertException {
+              try {
+                return resolver.parseStarlark(value, Glob.class);
+              } catch (CannotConvertException e) {
+                throw new CannotConvertException(
+                    String.format(
+                        "Invalid value '%s'for a glob. Use a value like '%s'. Error: %s",
+                        value, Glob.ALL_FILES, e.getMessage()));
+              }
+            }
+          });
 
   public static final Input<Author> DEFAULT_AUTHOR = Input.create(
       "default_author", "Default author for changes",

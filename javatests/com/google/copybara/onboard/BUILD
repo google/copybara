@@ -16,7 +16,18 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
 licenses(["notice"])
 
+# This is required because golang binaries have the build architecture in their
+# path.
+genrule(
+    name = "normalised_buildifier",
+    testonly = 1,
+    srcs = ["@buildtools//buildifier"],
+    outs = ["buildifier"],
+    cmd = "cp $(SRCS) $@",
+)
+
 all_tests(
+    data = [":normalised_buildifier"],
     tests = glob(
         ["*Test.java"],
     ),

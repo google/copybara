@@ -287,7 +287,7 @@ public class Main {
         new ValidateCmd(validator, consumer, configLoaderProvider),
         new HelpCmd(jcommander),
         new OnboardCmd(),
-        new GeneratorCmd(),
+        new GeneratorCmd(moduleSet),
         new VersionCmd());
   }
 
