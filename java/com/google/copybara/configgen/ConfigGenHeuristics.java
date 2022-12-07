@@ -324,7 +324,7 @@ public class ConfigGenHeuristics {
           hashBased.get(hash(content)).stream()
               .max(comparingInt(o -> commonSuffix(path, o).getNameCount()));
       if (hashFinding.isPresent()) {
-        return Optional.ofNullable(hashFinding.get());
+        return hashFinding;
       }
 
       // Second priority similarity
