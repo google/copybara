@@ -22,6 +22,7 @@ import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
 import com.google.api.client.json.gson.GsonFactory;
@@ -608,7 +609,8 @@ public abstract class AbstractGitHubApiTest {
   public void testGetCheckRunsHeader_containGitHubHeader() throws Exception {
     api = new GitHubApi(transport, profiler);
     api.getCheckRuns("example/project", "12345");
-    verify(transport).get(any(), any(), headerCaptor.capture());
+    verify(transport)
+        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs"), any());
     assertThat(headerCaptor.getValue())
         .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
   }

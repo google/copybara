@@ -19,6 +19,8 @@ package com.google.copybara.git.github.api;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
 
 /**
@@ -30,24 +32,58 @@ public interface GitHubApiTransport {
    * The return type will be different.
    * Therefore, using generics type here
    */
-  <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+  @FormatMethod
+  default <T> T get(Type responseType, ImmutableListMultimap<String, String> headers,
+      @FormatString String pathTemplate, Object... fmtArgs)
+      throws RepoException, ValidationException {
+    return get(String.format(pathTemplate, fmtArgs), responseType, headers,
+        "GET " + pathTemplate);
+  }
+
+  /** Do a HTTP GET call with headers.
+   * The return type will be different.
+   * Therefore, using generics type here
+   */
+  <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers,
+      String requestDescription)
       throws RepoException, ValidationException;
 
   /** Do a HTTP GET call
    * The return type will be different.
    * Therefore, using generics type here
    */
-  default <T> T get(String path, Type responseType) throws RepoException, ValidationException {
-    return get(path, responseType, ImmutableListMultimap.of());
+  @FormatMethod
+  default <T> T get(Type responseType, @FormatString String pathTemplate, Object... fmtArgs)
+      throws RepoException, ValidationException {
+    return get(responseType, ImmutableListMultimap.of(), pathTemplate, fmtArgs);
   }
 
   /** Do a HTTP POST call
    * The return type will be different.
    * Therefore, using generics type here
    */
-  <T> T post(String path, Object request, Type responseType)
+  @FormatMethod
+  default <T> T post(Object request, Type responseType,
+      @FormatString String pathTemplate, Object... fmtArgs)
+      throws RepoException, ValidationException {
+    return post(String.format(pathTemplate, fmtArgs), request, responseType,
+        "POST " + pathTemplate);
+  }
+
+  /** Do a HTTP POST call
+   * The return type will be different.
+   * Therefore, using generics type here
+   */
+  <T> T post(String path, Object request, Type responseType, String requestType)
       throws RepoException, ValidationException;
 
   /** Do a HTTP DELETE call */
-  void delete(String path) throws RepoException, ValidationException;
+  void delete(String path, String requestType) throws RepoException, ValidationException;
+
+  /** Do a HTTP DELETE call */
+  @FormatMethod
+  default void delete(@FormatString String pathTemplate, Object... fmtArgs)
+      throws RepoException, ValidationException {
+    delete(String.format(pathTemplate, fmtArgs), "DELETE " + pathTemplate);
+  }
 }

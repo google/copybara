@@ -49,27 +49,27 @@ public class GitHubApiTransportWithCheckerTest {
 
   @Test
   public void testGet() throws Exception {
-    transport.get("path/foo", String.class);
+    String unused = transport.get(String.class, "path/foo");
     verify(checker).check("path", "path/foo", "response_type", String.class);
-    verify(delegate).get(eq("path/foo"), eq(String.class), any());
+    verify(delegate).get(eq("path/foo"), eq(String.class), any(), any());
   }
 
   @Test
   public void testGetThrowsException() throws Exception {
     doThrow(new CheckerException("Error!")).when(checker).check(any(), any(), any(), any());
-    assertThrows(ValidationException.class, () -> transport.get("path/foo", String.class));
+    assertThrows(ValidationException.class, () -> transport.get(String.class, "path/foo"));
     verifyNoMoreInteractions(delegate);
   }
 
   @Test
   public void testPost() throws Exception {
-    transport.post("path/foo", "request_content", String.class);
+    String unused = transport.post("request_content", String.class, "path/foo");
     verify(checker)
         .check(
             "path", "path/foo",
             "request", "request_content",
             "response_type", String.class);
-    verify(delegate).post(eq("path/foo"), eq("request_content"), eq(String.class));
+    verify(delegate).post(eq("path/foo"), eq("request_content"), eq(String.class), any());
   }
 
   @Test
@@ -79,7 +79,7 @@ public class GitHubApiTransportWithCheckerTest {
         .check(any(), any(), any(), any(), any(), any());
     assertThrows(
         ValidationException.class,
-        () -> transport.post("path/foo", "request_content", String.class));
+        () -> transport.post("request_content", String.class, "path/foo"));
     verifyNoMoreInteractions(delegate);
   }
 }

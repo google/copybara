@@ -68,22 +68,23 @@ public class GitHubApiTransportImplTest {
 
   @Test
   public void testGetThrowsIOException() throws Exception {
-    runTestThrowsIOException(() -> transport.get("foo/bar", String.class));
+    runTestThrowsIOException(() -> transport.get(String.class, "foo/bar"));
   }
 
   @Test
   public void testGetThrowsHttpResponseException() throws Exception {
-    runTestThrowsHttpResponseException(() -> transport.get("foo/bar", String.class));
+    runTestThrowsHttpResponseException(() -> transport.get(String.class, "foo/bar"));
   }
 
   @Test
   public void testPostThrowsIOException() throws Exception {
-    runTestThrowsIOException(() -> transport.post("foo/bar", String.class, Status.class));
+    runTestThrowsIOException(() -> transport.post(String.class, Status.class, "foo/bar"));
   }
 
   @Test
   public void testPostThrowsHttpResponseException() throws Exception {
-    runTestThrowsHttpResponseException(() -> transport.post("foo/bar", String.class, Status.class));
+    runTestThrowsHttpResponseException(() ->
+        transport.post("foo/bar", String.class, Status.class, "Foo"));
   }
 
   @Test
@@ -104,7 +105,7 @@ public class GitHubApiTransportImplTest {
       }
     };
     transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());
-    transport.get("foo/bar", String.class);
+    String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Basic dXNlcjpTRUNSRVQ="));
   }
 

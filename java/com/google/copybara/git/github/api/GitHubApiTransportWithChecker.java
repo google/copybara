@@ -34,22 +34,23 @@ public class GitHubApiTransportWithChecker implements GitHubApiTransport {
   }
 
   @Override
-  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers,
+      String requestType)
       throws RepoException, ValidationException {
     checker.check("path", path, "response_type", responseType);
-    return delegate.get(path, responseType, headers);
+    return delegate.get(path, responseType, headers, requestType);
   }
 
   @Override
-  public <T> T post(String path, Object request, Type responseType)
+  public <T> T post(String path, Object request, Type responseType, String requestType)
       throws RepoException, ValidationException {
     checker.check("path", path, "request", request, "response_type", responseType);
-    return delegate.post(path, request, responseType);
+    return delegate.post(path, request, responseType, requestType);
   }
 
   @Override
-  public void delete(String path) throws RepoException, ValidationException {
+  public void delete(String path, String requestType) throws RepoException, ValidationException {
     checker.check("path", path);
-    delegate.delete(path);
+    delegate.delete(path, requestType);
   }
 }

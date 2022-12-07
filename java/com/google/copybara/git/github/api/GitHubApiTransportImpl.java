@@ -73,12 +73,13 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers)
+  public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers,
+      String requestType)
       throws RepoException, ValidationException {
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent(), headers);
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
-
     try {
+      console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
       Object responseObj = response.parseAs(responseType);
@@ -135,13 +136,14 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T> T post(String path, Object request, Type responseType)
+  public <T> T post(String path, Object request, Type responseType, String requestType)
       throws RepoException, ValidationException {
     HttpRequestFactory requestFactory =
         getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
 
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
+      console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildPostRequest(url,
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
@@ -167,12 +169,13 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   }
 
   @Override
-  public void delete(String path) throws RepoException, ValidationException {
+  public void delete(String path, String requestType) throws RepoException, ValidationException {
     HttpRequestFactory requestFactory =
         getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
 
     GenericUrl url = new GenericUrl(URI.create(API_PREFIX + path));
     try {
+      console.verboseFmt("Executing %s", requestType);
       requestFactory.buildDeleteRequest(url).execute();
     } catch (HttpResponseException e) {
       throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),

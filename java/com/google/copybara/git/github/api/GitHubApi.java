@@ -31,6 +31,8 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -59,12 +61,13 @@ public class GitHubApi {
       String projectId, PullRequestListParams params)
       throws RepoException, ValidationException {
     Preconditions.checkNotNull(params);
-    return paginatedGet(String.format("repos/%s/pulls?per_page=%d%s",
-        projectId, MAX_PER_PAGE, params.toParams()),
+    return paginatedGet(
         "github_api_list_pulls",
         new TypeToken<PaginatedList<PullRequest>>() {
         }.getType(), "Project",
-        ImmutableListMultimap.of());
+        ImmutableListMultimap.of(),
+        "repos/%s/pulls?per_page=%d%s",
+        projectId, MAX_PER_PAGE, params.toParams());
   }
 
   public static class PullRequestListParams {
@@ -147,8 +150,7 @@ public class GitHubApi {
   public PullRequest getPullRequest(String projectId, long number)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_pull")) {
-      return transport.get(
-          String.format("repos/%s/pulls/%d", projectId, number), PullRequest.class);
+      return transport.get(PullRequest.class, "repos/%s/pulls/%d", projectId, number);
     } catch (GitHubApiException e) {
       throw treatGitHubException(e, "Pull Request");
     }
@@ -164,8 +166,7 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_pull_comment")) {
       return transport.get(
-          String.format("repos/%s/pulls/comments/%d", projectId, commentId),
-          PullRequestComment.class);
+          PullRequestComment.class, "repos/%s/pulls/comments/%d", projectId, commentId);
     } catch (GitHubApiException e) {
       throw treatGitHubException(e, "Pull Request Comment");
     }
@@ -180,11 +181,11 @@ public class GitHubApi {
   public ImmutableList<PullRequestComment> getPullRequestComments(String projectId, long prNumber)
       throws RepoException, ValidationException {
     return paginatedGet(
-        String.format("repos/%s/pulls/%d/comments?per_page=%d", projectId, prNumber, MAX_PER_PAGE),
         "github_api_get_reviews",
         new TypeToken<PaginatedList<PullRequestComment>>() {}.getType(),
         "Pull Request Comments",
-        ImmutableListMultimap.of());
+        ImmutableListMultimap.of(),
+        "repos/%s/pulls/%d/comments?per_page=%d", projectId, prNumber, MAX_PER_PAGE);
   }
 
   /**
@@ -195,23 +196,27 @@ public class GitHubApi {
    */
   public ImmutableList<Review> getReviews(String projectId, long number)
       throws RepoException, ValidationException {
-    return paginatedGet(String.format("repos/%s/pulls/%d/reviews?per_page=%d",
-        projectId, number, MAX_PER_PAGE),
+    return paginatedGet(
         "github_api_get_reviews",
         new TypeToken<PaginatedList<Review>>() {
         }.getType(),
         "Pull Request or project",
-        ImmutableListMultimap.of());
+        ImmutableListMultimap.of(),
+        "repos/%s/pulls/%d/reviews?per_page=%d",
+        projectId, number, MAX_PER_PAGE);
   }
 
-  private <T> ImmutableList<T> paginatedGet(String path, String profilerName, Type type,
-      String entity, ImmutableListMultimap<String, String> headers)
+  @FormatMethod
+  private <T> ImmutableList<T> paginatedGet(String profilerName, Type type,
+      String entity, ImmutableListMultimap<String, String> headers,
+      @FormatString String pathTemplate, Object... pathArgs)
       throws RepoException, ValidationException {
     ImmutableList.Builder<T> builder = ImmutableList.builder();
     int pages = 0;
+    String path = String.format(pathTemplate, pathArgs);
     while (path != null && pages < MAX_PAGES) {
       try (ProfilerTask ignore = profiler.start(String.format("%s_page_%d", profilerName, pages))) {
-        PaginatedList<T> page = transport.get(path, type, headers);
+        PaginatedList<T> page = transport.get(path, type, headers, "GET " + pathTemplate);
         builder.addAll(page);
         path = page.getNextUrl();
         pages++;
@@ -228,8 +233,7 @@ public class GitHubApi {
   public PullRequest createPullRequest(String projectId, CreatePullRequest request)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_create_pull")) {
-      return transport.post(
-          String.format("repos/%s/pulls", projectId), request, PullRequest.class);
+      return transport.post(request, PullRequest.class, "repos/%s/pulls", projectId);
     }
   }
 
@@ -239,8 +243,7 @@ public class GitHubApi {
   public PullRequest updatePullRequest(String projectId, long number, UpdatePullRequest request)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
-      return transport.post(
-          String.format("repos/%s/pulls/%s", projectId, number), request, PullRequest.class);
+      return transport.post(request, PullRequest.class, "repos/%s/pulls/%s", projectId, number);
     }
   }
 
@@ -251,13 +254,13 @@ public class GitHubApi {
    */
   public ImmutableList<PullRequest> listPullRequestsAssociatedWithACommit(String projectId,
       String sha) throws RepoException, ValidationException {
-    return paginatedGet(String.format("repos/%s/commits/%s/pulls?per_page=%d",
-        projectId, sha, MAX_PER_PAGE),
+    return paginatedGet(
         "github_api_list_pull_request for_sha1",
         new TypeToken<PaginatedList<PullRequest>>() {
         }.getType(), "Pull Request or project",
-        ImmutableListMultimap.of("Accept",
-            "application/vnd.github.groot-preview+json"));
+        ImmutableListMultimap.of("Accept", "application/vnd.github.groot-preview+json"),
+        "repos/%s/commits/%s/pulls?per_page=%d",
+        projectId, sha, MAX_PER_PAGE);
   }
 
   /**
@@ -268,8 +271,7 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_update_pull")) {
       return transport.get(
-          String.format("repos/%s/collaborators/%s/permission", projectId, usrLogin),
-          UserPermissionLevel.class);
+          UserPermissionLevel.class, "repos/%s/collaborators/%s/permission", projectId, usrLogin);
     }
   }
 
@@ -279,7 +281,7 @@ public class GitHubApi {
   public User getAuthenticatedUser()
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_authenticated_user")) {
-      return transport.get("user", User.class);
+      return transport.get(User.class, "user");
     }
   }
 
@@ -293,7 +295,7 @@ public class GitHubApi {
   public Issue getIssue(String projectId, long number)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_issue")) {
-      return transport.get(String.format("repos/%s/issues/%d", projectId, number), Issue.class);
+      return transport.get(Issue.class, "repos/%s/issues/%d", projectId, number);
     } catch (GitHubApiException e) {
       throw treatGitHubException(e, "Issue");
     }
@@ -305,8 +307,7 @@ public class GitHubApi {
   public Issue createIssue(String projectId, CreateIssueRequest request)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_create_issue")) {
-      return transport.post(
-          String.format("repos/%s/issues", projectId), request, Issue.class);
+      return transport.post(request, Issue.class, "repos/%s/issues", projectId);
     }
   }
 
@@ -318,9 +319,8 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_list_refs")) {
       List<Ref> result =
-          transport.get(String.format("repos/%s/git/refs?per_page=%d", projectId, MAX_PER_PAGE),
-              new TypeToken<List<Ref>>() {
-              }.getType());
+          transport.get(new TypeToken<List<Ref>>() {}.getType(),
+              "repos/%s/git/refs?per_page=%d", projectId, MAX_PER_PAGE);
 
       return ImmutableList.copyOf(result);
     } catch (GitHubApiException e) {
@@ -337,7 +337,8 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_create_status")) {
       Status result = transport.post(
-          String.format("repos/%s/statuses/%s", projectId, sha1), request, Status.class);
+          String.format(
+              "repos/%s/statuses/%s", projectId, sha1), request, Status.class, "Create status");
       if (result.getContext() == null || result.getState() == null) {
         throw new RepoException(
             String.format(
@@ -354,8 +355,7 @@ public class GitHubApi {
     checkArgument(ref.startsWith("refs/"),
         "References has to be complete references in the form of refs/heads/foo. But was: %s", ref);
     try (ProfilerTask ignore = profiler.start("github_api_update_reference")) {
-      Ref result = transport.post(
-          String.format("repos/%s/git/%s", projectId, ref), request, Ref.class);
+      Ref result = transport.post(request, Ref.class, "repos/%s/git/%s", projectId, ref);
       if (result.getRef() == null || result.getSha() == null || result.getUrl() == null) {
         throw new RepoException(
             String.format(
@@ -376,7 +376,7 @@ public class GitHubApi {
         + " branch for security reasons");
 
     try (ProfilerTask ignore = profiler.start("github_api_delete_reference")) {
-      transport.delete(String.format("repos/%s/git/%s", projectId, ref));
+      transport.delete("repos/%s/git/%s", projectId, ref);
     }
   }
 
@@ -384,20 +384,19 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_reference")) {
       checkCondition(ref.startsWith("refs/"), "Ref must start with \"refs/\"");
-      return transport.get(
-          String.format("repos/%s/git/%s", projectId, ref), Ref.class);
+      return transport.get(Ref.class, "repos/%s/git/%s", projectId, ref);
     }
   }
 
   public ImmutableList<Ref> getReferences(String projectId)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_references")) {
-      return paginatedGet(String.format("repos/%s/git/refs?per_page=%d",
-          projectId, MAX_PER_PAGE),
+      return paginatedGet(
           "github_api_get_references",
           new TypeToken<PaginatedList<Ref>>() {
           }.getType(), "Project",
-          ImmutableListMultimap.of());
+          ImmutableListMultimap.of(),
+          "repos/%s/git/refs?per_page=%d", projectId, MAX_PER_PAGE);
     }
   }
 
@@ -407,8 +406,8 @@ public class GitHubApi {
       // TODO(copybara-team): We might consider add paginatedGet to get all the statuses of a ref
       //  in future. At the moment, the latest 100 statues are enough as the older statues are
       //  useless.
-      return transport.get(String.format("repos/%s/commits/%s/status?per_page=%d", projectId, ref,
-          MAX_PER_PAGE), CombinedStatus.class);
+      return transport.get(CombinedStatus.class,
+          "repos/%s/commits/%s/status?per_page=%d", projectId, ref, MAX_PER_PAGE);
     }
   }
 
@@ -416,17 +415,17 @@ public class GitHubApi {
   public CheckRuns getCheckRuns(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
-      return transport.get(String.format("repos/%s/commits/%s/check-runs", projectId, ref),
+      return transport.get(
           CheckRuns.class, ImmutableListMultimap.of("Accept",
-              "application/vnd.github.antiope-preview+json"));
+              "application/vnd.github.antiope-preview+json"),
+          "repos/%s/commits/%s/check-runs", projectId, ref);
     }
   }
 
   public GitHubCommit getCommit(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_commit")) {
-      return transport.get(String.format("repos/%s/commits/%s", projectId, ref),
-          GitHubCommit.class);
+      return transport.get(GitHubCommit.class, "repos/%s/commits/%s", projectId, ref);
     }
   }
 
@@ -435,10 +434,9 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_add_labels")) {
       return ImmutableList.copyOf(transport.<List<Label>>post(
-          String.format("repos/%s/issues/%s/labels", project, prNumber),
           new AddLabels(labels),
           new TypeToken<List<Label>>() {
-          }.getType()));
+          }.getType(), "repos/%s/issues/%s/labels", project, prNumber));
     }
   }
 
@@ -448,8 +446,8 @@ public class GitHubApi {
 
     try (ProfilerTask ignore = profiler.start("github_api_post_comment")) {
       CommentBody request = new CommentBody(comment);
-      return transport.post(String.format("repos/%s/issues/%d/comments", projectId, issueNumber),
-          request, PullRequestComment.class);
+      return transport.post(request, PullRequestComment.class,
+          "repos/%s/issues/%d/comments", projectId, issueNumber);
     }
   }
 
@@ -459,7 +457,7 @@ public class GitHubApi {
    */
   public Installations getInstallations(String org) throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_installations")) {
-      return transport.get(String.format("orgs/%s/installations", org), Installations.class);
+      return transport.get(Installations.class, "orgs/%s/installations", org);
     }
   }
 
