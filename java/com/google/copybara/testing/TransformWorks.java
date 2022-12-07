@@ -79,4 +79,16 @@ public class TransformWorks {
         dummyRevision.getLabels(),
         /*changeFiles=*/ null);
   }
+
+  public static Change<DummyRevision> mergeChange(DummyRevision dummyRevision, Author author) {
+    return new Change<>(
+        dummyRevision,
+        author,
+        dummyRevision.getMessage(),
+        ZonedDateTime.now(ZoneId.systemDefault()),
+        dummyRevision.getLabels(),
+        null,
+        /* merge= */ true,
+        /* parents= */ null);
+  }
 }
