@@ -23,7 +23,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -40,14 +39,16 @@ public final class Input<T> {
   private final T defaultValue;
   private final Class<T> type;
   private final Converter<? extends T> converter;
+  private final boolean inferOnly;
 
   private Input(String name, String description, @Nullable T defaultValue, Class<T> type,
-      Converter<? extends T> converter) {
+      Converter<? extends T> converter, boolean inferOnly) {
     this.name = checkNotNull(name);
     this.description = checkNotNull(description);
     this.defaultValue = defaultValue;
     this.type = checkNotNull(type);
     this.converter = converter;
+    this.inferOnly = inferOnly;
   }
 
   /**
@@ -57,7 +58,20 @@ public final class Input<T> {
   public static <T> Input<T> create(String name, String description, @Nullable T defaultValue,
       Class<T> type, Converter<? extends T> converter) {
 
-    Input<T> result = new Input<>(name, description, defaultValue, type, converter);
+    Input<T> result = new Input<>(name, description, defaultValue, type, converter, false);
+    if (INPUTS.put(name, result) != null) {
+      throw new IllegalStateException("Two calls for the same Input name '" + name + "'");
+    }
+    return result;
+  }
+
+  /**
+   * Create an Input object that can only be inferred, never asked to the user.
+   */
+  public static <T> Input<T> createInfer(String name, String description, @Nullable T defaultValue,
+      Class<T> type, Converter<? extends T> converter) {
+
+    Input<T> result = new Input<>(name, description, defaultValue, type, converter, true);
     if (INPUTS.put(name, result) != null) {
       throw new IllegalStateException("Two calls for the same Input name '" + name + "'");
     }
@@ -106,10 +120,11 @@ public final class Input<T> {
    * <p>This class can be used mainly to validate that the type is the correct one and a convenient
    * and safe way of doing the cast required by the interface.
    */
-  @SuppressWarnings("unchecked") // The cast is safe as we are checking with the input type.
-  public <V> Optional<V> asValue(T value) {
+  // The cast is safe as we are checking with the input type.
+  @SuppressWarnings({"TypeParameterUnusedInFormals", "unchecked"})
+  public <V> V asValue(T value) {
     if (value == null) {
-      return Optional.empty();
+      throw new IllegalStateException("Null value for " + this);
     }
     checkArgument(
         type.isAssignableFrom(value.getClass()),
@@ -117,7 +132,7 @@ public final class Input<T> {
         name,
         type.getName(),
         value.getClass().getName());
-    return (Optional<V>) Optional.of(value);
+    return (V) value;
   }
 
   @Override
@@ -129,5 +144,9 @@ public final class Input<T> {
         .add("type", type)
         .add("converter", converter)
         .toString();
+  }
+
+  public boolean inferOnly() {
+    return inferOnly;
   }
 }

@@ -26,7 +26,6 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +39,7 @@ public class StarlarkConverterTest {
   public static final InputProviderResolver RESOLVER = new InputProviderResolver() {
 
     @Override
-    public <T> Optional<T> resolve(Input<T> input) {
+    public <T> T resolve(Input<T> input) {
       throw new IllegalStateException("Shouldn't be called in this test!");
     }
   };

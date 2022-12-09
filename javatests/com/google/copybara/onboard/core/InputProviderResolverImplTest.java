@@ -18,6 +18,7 @@ package com.google.copybara.onboard.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -50,6 +51,11 @@ public class InputProviderResolverImplTest {
           "just for test", null, String.class,
           (s, resolver) -> s);
 
+  private static final Input<String> INFER =
+      Input.createInfer("InputProviderResolverImplTestInfer",
+          "just for test", null, String.class,
+          (s, resolver) -> s);
+
   private static final Input<String> RESOLVE =
       Input.<String>create(
           "InputProviderResolverImplTestResolve",
@@ -58,12 +64,7 @@ public class InputProviderResolverImplTest {
           String.class,
           (s, resolver) -> {
             try {
-              Optional<String> val = resolver.resolve(TWO);
-              if (val.isPresent()) {
-                return val.get();
-              } else {
-                throw new CannotConvertException(String.format("Cannot convert %s", s));
-              }
+              return resolver.resolve(TWO);
             } catch (CannotProvideException e) {
               throw new CannotConvertException(
                   String.format("Cannot convert %s: %s", s, e.getMessage()));
@@ -95,7 +96,7 @@ public class InputProviderResolverImplTest {
             starlarkConverter,
             Mode.AUTO,
             console);
-    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("hello"));
+    assertThat(resolver.resolve(ONE)).isEqualTo("hello");
   }
 
   @Test
@@ -108,6 +109,33 @@ public class InputProviderResolverImplTest {
             Mode.FAIL,
             console);
     assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testInfer() throws Exception {
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new ConstantProvider<>(INFER, "aa")),
+            ImmutableList.of(),
+            starlarkConverter,
+            Mode.FAIL,
+            console);
+    assertThat(resolver.resolve(INFER)).isEqualTo("aa");
+  }
+
+  @Test
+  public void testInferNotFound() throws Exception {
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(new ConstantProvider<>(INFER, null)),
+            ImmutableList.of(),
+            starlarkConverter,
+            // We don't use the console to ask the user for a value
+            Mode.CONFIRM,
+            console);
+    assertThat(assertThrows(CannotProvideException.class, () -> resolver.resolve(INFER)))
+        .hasMessageThat().contains("Cannot find a value");
+    assertThat(resolver.resolveOptional(INFER)).isEmpty();
   }
 
   @Test
@@ -125,7 +153,7 @@ public class InputProviderResolverImplTest {
             starlarkConverter,
             Mode.CONFIRM,
             console);
-    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("my value"));
+    assertThat(resolver.resolve(ONE)).isEqualTo("my value");
   }
 
   @Test
@@ -138,9 +166,9 @@ public class InputProviderResolverImplTest {
             Mode.AUTO,
             console);
     // Cached under the same root call to resolve
-    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
+    assertThat(resolver.resolve(ONE)).isEqualTo("GOODGOOD");
     // Cached between root calls to resolve
-    assertThat(resolver.resolve(ONE)).isEqualTo(Optional.of("GOODGOOD"));
+    assertThat(resolver.resolve(ONE)).isEqualTo("GOODGOOD");
   }
 
   @Test
@@ -153,7 +181,7 @@ public class InputProviderResolverImplTest {
             starlarkConverter,
             Mode.AUTO,
             console);
-    assertThat(resolver.resolve(TWO)).isEqualTo(Optional.of("take this"));
+    assertThat(resolver.resolve(TWO)).isEqualTo("take this");
   }
 
   @Test
@@ -227,7 +255,7 @@ public class InputProviderResolverImplTest {
             starlarkConverter,
             Mode.AUTO,
             console);
-    assertThat(resolver.resolve(RESOLVE)).isEqualTo(Optional.of("other"));
+    assertThat(resolver.resolve(RESOLVE)).isEqualTo("other");
   }
 
   /**
@@ -251,7 +279,7 @@ public class InputProviderResolverImplTest {
       if (input == provides) {
         StringBuilder sb = new StringBuilder();
         for (Input<String> dependency : dependencies) {
-          Optional<String> resolve = db.resolve(dependency);
+          Optional<String> resolve = db.resolveOptional(dependency);
           if (resolve.isEmpty()) {
             return Optional.empty();
           }

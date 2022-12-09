@@ -70,16 +70,17 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
     Map<Input<?>, InputProvider> providersMap = new HashMap<>();
 
     for (Entry<Input<?>, Collection<InputProvider>> entry : map.asMap().entrySet()) {
+      // Resolver in priority order
+      PrioritizedInputProvider provider = new PrioritizedInputProvider(entry.getKey(),
+          entry.getValue());
       providersMap.put(
           entry.getKey(),
           // Cache any result
           new CachedInputProvider(
+              entry.getKey().inferOnly()
+              ? provider
               // Ask user for input depending on the mode
-              new AskInputProvider(
-                  // Resolver in priority order
-                  new PrioritizedInputProvider(entry.getKey(), entry.getValue()),
-                  askMode,
-                  console)));
+              : new AskInputProvider(provider, askMode, console)));
     }
     return new InputProviderResolverImpl(
         providersMap,
@@ -107,7 +108,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
 
   /** Resolve the value for an {@link Input} object. */
   @Override
-  public <T> Optional<T> resolve(Input<T> input)
+  public <T> T resolve(Input<T> input)
       throws InterruptedException, CannotProvideException {
     if (loopDetector.contains(input.name())) {
       throw new IllegalStateException(
@@ -145,22 +146,23 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
             ImmutableSet.<String>builder().addAll(loopDetector).add(input.name()).build()));
   }
 
-  private <T> Optional<T> resolveAndCheck(
+  private <T> T resolveAndCheck(
       Input<T> input, InputProvider provider, InputProviderResolver inputProviderResolver)
       throws InterruptedException, CannotProvideException {
     Optional<T> result = provider.resolve(input, inputProviderResolver);
-    if (result.isPresent()) {
-      try {
-        var unused = input.type().cast(result.get());
-      } catch (ClassCastException unused) {
-        throw new IllegalStateException(
-            String.format(
-                "Input provider %s returned an object of type %s, but %s requires an object"
-                    + " of type %s",
-                provider, result.get().getClass(), input, input.type()));
-      }
+    if (result.isEmpty()) {
+      throw new CannotProvideException(String.format(
+          "Cannot find a value for '%s' (%s)", input.description(), input.name()));
     }
-    return result;
+    try {
+      return input.type().cast(result.get());
+    } catch (ClassCastException unused) {
+      throw new IllegalStateException(
+          String.format(
+              "Input provider %s returned an object of type %s, but %s requires an object"
+                  + " of type %s",
+              provider, result.get().getClass(), input, input.type()));
+    }
   }
 
   @Override

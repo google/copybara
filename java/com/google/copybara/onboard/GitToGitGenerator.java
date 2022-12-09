@@ -54,10 +54,10 @@ public final class GitToGitGenerator extends TemplateConfigGenerator {
       throws InterruptedException, CannotProvideException {
     ImmutableMap.Builder<Field, Object> result = ImmutableMap.builder();
 
-    result.put(Field.required("origin_url"), resolver.resolve(Inputs.GIT_ORIGIN_URL).get());
+    result.put(Field.required("origin_url"), resolver.resolve(Inputs.GIT_ORIGIN_URL));
     result.put(Field.required("destination_url"),
-        resolver.resolve(Inputs.GIT_DESTINATION_URL).get());
-    result.put(Field.required("email"), resolver.resolve(Inputs.DEFAULT_AUTHOR).get());
+        resolver.resolve(Inputs.GIT_DESTINATION_URL));
+    result.put(Field.required("email"), resolver.resolve(Inputs.DEFAULT_AUTHOR));
 
     Optional<String> name = resolver.resolveOptional(Inputs.MIGRATION_NAME);
     result.put(Field.required("name"), name.isPresent() && !Strings.isNullOrEmpty(name.get())

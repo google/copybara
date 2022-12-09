@@ -32,7 +32,7 @@ public class MapBasedInputProviderTest {
   public static final InputProviderResolver RESOLVER = new InputProviderResolver() {
 
     @Override
-    public <T> Optional<T> resolve(Input<T> input) {
+    public <T> T resolve(Input<T> input) {
       throw new IllegalStateException("Shouldn't be called in this test!");
     }
   };

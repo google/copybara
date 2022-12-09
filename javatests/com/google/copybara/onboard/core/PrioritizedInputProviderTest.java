@@ -29,16 +29,14 @@ public class PrioritizedInputProviderTest {
   public static final InputProviderResolver RESOLVER = new InputProviderResolver() {
 
     @Override
-    public <T> Optional<T> resolve(Input<T> input) {
+    public <T> T resolve(Input<T> input) {
       throw new IllegalStateException("Shouldn't be called in this test!");
     }
   };
 
-  @SuppressWarnings("rawtypes")
   private static final Input<String> INPUT =
-      Input.create("PrioritizedInputProviderTest",
-      "just for test", null, String.class,
-          (s, resolver) -> s);
+      Input.create(
+          "PrioritizedInputProviderTest", "just for test", null, String.class, (s, resolver) -> s);
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {

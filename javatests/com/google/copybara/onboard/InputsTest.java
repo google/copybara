@@ -56,9 +56,9 @@ public class InputsTest {
     InputProviderResolver resolver =
         new InputProviderResolver() {
           @Override
-          public <T> Optional<T> resolve(Input<T> input)
-              throws InterruptedException, CannotProvideException {
-            return Optional.empty();
+          public <T> T resolve(Input<T> input)
+              throws CannotProvideException {
+            throw new CannotProvideException("Don't call me");
           }
 
           @Override

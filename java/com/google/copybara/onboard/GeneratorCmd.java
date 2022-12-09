@@ -79,12 +79,12 @@ public class GeneratorCmd implements CopybaraCmd {
               new StarlarkConverter(moduleSet, console),
               genOpts.askMode,
               console);
-      Optional<Path> path = resolver.resolve(Inputs.GENERATOR_FOLDER);
+      Optional<Path> path = resolver.resolveOptional(Inputs.GENERATOR_FOLDER);
       if (path.isEmpty()) {
         console.error("Cannot infer a path to place the generated config");
         return ExitCode.COMMAND_LINE_ERROR;
       }
-      Optional<ConfigGenerator> template = resolver.resolve(Inputs.TEMPLATE);
+      Optional<ConfigGenerator> template = resolver.resolveOptional(Inputs.TEMPLATE);
       if (template.isEmpty()) {
         console.error("Cannot infer a template for generating a config. Use --template flag.");
         return ExitCode.COMMAND_LINE_ERROR;

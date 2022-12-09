@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
-import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -34,7 +33,7 @@ public class TemplateConfigGeneratorTest {
   public static final InputProviderResolver RESOLVER = new InputProviderResolver() {
 
     @Override
-    public <T> Optional<T> resolve(Input<T> input) {
+    public <T> T resolve(Input<T> input) {
       throw new IllegalStateException("Shouldn't be called in this test!");
     }
   };

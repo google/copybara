@@ -28,7 +28,6 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -55,7 +54,7 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
     ImmutableSet<Input<?>> consumes = consumes();
     ImmutableMap<Field, Object> fields = resolve(new InputProviderResolver() {
       @Override
-      public <T> Optional<T> resolve(Input<T> input)
+      public <T> T resolve(Input<T> input)
           throws InterruptedException, CannotProvideException {
         if (!consumes.contains(input)) {
           throw new IllegalStateException(

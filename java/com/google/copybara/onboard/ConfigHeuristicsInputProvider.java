@@ -71,17 +71,17 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
   @Override
   public <T> Optional<T> resolve(Input<T> input, InputProviderResolver db)
       throws InterruptedException, CannotProvideException {
-    URL originUrl = db.resolve(Inputs.GIT_ORIGIN_URL).get();
-    String currentVersion = db.resolve(Inputs.CURRENT_VERSION).get();
+    URL originUrl = db.resolve(Inputs.GIT_ORIGIN_URL);
+    String currentVersion = db.resolve(Inputs.CURRENT_VERSION);
     // Technically this could be different from the config generator folder. But good enough
     // for now
-    Path destination = db.resolve(Inputs.GENERATOR_FOLDER).get();
+    Path destination = db.resolve(Inputs.GENERATOR_FOLDER);
     Optional<Result> result = computeHeuristic(originUrl, currentVersion, destination);
     if (result.isEmpty()) {
       return Optional.empty();
     }
     if (input == Inputs.ORIGIN_GLOB) {
-      return Inputs.ORIGIN_GLOB.asValue(result.get().getOriginGlob());
+      return Optional.of(Inputs.ORIGIN_GLOB.asValue(result.get().getOriginGlob()));
     }
     return Optional.empty();
   }

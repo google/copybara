@@ -27,19 +27,19 @@ import java.util.Optional;
 public interface InputProviderResolver {
 
   /**
-   * Given an {@link Input}, resolve to the corresponding value if possible
+   * Given an {@link Input}, resolve to the corresponding value
    *
    * @throws InterruptedException if user cancels the request (e.g. Ctrl break on the console)
    * @throws CannotProvideException if there is a failure during the resolution
    */
-  <T> Optional<T> resolve(Input<T> input) throws InterruptedException, CannotProvideException;
+  <T> T resolve(Input<T> input) throws InterruptedException, CannotProvideException;
 
   /**
    * Resolve an input that might not have a value but that it is optional.
    */
   default <T> Optional<T> resolveOptional(Input<T> input) throws InterruptedException {
     try {
-      return resolve(input);
+      return Optional.of(resolve(input));
     } catch (CannotProvideException e) {
       return Optional.empty();
     }
