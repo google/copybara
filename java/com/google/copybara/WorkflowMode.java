@@ -258,7 +258,12 @@ public enum WorkflowMode {
           runHelper,
           baseline,
           runHelper.workflowOptions().baselineForMergeImport == null
-              ? baseline.get().getOriginRevision()
+              ? baseline
+                  .orElseThrow(() ->
+                      new ValidationException(
+                          "Cannot read origin revision from baseline, please specify the baseline"
+                              + " using the --baseline-for-merge-import flag."))
+                  .getOriginRevision()
               : runHelper.originResolveLastRev(runHelper.workflowOptions().baselineForMergeImport));
     }},
     @DocField(
