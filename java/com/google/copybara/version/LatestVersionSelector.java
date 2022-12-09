@@ -74,7 +74,7 @@ public class LatestVersionSelector implements VersionSelector {
       }
 
       @Override
-      public Comparable<?> convert(String val) {
+      public Comparable<?> convert(String val) throws ValidationException {
         // Handles case for (.[0-9]+)?
         if (val.startsWith(".")) {
           val = val.substring(1);
@@ -82,7 +82,13 @@ public class LatestVersionSelector implements VersionSelector {
         if (val.isEmpty()) {
           return Integer.MIN_VALUE;
         }
-        return Integer.parseInt(val);
+        try {
+          return Integer.parseInt(val);
+        } catch (NumberFormatException e) {
+          throw new ValidationException(
+              String.format("Invalid number for numeric group: %s. Use sX instead of nX as"
+                  + " group name or extract the prefix part to the format string", val));
+        }
       }
     },
     ALPHABETIC {
@@ -101,7 +107,7 @@ public class LatestVersionSelector implements VersionSelector {
       return (this == NUMERIC ? "n" : "s") + idx;
     }
 
-    public abstract Comparable<?> convert(String val);
+    public abstract Comparable<?> convert(String val) throws ValidationException;
   }
 
   @Override
