@@ -97,7 +97,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         SameGitTree sameGitTree =
             new SameGitTree(scratchClone, repoUrl, generalOptions, partialFetch);
         PullRequest pullRequest =  pullRequests.get(0);
-        if (sameGitTree.hasSameTree(pullRequest.getHead().getSha())) {
+        if (skipUploadBasedOnPrStatus(pullRequest)
+            && sameGitTree.hasSameTree(pullRequest.getHead().getSha())) {
           throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
@@ -111,6 +112,38 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
           }
           throw e;
         }
+    }
+  }
+
+  private boolean skipUploadBasedOnPrStatus(PullRequest pullRequest) {
+    // TODO(malcon): Remove after 2023-01-31 once the feature is proven to be stable
+    if (generalOptions.isTemporaryFeature(
+        "DISABLE_PR_STATUS_SKIP_EMPTY_DIFF", false)) {
+      return true;
+    }
+    Boolean mergeable = pullRequest.isMergeable();
+    if (mergeable == null || !mergeable) {
+      console.verboseFmt("Not skipping upload because mergeable is: %s", mergeable);
+      return false;
+    }
+    String mergeableState = pullRequest.getMergeableState();
+    // By default, if we don't know the status (mergeable_state is not stable API), we upload
+    // a new patch
+    if (mergeableState == null) {
+      console.verbose("Not skipping upload because mergeable status is null");
+      return false;
+    }
+    // Using https://docs.github.com/en/graphql/reference/enums#mergestatestatus
+    switch (mergeableState) {
+      case "clean":
+      case "draft":
+      case "has_hooks":
+      case "behind":
+        console.verboseFmt("Skipping upload because mergeable status is %s", mergeableState);
+        return true;
+      default:
+        console.verboseFmt("Not skipping upload because mergeable status is %s", mergeableState);
+        return false;
     }
   }
 

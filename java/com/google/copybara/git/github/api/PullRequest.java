@@ -38,6 +38,8 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
   @Key private Boolean mergeable;
+  @Key("mergeable_state")
+  private String mergeableState;
   @Key private boolean draft;
 
   @StarlarkMethod(name = "head", doc = "Information about head", structField = true)
@@ -60,6 +62,11 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
     // Explicit null values in JSON data are not automatically converted to Java null; see
     // https://googleapis.github.io/google-http-java-client/json.html
     return Data.isNull(mergeable) ? null : mergeable;
+  }
+
+  @Nullable
+  public String getMergeableState() {
+    return mergeableState;
   }
 
   public ImmutableList<User> getRequestedReviewers() {

@@ -654,6 +654,8 @@ public class GitHubPrDestinationTest {
         + "  \"number\": 12345,\n"
         + "  \"state\": \"closed\",\n"
         + "  \"title\": \"test summary\",\n"
+        + "  \"mergeable\": true,\n"
+        + "  \"mergeable_state\": \"clean\",\n"
         + "  \"body\": \"test summary\","
         + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
         + "  \"base\": {\"sha\": \"" + baseline + "\"}"
@@ -678,6 +680,63 @@ public class GitHubPrDestinationTest {
         .hasMessageThat()
         .contains("Skipping push to the existing pr https://github.com/foo/pull/12345 "
             + "as the change feature is empty.");
+  }
+
+  @Test
+  public void emptyChangeButMergeableFalse() throws Exception {
+    String mergeableField = "  \"mergeable\": false,\n";
+    checkEmptyChangeButNonMergeable(mergeableField);
+  }
+
+  @Test
+  public void emptyChangeButMergeableStateUnstable() throws Exception {
+    String mergeableField = ""
+        + "  \"mergeable_state\": \"unstable\",\n"
+        + "  \"mergeable\": true,\n";
+    checkEmptyChangeButNonMergeable(mergeableField);
+  }
+
+  private void checkEmptyChangeButNonMergeable(String mergeableField) throws Exception {
+    Writer<GitRevision> writer = getWriterForTestEmptyDiff();
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
+    String baseline = remote.resolveReference("HEAD").getSha1();
+    addFiles(
+        remote,
+        "test_feature",
+        "second change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
+    String changeHead = remote.resolveReference("HEAD").getSha1();
+
+    gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
+        + "  \"id\": 1,\n"
+        + "  \"number\": 12345,\n"
+        + "  \"state\": \"open\",\n"
+        + "  \"title\": \"test summary\",\n"
+        + mergeableField
+        + "  \"body\": \"test summary\","
+        + "  \"head\": {\"sha\": \"" + changeHead + "\", \"ref\": \"test_feature\"},"
+        + "  \"base\": {\"sha\": \"" + baseline + "\", \"ref\": \"master\"}"
+        + "}]"));
+
+    writeFile(this.workdir, "foo.txt", "test");
+    ImmutableList<DestinationEffect> results = writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
+            .withChanges(new Changes(
+                ImmutableList.of(
+                    toChange(new DummyRevision("feature"),
+                        new Author("Foo Bar", "foo@bar.com"))),
+                ImmutableList.of()))
+            .withLabelFinder(
+                Functions.forMap(ImmutableMap.of("aaa", ImmutableList.of("first a", "second a")))),
+        Glob.ALL_FILES,
+        console);
+
+    assertThat(results.size()).isEqualTo(2);
   }
 
   @Test
