@@ -213,10 +213,22 @@ public class GerritApiTest {
   }
 
   @Test
-  public void testDeleteReviewer() throws Exception {
+  public void testDeleteReviewer_byAccountId() throws Exception {
     mockResponse(new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers/12345/delete"), "");
 
     gerritApi.deleteReviewer(CHANGE_ID, 12345, new DeleteReviewerInput(NotifyType.ALL));
+
+    assertThat(apiCalled.get()).isTrue();
+  }
+
+  @Test
+  public void testDeleteReviewer_byEmail() throws Exception {
+    mockResponse(
+        new CheckRequest("POST", "/changes/" + CHANGE_ID + "/reviewers/copybara@google.com/delete"),
+        "");
+
+    gerritApi.deleteReviewer(
+        CHANGE_ID, "copybara@google.com", new DeleteReviewerInput(NotifyType.ALL));
 
     assertThat(apiCalled.get()).isTrue();
   }
