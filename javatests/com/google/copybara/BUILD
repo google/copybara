@@ -96,6 +96,7 @@ all_tests(
         "//java/com/google/copybara/util:origin_util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:google_code_gson",
         "//third_party:guava_testlib",
         "//third_party:jcommander",
         "//third_party:jimfs",

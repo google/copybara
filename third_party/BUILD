@@ -119,9 +119,16 @@ java_library(
 )
 
 java_library(
-    name = "google_http_client",
+    name = "google_code_gson",
     exports = [
         "@maven//:com_google_code_gson_gson",
+    ],
+)
+
+java_library(
+    name = "google_http_client",
+    exports = [
+        ":google_code_gson",
         "@maven//:com_google_http_client_google_http_client",
         "@maven//:com_google_http_client_google_http_client_gson",
         "@maven//:commons_codec_commons_codec",
@@ -161,6 +168,7 @@ java_library(
     exports = [
         "@io_bazel//src/main/java/net/starlark/java/annot",
         "@io_bazel//src/main/java/net/starlark/java/eval",
+        "@io_bazel//src/main/java/net/starlark/java/lib/json",
         "@io_bazel//src/main/java/net/starlark/java/syntax",
     ],
 )

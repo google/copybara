@@ -54,6 +54,7 @@ import java.nio.file.FileSystem;
 import java.util.Map;
 import java.util.function.Function;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.lib.json.Json;
 
 /**
  * A supplier of modules and {@link Option}s for Copybara.
@@ -106,7 +107,8 @@ public class ModuleSupplier {
         new Re2Module(),
         new XmlModule(),
         new StructModule(),
-        new StarlarkDateTimeModule());
+        new StarlarkDateTimeModule(),
+        Json.INSTANCE);
   }
 
   /** Returns a new list of {@link Option}s. */
