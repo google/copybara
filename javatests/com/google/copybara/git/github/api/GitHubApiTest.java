@@ -22,6 +22,7 @@ import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.LowLevelHttpRequest;
 import com.google.api.client.http.LowLevelHttpResponse;
 import com.google.api.client.testing.http.MockHttpTransport;
@@ -32,6 +33,7 @@ import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.github.api.testing.AbstractGitHubApiTest;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -62,10 +64,15 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
   public GitHubApiTransport getTransport() throws Exception {
     credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
-    GitRepository repo = newBareRepo(Files.createTempDirectory("test_repo"),
-        getGitEnv(), /*verbose=*/true, DEFAULT_TIMEOUT, /*noVerify=*/ false)
-        .init()
-        .withCredentialHelper("store --file=" + credentialsFile);
+    GitRepository repo =
+        newBareRepo(
+                Files.createTempDirectory("test_repo"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .init()
+            .withCredentialHelper("store --file=" + credentialsFile);
 
     requestToResponse = new HashMap<>();
     requestValidators = new HashMap<>();
@@ -80,7 +87,7 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
                   public LowLevelHttpResponse execute() throws IOException {
                     System.err.println(getContentAsString());
 
-                    Predicate<String> validator = requestValidators.get(method + " " + url);
+                    Predicate<String> validator = requestValidators.get(requestString);
                     if (validator != null) {
                       assertWithMessage("Request content did not match expected values.")
                           .that(validator.test(getContentAsString()))
@@ -98,19 +105,21 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
                           + " 'documentation_url' : 'http://github.com/some_url'}",
                       method, url));
               response.setStatusCode(404);
-            } 
+            }
             request.setResponse(response);
             return request;
           }
         };
-    return new GitHubApiTransportImpl(repo, httpTransport, "some_storage_file",
-        new TestingConsole());
+    return new GitHubApiTransportImpl(
+        repo, httpTransport, "some_storage_file", new TestingConsole());
   }
 
   @Override
-  public void trainMockGetWithHeaders(String apiPath, byte[] response,
-      ImmutableMap<String, String> headers, int status) {
-    String path = String.format("GET https://api.github.com%s", apiPath);
+  public void trainMockGetWithHeaders(
+      String apiPath, byte[] response, ImmutableMap<String, String> headers, int status) {
+    GenericUrl encodedUrl =
+        new GenericUrl(URI.create(String.format("https://api.github.com%s", apiPath)));
+    String path = String.format("GET %s", encodedUrl);
     MockLowLevelHttpResponse httpResponse = new MockLowLevelHttpResponse().setContent(response);
     for (Entry<String, String> entry : headers.entrySet()) {
       httpResponse.addHeader(entry.getKey(), entry.getValue());

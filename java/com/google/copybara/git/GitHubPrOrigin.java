@@ -56,7 +56,9 @@ import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
+import com.google.copybara.git.github.api.GitHubApi.IssuesAndPullRequestsSearchRequestParams;
 import com.google.copybara.git.github.api.Issue;
+import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults;
 import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.Review;
@@ -255,21 +257,30 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   /** Given a commit SHA, use the GitHub API to (try to) look up info for a corresponding PR. */
   private PullRequest getPrFromSha(String project, String sha)
       throws RepoException, ValidationException {
-    ImmutableList<PullRequest> pullRequests =
-        gitHubOptions.newGitHubApi(project).listPullRequestsAssociatedWithACommit(project, sha);
+    GitHubApi gitHubApi = gitHubOptions.newGitHubApi(project);
+    IssuesAndPullRequestsSearchResults searchResults =
+        gitHubApi.getIssuesOrPullRequestsSearchResults(
+            new IssuesAndPullRequestsSearchRequestParams(
+                project,
+                sha,
+                IssuesAndPullRequestsSearchRequestParams.Type.PULL_REQUEST,
+                IssuesAndPullRequestsSearchRequestParams.State.OPEN));
+
+    ImmutableList<Long> prNumbers =
+        searchResults.getItems().stream().map(item -> item.getNumber()).collect(toImmutableList());
+
     // Only migrate a pr with not-closed state and head being equal to sha
-    ImmutableList<PullRequest> prs =
-        pullRequests.stream()
-            .filter(e -> requiredState.accepts(e) && e.getHead().getSha().equals(sha))
-            .collect(toImmutableList());
-    if (prs.isEmpty()) {
-      String stateClause = requiredState == StateFilter.ALL ? "" : (requiredState + " state and ");
-      throw new EmptyChangeException(
-          String.format("Could not find a pr with %shead being equal to sha %s", stateClause, sha));
-    }
     // Usually, it will return one pr. But there might be an extreme case with multiple prs
     // available. We temporarily handle one pr now.
-    return prs.get(0);
+    for (Long prNumber : prNumbers) {
+      PullRequest pullRequest = gitHubApi.getPullRequest(project, prNumber);
+      if (requiredState.accepts(pullRequest) && pullRequest.getHead().getSha().equals(sha)) {
+        return pullRequest;
+      }
+    }
+    String stateClause = requiredState == StateFilter.ALL ? "" : (requiredState + " state and ");
+    throw new EmptyChangeException(
+        String.format("Could not find a pr with %shead being equal to sha %s", stateClause, sha));
   }
 
   /** Given a PR number, use the GitHub API to look up the PR info. */

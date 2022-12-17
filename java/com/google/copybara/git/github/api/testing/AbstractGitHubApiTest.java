@@ -51,6 +51,8 @@ import com.google.copybara.git.github.api.Installation;
 import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
+import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults;
+import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults.IssuesAndPullRequestsSearchResult;
 import com.google.copybara.git.github.api.Label;
 import com.google.copybara.git.github.api.Organization;
 import com.google.copybara.git.github.api.PullRequest;
@@ -702,6 +704,25 @@ public abstract class AbstractGitHubApiTest {
           .resolve(System.getenv("TEST_WORKSPACE"))
           .resolve("java/com/google/copybara/git/github/api/testing")
           .resolve(testfile));
+  }
+
+  @Test
+  public void testGetIssuesOrPullRequestsSearchResults() throws Exception {
+    String sha = "a06cc12413a862266a1bf1148436eb783e101bc9";
+    String project = "google/copybara";
+    trainMockGet(
+        String.format("/search/issues?q=repo:%s+commit:%s+is:pr+state:closed", project, sha),
+        getResource("search_issues_and_pull_requests_result_testdata.json"));
+    IssuesAndPullRequestsSearchResults searchResults =
+        api.getIssuesOrPullRequestsSearchResults(
+            new GitHubApi.IssuesAndPullRequestsSearchRequestParams(
+                project,
+                sha,
+                GitHubApi.IssuesAndPullRequestsSearchRequestParams.Type.PULL_REQUEST,
+                GitHubApi.IssuesAndPullRequestsSearchRequestParams.State.CLOSED));
+    IssuesAndPullRequestsSearchResult searchResult =
+        Iterables.getOnlyElement(searchResults.getItems());
+    assertThat(searchResult.getNumber()).isEqualTo(16);
   }
 
   private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {

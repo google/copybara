@@ -19,9 +19,11 @@ package com.google.copybara.git.github.api;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.api.GitHubApiException.ResponseCode.CONFLICT;
+import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.reflect.TypeToken;
@@ -35,6 +37,7 @@ import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 /**
@@ -68,6 +71,64 @@ public class GitHubApi {
         ImmutableListMultimap.of(),
         "repos/%s/pulls?per_page=%d%s",
         projectId, MAX_PER_PAGE, params.toParams());
+  }
+
+  /** Creates param:value filter components */
+  public static class IssuesAndPullRequestsSearchRequestParams {
+    /** Filters for issues or pr. */
+    public static enum Type {
+      ISSUE("issue"),
+      PULL_REQUEST("pr");
+      private final String type;
+
+      private Type(String type) {
+        this.type = type;
+      }
+
+      private String asGitHubParamValue() {
+        return this.type;
+      }
+    }
+
+    /** Filters for closed or open state. */
+    public enum State {
+      OPEN,
+      CLOSED
+    }
+
+    private final String commit;
+    private final String repo;
+    private final String type;
+    private final String state;
+
+    private String withParameter(String parameter, String value) {
+      return !Strings.isNullOrEmpty(value) ? String.format("%s:%s", parameter, value) : "";
+    }
+
+    /**
+     * Creates filter params for searching issues and pull requests.
+     *
+     * @param repo - project name in the example form of google/copybara
+     * @param commit - filter issues and pull requests by involved commit sha.
+     * @param type - Filter for issues pull requests.
+     * @param state - Filter for closed or open pull requests and issues.
+     */
+    public IssuesAndPullRequestsSearchRequestParams(
+        String repo,
+        String commit,
+        IssuesAndPullRequestsSearchRequestParams.Type type,
+        State state) {
+      this.commit = withParameter("commit", commit);
+      this.repo = withParameter("repo", repo);
+      this.type = withParameter("is", type.asGitHubParamValue());
+      this.state = withParameter("state", Ascii.toLowerCase(state.toString()));
+    }
+
+    public String toParams() {
+      return Stream.of(this.repo, this.commit, this.type, this.state)
+          .filter(value -> !Strings.isNullOrEmpty(value))
+          .collect(joining("+"));
+    }
   }
 
   public static class PullRequestListParams {
@@ -248,19 +309,15 @@ public class GitHubApi {
   }
 
   /**
-   * https://developer.github.com/v3/repos/commits/#list-pull-requests-associated-with-a-commit
-   * Listing branches or pull requests for a commit in the Commits API is currently available for
-   * developers to preview.
+   * https://docs.github.com/en/rest/search?apiVersion=2022-11-28#search-issues-and-pull-requests
+   * Listing issues and pull based on {@code params}
    */
-  public ImmutableList<PullRequest> listPullRequestsAssociatedWithACommit(String projectId,
-      String sha) throws RepoException, ValidationException {
-    return paginatedGet(
-        "github_api_list_pull_request for_sha1",
-        new TypeToken<PaginatedList<PullRequest>>() {
-        }.getType(), "Pull Request or project",
-        ImmutableListMultimap.of("Accept", "application/vnd.github.groot-preview+json"),
-        "repos/%s/commits/%s/pulls?per_page=%d",
-        projectId, sha, MAX_PER_PAGE);
+  public IssuesAndPullRequestsSearchResults getIssuesOrPullRequestsSearchResults(
+      IssuesAndPullRequestsSearchRequestParams params) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_search_issues_or_pull_requests")) {
+      return transport.get(
+          IssuesAndPullRequestsSearchResults.class, "search/issues?q=%s", params.toParams());
+    }
   }
 
   /**

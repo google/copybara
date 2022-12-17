@@ -1464,6 +1464,18 @@ public class GitHubPrOriginTest {
       mockIssuesApi();
       mockStatusApi();
       mockCheckRunsApi();
+      mockSearchPullRequestApi();
+    }
+
+    private void mockSearchPullRequestApi() {
+      String content = String.format("{\"items\" : [ {\"number\": %s} ]}", prNumber);
+      gitUtil.mockApi(
+          eq("GET"),
+          eq(
+              String.format(
+                  "https://api.github.com/search/issues?q=repo:google/example%%20commit:%s%%20is:pr%%20state:open",
+                  sha)),
+          mockResponse(content));
     }
 
     private void mockPullsApi() {
@@ -1514,10 +1526,6 @@ public class GitHubPrOriginTest {
           eq("GET"),
           eq("https://api.github.com/repos/google/example/pulls/" + prNumber),
           mockResponse(content));
-      gitUtil.mockApi(
-          eq("GET"),
-          eq("https://api.github.com/repos/google/example/commits/" + sha + "/pulls?per_page=100"),
-          mockResponse("[" + content + "]"));
     }
 
     private void mockIssuesApi() {
