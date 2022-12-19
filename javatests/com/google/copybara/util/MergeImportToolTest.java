@@ -17,13 +17,13 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.copybara.util.console.Message;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -98,6 +98,31 @@ public final class MergeImportToolTest {
   }
 
   @Test
+  public void testBinaryFileSkipped() throws Exception {
+    String fileName = "foo.bin";
+    Files.createDirectories(originWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(originWorkdir, fileName, new byte[] {1, 2, 3, 4, 5});
+    Files.createDirectories(baselineWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(baselineWorkdir, fileName, new byte[] {});
+    Files.createDirectories(destinationWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(
+        destinationWorkdir,
+        fileName,
+        // captured from problematic binary file
+        "\n˝\u000E\n#unittest_import_public_proto3.proto\u0012\u0018protobuf_unittest_import\"#\n\u0013PublicImportMessage\u0012\f\n\u0001e\u0018\u0001 \u0001(\u0005R\u0001eB\u001D™\u0002\u001AGoogle.Protobuf.TestProtosJÔ\n\u0006\u0012\u0004 \u0000(\u0001\nˆ\f\n \u0001\f\u0012\u0003 \u0000\u00122¡\f"
+            .getBytes(UTF_8));
+
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
+
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            String.format(
+                "diff3 exited with code 2 for path %s, skipping", originWorkdir.resolve(fileName)));
+  }
+
+  @Test
   public void testMergeConflict() throws Exception {
     String fileName = "foo.txt";
     writeFile(baselineWorkdir, fileName, "a\nb\nc\n");
@@ -106,8 +131,11 @@ public final class MergeImportToolTest {
 
     underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
-    assertThat(console.getMessages().stream().map(Message::getText).collect(Collectors.toList()))
-        .contains(String.format("Merge error for path %s", originWorkdir.resolve(fileName)));
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            String.format("Merge error for path %s", originWorkdir.resolve(fileName)));
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
         .isEqualTo(
             String.format(
@@ -133,6 +161,12 @@ public final class MergeImportToolTest {
     Path path = parent.resolve(name);
     Files.createDirectories(path);
     return path;
+  }
+
+  private void writeBinaryFile(Path parent, String fileName, byte[] fileContents) throws Exception {
+    Path filePath = parent.resolve(fileName);
+    Files.createDirectories(filePath.getParent());
+    Files.write(filePath, fileContents);
   }
 
   private void writeFile(Path parent, String fileName, String fileContents) throws IOException {

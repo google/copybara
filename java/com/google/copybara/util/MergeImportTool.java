@@ -75,26 +75,24 @@ public final class MergeImportTool {
       throws IOException, ValidationException {
     HashSet<Path> visitedSet = new HashSet<>();
     HashSet<Path> mergeErrorPaths = new HashSet<>();
+    HashSet<Path> troublePaths = new HashSet<>();
     HashSet<FilePathInformation> filesToProcess = new HashSet<>();
 
     SimpleFileVisitor<Path> originWorkdirFileVisitor =
         new SimpleFileVisitor<Path>() {
           @Override
-          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-              throws IOException {
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
             if (attrs.isSymbolicLink()) {
               return FileVisitResult.CONTINUE;
             }
             Path relativeFile = originWorkdir.relativize(file);
             Path baselineFile = baselineWorkdir.resolve(relativeFile);
             Path destinationFile = destinationWorkdir.resolve(relativeFile);
-            CommandOutputWithStatus output;
             if (!Files.exists(destinationFile) || !Files.exists(baselineFile)) {
               return FileVisitResult.CONTINUE;
             }
             filesToProcess.add(
                 FilePathInformation.create(file, relativeFile, baselineFile, destinationFile));
-
 
             return FileVisitResult.CONTINUE;
           }
@@ -135,11 +133,17 @@ public final class MergeImportTool {
     for (OperationResults result : results) {
       visitedSet.addAll(result.visitedFiles());
       mergeErrorPaths.addAll(result.mergeErrorPaths());
+      troublePaths.addAll(result.troublePaths());
     }
     Files.walkFileTree(destinationWorkdir, destinationWorkdirFileVisitor);
     if (!mergeErrorPaths.isEmpty()) {
       mergeErrorPaths.forEach(
           path -> console.warn(String.format("Merge error for path %s", path.toString())));
+    }
+    if (!troublePaths.isEmpty()) {
+      troublePaths.forEach(
+          path ->
+              console.warn(String.format("diff3 exited with code 2 for path %s, skipping", path)));
     }
   }
 
@@ -156,6 +160,7 @@ public final class MergeImportTool {
     public OperationResults run(Iterable<FilePathInformation> elements) throws IOException {
       HashSet<Path> visitedSet = new HashSet<>();
       HashSet<Path> mergeErrorPaths = new HashSet<>();
+      HashSet<Path> troublePaths = new HashSet<>();
 
       for (FilePathInformation paths : elements) {
         Path file = paths.file();
@@ -172,6 +177,9 @@ public final class MergeImportTool {
           if (output.getTerminationStatus().getExitCode() == 1) {
             mergeErrorPaths.add(file);
           }
+          if (output.getTerminationStatus().getExitCode() == 2) {
+            troublePaths.add(file);
+          }
         } catch (CommandException e) {
           throw new IOException(
               String.format("Could not execute diff tool %s", commandLineDiffUtil.diffBin), e);
@@ -180,7 +188,9 @@ public final class MergeImportTool {
       }
 
       return OperationResults.create(
-          ImmutableSet.copyOf(visitedSet), ImmutableSet.copyOf(mergeErrorPaths));
+          ImmutableSet.copyOf(visitedSet),
+          ImmutableSet.copyOf(mergeErrorPaths),
+          ImmutableSet.copyOf(troublePaths));
     }
   }
 
@@ -210,12 +220,17 @@ public final class MergeImportTool {
   @AutoValue
   abstract static class OperationResults {
     static OperationResults create(
-        ImmutableSet<Path> visitedFiles, ImmutableSet<Path> mergeErrorPaths) {
-      return new AutoValue_MergeImportTool_OperationResults(visitedFiles, mergeErrorPaths);
+        ImmutableSet<Path> visitedFiles,
+        ImmutableSet<Path> mergeErrorPaths,
+        ImmutableSet<Path> troublePaths) {
+      return new AutoValue_MergeImportTool_OperationResults(
+          visitedFiles, mergeErrorPaths, troublePaths);
     }
 
     abstract ImmutableSet<Path> visitedFiles();
 
     abstract ImmutableSet<Path> mergeErrorPaths();
+
+    abstract ImmutableSet<Path> troublePaths();
   }
 }
