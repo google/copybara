@@ -132,7 +132,8 @@ public class CheckRun implements StarlarkValue {
   public enum Status {
     @Value("queued") QUEUED,
     @Value("in_progress") IN_PROGRESS,
-    @Value("completed") COMPLETED;
+    @Value("completed") COMPLETED,
+    @Value("pending") PENDING;
   }
 
   /**
