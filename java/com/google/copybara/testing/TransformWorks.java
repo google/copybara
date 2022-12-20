@@ -54,6 +54,21 @@ public class TransformWorks {
         () -> DestinationReader.NOT_IMPLEMENTED);
   }
 
+  /** Creates an instance with reasonable defaults for testing, including a DestinationReader */
+  public static TransformWork of(
+      Path checkoutDir, String msg, Console console, DestinationReader destinationReader) {
+    return new TransformWork(
+        checkoutDir,
+        new Metadata(msg, new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
+        Changes.EMPTY,
+        console,
+        new MigrationInfo(DummyOrigin.LABEL_NAME, /* destinationVisitable= */ null),
+        new DummyRevision("1234567890"),
+        c -> new DummyEndpoint(),
+        c -> new DummyEndpoint(),
+        () -> destinationReader);
+  }
+
   /**
    * Creates an instance with reasonable defaults for testing.
    */

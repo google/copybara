@@ -22,8 +22,10 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import java.nio.file.Path;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
 /** An api handle to read files from the destination, rather than just the origin. */
@@ -41,7 +43,7 @@ public abstract class DestinationReader implements StarlarkValue {
         }
 
         @Override
-        public void copyDestinationFiles(Glob path) throws RepoException {
+        public void copyDestinationFiles(Glob glob, Object path) throws RepoException {
           throw new RepoException("Reading files is not implemented by this destination");
         }
 
@@ -65,7 +67,7 @@ public abstract class DestinationReader implements StarlarkValue {
         }
 
         @Override
-        public void copyDestinationFiles(Glob path) {}
+        public void copyDestinationFiles(Glob glob, Object path) {}
 
         @Override
         public void copyDestinationFilesToDirectory(Glob glob, Path directory) {}
@@ -106,6 +108,15 @@ public abstract class DestinationReader implements StarlarkValue {
             doc =
                 "Files to copy to the "
                     + "workdir, potentially overwriting files checked out from the origin."),
+        @Param(
+            name = "path",
+            named = true,
+            doc = "Optional path to copy the files to",
+            allowedTypes = {
+              @ParamType(type = CheckoutPath.class),
+              @ParamType(type = NoneType.class)
+            },
+            defaultValue = "None")
       })
   @Example(
       title = "Copy files from the destination's baseline",
@@ -122,7 +133,8 @@ public abstract class DestinationReader implements StarlarkValue {
               + "deleted.")
   @SuppressWarnings("unused")
   // TODO(joshgoldman): refactor this out in favor of directory-specific version
-  public abstract void copyDestinationFiles(Glob glob) throws RepoException, ValidationException;
+  public abstract void copyDestinationFiles(Glob glob, Object path)
+      throws RepoException, ValidationException;
 
   /**
    * Similar to {@code copyDestinationFiles()} but specifies a destination directory (instead of

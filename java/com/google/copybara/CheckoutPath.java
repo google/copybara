@@ -200,6 +200,10 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return path;
   }
 
+  public Path getCheckoutDir() {
+    return checkoutDir;
+  }
+
   @Override
   public String toString() {
     return path.toString();

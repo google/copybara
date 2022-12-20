@@ -1438,7 +1438,7 @@ Handle to read from the destination
 
 Copy files from the destination into the workdir.
 
-`destination_reader.copy_destination_files(glob)`
+`destination_reader.copy_destination_files(glob, path=None)`
 
 
 #### Parameters:
@@ -1446,6 +1446,7 @@ Copy files from the destination into the workdir.
 Parameter | Description
 --------- | -----------
 glob | [`glob`](#glob)<br><p>Files to copy to the workdir, potentially overwriting files checked out from the origin.</p>
+path | [`Path`](#path) or `NoneType`<br><p>Optional path to copy the files to</p>
 
 
 #### Example:
