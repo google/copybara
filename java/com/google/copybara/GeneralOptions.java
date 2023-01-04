@@ -145,6 +145,10 @@ public final class GeneralOptions implements Option {
     return force;
   }
 
+  public boolean isVersionSelectorUseCliRef() {
+    return versionSelectorUseCliRef;
+  }
+
   /**
    * Returns current working directory
    */
@@ -272,6 +276,11 @@ public final class GeneralOptions implements Option {
   }
 
   @VisibleForTesting
+  public void setVersionSelectorUseCliRefForTest(boolean versionSelectorUseCliRef) {
+    this.versionSelectorUseCliRef = versionSelectorUseCliRef;
+  }
+
+  @VisibleForTesting
   public void setCliLabelsForTest(ImmutableMap<String, String> labels) {
     this.labels = labels;
   }
@@ -353,6 +362,14 @@ public final class GeneralOptions implements Option {
               + " ancestor of the one(s) being migrated. This should be used with care, as it"
               + " could lose changes when migrating a previous/conflicting change.")
   boolean force = false;
+
+  @Parameter(
+      names = "--version-selector-use-cli-ref",
+      description =
+          "If command line ref is to used with a version selector, pass this flag to tell copybara"
+              + " to use it.",
+      arity = 1)
+  boolean versionSelectorUseCliRef = true;
 
   @Parameter(
       names = CONFIG_ROOT_FLAG,

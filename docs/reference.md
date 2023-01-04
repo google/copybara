@@ -638,6 +638,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--repo-timeout`</span> | *duration* | Repository operation timeout duration.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
 <span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior to execution, but this might break legacy configs. Options are LOOSE, STRICT
+<span style="white-space: nowrap;">`--version-selector-use-cli-ref`</span> | *boolean* | If command line ref is to used with a version selector, pass this flag to tell copybara to use it.
 <span style="white-space: nowrap;">`-v, --verbose`</span> | *boolean* | Verbose output.
 
 <a id="core.action" aria-hidden="true"></a>
