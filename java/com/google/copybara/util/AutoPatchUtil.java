@@ -18,6 +18,7 @@ package com.google.copybara.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /** A utility class to automatically generate patch files */
 public final class AutoPatchUtil {
@@ -43,12 +45,19 @@ public final class AutoPatchUtil {
       Path writePath,
       boolean verbose,
       Map<String, String> environment,
-      String patchFilePrefix,
-      String patchFileNameSuffix,
+      @Nullable String patchFilePrefix,
+      @Nullable String patchFileNameSuffix,
       Path configDirectory,
       boolean stripFileNames)
       throws IOException, InsideGitDirException {
-
+    if (patchFilePrefix == null) {
+      patchFilePrefix = "";
+    }
+    if (patchFileNameSuffix == null) {
+      patchFileNameSuffix = "";
+    }
+    // TODO(b/265029367): Remove this check and fix it
+    Preconditions.checkNotNull(configDirectory);
     ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
     // TODO: make this configurable
     for (DiffFile diffFile : diffFiles) {

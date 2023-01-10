@@ -150,6 +150,28 @@ public final class AutoPatchUtilTest {
     assertThat(Files.exists(out.resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
   }
 
+  @Test
+  public void nullValues() throws Exception {
+    writeFile(left, SOME_DIR.concat("/file1.txt"), "foo");
+    writeFile(left, SOME_DIR.concat("/b/file2.txt"), "bar");
+    writeFile(right, SOME_DIR.concat("/file1.txt"), "foo2");
+    writeFile(right, SOME_DIR.concat("/b/file2.txt"), "bar2");
+
+    AutoPatchUtil.generatePatchFiles(
+        left,
+        right,
+        out,
+        VERBOSE,
+        System.getenv(),
+        null,
+        null,
+        Path.of(SOME_DIR),
+        true);
+
+    assertThat(Files.exists(out.resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
+    assertThat(Files.exists(out.resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
+  }
+
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);
     Files.createDirectories(path);
