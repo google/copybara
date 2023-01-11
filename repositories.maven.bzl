@@ -43,6 +43,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("org.mockito", "mockito-core", "4.5.1", testonly = True),
     maven.artifact("org.objenesis", "objenesis", "1.0", testonly = True),
     maven.artifact("org.apache.commons", "commons-compress", "1.21"),
+    maven.artifact("org.tomlj", "tomlj", "1.1.0"),
 ]
 
 COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES = [

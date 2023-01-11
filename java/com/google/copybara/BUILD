@@ -230,6 +230,7 @@ java_library(
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",
+        "//java/com/google/copybara/toml",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/debug",
         "//java/com/google/copybara/transform/patch",

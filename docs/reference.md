@@ -196,6 +196,10 @@
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
+  - [toml](#toml)
+    - [toml.parse](#tomlparse)
+  - [TomlContent](#tomlcontent)
+    - [TomlContent.get](#tomlcontentget)
   - [transformation](#transformation)
   - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
@@ -4615,6 +4619,72 @@ Structs are immutable objects to group values.
 ```python
 my_struct = struct(foo='bar')
 x = my_struct.foo
+```
+
+
+
+
+## toml
+
+Module for parsing TOML in Copybara.
+
+<a id="toml.parse" aria-hidden="true"></a>
+### toml.parse
+
+Parse the TOML content. Returns a toml object.
+
+[`TomlContent`](#tomlcontent) `toml.parse(content)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+content | `string`<br><p>TOML content to be parsed</p>
+
+
+#### Example:
+
+
+##### Parsing a TOML string:
+
+To parse a TOML string, pass the string into the parser.
+
+```python
+toml.parse("foo = 42")
+```
+
+
+
+
+## TomlContent
+
+Object containing parsed TOML values.
+
+<a id="TomlContent.get" aria-hidden="true"></a>
+### TomlContent.get
+
+Retrieve the value from the parsed TOML for the given key. If the key is not defined, this will return None.
+
+`unknown` `TomlContent.get(key)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+key | `string`<br><p>The dotted key expression</p>
+
+
+#### Example:
+
+
+##### Get the value for a key:
+
+Pass in the name of the key. This will return the value.
+
+```python
+TomlContent.get("foo")
 ```
 
 
