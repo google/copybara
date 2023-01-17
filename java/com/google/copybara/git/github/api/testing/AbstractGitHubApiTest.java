@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
-import com.google.copybara.git.github.api.CheckRuns;
+import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -595,25 +595,33 @@ public abstract class AbstractGitHubApiTest {
 
   @Test
   public void test_getCheckRuns_success() throws Exception {
-    trainMockGet("/repos/example/project/commits/12345/check-runs",
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-runs?per_page=100",
         getResource("get_check_runs_testdata.json"));
-    CheckRuns checkRuns =
-        api.getCheckRuns("example/project", "12345");
-    assertThat(checkRuns.getTotalCount()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo("completed");
-    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo("neutral");
-    assertThat(checkRuns.getCheckRuns().get(0).getDetailUrl()).isEqualTo("https://example.com");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getId()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getName()).isEqualTo("Octocat App");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getSlug()).isEqualTo("octoapp");
+    ImmutableList<CheckRun> checkRuns = api.getCheckRuns("example/project", "12345");
+    assertThat(checkRuns.size()).isEqualTo(1);
+    assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
+    assertThat(checkRuns.get(0).getDetailUrl()).isEqualTo("https://example.com");
+    assertThat(checkRuns.get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkRuns.get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkRuns.get(0).getApp().getSlug()).isEqualTo("octoapp");
   }
 
   @Test
   public void testGetCheckRunsHeader_containGitHubHeader() throws Exception {
     api = new GitHubApi(transport, profiler);
-    api.getCheckRuns("example/project", "12345");
+    try {
+      api.getCheckRuns("example/project", "12345");
+    } catch (NullPointerException e) {
+      // Expected error.
+    }
     verify(transport)
-        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs"), any());
+        .get(
+            any(),
+            any(),
+            headerCaptor.capture(),
+            eq("GET repos/%s/commits/%s/check-runs?per_page=%d"));
     assertThat(headerCaptor.getValue())
         .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
   }

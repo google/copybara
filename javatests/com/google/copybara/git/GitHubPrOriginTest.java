@@ -1591,18 +1591,16 @@ public class GitHubPrOriginTest {
     }
 
     private void mockCheckRunsApi() {
-      JsonObject response = new JsonObject();
-      JsonArray testStatuses = new JsonArray();
+      JsonArray response = new JsonArray();
       for (Map.Entry<String, String> entry : checkRuns.entrySet()) {
         JsonObject status = new JsonObject();
         status.addProperty("name", entry.getKey());
         status.addProperty("conclusion", entry.getValue());
-        testStatuses.add(status);
+        response.add(status);
       }
-      response.add("check_runs", testStatuses);
       gitUtil.mockApi(
           "GET",
-          "https://api.github.com/repos/google/example/commits/" + sha + "/check-runs",
+          "https://api.github.com/repos/google/example/commits/" + sha + "/check-runs?per_page=100",
           mockResponse(response.toString()));
     }
   }
