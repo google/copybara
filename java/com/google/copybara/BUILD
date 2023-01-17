@@ -185,18 +185,31 @@ java_library(
 )
 
 java_library(
+    name = "starlark_date_time_module",
+    srcs = ["StarlarkDateTimeModule.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//third_party:guava",
+        "//third_party:starlark",
+    ],
+)
+
+java_library(
     name = "copybara_lib",
     srcs = glob(
         ["**/*.java"],
         exclude = [
             "Main.java",
             "GeneralOptions.java",
+            "StarlarkDateTimeModule.java",
         ] + BASE_SRCS,
     ),
     javacopts = JAVACOPTS,
     deps = [
         ":base",
         ":general_options",
+        "//java/com/google/copybara:starlark_date_time_module",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
