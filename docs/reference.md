@@ -4476,7 +4476,7 @@ A RE2 regex pattern object to perform regexes in Starlark
 <a id="re2_pattern.matcher" aria-hidden="true"></a>
 ### re2_pattern.matcher
 
-Return true if the string matches the regex pattern
+Return a Matcher for the given input.
 
 [`re2_matcher`](#re2_matcher) `re2_pattern.matcher(input)`
 
