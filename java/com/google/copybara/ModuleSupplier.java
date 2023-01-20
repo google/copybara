@@ -37,6 +37,7 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.go.GoModule;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
@@ -110,6 +111,7 @@ public class ModuleSupplier {
         new XmlModule(),
         new StructModule(),
         new StarlarkDateTimeModule(),
+        new GoModule(options.get(RemoteFileOptions.class)),
         Json.INSTANCE);
   }
 

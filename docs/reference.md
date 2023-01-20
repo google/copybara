@@ -150,6 +150,9 @@
     - [glob](#glob)
     - [new_author](#new_author)
     - [parse_message](#parse_message)
+  - [go](#go)
+    - [go.go_proxy_resolver](#gogo_proxy_resolver)
+    - [go.go_proxy_version_list](#gogo_proxy_version_list)
   - [hg](#hg)
     - [hg.origin](#hgorigin)
   - [mapping_function](#mapping_function)
@@ -3471,6 +3474,56 @@ Returns a ChangeMessage parsed from a well formed string.
 Parameter | Description
 --------- | -----------
 message | `string`<br><p>The contents of the change message</p>
+
+
+
+## go
+
+Module for Go related starlark operations
+
+<a id="go.go_proxy_resolver" aria-hidden="true"></a>
+### go.go_proxy_resolver
+
+Go resolver that knows what to do with command line passed refs.
+
+`VersionResolver` `go.go_proxy_resolver(module)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+module | `string`<br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+
+<a id="go.go_proxy_version_list" aria-hidden="true"></a>
+### go.go_proxy_version_list
+
+Returns go proxy version list object
+
+`GoProxyVersionList` `go.go_proxy_version_list(module, ref=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+module | `string`<br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+ref | `string` or `NoneType`<br><p>This parameter is primarily used to track versions at specific branches and revisions. If a value is supplied, the returned version list will attempt to extract version data from ${ref}.info found with go proxy at the /@v/${ref}.info endpoint. You can leave off the .info suffix.</p>
+
+
+#### Example:
+
+
+##### Create a version list for a given go package:
+
+Example of how create a version list for github.com/google/gopacket
+
+```python
+go.go_proxy_version_list(
+        module='github.com/google/gopacket'
+)
+```
+
 
 
 
