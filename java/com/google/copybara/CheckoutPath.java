@@ -237,6 +237,13 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     }
   }
 
+  @StarlarkMethod(
+          name = "exists",
+          doc = "Check whether a file, directory or symlink exists at this path")
+  public boolean fileExists() {
+    return Files.exists(checkoutDir.resolve(path));
+  }
+
   public Path getPath() {
     return path;
   }

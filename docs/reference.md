@@ -175,6 +175,7 @@
     - [patch.apply](#patchapply)
     - [patch.quilt_apply](#patchquilt_apply)
   - [Path](#path)
+    - [path.exists](#pathexists)
     - [path.read_symlink](#pathread_symlink)
     - [path.relativize](#pathrelativize)
     - [path.remove](#pathremove)
@@ -4361,6 +4362,13 @@ attr | [`PathAttributes`](#pathattributes)<br><p>Get the file attributes, for ex
 name | `string`<br><p>Filename of the path. For foo/bar/baz.txt it would be baz.txt</p>
 parent | `unknown`<br><p>Get the parent path</p>
 path | `string`<br><p>Full path relative to the checkout directory</p>
+
+<a id="path.exists" aria-hidden="true"></a>
+### path.exists
+
+Check whether a file, directory or symlink exists at this path
+
+`bool` `path.exists()`
 
 <a id="path.read_symlink" aria-hidden="true"></a>
 ### path.read_symlink
