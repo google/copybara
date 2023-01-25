@@ -534,6 +534,34 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testWriteWithForbiddenPushOptions() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    options.git.gitPushOptions = ImmutableList.of("forbiddenPushOption");
+    options.git.allowedGitPushOptions = ImmutableList.of("allowedPushOption");
+    options.setForce(true);
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github", "TEST", false, new DummyRevision("test"), Glob.ALL_FILES.roots());
+    ValidationException expectedExpectedException =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                evalDestination()
+                    .newWriter(writerContext)
+                    .write(
+                        TransformResults.of(workdir, new DummyRevision("ref1")),
+                        destinationFiles,
+                        console));
+    assertThat(expectedExpectedException)
+        .hasMessageThat()
+        .contains(
+            "Push options have failed validation. The allowed push options are [allowedPushOption],"
+                + " but found push options not on the allowlist: [forbiddenPushOption]");
+  }
+
+  @Test
   public void processUserAborts() throws Exception {
     console = new TestingConsole()
         .respondNo();

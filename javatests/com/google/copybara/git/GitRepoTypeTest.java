@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,16 +55,22 @@ public class GitRepoTypeTest {
     repoGitDir = Files.createTempDirectory("testRepo");
     fileRepoDir = Files.createTempDirectory("fileRepo");
     // We mock by default to avoid accidental network calls.
-    testRepo = new GitRepository(
-        repoGitDir, null, /*verbose=*/true, getGitEnv(), Duration.ofMinutes(1),
-        /*noVerify=*/ false) {
-      @Override
-      public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags,
-          boolean partialFetch) {
-        interceptedFetches.add(new String[]{url, ref});
-        return new GitRevision(this, Strings.repeat("0", 40));
-      }
-    };
+    testRepo =
+        new GitRepository(
+            repoGitDir,
+            null,
+            /* verbose= */ true,
+            getGitEnv(),
+            Duration.ofMinutes(1),
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
+          @Override
+          public GitRevision fetchSingleRefWithTags(
+              String url, String ref, boolean fetchTags, boolean partialFetch) {
+            interceptedFetches.add(new String[] {url, ref});
+            return new GitRevision(this, Strings.repeat("0", 40));
+          }
+        };
 
     testRepo.init();
     prepareFileRepo();

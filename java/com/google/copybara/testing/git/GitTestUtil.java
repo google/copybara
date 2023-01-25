@@ -407,14 +407,22 @@ public class GitTestUtil {
     @Nullable
     private final String forcePushForRefspec;
 
-    public RewriteUrlGitRepository(Path gitDir, Path workTree, GeneralOptions generalOptions,
-        Path httpsRepos, Validator validator, Set<String> mappingPrefixes,
+    public RewriteUrlGitRepository(
+        Path gitDir,
+        Path workTree,
+        GeneralOptions generalOptions,
+        Path httpsRepos,
+        Validator validator,
+        Set<String> mappingPrefixes,
         @Nullable String forcePushForRefspec) {
       super(
           gitDir,
           workTree,
           generalOptions.isVerbose(),
-          new GitEnvironment(generalOptions.getEnvironment()), generalOptions.repoTimeout, false);
+          new GitEnvironment(generalOptions.getEnvironment()),
+          generalOptions.repoTimeout,
+          false,
+          new GitRepository.PushOptionsValidator(Optional.empty()));
       this.generalOptions = generalOptions;
       this.httpsRepos = httpsRepos;
       this.validator = validator;

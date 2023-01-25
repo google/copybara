@@ -772,17 +772,29 @@ public class GitRepositoryTest {
   public void testFetchNonHeadSHA1() throws Exception {
     List<Iterable<String>> requestedFetches = new ArrayList<>();
 
-    GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
-        true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
+    GitRepository dest =
+        new GitRepository(
+            Files.createTempDirectory("destDir"),
+            /* workTree= */ null,
+            true,
+            getGitEnv(),
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
 
-      @Override
-      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-          boolean partialFetch, Optional<Integer> depth)
-          throws RepoException, ValidationException {
-        requestedFetches.add(refspecs);
-        return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
-      }
-    }.init();
+          @Override
+          public FetchResult fetch(
+              String url,
+              boolean prune,
+              boolean force,
+              Iterable<String> refspecs,
+              boolean partialFetch,
+              Optional<Integer> depth)
+              throws RepoException, ValidationException {
+            requestedFetches.add(refspecs);
+            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
+          }
+        }.init();
 
     Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
@@ -807,17 +819,30 @@ public class GitRepositoryTest {
   public void testFetchRemoteNoHEAD() throws Exception {
     List<Iterable<String>> requestedFetches = new ArrayList<>();
 
-    GitRepository dest = new GitRepository(Files.createTempDirectory("destDir"), /*workTree=*/null,
-        true, getGitEnv(), DEFAULT_TIMEOUT, /*noVerify=*/ false) {
+    GitRepository dest =
+        new GitRepository(
+            Files.createTempDirectory("destDir"),
+            /* workTree= */ null,
+            true,
+            getGitEnv(),
+            DEFAULT_TIMEOUT,
+            /* noVerify= */ false,
+            /* pushOptionsValidator= */
+            new GitRepository.PushOptionsValidator(Optional.empty())) {
 
-      @Override
-      public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-          boolean partialFetch, Optional<Integer> depth)
-          throws RepoException, ValidationException {
-        requestedFetches.add(refspecs);
-        return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
-      }
-    }.init();
+          @Override
+          public FetchResult fetch(
+              String url,
+              boolean prune,
+              boolean force,
+              Iterable<String> refspecs,
+              boolean partialFetch,
+              Optional<Integer> depth)
+              throws RepoException, ValidationException {
+            requestedFetches.add(refspecs);
+            return super.fetch(url, prune, force, refspecs, partialFetch, Optional.empty());
+          }
+        }.init();
 
     Files.write(workdir.resolve("foo.txt"), "aaa".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
@@ -1184,12 +1209,53 @@ public class GitRepositoryTest {
         .truncatedTo(ChronoUnit.SECONDS);
     origin.commit(COMMITER.toString(), date, "initial");
     new PushCmd(
-        origin,
-        "file://" + remote.getGitDir(),
-        ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
-        false).run();
+            origin,
+            "file://" + remote.getGitDir(),
+            ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
+            false,
+            ImmutableList.of(),
+            /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()))
+        .run();
   }
 
+  @Test
+  public void testPushWithAllowedOptionsButUnsupportedRemote() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("remote"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .init();
+    Files.writeString(workdir.resolve("foo.txt"), "test content");
+    repository.add().files("foo.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00")).truncatedTo(ChronoUnit.SECONDS);
+    repository.commit(COMMITER.toString(), date, "initial");
+
+    GitRepository localRepository =
+        GitRepository.newBareRepo(
+                gitDir,
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false,
+                new GitRepository.PushOptionsValidator(Optional.empty()))
+            .withWorkTree(workdir);
+    PushCmd cmd =
+        localRepository
+            .push()
+            .withRefspecs(
+                "file://" + remote.getGitDir(), ImmutableList.of(repository.createRefSpec("+*:*")))
+            .withPushOptions(ImmutableList.of("example_push_option"))
+            .prune(false);
+    RepoException expectedException = assertThrows(RepoException.class, () -> cmd.run());
+    assertThat(expectedException).hasMessageThat().contains("--push-option=example_push_option");
+    // expected, this folder doesn't support push options
+    assertThat(expectedException)
+        .hasMessageThat()
+        .contains("the receiving end does not support push options");
+  }
 
   @Test
   public void testLightWeightTag() throws Exception {

@@ -736,6 +736,34 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testPushWithAllowedPushOptionsButUnsupportedAtDestination() throws Exception {
+    String cfg =
+        "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
+            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'], push_options ="
+            + " ['example_push_option'])\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror(    name = 'default',    origin = 'file://"
+            + originRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    destination = 'file://"
+            + destRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    actions = [test],"
+            + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
+    RepoException expectedException =
+        assertThrows(RepoException.class, () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(expectedException).hasMessageThat().contains("--push-option=example_push_option");
+    // expected, this folder doesn't support push options
+    assertThat(expectedException)
+        .hasMessageThat()
+        .contains("the receiving end does not support push options");
+  }
+
+  @Test
   public void testCherrypick() throws Exception {
     String primaryBranch = originRepo.getPrimaryBranch();
     String cfg =

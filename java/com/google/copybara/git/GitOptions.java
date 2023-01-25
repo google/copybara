@@ -22,14 +22,18 @@ import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -55,6 +59,25 @@ public class GitOptions implements Option {
               + " copybara under the hood use the -c flags: git -c google.foo=bar -c google.baz=qux"
               + " ...")
   Map<String, String> gitOptionsParams = new HashMap<>();
+
+  @Parameter(
+      names = "--git-push-option",
+      description =
+          "This is a repeatable flag used to set git push level flags to send to git servers. E.g."
+              + " copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git"
+              + " operations done by copybara under the hood use the --push-option flags: git push"
+              + " -push-option=foo -push-option=bar ...")
+  List<String> gitPushOptions = new ArrayList<>();
+
+  @Parameter(
+      names = "--allowed-git-push-options",
+      description =
+          "This is a flag used to allowlist push options sent to git servers. E.g. copybara"
+              + " copy.bara.sky --git-push-option=\"foo,bar\" would make copybara validate push so"
+              + " that the only push options (if there are any) used are 'foo' and 'bar'. If this"
+              + " flag is unset, it will skip push options validation. Set to \"\" to allow no push"
+              + " options.")
+  List<String> allowedGitPushOptions;
 
   @Parameter(names = "--git-credential-helper-store-file",
       description = "Credentials store file to be used. See "
@@ -136,8 +159,12 @@ public class GitOptions implements Option {
       throws RepoException {
     GitRepository repo =
         GitRepository.newBareRepo(
-            path, getGitEnvironment(generalOptions.getEnvironment()),
-            generalOptions.isVerbose(), generalOptions.repoTimeout, gitNoVerify);
+            path,
+            getGitEnvironment(generalOptions.getEnvironment()),
+            generalOptions.isVerbose(),
+            generalOptions.repoTimeout,
+            gitNoVerify,
+            getPushOptionsValidator());
     return initRepo(repo);
   }
 
@@ -161,4 +188,13 @@ public class GitOptions implements Option {
     return new GitOptions(generalOptions, partialCacheFilePrefix);
   }
 
+  public GitRepository.PushOptionsValidator getPushOptionsValidator() {
+    // if unset, return an unset allowlist which allows means all options are a go. Not to be
+    // confused with an empty allow list
+    if (allowedGitPushOptions == null) {
+      return new GitRepository.PushOptionsValidator(Optional.empty());
+    }
+    return new GitRepository.PushOptionsValidator(
+        Optional.of(ImmutableList.copyOf(allowedGitPushOptions)));
+  }
 }

@@ -182,6 +182,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         /*tagName*/ null,
         /*tagMsg*/ null,
         generalOptions,
+        gitOptions,
         gitHubPrWriteHook,
         state,
         /* nonFastForwardPush= */ true,

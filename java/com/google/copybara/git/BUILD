@@ -83,7 +83,6 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         ":environment",
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
