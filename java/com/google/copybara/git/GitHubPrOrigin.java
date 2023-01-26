@@ -53,6 +53,7 @@ import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.IssuesAndPullRequestsSearchRequestParams;
@@ -518,10 +519,10 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
     try (ProfilerTask ignore = generalOptions.profiler()
         .start("github_api_get_combined_status")) {
-      ImmutableList<CheckRun> checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
+      CheckRuns checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
       Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
       List<CheckRun> passedCheckRuns =
-          checkRuns.stream()
+          checkRuns.getCheckRuns().stream()
               .filter(e -> e.getConclusion().equals("success"))
               .collect(Collectors.toList());
       requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns, CheckRun::getName));

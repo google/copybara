@@ -469,17 +469,14 @@ public class GitHubApi {
   }
 
   /** https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref */
-  public ImmutableList<CheckRun> getCheckRuns(String projectId, String ref)
+  public CheckRuns getCheckRuns(String projectId, String ref)
       throws RepoException, ValidationException {
-    return paginatedGet(
-        "github_api_check_runs",
-        new TypeToken<PaginatedList<CheckRun>>() {}.getType(),
-        "Project",
-        ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
-        "repos/%s/commits/%s/check-runs?per_page=%d",
-        projectId,
-        ref,
-        MAX_PER_PAGE);
+    try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
+      return transport.get(
+          CheckRuns.class, ImmutableListMultimap.of("Accept",
+              "application/vnd.github.antiope-preview+json"),
+          "repos/%s/commits/%s/check-runs", projectId, ref);
+    }
   }
 
   public GitHubCommit getCommit(String projectId, String ref)

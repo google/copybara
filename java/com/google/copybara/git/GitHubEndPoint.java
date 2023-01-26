@@ -32,7 +32,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -163,12 +163,12 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             named = true,
             doc = "The SHA-1 for which we want to get the check runs"),
       })
-  public Sequence<CheckRun> getCheckRuns(String sha) throws EvalException, RepoException {
+  public CheckRuns getCheckRuns(String sha) throws EvalException, RepoException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
       String project = ghHost.getProjectNameFromUrl(url);
-      return StarlarkList.immutableCopyOf(apiSupplier.load(console).getCheckRuns(project, sha));
+      return apiSupplier.load(console).getCheckRuns(project, sha);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling get_check_runs: %s", e.getMessage());
     }

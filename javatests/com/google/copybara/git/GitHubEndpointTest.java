@@ -146,27 +146,31 @@ public class GitHubEndpointTest {
 
     gitUtil.mockApi(
         eq("GET"),
-        contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs?per_page=100"),
+        contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs"),
         mockResponse(
-            "[\n"
-                + "  {\n"
-                + "    id: 4,\n"
-                + "    details_url: 'https://example.com',\n"
-                + "    status: 'completed',\n"
-                + "    conclusion: 'neutral',\n"
-                + "    name: 'mighty_readme',\n"
-                + "    output: {\n"
-                + "      title: 'Mighty Readme report',\n"
-                + "      summary: 'test_summary',\n"
-                + "      text: 'test_text'\n"
-                + "    },\n"
-                + "    app: {\n"
-                + "      id: 1,\n"
-                + "      slug: 'octoapp',\n"
-                + "      name: 'Octocat App'\n"
+            "{\n"
+                + "  total_count: 1,\n"
+                + "  check_runs: [\n"
+                + "    {\n"
+                + "      id: 4,\n"
+                + "      details_url: 'https://example.com',\n"
+                + "      status: 'completed',\n"
+                + "      conclusion: 'neutral',\n"
+                + "      name: 'mighty_readme',\n"
+                + "      output: {\n"
+                + "        title: 'Mighty Readme report',\n"
+                + "        summary: 'test_summary',\n"
+                + "        text: 'test_text'\n"
+                + "      },\n"
+                + "      app: {\n"
+                + "        id: 1,\n"
+                + "        slug: 'octoapp',\n"
+                + "        name: 'Octocat App'\n"
+                + "      }\n"
                 + "    }\n"
-                + "  }\n"
-                + "]"));
+                + "  ]\n"
+                + "}"
+        ));
 
     Path credentialsFile = Files.createTempFile("credentials", "test");
     Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
@@ -324,22 +328,20 @@ public class GitHubEndpointTest {
 
   @Test
   public void testGetCheckRuns() throws Exception {
-    runFeedback(
-        ImmutableList.<String>builder()
-            .add(
-                "res ="
-                    + " ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')")
-            .addAll(checkFieldStarLark("res[0]", "detail_url", "'https://example.com'"))
-            .addAll(checkFieldStarLark("res[0]", "status", "'completed'"))
-            .addAll(checkFieldStarLark("res[0]", "conclusion", "'neutral'"))
-            .addAll(checkFieldStarLark("res[0]", "name", "'mighty_readme'"))
-            .addAll(checkFieldStarLark("res[0]", "app.id", "1"))
-            .addAll(checkFieldStarLark("res[0]", "app.slug", "'octoapp'"))
-            .addAll(checkFieldStarLark("res[0]", "app.name", "'Octocat App'"))
-            .addAll(checkFieldStarLark("res[0]", "output.title", "'Mighty Readme report'"))
-            .addAll(checkFieldStarLark("res[0]", "output.summary", "'test_summary'"))
-            .addAll(checkFieldStarLark("res[0]", "output.text", "'test_text'"))
-            .build());
+    runFeedback(ImmutableList.<String>builder()
+        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')")
+        .addAll(checkFieldStarLark("res", "total_count", "1"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].detail_url", "'https://example.com'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].status", "'completed'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].conclusion", "'neutral'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].name", "'mighty_readme'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.id", "1"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.slug", "'octoapp'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].app.name", "'Octocat App'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.title", "'Mighty Readme report'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.summary", "'test_summary'"))
+        .addAll(checkFieldStarLark("res", "check_runs[0].output.text", "'test_text'"))
+        .build());
   }
 
   @Test
