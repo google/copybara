@@ -475,7 +475,7 @@ public class GitHubApi {
       return transport.get(
           CheckRuns.class, ImmutableListMultimap.of("Accept",
               "application/vnd.github.antiope-preview+json"),
-          "repos/%s/commits/%s/check-runs", projectId, ref);
+          "repos/%s/commits/%s/check-runs?per_page=%d", projectId, ref, MAX_PER_PAGE);
     }
   }
 

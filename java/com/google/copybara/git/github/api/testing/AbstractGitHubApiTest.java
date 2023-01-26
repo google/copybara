@@ -598,7 +598,7 @@ public abstract class AbstractGitHubApiTest {
   @Test
   public void test_getCheckRuns_success() throws Exception {
     trainMockGet(
-        "/repos/example/project/commits/12345/check-runs",
+        "/repos/example/project/commits/12345/check-runs?per_page=100",
         getResource("get_check_runs_testdata.json"));
     CheckRuns checkRuns = api.getCheckRuns("example/project", "12345");
     assertThat(checkRuns.getTotalCount()).isEqualTo(1);
@@ -615,7 +615,8 @@ public abstract class AbstractGitHubApiTest {
     api = new GitHubApi(transport, profiler);
     api.getCheckRuns("example/project", "12345");
     verify(transport)
-        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs"), any());
+        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs?per_page=%d"),
+            any());
     assertThat(headerCaptor.getValue())
         .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
   }
