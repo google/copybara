@@ -655,21 +655,32 @@ public class GitHubPrDestinationTest {
         + "  \"state\": \"closed\",\n"
         + "  \"title\": \"test summary\",\n"
         + "  \"mergeable\": true,\n"
-        + "  \"mergeable_state\": \"clean\",\n"
         + "  \"body\": \"test summary\","
         + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
         + "  \"base\": {\"sha\": \"" + baseline + "\"}"
         + "}]"));
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/pulls/12345", mockResponse("{"
+            + "  \"id\": 1,\n"
+            + "  \"number\": 12345,\n"
+            + "  \"state\": \"closed\",\n"
+            + "  \"title\": \"test summary\",\n"
+            + "  \"mergeable\": true,\n"
+            + "  \"mergeable_state\": \"clean\",\n"
+            + "  \"body\": \"test summary\","
+            + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
+            + "  \"base\": {\"sha\": \"" + baseline + "\"}"
+            + "}"));
     writeFile(this.workdir, "foo.txt", "test");
 
     RedundantChangeException e =
         assertThrows(
             RedundantChangeException.class, () -> writer.write(
-        TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
-            .withChanges(new Changes(
-                ImmutableList.of(
-                    toChange(new DummyRevision("feature"),
-                        new Author("Foo Bar", "foo@bar.com"))),
+                TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
+                    .withChanges(new Changes(
+                        ImmutableList.of(
+                            toChange(new DummyRevision("feature"),
+                                new Author("Foo Bar", "foo@bar.com"))),
                 ImmutableList.of()))
             .withLabelFinder(
                 Functions.forMap(ImmutableMap.of("aaa", ImmutableList.of("first a", "second a")))),
@@ -684,19 +695,17 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void emptyChangeButMergeableFalse() throws Exception {
-    String mergeableField = "  \"mergeable\": false,\n";
-    checkEmptyChangeButNonMergeable(mergeableField);
+    checkEmptyChangeButNonMergeable(false, "");
   }
 
   @Test
   public void emptyChangeButMergeableStateUnstable() throws Exception {
-    String mergeableField = ""
-        + "  \"mergeable_state\": \"unstable\",\n"
-        + "  \"mergeable\": true,\n";
-    checkEmptyChangeButNonMergeable(mergeableField);
+    String mergeableField = "  \"mergeable_state\": \"unstable\",\n";
+    checkEmptyChangeButNonMergeable(true, mergeableField);
   }
 
-  private void checkEmptyChangeButNonMergeable(String mergeableField) throws Exception {
+  private void checkEmptyChangeButNonMergeable(boolean mergeable, String mergeableStatusField)
+      throws Exception {
     Writer<GitRevision> writer = getWriterForTestEmptyDiff();
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
@@ -717,11 +726,23 @@ public class GitHubPrDestinationTest {
         + "  \"number\": 12345,\n"
         + "  \"state\": \"open\",\n"
         + "  \"title\": \"test summary\",\n"
-        + mergeableField
+        + "  \"mergeable\": \"" + mergeable + "\",\n"
         + "  \"body\": \"test summary\","
         + "  \"head\": {\"sha\": \"" + changeHead + "\", \"ref\": \"test_feature\"},"
         + "  \"base\": {\"sha\": \"" + baseline + "\", \"ref\": \"master\"}"
         + "}]"));
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/pulls/12345", mockResponse("{"
+            + "  \"id\": 1,\n"
+            + "  \"number\": 12345,\n"
+            + "  \"state\": \"closed\",\n"
+            + "  \"title\": \"test summary\",\n"
+            + "  \"mergeable\": \"" + mergeable + "\",\n"
+            + mergeableStatusField
+            + "  \"body\": \"test summary\","
+            + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
+            + "  \"base\": {\"sha\": \"" + baseline + "\"}"
+            + "}"));
 
     writeFile(this.workdir, "foo.txt", "test");
     ImmutableList<DestinationEffect> results = writer.write(

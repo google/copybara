@@ -96,41 +96,44 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         }
         SameGitTree sameGitTree =
             new SameGitTree(scratchClone, repoUrl, generalOptions, partialFetch);
-        PullRequest pullRequest =  pullRequests.get(0);
-        if (skipUploadBasedOnPrStatus(pullRequest)
-            && sameGitTree.hasSameTree(pullRequest.getHead().getSha())) {
+        PullRequest pullRequest = pullRequests.get(0);
+        if (sameGitTree.hasSameTree(pullRequest.getHead().getSha())
+            && skipUploadBasedOnPrStatus(pullRequest, configProjectName, api)) {
           throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
                   repoUrl, pullRequest.getNumber(), originalChange.getRef()),
               pullRequest.getHead().getSha());
         }
-      } catch(GitHubApiException e) {
-          if (e.getResponseCode() == ResponseCode.NOT_FOUND
-              || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
-            console.verboseFmt("Branch %s does not exist", this.prBranchToUpdate);
-          }
-          throw e;
+      } catch (GitHubApiException e) {
+        if (e.getResponseCode() == ResponseCode.NOT_FOUND
+            || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
+          console.verboseFmt("Branch %s does not exist", this.prBranchToUpdate);
         }
+        throw e;
+      }
     }
   }
 
-  private boolean skipUploadBasedOnPrStatus(PullRequest pullRequest) {
-    // TODO(malcon): Remove after 2023-01-31 once the feature is proven to be stable
-    if (generalOptions.isTemporaryFeature(
-        "DISABLE_PR_STATUS_SKIP_EMPTY_DIFF", false)) {
-      return true;
-    }
+  private boolean skipUploadBasedOnPrStatus(PullRequest pullRequest,
+      String configProjectName, GitHubApi api) throws ValidationException, RepoException {
     Boolean mergeable = pullRequest.isMergeable();
     if (mergeable == null || !mergeable) {
       console.verboseFmt("Not skipping upload because mergeable is: %s", mergeable);
       return false;
     }
-    String mergeableState = pullRequest.getMergeableState();
+
+    // This call to getPullRequest might look like unnecessary, but it is not. The previous
+    // pull request is received by searching PRs by branch name, and for some reason, GitHub
+    // doesn't return this 'experimental' field. So we are forced to do an additional request
+    // to get the full data of the PR.
+    String mergeableState = api.getPullRequest(configProjectName, pullRequest.getNumber())
+        .getMergeableState();
     // By default, if we don't know the status (mergeable_state is not stable API), we upload
     // a new patch
     if (mergeableState == null) {
-      console.verbose("Not skipping upload because mergeable status is null");
+      // Warn because it might be that GH has stopped populating it.
+      console.warn("Not skipping upload because mergeable status is null");
       return false;
     }
     // Using https://docs.github.com/en/graphql/reference/enums#mergestatestatus
