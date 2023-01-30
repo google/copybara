@@ -3134,7 +3134,7 @@ Get autenticated user info, return null if not found
 
 Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
 
-`github_check_runs_obj` `github_api_obj.get_check_runs(sha)`
+`sequence of github_check_run_obj` `github_api_obj.get_check_runs(sha)`
 
 
 #### Parameters:

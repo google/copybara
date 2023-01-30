@@ -93,10 +93,10 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
       Object responseObj = response.parseAs(responseType);
-      if (responseObj instanceof PaginatedList) {
+      if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedList) responseObj)
-                .withPaginationInfo(this.apiType.getURLPrefix(), maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj)
+                .annotatePayload(this.apiType.getURLPrefix(), maybeGetLinkHeader(response));
       }
       return (T) responseObj;
     } catch (HttpResponseException e) {
@@ -159,8 +159,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
       Object responseObj = response.parseAs(responseType);
-      if (responseObj instanceof PaginatedList) {
-        return (T) ((PaginatedList) responseObj).withPaginationInfo(this.apiType.getURLPrefix(),
+      if (responseObj instanceof PaginatedPayload) {
+        return (T) ((PaginatedPayload) responseObj).annotatePayload(this.apiType.getURLPrefix(),
             maybeGetLinkHeader(response));
       }
       return (T) responseObj;

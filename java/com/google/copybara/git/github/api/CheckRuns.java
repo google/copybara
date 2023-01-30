@@ -19,6 +19,7 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -32,13 +33,21 @@ import net.starlark.java.eval.StarlarkValue;
     doc =
         "List check runs for a specific ref "
             + "https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref")
-public class CheckRuns implements StarlarkValue {
+public class CheckRuns implements StarlarkValue, PaginatedPayload<CheckRun> {
 
   @Key("total_count")
   private int totalCount;
 
   @Key("check_runs")
-  private List<CheckRun> checkRuns;
+  private PaginatedList<CheckRun> checkRuns;
+
+  public CheckRuns() {
+  }
+
+  private CheckRuns(int totalCount, PaginatedList<CheckRun> checkRuns) {
+    this.checkRuns = checkRuns;
+    this.totalCount = totalCount;
+  }
 
   @StarlarkMethod(
       name = "total_count",
@@ -66,4 +75,13 @@ public class CheckRuns implements StarlarkValue {
         .toString();
   }
 
+  @Override
+  public PaginatedList<CheckRun> getPayload() {
+    return checkRuns;
+  }
+
+  @Override
+  public PaginatedPayload<CheckRun> annotatePayload(String apiPrefix, @Nullable String linkHeader) {
+    return new CheckRuns(totalCount, checkRuns.withPaginationInfo(apiPrefix, linkHeader));
+  }
 }

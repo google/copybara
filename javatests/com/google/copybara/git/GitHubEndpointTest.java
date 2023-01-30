@@ -329,18 +329,17 @@ public class GitHubEndpointTest {
   @Test
   public void testGetCheckRuns() throws Exception {
     runFeedback(ImmutableList.<String>builder()
-        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')")
-        .addAll(checkFieldStarLark("res", "total_count", "1"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].detail_url", "'https://example.com'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].status", "'completed'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].conclusion", "'neutral'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].name", "'mighty_readme'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.id", "1"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.slug", "'octoapp'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.name", "'Octocat App'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.title", "'Mighty Readme report'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.summary", "'test_summary'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.text", "'test_text'"))
+        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')[0]")
+        .addAll(checkFieldStarLark("res", "detail_url", "'https://example.com'"))
+        .addAll(checkFieldStarLark("res", "status", "'completed'"))
+        .addAll(checkFieldStarLark("res", "conclusion", "'neutral'"))
+        .addAll(checkFieldStarLark("res", "name", "'mighty_readme'"))
+        .addAll(checkFieldStarLark("res", "app.id", "1"))
+        .addAll(checkFieldStarLark("res", "app.slug", "'octoapp'"))
+        .addAll(checkFieldStarLark("res", "app.name", "'Octocat App'"))
+        .addAll(checkFieldStarLark("res", "output.title", "'Mighty Readme report'"))
+        .addAll(checkFieldStarLark("res", "output.summary", "'test_summary'"))
+        .addAll(checkFieldStarLark("res", "output.text", "'test_text'"))
         .build());
   }
 

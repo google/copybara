@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
 /**
  * A List that contains additional information on how to fetch the next/prev page.
  */
-public class PaginatedList<T> extends ArrayList<T> {
+public class PaginatedList<T> extends ArrayList<T> implements PaginatedPayload<T> {
 
   private static final Pattern LINK_HEADER_PATTERN = Pattern.compile("<([^>]+)>; rel=\"([a-z]+)\"");
 
@@ -110,4 +110,13 @@ public class PaginatedList<T> extends ArrayList<T> {
     return new PaginatedList<>(this, first, prev, next, last);
   }
 
+  @Override
+  public PaginatedList<T> getPayload() {
+    return this;
+  }
+
+  @Override
+  public PaginatedPayload<T> annotatePayload(String apiPrefix, @Nullable String linkHeader) {
+    return withPaginationInfo(apiPrefix, linkHeader);
+  }
 }

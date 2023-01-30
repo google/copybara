@@ -23,9 +23,6 @@ import static com.google.copybara.testing.git.GitTestUtil.createValidator;
 import static com.google.copybara.testing.git.GitTestUtil.getResource;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
@@ -37,7 +34,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
 import com.google.copybara.git.github.api.AuthorAssociation;
-import com.google.copybara.git.github.api.CheckRuns;
+import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -80,8 +77,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 /**
  * Base test to run the same tests on various implementations of the GitHubApiTransport
@@ -89,16 +84,13 @@ import org.mockito.MockitoAnnotations;
 public abstract class AbstractGitHubApiTest {
 
   protected GitHubApi api;
-  @Mock
-  protected GitHubApiTransport transport;
+
   @Captor
   protected ArgumentCaptor<ImmutableListMultimap<String, String>> headerCaptor;
   protected Profiler profiler;
 
   @Before
   public void setUpFamework() throws Exception {
-    MockitoAnnotations.initMocks(this);
-
     profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
     api = new GitHubApi(getTransport(), profiler);
@@ -599,28 +591,58 @@ public abstract class AbstractGitHubApiTest {
     trainMockGet(
         "/repos/example/project/commits/12345/check-runs?per_page=100",
         getResource("get_check_runs_testdata.json"));
-    CheckRuns checkRuns = api.getCheckRuns("example/project", "12345");
-    assertThat(checkRuns.getTotalCount()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo("completed");
-    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo("neutral");
-    assertThat(checkRuns.getCheckRuns().get(0).getDetailUrl()).isEqualTo("https://example.com");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getId()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getName()).isEqualTo("Octocat App");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getSlug()).isEqualTo("octoapp");
+    ImmutableList<CheckRun> checkRuns =
+        api.getCheckRuns("example/project", "12345");
+    assertThat(checkRuns).hasSize(1);
+    assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
+    assertThat(checkRuns.get(0).getDetailUrl()).isEqualTo("https://example.com");
+    assertThat(checkRuns.get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkRuns.get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkRuns.get(0).getApp().getSlug()).isEqualTo("octoapp");
   }
 
   @Test
-  public void testGetCheckRunsHeader_containGitHubHeader() throws Exception {
-    api = new GitHubApi(transport, profiler);
-    api.getCheckRuns("example/project", "12345");
-    verify(transport)
-        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs?per_page=%d"),
-            any());
-    assertThat(headerCaptor.getValue())
-        .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
+  public void test_getCheckRuns_pagination() throws Exception {
+
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=2>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100&page=2",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100&page=3",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=2>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+
+    ImmutableList<CheckRun> checkRuns = api.getCheckRuns("example/project", "12345");
+    assertThat(checkRuns).hasSize(3);
   }
 
-  @Test
+   @Test
   public void testGetPullRequestComments_empty() throws Exception {
     trainMockGet("/repos/example/project/pulls/12345/comments?per_page=100", "[]".getBytes(UTF_8));
     assertThat(api.getPullRequestComments("example/project", 12345)).isEmpty();
