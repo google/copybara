@@ -669,7 +669,7 @@ params | `dict`<br><p>The parameters to the function. Will be available under ct
 
 Describes in the configuration for automatic patch file generation
 
-[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False)`
+[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory_prefix='None', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False)`
 
 
 #### Parameters:
@@ -677,7 +677,8 @@ Describes in the configuration for automatic patch file generation
 Parameter | Description
 --------- | -----------
 header | `string` or `NoneType`<br><p>A string to include at the beginning of each patch file</p>
-suffix | `string` or `NoneType`<br><p>Suffix to use when saving patch files</p>
+suffix | `string`<br><p>Suffix to use when saving patch files</p>
+directory_prefix | `string` or `NoneType`<br><p>Directory prefix used to relativize filenames when writing patch files. E.g. if filename is third_party/foo/bar/bar.go and we want to write third_party/foo/PATCHES/bar/bar.go, the value for this field would be 'third_party/foo'</p>
 directory | `string` or `NoneType`<br><p>Directory in which to save the patch files.</p>
 strip_file_names_and_line_numbers | `bool`<br><p>When true, strip filenames and line numbers from patch files</p>
 

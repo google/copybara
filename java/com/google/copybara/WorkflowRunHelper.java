@@ -70,7 +70,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -743,20 +742,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               Files.createDirectories(workdir.resolve("merge_import")));
         }
         if (workflow.getAutoPatchfileConfiguration() != null) {
-          Path relativeConfigFile = Path.of(workflow.getMainConfigFile().getIdentifier());
           try {
             AutoPatchUtil.generatePatchFiles(
                 baselineWorkdir,
                 destinationFilesWorkdir,
-                checkoutDir.resolve(
-                    relativeConfigFile.resolveSibling(
-                        Objects.requireNonNull(
-                            workflow.getAutoPatchfileConfiguration().directory()))),
+                Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
+                workflow.getAutoPatchfileConfiguration().directory(),
                 workflow.isVerbose(),
                 workflow.getGeneralOptions().getEnvironment(),
                 workflow.getAutoPatchfileConfiguration().header(),
                 workflow.getAutoPatchfileConfiguration().suffix(),
-                relativeConfigFile.getParent(),
+                checkoutDir,
                 workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers());
           } catch (InsideGitDirException e) {
             console.errorFmt(

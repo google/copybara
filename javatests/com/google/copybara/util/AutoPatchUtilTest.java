@@ -81,15 +81,18 @@ public final class AutoPatchUtilTest {
     AutoPatchUtil.generatePatchFiles(
         left,
         right,
-        out,
+        Path.of(SOME_DIR),
+        null,
         VERBOSE,
         System.getenv(),
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
-        Path.of(SOME_DIR),
+        out,
         true);
 
-    assertThat(Files.readString(out.resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+    assertThat(
+            Files.readString(
+                out.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
                 "@@\n"
@@ -97,7 +100,9 @@ public final class AutoPatchUtilTest {
                     + "\\ No newline at end of file\n"
                     + "+foo-right\n"
                     + "\\ No newline at end of file\n"));
-    assertThat(Files.readString(out.resolve("file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+    assertThat(
+            Files.readString(
+                out.resolve(SOME_DIR).resolve("file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
                 "@@\n"
@@ -105,7 +110,9 @@ public final class AutoPatchUtilTest {
                     + "\\ No newline at end of file\n"
                     + "+bar-right\n"
                     + "\\ No newline at end of file\n"));
-    assertThat(Files.readString(out.resolve("file3.java".concat(PATCH_FILE_NAME_SUFFIX))))
+    assertThat(
+            Files.readString(
+                out.resolve(SOME_DIR).resolve("file3.java".concat(PATCH_FILE_NAME_SUFFIX))))
         .isEqualTo(
             PATCH_FILE_PREFIX.concat(
                 "@@\n"
@@ -138,20 +145,27 @@ public final class AutoPatchUtilTest {
     AutoPatchUtil.generatePatchFiles(
         left,
         right,
-        out,
+        Path.of(SOME_DIR),
+        null,
         VERBOSE,
         System.getenv(),
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
-        Path.of(SOME_DIR),
+        out,
         true);
 
-    assertThat(Files.exists(out.resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
-    assertThat(Files.exists(out.resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
+    assertThat(
+            Files.exists(
+                out.resolve(SOME_DIR).resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isFalse();
+    assertThat(
+            Files.exists(
+                out.resolve(SOME_DIR).resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isFalse();
   }
 
   @Test
-  public void nullValues() throws Exception {
+  public void nullPatchFilePrefixAndDirectory() throws Exception {
     writeFile(left, SOME_DIR.concat("/file1.txt"), "foo");
     writeFile(left, SOME_DIR.concat("/b/file2.txt"), "bar");
     writeFile(right, SOME_DIR.concat("/file1.txt"), "foo2");
@@ -160,16 +174,23 @@ public final class AutoPatchUtilTest {
     AutoPatchUtil.generatePatchFiles(
         left,
         right,
-        out,
+        Path.of(SOME_DIR),
+        null,
         VERBOSE,
         System.getenv(),
         null,
-        null,
-        Path.of(SOME_DIR),
+        PATCH_FILE_NAME_SUFFIX,
+        out,
         true);
 
-    assertThat(Files.exists(out.resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
-    assertThat(Files.exists(out.resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX)))).isFalse();
+    assertThat(
+            Files.exists(
+                out.resolve(SOME_DIR).resolve("/file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isFalse();
+    assertThat(
+            Files.exists(
+                out.resolve(SOME_DIR).resolve("/b/file2.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isFalse();
   }
 
   private Path createDir(Path parent, String name) throws IOException {

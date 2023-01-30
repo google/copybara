@@ -18,7 +18,6 @@ package com.google.copybara.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
@@ -38,35 +37,49 @@ public final class AutoPatchUtil {
    *
    * <p>Does not generate any patch files where there is no diff. Patch files are generated using
    * git diff.
+   *
+   * @param lhsWorkdir workdir used on lhs of diffing statement e.g. baseline workdir
+   * @param rhsWorkdir workdir used on rhs of diffing statement e.g. destination workdir
+   * @param directoryPrefix prefix to all filenames. patch files are written inside this directory.
+   *     e.g. if this is third_party/foo and a file is third_party/foo/bar/bar.txt, and
+   *     patchFilePrefix is PATCHES, we will write to third_party/foo/PATCHES/bar/bar.txt.patch
+   * @param patchFileDirectory optional directory, relative to directory prefix, in which to place
+   *     patch files. See directoryPrefix description.
+   * @param verbose forwards verbose setting to diffing command
+   * @param environment environment variables
+   * @param patchFilePrefix optional text prefix applied to the contents of all patch files
+   * @param patchFileNameSuffix suffix used for patch files e.g. .patch
+   * @param rootDirectory directory in which to write all patch files (using above subdirectories)
+   * @param stripFileNames when true, strip filenames and line numbers from patch file contents
    */
   public static void generatePatchFiles(
-      Path one,
-      Path other,
-      Path writePath,
+      Path lhsWorkdir,
+      Path rhsWorkdir,
+      Path directoryPrefix,
+      @Nullable String patchFileDirectory,
       boolean verbose,
       Map<String, String> environment,
       @Nullable String patchFilePrefix,
-      @Nullable String patchFileNameSuffix,
-      Path configDirectory,
+      String patchFileNameSuffix,
+      Path rootDirectory,
       boolean stripFileNames)
       throws IOException, InsideGitDirException {
     if (patchFilePrefix == null) {
       patchFilePrefix = "";
     }
-    if (patchFileNameSuffix == null) {
-      patchFileNameSuffix = "";
+    if (patchFileDirectory == null) {
+      patchFileDirectory = "";
     }
-    // TODO(b/265029367): Remove this check and fix it
-    Preconditions.checkNotNull(configDirectory);
-    ImmutableList<DiffFile> diffFiles = DiffUtil.diffFiles(one, other, verbose, environment);
+    ImmutableList<DiffFile> diffFiles =
+        DiffUtil.diffFiles(lhsWorkdir, rhsWorkdir, verbose, environment);
     // TODO: make this configurable
     for (DiffFile diffFile : diffFiles) {
       if (!diffFile.getOperation().equals(Operation.MODIFIED)) {
         continue;
       }
       String fileName = diffFile.getName();
-      Path onePath = one.resolve(fileName);
-      Path otherPath = other.resolve(fileName);
+      Path onePath = lhsWorkdir.resolve(fileName);
+      Path otherPath = rhsWorkdir.resolve(fileName);
       if (!Files.exists(otherPath)) {
         continue;
       }
@@ -76,9 +89,12 @@ public final class AutoPatchUtil {
       if (stripFileNames) {
         diffString = stripFileNamesAndLineNumbers(diffString);
       }
+      Path fileRelativeDirectoryPrefix =
+          directoryPrefix.relativize(Path.of(fileName.concat(patchFileNameSuffix)));
       Path patchFilePath =
-          writePath.resolve(
-              configDirectory.relativize(Path.of(fileName.concat(patchFileNameSuffix))));
+          rootDirectory
+              .resolve(directoryPrefix)
+              .resolve(Path.of(patchFileDirectory).resolve(fileRelativeDirectoryPrefix));
       Files.createDirectories(patchFilePath.getParent());
       Files.writeString(patchFilePath, patchFilePrefix.concat(diffString));
     }

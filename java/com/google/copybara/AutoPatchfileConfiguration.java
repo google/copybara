@@ -28,16 +28,21 @@ import net.starlark.java.eval.StarlarkValue;
 abstract class AutoPatchfileConfiguration implements StarlarkValue {
 
   public static AutoPatchfileConfiguration create(
-      String header, String suffix, String directory, boolean stripFileNamesAndLineNumbers) {
+      String header,
+      String suffix,
+      String directoryPrefix,
+      String directory,
+      boolean stripFileNamesAndLineNumbers) {
     return new AutoValue_AutoPatchfileConfiguration(
-        header, suffix, directory, stripFileNamesAndLineNumbers);
+        header, suffix, directoryPrefix, directory, stripFileNamesAndLineNumbers);
   }
 
   @Nullable
   public abstract String header();
 
-  @Nullable
   public abstract String suffix();
+
+  public abstract String directoryPrefix();
 
   @Nullable
   public abstract String directory();
