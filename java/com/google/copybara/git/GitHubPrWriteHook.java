@@ -98,7 +98,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
             new SameGitTree(scratchClone, repoUrl, generalOptions, partialFetch);
         PullRequest pullRequest = pullRequests.get(0);
         if (sameGitTree.hasSameTree(pullRequest.getHead().getSha())
-            && skipUploadBasedOnPrStatus(pullRequest, configProjectName, api)) {
+            && skipUploadBasedOnPrStatus(configProjectName, api,
+            pullRequest.getNumber())) {
           throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
@@ -115,25 +116,25 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     }
   }
 
-  private boolean skipUploadBasedOnPrStatus(PullRequest pullRequest,
-      String configProjectName, GitHubApi api) throws ValidationException, RepoException {
-    Boolean mergeable = pullRequest.isMergeable();
-    if (mergeable == null || !mergeable) {
-      console.verboseFmt("Not skipping upload because mergeable is: %s", mergeable);
-      return false;
-    }
-
+  private boolean skipUploadBasedOnPrStatus(String configProjectName, GitHubApi api, long prNumber)
+      throws ValidationException, RepoException {
     // This call to getPullRequest might look like unnecessary, but it is not. The previous
     // pull request is received by searching PRs by branch name, and for some reason, GitHub
     // doesn't return this 'experimental' field. So we are forced to do an additional request
     // to get the full data of the PR.
-    String mergeableState = api.getPullRequest(configProjectName, pullRequest.getNumber())
-        .getMergeableState();
+    PullRequest completePr = api.getPullRequest(configProjectName, prNumber);
+    Boolean mergeable = completePr.isMergeable();
+    if (mergeable == null || !mergeable) {
+      console.verboseFmt("Not skipping upload because 'mergeable' is: %s", mergeable);
+      return false;
+    }
+
+    String mergeableState = completePr.getMergeableState();
     // By default, if we don't know the status (mergeable_state is not stable API), we upload
     // a new patch
     if (mergeableState == null) {
       // Warn because it might be that GH has stopped populating it.
-      console.warn("Not skipping upload because mergeable status is null");
+      console.warn("Not skipping upload because 'mergeable status' is null");
       return false;
     }
     // Using https://docs.github.com/en/graphql/reference/enums#mergestatestatus
