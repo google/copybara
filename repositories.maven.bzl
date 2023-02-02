@@ -17,11 +17,13 @@ load("@rules_jvm_external//:specs.bzl", "maven")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 COPYBARA_MAVEN_ARTIFACTS = [
+    maven.artifact("com.github.stephenc.jcip", "jcip-annotations", "1.0-1"),
     maven.artifact("com.google.auto.value", "auto-value-annotations", "1.9"),
     maven.artifact("com.google.auto.value", "auto-value", "1.9"),
     maven.artifact("com.google.auto", "auto-common", "1.2.1"),
-    maven.artifact("com.google.code.findbugs", "jsr305", "3.0.2", neverlink = True),
+    maven.artifact("com.google.code.findbugs", "jsr305", "3.0.2", neverlink = False),
     maven.artifact("com.google.code.gson", "gson", "2.8.5"),
+    maven.artifact("com.google.errorprone", "error_prone_type_annotations", "2.16"),
     maven.artifact("com.google.flogger", "flogger-system-backend", "0.7.4"),
     maven.artifact("com.google.flogger", "flogger", "0.7.4"),
     maven.artifact("com.google.guava", "failureaccess", "1.0.1"),
