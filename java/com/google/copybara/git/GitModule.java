@@ -1689,22 +1689,23 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "only if the git three of the pending migrating change is the same "
                     + "as the existing PR."),
           @Param(
-              name = "empty_diff_merge_statuses",
+              name = "allow_empty_diff_merge_statuses",
               allowedTypes = {
                   @ParamType(type = Sequence.class, generic1 = String.class)
               },
               defaultValue = "[]",
               named = true,
               positional = false,
-              doc = "By default, if `allow_empty_diff = False` is set, Copybara will also check"
-                  + " the **experimental** GitHub field `mergeable status` to decide if it uploads"
-                  + " or not. For example if status is 'CLEAN', 'DRAFT', 'HAS_HOOKS' or 'BEHIND',"
-                  + " it assumes that the uploaded content is up to date. This field allows to"
-                  + " add additional states that the PR could be in where we skip uploading, for"
-                  + " example 'BLOCKED'. The statuses values are described at:"
-                  + " https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus."
+              doc = "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
+                  + " Copybara skips uploading the change if the tree hasn't changed and it can be"
+                  + " merged. When this list is set with values from"
+                  + " https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus,"
+                  + " it will still upload for the configured statuses. For example, if a"
+                  + " user sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the"
+                  + " recommended set to use), it wouldn't skip upload if test failed in GitHub"
+                  + " for previous export, or if the change cannot be merged."
                   + " **Note that this field is experimental and is subject to change by GitHub"
-                  + " without notice**. Please consult Copybara team before using this field"),
+                  + " without notice**. Please consult Copybara team before using this field."),
           @Param(
             name = "title",
             allowedTypes = {
@@ -1831,7 +1832,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object prBranch,
       Boolean partialFetch,
       Boolean allowEmptyDiff,
-      Sequence<?> emptyDiffMergeStatuses,
+      Sequence<?> allowEmptyDiffMergeStatuses,
       Object title,
       Object body,
       Object integrates,
@@ -1872,7 +1873,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             partialFetch,
             allowEmptyDiff,
             ImmutableSet.copyOf(
-                SkylarkUtil.convertStringList(emptyDiffMergeStatuses,
+                SkylarkUtil.convertStringList(allowEmptyDiffMergeStatuses,
                     "empty_diff_merge_statuses")),
             getGeneralConsole(),
             GITHUB_COM),

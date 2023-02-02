@@ -20,7 +20,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -44,7 +43,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final boolean partialFetch;
-  private final ImmutableSet<String> emptyDiffMergeStatuses;
+  private final ImmutableSet<String> allowEmptyDiffMergeStatuses;
   private final Console console;
   private GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
@@ -57,7 +56,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       @Nullable String prBranchToUpdate,
       boolean partialFetch,
       boolean allowEmptyDiff,
-      ImmutableSet<String> emptyDiffMergeStatuses, Console console,
+      ImmutableSet<String> allowEmptyDiffMergeStatuses, Console console,
       GitHubHost ghHost) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -65,7 +64,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     this.prBranchToUpdate = prBranchToUpdate;
     this.partialFetch = partialFetch;
     this.allowEmptyDiff = allowEmptyDiff;
-    this.emptyDiffMergeStatuses = emptyDiffMergeStatuses;
+    this.allowEmptyDiffMergeStatuses = allowEmptyDiffMergeStatuses;
     this.console = Preconditions.checkNotNull(console);
     this.ghHost = Preconditions.checkNotNull(ghHost);
   }
@@ -133,6 +132,12 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       return false;
     }
 
+    // If user hasn't set any value, we don't look at mergeable status at all and assume we
+    // can skip.
+    if (allowEmptyDiffMergeStatuses.isEmpty()) {
+      return true;
+    }
+
     String mergeableState = completePr.getMergeableState();
     // By default, if we don't know the status (mergeable_state is not stable API), we upload
     // a new patch
@@ -141,22 +146,17 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       console.warn("Not skipping upload because 'mergeable status' is null");
       return false;
     }
-    // Using https://docs.github.com/en/graphql/reference/enums#mergestatestatus
-    switch (mergeableState) {
-      case "clean":
-      case "draft":
-      case "has_hooks":
-      case "behind":
-        console.verboseFmt("Skipping upload because mergeable status is %s", mergeableState);
-        return true;
-      default:
-        if (emptyDiffMergeStatuses.contains(mergeableState.toUpperCase())) {
-          console.infoFmt("Skipping upload because mergeable status is %s,"
-              + " that is configured in users config.", mergeableState);
-          return true;
-        }
-        console.verboseFmt("Not skipping upload because mergeable status is %s", mergeableState);
-        return false;
+    // Valid values https://docs.github.com/en/graphql/reference/enums#mergestatestatus
+    if (allowEmptyDiffMergeStatuses.contains(mergeableState.toUpperCase())) {
+      console.infoFmt("Uploading change because mergeable status is %s, that is in the"
+              + " list of statuses to upload changes: %s", mergeableState.toUpperCase(),
+          allowEmptyDiffMergeStatuses);
+      return false;
+    } else {
+      console.infoFmt("Skipping upload because mergeable status is %s, that is NOT in the"
+              + " list of statuses to upload changes: %s", mergeableState.toUpperCase(),
+          allowEmptyDiffMergeStatuses);
+      return true;
     }
   }
 
@@ -168,7 +168,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         prBranchToUpdate,
         this.partialFetch,
         this.allowEmptyDiff,
-        this.emptyDiffMergeStatuses,
+        this.allowEmptyDiffMergeStatuses,
         this.console,
         this.ghHost);
   }

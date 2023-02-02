@@ -644,9 +644,9 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void emptyChangeBecauseUserConfigureStatus() throws Exception {
-    emptyDiffMergeStatus = "BLOCKED";
+    emptyDiffMergeStatus = "DIRTY";
     Writer<GitRevision> writer = getWriterForTestEmptyDiff();
-    runEmptyChange(writer, "blocked");
+    runEmptyChange(writer, "clean");
   }
 
   private void runEmptyChange(Writer<GitRevision> writer, String prMergeableState)
@@ -714,7 +714,8 @@ public class GitHubPrDestinationTest {
 
   @Test
   public void emptyChangeButMergeableStateUnstable() throws Exception {
-    String mergeableField = "  \"mergeable_state\": \"unstable\",\n";
+    emptyDiffMergeStatus = "CLEAN";
+    String mergeableField = "  \"mergeable_state\": \"clean\",\n";
     checkEmptyChangeButNonMergeable(true, mergeableField);
   }
 
@@ -829,7 +830,7 @@ public class GitHubPrDestinationTest {
         + "    destination_ref = 'main',\n"
         + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
         + (emptyDiffMergeStatus != null
-           ? "empty_diff_merge_statuses = ['" + emptyDiffMergeStatus + "'],\n"
+           ? "allow_empty_diff_merge_statuses = ['" + emptyDiffMergeStatus + "'],\n"
            : "")
         + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
         + ")");
