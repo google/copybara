@@ -2535,7 +2535,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Creates changes in a new pull request in the destination.
 
-`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None, draft=False)`
+`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, empty_diff_merge_statuses=[], title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None, draft=False)`
 
 
 #### Parameters:
@@ -2547,6 +2547,7 @@ destination_ref | `string`<br><p>Destination reference for the change.</p>
 pr_branch | `string` or `NoneType`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 allow_empty_diff | `bool`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
+empty_diff_merge_statuses | `sequence of string`<br><p>By default, if `allow_empty_diff = False` is set, Copybara will also check the **experimental** GitHub field `mergeable status` to decide if it uploads or not. For example if status is 'CLEAN', 'DRAFT', 'HAS_HOOKS' or 'BEHIND', it assumes that the uploaded content is up to date. This field allows to add additional states that the PR could be in where we skip uploading, for example 'BLOCKED'. The statuses values are described at: https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus. **Note that this field is experimental and is subject to change by GitHub without notice**. Please consult Copybara team before using this field</p>
 title | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>

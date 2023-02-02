@@ -43,6 +43,7 @@ import com.google.copybara.Destination.Writer;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.effect.DestinationEffect;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -67,6 +68,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Map.Entry;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkList;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +86,7 @@ public class GitHubPrDestinationTest {
 
   private Path workdir;
   private String primaryBranchMigration;
+  @Nullable private String emptyDiffMergeStatus;
 
   @Before
   public void setup() throws Exception {
@@ -636,6 +639,18 @@ public class GitHubPrDestinationTest {
   @Test
   public void emptyChange() throws Exception {
     Writer<GitRevision> writer = getWriterForTestEmptyDiff();
+    runEmptyChange(writer, "clean");
+  }
+
+  @Test
+  public void emptyChangeBecauseUserConfigureStatus() throws Exception {
+    emptyDiffMergeStatus = "BLOCKED";
+    Writer<GitRevision> writer = getWriterForTestEmptyDiff();
+    runEmptyChange(writer, "blocked");
+  }
+
+  private void runEmptyChange(Writer<GitRevision> writer, String prMergeableState)
+      throws RepoException, IOException, CannotResolveRevisionException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
         remote,
@@ -665,7 +680,7 @@ public class GitHubPrDestinationTest {
             + "  \"state\": \"closed\",\n"
             + "  \"title\": \"test summary\",\n"
             + "  \"mergeable\": true,\n"
-            + "  \"mergeable_state\": \"clean\",\n"
+            + "  \"mergeable_state\": \"" + prMergeableState + "\",\n"
             + "  \"body\": \"test summary\","
             + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
             + "  \"base\": {\"sha\": \"" + baseline + "\"}"
@@ -813,6 +828,9 @@ public class GitHubPrDestinationTest {
         + "    allow_empty_diff = False,\n"
         + "    destination_ref = 'main',\n"
         + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+        + (emptyDiffMergeStatus != null
+           ? "empty_diff_merge_statuses = ['" + emptyDiffMergeStatus + "'],\n"
+           : "")
         + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
         + ")");
     WriterContext writerContext =

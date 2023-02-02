@@ -1,5 +1,5 @@
 #!/bin/bash
-bazel build java/com/google/copybara:generate_reference
+bazel build --java_language_version=11 --tool_java_language_version=11 --java_runtime_version=remotejdk_11  java/com/google/copybara:generate_reference
 mkdir -p docs
 cp bazel-bin/java/com/google/copybara/reference.md docs/reference.md
 git add docs/reference.md

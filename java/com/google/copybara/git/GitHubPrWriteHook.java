@@ -18,7 +18,9 @@ package com.google.copybara.git;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -42,6 +44,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final boolean partialFetch;
+  private final ImmutableSet<String> emptyDiffMergeStatuses;
   private final Console console;
   private GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
@@ -54,7 +57,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       @Nullable String prBranchToUpdate,
       boolean partialFetch,
       boolean allowEmptyDiff,
-      Console console,
+      ImmutableSet<String> emptyDiffMergeStatuses, Console console,
       GitHubHost ghHost) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
@@ -62,6 +65,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     this.prBranchToUpdate = prBranchToUpdate;
     this.partialFetch = partialFetch;
     this.allowEmptyDiff = allowEmptyDiff;
+    this.emptyDiffMergeStatuses = emptyDiffMergeStatuses;
     this.console = Preconditions.checkNotNull(console);
     this.ghHost = Preconditions.checkNotNull(ghHost);
   }
@@ -146,6 +150,11 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         console.verboseFmt("Skipping upload because mergeable status is %s", mergeableState);
         return true;
       default:
+        if (emptyDiffMergeStatuses.contains(mergeableState.toUpperCase())) {
+          console.infoFmt("Skipping upload because mergeable status is %s,"
+              + " that is configured in users config.", mergeableState);
+          return true;
+        }
         console.verboseFmt("Not skipping upload because mergeable status is %s", mergeableState);
         return false;
     }
@@ -159,6 +168,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         prBranchToUpdate,
         this.partialFetch,
         this.allowEmptyDiff,
+        this.emptyDiffMergeStatuses,
         this.console,
         this.ghHost);
   }

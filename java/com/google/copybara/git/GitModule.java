@@ -1688,7 +1688,24 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "If set, copybara will skip pushing a change to an existing PR "
                     + "only if the git three of the pending migrating change is the same "
                     + "as the existing PR."),
-        @Param(
+          @Param(
+              name = "empty_diff_merge_statuses",
+              allowedTypes = {
+                  @ParamType(type = Sequence.class, generic1 = String.class)
+              },
+              defaultValue = "[]",
+              named = true,
+              positional = false,
+              doc = "By default, if `allow_empty_diff = False` is set, Copybara will also check"
+                  + " the **experimental** GitHub field `mergeable status` to decide if it uploads"
+                  + " or not. For example if status is 'CLEAN', 'DRAFT', 'HAS_HOOKS' or 'BEHIND',"
+                  + " it assumes that the uploaded content is up to date. This field allows to"
+                  + " add additional states that the PR could be in where we skip uploading, for"
+                  + " example 'BLOCKED'. The statuses values are described at:"
+                  + " https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus."
+                  + " **Note that this field is experimental and is subject to change by GitHub"
+                  + " without notice**. Please consult Copybara team before using this field"),
+          @Param(
             name = "title",
             allowedTypes = {
               @ParamType(type = String.class),
@@ -1778,7 +1795,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Flag create pull request as draft or not."),
+            doc = "Flag create pull request as draft or not.")
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1814,6 +1831,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object prBranch,
       Boolean partialFetch,
       Boolean allowEmptyDiff,
+      Sequence<?> emptyDiffMergeStatuses,
       Object title,
       Object body,
       Object integrates,
@@ -1853,6 +1871,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             destinationPrBranch,
             partialFetch,
             allowEmptyDiff,
+            ImmutableSet.copyOf(
+                SkylarkUtil.convertStringList(emptyDiffMergeStatuses,
+                    "empty_diff_merge_statuses")),
             getGeneralConsole(),
             GITHUB_COM),
         Starlark.isNullOrNone(integrates)
