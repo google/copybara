@@ -242,6 +242,9 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       })
   public void rmDir(boolean recursive) throws ValidationException, EvalException {
     try {
+      if (!Files.exists(checkoutDir.resolve(path))) {
+        return;
+      }
       if (recursive) {
         FileUtil.deleteRecursively(checkoutDir.resolve(path));
       } else {
