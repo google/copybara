@@ -176,8 +176,10 @@
   - [Path](#path)
     - [path.read_symlink](#pathread_symlink)
     - [path.relativize](#pathrelativize)
+    - [path.remove](#pathremove)
     - [path.resolve](#pathresolve)
     - [path.resolve_sibling](#pathresolve_sibling)
+    - [path.rmdir](#pathrmdir)
   - [PathAttributes](#pathattributes)
   - [re2](#re2)
     - [re2.compile](#re2compile)
@@ -4365,6 +4367,13 @@ Parameter | Description
 --------- | -----------
 other | [`Path`](#path)<br><p>The path to relativize against this path</p>
 
+<a id="path.remove" aria-hidden="true"></a>
+### path.remove
+
+Delete self
+
+`path.remove()`
+
 <a id="path.resolve" aria-hidden="true"></a>
 ### path.resolve
 
@@ -4392,6 +4401,20 @@ Resolve the given path against this path.
 Parameter | Description
 --------- | -----------
 other | `string` or [`Path`](#path)<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+<a id="path.rmdir" aria-hidden="true"></a>
+### path.rmdir
+
+Delete all files in a directory. If recursive is true, delete descendants of all files in directory
+
+`path.rmdir(recursive=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+recursive | `bool`<br><p>When true, delete descendants of self and of siblings</p>
 
 
 

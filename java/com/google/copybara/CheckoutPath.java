@@ -19,12 +19,14 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.ResolvedSymlink;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
@@ -193,6 +195,45 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
       String msg = String.format("Cannot resolve symlink %s: %s", path, e);
       logger.atSevere().withCause(e).log("%s", msg);
       throw Starlark.errorf("%s", msg);
+    }
+  }
+
+  @StarlarkMethod(name = "remove", doc = "Delete self")
+  public void remove() throws ValidationException, EvalException {
+    try {
+      Files.delete(checkoutDir.resolve(path));
+    } catch (IOException e) {
+      if (e.getCause() instanceof NoSuchFileException) {
+        throw Starlark.errorf("Could not find file %s, received error %s", path, e.toString());
+      }
+      throw new ValidationException("Could not delete file for unknown reason", e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "rmdir",
+      doc =
+          "Delete all files in a directory. If recursive is true, delete descendants of all files"
+              + " in directory",
+      parameters = {
+        @Param(
+            name = "recursive",
+            named = true,
+            doc = "When true, delete descendants of self and of siblings",
+            defaultValue = "False")
+      })
+  public void rmDir(boolean recursive) throws ValidationException, EvalException {
+    try {
+      if (recursive) {
+        FileUtil.deleteRecursively(checkoutDir.resolve(path));
+      } else {
+        Files.delete(checkoutDir.resolve(path));
+      }
+    } catch (IOException e) {
+      if (e.getCause() instanceof NoSuchFileException) {
+        throw Starlark.errorf("Could not find file %s, received error %s", path, e.toString());
+      }
+      throw new ValidationException("Could not delete file for unknown reason", e);
     }
   }
 
