@@ -2326,14 +2326,16 @@ public class GitRepository {
       return commits.build();
     }
 
-    private ZonedDateTime tryParseDate(Map<String, String> fields, String dateField,
-        String commit) {
+    // Do not change this method since we could have old git commits that have incorrect date
+    // formats.
+    private ZonedDateTime tryParseDate(
+        Map<String, String> fields, String dateField, String commit) {
       String value = getField(fields, dateField);
       try {
         return ZonedDateTime.parse(value);
       } catch (DateTimeParseException e) {
-        logger.atSevere().log("Cannot parse date '%s' for commit %s. Using epoch time instead",
-            value, commit);
+        logger.atSevere().withCause(e).log(
+            "Cannot parse date '%s' for commit %s. Using epoch time instead", value, commit);
         return ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
       }
     }

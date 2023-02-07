@@ -193,7 +193,6 @@ public class GitRepositoryTest {
   public void testBadCommitInLog() throws RepoException, IOException {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
-    //
     repository.simpleCommand("commit", "foo.txt", "-m", "message");
     GitLogEntry entry = Iterables.getOnlyElement(repository.log("HEAD").withLimit(1).run());
 
@@ -204,9 +203,18 @@ public class GitRepositoryTest {
         + "\n"
         + "Allow to check and resolve symlinks";
     Files.write(workdir.resolve("commit"), badCommit.getBytes(UTF_8));
-    String commitSha1 = repository.simpleCommand("hash-object", "-w", "-t", "commit",
-        "--", workdir.resolve("commit")
-            .toAbsolutePath().toString()).getStdout().trim();
+    String commitSha1 =
+        repository
+            .simpleCommand(
+                "hash-object",
+                "--literally",
+                "-w",
+                "-t",
+                "commit",
+                "--",
+                workdir.resolve("commit").toAbsolutePath().toString())
+            .getStdout()
+            .trim();
     entry = Iterables.getOnlyElement(repository.log(commitSha1).withLimit(1).run());
 
     ZonedDateTime epoch = ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
