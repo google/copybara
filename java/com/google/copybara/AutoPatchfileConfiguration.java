@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
+import com.google.copybara.util.Glob;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
@@ -32,9 +33,10 @@ abstract class AutoPatchfileConfiguration implements StarlarkValue {
       String suffix,
       String directoryPrefix,
       String directory,
-      boolean stripFileNamesAndLineNumbers) {
+      boolean stripFileNamesAndLineNumbers,
+      Glob glob) {
     return new AutoValue_AutoPatchfileConfiguration(
-        header, suffix, directoryPrefix, directory, stripFileNamesAndLineNumbers);
+        header, suffix, directoryPrefix, directory, stripFileNamesAndLineNumbers, glob);
   }
 
   @Nullable
@@ -48,4 +50,6 @@ abstract class AutoPatchfileConfiguration implements StarlarkValue {
   public abstract String directory();
 
   public abstract boolean stripFileNamesAndLineNumbers();
+
+  public abstract Glob glob();
 }

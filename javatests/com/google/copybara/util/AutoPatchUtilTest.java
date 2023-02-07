@@ -88,7 +88,8 @@ public final class AutoPatchUtilTest {
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
         out,
-        true);
+        true,
+        Glob.ALL_FILES);
 
     assertThat(
             Files.readString(
@@ -152,7 +153,8 @@ public final class AutoPatchUtilTest {
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
         out,
-        true);
+        true,
+        Glob.ALL_FILES);
 
     assertThat(
             Files.exists(
@@ -181,7 +183,8 @@ public final class AutoPatchUtilTest {
         null,
         PATCH_FILE_NAME_SUFFIX,
         out,
-        true);
+        true,
+        Glob.ALL_FILES);
 
     assertThat(
             Files.exists(

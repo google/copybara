@@ -1986,19 +1986,32 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc = "When true, strip filenames and line numbers from patch files",
             named = true,
             positional = false,
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "paths",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc = "Only create patch files that match glob. Default is to match all files",
+            defaultValue = "None",
+            positional = false),
       })
   public AutoPatchfileConfiguration autoPatchfileConfiguration(
       Object fileContentsPrefix,
       String suffix,
       Object directoryPrefix,
       Object directory,
-      boolean stripFileNames) {
+      boolean stripFileNames,
+      Object globObj) {
+    Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
     return AutoPatchfileConfiguration.create(
         convertFromNoneable(fileContentsPrefix, null),
         suffix,
         convertFromNoneable(directoryPrefix, null),
         convertFromNoneable(directory, null),
-        stripFileNames);
+        stripFileNames,
+        glob);
   }
 }

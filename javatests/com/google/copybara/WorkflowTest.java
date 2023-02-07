@@ -148,6 +148,7 @@ public class WorkflowTest {
   private String autoPatchfileDirectory;
   private String autoPatchfileSuffix;
   private boolean autoPatchfileStripFilenamesAndLineNumbers;
+  private String autoPatchfileGlob;
   private boolean migrateNoopChangesField;
   private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
 
@@ -190,6 +191,7 @@ public class WorkflowTest {
     autoPatchfileSuffix = "";
     autoPatchfileDirectory = "";
     autoPatchfileStripFilenamesAndLineNumbers = false;
+    autoPatchfileGlob = "None";
     migrateNoopChangesField = false;
     extraWorkflowFields = ImmutableList.of();
   }
@@ -261,7 +263,10 @@ public class WorkflowTest {
                   + ",\n"
                   + "        strip_file_names_and_line_numbers = "
                   + (autoPatchfileStripFilenamesAndLineNumbers ? "True" : "False")
-                  + "\n"
+                  + ",\n"
+                  + "        paths = "
+                  + autoPatchfileGlob
+                  + ",\n"
                   + "    ),\n");
     } else {
       config = config.replace("::autopatch_placeholder::", "");
@@ -1999,11 +2004,13 @@ public class WorkflowTest {
     autoPatchfileSuffix = "'.patch'";
     autoPatchfileDirectory = "'GOIMPORT/AUTOPATCHES/'";
     autoPatchfileStripFilenamesAndLineNumbers = true;
+    autoPatchfileGlob = "glob(include = ['**'], exclude = ['**no_patch**'])";
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
 
     // populate the baseline
     writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+    writeFile(base1, "dir/no_patch.txt", "a\nb\nc\n");
     writeFile(base1, "dir/to_delete.txt", "I will be deleted");
     origin.addChange(
         0,
@@ -2029,7 +2036,12 @@ public class WorkflowTest {
         new ProcessedChange(
             TransformResults.of(base3, new DummyRevision("1")),
             ImmutableMap.of(
-                "/dir/foo.txt", "a\nb\nc\nbar", "/dir/to_delete.txt", "I will be deleted"),
+                "/dir/foo.txt",
+                "a\nb\nc\nbar",
+                "/dir/no_patch.txt",
+                "a\nb\nc\n",
+                "/dir/to_delete.txt",
+                "I will be deleted"),
             "1",
             Glob.createGlob(ImmutableList.of(destinationFiles)),
             false));
@@ -2065,6 +2077,13 @@ public class WorkflowTest {
                 + " c\n"
                 + "+bar\n"
                 + "\\ No newline at end of file\n");
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .containsKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch"))
+        .isFalse();
     assertThat(destination.processed.get(1).getWorkdir().get("/dir/to_delete.txt"))
         .isEqualTo("I will be deleted");
     assertThat(

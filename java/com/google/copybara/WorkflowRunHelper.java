@@ -753,7 +753,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 workflow.getAutoPatchfileConfiguration().header(),
                 workflow.getAutoPatchfileConfiguration().suffix(),
                 checkoutDir,
-                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers());
+                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers(),
+                workflow.getAutoPatchfileConfiguration().glob());
           } catch (InsideGitDirException e) {
             console.errorFmt(
                 "Could not automatically generate patch files. Error received is %s",

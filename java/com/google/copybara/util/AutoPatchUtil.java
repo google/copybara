@@ -24,6 +24,7 @@ import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -51,6 +52,7 @@ public final class AutoPatchUtil {
    * @param patchFileNameSuffix suffix used for patch files e.g. .patch
    * @param rootDirectory directory in which to write all patch files (using above subdirectories)
    * @param stripFileNames when true, strip filenames and line numbers from patch file contents
+   * @param fileMatcher used to prevent AutoPatchUtil from running on certain files
    */
   public static void generatePatchFiles(
       Path lhsWorkdir,
@@ -62,7 +64,8 @@ public final class AutoPatchUtil {
       @Nullable String patchFilePrefix,
       String patchFileNameSuffix,
       Path rootDirectory,
-      boolean stripFileNames)
+      boolean stripFileNames,
+      Glob fileMatcher)
       throws IOException, InsideGitDirException {
     if (patchFilePrefix == null) {
       patchFilePrefix = "";
@@ -75,6 +78,9 @@ public final class AutoPatchUtil {
     // TODO: make this configurable
     for (DiffFile diffFile : diffFiles) {
       if (!diffFile.getOperation().equals(Operation.MODIFIED)) {
+        continue;
+      }
+      if (!fileMatcher.relativeTo(Paths.get("")).matches(Path.of("/".concat(diffFile.getName())))) {
         continue;
       }
       String fileName = diffFile.getName();
