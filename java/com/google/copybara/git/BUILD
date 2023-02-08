@@ -35,7 +35,7 @@ java_library(
     name = "git",
     srcs = glob(
         ["**/*.java"],
-        exclude = CORE + ["GitExecPath.java"],
+        exclude = CORE,
     ),
     javacopts = JAVACOPTS,
     deps = [
