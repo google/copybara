@@ -2268,7 +2268,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-`destination` `git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None, primary_branch_migration=False, checker=None)`
+`destination` `git.destination(url, push='master', tag_name=None, tag_msg=None, fetch=None, partial_fetch=False, integrates=None, primary_branch_migration=False, checker=None, push_options=None)`
 
 
 #### Parameters:
@@ -2284,6 +2284,7 @@ partial_fetch | `bool`<br><p>This is an experimental feature that only works for
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 checker | `checker` or `NoneType`<br><p>A checker that can check leaks or other checks in the commit created. </p>
+push_options | `sequence` or `NoneType`<br><p>A sequence of git push options that can pass into push command. Defaults to none which represents no push options.</p>
 
 
 

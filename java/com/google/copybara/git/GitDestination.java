@@ -110,6 +110,7 @@ public class GitDestination implements Destination<GitRevision> {
   @Nullable private String resolvedPrimary = null;
   private final Iterable<GitIntegrateChanges> integrates;
   private final WriteHook writerHook;
+  private final Iterable<String> pushOptions;
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
 
@@ -126,7 +127,8 @@ public class GitDestination implements Destination<GitRevision> {
       GeneralOptions generalOptions,
       WriteHook writerHook,
       Iterable<GitIntegrateChanges> integrates,
-      @Nullable Checker checker) {
+      @Nullable Checker checker,
+      Iterable<String> pushOptions) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -140,6 +142,7 @@ public class GitDestination implements Destination<GitRevision> {
     this.integrates = checkNotNull(integrates);
     this.writerHook = checkNotNull(writerHook);
     this.checker = checker;
+    this.pushOptions = checkNotNull(pushOptions);
     this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
   }
 
@@ -191,7 +194,8 @@ public class GitDestination implements Destination<GitRevision> {
         destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize,
         gitOptions.gitTagOverwrite,
-        checker);
+        checker,
+        pushOptions);
   }
 
   /**
@@ -242,6 +246,7 @@ public class GitDestination implements Destination<GitRevision> {
     private final int visitChangePageSize;
     private final boolean gitTagOverwrite;
     @Nullable private final Checker checker;
+    private final Iterable<String> pushOptions;
 
     /** Create a new git.destination writer */
     WriterImpl(
@@ -265,7 +270,8 @@ public class GitDestination implements Destination<GitRevision> {
         boolean rebase,
         int visitChangePageSize,
         boolean gitTagOverwrite,
-        Checker checker) {
+        Checker checker,
+        Iterable<String> pushOptions) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -289,6 +295,7 @@ public class GitDestination implements Destination<GitRevision> {
       this.visitChangePageSize = visitChangePageSize;
       this.gitTagOverwrite = gitTagOverwrite;
       this.checker = checker;
+      this.pushOptions = pushOptions;
     }
 
     @Override
@@ -659,6 +666,7 @@ public class GitDestination implements Destination<GitRevision> {
       String serverResponse = generalOptions.repoTask(
           "push",
           () -> scratchClone.push()
+              .pushOptions(pushOptions)
               .withRefspecs(repoUrl,
                   tagName != null
                   ? ImmutableList.of(scratchClone.createRefSpec(

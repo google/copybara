@@ -72,6 +72,7 @@ import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.git.gitlab.util.GitLabHost;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.RepositoryUtil;
@@ -1367,6 +1368,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "A checker that can check leaks or other checks in the commit created. ",
             named = true,
             positional = false),
+        @Param(
+            name = "push_options",
+            allowedTypes = {
+              @ParamType(type = Sequence.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A sequence of git push options that can pass into push command. Defaults to none which represents no push options.",
+            named = true,
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1380,6 +1391,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Boolean primaryBranchMigration,
       Object checker,
+      Object pushOptions,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1393,6 +1405,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               "Skipping git checker for git.destination. Note that this could"
                   + " cause leaks or other problems");
     }
+    Iterable<String> resolvedPushOptions = Starlark.isNullOrNone(pushOptions)
+            ? ImmutableList.of()
+            : Sequence.cast(pushOptions, String.class, "push_options");
     return new GitDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1412,7 +1427,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        maybeChecker);
+        maybeChecker,
+        resolvedPushOptions);
   }
 
   @SuppressWarnings("unused")
@@ -1640,7 +1656,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        checkerObj);
+        checkerObj,
+        ImmutableList.of());
   }
 
   @SuppressWarnings("unused")
@@ -1886,6 +1903,220 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         apiCheckerObj != null ? apiCheckerObj : checkerObj,
         updateDescription,
         GITHUB_COM,
+        primaryBranchMigrationMode,
+        checkerObj);
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "gitlab_mr_destination",
+      doc = "Creates changes in a new merge request in the destination.",
+      parameters = {
+          @Param(
+              name = "url",
+              named = true,
+              doc =
+                  "Url of the GitLab project. For example"
+                      + " \"https://gitlab.com/some/project'\""),
+          @Param(
+              name = "destination_ref",
+              named = true,
+              doc = "Destination reference for the change.",
+              defaultValue = "'master'"),
+          @Param(
+              name = "mr_branch",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc =
+                  "Customize the merge request branch. Any variable present in the message in the "
+                      + "form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable "
+                      + "reference (head, MR number, Gerrit change number, etc.)."),
+          @Param(
+              name = "partial_fetch",
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc = "This is an experimental feature that only works for certain origin globs."),
+          @Param(
+              name = "allow_empty_diff",
+              defaultValue = "True",
+              named = true,
+              positional = false,
+              doc =
+                  "By default, copybara migrates changes without checking existing MRs. "
+                      + "If set, copybara will skip pushing a change to an existing MR "
+                      + "only if the git three of the pending migrating change is the same "
+                      + "as the existing MR."),
+          @Param(
+              name = "title",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc =
+                  "When creating (or updating if `update_description` is set) a merge request, use"
+                      + " this title. By default it uses the change first line. This field accepts"
+                      + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
+          @Param(
+              name = "body",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc =
+                  "When creating (or updating if `update_description` is set) a merge request, use"
+                      + " this body. By default it uses the change summary. This field accepts"
+                      + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
+          @Param(
+              name = "integrates",
+              allowedTypes = {
+                  @ParamType(type = Sequence.class, generic1 = GitIntegrateChanges.class),
+                  @ParamType(type = NoneType.class),
+              },
+              named = true,
+              defaultValue = "None",
+              doc =
+                  "Integrate changes from a url present in the migrated change"
+                      + " label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is"
+                      + " present in the message",
+              positional = false),
+          @Param(
+              name = "api_checker",
+              allowedTypes = {
+                  @ParamType(type = Checker.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              doc =
+                  "A checker for the GitLab API endpoint provided for after_migration hooks. "
+                      + "This field is not required if the workflow hooks don't use the "
+                      + "origin/destination endpoints.",
+              named = true,
+              positional = false),
+          @Param(
+              name = "update_description",
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "By default, Copybara only set the title and body of the MR when creating"
+                      + " the MR. If this field is set to true, it will update those fields for"
+                      + " every update."),
+          @Param(
+              name = "primary_branch_migration",
+              defaultValue = "False",
+              named = true,
+              positional = false,
+              doc =
+                  "When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or"
+                      + " 'main' and instead try to establish the default git branch. If this fails,"
+                      + " it will fall back to the param's declared value.\n"
+                      + "This is intended to help migrating to the new standard of using 'main'"
+                      + " without breaking users relying on the legacy default."),
+          @Param(
+              name = "checker",
+              allowedTypes = {
+                  @ParamType(type = Checker.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              doc =
+                  "A checker that validates the commit files & message. If `api_checker` is not"
+                      + " set, it will also be used for checking API calls. If only `api_checker`"
+                      + "is used, that checker will only apply to API calls.",
+              named = true,
+              positional = false),
+      },
+      useStarlarkThread = true)
+  @UsesFlags({GitDestinationOptions.class, GitLabDestinationOptions.class})
+  @Example(
+      title = "Common usage",
+      before = "Create a branch by using copybara's computerIdentity algorithm:",
+      code =
+          "git.gitlab_mr_destination(\n"
+              + "        url = \"https://gitlab.com/some/project\",\n"
+              + "        destination_ref = \"master\",\n"
+              + "    )")
+  @Example(
+      title = "Using mr_branch with label",
+      before = "Customize mr_branch with context reference:",
+      code =
+          "git.gitlab_mr_destination(\n"
+              + "         url = \"https://gitlab.com/some/project\",\n"
+              + "         destination_ref = \"master\",\n"
+              + "         mr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+              + "    )")
+  @Example(
+      title = "Using mr_branch with constant string",
+      before = "Customize mr_branch with a constant string:",
+      code =
+          "git.gitlab_mr_destination(\n"
+              + "        url = \"https://gitlab.com/some/project\",\n"
+              + "        destination_ref = \"master\",\n"
+              + "        mr_branch = 'test_my_branch',\n"
+              + "    )")
+  public GitLabMrDestination gitLabMrDestination(
+      String url,
+      String destinationRef,
+      Object prBranch,
+      Boolean partialFetch,
+      Boolean allowEmptyDiff,
+      Object title,
+      Object body,
+      Object integrates,
+      Object apiChecker,
+      Boolean updateDescription,
+      Boolean primaryBranchMigrationMode,
+      Object checker,
+      StarlarkThread thread)
+      throws EvalException {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
+    GitLabOptions gitLabOptions = options.get(GitLabOptions.class);
+    String destinationPrBranch = convertFromNoneable(prBranch, null);
+    Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
+    Checker checkerObj = convertFromNoneable(checker, null);
+    return new GitLabMrDestination(
+        fixHttp(
+            checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
+            thread.getCallerLocation()),
+        destinationRef,
+        convertFromNoneable(prBranch, null),
+        partialFetch,
+        generalOptions,
+        options.get(GitLabOptions.class),
+        destinationOptions,
+        options.get(GitLabDestinationOptions.class),
+        options.get(GitOptions.class),
+        new GitLabMrWriteHook(
+            generalOptions,
+            url,
+            gitLabOptions,
+            destinationPrBranch,
+            partialFetch,
+            allowEmptyDiff,
+            getGeneralConsole(),
+            new GitLabHost()),
+        Starlark.isNullOrNone(integrates)
+            ? defaultGitIntegrate
+            : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
+        convertFromNoneable(title, null),
+        convertFromNoneable(body, null),
+        mainConfigFile,
+        apiCheckerObj != null ? apiCheckerObj : checkerObj,
+        updateDescription,
+        new GitLabHost(),
         primaryBranchMigrationMode,
         checkerObj);
   }

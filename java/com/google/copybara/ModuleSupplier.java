@@ -33,6 +33,8 @@ import com.google.copybara.git.GitDestinationOptions;
 import com.google.copybara.git.GitHubDestinationOptions;
 import com.google.copybara.git.GitHubOptions;
 import com.google.copybara.git.GitHubPrOriginOptions;
+import com.google.copybara.git.GitLabDestinationOptions;
+import com.google.copybara.git.GitLabOptions;
 import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
@@ -136,6 +138,8 @@ public class ModuleSupplier {
         new GitHubOptions(generalOptions, gitOptions),
         new GitHubDestinationOptions(),
         new GerritOptions(generalOptions, gitOptions),
+        new GitLabOptions(generalOptions, gitOptions),
+        new GitLabDestinationOptions(),
         new GitMirrorOptions(),
         new HgOptions(generalOptions),
         new HgOriginOptions(),
