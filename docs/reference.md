@@ -81,6 +81,7 @@
     - [gerrit_api_obj.new_destination_ref](#gerrit_api_objnew_destination_ref)
     - [gerrit_api_obj.new_origin_ref](#gerrit_api_objnew_origin_ref)
     - [gerrit_api_obj.post_review](#gerrit_api_objpost_review)
+    - [gerrit_api_obj.submit_change](#gerrit_api_objsubmit_change)
   - [gerritapi.AccountInfo](#gerritapiaccountinfo)
   - [gerritapi.ApprovalInfo](#gerritapiapprovalinfo)
   - [gerritapi.ChangeInfo](#gerritapichangeinfo)
@@ -2026,6 +2027,20 @@ Parameter | Description
 change_id | `string`<br><p>The Gerrit change id.</p>
 revision_id | `string`<br><p>The revision for which the comment will be posted.</p>
 review_input | [`SetReviewInput`](#setreviewinput)<br><p>The review to post to Gerrit.</p>
+
+<a id="gerrit_api_obj.submit_change" aria-hidden="true"></a>
+### gerrit_api_obj.submit_change
+
+Submit a Gerrit change
+
+[`gerritapi.ChangeInfo`](#gerritapichangeinfo) `gerrit_api_obj.submit_change(change_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
 
 
 

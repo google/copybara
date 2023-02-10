@@ -477,6 +477,27 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void submitChange() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        startsWith(BASE_URL + "/changes/12345/submit"),
+        mockResponseWithStatus("{id : '12345'}", 200,
+            new MockRequestAssertion("Always true with side-effect",
+                s -> {
+                  called.set(true);
+                  return true;
+                })));
+
+    runFeedback(ImmutableList.<String>builder()
+        .add("ctx.destination"
+            + ".submit_change('12345')")
+        .build());
+
+    assertThat(called.get()).isTrue();
+  }
+
+  @Test
   public void testPostLabel_errorCreatesVe() throws Exception {
     mockForTest();
     gitUtil.mockApi(
