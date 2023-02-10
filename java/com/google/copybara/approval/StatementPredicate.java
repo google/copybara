@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableList;
  * https://github.com/in-toto/attestation/tree/v0.1.0/spec#predicate TODO(malcon): Make it really
  * conformant.
  */
-public abstract class StatementPredicate {
+public class StatementPredicate {
   @Key private final String type;
   @Key private final String description;
   @Key private final String url;
