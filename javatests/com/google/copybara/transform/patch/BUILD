@@ -17,6 +17,7 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "patch_tests",
     tags = ["local"],
     tests = glob(["**/*Test.java"]),
     deps = [
