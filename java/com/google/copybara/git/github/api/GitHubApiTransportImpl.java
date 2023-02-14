@@ -35,6 +35,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.GsonParserUtil;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -54,6 +55,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
+  private static final GsonParserUtil GSON_PARSER_UTIL = new GsonParserUtil();
   private static final String API_URL = "https://api.github.com";
   private final APIType apiType;
   private static final String GITHUB_WEB_URL = "https://github.com";
@@ -92,7 +94,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
-      Object responseObj = response.parseAs(responseType);
+      Object responseObj = GSON_PARSER_UTIL.parseJson(
+          response, responseType);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
             ((PaginatedPayload) responseObj)
@@ -158,7 +161,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpRequest httpRequest = requestFactory.buildPostRequest(url,
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
-      Object responseObj = response.parseAs(responseType);
+      Object responseObj = GSON_PARSER_UTIL.parseJson(
+          response, responseType);
       if (responseObj instanceof PaginatedPayload) {
         return (T) ((PaginatedPayload) responseObj).annotatePayload(this.apiType.getURLPrefix(),
             maybeGetLinkHeader(response));

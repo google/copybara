@@ -43,6 +43,7 @@ java_library(
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:core",
+        "//java/com/google/copybara/git:gson_parser_util",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/util/console",
         "//third_party:error_prone",
