@@ -35,6 +35,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckSuite;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -73,6 +74,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import net.starlark.java.eval.StarlarkInt;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -640,6 +642,60 @@ public abstract class AbstractGitHubApiTest {
 
     ImmutableList<CheckRun> checkRuns = api.getCheckRuns("example/project", "12345");
     assertThat(checkRuns).hasSize(3);
+  }
+  @Test
+  public void test_getCheckSuites_success() throws Exception {
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-suites?per_page=100",
+        getResource("get_check_suites_testdata.json"));
+    ImmutableList<CheckSuite> checkSuites =
+        api.getCheckSuites("example/project", "12345");
+    assertThat(checkSuites).hasSize(1);
+    assertThat(checkSuites.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkSuites.get(0).getConclusion()).isEqualTo("neutral");
+    assertThat(checkSuites.get(0).getId()).isEqualTo(StarlarkInt.of(5));
+    assertThat(checkSuites.get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkSuites.get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkSuites.get(0).getApp().getSlug()).isEqualTo("octoapp");
+  }
+
+  @Test
+  public void test_getCheckSuites_pagination() throws Exception {
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=2>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=2",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=3",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=2>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+
+    ImmutableList<CheckSuite> checkSuites = api.getCheckSuites("example/project", "12345");
+    assertThat(checkSuites).hasSize(3);
   }
 
    @Test

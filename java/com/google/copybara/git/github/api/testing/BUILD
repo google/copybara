@@ -32,6 +32,7 @@ java_library(
         "//third_party:guava",
         "//third_party:junit",
         "//third_party:mockito",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

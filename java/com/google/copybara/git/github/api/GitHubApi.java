@@ -483,6 +483,21 @@ public class GitHubApi {
     }
   }
 
+  /**
+   * https://docs.github.com/en/rest/checks/suites/#list-check-suites-for-a-git-reference
+   */
+  public ImmutableList<CheckSuite> getCheckSuites(String projectId, String ref)
+      throws RepoException, ValidationException {
+
+    try (ProfilerTask ignore = profiler.start("github_api_get_check_suites")) {
+      return paginatedGet("github_api_get_check_runs_get",
+          new TypeToken<CheckSuites>() {
+          }.getType(), "Check Run",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
+          "repos/%s/commits/%s/check-suites?per_page=%d", projectId, ref, MAX_PER_PAGE);
+    }
+  }
+
   public GitHubCommit getCommit(String projectId, String ref)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_commit")) {
