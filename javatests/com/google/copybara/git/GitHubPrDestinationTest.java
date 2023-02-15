@@ -27,6 +27,8 @@ import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -717,6 +719,95 @@ public class GitHubPrDestinationTest {
     emptyDiffMergeStatus = "CLEAN";
     String mergeableField = "  \"mergeable_state\": \"clean\",\n";
     checkEmptyChangeButNonMergeable(true, mergeableField);
+  }
+
+  @Test
+  public void emptyChangeUploadBecauseCheckSuiteIsFailing() throws Exception {
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos();
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+    skylark = new SkylarkTestExecutor(options);
+    options.githubDestination.destinationPrBranch = "test_feature";
+    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
+        + "    url = 'https://github.com/foo', \n"
+        + "    title = 'Title ${aaa}',\n"
+        + "    body = 'Body ${aaa}',\n"
+        + "    allow_empty_diff = False,\n"
+        + "    destination_ref = 'main',\n"
+        + "    pr_branch = 'test_${CONTEXT_REFERENCE}',\n"
+        + "    allow_empty_diff_check_suites_to_conclusion = "
+        + "       {\"github-actions\" : ['failure']},\n"
+        + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
+        + ")");
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
+            Glob.ALL_FILES.roots());
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
+    addFiles(
+        remote,
+        null,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
+    String baseline = remote.resolveReference("HEAD").getSha1();
+    addFiles(
+        remote,
+        "test_feature",
+        "second change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "test").buildOrThrow());
+    String changeHead = remote.resolveReference("HEAD").getSha1();
+
+    gitUtil.mockApi("GET", getPullRequestsUrl("test_feature"), mockResponse("[{"
+        + "  \"id\": 1,\n"
+        + "  \"number\": 12345,\n"
+        + "  \"state\": \"open\",\n"
+        + "  \"title\": \"test summary\",\n"
+        + "  \"body\": \"test summary\","
+        + "  \"head\": {\"sha\": \"" + changeHead + "\", \"ref\": \"test_feature\"},"
+        + "  \"base\": {\"sha\": \"" + baseline + "\", \"ref\": \"master\"}"
+        + "}]"));
+    gitUtil.mockApi("GET",
+        "https://api.github.com/repos/foo/pulls/12345", mockResponse("{"
+            + "  \"id\": 1,\n"
+            + "  \"number\": 12345,\n"
+            + "  \"state\": \"closed\",\n"
+            + "  \"title\": \"test summary\",\n"
+            + "  \"mergeable\": true,\n"
+            + "  \"body\": \"test summary\","
+            + "  \"head\": {\"sha\": \"" + changeHead + "\"},"
+            + "  \"base\": {\"sha\": \"" + baseline + "\"}"
+            + "}"));
+
+    gitUtil.mockApi(eq("GET"),
+        matches("https://api.github.com/repos/foo/commits/.*/check-suites\\?per_page=100"),
+        // Two check-suits named the same (the default). One is not finished and one is in failure.
+        // copy.bara.sky is configured to only upload if it sees any failure, so it should upload.
+        mockResponse("{\n"
+            + "  \"id\": 1,\n"
+            + "  \"check_suites\": [ "
+            + "    { \"id\": 102030, \"conclusion\": \"failure\", \"app\": "
+            + "      { \"slug\": \"github-actions\"}},"
+            + "    { \"id\": 102031, \"conclusion\": null,  \"app\":"
+            + "      { \"slug\": \"github-actions\"}}"
+            + "  ]\n"
+            + "}"));
+
+    writeFile(this.workdir, "foo.txt", "test");
+    ImmutableList<DestinationEffect> results = writer.write(
+        TransformResults.of(this.workdir, new DummyRevision("one")).withBaseline(baseline)
+            .withChanges(new Changes(
+                ImmutableList.of(
+                    toChange(new DummyRevision("feature"),
+                        new Author("Foo Bar", "foo@bar.com"))),
+                ImmutableList.of()))
+            .withLabelFinder(
+                Functions.forMap(ImmutableMap.of("aaa", ImmutableList.of("first a", "second a")))),
+        Glob.ALL_FILES,
+        console);
+
+    assertThat(results.size()).isEqualTo(2);
   }
 
   private void checkEmptyChangeButNonMergeable(boolean mergeable, String mergeableStatusField)

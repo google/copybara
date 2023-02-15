@@ -16,6 +16,7 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.checkNotEmpty;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
@@ -42,6 +43,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Options;
@@ -70,6 +73,7 @@ import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.gerritapi.GerritEventType;
 import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.CheckRun.Conclusion;
 import com.google.copybara.git.github.api.GitHubEventType;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.Replace;
@@ -86,12 +90,14 @@ import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
@@ -1707,6 +1713,28 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                   + " **Note that this field is experimental and is subject to change by GitHub"
                   + " without notice**. Please consult Copybara team before using this field."),
           @Param(
+              name = "allow_empty_diff_check_suites_to_conclusion",
+              allowedTypes = {
+                  @ParamType(type = Dict.class, generic1 = String.class)
+              },
+              defaultValue = "{}",
+              named = true,
+              positional = false,
+              doc = "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
+                  + " Copybara skips uploading the change if the tree hasn't changed and it can be"
+                  + " merged.<br>"
+                  + "<br>"
+                  + "This field allows to configure Check suit slugs and conclusions for those"
+                  + " check suites where an upload needs to happen despite no code changes. For"
+                  + " example this can be used to upload if tests are failing. A Very common"
+                  + " usage would be"
+                  + " `{\"github-actions\" :"
+                  + "   [\"none\", \"failure\", \"timed_out\", \"cancelled\"]}`:"
+                  + " This would upload changes when Checks are in progress, has failed,"
+                  + " timeout or being cancelled. `github-actions` check suit slug name is the"
+                  + " default name for checks run by GitHub actions where the suit is not given"
+                  + " a name."),
+          @Param(
             name = "title",
             allowedTypes = {
               @ParamType(type = String.class),
@@ -1833,6 +1861,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean partialFetch,
       Boolean allowEmptyDiff,
       Sequence<?> allowEmptyDiffMergeStatuses,
+      Dict<?, ?> allowEmptyDiffCheckSuitesToConclusion,
       Object title,
       Object body,
       Object integrates,
@@ -1875,6 +1904,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ImmutableSet.copyOf(
                 SkylarkUtil.convertStringList(allowEmptyDiffMergeStatuses,
                     "empty_diff_merge_statuses")),
+            convertSlugToConclusion(allowEmptyDiffCheckSuitesToConclusion),
             getGeneralConsole(),
             GITHUB_COM),
         Starlark.isNullOrNone(integrates)
@@ -1888,6 +1918,31 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         GITHUB_COM,
         primaryBranchMigrationMode,
         checkerObj);
+  }
+
+  private ImmutableSetMultimap<String, Conclusion> convertSlugToConclusion(
+      Dict<?, ?> allowEmptyDiffCheckSuitesToConclusion) throws EvalException {
+    Builder<String, Conclusion> skipSuiteToConclusion =
+        ImmutableSetMultimap.builder();
+    for (Object k : allowEmptyDiffCheckSuitesToConclusion.keySet()) {
+      if (!(k instanceof String)) {
+        throw Starlark.errorf("Invalid key '%s' for allow_empty_diff_check_suites_to_conclusion."
+            + " The value has to be an string with the slug name of the check suite."
+            + " e.g. \"github-actions\"", k);
+      }
+      Sequence<String> conclusionStr = Sequence.cast(allowEmptyDiffCheckSuitesToConclusion.get(k),
+          String.class, "allow_empty_diff_check_suites_to_conclusion[\"" + k + "\"]");
+      for (String c : conclusionStr) {
+        Optional<Conclusion> conclusion = Conclusion.fromValue(c);
+        if (conclusion.isEmpty()) {
+          throw Starlark.errorf("Invalid conclusion value %s. Valid values: %s", c,
+              Arrays.stream(Conclusion.values()).map(Conclusion::getApiVal)
+                  .collect(toImmutableList()));
+        }
+        skipSuiteToConclusion.put(k.toString(), conclusion.get());
+      }
+    }
+    return skipSuiteToConclusion.build();
   }
 
   @Nullable private static String firstNotNull(String... values) {
