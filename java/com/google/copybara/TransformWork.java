@@ -97,6 +97,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   static final String COPYBARA_AUTHOR = "COPYBARA_AUTHOR";
   static final String COPYBARA_CURRENT_MESSAGE_TITLE = "COPYBARA_CURRENT_MESSAGE_TITLE";
 
+  static final String COPYBARA_CONFIG_PATH_LABEL = "COPYBARA_CONFIG_PATH";
+
+  static final String COPYBARA_WORKFLOW_NAME_LABEL = "COPYBARA_WORKFLOW_NAME";
+
   private final Path checkoutDir;
   private Metadata metadata;
   private final Changes changes;

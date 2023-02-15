@@ -18,6 +18,8 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
+import static com.google.copybara.TransformWork.COPYBARA_CONFIG_PATH_LABEL;
+import static com.google.copybara.TransformWork.COPYBARA_WORKFLOW_NAME_LABEL;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
 import com.google.common.base.Joiner;
@@ -602,6 +604,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
+      transformWork.addLabel(COPYBARA_CONFIG_PATH_LABEL,
+          workflow.getMainConfigFile().getIdentifier(), "=", true);
+      transformWork.addLabel(COPYBARA_WORKFLOW_NAME_LABEL, workflow.getName(), "=", true);
+
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
