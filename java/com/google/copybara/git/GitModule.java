@@ -114,6 +114,7 @@ import net.starlark.java.eval.StarlarkCallable;
 import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.Location;
 
@@ -469,7 +470,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           @Param(
               name = "actions",
               doc =
-                  "Experimental feature. "
+                  "DEPRECATED: **DO NOT USE**"
                       + "A list of mirror actions to perform, with the following semantics:\n"
                       + "  - There is no guarantee of the order of execution.\n"
                       + "  - Actions need to be independent from each other.\n"
@@ -482,7 +483,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               defaultValue = "[]",
               positional = false,
               named = true),
-
+          @Param(
+              name = "action",
+              doc =
+                  "An action to execute when the migration is triggered. Actions can fetch,"
+                      + " push, rebase, merge, etc. Only fetches/pushes for the declared refspec"
+                      + " are allowed",
+              defaultValue = "None",
+              positional = false,
+              named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GitMirrorOptions.class)
@@ -494,7 +503,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean prune,
       Boolean partialFetch,
       Object description,
-      net.starlark.java.eval.Sequence<?> mirrorActions,
+      net.starlark.java.eval.Sequence<?> actionList,
+      Object action,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -512,7 +522,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         throw Starlark.errorf("%s", e.getMessage());
       }
     }
-    ImmutableList<Action> actions = convertActions(mirrorActions, printHandler);
+    ImmutableList<Action> actions = convertActions(actionList, action, printHandler);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     GlobalMigrations.getGlobalMigrations(module)
         .addMigration(
@@ -534,21 +544,41 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   }
 
   private static ImmutableList<Action> convertActions(
-      net.starlark.java.eval.Sequence<?> actions, StarlarkThread.PrintHandler printHandler)
+      Sequence<?> actionList, Object action,
+      PrintHandler printHandler)
       throws EvalException {
-    ImmutableList.Builder<Action> result = ImmutableList.builder();
-    for (Object action : actions) {
-      if (action instanceof StarlarkCallable) {
-        result.add(new StarlarkAction(((StarlarkCallable) action).getName(),
-            (StarlarkCallable) action, Dict.empty(), printHandler));
-      } else if (action instanceof Action) {
-        result.add((Action) action);
-      } else {
-        throw Starlark.errorf(
-            "Invalid feedback action '%s 'of type: %s", action, action.getClass());
-      }
+    // TODO(b/269526710): Remove 'actions'
+    if (actionList.isEmpty() && action == Starlark.NONE) {
+      return ImmutableList.of();
     }
-    return result.build();
+    if ((!actionList.isEmpty()) && action != Starlark.NONE) {
+      throw new EvalException("Cannot use both 'action' and 'actions' field. 'actions' is"
+          + " deprecated, so use 'action'");
+    }
+    if (action != Starlark.NONE) {
+      // Not warn since we are going to migrate our internal users and we don't know of any
+      // external user using this.
+      return ImmutableList.of(maybeWrapAction(printHandler, action));
+    }  else {
+      ImmutableList.Builder<Action> result = ImmutableList.builder();
+      for (Object a : actionList) {
+        result.add(maybeWrapAction(printHandler, a));
+      }
+      return result.build();
+    }
+  }
+
+  private static Action maybeWrapAction(PrintHandler printHandler, Object action)
+      throws EvalException {
+    if (action instanceof StarlarkCallable) {
+      return new StarlarkAction(((StarlarkCallable) action).getName(),
+          (StarlarkCallable) action, Dict.empty(), printHandler);
+    } else if (action instanceof Action) {
+      return (Action) action;
+    } else {
+      throw Starlark.errorf(
+          "Invalid feedback action '%s 'of type: %s", action, action.getClass());
+    }
   }
 
   @SuppressWarnings("unused")

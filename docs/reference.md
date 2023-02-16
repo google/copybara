@@ -830,7 +830,7 @@ For the purpose of this workflow, it is not considered metadata the commit messa
 
 
 
-`core.feedback(name, origin, destination, actions=[], description=None)`
+`core.feedback(name, origin, destination, actions=[], action=None, description=None)`
 
 
 #### Parameters:
@@ -840,7 +840,8 @@ Parameter | Description
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
 destination | `endpoint_provider`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
-actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
+actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**<br>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
+action | `unknown`<br><p>An action to execute when the migration is triggered</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 
 <a id="core.filter_replace" aria-hidden="true"></a>
@@ -2743,7 +2744,7 @@ refspec_groups | `dict`<br><p>A set of named regexes that can be used to match p
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[])`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None)`
 
 
 #### Parameters:
@@ -2757,7 +2758,8 @@ refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirro
 prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
-actions | `sequence`<br><p>Experimental feature. A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
+actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
+action | `unknown`<br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin

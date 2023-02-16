@@ -147,6 +147,29 @@ public class ActionMigrationTest {
   }
 
   @Test
+  public void testSingleAction() throws Exception {
+    String config =
+        (""
+            + "def test_action(ctx):\n"
+            + "    for ref in ctx.refs:\n"
+            + "      ctx.console.info('Ref: ' + ref)\n"
+            + "    return ctx.success()\n"
+            + "\n")
+            + "\n"
+            + "core.feedback(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    destination = testing.dummy_endpoint(),\n"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    System.err.println(config);
+    ActionMigration actionMigration = (ActionMigration) loadConfig(config).getMigration("default");
+    actionMigration.run(workdir, ImmutableList.of("12345"));
+    console.assertThat().onceInLog(MessageType.INFO, "Ref: 12345");
+  }
+
+  @Test
   public void testNullSourceRef() throws Exception {
     ActionMigration actionMigration = loggingFeedback();
     actionMigration.run(workdir, ImmutableList.of());
@@ -258,14 +281,11 @@ public class ActionMigrationTest {
   }
 
   @Test
-  public void testNoActionsThrowsEmptyChangeException() throws Exception {
-    ActionMigration migration = feedback("");
-    EmptyChangeException expected =
-        assertThrows(EmptyChangeException.class, () -> migration.run(workdir, ImmutableList.of()));
-    assertThat(expected)
+  public void testNoActionIsAUserError() throws Exception {
+    assertThat(assertThrows(ValidationException.class, () -> feedback("")))
         .hasMessageThat()
         .contains(
-            "Feedback migration 'default' was noop. Detailed messages: actions field is empty");
+            "'action' is a required field");
   }
 
   @Test
@@ -529,7 +549,8 @@ public class ActionMigrationTest {
             + "core.feedback(\n"
             + "    name = 'foo| bad;name',\n"
             + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = testing.dummy_endpoint()\n"
+            + "    destination = testing.dummy_endpoint(),\n"
+            + "    action = lambda ctx: ctx.console.info('Hello'),\n"
             + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
   }

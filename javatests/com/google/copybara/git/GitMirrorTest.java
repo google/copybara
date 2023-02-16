@@ -398,6 +398,27 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testSingleAction() throws Exception {
+    String cfg = ""
+        + "def a1(ctx):\n"
+        + "   ctx.console.info('Hello, this is action1 ' + str(ctx.refs))\n"
+        + "   return ctx.success()\n"
+        + "\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    action = a1"
+        + ")\n"
+        + "";
+
+    Migration migration = loadMigration(cfg, "default");
+    migration.run(workdir, ImmutableList.of("my_ref"));
+    console.assertThat().onceInLog(MessageType.INFO,
+        "Hello, this is action1 \\[\"my_ref\"\\]");
+  }
+
+  @Test
   public void testActionFailure() throws Exception {
     ValidationException ve = checkActionFailure();
     assertThat(ve).hasMessageThat().contains("Something bad happened");

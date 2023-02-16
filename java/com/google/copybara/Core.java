@@ -91,6 +91,7 @@ import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkThread.CallStackEntry;
+import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -579,8 +580,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             allConfigFiles,
             dryRunMode,
             checkLastRevState || workflowOptions.checkLastRevState,
-            convertFeedbackActions(afterMigrations, printHandler),
-            convertFeedbackActions(afterAllMigrations, printHandler),
+            convertListOfActions(afterMigrations, printHandler),
+            convertListOfActions(afterAllMigrations, printHandler),
             changeIdentity,
             setRevId,
             smartPrune,
@@ -1708,34 +1709,43 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "actions",
             doc =
                 ""
+                    + "DEPRECATED: **DO NOT USE**\n"
                     + "A list of feedback actions to perform, with the following semantics:\n"
                     + "  - There is no guarantee of the order of execution.\n"
                     + "  - Actions need to be independent from each other.\n"
                     + "  - Failure in one action might prevent other actions from executing.\n",
             defaultValue = "[]",
+            documented = false,
             positional = false,
             named = true),
-        @Param(
-            name = "description",
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = NoneType.class),
-            },
-            named = true,
-            positional = false,
-            doc = "A description of what this workflow achieves",
-            defaultValue = "None"),
+          @Param(
+              name = "action",
+              doc =
+                  "An action to execute when the migration is triggered",
+              defaultValue = "None",
+              positional = false,
+              named = true),
+          @Param(
+              name = "description",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              named = true,
+              positional = false,
+              doc = "A description of what this workflow achieves",
+              defaultValue = "None"),
       },
       useStarlarkThread = true)
   public NoneType feedback(
       String workflowName,
       Trigger trigger,
       EndpointProvider<?> destination,
-      net.starlark.java.eval.Sequence<?> feedbackActions,
+      net.starlark.java.eval.Sequence<?> actionList,
+      Object action,
       Object description,
       StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, printHandler);
     ActionMigration migration =
         new ActionMigration(
             workflowName,
@@ -1745,12 +1755,30 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             new StructImpl(ImmutableMap.of(
                 "destination", destination.getEndpoint()
             )),
-            actions,
+            handleActionActionsMigration(actionList, action),
             generalOptions,
             "feedback");
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;
+  }
+  // TODO(b/269526710): Remove when all users are migrated to 'action' field
+  private ImmutableList<Action> handleActionActionsMigration(
+      net.starlark.java.eval.Sequence<?> actionList, Object action) throws EvalException {
+    if (actionList.isEmpty() && action == Starlark.NONE) {
+      throw new EvalException("'action' is a required field");
+    }
+    if ((!actionList.isEmpty()) && action != Starlark.NONE) {
+      throw new EvalException("Cannot use both 'action' and 'actions' field. 'actions' is"
+          + " deprecated, so use 'action'");
+    }
+    if (action != Starlark.NONE) {
+      // Not warn since we are going to migrate our internal users and we don't know of any
+      // external user using this.
+      return ImmutableList.of(maybeWrapAction(printHandler, action));
+    }  else {
+      return convertListOfActions(actionList, printHandler);
+    }
   }
 
   @StarlarkMethod(
@@ -1902,22 +1930,27 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return versionPicker;
   }
 
-  private static ImmutableList<Action> convertFeedbackActions(
+  private static ImmutableList<Action> convertListOfActions(
       net.starlark.java.eval.Sequence<?> feedbackActions, StarlarkThread.PrintHandler printHandler)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
-      if (action instanceof StarlarkCallable) {
-        actions.add(new StarlarkAction(((StarlarkCallable) action).getName(),
-            (StarlarkCallable) action, Dict.empty(), printHandler));
-      } else if (action instanceof Action) {
-        actions.add((Action) action);
-      } else {
-        throw Starlark.errorf(
-            "Invalid feedback action '%s 'of type: %s", action, action.getClass());
-      }
+      actions.add(maybeWrapAction(printHandler, action));
     }
     return actions.build();
+  }
+
+  private static Action maybeWrapAction(PrintHandler printHandler, Object action)
+      throws EvalException {
+    if (action instanceof StarlarkCallable) {
+      return new StarlarkAction(((StarlarkCallable) action).getName(),
+          (StarlarkCallable) action, Dict.empty(), printHandler);
+    } else if (action instanceof Action) {
+      return (Action) action;
+    } else {
+      throw Starlark.errorf(
+          "Invalid action '%s 'of type: %s", action, action.getClass());
+    }
   }
 
   @Override
