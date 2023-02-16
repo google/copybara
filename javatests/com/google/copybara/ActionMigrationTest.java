@@ -399,6 +399,18 @@ public class ActionMigrationTest {
   }
 
   @Test
+  public void testAccessDestinationThruEndpoints() throws Exception {
+    runAndVerifyDestinationEffects(""
+        + "def test_action(ctx):\n"
+        + "    ctx.record_effect("
+        + "      'Some effect',\n"
+        + "      [ctx.origin.new_origin_ref('foo')],\n"
+        + "      ctx.endpoints.destination.new_destination_ref(ref = 'bar', type = 'some_type'))\n"
+        + "    return ctx.success()\n"
+        + "\n", ImmutableList.of());
+  }
+
+  @Test
   public void testDestinationEffectsWithErrors() throws Exception {
     runAndVerifyDestinationEffects(
         ""

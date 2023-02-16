@@ -22,6 +22,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
+import com.google.common.collect.Iterables;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
 import com.google.copybara.action.ActionResult.Result;
@@ -40,6 +41,8 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Structure;
 
 /**
  * A migration that can move code or metadata between endpoints.
@@ -50,7 +53,7 @@ public class ActionMigration implements Migration {
   @Nullable private final String description;
   private final ConfigFile configFile;
   private final Trigger trigger;
-  private final Endpoint destination;
+  private final Structure endpoints;
   private final Iterable<Action> actions;
   private final GeneralOptions generalOptions;
   private final String mode;
@@ -60,7 +63,7 @@ public class ActionMigration implements Migration {
       @Nullable String description,
       ConfigFile configFile,
       Trigger trigger,
-      Endpoint destination,
+      Structure endpoints,
       ImmutableList<Action> actions,
       GeneralOptions generalOptions,
       String mode) {
@@ -68,7 +71,7 @@ public class ActionMigration implements Migration {
     this.description = description;
     this.configFile = Preconditions.checkNotNull(configFile);
     this.trigger = Preconditions.checkNotNull(trigger);
-    this.destination = Preconditions.checkNotNull(destination);
+    this.endpoints = endpoints;
     this.actions = Preconditions.checkNotNull(actions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.mode = mode;
@@ -152,7 +155,14 @@ public class ActionMigration implements Migration {
 
   @Override
   public ImmutableSetMultimap<String, String> getDestinationDescription() {
-    return destination.describe();
+    // TODO(b/269526710) Remove this limitation
+    String destination = Iterables.getOnlyElement(getEndpoints().getFieldNames());
+    Preconditions.checkNotNull(destination);
+    try {
+      return ((Endpoint) getEndpoints().getValue(destination)).describe();
+    } catch (EvalException e) {
+      throw new RuntimeException("Shouldn't happen", e);
+    }
   }
 
   /**
@@ -173,8 +183,8 @@ public class ActionMigration implements Migration {
     return trigger;
   }
 
-  Endpoint getDestination() {
-    return destination;
+  public Structure getEndpoints() {
+    return endpoints;
   }
 
   @Override
@@ -182,7 +192,7 @@ public class ActionMigration implements Migration {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
         .add("trigger", trigger)
-        .add("destination", destination)
+        .add("endponts", endpoints)
         .add("actions", actions)
         .toString();
   }

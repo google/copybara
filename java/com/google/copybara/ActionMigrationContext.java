@@ -25,8 +25,10 @@ import com.google.copybara.transform.SkylarkConsole;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.Structure;
 
 /** Skylark context for migrations that can do arbitrary endpoint calls and file manipulations. */
 @SuppressWarnings("unused")
@@ -65,10 +67,23 @@ public class ActionMigrationContext extends ActionContext<ActionMigrationContext
     return actionMigration.getTrigger().getEndpoint().withConsole(getConsole());
   }
 
+  // TODO(b/269526710): Deprecate this function and use endpoints instead.
   @StarlarkMethod(name = "destination", doc = "An object representing the destination. Can be used"
       + " to query or modify the destination state", structField = true)
   public Endpoint getDestination() {
-    return actionMigration.getDestination().withConsole(getConsole());
+    try {
+      return (Endpoint) actionMigration.getEndpoints().getValue("destination");
+    } catch (EvalException e) {
+      throw new RuntimeException("Expected an enpoint called destination");
+    }
+  }
+
+  @StarlarkMethod(name = "endpoints", doc = "An object that gives access to the API of the"
+      + " configured endpoints",
+      // TODO(b/269526710): enable documentation. Seems to be ignored by the generator?
+      structField = true, documented = false)
+  public Structure getEndpoints() {
+    return actionMigration.getEndpoints();
   }
 
   // TODO(b/269526710): Deprecate this
@@ -85,8 +100,7 @@ public class ActionMigrationContext extends ActionContext<ActionMigrationContext
       name = "migration_name",
       doc = "The name of the migration calling this action.",
       // TODO(b/269526710): Set this to true
-      documented = false,
-      structField = true)
+      documented = false, structField = true)
   public String getMigrationName() {
     return actionMigration.getName();
   }

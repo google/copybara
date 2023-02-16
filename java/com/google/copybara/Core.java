@@ -29,6 +29,7 @@ import static com.google.copybara.version.LatestVersionSelector.VersionElementTy
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.StructModule.StructImpl;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.authoring.Author;
@@ -1741,7 +1742,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             convertFromNoneable(description, null),
             mainConfigFile,
             trigger,
-            destination.getEndpoint(),
+            new StructImpl(ImmutableMap.of(
+                "destination", destination.getEndpoint()
+            )),
             actions,
             generalOptions,
             "feedback");

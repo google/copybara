@@ -1645,6 +1645,7 @@ action_name | `string`<br><p>The name of the current action.</p>
 cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | [`Console`](#console)<br><p>Get an instance of the console to report errors or warnings</p>
 destination | [`endpoint`](#endpoint)<br><p>An object representing the destination. Can be used to query or modify the destination state</p>
+endpoints | `structure`<br><p>An object that gives access to the API of the configured endpoints</p>
 feedback_name | `string`<br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
 migration_name | `string`<br><p>The name of the migration calling this action.</p>
 origin | [`endpoint`](#endpoint)<br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
