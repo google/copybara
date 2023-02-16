@@ -53,9 +53,6 @@
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpointnew_destination_ref)
     - [endpoint.new_origin_ref](#endpointnew_origin_ref)
-  - [endpoint_provider](#endpoint_provider)
-    - [endpoint_provider.new_destination_ref](#endpoint_providernew_destination_ref)
-    - [endpoint_provider.new_origin_ref](#endpoint_providernew_origin_ref)
   - [feedback.context](#feedbackcontext)
     - [feedback.context.error](#feedbackcontexterror)
     - [feedback.context.noop](#feedbackcontextnoop)
@@ -842,7 +839,7 @@ Parameter | Description
 --------- | -----------
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
-destination | [`endpoint_provider`](#endpoint_provider)<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
+destination | `endpoint_provider`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
 actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 
@@ -1589,49 +1586,6 @@ ref | `string`<br><p>The reference.</p>
 
 
 
-## endpoint_provider
-
-An handle for an origin or destination API in a feedback migration.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-url | `string`<br><p>Return the URL of this endpoint, if any.</p>
-
-<a id="endpoint_provider.new_destination_ref" aria-hidden="true"></a>
-### endpoint_provider.new_destination_ref
-
-Creates a new destination reference out of this endpoint.
-
-[`destination_ref`](#destination_ref) `endpoint_provider.new_destination_ref(ref, type, url=None)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-type | `string`<br><p>The type of this reference.</p>
-url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
-
-<a id="endpoint_provider.new_origin_ref" aria-hidden="true"></a>
-### endpoint_provider.new_origin_ref
-
-Creates a new origin reference out of this endpoint.
-
-[`origin_ref`](#origin_ref) `endpoint_provider.new_origin_ref(ref)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-
-
-
 ## feedback.context
 
 Gives access to the feedback migration information and utilities. This context is a concrete implementation for feedback migrations.
@@ -2329,7 +2283,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-[`endpoint_provider`](#endpoint_provider) `git.gerrit_api(url, checker=None)`
+`endpoint_provider` `git.gerrit_api(url, checker=None)`
 
 
 #### Parameters:
@@ -2467,7 +2421,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-[`endpoint_provider`](#endpoint_provider) `git.github_api(url, checker=None)`
+`endpoint_provider` `git.github_api(url, checker=None)`
 
 
 #### Parameters:

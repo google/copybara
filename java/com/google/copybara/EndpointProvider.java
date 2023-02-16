@@ -17,16 +17,15 @@
 package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Wrapper class to prevent arbitrary instantiation of endpoints in starlark. */
 @StarlarkBuiltin(
     name = "endpoint_provider",
-    doc = "An handle for an origin or destination API in a feedback migration.")
-public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endpoint {
+    doc = "An handle for an origin or destination API in a feedback migration.",
+    documented = false)
+public class EndpointProvider<T extends Endpoint> implements StarlarkValue {
   final T endpoint;
 
   EndpointProvider(T endpoint) {
@@ -37,7 +36,7 @@ public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endp
     return endpoint;
   }
 
-  @Override
+  // TODO(b/269526710): Remove method
   public ImmutableSetMultimap<String, String> describe() {
     return endpoint.describe();
   }
@@ -48,16 +47,4 @@ public class EndpointProvider<T extends Endpoint> implements StarlarkValue, Endp
   public static <T extends Endpoint> EndpointProvider<T> wrap(T e) {
     return new EndpointProvider<>(e);
   }
-
-  @Override
-  @StarlarkMethod(
-      name = "url",
-      doc = "Return the URL of this endpoint, if any.",
-      structField = true,
-      allowReturnNones = true)
-  @Nullable
-  public String getUrl() {
-    return endpoint.getUrl();
-  }
-
 }
