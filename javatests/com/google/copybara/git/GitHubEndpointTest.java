@@ -85,33 +85,34 @@ public class GitHubEndpointTest {
 
     gitUtil.mockApi(eq("GET"), contains("master/status"),
         mockResponse("{\n"
-            + "    state : 'failure',\n"
-            + "    total_count : 2,\n"
-            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-            + "    statuses : [\n"
-            + "       { state : 'failure', context: 'some/context'},\n"
-            + "       { state : 'success', context: 'other/context'}\n"
+            + "    \"state\": \"failure\",\n"
+            + "    \"total_count\": 2,\n"
+            + "    \"sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n"
+            + "    \"statuses\" : [\n"
+            + "       { \"state\": \"failure\", \"context\": \"some/context\"},\n"
+            + "       { \"state\": \"success\", \"context\": \"other/context\"}\n"
             + "    ]\n"
             + "}"));
 
     gitUtil.mockApi(eq("GET"), contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         mockResponse("{\n"
-            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-            + "    commit : {\n"
-            + "       author: { name : 'theauthor', email: 'author@example.com'},\n"
-            + "       committer: { name : 'thecommitter', email: 'committer@example.com'},\n"
-            + "       message: \"This is a message\\n\\nWith body\\n\"\n"
+            + "    \"sha\" : \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n"
+            + "    \"commit\" : {\n"
+            + "       \"author\": { \"name\": \"theauthor\", \"email\": \"author@example.com\"},\n"
+            + "       \"committer\": { \"name\": \"thecommitter\", "
+            + "\"email\": \"committer@example.com\"},\n"
+            + "       \"message\": \"This is a message\\n\\nWith body\\n\"\n"
             + "    },\n"
-            + "    committer : { login : 'github_committer'},\n"
-            + "    author : { login : 'github_author'}\n"
+            + "    \"committer\": { \"login\" : \"github_committer\"},\n"
+            + "    \"author\": { \"login\" : \"github_author\"}\n"
             + "}"));
 
     gitUtil.mockApi(eq("POST"), contains("/statuses/e59774"),
         mockResponse("{\n"
-            + "    state : 'success',\n"
-            + "    target_url : 'https://github.com/google/example',\n"
-            + "    description : 'Observed foo',\n"
-            + "    context : 'test'\n"
+            + "    \"state\": \"success\",\n"
+            + "    \"target_url\": \"https://github.com/google/example\",\n"
+            + "    \"description\": \"Observed foo\",\n"
+            + "    \"context\": \"test\"\n"
             + "}"));
 
     gitUtil.mockApi(
@@ -119,13 +120,13 @@ public class GitHubEndpointTest {
         contains("/git/refs/heads/test"),
         mockResponse(
             "{\n"
-                + "    ref : 'refs/heads/test',\n"
-                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                + "    object : { \n"
-                + "       type : 'commit',\n"
-                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                + "       url :"
-                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "    \"ref\": \"refs/heads/test\",\n"
+                + "    \"url\": \"https://github.com/google/example/git/refs/heads/test\",\n"
+                + "    \"object\": { \n"
+                + "       \"type\": \"commit\",\n"
+                + "       \"sha\": \"e597746de9c1704e648ddc3ffa0d2096b146d600\", \n"
+                + "       \"url\":"
+                + " \"https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600\"\n"
                 + "   } \n"
                 + "}"));
 
@@ -134,13 +135,13 @@ public class GitHubEndpointTest {
         contains("git/refs?per_page=100"),
         mockResponse(
             "[{\n"
-                + "    ref : 'refs/heads/test',\n"
-                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                + "    object : { \n"
-                + "       type : 'commit',\n"
-                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                + "       url :"
-                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "    \"ref\": \"refs/heads/test\",\n"
+                + "    \"url\": \"https://github.com/google/example/git/refs/heads/test\",\n"
+                + "    \"object\": { \n"
+                + "       \"type\": \"commit\",\n"
+                + "       \"sha\": \"e597746de9c1704e648ddc3ffa0d2096b146d600\", \n"
+                + "       \"url\":"
+                + " \"https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600\"\n"
                 + "   } \n"
                 + "}]"));
 
@@ -149,23 +150,23 @@ public class GitHubEndpointTest {
         contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs"),
         mockResponse(
             "{\n"
-                + "  total_count: 1,\n"
-                + "  check_runs: [\n"
+                + "  \"total_count\": 1,\n"
+                + "  \"check_runs\": [\n"
                 + "    {\n"
-                + "      id: 4,\n"
-                + "      details_url: 'https://example.com',\n"
-                + "      status: 'completed',\n"
-                + "      conclusion: 'neutral',\n"
-                + "      name: 'mighty_readme',\n"
-                + "      output: {\n"
-                + "        title: 'Mighty Readme report',\n"
-                + "        summary: 'test_summary',\n"
-                + "        text: 'test_text'\n"
+                + "      \"id\": 4,\n"
+                + "      \"details_url\": \"https://example.com\",\n"
+                + "      \"status\": \"completed\",\n"
+                + "      \"conclusion\": \"neutral\",\n"
+                + "      \"name\": \"mighty_readme\",\n"
+                + "      \"output\": {\n"
+                + "        \"title\": \"Mighty Readme report\",\n"
+                + "        \"summary\": \"test_summary\",\n"
+                + "        \"text\": \"test_text\"\n"
                 + "      },\n"
-                + "      app: {\n"
-                + "        id: 1,\n"
-                + "        slug: 'octoapp',\n"
-                + "        name: 'Octocat App'\n"
+                + "      \"app\": {\n"
+                + "        \"id\": 1,\n"
+                + "        \"slug\": \"octoapp\",\n"
+                + "        \"name\": \"Octocat App\"\n"
                 + "      }\n"
                 + "    }\n"
                 + "  ]\n"
@@ -269,10 +270,10 @@ public class GitHubEndpointTest {
     Iterator<String> createValues = ImmutableList.of("Observed Foo", "Observed Bar").iterator();
     gitUtil.mockApi(eq("POST"), contains("/status"),
         mockResponseAndValidateRequest("{\n"
-            + "    state : 'success',\n"
-            + "    target_url : 'https://github.com/google/example',\n"
-            + "    description : 'Observed foo',\n"
-            + "    context : 'test'\n"
+            + "    \"state\" : \"success\",\n"
+            + "    \"target_url\" : \"https://github.com/google/example\",\n"
+            + "    \"description\" : \"Observed foo\",\n"
+            + "    \"context\" : \"test\"\n"
             + "}",
             new MockRequestAssertion(String.format(
                 "Requests were expected to cycle through the values of %s", createValues),

@@ -98,7 +98,7 @@ public class GitHubApiTransportImplTest {
           public LowLevelHttpResponse execute() throws IOException {
             headers.putAll(this.getHeaders());
             MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
-            response.setContent("foo");
+            response.setContent("\"foo\"");
             return response;
           }
         };

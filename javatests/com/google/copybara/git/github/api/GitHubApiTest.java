@@ -101,8 +101,8 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
               response = new MockLowLevelHttpResponse();
               response.setContent(
                   String.format(
-                      "{ 'message' : 'This is not the repo you are looking for! %s %s',"
-                          + " 'documentation_url' : 'http://github.com/some_url'}",
+                      "{ \"message\" : \"This is not the repo you are looking for! %s %s\","
+                          + " \"documentation_url\" : \"http://github.com/some_url\"}",
                       method, url));
               response.setStatusCode(404);
             }
