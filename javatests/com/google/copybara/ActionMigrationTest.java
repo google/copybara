@@ -33,7 +33,6 @@ import com.google.copybara.effect.DestinationEffect.DestinationRef;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
@@ -50,7 +49,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class FeedbackTest {
+public class ActionMigrationTest {
 
   private SkylarkTestExecutor skylark;
   private TestingConsole console;
@@ -74,13 +73,13 @@ public class FeedbackTest {
 
   @Test
   public void testParsing() throws Exception {
-    Feedback feedback = loggingFeedback();
-    assertThat(feedback.getName()).isEqualTo("default");
-    assertThat(feedback.getModeString()).isEqualTo("feedback");
-    assertThat(feedback.getMainConfigFile()).isNotNull();
-    assertThat(feedback.getOriginDescription()).isEqualTo(dummyTrigger.describe());
-    assertThat(feedback.getDestinationDescription()).isEqualTo(dummyTrigger.describe());
-    assertThat(feedback.getActionsDescription())
+    ActionMigration actionMigration = loggingFeedback();
+    assertThat(actionMigration.getName()).isEqualTo("default");
+    assertThat(actionMigration.getModeString()).isEqualTo("feedback");
+    assertThat(actionMigration.getMainConfigFile()).isNotNull();
+    assertThat(actionMigration.getOriginDescription()).isEqualTo(dummyTrigger.describe());
+    assertThat(actionMigration.getDestinationDescription()).isEqualTo(dummyTrigger.describe());
+    assertThat(actionMigration.getActionsDescription())
         .containsEntry("test_action", ImmutableSetMultimap.of());
   }
 
@@ -97,14 +96,14 @@ public class FeedbackTest {
         + "    destination = testing.dummy_endpoint(),\n"
         + "    actions = [test_action],\n"
         + ")";
-    Feedback feedback = (Feedback) loadConfig(config).getMigration("default");
-    assertThat(feedback.getDescription()).isEqualTo("Do foo with bar");
+    ActionMigration actionMigration = (ActionMigration) loadConfig(config).getMigration("default");
+    assertThat(actionMigration.getDescription()).isEqualTo("Do foo with bar");
   }
 
 
   @Test
   public void testDescribeActions() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration actionMigration = feedback(
         ""
             + "def _action1(ctx):\n"
             + "  return ctx.success()\n"
@@ -130,7 +129,7 @@ public class FeedbackTest {
             + "  )"
             + "\n",
         "action1(param1 = 'foo')", "action2(param1 = True, param2 = 'Bar')");
-    assertThat(feedback.getActionsDescription())
+    assertThat(actionMigration.getActionsDescription())
         .isEqualTo(
             ImmutableSetMultimap.builder()
                 .put("_action1", ImmutableSetMultimap.of("param1", "foo"))
@@ -140,8 +139,8 @@ public class FeedbackTest {
 
   @Test
   public void testAction() throws Exception {
-    Feedback feedback = loggingFeedback();
-    feedback.run(workdir, ImmutableList.of("12345"));
+    ActionMigration actionMigration = loggingFeedback();
+    actionMigration.run(workdir, ImmutableList.of("12345"));
     console.assertThat().onceInLog(MessageType.INFO, "Ref: 12345");
     console.assertThat().onceInLog(MessageType.INFO, "Feedback name: default");
     console.assertThat().onceInLog(MessageType.INFO, "Action name: test_action");
@@ -149,8 +148,8 @@ public class FeedbackTest {
 
   @Test
   public void testNullSourceRef() throws Exception {
-    Feedback feedback = loggingFeedback();
-    feedback.run(workdir, ImmutableList.of());
+    ActionMigration actionMigration = loggingFeedback();
+    actionMigration.run(workdir, ImmutableList.of());
     console.assertThat()
         .equalsNext(MessageType.INFO, "Action 'test_action' returned success")
         .containsNoMoreMessages();
@@ -158,8 +157,8 @@ public class FeedbackTest {
 
   @Test
   public void testMultipleSourceRefs() throws Exception {
-    Feedback feedback = loggingFeedback();
-    feedback.run(workdir, ImmutableList.of("12345", "67890"));
+    ActionMigration actionMigration = loggingFeedback();
+    actionMigration.run(workdir, ImmutableList.of("12345", "67890"));
     console
         .assertThat()
         .matchesNext(MessageType.INFO, ".*Ref: 12345")
@@ -173,7 +172,7 @@ public class FeedbackTest {
 
   @Test
   public void testRefReturnsFirst() throws Exception {
-    Feedback feedback =
+    ActionMigration actionMigration =
         feedback(
             ""
                 + "def test_action(ctx):\n"
@@ -181,7 +180,7 @@ public class FeedbackTest {
                 + "    return ctx.success()\n"
                 + "\n",
             "test_action");
-    feedback.run(workdir, ImmutableList.of("12345", "67890"));
+    actionMigration.run(workdir, ImmutableList.of("12345", "67890"));
     console
         .assertThat()
         .matchesNext(MessageType.INFO, ".*Ref: 12345")
@@ -192,7 +191,7 @@ public class FeedbackTest {
   @Test
   public void verifyCliLabels() throws Exception {
     options.general.setCliLabelsForTest(ImmutableMap.of("foo", "value"));
-    Feedback feedback =
+    ActionMigration actionMigration =
         feedback(
             ""
                 + "def test_action(ctx):\n"
@@ -201,7 +200,7 @@ public class FeedbackTest {
                 + "    return ctx.success()\n"
                 + "\n",
             "test_action");
-    feedback.run(workdir, ImmutableList.of());
+    actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
         .matchesNext(MessageType.INFO, ".*foo is: value")
@@ -211,7 +210,7 @@ public class FeedbackTest {
 
   @Test
   public void testRefReturnsNone() throws Exception {
-    Feedback feedback =
+    ActionMigration actionMigration =
         feedback(
             ""
                 + "def test_action(ctx):\n"
@@ -222,7 +221,7 @@ public class FeedbackTest {
                 + "    return ctx.success()\n"
                 + "\n",
             "test_action");
-    feedback.run(workdir, ImmutableList.of());
+    actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
         .matchesNext(MessageType.INFO, ".*Ref: None")
@@ -232,14 +231,14 @@ public class FeedbackTest {
 
   @Test
   public void testActionsMustReturnResult() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    ctx.console.info('Bad action')\n"
             + "\n",
         "test_action");
     ValidationException expected =
-        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
         .contains(
@@ -249,20 +248,20 @@ public class FeedbackTest {
 
   @Test
   public void testSuccessResult() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration actionMigration = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    return ctx.success()\n",
         "test_action");
-    feedback.run(workdir, ImmutableList.of());
+    actionMigration.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
   }
 
   @Test
   public void testNoActionsThrowsEmptyChangeException() throws Exception {
-    Feedback feedback = feedback("");
+    ActionMigration migration = feedback("");
     EmptyChangeException expected =
-        assertThrows(EmptyChangeException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(EmptyChangeException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
         .contains(
@@ -271,7 +270,7 @@ public class FeedbackTest {
 
   @Test
   public void testNoopResultThrowsEmptyChangeException() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action_1(ctx):\n"
             + "    return ctx.noop('No effect 1')\n"
@@ -281,7 +280,7 @@ public class FeedbackTest {
             + "\n",
         "test_action_1", "test_action_2");
     EmptyChangeException expected =
-        assertThrows(EmptyChangeException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(EmptyChangeException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
         .contains(
@@ -295,13 +294,13 @@ public class FeedbackTest {
 
   @Test
   public void testErrorResultThrowsValidationException() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    return ctx.error('This is an error')\n",
         "test_action");
     ValidationException expected =
-        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
         .contains(
@@ -314,7 +313,7 @@ public class FeedbackTest {
 
   @Test
   public void testErrorResultAbortsExecution() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action_1(ctx):\n"
             + "    return ctx.error('This is an error')\n"
@@ -323,7 +322,7 @@ public class FeedbackTest {
             + "    return ctx.success()\n"
         , "test_action_1", "test_action_2");
     ValidationException expected =
-        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected)
         .hasMessageThat()
         .contains(
@@ -337,7 +336,7 @@ public class FeedbackTest {
 
   @Test
   public void testNoopSuccessReturnsSuccess() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration actionMigration = feedback(
         ""
             + "def test_action_1(ctx):\n"
             + "    return ctx.noop('No effect')\n"
@@ -345,7 +344,7 @@ public class FeedbackTest {
             + "def test_action_2(ctx):\n"
             + "    return ctx.success()\n"
             + "\n", "test_action_1", "test_action_2");
-    feedback.run(workdir, ImmutableList.of());
+    actionMigration.run(workdir, ImmutableList.of());
     console
         .assertThat()
         .equalsNext(MessageType.INFO, "Action 'test_action_1' returned noop: No effect")
@@ -355,27 +354,27 @@ public class FeedbackTest {
 
   @Test
   public void testErrorResultEmptyMsg() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    result = ctx.error()\n"
             + "\n",
         "test_action");
     ValidationException expected =
-        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(expected).hasMessageThat().contains("missing 1 required positional argument: msg");
   }
 
   @Test
   public void testEvalExceptionIncludesLocation() throws Exception {
-    Feedback feedback = feedback(
+    ActionMigration migration = feedback(
         ""
             + "def test_action(ctx):\n"
             + "    result = ctx.foo()\n"
             + "\n",
         "test_action");
     ValidationException ex =
-        assertThrows(ValidationException.class, () -> feedback.run(workdir, ImmutableList.of()));
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
     assertThat(ex)
         .hasMessageThat()
         .contains("Error while executing the skylark transformation test_action");
@@ -452,8 +451,8 @@ public class FeedbackTest {
       String expectedDestType,
       @Nullable String expectedDestUrl)
       throws IOException, ValidationException, RepoException {
-    Feedback feedback = feedback(actionsCode, "test_action");
-    feedback.run(workdir, ImmutableList.of());
+    ActionMigration actionMigration = feedback(actionsCode, "test_action");
+    actionMigration.run(workdir, ImmutableList.of());
     console.assertThat().equalsNext(MessageType.INFO, "Action 'test_action' returned success");
 
     assertThat(eventMonitor.changeMigrationStartedEventCount()).isEqualTo(1);
@@ -476,7 +475,7 @@ public class FeedbackTest {
     assertThat(effect.getErrors()).containsExactlyElementsIn(expectedErrors);
   }
 
-  private Feedback loggingFeedback() throws IOException, ValidationException {
+  private ActionMigration loggingFeedback() throws IOException, ValidationException {
     return feedback(
         ""
             + "def test_action(ctx):\n"
@@ -489,7 +488,7 @@ public class FeedbackTest {
         "test_action");
   }
 
-  private Feedback feedback(String actionsCode, String... actionNames)
+  private ActionMigration feedback(String actionsCode, String... actionNames)
       throws IOException, ValidationException {
     String config =
         actionsCode
@@ -502,7 +501,7 @@ public class FeedbackTest {
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) loadConfig(config).getMigration("default");
+    return (ActionMigration) loadConfig(config).getMigration("default");
   }
 
   private Config loadConfig(String content) throws IOException, ValidationException {

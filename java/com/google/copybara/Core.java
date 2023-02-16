@@ -43,7 +43,6 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.Parser;
@@ -1727,8 +1726,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None"),
       },
       useStarlarkThread = true)
-  @UsesFlags({FeedbackOptions.class})
-  /*TODO(danielromero): Add default values*/
   public NoneType feedback(
       String workflowName,
       Trigger trigger,
@@ -1738,15 +1735,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, printHandler);
-    Feedback migration =
-        new Feedback(
+    ActionMigration migration =
+        new ActionMigration(
             workflowName,
             convertFromNoneable(description, null),
             mainConfigFile,
             trigger,
             destination.getEndpoint(),
             actions,
-            generalOptions);
+            generalOptions,
+            "feedback");
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;

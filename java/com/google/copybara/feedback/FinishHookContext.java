@@ -25,6 +25,7 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.action.Action;
+import com.google.copybara.action.ActionContext;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -48,7 +49,7 @@ import net.starlark.java.eval.StarlarkValue;
     doc =
         "Gives access to the feedback migration information and utilities. This context is a "
             + "concrete implementation for 'after_migration' hooks.")
-public class FinishHookContext extends FeedbackContext implements StarlarkValue {
+public class FinishHookContext extends ActionContext<FinishHookContext> implements StarlarkValue {
 
   private final LazyResourceLoader<Endpoint> origin;
   private final LazyResourceLoader<Endpoint> destination;
@@ -90,7 +91,8 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     this.resolvedRevision = resolvedRevision;
   }
 
-  @Override
+  @StarlarkMethod(name = "origin", doc = "An object representing the origin. Can be used to"
+      + " query about the ref or modifying the origin state", structField = true)
   public Endpoint getOrigin() throws EvalException {
     try {
       return origin.load(console);
@@ -99,7 +101,8 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
     }
   }
 
-  @Override
+  @StarlarkMethod(name = "destination", doc = "An object representing the destination. Can be used"
+      + " to query or modify the destination state", structField = true)
   public Endpoint getDestination() throws EvalException {
     try {
       return destination.load(console);
@@ -129,7 +132,7 @@ public class FinishHookContext extends FeedbackContext implements StarlarkValue 
   }
 
   @Override
-  public void onFinish(Object result, SkylarkContext<FeedbackContext> context)
+  public void onFinish(Object result, SkylarkContext<FinishHookContext> context)
       throws ValidationException {
     checkCondition(
         result == null || result.equals(Starlark.NONE),

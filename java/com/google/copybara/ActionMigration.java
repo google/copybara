@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2023 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.feedback;
+package com.google.copybara;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -22,9 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
-import com.google.copybara.Endpoint;
-import com.google.copybara.GeneralOptions;
-import com.google.copybara.Trigger;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
 import com.google.copybara.action.ActionResult.Result;
@@ -45,9 +42,9 @@ import java.util.ArrayList;
 import javax.annotation.Nullable;
 
 /**
- * A migration of feedback or other metadata between an origin and destination.
+ * A migration that can move code or metadata between endpoints.
  */
-public class Feedback implements Migration {
+public class ActionMigration implements Migration {
 
   private final String name;
   @Nullable private final String description;
@@ -56,15 +53,17 @@ public class Feedback implements Migration {
   private final Endpoint destination;
   private final Iterable<Action> actions;
   private final GeneralOptions generalOptions;
+  private final String mode;
 
-  public Feedback(
+  public ActionMigration(
       String name,
       @Nullable String description,
       ConfigFile configFile,
       Trigger trigger,
       Endpoint destination,
       ImmutableList<Action> actions,
-      GeneralOptions generalOptions) {
+      GeneralOptions generalOptions,
+      String mode) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.configFile = Preconditions.checkNotNull(configFile);
@@ -72,6 +71,7 @@ public class Feedback implements Migration {
     this.destination = Preconditions.checkNotNull(destination);
     this.actions = Preconditions.checkNotNull(actions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
+    this.mode = mode;
   }
 
   @Override
@@ -87,8 +87,8 @@ public class Feedback implements Migration {
           SkylarkConsole console = new SkylarkConsole(generalOptions.console());
           eventMonitors().dispatchEvent(
               m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
-          FeedbackMigrationContext context =
-              new FeedbackMigrationContext(
+          ActionMigrationContext context =
+              new ActionMigrationContext(
                   this, action, generalOptions.cliLabels(), sourceRefs, console);
           action.run(context);
           effects.addAll(context.getNewDestinationEffects());
@@ -97,8 +97,8 @@ public class Feedback implements Migration {
           // First error aborts the execution of the other actions
           ValidationException.checkCondition(
               actionResult.getResult() != Result.ERROR,
-              "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
-              name, action.getName(), actionResult.getMsg());
+              "%s migration '%s' action '%s' returned error: %s. Aborting execution.",
+              capitalize(mode), name, action.getName(), actionResult.getMsg());
         } finally {
           eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(
               new ChangeMigrationFinishedEvent(ImmutableList.copyOf(effects),
@@ -115,8 +115,13 @@ public class Feedback implements Migration {
               .collect(ImmutableList.toImmutableList()).toString();
       throw new EmptyChangeException(
           String.format(
-              "Feedback migration '%s' was noop. Detailed messages: %s", name, detailedMessage));
+              "%s migration '%s' was noop. Detailed messages: %s",
+              capitalize(mode), name, detailedMessage));
     }
+  }
+
+  private String capitalize(String str) {
+    return str.substring(0, 1).toUpperCase() + str.substring(1);
   }
 
   @Override
@@ -132,7 +137,7 @@ public class Feedback implements Migration {
 
   @Override
   public String getModeString() {
-    return "feedback";
+    return mode;
   }
 
   @Override

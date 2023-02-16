@@ -37,8 +37,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.ActionMigration;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
@@ -215,12 +215,13 @@ public class GitHubEndpointTest {
             + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";
-    Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
-    assertThat(feedback.getDestinationDescription().get("url"))
+    ActionMigration actionMigration = (ActionMigration) skylark.loadConfig(config)
+        .getMigration("default");
+    assertThat(actionMigration.getDestinationDescription().get("url"))
         .containsExactly("https://github.com/google/example");
-    ValidationException expected =
-        assertThrows(
-            ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
+    ValidationException expected = assertThrows(
+            ValidationException.class,
+            () -> actionMigration.run(workdir, ImmutableList.of("12345")));
     assertThat(expected)
         .hasMessageThat()
         .contains("Bad word 'badword' found: field 'path'.");
@@ -247,7 +248,7 @@ public class GitHubEndpointTest {
   @Test
   public void testFeedbackCreateStatus() throws Exception{
     dummyTrigger.addAll("Foo", "Bar");
-    Feedback feedback =
+    ActionMigration actionMigration =
         feedback(
             ""
                 + "def test_action(ctx):\n"
@@ -277,7 +278,7 @@ public class GitHubEndpointTest {
                 "Requests were expected to cycle through the values of %s", createValues),
                 r -> r.contains(createValues.next()))));
 
-    feedback.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
+    actionMigration.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");
 
     verify(gitUtil.httpTransport(), times(2)).buildRequest(eq("POST"), contains("/status"));
@@ -328,19 +329,22 @@ public class GitHubEndpointTest {
 
   @Test
   public void testGetCheckRuns() throws Exception {
-    runFeedback(ImmutableList.<String>builder()
-        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')[0]")
-        .addAll(checkFieldStarLark("res", "detail_url", "'https://example.com'"))
-        .addAll(checkFieldStarLark("res", "status", "'completed'"))
-        .addAll(checkFieldStarLark("res", "conclusion", "'neutral'"))
-        .addAll(checkFieldStarLark("res", "name", "'mighty_readme'"))
-        .addAll(checkFieldStarLark("res", "app.id", "1"))
-        .addAll(checkFieldStarLark("res", "app.slug", "'octoapp'"))
-        .addAll(checkFieldStarLark("res", "app.name", "'Octocat App'"))
-        .addAll(checkFieldStarLark("res", "output.title", "'Mighty Readme report'"))
-        .addAll(checkFieldStarLark("res", "output.summary", "'test_summary'"))
-        .addAll(checkFieldStarLark("res", "output.text", "'test_text'"))
-        .build());
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res ="
+                    + " ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')[0]")
+            .addAll(checkFieldStarLark("res", "detail_url", "'https://example.com'"))
+            .addAll(checkFieldStarLark("res", "status", "'completed'"))
+            .addAll(checkFieldStarLark("res", "conclusion", "'neutral'"))
+            .addAll(checkFieldStarLark("res", "name", "'mighty_readme'"))
+            .addAll(checkFieldStarLark("res", "app.id", "1"))
+            .addAll(checkFieldStarLark("res", "app.slug", "'octoapp'"))
+            .addAll(checkFieldStarLark("res", "app.name", "'Octocat App'"))
+            .addAll(checkFieldStarLark("res", "output.title", "'Mighty Readme report'"))
+            .addAll(checkFieldStarLark("res", "output.summary", "'test_summary'"))
+            .addAll(checkFieldStarLark("res", "output.text", "'test_text'"))
+            .build());
   }
 
   @Test
@@ -719,13 +723,13 @@ public class GitHubEndpointTest {
   }
 
   private void runFeedback(ImmutableList<String> funBody) throws Exception {
-    Feedback test = feedback("def test_action(ctx):\n"
+    ActionMigration test = feedback("def test_action(ctx):\n"
         + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
         + "\n  return ctx.success()\n");
     test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 
-  private Feedback feedback(String actionFunction) throws IOException, ValidationException {
+  private ActionMigration feedback(String actionFunction) throws IOException, ValidationException {
     String config =
         actionFunction
             + "\n"
@@ -739,6 +743,6 @@ public class GitHubEndpointTest {
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) skylark.loadConfig(config).getMigration("default");
+    return (ActionMigration) skylark.loadConfig(config).getMigration("default");
   }
 }
