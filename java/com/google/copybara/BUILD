@@ -74,6 +74,7 @@ BASE_SRCS = [
     "ChangeMessage.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
+    "CheckoutFileSystem.java",
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",

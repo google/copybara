@@ -419,6 +419,15 @@ public class TransformWorkTest {
 
   @Test
   public void testRunGlob() throws IOException, ValidationException, RepoException {
+    checkGlob("run");
+  }
+
+  @Test
+  public void testRunGlobWithList() throws IOException, ValidationException, RepoException {
+    checkGlob("list");
+  }
+
+  private void checkGlob(String method) throws IOException, RepoException, ValidationException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunGlob");
     touchFile(base, "folder/file.txt");
@@ -431,7 +440,7 @@ public class TransformWorkTest {
     runWorkflow("test", ""
         + "def test(ctx):\n"
         + "    message = ''\n"
-        + "    for f in sorted(ctx.run(glob(['**']))):\n"
+        + "    for f in sorted(ctx." + method + "(glob(['**']))):\n"
         + "        message += f.path +'\\n'\n"
         + "    ctx.set_message(message)");
 

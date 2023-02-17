@@ -216,6 +216,7 @@
     - [ctx.destination_reader](#ctxdestination_reader)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
+    - [ctx.list](#ctxlist)
     - [ctx.new_path](#ctxnew_path)
     - [ctx.noop](#ctxnoop)
     - [ctx.now_as_string](#ctxnow_as_string)
@@ -4898,6 +4899,20 @@ Tries to find a label. First it looks at the generated message (that is, labels 
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to find</p>
+
+<a id="ctx.list" aria-hidden="true"></a>
+### ctx.list
+
+List files in the checkout/work directory that matches a glob
+
+`sequence of `[`Path`](#path) `ctx.list(paths)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+paths | [`glob`](#glob)<br><p>A glob representing the paths to list</p>
 
 <a id="ctx.new_path" aria-hidden="true"></a>
 ### ctx.new_path
