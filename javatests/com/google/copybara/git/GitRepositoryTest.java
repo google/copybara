@@ -1187,7 +1187,7 @@ public class GitRepositoryTest {
         origin,
         "file://" + remote.getGitDir(),
         ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
-        false).run();
+        false, ImmutableList.of()).run();
   }
 
 
