@@ -459,7 +459,9 @@ public final class TransformWork extends CheckoutFileSystem
       name = "destination_info",
       doc =
           "Returns an object to store additional configuration and data for the destination."
-              + " An object is only returned if supported by the destination.")
+              + " An object is only returned if supported by the destination.",
+      allowReturnNones = true)
+  @Nullable
   public DestinationInfo getDestinationInfo() {
     return destinationInfo;
   }
