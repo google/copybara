@@ -22,12 +22,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionContext;
 import com.google.copybara.transform.SkylarkConsole;
+import java.nio.file.Path;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
 
 /** Skylark context for migrations that can do arbitrary endpoint calls and file manipulations. */
@@ -42,11 +46,13 @@ public class ActionMigrationContext extends ActionContext<ActionMigrationContext
 
   private final ActionMigration actionMigration;
   private final ImmutableList<String> refs;
+  @Nullable
+  private final ActionFileSystem fs;
 
   ActionMigrationContext(
-      ActionMigration actionMigration, Action currentAction,  ImmutableMap<String, String> labels,
+      ActionMigration actionMigration, Action currentAction, ImmutableMap<String, String> labels,
       ImmutableList<String> refs, SkylarkConsole console) {
-    this(actionMigration, currentAction, labels, refs, console, Dict.empty());
+    this(actionMigration, currentAction, labels, refs, console, Dict.empty(), null);
   }
 
   private ActionMigrationContext(
@@ -55,10 +61,12 @@ public class ActionMigrationContext extends ActionContext<ActionMigrationContext
       ImmutableMap<String, String> labels,
       ImmutableList<String> refs,
       SkylarkConsole console,
-      Dict<?, ?> params) {
+      Dict<?, ?> params,
+      @Nullable ActionFileSystem fs) {
     super(currentAction, console, labels, params);
     this.actionMigration = Preconditions.checkNotNull(actionMigration);
     this.refs = ImmutableList.copyOf(refs);
+    this.fs = fs;
   }
 
   @StarlarkMethod(name = "origin", doc = "An object representing the origin. Can be used to"
@@ -114,8 +122,41 @@ public class ActionMigrationContext extends ActionContext<ActionMigrationContext
     return StarlarkList.immutableCopyOf(refs);
   }
 
+  @StarlarkMethod(
+      name = "fs",
+      doc =
+          "If a migration of type `core.action_migration` sets `filesystem = True`, it gives"
+              + " access to the underlying migration filesystem to manipulate files.",
+      // TODO(b/269526710): Set this to true
+      documented = false,
+      structField = true)
+  public ActionFileSystem getFs() throws EvalException {
+    if (fs == null) {
+      throw Starlark.errorf("Migration '%s' doesn't have access to the filesystem."
+          + " Use filesystem = True enable it", getMigrationName());
+    }
+    return fs;
+  }
+
   @Override
   public ActionMigrationContext withParams(Dict<?, ?> params) {
-    return new ActionMigrationContext(actionMigration, action, labels, refs, console, params);
+    return new ActionMigrationContext(actionMigration, action, labels, refs, console, params, fs);
+  }
+
+  public ActionMigrationContext withFileSystem(Path checkoutDir) {
+    return new ActionMigrationContext(actionMigration, action, labels, refs, console, getParams(),
+        new ActionFileSystem(checkoutDir));
+  }
+
+  @StarlarkBuiltin(
+      name = "action.filesystem",
+      doc = "This object gives access to actions to the filesystem for manipulating files.",
+      // TODO(b/269526710): Enable this
+      documented = false)
+  static class ActionFileSystem extends CheckoutFileSystem implements StarlarkValue {
+
+    public ActionFileSystem(Path checkoutDir) {
+      super(checkoutDir);
+    }
   }
 }

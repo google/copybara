@@ -25,6 +25,7 @@
     - [console.warn](#consolewarn)
   - [core](#core)
     - [core.action](#coreaction)
+    - [core.action_migration](#coreaction_migration)
     - [core.autopatch_config](#coreautopatch_config)
     - [core.copy](#corecopy)
     - [core.dynamic_feedback](#coredynamic_feedback)
@@ -665,6 +666,32 @@ Parameter | Description
 --------- | -----------
 impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
+
+<a id="core.action_migration" aria-hidden="true"></a>
+### core.action_migration
+
+Defines a migration that is more flexible/less-opinionated migration than `core.workflow`. Most of the users should not use this migration and instead use `core.workflow` for moving code. In particular `core.workflow` provides many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST modes, --read-config-from-change dynamic config, etc.
+
+These are the features that raw_migration provides:<ul>
+   <li>Support for migrations that don't move source code (similar to feedback)</li>
+   <li>Support for migrations that talk to more than one origin/destination endpoits (Feature still in progress)</li>
+  <li>Custom management of versioning: For example moving non-linear/multiple  versions (Instead of `core.workflow`, that moves source code in relation to the previous migrated code and is able to only track one branch).</li>
+</ul>
+
+
+`core.action_migration(name, origin, endpoints, action, description=None, filesystem=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name | `string`<br><p>The name of the migration.</p>
+origin | `trigger`<br><p>The trigger endpoint of the migration. Accessible as `ctx.origin`</p>
+endpoints | `structure`<br><p>Zero or more endpoints that the migration will have access for read and/or  write. This is a field that should be defined as:<br>```<br>  endpoint = struct(<br>     some_endpoint = foo.foo_api(...configuration...),<br>     other_endpoint = baz.baz_api(...configuration...),<br>  )<br>```<br>Then they will be accessible in the action as `ctx.endpoints.some_endpoint` and `ctx.endpoints.other_endpoint`</p>
+action | `unknown`<br><p>The action to execute when the migration is triggered.<br></p>
+description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
+filesystem | `bool`<br><p>If true, the migration provide access to the filesystem to the endpoints</p>
 
 <a id="core.autopatch_config" aria-hidden="true"></a>
 ### core.autopatch_config
@@ -1603,6 +1630,7 @@ console | [`Console`](#console)<br><p>Get an instance of the console to report e
 destination | [`endpoint`](#endpoint)<br><p>An object representing the destination. Can be used to query or modify the destination state</p>
 endpoints | `structure`<br><p>An object that gives access to the API of the configured endpoints</p>
 feedback_name | `string`<br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
+fs | `action.filesystem`<br><p>If a migration of type `core.action_migration` sets `filesystem = True`, it gives access to the underlying migration filesystem to manipulate files.</p>
 migration_name | `string`<br><p>The name of the migration calling this action.</p>
 origin | [`endpoint`](#endpoint)<br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
 params | `dict`<br><p>Parameters for the function if created with core.action</p>

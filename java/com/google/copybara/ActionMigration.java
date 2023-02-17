@@ -38,6 +38,7 @@ import com.google.copybara.monitor.EventMonitor.EventMonitors;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import javax.annotation.Nullable;
@@ -57,6 +58,7 @@ public class ActionMigration implements Migration {
   private final Iterable<Action> actions;
   private final GeneralOptions generalOptions;
   private final String mode;
+  private final boolean fileSystem;
 
   public ActionMigration(
       String name,
@@ -66,7 +68,8 @@ public class ActionMigration implements Migration {
       Structure endpoints,
       ImmutableList<Action> actions,
       GeneralOptions generalOptions,
-      String mode) {
+      String mode,
+      boolean fileSystem) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.configFile = Preconditions.checkNotNull(configFile);
@@ -75,11 +78,12 @@ public class ActionMigration implements Migration {
     this.actions = Preconditions.checkNotNull(actions);
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.mode = mode;
+    this.fileSystem = fileSystem;
   }
 
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
-      throws RepoException, ValidationException {
+      throws RepoException, ValidationException, IOException {
     ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
     String suffix = Joiner.on('_').join(sourceRefs).replaceAll("([/ ])", "_");
     String root = "run/" + name + "/" + suffix.substring(0, Math.min(suffix.length(), 20));
@@ -90,9 +94,11 @@ public class ActionMigration implements Migration {
           SkylarkConsole console = new SkylarkConsole(generalOptions.console());
           eventMonitors().dispatchEvent(
               m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
-          ActionMigrationContext context =
-              new ActionMigrationContext(
-                  this, action, generalOptions.cliLabels(), sourceRefs, console);
+          ActionMigrationContext context = new ActionMigrationContext(
+              this, action, generalOptions.cliLabels(), sourceRefs, console);
+          if (fileSystem) {
+            context = context.withFileSystem(workdir);
+          }
           action.run(context);
           effects.addAll(context.getNewDestinationEffects());
           ActionResult actionResult = context.getActionResult();

@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
@@ -28,6 +29,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.config.Config;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.config.Migration;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.effect.DestinationEffect.DestinationRef;
 import com.google.copybara.exception.EmptyChangeException;
@@ -553,5 +555,100 @@ public class ActionMigrationTest {
             + "    action = lambda ctx: ctx.console.info('Hello'),\n"
             + ")\n",
         ".*Migration name 'foo[|] bad;name' doesn't conform to expected pattern.*");
+  }
+
+  @Test
+  public void testActionMigration_WithFileSystem() throws Exception {
+    String config = ""
+            + "def test_action(ctx):\n"
+            + "    p = ctx.fs.new_path('foo/bar')\n"
+            + "    ctx.fs.write_path(p, 'hello')\n"
+            + "    for f in ctx.fs.list(glob(['**'])):\n"
+            + "        ctx.console.info('FOUND: ' + f.path)\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = testing.dummy_endpoint()\n"
+            + "    ),"
+            + "    filesystem = True,\n"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    Migration actionMigration = loadConfig(config).getMigration("default");
+    actionMigration.run(workdir, ImmutableList.of("12345"));
+    assertThatPath(workdir)
+        .containsFile("foo/bar", "hello")
+        .containsNoMoreFiles();
+    console.assertThat().onceInLog(MessageType.INFO, "FOUND: foo/bar");
+  }
+
+  @Test
+  public void testActionMigration_WithoutFileSystem() throws Exception {
+    String config = ""
+            + "def test_action(ctx):\n"
+            + "    p = ctx.fs.new_path('foo/bar')\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = testing.dummy_endpoint()\n"
+            + "    ),"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    Migration actionMigration = loadConfig(config).getMigration("default");
+    assertThat(assertThrows(ValidationException.class, () ->
+        actionMigration.run(workdir, ImmutableList.of("12345"))))
+        .hasMessageThat().contains("Migration 'default' doesn't have access to the filesystem");
+  }
+
+  @Test
+  public void testActionMigration_UseDestination() throws Exception {
+    String config = ""
+            + "def test_action(ctx):\n"
+            + "    ctx.endpoints.destination.message('hello')\n"
+            + "    ctx.console.info('FOUND: ' + ctx.endpoints.destination.get_messages[0])\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = testing.dummy_endpoint()\n"
+            + "    ),"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    Migration actionMigration = loadConfig(config).getMigration("default");
+    actionMigration.run(workdir, ImmutableList.of("12345"));
+    console.assertThat().onceInLog(MessageType.INFO, "FOUND: hello");
+  }
+
+  // TODO(b/269526710): Remove test when we remove this limitation
+  @Test
+  public void testActionMigration_UseMoreThanOneDestination() throws Exception {
+    String config = ""
+            + "def test_action(ctx):\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = testing.dummy_endpoint(),\n"
+            + "        foo = testing.dummy_endpoint()\n"
+            + "    ),"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    assertThat(assertThrows(ValidationException.class, () ->
+        loadConfig(config).getMigration("default")))
+        .hasMessageThat().contains(
+            "Temporarily core.action_migration only supports one endpoint called destination");
   }
 }
