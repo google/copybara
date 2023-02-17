@@ -54,6 +54,7 @@ java_library(
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/git/github:util",
         "//java/com/google/copybara/jcommander:validators",
+        "//java/com/google/copybara/json",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/revision",
@@ -101,17 +102,6 @@ java_library(
     srcs = ["GitEnvironment.java"],
     javacopts = JAVACOPTS,
     deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
-    ],
-)
-
-java_library(
-    name = "gson_parser_util",
-    srcs = ["GsonParserUtil.java"],
-    javacopts = JAVACOPTS,
-    deps = [
-        "//third_party:google_http_client",
         "//third_party:guava",
         "//third_party:jsr305",
     ],

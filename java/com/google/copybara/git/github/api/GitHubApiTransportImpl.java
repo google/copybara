@@ -35,7 +35,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.GsonParserUtil;
+import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -94,8 +94,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
-      Object responseObj = GSON_PARSER_UTIL.parseJson(
-          response, responseType);
+      Object responseObj = GSON_PARSER_UTIL.parseHttpResponse(response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
             ((PaginatedPayload) responseObj)
@@ -161,8 +160,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpRequest httpRequest = requestFactory.buildPostRequest(url,
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
-      Object responseObj = GSON_PARSER_UTIL.parseJson(
-          response, responseType);
+      Object responseObj = GSON_PARSER_UTIL.parseHttpResponse(
+          response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T) ((PaginatedPayload) responseObj).annotatePayload(this.apiType.getURLPrefix(),
             maybeGetLinkHeader(response));

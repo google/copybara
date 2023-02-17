@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.git;
+package com.google.copybara.json;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -32,6 +32,7 @@ import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.gson.JsonObject;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.Test;
@@ -44,14 +45,15 @@ public class GsonParserUtilTest {
   private final JsonFactory jsonFactory = new GsonFactory();
 
   @Test
-  public void testParseJson() throws Exception {
+  public void testParseJsonHttpResponse() throws Exception {
     JsonObject object = new JsonObject();
     object.addProperty("foo", 1);
     object.addProperty("bar", "baz");
 
     Map<String, ?> parsed =
-        parserUtil.parseJson(
-            getHttpResponse(object.toString().getBytes(StandardCharsets.UTF_8)), Map.class);
+        parserUtil.parseHttpResponse(
+            getHttpResponse(
+                object.toString().getBytes(StandardCharsets.UTF_8)), Map.class, false);
 
     // GSON parses integers as BigDecimals
     assertThat(parsed).isNotNull();
@@ -60,15 +62,15 @@ public class GsonParserUtilTest {
   }
 
   @Test
-  public void parseJsonFromGerrit() throws Exception {
+  public void testParseJsonHttpResponse_removePrefix() throws Exception {
     JsonObject object = new JsonObject();
     object.addProperty("foo", 2);
     object.addProperty("bar", "fizzbuzz");
 
-    String content = GsonParserUtil.GERRIT_JSON_PREFIX + "\n" + object;
+    String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
     Map<String, ?> parsed =
-        parserUtil.parseJsonFromGerrit(
-            getHttpResponse(content.getBytes(StandardCharsets.UTF_8)), Map.class);
+        parserUtil.parseHttpResponse(
+            getHttpResponse(content.getBytes(StandardCharsets.UTF_8)), Map.class, true);
 
     // GSON parses integers as BigDecimals
     assertThat(parsed).isNotNull();
@@ -77,12 +79,43 @@ public class GsonParserUtilTest {
   }
 
   @Test
-  public void parseJson_noMalformedJsonException() throws Exception {
+  public void testParseJsonString() throws Exception {
+    JsonObject object = new JsonObject();
+    object.addProperty("foo", 3);
+    object.addProperty("bar", "foo");
+
+    String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
+    Map<String, ?> parsed = parserUtil.parseString(content, Map.class, true);
+
+    // GSON parses integers as BigDecimals
+    assertThat(parsed).isNotNull();
+    assertThat(parsed.get("foo")).isEqualTo(new BigDecimal(3));
+    assertThat(parsed.get("bar")).isEqualTo("foo");
+  }
+
+  @Test
+  public void testParseJsonBytes() throws Exception {
+    JsonObject object = new JsonObject();
+    object.addProperty("foo", 4);
+    object.addProperty("baz", "test");
+
+    String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
+    Charset charset = StandardCharsets.UTF_8;
+    Map<String, ?> parsed =
+        parserUtil.parseBytes(content.getBytes(charset), charset, Map.class, true);
+
+    // GSON parses integers as BigDecimals
+    assertThat(parsed).isNotNull();
+    assertThat(parsed.get("foo")).isEqualTo(new BigDecimal(4));
+    assertThat(parsed.get("baz")).isEqualTo("test");
+  }
+
+  @Test
+  public void testParseJson_noMalformedJsonException() throws Exception {
     String badJson = "%foo{)'";
 
     assertThrows(IllegalArgumentException.class,
-        () -> parserUtil.parseJson(
-            getHttpResponse(badJson.getBytes(StandardCharsets.UTF_8)), Map.class));
+        () -> parserUtil.parseString(badJson, Map.class, false));
   }
 
   private HttpResponse getHttpResponse(byte[] content) throws Exception {

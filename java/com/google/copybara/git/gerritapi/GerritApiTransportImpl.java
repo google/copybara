@@ -32,7 +32,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.GsonParserUtil;
+import com.google.copybara.json.GsonParserUtil;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -104,7 +104,7 @@ public class GerritApiTransportImpl implements GerritApiTransport {
 
   @SuppressWarnings("unchecked")
   public static <T> T execute(Type responseType, HttpRequest httpRequest)
-      throws IOException, GerritApiException {
+      throws IOException, RepoException {
     GsonParserUtil parserUtil = new GsonParserUtil();
     HttpResponse response;
     try {
@@ -112,8 +112,13 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     } catch (HttpResponseException e) {
       throw new GerritApiException(e.getStatusCode(), e.getContent(), e.getContent());
     }
-    return parserUtil.parseJsonFromGerrit(
-        response, responseType);
+    try {
+      return (T) parserUtil.parseHttpResponse(response, responseType, true);
+    } catch (IllegalArgumentException e) {
+      throw new RepoException(
+          String.format("Cannot parse response as type %s.\n"
+                  + "Request: %s\n", responseType, httpRequest.getUrl()), e);
+    }
   }
 
   /**

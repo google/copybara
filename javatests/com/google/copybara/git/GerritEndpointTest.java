@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.ActionMigration;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
@@ -206,15 +207,15 @@ public class GerritEndpointTest {
   public void testFeedbackGetChange_malformedJson() throws Exception {
     gitUtil.mockApi(anyString(), anyString(), mockResponse("foo   bar"));
     ActionMigration actionMigration = notifyChangeToOriginFeedback();
-    ValidationException expected =
+    RepoException expected =
         assertThrows(
-            ValidationException.class,
+            RepoException.class,
             () -> actionMigration.run(workdir, ImmutableList.of("12345")));
     assertThat(expected)
         .hasMessageThat()
         .contains("Error while executing the skylark transformation test_action");
     Throwable cause = expected.getCause();
-    assertThat(cause).isInstanceOf(IllegalArgumentException.class);
+    assertThat(cause).hasCauseThat().isInstanceOf(IllegalArgumentException.class);
     assertThat(dummyTrigger.messages).isEmpty();
   }
 
