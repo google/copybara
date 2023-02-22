@@ -152,7 +152,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
             conclusions.stream().map(Conclusion::getApiVal).collect(toImmutableList()));
         return false;
       } else {
-        console.infoFmt("Ignoring check-suite %s(%s) becaues conclusion is %s, that is NOT in the"
+        console.infoFmt("Ignoring check-suite %s(%s) because conclusion is %s, that is NOT in the"
                 + " list of conclusions to upload on empty diff for this slug: %s",
             suite.getApp().getSlug(),
             suite.getId(),
