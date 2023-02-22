@@ -523,17 +523,6 @@ public final class GerritDestination implements Destination<GitRevision> {
       return new GerritMessageInfo(labels.build(), newReview, effectiveChangeId);
     }
 
-    @SuppressWarnings("deprecation")
-    static String computeChangeId(String workflowId, String committerEmail, int attempt) {
-      return "I"
-          + Hashing.sha1()
-              .newHasher()
-              .putString(workflowId, UTF_8)
-              .putString(committerEmail, UTF_8)
-              .putInt(attempt)
-              .hash();
-    }
-
     @Override
     public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
