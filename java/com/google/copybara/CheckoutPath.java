@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
@@ -65,17 +66,34 @@ public class CheckoutPath implements Comparable<CheckoutPath>, StarlarkValue {
     return createWithCheckoutDir(path, checkoutDir);
   }
 
-  static CheckoutPath createWithCheckoutDir(Path relative, Path checkoutDir) throws EvalException {
+  @VisibleForTesting
+  public static CheckoutPath createWithCheckoutDir(Path relative, Path checkoutDir)
+      throws EvalException {
     if (relative.isAbsolute()) {
       throw Starlark.errorf("Absolute paths are not allowed: %s", relative);
     }
+    Path targetPath = checkoutDir.resolve(relative).normalize();
+    if (!targetPath.startsWith(checkoutDir)) {
+      throw Starlark.errorf("Escaping the checkout dir is not allowed: %s", relative);
+    }
+
     return new CheckoutPath(relative.normalize(), checkoutDir);
   }
 
-  @StarlarkMethod(name = "path", doc = "Full path relative to the checkout directory",
+  @StarlarkMethod(
+      name = "path",
+      doc = "Full path relative to the checkout directory",
       structField = true)
-  public String fullPath() {
+  public String pathAsString() {
     return path.toString();
+  }
+
+  /**
+   * The full path pointing to the real location of the checkout file. Use only for internal
+   * implementations and do not make this available to Starlark.
+   */
+  public Path fullPath() {
+    return checkoutDir.resolve(path);
   }
 
   @StarlarkMethod(name = "name",

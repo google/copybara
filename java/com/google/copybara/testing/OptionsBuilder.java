@@ -47,6 +47,7 @@ import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -147,6 +148,12 @@ public class OptionsBuilder {
   public final OptionsBuilder setLastRevision(String lastRevision) {
     workflowOptions = new WorkflowOptions(workflowOptions.getChangeBaseline(), lastRevision,
         workflowOptions.checkLastRevState);
+    return this;
+  }
+
+  /** set the checkout directory for testing starlark functions that use CheckoutPath */
+  public final OptionsBuilder setCheckoutDirectory(Path checkoutDirectory) {
+    testingOptions.checkoutDirectory = checkoutDirectory;
     return this;
   }
 

@@ -463,9 +463,6 @@ public class TransformWorkTest {
     ValidationException regularFile =
         assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "d1"));
     assertThat(regularFile).hasMessageThat().contains("'d1' already exist and is a regular file");
-    ValidationException escapedDir =
-        assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "../d1"));
-    assertThat(escapedDir).hasMessageThat().contains("../d1 is not inside the checkout directory");
   }
 
   @Test

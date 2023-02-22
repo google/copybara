@@ -38,6 +38,7 @@ import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.go.GoModule;
+import com.google.copybara.hashing.HashingModule;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
@@ -94,9 +95,13 @@ public class ModuleSupplier {
         options.get(FolderDestinationOptions.class),
         general);
     return ImmutableSet.of(
-        new Core(general, options.get(WorkflowOptions.class), options.get(DebugOptions.class),
-                 folderModule),
-        new GitModule(options), new HgModule(options),
+        new Core(
+            general,
+            options.get(WorkflowOptions.class),
+            options.get(DebugOptions.class),
+            folderModule),
+        new GitModule(options),
+        new HgModule(options),
         folderModule,
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
@@ -112,6 +117,7 @@ public class ModuleSupplier {
         new StructModule(),
         new StarlarkDateTimeModule(),
         new GoModule(options.get(RemoteFileOptions.class)),
+        new HashingModule(),
         Json.INSTANCE);
   }
 

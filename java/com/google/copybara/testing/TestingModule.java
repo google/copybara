@@ -18,11 +18,15 @@ package com.google.copybara.testing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
+import java.nio.file.Path;
+import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A Skylark module used by tests */
@@ -61,6 +65,14 @@ public class TestingModule implements StarlarkValue {
     return testingOptions.checker;
   }
 
+  @StarlarkMethod(
+      name = "get_checkout",
+      doc = "Create checkout paths in tests",
+      parameters = {@Param(name = "relative_path")})
+  public CheckoutPath createCheckoutPath(String relativePath) throws EvalException {
+    return CheckoutPath.createWithCheckoutDir(
+        Path.of(relativePath), testingOptions.checkoutDirectory);
+  }
   /**
    * Holder for options to adjust this module's behavior to the needs of a test.
    */
@@ -71,5 +83,6 @@ public class TestingModule implements StarlarkValue {
 
     public DummyTrigger feedbackTrigger;
     public DummyChecker checker;
+    public Path checkoutDirectory;
   }
 }

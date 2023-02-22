@@ -17,9 +17,12 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import net.starlark.java.eval.EvalException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,5 +84,24 @@ public final class CheckoutPathTest {
     assertThat(Files.exists(toDeleteAbsolute)).isFalse();
     assertThat(Files.exists(siblingAbsolute)).isFalse();
     assertThat(Files.exists(willRemainAbsolute)).isFalse();
+  }
+
+  @Test
+  public void testCreateWithCheckoutDirBlocksEscapePaths() throws IOException {
+    Path testRoot = Files.createTempDirectory("escapeTest");
+
+    // create a file that shouldn't be accessed
+    Path privilegedFile = testRoot.resolve("secret.txt");
+    Files.writeString(privilegedFile, "treasure");
+
+    // create a checkout directory
+    Path checkoutDirPath = testRoot.resolve("checkout");
+    Files.createDirectories(checkoutDirPath);
+
+    // create a path from the checkout directory to the protected file
+    Path escapePath = Path.of("../secret.txt");
+
+    assertThrows(
+        EvalException.class, () -> CheckoutPath.createWithCheckoutDir(escapePath, checkoutDirPath));
   }
 }
