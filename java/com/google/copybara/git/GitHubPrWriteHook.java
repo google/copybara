@@ -147,8 +147,9 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
           .get(suite.getApp().getSlug());
       if (conclusions.contains(Conclusion.fromValue(suite.getConclusion())
           .orElse(Conclusion.NONE))) {
-        console.infoFmt("Uploading change because check-suite conclusion is %s, that is in the"
-                + " list of conclusions to upload on empty diff: %s", suite.getConclusion(),
+        console.infoFmt("Uploading change because check-suite %s(%s) conclusion is %s, that is in"
+                + " the list of conclusions to upload on empty diff: %s",
+            suite.getApp().getSlug(), suite.getId(), suite.getConclusion(),
             conclusions.stream().map(Conclusion::getApiVal).collect(toImmutableList()));
         return false;
       } else {
