@@ -42,7 +42,7 @@ public class MultiplexingConsoleTest {
 
     delegate1
         .assertThat()
-        .matchesNext(MessageType.INFO, "Copybara source mover [(]Version: v1[)]")
+        .matchesNext(MessageType.INFO, "Copybara [(]Version: v1[)]")
         .matchesNext(MessageType.INFO, "This is info")
         .matchesNext(MessageType.WARNING, "This is warning")
         .matchesNext(MessageType.ERROR, "This is error")
@@ -50,7 +50,7 @@ public class MultiplexingConsoleTest {
         .matchesNext(MessageType.PROGRESS, "This is progress");
     delegate2
         .assertThat()
-        .matchesNext(MessageType.INFO, "Copybara source mover [(]Version: v1[)]")
+        .matchesNext(MessageType.INFO, "Copybara [(]Version: v1[)]")
         .matchesNext(MessageType.INFO, "This is info")
         .matchesNext(MessageType.WARNING, "This is warning")
         .matchesNext(MessageType.ERROR, "This is error")
