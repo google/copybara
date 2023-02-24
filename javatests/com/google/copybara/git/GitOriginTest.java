@@ -97,7 +97,6 @@ public class GitOriginTest {
 
   @Before
   public void setup() throws Exception {
-    options = new OptionsBuilder();
     console = new TestingConsole();
     options = new OptionsBuilder()
         .setConsole(console)
@@ -1257,7 +1256,14 @@ public class GitOriginTest {
     options.setLastRevision(firstCommitRef);
 
     Files.write(remote.resolve("file.txt"), new byte[0]);
+    Files.createDirectories(remote.resolve("directory/subdir"));
+    Files.write(remote.resolve("directory/file_in_dir.txt"), new byte[0]);
+    Files.write(remote.resolve("directory/subdir/file_in_subdir.txt"), new byte[0]);
+
     git("add", "file.txt");
+    git("add", "directory/file_in_dir.txt");
+    git("add", "directory/subdir/file_in_subdir.txt");
+
     git("commit", "-m", "message");
 
     @SuppressWarnings("unchecked")
@@ -1275,7 +1281,8 @@ public class GitOriginTest {
                         + "         include_branch_commit_logs = True,\n"
                         + "         partial_fetch = True,\n"
                         + "    ),\n"
-                        + "    origin_files = glob(['directory/**', 'file.txt']),\n"
+                        + "    origin_files = glob("
+                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
                         + "    destination = testing.destination(),\n"
                         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
                         + ")\n")
@@ -1285,6 +1292,9 @@ public class GitOriginTest {
 
     List<ProcessedChange> changes = destination.processed;
     assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).filePresent("file.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/file_in_dir.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/subdir/file_in_subdir.txt")).isTrue();
   }
 
   @Test

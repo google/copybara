@@ -350,7 +350,7 @@ public class GitOrigin implements Origin<GitRevision> {
         throws RepoException {
       GitRepository repo = repository.withWorkTree(workdir);
       if (partialFetch) {
-        repo.setSparseCheckout(originFiles.roots());
+        repo.setSparseCheckout(originFiles.tips());
         repo.forceCheckout(ref.getSha1());
         return repo;
       }
