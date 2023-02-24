@@ -99,8 +99,14 @@ public class PatchTransformationTest {
   public void applyTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
+        new PatchTransformation(
+            ImmutableList.of(patchFile),
+            excludedFromPatch,
+            patchingOptions,
+            /* reverse= */ false,
+            /* strip= */ 1,
+            /* directory= */ "",
+            Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
@@ -114,8 +120,14 @@ public class PatchTransformationTest {
     Path foo = Files.createDirectories(checkoutDir.resolve("foo"));
     Files.write(foo.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
+        new PatchTransformation(
+            ImmutableList.of(patchFile),
+            excludedFromPatch,
+            patchingOptions,
+            /* reverse= */ false,
+            /* strip= */ 1,
+            /* directory= */ "",
+            Location.BUILTIN);
     ValidationException thrown =
         assertThrows(
             ValidationException.class,
@@ -129,8 +141,14 @@ public class PatchTransformationTest {
   public void reverseTransformationTest() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "bar\n".getBytes(UTF_8));
     PatchTransformation transform =
-        new PatchTransformation(ImmutableList.of(patchFile), excludedFromPatch, patchingOptions,
-            /*reverse=*/ true, /*strip=*/1, Location.BUILTIN);
+        new PatchTransformation(
+            ImmutableList.of(patchFile),
+            excludedFromPatch,
+            patchingOptions,
+            /* reverse= */ true,
+            /* strip= */ 1,
+            /* directory= */ "",
+            Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "foo\n")
@@ -178,6 +196,33 @@ public class PatchTransformationTest {
   }
 
   @Test
+  public void testPathDirectory() throws Exception {
+    patchingOptions.skipVersionCheck = true;
+    Path subdir = Files.createDirectories(checkoutDir.resolve("sub/dir"));
+    Files.write(subdir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    skylark.addConfigFile(
+        "diff.patch",
+        ""
+            + "diff --git dir/test.txt dir/test.txt\n"
+            + "index 257cc56..5716ca5 100644\n"
+            + "--- dir/test.txt\n"
+            + "+++ dir/test.txt\n"
+            + "@@ -1 +1 @@\n"
+            + "-foo\n"
+            + "+bar\n");
+    PatchTransformation transformation =
+        skylark.eval(
+            "r",
+            "r = patch.apply(\n"
+                + "  patches = ['diff.patch'],\n"
+                + "  strip = 0,\n"
+                + "  directory = 'sub/',\n"
+                + ")\n");
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+    assertThatPath(checkoutDir).containsFile("sub/dir/test.txt", "bar\n").containsNoMoreFiles();
+  }
+
+  @Test
   public void testParseSkylarkSeries() throws Exception {
     Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
     skylark.addConfigFile("diff.patch", patchFile.readContent());
@@ -196,9 +241,15 @@ public class PatchTransformationTest {
 
   @Test
   public void testDescribe() {
-    PatchTransformation transform = new PatchTransformation(
-        ImmutableList.of(patchFile, patchFile), excludedFromPatch, patchingOptions,
-        /*reverse=*/ false, /*strip=*/1, Location.BUILTIN);
+    PatchTransformation transform =
+        new PatchTransformation(
+            ImmutableList.of(patchFile, patchFile),
+            excludedFromPatch,
+            patchingOptions,
+            /* reverse= */ false,
+            /* strip= */ 1,
+            /* directory= */ "",
+            Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo("Patch.apply: diff.patch, diff.patch");
   }
 }

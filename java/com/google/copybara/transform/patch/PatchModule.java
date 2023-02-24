@@ -110,6 +110,16 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             doc =
                 "Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`,"
                     + " etc.) By default it uses `-p1`."),
+        @Param(
+            name = "directory",
+            named = true,
+            positional = false,
+            defaultValue = "''",
+            doc =
+                "Path relative to the working directory from which to apply patches. This supports"
+                    + " patches that specify relative paths in their file diffs but use a different"
+                    + " relative path base than the working directory. (This sets the `-d` flag,"
+                    + " for example `-d sub/dir/`). By default, it uses the current directory."),
       },
       useStarlarkThread = true)
   @UsesFlags(PatchingOptions.class)
@@ -118,6 +128,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       Sequence<?> excludedPaths,
       Object seriesOrNone,
       StarlarkInt stripI,
+      String directory,
       StarlarkThread thread)
       throws EvalException {
     int strip = stripI.toInt("strip");
@@ -133,8 +144,9 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         builder.build(),
         ImmutableList.copyOf(SkylarkUtil.convertStringList(excludedPaths, "excludedPaths")),
         patchingOptions,
-        /*reverse=*/ false,
+        /* reverse= */ false,
         strip,
+        directory,
         thread.getCallerLocation());
   }
 

@@ -4260,7 +4260,7 @@ Module for applying patches.
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-[`transformation`](#transformation) `patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1)`
+[`transformation`](#transformation) `patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1, directory='')`
 
 
 #### Parameters:
@@ -4271,6 +4271,7 @@ patches | `sequence of string`<br><p>The list of patchfiles to apply, relative t
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string` or `NoneType`<br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
 strip | `int`<br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
+directory | `string`<br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. (This sets the `-d` flag, for example `-d sub/dir/`). By default, it uses the current directory.</p>
 
 
 

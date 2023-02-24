@@ -43,17 +43,23 @@ public class PatchTransformation implements Transformation {
   private final boolean reverse;
   private final PatchingOptions options;
   private final int strip;
+  private final String directory;
   private final Location location;
 
   PatchTransformation(
-      ImmutableList<ConfigFile> patches, ImmutableList<String> excludedPaths,
-      PatchingOptions options, boolean reverse, int strip,
+      ImmutableList<ConfigFile> patches,
+      ImmutableList<String> excludedPaths,
+      PatchingOptions options,
+      boolean reverse,
+      int strip,
+      String directory,
       Location location) {
     this.patches = patches;
     this.excludedPaths = excludedPaths;
     this.reverse = reverse;
     this.options = options;
     this.strip = strip;
+    this.directory = directory;
     this.location = checkNotNull(location);
   }
 
@@ -79,7 +85,12 @@ public class PatchTransformation implements Transformation {
       try {
         console.infoFmt("Applying patch %d/%d: '%s'.", i + 1, patches.size(), patch.path());
         options.patch(
-            checkoutDir, patch.readContentBytes(), excludedPaths, strip, reverse, gitDir);
+            checkoutDir.resolve(directory),
+            patch.readContentBytes(),
+            excludedPaths,
+            strip,
+            reverse,
+            gitDir);
       } catch (IOException ioException) {
         String msg = String.format("Error applying patch %s: %s", patch.getIdentifier(),
             ioException.getMessage());
@@ -91,8 +102,8 @@ public class PatchTransformation implements Transformation {
 
   @Override
   public Transformation reverse() {
-    return new PatchTransformation(patches.reverse(), excludedPaths, options, !reverse, strip,
-        location);
+    return new PatchTransformation(
+        patches.reverse(), excludedPaths, options, !reverse, strip, directory, location);
   }
 
   @Override
