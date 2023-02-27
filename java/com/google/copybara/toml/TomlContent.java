@@ -96,7 +96,7 @@ public class TomlContent implements StarlarkValue {
       starlarkValue = StarlarkList.immutableCopyOf(builder.build());
     } else if (value instanceof TomlTable) {
       ImmutableMap.Builder<Object, Object> builder = ImmutableMap.builder();
-      for (Entry entry : ((TomlTable) value).entrySet()) {
+      for (Entry<String, Object> entry : ((TomlTable) value).entrySet()) {
         builder.put(entry.getKey(), convertToStarlarkValue(entry.getValue()));
       }
       starlarkValue = Dict.immutableCopyOf(builder.build());

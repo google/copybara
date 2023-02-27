@@ -19,6 +19,7 @@ package com.google.copybara.testing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.copybara.CheckoutPath;
+import com.google.copybara.Endpoint;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.Option;
 import com.google.copybara.Options;
@@ -73,6 +74,15 @@ public class TestingModule implements StarlarkValue {
     return CheckoutPath.createWithCheckoutDir(
         Path.of(relativePath), testingOptions.checkoutDirectory);
   }
+
+  @StarlarkMethod(
+      name = "get_endpoint",
+      parameters = {@Param(name = "endpoint_provider")},
+      doc = "get the endpoint from an endpoint provider")
+  public <T extends Endpoint> Endpoint getEndpoint(EndpointProvider<? extends Endpoint> provider) {
+    return provider.getEndpoint();
+  }
+
   /**
    * Holder for options to adjust this module's behavior to the needs of a test.
    */

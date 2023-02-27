@@ -40,6 +40,7 @@ java_library(
         "//java/com/google/copybara/format:buildifier_options",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/hg",
+        "//java/com/google/copybara/http",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/remotefile",
