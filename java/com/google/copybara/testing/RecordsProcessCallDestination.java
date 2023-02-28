@@ -243,7 +243,11 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
         @Override
         public boolean exists(String path) {
-          return Files.exists(filePrefix.resolve(path));
+          if (filePrefix != null) {
+            return Files.exists(filePrefix.resolve(path));
+          } else {
+            return Files.exists(Path.of(path));
+          }
         }
       };
     }
