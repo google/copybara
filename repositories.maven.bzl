@@ -18,6 +18,8 @@ load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("com.github.stephenc.jcip", "jcip-annotations", "1.0-1"),
+    maven.artifact("com.google.auto.service", "auto-service", "1.0"),
+    maven.artifact("com.google.auto.service", "auto-service-annotations", "1.0.1"),
     maven.artifact("com.google.auto.value", "auto-value-annotations", "1.9"),
     maven.artifact("com.google.auto.value", "auto-value", "1.9"),
     maven.artifact("com.google.auto", "auto-common", "1.2.1"),
@@ -26,6 +28,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("com.google.errorprone", "error_prone_type_annotations", "2.16"),
     maven.artifact("com.google.flogger", "flogger-system-backend", "0.7.4"),
     maven.artifact("com.google.flogger", "flogger", "0.7.4"),
+    maven.artifact("com.google.flogger", "google-extensions", "0.5.1"),
     maven.artifact("com.google.guava", "failureaccess", "1.0.1"),
     maven.artifact("com.google.guava", "guava-testlib", "31.1-jre", testonly = True),
     maven.artifact("com.google.guava", "guava", "31.1-jre"),
@@ -48,6 +51,8 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("org.mockito", "mockito-core", "4.5.1", testonly = True),
     maven.artifact("org.objenesis", "objenesis", "1.0", testonly = True),
     maven.artifact("org.apache.commons", "commons-compress", "1.21"),
+    maven.artifact("org.apache.tomcat", "tomcat-annotations-api", "8.0.5"),
+    maven.artifact("org.apache.velocity", "velocity", "1.7"),
     maven.artifact("org.tomlj", "tomlj", "1.1.0"),
 ]
 
