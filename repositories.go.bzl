@@ -19,7 +19,7 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 def copybara_go_repositories():
     go_rules_dependencies()
 
-    go_register_toolchains()
+    go_register_toolchains(version = "1.19.5")
 
     gazelle_dependencies()
 
