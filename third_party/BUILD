@@ -205,6 +205,13 @@ java_library(
     ],
 )
 
+java_library(
+    name = "sun_mail",
+    exports = [
+        "@maven//:com_sun_mail_javax_mail",
+    ],
+)
+
 # Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
 # is fixed
 exports_files(["bazel.patch"])

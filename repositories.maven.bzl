@@ -54,6 +54,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("org.apache.tomcat", "tomcat-annotations-api", "8.0.5"),
     maven.artifact("org.apache.velocity", "velocity", "1.7"),
     maven.artifact("org.tomlj", "tomlj", "1.1.0"),
+    maven.artifact("com.sun.mail", "javax.mail", "1.5.6"),
 ]
 
 COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES = [
