@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//javatests/com/google/copybara:test.bzl", "all_tests")
+package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])
-
-all_tests(
-    tests = glob(["*Test.java"]),
+java_library(
+    name = "testing",
+    testonly = 1,
+    srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/http",
-        "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
         "//third_party:guava_testlib",

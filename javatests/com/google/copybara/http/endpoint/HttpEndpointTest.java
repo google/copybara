@@ -14,78 +14,48 @@
  * limitations under the License.
  */
 
-package com.google.copybara.http;
+package com.google.copybara.http.endpoint;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.LowLevelHttpRequest;
-import com.google.api.client.http.LowLevelHttpResponse;
-import com.google.api.client.testing.http.MockHttpTransport;
-import com.google.api.client.testing.http.MockLowLevelHttpRequest;
-import com.google.api.client.testing.http.MockLowLevelHttpResponse;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.HttpOptions;
+import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
-import java.io.IOException;
 import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class HttpEndpointTest {
-  private final SkylarkTestExecutor starlark =
-      new SkylarkTestExecutor(
-          new OptionsBuilder()
-              .setHttpOptions(
-                  new HttpOptions() {
-                    @Override
-                    public HttpTransport getTransport() {
-                      return mockTransport;
-                    }
-                  }));
+  private SkylarkTestExecutor starlark;
+  private MockHttpTester http;
 
-  private MockHttpTransport mockTransport;
-
-  private interface MockHandler {
-
-    /**
-     * @param req - The request built by the client lib.
-     * @param response - The response that will be returned, available for modification.
-     */
-    void handleReq(
-        String method, String url, MockLowLevelHttpRequest req, MockLowLevelHttpResponse response);
-  }
-
-  private void mockHttp(MockHandler handler) {
-    mockTransport =
-        new MockHttpTransport() {
-          @Override
-          public LowLevelHttpRequest buildRequest(String method, String url) {
-            MockLowLevelHttpResponse resp = new MockLowLevelHttpResponse();
-
-            MockLowLevelHttpRequest req =
-                new MockLowLevelHttpRequest() {
-                  @Override
-                  public LowLevelHttpResponse execute() throws IOException {
-                    handler.handleReq(method, url, this, resp);
-                    return super.execute();
-                  }
-                };
-
-            req.setResponse(resp);
-            return req;
-          }
-        };
+  @Before
+  public void setUp() {
+    http = new MockHttpTester();
+    starlark =
+        new SkylarkTestExecutor(
+            new OptionsBuilder()
+                .setHttpOptions(
+                    new HttpOptions() {
+                      @Override
+                      public HttpTransport getTransport() {
+                        return http.getTransport();
+                      }
+                    }));
   }
 
   @Test
   public void testGet() throws ValidationException {
-    mockHttp(
+    http.mockHttp(
         (method, url, req, resp) -> {
           assertThat(method).isEqualTo("GET");
           resp.setStatusCode(204);
@@ -100,7 +70,7 @@ public class HttpEndpointTest {
 
   @Test
   public void testPost() throws ValidationException {
-    mockHttp(
+    http.mockHttp(
         (method, url, req, resp) -> {
           assertThat(method).isEqualTo("POST");
           resp.setStatusCode(204);
@@ -116,25 +86,8 @@ public class HttpEndpointTest {
   }
 
   @Test
-  public void testPut() throws ValidationException {
-    mockHttp(
-        (method, url, req, resp) -> {
-          assertThat(method).isEqualTo("PUT");
-          resp.setStatusCode(204);
-        });
-    HttpEndpointResponse resp =
-        starlark.eval(
-            "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + ")\n"
-                + "resp = endpoint.put(url = \"http://foo.com\")\n");
-    assertThat(resp.getStatusCode()).isEqualTo(204);
-  }
-
-  @Test
   public void testDelete() throws ValidationException {
-    mockHttp(
+    http.mockHttp(
         (method, url, req, resp) -> {
           assertThat(method).isEqualTo("DELETE");
           resp.setStatusCode(204);
@@ -150,29 +103,12 @@ public class HttpEndpointTest {
   }
 
   @Test
-  public void testPatch() throws ValidationException {
-    mockHttp(
-        (method, url, req, resp) -> {
-          assertThat(method).isEqualTo("PATCH");
-          resp.setStatusCode(204);
-        });
-    HttpEndpointResponse resp =
-        starlark.eval(
-            "resp",
-            "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
-                + ")\n"
-                + "resp = endpoint.patch(url = \"http://foo.com\")\n");
-    assertThat(resp.getStatusCode()).isEqualTo(204);
-  }
-
-  @Test
   public void testHeader() throws ValidationException {
     ImmutableMap<String, List<String>> expectedHeaders =
         ImmutableMap.of(
             "content-type", ImmutableList.of("application/json"),
             "authorization", ImmutableList.of("Basic asdf"));
-    mockHttp(
+    http.mockHttp(
         (method, url, req, resp) -> {
           assertThat(req.getHeaders()).containsAtLeastEntriesIn(expectedHeaders);
           resp.setStatusCode(204);

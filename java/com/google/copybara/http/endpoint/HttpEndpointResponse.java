@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.copybara.http;
+package com.google.copybara.http.endpoint;
 
 import com.google.api.client.http.HttpResponse;
 import java.io.IOException;

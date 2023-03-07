@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.google.copybara.http;
+package com.google.copybara.http.endpoint;
 
 import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpTransport;
 import java.io.IOException;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -34,6 +36,7 @@ public class HttpEndpointRequest implements StarlarkValue {
   GenericUrl url;
   String method;
   HttpHeaders headers;
+  @Nullable HttpContent content;
 
   // Client parameters
   HttpTransport transport;
@@ -42,11 +45,16 @@ public class HttpEndpointRequest implements StarlarkValue {
   HttpRequest request;
 
   public HttpEndpointRequest(
-      GenericUrl url, String method, HttpHeaders headers, HttpTransport transport) {
+      GenericUrl url,
+      String method,
+      HttpHeaders headers,
+      HttpTransport transport,
+      @Nullable HttpContent content) {
     this.url = url;
     this.method = method;
     this.headers = headers;
     this.transport = transport;
+    this.content = content;
   }
 
   public HttpRequest build() throws IOException {
@@ -54,6 +62,9 @@ public class HttpEndpointRequest implements StarlarkValue {
       HttpRequestFactory factory = transport.createRequestFactory();
       request = factory.buildRequest(method, url, null);
       request.getHeaders().fromHttpHeaders(headers);
+      if (content != null) {
+        request.setContent(content);
+      }
     }
     return request;
   }
