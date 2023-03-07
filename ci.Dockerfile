@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/bazel-public/bazel:6.0.0 AS build
+FROM gcr.io/bazel-public/bazel${BAZEL_VERSION} AS build
 COPY . .
 USER root
 RUN ./cloudbuild_setup.sh
