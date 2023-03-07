@@ -15,6 +15,8 @@ log "Running apt-get update --fix-missing"
 apt-get update --fix-missing
 apt-get install locales
 apt-get -y install mercurial
+apt-get install -y lsb-release
+apt-get install -y software-properties-common
 
 add-apt-repository ppa:git-core/ppa -y
 apt install git -y
