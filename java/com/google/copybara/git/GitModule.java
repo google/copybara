@@ -152,7 +152,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
   public static final ImmutableSet<String> PRIMARY_BRANCHES = ImmutableSet.of("master", "main");
 
   protected final Options options;
-  private ConfigFile mainConfigFile;
+  protected ConfigFile mainConfigFile;
   private String workflowName;
   private StarlarkThread.PrintHandler printHandler;
 

@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
@@ -58,7 +57,6 @@ public class GitOriginOptions implements Option {
     return !noGitVersionSelector;
   }
 
-  @VisibleForTesting
   public ApprovalsProvider approvalsProvider = new NoneApprovedProvider();
 
   void maybeRunCheckoutHook(Path checkoutDir, GeneralOptions generalOptions) throws RepoException {
