@@ -20,6 +20,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.approval.ChangeWithApprovals;
 import com.google.copybara.approval.UserPredicate;
 import com.google.copybara.exception.RepoException;
@@ -36,7 +37,7 @@ import javax.annotation.Nullable;
 
 /** Utility class for performing validation for GitHub pull request approvals. */
 public class GitHubUserApprovalsValidator {
-  private final GitHubGraphQLApi api;
+  private final LazyResourceLoader<GitHubGraphQLApi> apiLoader;
   private final Console console;
   private final GitHubHost githubHost;
   private final GetCommitHistoryParams params;
@@ -46,14 +47,17 @@ public class GitHubUserApprovalsValidator {
    * authorship and approving reviewers based on a {@code ChangeWithApprovals} commit and pull
    * request history on GitHub.
    *
-   * @param api - GraphQL api used to query for GitHub commit and pull request history.
+   * @param apiLoader - GraphQL api used to query for GitHub commit and pull request history.
    * @param console - used to output relevant issues to the user.
    * @param githubHost utility object to extract project identifiers from GitHub URLs.
    * @param params used to describe scope of commit history to review.
    */
   public GitHubUserApprovalsValidator(
-      GitHubGraphQLApi api, Console console, GitHubHost githubHost, GetCommitHistoryParams params) {
-    this.api = api;
+      LazyResourceLoader<GitHubGraphQLApi> apiLoader,
+      Console console,
+      GitHubHost githubHost,
+      GetCommitHistoryParams params) {
+    this.apiLoader = apiLoader;
     this.console = console;
     this.githubHost = githubHost;
     this.params = params;
@@ -82,7 +86,8 @@ public class GitHubUserApprovalsValidator {
     String repository = projectName.substring(projectName.lastIndexOf("/") + 1);
     ImmutableList.Builder<ChangeWithApprovals> builder = ImmutableList.builder();
 
-    CommitHistoryResponse response = api.getCommitHistory(organization, repository, branch, params);
+    CommitHistoryResponse response =
+        apiLoader.load(console).getCommitHistory(organization, repository, branch, params);
     for (ChangeWithApprovals change : changes) {
       String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
 

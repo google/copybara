@@ -52,6 +52,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
   private GitHubHost githubHost;
   private GetCommitHistoryParams params;
   private static final String TRUSTED_TEST_PROJECT = "google/copybara";
+  private static final String PROJECT_URL = "https://github.com/google/copybara";
 
   @Before
   public void setUp() throws Exception {
@@ -80,11 +81,14 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         githubHost,
         /* branch= */ "main",
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT),
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, githubHost),
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
-            gitHubOptions.newGitHubGraphQLApi(TRUSTED_TEST_PROJECT), console, githubHost, params));
+            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, githubHost),
+            console,
+            githubHost,
+            params));
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(

@@ -48,6 +48,7 @@ public final class GitHubUserApprovalsValidatorTest {
   private GitTestUtil gitTestUtil;
   private GitHubHost githubHost;
   private GetCommitHistoryParams params;
+  private static final String PROJECT_URL = "https://github.com/google/copybara";
   private static final String PROJECT_ID = "google/copybara";
   private static final String BRANCH = "main";
 
@@ -74,7 +75,10 @@ public final class GitHubUserApprovalsValidatorTest {
 
   private GitHubUserApprovalsValidator getUnitUnderTest() throws Exception {
     return new GitHubUserApprovalsValidator(
-        builder.github.newGitHubGraphQLApi(PROJECT_ID), console, githubHost, params);
+        builder.github.newGitHubGraphQLApiSupplier(PROJECT_URL, null, githubHost),
+        console,
+        githubHost,
+        params);
   }
 
   @Test

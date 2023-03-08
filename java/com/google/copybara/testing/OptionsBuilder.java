@@ -50,6 +50,7 @@ import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.FileSystems;
 import java.util.HashMap;
 import java.util.Map;
+import org.mockito.Mockito;
 
 /**
  * Allows building complete and sane {@link Options} instances succinctly.
@@ -86,8 +87,7 @@ public class OptionsBuilder {
   public GitHubOptions github = new GitHubOptions(general, git) {
     @Override
     protected HttpTransport newHttpTransport() {
-      throw new UnsupportedOperationException(
-          "You probably have overwritten GitOptions, so you need to create this variable too");
+      return Mockito.mock(HttpTransport.class);
     }
   };
   public GitHubDestinationOptions githubDestination = new GitHubDestinationOptions();

@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.approval.ChangeWithApprovals;
 import com.google.copybara.approval.StatementPredicate;
 import com.google.copybara.exception.RepoException;
@@ -33,13 +34,15 @@ public class GitHubSecuritySettingsValidator {
   public static final String ALL_STAR_PREDICATE_TYPE = "github.organization.all_star_installed";
   public static final String TWO_FACTOR_PREDICATE_TYPE =
       "github.organization.2FA_requirement_enabled";
-  private final GitHubApi api;
+  private final LazyResourceLoader<GitHubApi> apiLoader;
   private final ImmutableList<Integer> allStarAppIds;
   private final Console console;
 
   public GitHubSecuritySettingsValidator(
-      GitHubApi api, ImmutableList<Integer> allStarAppIds, Console console) {
-    this.api = api;
+      LazyResourceLoader<GitHubApi> apiLoader,
+      ImmutableList<Integer> allStarAppIds,
+      Console console) {
+    this.apiLoader = apiLoader;
     this.console = console;
     this.allStarAppIds = allStarAppIds;
   }
@@ -110,7 +113,7 @@ public class GitHubSecuritySettingsValidator {
 
   private boolean hasAllStar(String organization) throws ValidationException, RepoException {
     try {
-      return api.getInstallations(organization).stream()
+      return apiLoader.load(console).getInstallations(organization).stream()
           .anyMatch(installation -> allStarAppIds.contains(installation.getAppId()));
     } catch (GitHubApiException e) {
       throw handleGitHubException(
@@ -126,7 +129,8 @@ public class GitHubSecuritySettingsValidator {
     try {
       // Note: twoFactorRequirementEnabled can also be null in the payload, this will not throw an
       // error, but is a sign the credential used lacks sufficient priviledges.
-      Boolean twoFactorEnabled = api.getOrganization(organization).getTwoFactorRequirementEnabled();
+      Boolean twoFactorEnabled =
+          apiLoader.load(console).getOrganization(organization).getTwoFactorRequirementEnabled();
       if (twoFactorEnabled == null) {
         console.warnFmt(
             "Copybara could not confirm that 2FA requirement is being enforced in the '%s' GitHub"

@@ -185,6 +185,18 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testApprovalsProviderBinding_forGitHubPostSubmitOrigin() throws Exception {
+    origin =
+        skylark.eval(
+            "result",
+            "result = git.github_origin(\n"
+                + "    url = 'https://github.com/google/copybara',\n"
+                + "    ref = 'main',\n"
+                + ")");
+    assertThat(origin.getApprovalsProvider()).isInstanceOf(GitHubPostSubmitApprovalsProvider.class);
+  }
+
+  @Test
   public void testGitOriginHttp() throws Exception {
     origin = skylark.eval("result",
         "result = git.origin(\n"

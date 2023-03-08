@@ -1449,6 +1449,18 @@ public class GitHubPrOriginTest {
     assertThat(origin.resolve("123").associatedLabel(GITHUB_PR_USE_MERGE)).containsExactly("false");
   }
 
+  @Test
+  public void testApprovalsProviderBinding_forGitHubPreSubmitOrigin() throws Exception {
+    GitHubPrOrigin prOrigin =
+        skylark.eval(
+            "result",
+            "result = git.github_pr_origin(\n"
+                + "    url = 'https://github.com/google/copybara'\n"
+                + ")");
+    assertThat(prOrigin.getApprovalsProvider())
+        .isInstanceOf(GitHubPreSubmitApprovalsProvider.class);
+  }
+
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)
       throws RepoException, IOException, ValidationException {
     GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");

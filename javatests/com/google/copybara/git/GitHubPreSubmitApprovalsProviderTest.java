@@ -53,6 +53,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
   private GitHubHost gitHubHost;
   private GetCommitHistoryParams params;
   private static final String TRUSTED_TEST_PROJECT = "google/copybara";
+  private static final String PROJECT_URL = "https://github.com/google/copybara";
   private static final String ORG = "google";
   private static final String REPO = "copybara";
 
@@ -83,11 +84,14 @@ public final class GitHubPreSubmitApprovalsProviderTest {
         gitHubOptions,
         gitHubHost,
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT),
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, gitHubHost),
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
-            gitHubOptions.newGitHubGraphQLApi(TRUSTED_TEST_PROJECT), console, gitHubHost, params));
+            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, gitHubHost),
+            console,
+            gitHubHost,
+            params));
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(

@@ -42,6 +42,7 @@ import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
+import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -134,6 +135,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final boolean describeVersion;
   private final GitHubHost ghHost;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
+  private final ApprovalsProvider provider;
 
   GitHubPrOrigin(
       String url,
@@ -159,7 +161,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       @Nullable PatchTransformation patchTransformation,
       @Nullable String branch,
       boolean describeVersion,
-      GitHubHost ghHost) {
+      GitHubHost ghHost,
+      ApprovalsProvider provider) {
     this.url = checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = checkNotNull(generalOptions);
@@ -185,6 +188,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.branch = branch;
     this.describeVersion = describeVersion;
     this.ghHost = ghHost;
+    this.provider = checkNotNull(provider);
   }
 
   @Override
@@ -758,6 +762,11 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
   private boolean forceImport() {
     return generalOptions.isForced() || gitHubPrOriginOptions.forceImport;
+  }
+
+  @Override
+  public ApprovalsProvider getApprovalsProvider() {
+    return provider;
   }
 
   /**

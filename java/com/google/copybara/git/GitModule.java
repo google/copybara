@@ -75,6 +75,7 @@ import com.google.copybara.git.gerritapi.SetReviewInput;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.CheckRun.Conclusion;
 import com.google.copybara.git.github.api.GitHubEventType;
+import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.patch.PatchTransformation;
@@ -313,10 +314,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     List<String> excludedSubmoduleList =
         Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
     checkSubmoduleConfig(submodules, excludedSubmoduleList);
-
+    String fixedUrl = fixHttp(url, thread.getCallerLocation());
     return GitOrigin.newGitOrigin(
         options,
-        fixHttp(url, thread.getCallerLocation()),
+        fixedUrl,
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GIT,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
@@ -330,7 +331,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         validateVersionSelector(versionSelector),
         mainConfigFile.path(),
         workflowName,
-        approvalsProvider(url));
+        GITHUB_COM.isGitHubUrl(url)
+            ? githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref))
+            : approvalsProvider(url));
   }
 
   @Nullable
@@ -1084,33 +1087,34 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       }
       reviewApprovers = ImmutableSet.copyOf(approvers);
     }
+    String fixedUrl = fixHttp(url, thread.getCallerLocation());
     GitHubPrOriginOptions prOpts = options.get(GitHubPrOriginOptions.class);
     if (prOpts.repo != null) {
       Iterator<String> split = Splitter.on(" ").split(prOpts.repo).iterator();
       String repo = split.next();
       String ref = split.hasNext() ? split.next() : "main";
       return new GitOrigin(
-              options.get(GeneralOptions.class),
-              repo,
-              ref,
-              GitRepoType.GIT,
-              options.get(GitOptions.class),
-              options.get(GitOriginOptions.class),
-              stringToEnum("submodules", submodules, SubmoduleStrategy.class),
-              excludedSubmoduleList,
-              false,
-              firstParent,
-              partialClone,
-              patchTransformation,
-              convertDescribeVersion(describeVersion),
-              null,
-              mainConfigFile.path(),
-              workflowName,
-              false,
-              approvalsProvider(repo));
+          options.get(GeneralOptions.class),
+          repo,
+          ref,
+          GitRepoType.GIT,
+          options.get(GitOptions.class),
+          options.get(GitOriginOptions.class),
+          stringToEnum("submodules", submodules, SubmoduleStrategy.class),
+          excludedSubmoduleList,
+          false,
+          firstParent,
+          partialClone,
+          patchTransformation,
+          convertDescribeVersion(describeVersion),
+          null,
+          mainConfigFile.path(),
+          workflowName,
+          false,
+          githubPostSubmitApprovalsProvider(fixedUrl, ref));
     }
     return new GitHubPrOrigin(
-        fixHttp(url, thread.getCallerLocation()),
+        fixedUrl,
         prOpts.overrideMerge != null ? prOpts.overrideMerge : merge,
         options.get(GeneralOptions.class),
         options.get(GitOptions.class),
@@ -1140,7 +1144,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         patchTransformation,
         convertFromNoneable(branch, null),
         convertDescribeVersion(describeVersion),
-        GITHUB_COM);
+        GITHUB_COM,
+        githubPreSubmitApprovalsProvider(fixedUrl));
   }
 
   @SuppressWarnings("unused")
@@ -1270,18 +1275,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     List<String> excludedSubmoduleList =
         Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
     checkSubmoduleConfig(submodules, excludedSubmoduleList);
-
+    String fixedUrl = fixHttp(url, thread.getCallerLocation());
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
         options,
-        fixHttp(url, thread.getCallerLocation()),
+        fixedUrl,
         SkylarkUtil.convertOptionalString(ref),
         GitRepoType.GITHUB,
         stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
         excludedSubmoduleList,
-        /*includeBranchCommitLogs=*/ false,
+        /* includeBranchCommitLogs= */ false,
         firstParent,
         partialFetch,
         primaryBranchMigration,
@@ -1290,7 +1295,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(versionSelector, null),
         mainConfigFile.path(),
         workflowName,
-        approvalsProvider(url));
+        githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref)));
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -2648,8 +2653,52 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     return url;
   }
 
+  /** Do not use this for github origins */
   protected ApprovalsProvider approvalsProvider(String url) {
+    Preconditions.checkArgument(
+        !GITHUB_COM.isGitHubUrl(url),
+        "Git origins with github should use github approval providers!");
     return options.get(GitOriginOptions.class).approvalsProvider;
+  }
+
+  protected ApprovalsProvider githubPreSubmitApprovalsProvider(String url) {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    GitHubOptions githubOptions = options.get(GitHubOptions.class);
+    return new GitHubPreSubmitApprovalsProvider(
+        githubOptions,
+        GITHUB_COM,
+        new GitHubSecuritySettingsValidator(
+            githubOptions.newGitHubApiSupplier(url, null, GITHUB_COM),
+            ImmutableList.copyOf(githubOptions.allStarAppIds),
+            generalOptions.console()),
+        new GitHubUserApprovalsValidator(
+            githubOptions.newGitHubGraphQLApiSupplier(url, null, GITHUB_COM),
+            generalOptions.console(),
+            GITHUB_COM,
+            new GetCommitHistoryParams(
+                /* commits= */ githubOptions.gqlOverride.get(0),
+                /* pullRequests= */ githubOptions.gqlOverride.get(1),
+                /* reviews= */ githubOptions.gqlOverride.get(2))));
+  }
+
+  protected ApprovalsProvider githubPostSubmitApprovalsProvider(String url, String branch) {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    GitHubOptions githubOptions = options.get(GitHubOptions.class);
+    return new GitHubPostSubmitApprovalsProvider(
+        GITHUB_COM,
+        branch,
+        new GitHubSecuritySettingsValidator(
+            githubOptions.newGitHubApiSupplier(url, null, GITHUB_COM),
+            ImmutableList.copyOf(githubOptions.allStarAppIds),
+            generalOptions.console()),
+        new GitHubUserApprovalsValidator(
+            githubOptions.newGitHubGraphQLApiSupplier(url, null, GITHUB_COM),
+            generalOptions.console(),
+            GITHUB_COM,
+            new GetCommitHistoryParams(
+                /* commits= */ githubOptions.gqlOverride.get(0),
+                /* pullRequests= */ githubOptions.gqlOverride.get(1),
+                /* reviews= */ githubOptions.gqlOverride.get(2))));
   }
 
   /** Validates the {@link Checker} provided to a feedback endpoint. */

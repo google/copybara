@@ -84,6 +84,17 @@ public class GitHubOptions implements Option {
     };
   }
 
+  /** Returns a lazy supplier of {@link GitHubGraphQLApi}. */
+  public LazyResourceLoader<GitHubGraphQLApi> newGitHubGraphQLApiSupplier(
+      String url, @Nullable Checker checker, GitHubHost ghHost) {
+    return (console) -> {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return checker == null
+          ? newGitHubGraphQLApi(project)
+          : newGitHubGraphQLApi(project, checker, console);
+    };
+  }
+
   /**
    * Returns a new {@link GitHubApi} instance for the given project.
    *
