@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.Auth;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.Map.Entry;
@@ -67,10 +68,19 @@ public class HttpEndpoint implements Endpoint {
             allowedTypes = {@ParamType(type = Dict.class)},
             defaultValue = "{}",
             doc = "dict of http headers for the request"),
+        @Param(
+            name = "auth",
+            named = true,
+            positional = false,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Auth.class),
+              @ParamType(type = NoneType.class),
+            }),
       })
-  public HttpEndpointResponse get(String url, Object headers)
+  public HttpEndpointResponse get(String url, Object headers, Object auth)
       throws EvalException, ValidationException, IOException {
-    return handleRequest(url, "GET", headers, null);
+    return handleRequest(url, "GET", headers, null, auth);
   }
 
   @StarlarkMethod(
@@ -97,10 +107,19 @@ public class HttpEndpoint implements Endpoint {
               @ParamType(type = HttpEndpointBody.class),
               @ParamType(type = NoneType.class),
             }),
+        @Param(
+            name = "auth",
+            named = true,
+            positional = false,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Auth.class),
+              @ParamType(type = NoneType.class),
+            }),
       })
-  public HttpEndpointResponse post(String urlIn, Object headersIn, Object content)
+  public HttpEndpointResponse post(String urlIn, Object headersIn, Object content, Object auth)
       throws EvalException, ValidationException, IOException {
-    return handleRequest(urlIn, "POST", headersIn, content);
+    return handleRequest(urlIn, "POST", headersIn, content, auth);
   }
 
   @StarlarkMethod(
@@ -118,14 +137,23 @@ public class HttpEndpoint implements Endpoint {
             allowedTypes = {@ParamType(type = Dict.class)},
             defaultValue = "{}",
             doc = "dict of http headers for the request"),
+        @Param(
+            name = "auth",
+            named = true,
+            positional = false,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Auth.class),
+              @ParamType(type = NoneType.class),
+            }),
       })
-  public HttpEndpointResponse delete(String urlIn, Object headersIn)
+  public HttpEndpointResponse delete(String urlIn, Object headersIn, Object auth)
       throws EvalException, ValidationException, IOException {
-    return handleRequest(urlIn, "DELETE", headersIn, null);
+    return handleRequest(urlIn, "DELETE", headersIn, null, auth);
   }
 
   private HttpEndpointResponse handleRequest(
-      String urlIn, String method, Object headersIn, Object endpointContentIn)
+      String urlIn, String method, Object headersIn, Object endpointContentIn, Object authIn)
       throws EvalException, ValidationException, IOException {
     GenericUrl url = new GenericUrl(urlIn);
     validateUrl(url);
@@ -143,7 +171,10 @@ public class HttpEndpoint implements Endpoint {
       content = endpointContent.getContent();
     }
 
-    HttpEndpointRequest req = new HttpEndpointRequest(url, method, headers, transport, content);
+    @Nullable Auth auth = SkylarkUtil.convertFromNoneable(authIn, null);
+
+    HttpEndpointRequest req =
+        new HttpEndpointRequest(url, method, headers, transport, content, auth);
     return new HttpEndpointResponse(req.build().execute());
   }
 
@@ -158,5 +189,4 @@ public class HttpEndpoint implements Endpoint {
   public ImmutableSetMultimap<String, String> describe() {
     return ImmutableSetMultimap.of("type", "http_endpoint", "host", host);
   }
-  ;
 }

@@ -22,6 +22,7 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpTransport;
+import com.google.copybara.http.auth.Auth;
 import java.io.IOException;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
@@ -37,6 +38,7 @@ public class HttpEndpointRequest implements StarlarkValue {
   String method;
   HttpHeaders headers;
   @Nullable HttpContent content;
+  @Nullable Auth auth;
 
   // Client parameters
   HttpTransport transport;
@@ -49,12 +51,14 @@ public class HttpEndpointRequest implements StarlarkValue {
       String method,
       HttpHeaders headers,
       HttpTransport transport,
-      @Nullable HttpContent content) {
+      @Nullable HttpContent content,
+      @Nullable Auth auth) {
     this.url = url;
     this.method = method;
     this.headers = headers;
     this.transport = transport;
     this.content = content;
+    this.auth = auth;
   }
 
   public HttpRequest build() throws IOException {
@@ -64,6 +68,9 @@ public class HttpEndpointRequest implements StarlarkValue {
       request.getHeaders().fromHttpHeaders(headers);
       if (content != null) {
         request.setContent(content);
+      }
+      if (auth != null) {
+        request.setInterceptor(auth.basicAuthInterceptor());
       }
     }
     return request;

@@ -15,17 +15,17 @@
 package(default_visibility = ["//visibility:public"])
 
 java_library(
-    name = "endpoint",
+    name = "auth",
     srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
         "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:starlark",
+        "//third_party:tomlj",
     ],
 )

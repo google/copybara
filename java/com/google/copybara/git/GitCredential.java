@@ -42,6 +42,7 @@ import java.util.Map;
 
 /**
  * Utility class for executing 'git credential' commands.
+ * TODO(b/273968171): Refactor this into a general auth interface.
  */
 public final class GitCredential {
 

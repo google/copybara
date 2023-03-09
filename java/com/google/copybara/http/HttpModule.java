@@ -20,6 +20,9 @@ import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.Auth;
+import com.google.copybara.http.auth.KeySource;
+import com.google.copybara.http.auth.TomlKeySource;
 import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.multipart.FilePart;
 import com.google.copybara.http.multipart.HttpEndpointFormPart;
@@ -49,8 +52,9 @@ public class HttpModule implements StarlarkValue {
 
   @StarlarkMethod(
       name = "endpoint",
-      doc = "Endpoint that executes any sort of http request. Currently restricted"
-          + "to requests to a specific host.",
+      doc =
+          "Endpoint that executes any sort of http request. Currently restricted"
+              + "to requests to a specific host.",
       parameters = {@Param(name = "host", named = true)})
   public EndpointProvider<HttpEndpoint> endpoint(String host) throws ValidationException {
     return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), host));
@@ -58,10 +62,11 @@ public class HttpModule implements StarlarkValue {
 
   @StarlarkMethod(
       name = "multipart_form",
-      doc = "Creates a multipart form http body. Accepts a list of form parts.",
+      doc = "Creates a multipart form http body.",
       parameters = {
         @Param(
             name = "parts",
+            doc = "A list of form parts",
             allowedTypes = {
               @ParamType(type = Sequence.class),
             },
@@ -93,8 +98,7 @@ public class HttpModule implements StarlarkValue {
 
   @StarlarkMethod(
       name = "multipart_form_file",
-      doc = "Create a file part for a multipart form payload. Content type "
-          + "defaults to application/octet-stream.",
+      doc = "Create a file part for a multipart form payload.",
       parameters = {
         @Param(
             name = "name",
@@ -104,16 +108,16 @@ public class HttpModule implements StarlarkValue {
             }),
         @Param(
             name = "path",
-            doc = "The checkout path pointing to the file to use "
-                + "as the field value.",
+            doc = "The checkout path pointing to the file to use " + "as the field value.",
             allowedTypes = {
               @ParamType(type = CheckoutPath.class),
             }),
         @Param(
             name = "content_type",
-            doc = "Content type header value for the form part. "
-                + "Defaults to application/octet-stream. \n"
-                + "https://www.w3.org/Protocols/rfc1341/4_Content-Type.html",
+            doc =
+                "Content type header value for the form part. "
+                    + "Defaults to application/octet-stream. \n"
+                    + "https://www.w3.org/Protocols/rfc1341/4_Content-Type.html",
             allowedTypes = {
               @ParamType(type = String.class),
             },
@@ -122,11 +126,12 @@ public class HttpModule implements StarlarkValue {
             defaultValue = "\"application/octet-stream\""),
         @Param(
             name = "filename",
-            doc = "The filename that will be sent along with the data. "
-                + "Defaults to the filename of the path parameter. "
-                + "Sets the filename parameter in the content disposition "
-                + "header. \n"
-                + "https://www.w3.org/Protocols/HTTP/Issues/content-disposition.txt",
+            doc =
+                "The filename that will be sent along with the data. "
+                    + "Defaults to the filename of the path parameter. "
+                    + "Sets the filename parameter in the content disposition "
+                    + "header. \n"
+                    + "https://www.w3.org/Protocols/HTTP/Issues/content-disposition.txt",
             allowedTypes = {
               @ParamType(type = String.class),
               @ParamType(type = NoneType.class),
@@ -139,5 +144,62 @@ public class HttpModule implements StarlarkValue {
       String name, CheckoutPath path, String contentType, Object filenameIn) {
     @Nullable String filename = SkylarkUtil.convertOptionalString(filenameIn);
     return new FilePart(name, path.getCheckoutDir().resolve(path.getPath()), contentType, filename);
+  }
+
+  private interface AuthInputReceiver {
+    KeySource receive(Object in, String name) throws ValidationException;
+  }
+
+  @StarlarkMethod(
+      name = "auth",
+      doc = "Create authentication credentials for the request",
+      parameters = {
+        @Param(
+            name = "username",
+            doc = "Accepts a string or a key source such as toml_key_source.",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = KeySource.class),
+            }),
+        @Param(
+            name = "password",
+            doc = "Accepts a string or a key source such as toml_key_source.",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = KeySource.class),
+            })
+      })
+  public Auth auth(Object usernameIn, Object passwordIn) throws ValidationException {
+    AuthInputReceiver input =
+        (Object in, String name) -> {
+          KeySource out;
+          if (in instanceof String) {
+            out = () -> (String) in;
+          } else if (in instanceof KeySource) {
+            out = (KeySource) in;
+          } else {
+            throw new ValidationException(String.format("invalid input %s for %s", in, name));
+          }
+          return out;
+        };
+    return new Auth(input.receive(usernameIn, "username"), input.receive(passwordIn, "password"));
+  }
+
+  @StarlarkMethod(
+      name = "toml_key_source",
+      doc =
+          "Supply an authentication credential from the "
+              + "file pointed to by the --http-credential-file flag.",
+      parameters = {
+        @Param(
+            name = "dot_path",
+            doc = "Dot path to the data field containing the credential.",
+            allowedTypes = {@ParamType(type = String.class)})
+      })
+  public KeySource tomlKeySource(String dotPath) throws ValidationException {
+    if (options.credentialFile == null) {
+      throw new ValidationException("Credential file for toml key source has not been supplied");
+    }
+    return new TomlKeySource(options.credentialFile, dotPath);
   }
 }
