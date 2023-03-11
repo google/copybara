@@ -128,10 +128,7 @@ public class GitHubPrDestinationTest {
         assertThrows(ValidationException.class, () -> d.newWriter(writerContext));
     assertThat(thrown)
         .hasMessageThat()
-        .contains(
-            "git.github_pr_destination is incompatible with the current origin."
-                + " Origin has to be able to provide the contextReference or use"
-                + " '--github-destination-pr-branch' flag");
+        .contains(GitHubPrDestination.MISSING_CONTEXT_REFERENCE_MESSAGE);
   }
 
   @Test
@@ -301,8 +298,42 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
-  public void testTrimMessageForPrTitle()
+  public void testWrite_destinationPrBranchHasMissingLabel() {
+    assertThat(
+    assertThrows(
+        ValidationException.class,
+        () -> testBranchNameFromUser(
+            "copybara/import_foo_${MISSING}",
+            null,
+            null))).hasMessageThat().contains("MISSING");
+  }
+
+  @Test
+  public void testWrite_destinationPrBranchNoContextReferenceRequired()
       throws ValidationException, IOException, RepoException {
+    testBranchNameFromUser(
+        "copybara/import_foo",
+        "copybara/import_foo",
+        null
+    );
+  }
+
+  @Test
+  public void testWrite_destinationPrBranchContextExplicitlyReferenceRequired() {
+    assertThat(
+            assertThrows(
+                ValidationException.class,
+                () ->
+                    testBranchNameFromUser(
+                        "copybara/import_foo_${CONTEXT_REFERENCE}",
+                        null,
+                        null)))
+        .hasMessageThat()
+        .contains(GitHubPrDestination.MISSING_CONTEXT_REFERENCE_MESSAGE);
+  }
+
+  @Test
+  public void testTrimMessageForPrTitle() throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
 
     mockNoPullRequestsGet("feature");

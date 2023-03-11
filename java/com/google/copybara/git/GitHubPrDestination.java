@@ -333,47 +333,67 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   private String getPullRequestBranchName(
       @Nullable Revision changeRevision, String workflowName, String workflowIdentityUser)
       throws ValidationException {
+    String resolvedPrBranchName;
     if (!Strings.isNullOrEmpty(gitHubDestinationOptions.destinationPrBranch)) {
-      return gitHubDestinationOptions.destinationPrBranch;
+      // command line provided value has highest priority
+      resolvedPrBranchName = gitHubDestinationOptions.destinationPrBranch;
+    } else if (prBranch != null) {
+      // next, the starlark provided value, with resolved labels.
+      resolvedPrBranchName = resolvePrBranchLabels(prBranch, changeRevision);
+    } else {
+      // finally, attempt a sane branch name from the workflow
+      // change revision and context are required to compute a pr branch name.
+      if (changeRevision == null || changeRevision.contextReference() == null) {
+        throw new ValidationException(MISSING_CONTEXT_REFERENCE_MESSAGE);
+      }
+      resolvedPrBranchName =
+          Identity.computeIdentity(
+              "OriginGroupIdentity",
+              changeRevision.contextReference(),
+              workflowName,
+              mainConfigFile.getIdentifier(),
+              workflowIdentityUser);
     }
-    String contextReference = changeRevision.contextReference();
-
-    String branchNameFromUser = prBranch;
-    if (branchNameFromUser == null) {
-      // We could do more magic here with the change identity. But this is already complex so we
-      // require a group identity either provided by the origin or the workflow (Will be implemented
-      // later.
-      checkCondition(contextReference != null,
-          "git.github_pr_destination is incompatible with the current origin. Origin has to be"
-              + " able to provide the contextReference or use '%s' flag",
-          GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
-      branchNameFromUser = getCustomBranchName(contextReference);
-    }
-    String branchName =
-        branchNameFromUser != null
-            ? branchNameFromUser
-            : Identity.computeIdentity(
-                "OriginGroupIdentity",
-                contextReference,
-                workflowName,
-                mainConfigFile.getIdentifier(),
-                workflowIdentityUser);
-    return GitHubUtil.getValidBranchName(branchName);
+    return GitHubUtil.getValidBranchName(resolvedPrBranchName);
   }
 
-  @Nullable
-  private String getCustomBranchName(String contextReference) throws ValidationException {
-    if (prBranch == null) {
-      return null;
-    }
+  private static String resolvePrBranchLabels(String prBranch, Revision changeRevision)
+      throws ValidationException {
     try {
       return new LabelTemplate(prBranch)
-          .resolve(e -> e.equals("CONTEXT_REFERENCE") ? contextReference : prBranch);
+          .resolve(
+              e -> {
+                // no labels can be resolved without a revision.
+                if (changeRevision == null) {
+                  return null;
+                }
+                // associatedLabels may contain CONTEXT_REFERENCE
+                if (e.equals("CONTEXT_REFERENCE")) {
+                  return changeRevision.contextReference();
+                }
+                // no other labels are supported, according to the docs.
+                return null;
+              });
     } catch (LabelNotFoundException e) {
+      if ("CONTEXT_REFERENCE".equals(e.getLabel())) {
+        // contextReference was needed to resolve the branch.
+        // This lazily validates the context reference, allowing support for the
+        // case where the Revision is missing or lacks context, but the workflow
+        // does not ask for it.
+        // See GitRepository.fetchSingleRefWithTags for cases where this is true.
+        throw new ValidationException(MISSING_CONTEXT_REFERENCE_MESSAGE);
+      }
+
       throw new ValidationException(
           "Cannot find some labels in the GitHub PR branch name field: " + e.getMessage(), e);
     }
   }
+
+  @VisibleForTesting
+  static final String MISSING_CONTEXT_REFERENCE_MESSAGE =  String.format(
+      "git.github_pr_destination is incompatible with the current origin."
+          + "Origin has to be able to provide the contextReference or use '%s' flag",
+      GitHubDestinationOptions.GITHUB_DESTINATION_PR_BRANCH);
 
   @Override
   public String getLabelNameWhenOrigin() {
