@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.approval.ApprovalsProvider.ApprovalsResult;
 import com.google.copybara.approval.ChangeWithApprovals;
+import com.google.copybara.approval.NoneApprovedProvider;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -99,7 +100,7 @@ public final class TransformResult {
         labelFinder,
         revIdLabel,
         /* confirmedInOrigin= */ false,
-        /* approvalsProvider= */ null,
+        new NoneApprovedProvider(),
         /* destinationInfo= */ null);
   }
 
