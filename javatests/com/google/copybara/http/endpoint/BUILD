@@ -19,12 +19,12 @@ licenses(["notice"])
 all_tests(
     tests = glob(["*Test.java"]),
     deps = [
-        "//java/com/google/copybara/http/testing",
-        "//java/com/google/copybara/http/endpoint",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http",
+        "//java/com/google/copybara/http/endpoint",
+        "//java/com/google/copybara/http/testing",
         "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",

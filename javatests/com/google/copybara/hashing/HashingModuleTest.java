@@ -42,8 +42,9 @@ public class HashingModuleTest {
   @Before
   public void setup() {
     checkoutDirectory = folder.getRoot().toPath();
-    starlark =
-        new SkylarkTestExecutor(new OptionsBuilder().setCheckoutDirectory(checkoutDirectory));
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.testingOptions.checkoutDirectory = checkoutDirectory;
+    starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
   @Test

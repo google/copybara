@@ -41,16 +41,15 @@ public class HttpEndpointTest {
   @Before
   public void setUp() {
     http = new MockHttpTester();
-    starlark =
-        new SkylarkTestExecutor(
-            new OptionsBuilder()
-                .setHttpOptions(
-                    new HttpOptions() {
-                      @Override
-                      public HttpTransport getTransport() {
-                        return http.getTransport();
-                      }
-                    }));
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.http =
+        new HttpOptions() {
+          @Override
+          public HttpTransport getTransport() {
+            return http.getTransport();
+          }
+        };
+    starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
   @Test

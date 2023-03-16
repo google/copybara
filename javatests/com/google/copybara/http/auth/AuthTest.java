@@ -52,7 +52,9 @@ public class AuthTest {
   @Before
   public void setUp() {
     http = new MockHttpTester();
-    starlark = new SkylarkTestExecutor(new OptionsBuilder().setHttpOptions(httpOptions));
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.http = httpOptions;
+    starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
   private String basicAuth(String username, String password) {

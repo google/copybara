@@ -24,7 +24,6 @@ import com.google.common.base.Splitter;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
-import com.google.copybara.http.endpoint.HttpEndpointResponse;
 import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
@@ -32,6 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import org.junit.Before;
@@ -50,17 +50,16 @@ public class HttpEndpointMultipartContentTest {
   @Before
   public void setUp() {
     http = new MockHttpTester();
-    starlark =
-        new SkylarkTestExecutor(
-            new OptionsBuilder()
-                .setHttpOptions(
-                    new HttpOptions() {
-                      @Override
-                      public HttpTransport getTransport() {
-                        return http.getTransport();
-                      }
-                    })
-                .setCheckoutDirectory(tempFolder.getRoot().toPath()));
+    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder.http =
+        new HttpOptions() {
+          @Override
+          public HttpTransport getTransport() {
+            return http.getTransport();
+          }
+        };
+    optionsBuilder.testingOptions.checkoutDirectory = tempFolder.getRoot().toPath();
+    starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
   @Test
@@ -69,7 +68,7 @@ public class HttpEndpointMultipartContentTest {
         (method, url, req, resp) -> {
           assertThat(req.getContentType()).contains("multipart/form-data");
         });
-    HttpEndpointResponse resp =
+    var unused =
         starlark.eval(
             "resp",
             "endpoint = testing.get_endpoint(\n"
@@ -182,7 +181,7 @@ public class HttpEndpointMultipartContentTest {
         return headers;
       }
       List<String> headerParts = Splitter.on(":").limit(2).splitToList(line);
-      headers.put(headerParts.get(0).toLowerCase(), headerParts.get(1).strip());
+      headers.put(headerParts.get(0).toLowerCase(Locale.ROOT), headerParts.get(1).strip());
     }
     return headers;
   }

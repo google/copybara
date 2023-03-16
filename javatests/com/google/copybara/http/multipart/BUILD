@@ -24,7 +24,6 @@ all_tests(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http",
-        "//java/com/google/copybara/http/endpoint",
         "//java/com/google/copybara/http/testing",
         "//java/com/google/copybara/testing",
         "//third_party:flogger",
