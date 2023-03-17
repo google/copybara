@@ -17,12 +17,10 @@
 package com.google.copybara;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -42,9 +40,7 @@ import com.google.copybara.treestate.TreeState;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -52,8 +48,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -81,7 +75,8 @@ import net.starlark.java.eval.StarlarkValue;
             + " TransformWork object as an argument when defining a <a"
             + " href='#core.dynamic_transform'><code>dynamic transform</code></a>.")
 @DocSignaturePrefix("ctx")
-public final class TransformWork implements SkylarkContext<TransformWork>, StarlarkValue {
+public final class TransformWork extends CheckoutFileSystem
+    implements SkylarkContext<TransformWork>, StarlarkValue {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
@@ -97,7 +92,10 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   static final String COPYBARA_AUTHOR = "COPYBARA_AUTHOR";
   static final String COPYBARA_CURRENT_MESSAGE_TITLE = "COPYBARA_CURRENT_MESSAGE_TITLE";
 
-  private final Path checkoutDir;
+  static final String COPYBARA_CONFIG_PATH_LABEL = "COPYBARA_CONFIG_PATH";
+
+  static final String COPYBARA_WORKFLOW_NAME_LABEL = "COPYBARA_WORKFLOW_NAME";
+
   private Metadata metadata;
   private final Changes changes;
   private final Console console;
@@ -159,7 +157,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       LazyResourceLoader<Endpoint> destinationApi,
       ResourceSupplier<DestinationReader> destinationReader,
       @Nullable DestinationInfo destinationInfo) {
-    this.checkoutDir = Preconditions.checkNotNull(checkoutDir);
+    super(checkoutDir);
     this.metadata = Preconditions.checkNotNull(metadata);
     this.changes = changes;
     this.console = console;
@@ -174,13 +172,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     this.destinationApi = Preconditions.checkNotNull(destinationApi);
     this.destinationReader = Preconditions.checkNotNull(destinationReader);
     this.destinationInfo = destinationInfo;
-  }
-
-  /**
-   * The path containing the repository state to transform. Transformation should be done in-place.
-   */
-  public Path getCheckoutDir() {
-    return checkoutDir;
   }
 
   /**
@@ -242,16 +233,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public Object run(Object runnable)
       throws EvalException, IOException, ValidationException, RepoException {
     if (runnable instanceof Glob) {
-      PathMatcher pathMatcher = ((Glob) runnable).relativeTo(checkoutDir);
-
-      try (Stream<Path> stream = Files.walk(checkoutDir)) {
-        return StarlarkList.immutableCopyOf(
-            stream
-                .filter(Files::isRegularFile)
-                .filter(pathMatcher::matches)
-                .map(p -> new CheckoutPath(checkoutDir.relativize(p), checkoutDir))
-                .collect(Collectors.toList()));
-      }
+      return list((Glob) runnable);
     } else if (runnable instanceof Transformation) {
       // Can never trust the cache when inside a dynamic transform. This makes the cache
       // more-or-less useless here.
@@ -289,106 +271,6 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
     return TransformationStatus.noop(message);
   }
 
-  @StarlarkMethod(
-      name = "new_path",
-      doc = "Create a new path",
-      parameters = {
-        @Param(
-            name = "path",
-            doc = "The string representing the path, relative to the checkout root directory"),
-      })
-  public CheckoutPath newPath(String path) throws EvalException {
-    return CheckoutPath.createWithCheckoutDir(
-        checkoutDir.getFileSystem().getPath(path), checkoutDir);
-  }
-
-  @StarlarkMethod(
-      name = "create_symlink",
-      doc = "Create a symlink",
-      parameters = {
-        @Param(name = "link", doc = "The link path"),
-        @Param(name = "target", doc = "The target path"),
-      })
-  public void createSymlink(CheckoutPath link, CheckoutPath target) throws EvalException {
-    try {
-      Path linkFullPath = asCheckoutPath(link);
-      // Verify target is inside checkout dir
-      asCheckoutPath(target);
-
-      if (Files.exists(linkFullPath)) {
-        throw Starlark.errorf(
-            "'%s' already exist%s",
-            link.getPath(),
-            Files.isDirectory(linkFullPath)
-                ? " and is a directory"
-                : Files.isSymbolicLink(linkFullPath)
-                    ? " and is a symlink"
-                    : Files.isRegularFile(linkFullPath)
-                        ? " and is a regular file"
-                        // Shouldn't happen:
-                        : " and we don't know what kind of file is");
-      }
-
-      Path relativized = link.getPath().getParent() == null
-          ? target.getPath()
-          : link.getPath().getParent().relativize(target.getPath());
-      Files.createDirectories(linkFullPath.getParent());
-
-      // Shouldn't happen.
-      Verify.verify(
-          linkFullPath.getParent().resolve(relativized).normalize().startsWith(checkoutDir),
-          "%s path escapes the checkout dir", relativized);
-      Files.createSymbolicLink(linkFullPath, relativized);
-    } catch (IOException e) {
-      String msg = "Cannot create symlink: " + e.getMessage();
-      logger.atSevere().withCause(e).log("%s", msg);
-      throw Starlark.errorf("%s", msg);
-    }
-  }
-
-  @StarlarkMethod(
-      name = "write_path",
-      doc = "Write an arbitrary string to a path (UTF-8 will be used)",
-      parameters = {
-        @Param(name = "path", doc = "The Path to write to"),
-        @Param(name = "content", doc = "The content of the file"),
-      })
-  public void writePath(CheckoutPath path, String content) throws IOException, EvalException {
-    Path fullPath = asCheckoutPath(path);
-    if (fullPath.getParent() != null) {
-      Files.createDirectories(fullPath.getParent());
-    }
-    Files.write(fullPath, content.getBytes(UTF_8));
-  }
-
-  @StarlarkMethod(
-      name = "read_path",
-      doc = "Read the content of path as UTF-8",
-      parameters = {
-        @Param(name = "path", doc = "The Path to read from"),
-      })
-  public String readPath(CheckoutPath path) throws IOException, EvalException {
-    return new String(Files.readAllBytes(asCheckoutPath(path)), UTF_8);
-  }
-
-  @StarlarkMethod(
-      name = "set_executable",
-      doc = "Set the executable permission of a file",
-      parameters = {
-        @Param(name = "path", doc = "The Path to set the executable permission of"),
-        @Param(name = "value", doc = "Whether or not the file should be executable"),
-      })
-  public void setExecutable(CheckoutPath path, boolean value) throws EvalException {
-    asCheckoutPath(path).toFile().setExecutable(value);
-  }
-
-  private Path asCheckoutPath(CheckoutPath path) throws EvalException {
-    Path normalized = checkoutDir.resolve(path.getPath()).normalize();
-    if (!normalized.startsWith(checkoutDir)) {
-      throw Starlark.errorf("%s is not inside the checkout directory", path);
-    }
-    return normalized;
-  }
 
   @StarlarkMethod(
       name = "add_label",
@@ -577,7 +459,9 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
       name = "destination_info",
       doc =
           "Returns an object to store additional configuration and data for the destination."
-              + " An object is only returned if supported by the destination.")
+              + " An object is only returned if supported by the destination.",
+      allowReturnNones = true)
+  @Nullable
   public DestinationInfo getDestinationInfo() {
     return destinationInfo;
   }
@@ -678,7 +562,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
    */
   public TransformWork withConsole(Console newConsole) {
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         Preconditions.checkNotNull(newConsole),
@@ -706,7 +590,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork withParams(Dict<?, ?> params) {
     Preconditions.checkNotNull(params);
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -727,7 +611,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork withChanges(Changes changes) {
     Preconditions.checkNotNull(changes);
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -747,7 +631,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   @VisibleForTesting
   public TransformWork withLastRev(@Nullable Revision previousRef) {
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -768,7 +652,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork withResolvedReference(Revision resolvedReference) {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -788,7 +672,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public TransformWork insideExplicitTransform() {
     Preconditions.checkNotNull(resolvedReference);
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -808,7 +692,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
   public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,
@@ -827,7 +711,7 @@ public final class TransformWork implements SkylarkContext<TransformWork>, Starl
 
   public TransformWork withDestinationInfo(@Nullable DestinationInfo newDestinationInfo) {
     return new TransformWork(
-        checkoutDir,
+        getCheckoutDir(),
         metadata,
         changes,
         console,

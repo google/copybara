@@ -37,13 +37,18 @@ import com.google.copybara.git.GitMirrorOptions;
 import com.google.copybara.git.GitModule;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
+import com.google.copybara.go.GoModule;
+import com.google.copybara.hashing.HashingModule;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.http.HttpModule;
+import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.toml.TomlModule;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
@@ -92,9 +97,13 @@ public class ModuleSupplier {
         options.get(FolderDestinationOptions.class),
         general);
     return ImmutableSet.of(
-        new Core(general, options.get(WorkflowOptions.class), options.get(DebugOptions.class),
-                 folderModule),
-        new GitModule(options), new HgModule(options),
+        new Core(
+            general,
+            options.get(WorkflowOptions.class),
+            options.get(DebugOptions.class),
+            folderModule),
+        new GitModule(options),
+        new HgModule(options),
         folderModule,
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
@@ -105,9 +114,13 @@ public class ModuleSupplier {
         new Authoring.Module(),
         new RemoteFileModule(options),
         new Re2Module(),
+        new TomlModule(),
         new XmlModule(),
         new StructModule(),
         new StarlarkDateTimeModule(),
+        new GoModule(options.get(RemoteFileOptions.class)),
+        new HashingModule(),
+        new HttpModule(console, options.get(HttpOptions.class)),
         Json.INSTANCE);
   }
 
@@ -119,27 +132,29 @@ public class ModuleSupplier {
         new GitDestinationOptions(generalOptions, gitOptions);
     BuildifierOptions buildifierOptions = new BuildifierOptions();
     WorkflowOptions workflowOptions = new WorkflowOptions();
-    return new Options(ImmutableList.of(
-        generalOptions,
-        buildifierOptions,
-        new BuildozerOptions(generalOptions, buildifierOptions, workflowOptions),
-        new FolderDestinationOptions(),
-        new FolderOriginOptions(),
-        gitOptions,
-        new GitOriginOptions(),
-        new GitHubPrOriginOptions(),
-        gitDestinationOptions,
-        new GitHubOptions(generalOptions, gitOptions),
-        new GitHubDestinationOptions(),
-        new GerritOptions(generalOptions, gitOptions),
-        new GitMirrorOptions(),
-        new HgOptions(generalOptions),
-        new HgOriginOptions(),
-        new PatchingOptions(generalOptions),
-        workflowOptions,
-        new RemoteFileOptions(),
-        new DebugOptions(generalOptions),
-        new GeneratorOptions()));
+    return new Options(
+        ImmutableList.of(
+            generalOptions,
+            buildifierOptions,
+            new BuildozerOptions(generalOptions, buildifierOptions, workflowOptions),
+            new FolderDestinationOptions(),
+            new FolderOriginOptions(),
+            gitOptions,
+            new GitOriginOptions(),
+            new GitHubPrOriginOptions(),
+            gitDestinationOptions,
+            new GitHubOptions(generalOptions, gitOptions),
+            new GitHubDestinationOptions(),
+            new GerritOptions(generalOptions, gitOptions),
+            new GitMirrorOptions(),
+            new HgOptions(generalOptions),
+            new HgOriginOptions(),
+            new PatchingOptions(generalOptions),
+            workflowOptions,
+            new RemoteFileOptions(),
+            new DebugOptions(generalOptions),
+            new GeneratorOptions(),
+            new HttpOptions()));
   }
 
   /**

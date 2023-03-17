@@ -63,8 +63,8 @@ public class LatestVersionSelectorTest {
 
   @Test
   public void semanticVersion_force() throws ValidationException, RepoException {
+    options.general.setVersionSelectorUseCliRefForTest(false);
     ImmutableSet<String> versions = ImmutableSet.of("v1.0.0", "v1.1.0", "v1.1.1", "v1.0.99");
-
     runSemanticVersioning(versions, "test", "v1.1.1");
 
     options.general.setForceForTest(true);

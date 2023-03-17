@@ -16,8 +16,8 @@
 
 package com.google.copybara.config;
 
+import com.google.copybara.ActionMigration;
 import com.google.copybara.Workflow;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.git.Mirror;
 
 /**
@@ -34,8 +34,8 @@ public abstract class MigrationValidator {
     if (migration instanceof Mirror) {
       return validateMirror(migration.getName(), (Mirror) migration);
     }
-    if (migration instanceof Feedback) {
-      return validateFeedback(migration.getName(), (Feedback) migration);
+    if (migration instanceof ActionMigration) {
+      return validateActionMigration(migration.getName(), (ActionMigration) migration);
     }
     throw new IllegalStateException(String.format("Validation missing for %s", migration));
   }
@@ -46,6 +46,7 @@ public abstract class MigrationValidator {
   /** Performs specific validation of a {@link Mirror} migration. */
   protected abstract ValidationResult validateMirror(String name, Mirror mirror);
 
-  /** Performs specific validation of a {@link Feedback} migration. */
-  protected abstract ValidationResult validateFeedback(String name, Feedback feedback);
+  /** Performs specific validation of a {@link ActionMigration} migration. */
+  protected abstract ValidationResult validateActionMigration(
+      String name, ActionMigration actionMigration);
 }

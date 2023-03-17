@@ -829,7 +829,7 @@ public class GitHubPrOriginTest {
         eq("POST"),
         startsWith("https://api.github.com/repos/google/example/statuses/"),
         mockResponseAndValidateRequest(
-            "{ state : 'success', context : 'the_context' }",
+            "{ \"state\" : \"success\", \"context\" : \"the_context\" }",
             MockRequestAssertion.contains("Migration success at")));
 
     Path dest = Files.createTempDirectory("");
@@ -1547,20 +1547,21 @@ public class GitHubPrOriginTest {
                     + "  \"title\": \"test summary\",\n"
                     + "  \"body\": \"test summary\"\n,"
                     + "  \"labels\": [\n");
+        List<String> jsonLabels = new ArrayList<>();
         for (String label : currentLabels) {
-          result
-              .append(
-                  "    {\n"
-                      + "    \"id\": 111111,\n"
-                      + "    \"url\": "
-                      + "\"https://api.github.com/repos/google/example/labels/foo:%20yes\",\n"
-                      + "    \"name\": \"")
-              .append(label)
-              .append("\",\n")
-              .append("    \"color\": \"009800\",\n")
-              .append("    \"default\": false\n")
-              .append("  },\n");
+          jsonLabels.add(
+                "{\n"
+                  + "    \"id\": 111111,\n"
+                  + "    \"url\": "
+                  + "\"https://api.github.com/repos/google/example/labels/foo:%20yes\",\n"
+                  + "    \"name\": \""
+                  + label
+                  + "\",\n"
+                  + "    \"color\": \"009800\",\n"
+                  + "    \"default\": false\n"
+                  + "  }\n");
         }
+        result.append(String.join(",", jsonLabels));
         result.append("  ]\n" + "}");
         responses.add(result.toString());
       }
@@ -1602,7 +1603,8 @@ public class GitHubPrOriginTest {
       response.add("check_runs", testStatuses);
       gitUtil.mockApi(
           "GET",
-          "https://api.github.com/repos/google/example/commits/" + sha + "/check-runs",
+          "https://api.github.com/repos/google/example/commits/"
+              + sha + "/check-runs?per_page=100",
           mockResponse(response.toString()));
     }
   }

@@ -74,6 +74,7 @@ BASE_SRCS = [
     "ChangeMessage.java",
     "ChangeVisitable.java",
     "CheckoutPath.java",
+    "CheckoutFileSystem.java",
     "CheckoutPathAttributes.java",
     "ConfigItemDescription.java",
     "Destination.java",
@@ -132,7 +133,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
-        "//java/com/google/copybara:local_parallelizer",
+        ":local_parallelizer",
         "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/doc:annotations",
@@ -185,18 +186,31 @@ java_library(
 )
 
 java_library(
+    name = "starlark_date_time_module",
+    srcs = ["StarlarkDateTimeModule.java"],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//third_party:guava",
+        "//third_party:starlark",
+    ],
+)
+
+java_library(
     name = "copybara_lib",
     srcs = glob(
         ["**/*.java"],
         exclude = [
             "Main.java",
             "GeneralOptions.java",
+            "StarlarkDateTimeModule.java",
         ] + BASE_SRCS,
     ),
     javacopts = JAVACOPTS,
     deps = [
         ":base",
         ":general_options",
+        "//java/com/google/copybara:starlark_date_time_module",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
@@ -209,7 +223,10 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format",
         "//java/com/google/copybara/git",
+        "//java/com/google/copybara/go",
+        "//java/com/google/copybara/hashing",
         "//java/com/google/copybara/hg",
+        "//java/com/google/copybara/http",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/profiler",
@@ -217,6 +234,7 @@ java_library(
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",
+        "//java/com/google/copybara/toml",
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/debug",
         "//java/com/google/copybara/transform/patch",

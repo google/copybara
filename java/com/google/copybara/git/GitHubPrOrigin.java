@@ -53,7 +53,6 @@ import com.google.copybara.git.GitOrigin.SubmoduleStrategy;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.github.api.AuthorAssociation;
 import com.google.copybara.git.github.api.CheckRun;
-import com.google.copybara.git.github.api.CheckRuns;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.IssuesAndPullRequestsSearchRequestParams;
@@ -257,7 +256,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   /** Given a commit SHA, use the GitHub API to (try to) look up info for a corresponding PR. */
   private PullRequest getPrFromSha(String project, String sha)
       throws RepoException, ValidationException {
-    GitHubApi gitHubApi = gitHubOptions.newGitHubApi(project);
+    GitHubApi gitHubApi = gitHubOptions.newGitHubRestApi(project);
     IssuesAndPullRequestsSearchResults searchResults =
         gitHubApi.getIssuesOrPullRequestsSearchResults(
             new IssuesAndPullRequestsSearchRequestParams(
@@ -287,13 +286,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private PullRequest getPrFromNumber(String project, long prNumber)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
-      return gitHubOptions.newGitHubApi(project).getPullRequest(project, prNumber);
+      return gitHubOptions.newGitHubRestApi(project).getPullRequest(project, prNumber);
     }
   }
 
   private GitRevision getRevisionForPR(String project, PullRequest prData)
       throws RepoException, ValidationException {
-    GitHubApi api = gitHubOptions.newGitHubApi(project);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(project);
     int prNumber = (int) prData.getNumber();
     boolean actuallyUseMerge = this.useMerge;
     ImmutableListMultimap.Builder<String, String> labels = ImmutableListMultimap.builder();
@@ -519,10 +518,11 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     }
     try (ProfilerTask ignore = generalOptions.profiler()
         .start("github_api_get_combined_status")) {
-      CheckRuns checkRuns = api.getCheckRuns(project, prData.getHead().getSha());
+      ImmutableList<CheckRun> checkRuns =
+          api.getCheckRuns(project, prData.getHead().getSha());
       Set<String> requiredButNotPresent = Sets.newHashSet(requiredCheckRuns);
       List<CheckRun> passedCheckRuns =
-          checkRuns.getCheckRuns().stream()
+          checkRuns.stream()
               .filter(e -> e.getConclusion().equals("success"))
               .collect(Collectors.toList());
       requiredButNotPresent.removeAll(Collections2.transform(passedCheckRuns, CheckRun::getName));

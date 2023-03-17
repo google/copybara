@@ -399,10 +399,10 @@ public class GerritDestinationTest {
                   return mockResponse(
                       "["
                           + "{"
-                          + "  change_id : \""
+                          + "  \"change_id\" : \""
                           + change
                           + "\","
-                          + "  status : \"NEW\""
+                          + "  \"status\" : \"NEW\""
                           + "}]");
                 });
 
@@ -631,10 +631,10 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \""
+                + "  \"change_id\" : \""
                 + labelFinder.getValue()
                 + "\","
-                + "  status : \"NEW\""
+                + "  \"status\" : \"NEW\""
                 + "}]"));
 
     // Allow to push again in a non-fastforward way.
@@ -703,8 +703,8 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"NEW\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"NEW\""
                 + "}]")
         );
     AtomicBoolean submitCalled = new AtomicBoolean(false);
@@ -724,8 +724,8 @@ public class GerritDestinationTest {
         matches(BASE_URL + "/changes/.*/submit"),
         mockResponseAndValidateRequest(
             "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"submitted\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"submitted\""
                 + "}",
             new MockRequestAssertion("Always true with side-effect",
                 s -> {
@@ -771,9 +771,9 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"NEW\","
-                + "  submittable : true"
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"NEW\","
+                + "  \"submittable\" : true"
                 + "}]"));
     AtomicBoolean submitCalled = new AtomicBoolean(false);
     gitUtil.mockApi(
@@ -786,8 +786,8 @@ public class GerritDestinationTest {
         matches(BASE_URL + "/changes/.*/submit"),
         mockResponseAndValidateRequest(
             "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"submitted\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"submitted\""
                 + "}",
             new MockRequestAssertion(
                 "Always true with side-effect",
@@ -829,8 +829,8 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"NEW\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"NEW\""
                 + "}]")
     );
     AtomicBoolean submitCalled = new AtomicBoolean(false);
@@ -889,8 +889,8 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"NEW\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"NEW\""
                 + "}]"));
     AtomicBoolean submitCalled = new AtomicBoolean(false);
     gitUtil.mockApi(
@@ -903,8 +903,8 @@ public class GerritDestinationTest {
         matches(BASE_URL + "/changes/.*/submit"),
         mockResponseAndValidateRequest(
             "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"submitted\""
+                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
+                + "  \"status\" : \"submitted\""
                 + "}",
             new MockRequestAssertion(
                 "Always true with side-effect",
@@ -1002,8 +1002,8 @@ public class GerritDestinationTest {
         mockResponse(
             "["
                 + "{"
-                + "  change_id : \"12345\","
-                + "  status : \"NEW\""
+                + "  \"change_id\" : \"12345\","
+                + "  \"status\" : \"NEW\""
                 + "}]")
     );
     gitUtil.mockApi(
@@ -1337,7 +1337,7 @@ public class GerritDestinationTest {
             + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
             + "%20project:foo/bar%20AND%20status:NEW"),
         mockResponse(
-            String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
+            String.format("[{  \"change_id\": \"%s\",  \"status\": \"NEW\"}]", secondChangeId)));
 
     process(new DummyRevision("origin_ref"));
     String master = getGerritRef(repo(), "refs/for/master");
@@ -1364,7 +1364,7 @@ public class GerritDestinationTest {
             + "hashtag:%22copybara_id_origin_ref_commiter@email%22%20AND"
             + "%20project:foo/bar%20AND%20status:NEW"),
         mockResponse(
-            String.format("[{  change_id : \"%s\",  status : \"NEW\"}]", secondChangeId)));
+            String.format("[{  \"change_id\": \"%s\",  \"status\": \"NEW\"}]", secondChangeId)));
 
     process(new DummyRevision("origin_ref"));
     assertThat(lastCommitChangeIdLine("origin_ref", repo()))
@@ -1840,10 +1840,10 @@ public class GerritDestinationTest {
                   return mockResponse(
                       String.format(
                           "[{"
-                              + "change_id : '%s',"
-                              + "status : 'NEW',"
-                              + "_number : '" + changeNum + "',"
-                              + "current_revision = '%s'}]",
+                              + "\"change_id\" : \"%s\", "
+                              + "\"status\" : \"NEW\", "
+                              + "\"_number\" : \"" + changeNum + "\", "
+                              + "\"current_revision\" : \"%s\"}]",
                           change, currentRev.getSha1()));
                 });
   }

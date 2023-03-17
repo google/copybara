@@ -31,9 +31,11 @@ One of the main features of Copybara is that it is stateless, or more specifical
 the state in the destination repository (As a label in the commit message). This allows several
 users (or a service) to use Copybara for the same config/repositories and get the same result.
 
-Currently, the only supported type of repository is Git. Copybara also supports
-reading from Mercurial repositories, but the feature is still experimental.
-Support for other repositories types will be added in the future.
+Currently, the only supported type of repository is Git. Copybara is also able
+to read from Mercurial repositories, but the feature is still experimental.
+The extensible architecture allows adding bespoke origins and destinations
+for almost any use case.
+Official support for other repositories types will be added in the future.
 
 ## Example
 

@@ -20,6 +20,7 @@ import com.google.api.client.util.Key;
 import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -140,14 +141,37 @@ public class CheckRun implements StarlarkValue {
    * Conclusion of a check run status
    */
   public enum Conclusion {
-    @NullValue NONE,
-    @Value("success") SUCCESS,
-    @Value("failure") FAILURE,
-    @Value("neutral") NEUTRAL,
-    @Value("timed_out") TIMEDOUT,
-    @Value("cancelled") CANCELLED,
-    @Value("action_required") ACTIONREQUIRED,
-    @Value("skipped") SKIPPED;
+    @NullValue NONE("none"),
+    @Value("success") SUCCESS("success"),
+    @Value("failure") FAILURE("failure"),
+    @Value("neutral") NEUTRAL("neutral"),
+    @Value("timed_out") TIMEDOUT("timed_out"),
+    @Value("cancelled") CANCELLED("cancelled"),
+    @Value("action_required") ACTIONREQUIRED("action_required"),
+    @Value("skipped") SKIPPED("skipped");
+
+    private final String apiVal;
+
+    public String getApiVal() {
+      return apiVal;
+    }
+
+    Conclusion(String value) {
+      this.apiVal = value;
+    }
+
+    /**
+     * Given a String value of Conclusion as returned by GitHub API, it returns the equivalent
+     * Enum object or none if not found.
+     */
+    public static Optional<Conclusion> fromValue(String val) {
+      for (Conclusion value : values()) {
+        if (value.apiVal.equals(val)) {
+          return Optional.of(value);
+        }
+      }
+      return Optional.empty();
+    }
   }
 
   @Override

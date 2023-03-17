@@ -40,7 +40,7 @@ public abstract class DelegateConsole implements Console {
 
   @Override
   public void startupMessage(String version) {
-    handleMessage(MessageType.INFO, "Copybara source mover (Version: " + version + ")");
+    handleMessage(MessageType.INFO, "Copybara (Version: " + version + ")");
     delegate.startupMessage(version);
   }
 

@@ -86,14 +86,14 @@ def copybara_repositories():
         http_archive,
         name = "com_google_protobuf",
         patch_args = ["-p1"],
-        patches = ["@io_bazel//third_party/protobuf:3.19.2.patch"],
+        patches = ["@io_bazel//third_party/protobuf:3.19.6.patch"],
         patch_cmds = EXPORT_WORKSPACE_IN_BUILD_FILE,
         patch_cmds_win = EXPORT_WORKSPACE_IN_BUILD_FILE_WIN,
-        sha256 = "4dd35e788944b7686aac898f77df4e9a54da0ca694b8801bd6b2a9ffc1b3085e",
-        strip_prefix = "protobuf-3.19.2",
+        sha256 = "9a301cf94a8ddcb380b901e7aac852780b826595075577bb967004050c835056",
+        strip_prefix = "protobuf-3.19.6",
         urls = [
-            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v3.19.2.tar.gz",
-            "https://github.com/protocolbuffers/protobuf/archive/v3.19.02.tar.gz",
+            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz",
+            "https://github.com/protocolbuffers/protobuf/archive/v3.19.6.tar.gz",
         ],
     )
 
@@ -102,10 +102,10 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "io_bazel_rules_go",
-        sha256 = "b27e55d2dcc9e6020e17614ae6e0374818a3e3ce6f2024036e688ada24110444",
+        sha256 = "dd926a88a564a9246713a9c00b35315f54cbd46b31a26d5d8fb264c07045f05d",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
-            "https://github.com/bazelbuild/rules_go/releases/download/v0.21.0/rules_go-v0.21.0.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.38.1/rules_go-v0.38.1.zip",
+            "https://github.com/bazelbuild/rules_go/releases/download/v0.38.1/rules_go-v0.38.1.zip",
         ],
     )
 
@@ -113,8 +113,8 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "rules_pkg",
-        sha256 = "5bdc04987af79bd27bc5b00fe30f59a858f77ffa0bd2d8143d5b31ad8b1bd71c",
-        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.2.0/rules_pkg-0.2.0.tar.gz",
+        sha256 = "8c20f74bca25d2d442b327ae26768c02cf3c99e93fad0381f32be9aab1967675",
+        url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.8.1/rules_pkg-0.8.1.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -164,10 +164,10 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "bazel_gazelle",
-        sha256 = "86c6d481b3f7aedc1d60c1c211c6f76da282ae197c3b3160f54bd3a8f847896f",
+        sha256 = "ecba0f04f96b4960a5b250c8e8eeec42281035970aa8852dda73098274d14a1d",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.19.1/bazel-gazelle-v0.19.1.tar.gz",
-            "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.19.1/bazel-gazelle-v0.19.1.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.29.0/bazel-gazelle-v0.29.0.tar.gz",
+            "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.29.0/bazel-gazelle-v0.29.0.tar.gz",
         ],
     )
 

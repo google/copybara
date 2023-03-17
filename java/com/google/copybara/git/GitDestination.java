@@ -179,6 +179,7 @@ public class GitDestination implements Destination<GitRevision> {
         tagName,
         tagMsg,
         generalOptions,
+        gitOptions,
         writerHook,
         state,
         destinationOptions.nonFastForwardPush,
@@ -228,6 +229,7 @@ public class GitDestination implements Destination<GitRevision> {
     // Only use this console when you don't receive one as a parameter.
     private final Console baseConsole;
     private final GeneralOptions generalOptions;
+    private final GitOptions gitOptions;
     private final WriteHook writeHook;
     final S state;
     // We could get it from destinationOptions but this is in preparation of a GH PR destination.
@@ -253,6 +255,7 @@ public class GitDestination implements Destination<GitRevision> {
         String tagNameTemplate,
         String tagMsgTemplate,
         GeneralOptions generalOptions,
+        GitOptions gitOptions,
         WriteHook writeHook,
         S state,
         boolean nonFastForwardPush,
@@ -276,6 +279,7 @@ public class GitDestination implements Destination<GitRevision> {
       this.force = generalOptions.isForced();
       this.baseConsole = checkNotNull(generalOptions.console());
       this.generalOptions = generalOptions;
+      this.gitOptions = checkNotNull(gitOptions);
       this.writeHook = checkNotNull(writeHook);
       this.state = checkNotNull(state);
       this.nonFastForwardPush = nonFastForwardPush;
@@ -656,19 +660,25 @@ public class GitDestination implements Destination<GitRevision> {
           || !Objects.equals(remoteFetch, remotePush), "non fast-forward push is only"
           + " allowed when fetch != push");
 
-      String serverResponse = generalOptions.repoTask(
-          "push",
-          () -> scratchClone.push()
-              .withRefspecs(repoUrl,
-                  tagName != null
-                  ? ImmutableList.of(scratchClone.createRefSpec(
-                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
-                      scratchClone.createRefSpec((gitTagOverwrite ? "+" : "")
-                          + tagName))
-              : ImmutableList.of(scratchClone.createRefSpec(
-                  (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
-              .run()
-      );
+      String serverResponse =
+          generalOptions.repoTask(
+              "push",
+              () ->
+                  scratchClone
+                      .push()
+                      .withRefspecs(
+                          repoUrl,
+                          tagName != null
+                              ? ImmutableList.of(
+                                  scratchClone.createRefSpec(
+                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push),
+                                  scratchClone.createRefSpec(
+                                      (gitTagOverwrite ? "+" : "") + tagName))
+                              : ImmutableList.of(
+                                  scratchClone.createRefSpec(
+                                      (nonFastForwardPush ? "+" : "") + "HEAD:" + push)))
+                      .withPushOptions(ImmutableList.copyOf(gitOptions.gitPushOptions))
+                      .run());
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 

@@ -18,8 +18,10 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.CheckoutPath;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository.TreeElement;
@@ -55,8 +57,14 @@ public class GitDestinationReader extends DestinationReader {
   }
 
   @Override
-  public void copyDestinationFiles(Glob glob) throws RepoException {
+  public void copyDestinationFiles(Glob glob, Object path) throws RepoException {
+    CheckoutPath checkoutPath = convertFromNoneable(path, null);
+    if (checkoutPath == null) {
     copyDestinationFilesToDirectory(glob, workDir);
+    } else {
+      copyDestinationFilesToDirectory(
+          glob, checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()));
+    }
   }
 
   @Override

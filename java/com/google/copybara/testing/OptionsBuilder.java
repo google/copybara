@@ -39,6 +39,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitOriginOptions;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
@@ -47,6 +48,7 @@ import com.google.copybara.transform.patch.PatchingOptions;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -95,6 +97,8 @@ public class OptionsBuilder {
   public WorkflowOptions workflowOptions =
       new WorkflowOptions(/*changeBaseline=*/null, /*lastRevision=*/ null,
           /*checkLastRevState=*/false);
+
+  public HttpOptions http = new HttpOptions();
 
   public HgOptions hg = new HgOptions(general);
   public HgOriginOptions hgOrigin = new HgOriginOptions();
@@ -150,6 +154,17 @@ public class OptionsBuilder {
     return this;
   }
 
+  /** set the checkout directory for testing starlark functions that use CheckoutPath */
+  public final OptionsBuilder setCheckoutDirectory(Path checkoutDirectory) {
+    testingOptions.checkoutDirectory = checkoutDirectory;
+    return this;
+  }
+
+  public final OptionsBuilder setHttpOptions(HttpOptions httpOptions) {
+    this.http = httpOptions;
+    return this;
+  }
+
   /**
    * Returns all options to include in the built {@link Options} instance. This can be overridden by
    * child classes, in which case it should also include the superclass' instances.
@@ -160,11 +175,29 @@ public class OptionsBuilder {
     if (buildozerBin != null) {
       buildozer.buildozerBin = buildozerBin;
     }
-    return ImmutableList
-        .of(general, folderDestination, folderOrigin, git, gitOrigin, githubPrOrigin,
-            gitDestination, gitMirrorOptions, gerrit, github, githubDestination, hg, hgOrigin,
-            workflowOptions, testingOptions, patch, debug, remoteFile, buildifier, buildozer,
-            generator);
+    return ImmutableList.of(
+        general,
+        folderDestination,
+        folderOrigin,
+        git,
+        gitOrigin,
+        githubPrOrigin,
+        gitDestination,
+        gitMirrorOptions,
+        gerrit,
+        github,
+        githubDestination,
+        hg,
+        hgOrigin,
+        workflowOptions,
+        testingOptions,
+        patch,
+        debug,
+        remoteFile,
+        buildifier,
+        buildozer,
+        generator,
+        http);
   }
 
   public final Options build() {

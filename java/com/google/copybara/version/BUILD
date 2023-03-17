@@ -26,6 +26,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",

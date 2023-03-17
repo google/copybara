@@ -56,7 +56,7 @@ public class DelegateConsoleTest {
 
     assertThat(messages)
         .containsExactly(
-            new Message(MessageType.INFO, "Copybara source mover (Version: v1)"),
+            new Message(MessageType.INFO, "Copybara (Version: v1)"),
             new Message(MessageType.INFO, "This is info"),
             new Message(MessageType.WARNING, "This is warning"),
             new Message(MessageType.ERROR, "This is error"),
@@ -65,7 +65,7 @@ public class DelegateConsoleTest {
 
     delegate
         .assertThat()
-        .matchesNext(MessageType.INFO, "Copybara source mover [(]Version: v1[)]")
+        .matchesNext(MessageType.INFO, "Copybara [(]Version: v1[)]")
         .matchesNext(MessageType.INFO, "This is info")
         .matchesNext(MessageType.WARNING, "This is warning")
         .matchesNext(MessageType.ERROR, "This is error")

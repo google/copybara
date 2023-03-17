@@ -37,8 +37,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.ActionMigration;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
@@ -85,33 +85,34 @@ public class GitHubEndpointTest {
 
     gitUtil.mockApi(eq("GET"), contains("master/status"),
         mockResponse("{\n"
-            + "    state : 'failure',\n"
-            + "    total_count : 2,\n"
-            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-            + "    statuses : [\n"
-            + "       { state : 'failure', context: 'some/context'},\n"
-            + "       { state : 'success', context: 'other/context'}\n"
+            + "    \"state\": \"failure\",\n"
+            + "    \"total_count\": 2,\n"
+            + "    \"sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n"
+            + "    \"statuses\" : [\n"
+            + "       { \"state\": \"failure\", \"context\": \"some/context\"},\n"
+            + "       { \"state\": \"success\", \"context\": \"other/context\"}\n"
             + "    ]\n"
             + "}"));
 
     gitUtil.mockApi(eq("GET"), contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
         mockResponse("{\n"
-            + "    sha : 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',\n"
-            + "    commit : {\n"
-            + "       author: { name : 'theauthor', email: 'author@example.com'},\n"
-            + "       committer: { name : 'thecommitter', email: 'committer@example.com'},\n"
-            + "       message: \"This is a message\\n\\nWith body\\n\"\n"
+            + "    \"sha\" : \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n"
+            + "    \"commit\" : {\n"
+            + "       \"author\": { \"name\": \"theauthor\", \"email\": \"author@example.com\"},\n"
+            + "       \"committer\": { \"name\": \"thecommitter\", "
+            + "\"email\": \"committer@example.com\"},\n"
+            + "       \"message\": \"This is a message\\n\\nWith body\\n\"\n"
             + "    },\n"
-            + "    committer : { login : 'github_committer'},\n"
-            + "    author : { login : 'github_author'}\n"
+            + "    \"committer\": { \"login\" : \"github_committer\"},\n"
+            + "    \"author\": { \"login\" : \"github_author\"}\n"
             + "}"));
 
     gitUtil.mockApi(eq("POST"), contains("/statuses/e59774"),
         mockResponse("{\n"
-            + "    state : 'success',\n"
-            + "    target_url : 'https://github.com/google/example',\n"
-            + "    description : 'Observed foo',\n"
-            + "    context : 'test'\n"
+            + "    \"state\": \"success\",\n"
+            + "    \"target_url\": \"https://github.com/google/example\",\n"
+            + "    \"description\": \"Observed foo\",\n"
+            + "    \"context\": \"test\"\n"
             + "}"));
 
     gitUtil.mockApi(
@@ -119,13 +120,13 @@ public class GitHubEndpointTest {
         contains("/git/refs/heads/test"),
         mockResponse(
             "{\n"
-                + "    ref : 'refs/heads/test',\n"
-                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                + "    object : { \n"
-                + "       type : 'commit',\n"
-                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                + "       url :"
-                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "    \"ref\": \"refs/heads/test\",\n"
+                + "    \"url\": \"https://github.com/google/example/git/refs/heads/test\",\n"
+                + "    \"object\": { \n"
+                + "       \"type\": \"commit\",\n"
+                + "       \"sha\": \"e597746de9c1704e648ddc3ffa0d2096b146d600\", \n"
+                + "       \"url\":"
+                + " \"https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600\"\n"
                 + "   } \n"
                 + "}"));
 
@@ -134,13 +135,13 @@ public class GitHubEndpointTest {
         contains("git/refs?per_page=100"),
         mockResponse(
             "[{\n"
-                + "    ref : 'refs/heads/test',\n"
-                + "    url : 'https://github.com/google/example/git/refs/heads/test',\n"
-                + "    object : { \n"
-                + "       type : 'commit',\n"
-                + "       sha : 'e597746de9c1704e648ddc3ffa0d2096b146d600', \n"
-                + "       url :"
-                + " 'https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600'\n"
+                + "    \"ref\": \"refs/heads/test\",\n"
+                + "    \"url\": \"https://github.com/google/example/git/refs/heads/test\",\n"
+                + "    \"object\": { \n"
+                + "       \"type\": \"commit\",\n"
+                + "       \"sha\": \"e597746de9c1704e648ddc3ffa0d2096b146d600\", \n"
+                + "       \"url\":"
+                + " \"https://github.com/google/example/git/commits/e597746de9c1704e648ddc3ffa0d2096b146d600\"\n"
                 + "   } \n"
                 + "}]"));
 
@@ -149,23 +150,23 @@ public class GitHubEndpointTest {
         contains("commits/e597746de9c1704e648ddc3ffa0d2096b146d610/check-runs"),
         mockResponse(
             "{\n"
-                + "  total_count: 1,\n"
-                + "  check_runs: [\n"
+                + "  \"total_count\": 1,\n"
+                + "  \"check_runs\": [\n"
                 + "    {\n"
-                + "      id: 4,\n"
-                + "      details_url: 'https://example.com',\n"
-                + "      status: 'completed',\n"
-                + "      conclusion: 'neutral',\n"
-                + "      name: 'mighty_readme',\n"
-                + "      output: {\n"
-                + "        title: 'Mighty Readme report',\n"
-                + "        summary: 'test_summary',\n"
-                + "        text: 'test_text'\n"
+                + "      \"id\": 4,\n"
+                + "      \"details_url\": \"https://example.com\",\n"
+                + "      \"status\": \"completed\",\n"
+                + "      \"conclusion\": \"neutral\",\n"
+                + "      \"name\": \"mighty_readme\",\n"
+                + "      \"output\": {\n"
+                + "        \"title\": \"Mighty Readme report\",\n"
+                + "        \"summary\": \"test_summary\",\n"
+                + "        \"text\": \"test_text\"\n"
                 + "      },\n"
-                + "      app: {\n"
-                + "        id: 1,\n"
-                + "        slug: 'octoapp',\n"
-                + "        name: 'Octocat App'\n"
+                + "      \"app\": {\n"
+                + "        \"id\": 1,\n"
+                + "        \"slug\": \"octoapp\",\n"
+                + "        \"name\": \"Octocat App\"\n"
                 + "      }\n"
                 + "    }\n"
                 + "  ]\n"
@@ -215,12 +216,13 @@ public class GitHubEndpointTest {
             + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";
-    Feedback feedback = (Feedback) skylark.loadConfig(config).getMigration("default");
-    assertThat(feedback.getDestinationDescription().get("url"))
+    ActionMigration actionMigration = (ActionMigration) skylark.loadConfig(config)
+        .getMigration("default");
+    assertThat(actionMigration.getDestinationDescription().get("url"))
         .containsExactly("https://github.com/google/example");
-    ValidationException expected =
-        assertThrows(
-            ValidationException.class, () -> feedback.run(workdir, ImmutableList.of("12345")));
+    ValidationException expected = assertThrows(
+            ValidationException.class,
+            () -> actionMigration.run(workdir, ImmutableList.of("12345")));
     assertThat(expected)
         .hasMessageThat()
         .contains("Bad word 'badword' found: field 'path'.");
@@ -247,7 +249,7 @@ public class GitHubEndpointTest {
   @Test
   public void testFeedbackCreateStatus() throws Exception{
     dummyTrigger.addAll("Foo", "Bar");
-    Feedback feedback =
+    ActionMigration actionMigration =
         feedback(
             ""
                 + "def test_action(ctx):\n"
@@ -268,16 +270,16 @@ public class GitHubEndpointTest {
     Iterator<String> createValues = ImmutableList.of("Observed Foo", "Observed Bar").iterator();
     gitUtil.mockApi(eq("POST"), contains("/status"),
         mockResponseAndValidateRequest("{\n"
-            + "    state : 'success',\n"
-            + "    target_url : 'https://github.com/google/example',\n"
-            + "    description : 'Observed foo',\n"
-            + "    context : 'test'\n"
+            + "    \"state\" : \"success\",\n"
+            + "    \"target_url\" : \"https://github.com/google/example\",\n"
+            + "    \"description\" : \"Observed foo\",\n"
+            + "    \"context\" : \"test\"\n"
             + "}",
             new MockRequestAssertion(String.format(
                 "Requests were expected to cycle through the values of %s", createValues),
                 r -> r.contains(createValues.next()))));
 
-    feedback.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
+    actionMigration.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
     console.assertThat().timesInLog(2, MessageType.INFO, "Created status");
 
     verify(gitUtil.httpTransport(), times(2)).buildRequest(eq("POST"), contains("/status"));
@@ -328,20 +330,22 @@ public class GitHubEndpointTest {
 
   @Test
   public void testGetCheckRuns() throws Exception {
-    runFeedback(ImmutableList.<String>builder()
-        .add("res = ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')")
-        .addAll(checkFieldStarLark("res", "total_count", "1"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].detail_url", "'https://example.com'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].status", "'completed'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].conclusion", "'neutral'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].name", "'mighty_readme'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.id", "1"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.slug", "'octoapp'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].app.name", "'Octocat App'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.title", "'Mighty Readme report'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.summary", "'test_summary'"))
-        .addAll(checkFieldStarLark("res", "check_runs[0].output.text", "'test_text'"))
-        .build());
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res ="
+                    + " ctx.destination.get_check_runs(sha='e597746de9c1704e648ddc3ffa0d2096b146d610')[0]")
+            .addAll(checkFieldStarLark("res", "detail_url", "'https://example.com'"))
+            .addAll(checkFieldStarLark("res", "status", "'completed'"))
+            .addAll(checkFieldStarLark("res", "conclusion", "'neutral'"))
+            .addAll(checkFieldStarLark("res", "name", "'mighty_readme'"))
+            .addAll(checkFieldStarLark("res", "app.id", "1"))
+            .addAll(checkFieldStarLark("res", "app.slug", "'octoapp'"))
+            .addAll(checkFieldStarLark("res", "app.name", "'Octocat App'"))
+            .addAll(checkFieldStarLark("res", "output.title", "'Mighty Readme report'"))
+            .addAll(checkFieldStarLark("res", "output.summary", "'test_summary'"))
+            .addAll(checkFieldStarLark("res", "output.text", "'test_text'"))
+            .build());
   }
 
   @Test
@@ -687,6 +691,21 @@ public class GitHubEndpointTest {
         .buildRequest(eq("POST"), contains("google/example/issues"));
   }
 
+  @Test
+  public void testListComments() throws Exception {
+    gitUtil.mockApi(
+        eq("GET"),
+        contains("/comments"),
+        mockResponse(toJson(ImmutableList.of(ImmutableMap.of("id", 1, "body", "Me too")))));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add("res = ctx.destination.list_issue_comments(number = 12345)[0]")
+            .addAll(checkFieldStarLark("res", "id", "1"))
+            .addAll(checkFieldStarLark("res", "body", "'Me too'"))
+            .build());
+    verify(gitUtil.httpTransport()).buildRequest(eq("GET"), contains("issues/12345/comments"));
+  }
+
   private String toJson(Object obj) throws IOException {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }
@@ -705,13 +724,13 @@ public class GitHubEndpointTest {
   }
 
   private void runFeedback(ImmutableList<String> funBody) throws Exception {
-    Feedback test = feedback("def test_action(ctx):\n"
+    ActionMigration test = feedback("def test_action(ctx):\n"
         + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
         + "\n  return ctx.success()\n");
     test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 
-  private Feedback feedback(String actionFunction) throws IOException, ValidationException {
+  private ActionMigration feedback(String actionFunction) throws IOException, ValidationException {
     String config =
         actionFunction
             + "\n"
@@ -725,6 +744,6 @@ public class GitHubEndpointTest {
             + ")\n"
             + "\n";
     System.err.println(config);
-    return (Feedback) skylark.loadConfig(config).getMigration("default");
+    return (ActionMigration) skylark.loadConfig(config).getMigration("default");
   }
 }

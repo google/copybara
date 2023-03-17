@@ -268,7 +268,8 @@ public class GitHubApi {
   }
 
   @FormatMethod
-  private <T> ImmutableList<T> paginatedGet(String profilerName, Type type,
+  private <T, R extends PaginatedPayload<T>> ImmutableList<T> paginatedGet(String profilerName,
+      Type type,
       String entity, ImmutableListMultimap<String, String> headers,
       @FormatString String pathTemplate, Object... pathArgs)
       throws RepoException, ValidationException {
@@ -277,8 +278,9 @@ public class GitHubApi {
     String path = String.format(pathTemplate, pathArgs);
     while (path != null && pages < MAX_PAGES) {
       try (ProfilerTask ignore = profiler.start(String.format("%s_page_%d", profilerName, pages))) {
-        PaginatedList<T> page = transport.get(path, type, headers, "GET " + pathTemplate);
-        builder.addAll(page);
+        R response = transport.get(path, type, headers, "GET " + pathTemplate);
+        PaginatedList<T> page = response.getPayload();
+        builder.addAll(page.getPayload());
         path = page.getNextUrl();
         pages++;
       } catch (GitHubApiException e) {
@@ -468,14 +470,31 @@ public class GitHubApi {
     }
   }
 
-  /** https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref */
-  public CheckRuns getCheckRuns(String projectId, String ref)
+  /** https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref
+   * WIP */
+  public ImmutableList<CheckRun> getCheckRuns(String projectId, String ref)
       throws RepoException, ValidationException {
+
     try (ProfilerTask ignore = profiler.start("github_api_get_check_runs")) {
-      return transport.get(
-          CheckRuns.class, ImmutableListMultimap.of("Accept",
-              "application/vnd.github.antiope-preview+json"),
-          "repos/%s/commits/%s/check-runs", projectId, ref);
+      return paginatedGet("github_api_get_check_runs_get",
+          new TypeToken<CheckRuns>() {}.getType(), "Check Run",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
+          "repos/%s/commits/%s/check-runs?per_page=%d", projectId, ref, MAX_PER_PAGE);
+    }
+  }
+
+  /**
+   * https://docs.github.com/en/rest/checks/suites/#list-check-suites-for-a-git-reference
+   */
+  public ImmutableList<CheckSuite> getCheckSuites(String projectId, String ref)
+      throws RepoException, ValidationException {
+
+    try (ProfilerTask ignore = profiler.start("github_api_get_check_suites")) {
+      return paginatedGet("github_api_get_check_runs_get",
+          new TypeToken<CheckSuites>() {
+          }.getType(), "Check Run",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.antiope-preview+json"),
+          "repos/%s/commits/%s/check-suites?per_page=%d", projectId, ref, MAX_PER_PAGE);
     }
   }
 
@@ -534,5 +553,21 @@ public class GitHubApi {
       throw new ValidationException(String.format("%s not found: %s", entity, e.getRawError()), e);
     }
     throw e;
+  }
+
+  /** https://docs.github.com/en/rest/issues/comments#list-issue-comments */
+  public ImmutableList<IssueComment> listIssueComments(String projectId, int issueNumber)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_list_issue_comments")) {
+      return paginatedGet(
+          "github_api_list_issue_comments",
+          new TypeToken<PaginatedList<IssueComment>>() {}.getType(),
+          "Issue comment",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.groot-preview+json"),
+          "repos/%s/issues/%d/comments?per_page=%d",
+          projectId,
+          issueNumber,
+          MAX_PER_PAGE);
+    }
   }
 }

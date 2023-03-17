@@ -25,6 +25,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.Objects;
 
 /** A wrapper around a single String literal passed to the Starlark `glob(...)` function. */
@@ -54,6 +55,10 @@ public final class GlobAtom {
   }
 
   public String root(boolean allowFiles) {
+    return type.root(pattern, allowFiles).getRoot();
+  }
+
+  public Root annotatedRoot(boolean allowFiles) {
     return type.root(pattern, allowFiles);
   }
 
@@ -93,13 +98,18 @@ public final class GlobAtom {
       }
 
       @Override
-      String root(String pattern, boolean allowFiles) {
+      Root root(String pattern, boolean allowFiles) {
+        String root;
         boolean isSingleFile = true;
+        boolean isRecursive = pattern.contains("**");
         ArrayDeque<String> components = new ArrayDeque<>();
-        for (String component : Splitter.on('/').split(pattern)) {
+        Iterator<String> iterator = Splitter.on('/').split(pattern).iterator();
+        while (iterator.hasNext()) {
+          String component = iterator.next();
           components.add(unescape(component));
           if (isMeta(component)) {
             isSingleFile = false;
+            isRecursive = component.contains("**") || iterator.hasNext();
             break;
           }
         }
@@ -107,9 +117,11 @@ public final class GlobAtom {
           components.removeLast();
         }
         if (components.isEmpty()) {
-          return "";
+          root = "";
+        } else {
+          root = Joiner.on('/').join(components);
         }
-        return Joiner.on('/').join(components);
+        return new Root(isRecursive, root);
       }
     };
 
@@ -140,6 +152,43 @@ public final class GlobAtom {
 
     abstract PathMatcher matcher(Path root, String pattern);
 
-    abstract String root(String pattern, boolean allowFiles);
+    abstract Root root(String pattern, boolean allowFiles);
+  }
+
+  static class Root {
+    private final boolean isRecursive;
+    private final String root;
+
+  Root(boolean isRecursive, String root) {
+    this.isRecursive = isRecursive;
+    this.root = root;
+  }
+
+    public boolean isRecursive() {
+      return isRecursive;
+    }
+
+
+    public String getRoot() {
+      return root;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(root, isRecursive);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Root)) {
+        return false;
+      }
+      Root that = (Root) o;
+      return Objects.equals(root, that.root)
+          && isRecursive == that.isRecursive;
+    }
   }
 }

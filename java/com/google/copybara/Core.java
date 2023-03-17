@@ -20,6 +20,9 @@ import static com.google.copybara.Workflow.COPYBARA_CONFIG_PATH_IDENTITY_VAR;
 import static com.google.copybara.config.GlobalMigrations.getGlobalMigrations;
 import static com.google.copybara.config.SkylarkUtil.check;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static com.google.copybara.config.SkylarkUtil.convertOptionalString;
+import static com.google.copybara.config.SkylarkUtil.convertStringList;
+import static com.google.copybara.config.SkylarkUtil.convertStringMap;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.transform.Transformations.toTransformation;
@@ -27,8 +30,12 @@ import static com.google.copybara.version.LatestVersionSelector.VersionElementTy
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.Iterables;
+import com.google.copybara.StructModule.StructImpl;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.StarlarkAction;
 import com.google.copybara.authoring.Author;
@@ -36,14 +43,12 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.Migration;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.DocDefault;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.feedback.Feedback;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.templatetoken.Parser;
@@ -91,7 +96,9 @@ import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkThread;
 import net.starlark.java.eval.StarlarkThread.CallStackEntry;
+import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
+import net.starlark.java.eval.Structure;
 
 /**
  * Main configuration class for creating migrations.
@@ -579,8 +586,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             allConfigFiles,
             dryRunMode,
             checkLastRevState || workflowOptions.checkLastRevState,
-            convertFeedbackActions(afterMigrations, printHandler),
-            convertFeedbackActions(afterAllMigrations, printHandler),
+            convertListOfActions(afterMigrations, printHandler),
+            convertListOfActions(afterAllMigrations, printHandler),
             changeIdentity,
             setRevId,
             smartPrune,
@@ -712,7 +719,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return CopyOrMove.createMove(
         before,
         after,
-        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
+        convertStringMap(regexes, "regex_groups"),
         workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
@@ -808,7 +815,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return CopyOrMove.createCopy(
         before,
         after,
-        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
+        convertStringMap(regexes, "regex_groups"),
         workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
@@ -1030,12 +1037,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         thread.getCallerLocation(),
         before,
         after,
-        SkylarkUtil.convertStringMap(regexes, "regex_groups"),
+        convertStringMap(regexes, "regex_groups"),
         convertFromNoneable(paths, Glob.ALL_FILES),
         firstOnly,
         multiline,
         repeatedGroups,
-        SkylarkUtil.convertStringList(ignore, "patterns_to_ignore"),
+        convertStringList(ignore, "patterns_to_ignore"),
         workflowOptions);
   }
 
@@ -1141,10 +1148,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException {
     Mode mode = stringToEnum("mode", modeStr, Mode.class);
-    Map<String, String> mapping = SkylarkUtil.convertStringMap(skyMapping, "mapping");
+    Map<String, String> mapping = convertStringMap(skyMapping, "mapping");
     String defaultString = convertFromNoneable(skyDefault, /*defaultValue=*/null);
     ImmutableList<String> tags =
-        ImmutableList.copyOf(SkylarkUtil.convertStringList(skyTags, "tags"));
+        ImmutableList.copyOf(convertStringList(skyTags, "tags"));
     String ignorePattern = convertFromNoneable(regexToIgnore, null);
     Pattern regexIgnorelist = ignorePattern != null ? Pattern.compile(ignorePattern) : null;
 
@@ -1414,7 +1421,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(paths, Glob.ALL_FILES),
         verifyNoMatch,
         alsoOnReversal,
-        SkylarkUtil.convertOptionalString(failureMessage),
+        convertOptionalString(failureMessage),
         workflowOptions.parallelizer());
   }
 
@@ -1708,11 +1715,126 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "actions",
             doc =
                 ""
+                    + "DEPRECATED: **DO NOT USE**\n"
                     + "A list of feedback actions to perform, with the following semantics:\n"
                     + "  - There is no guarantee of the order of execution.\n"
                     + "  - Actions need to be independent from each other.\n"
                     + "  - Failure in one action might prevent other actions from executing.\n",
             defaultValue = "[]",
+            documented = false,
+            positional = false,
+            named = true),
+          @Param(
+              name = "action",
+              doc =
+                  "An action to execute when the migration is triggered",
+              defaultValue = "None",
+              positional = false,
+              named = true),
+          @Param(
+              name = "description",
+              allowedTypes = {
+                  @ParamType(type = String.class),
+                  @ParamType(type = NoneType.class),
+              },
+              named = true,
+              positional = false,
+              doc = "A description of what this workflow achieves",
+              defaultValue = "None"),
+      },
+      useStarlarkThread = true)
+  public NoneType feedback(
+      String workflowName,
+      Trigger trigger,
+      EndpointProvider<?> destination,
+      net.starlark.java.eval.Sequence<?> actionList,
+      Object action,
+      Object description,
+      StarlarkThread thread)
+      throws EvalException {
+    ActionMigration migration =
+        new ActionMigration(
+            workflowName,
+            convertFromNoneable(description, null),
+            mainConfigFile,
+            trigger,
+            new StructImpl(ImmutableMap.of(
+                "destination", destination.getEndpoint()
+            )),
+            handleActionActionsMigration(actionList, action),
+            generalOptions,
+            "feedback",
+            /*filesystem=*/ false);
+    Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
+    registerGlobalMigration(workflowName, migration, module);
+    return Starlark.NONE;
+  }
+  // TODO(b/269526710): Remove when all users are migrated to 'action' field
+  private ImmutableList<Action> handleActionActionsMigration(
+      net.starlark.java.eval.Sequence<?> actionList, Object action) throws EvalException {
+    if (actionList.isEmpty() && action == Starlark.NONE) {
+      throw new EvalException("'action' is a required field");
+    }
+    if ((!actionList.isEmpty()) && action != Starlark.NONE) {
+      throw new EvalException("Cannot use both 'action' and 'actions' field. 'actions' is"
+          + " deprecated, so use 'action'");
+    }
+    if (action != Starlark.NONE) {
+      // Not warn since we are going to migrate our internal users and we don't know of any
+      // external user using this.
+      return ImmutableList.of(maybeWrapAction(printHandler, action));
+    }  else {
+      return convertListOfActions(actionList, printHandler);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "action_migration",
+      doc = "Defines a migration that is more flexible/less-opinionated migration than"
+          + " `core.workflow`. Most of the users should not use this migration and instead"
+          + " use `core.workflow` for moving code. In particular `core.workflow` provides"
+          + " many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST"
+          + " modes, --read-config-from-change dynamic config, etc.\n"
+          + "\n"
+          + "These are the features that raw_migration provides:<ul>\n"
+          + "   <li>Support for migrations that don't move source code (similar to feedback)</li>\n"
+          + "   <li>Support for migrations that talk to more than one origin/destination endpoits"
+          + " (Feature still in progress)</li>\n"
+          + "  <li>Custom management of versioning: For example moving non-linear/multiple"
+          + "  versions (Instead of `core.workflow`, that moves source code in relation to"
+          + " the previous migrated code and is able to only track one branch).</li>\n"
+          + "</ul>\n"
+          + "",
+      parameters = {
+        @Param(
+            name = "name",
+            doc = "The name of the migration.",
+            positional = false,
+            named = true),
+        @Param(
+            name = "origin",
+            doc = "The trigger endpoint of the migration. Accessible as `ctx.origin`",
+            positional = false,
+            named = true),
+        @Param(
+            name = "endpoints",
+            doc = "Zero or more endpoints that the migration will have access for read and/or"
+                + "  write. This is a field that should be defined as:\n"
+                + "```\n"
+                + "  endpoint = struct(\n"
+                + "     some_endpoint = foo.foo_api(...configuration...),\n"
+                + "     other_endpoint = baz.baz_api(...configuration...),\n"
+                + "  )\n"
+                + "```\n"
+                + "Then they will be accessible in the action as `ctx.endpoints.some_endpoint`"
+                + " and `ctx.endpoints.other_endpoint`",
+            positional = false,
+            named = true),
+        @Param(
+            name = "action",
+            doc =
+                "The action to execute when the migration is triggered.\n",
             positional = false,
             named = true),
         @Param(
@@ -1725,31 +1847,60 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "A description of what this workflow achieves",
             defaultValue = "None"),
+        @Param(
+            name = "filesystem",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            },
+            named = true,
+            positional = false,
+            doc = "If true, the migration provide access to the filesystem to the endpoints",
+            defaultValue = "False"),
       },
+      documented = false,
       useStarlarkThread = true)
-  @UsesFlags({FeedbackOptions.class})
-  /*TODO(danielromero): Add default values*/
-  public NoneType feedback(
+  public NoneType actionMigration(
       String workflowName,
       Trigger trigger,
-      EndpointProvider<?> destination,
-      net.starlark.java.eval.Sequence<?> feedbackActions,
+      Structure endpoints,
+      Object action,
       Object description,
+      Boolean filesystem,
       StarlarkThread thread)
       throws EvalException {
-    ImmutableList<Action> actions = convertFeedbackActions(feedbackActions, printHandler);
-    Feedback migration =
-        new Feedback(
+    ImmutableList<Action> actions = ImmutableList.of(maybeWrapAction(printHandler, action));
+    ActionMigration migration =
+        new ActionMigration(
             workflowName,
             convertFromNoneable(description, null),
             mainConfigFile,
-            trigger,
-            destination.getEndpoint(),
+            trigger, new StructImpl((getEndpoints(endpoints))),
             actions,
-            generalOptions);
+            generalOptions,
+            "action_migration",
+            filesystem);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;
+  }
+
+  private ImmutableMap<String, Object> getEndpoints(Structure endpoints)
+      throws EvalException {
+    Builder<String, Object> result = ImmutableMap.builder();
+    ImmutableCollection<String> fields = endpoints.getFieldNames();
+
+    // TODO(b/269526710): Enable more than one endpoint
+    check(fields.size() == 1 && Iterables.getOnlyElement(fields).equals("destination"),
+        "Temporarily core.action_migration only supports one endpoint called destination");
+    
+    for (String fieldName : fields) {
+      Object epProvider = endpoints.getValue(fieldName);
+      check(epProvider instanceof EndpointProvider,
+          "Only enpoints can be used as values in 'endpoints' but got"
+              + " type '%s' for %s", Starlark.type(epProvider), fieldName);
+      result.put(fieldName, ((EndpointProvider<?>) epProvider).getEndpoint());
+    }
+    return result.build();
   }
 
   @StarlarkMethod(
@@ -1894,31 +2045,34 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         regex, Replace.parsePatterns(groupsMap), elements, thread.getCallerLocation());
     ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
     check(extraGroups.isEmpty(), "Extra regex_groups not used in pattern: %s", extraGroups);
-
-    if (generalOptions.isForced()) {
-      return new OrderedVersionSelector(ImmutableList.of(
-          new RequestedVersionSelector(),
-          versionPicker));
+    if (generalOptions.isForced() || generalOptions.isVersionSelectorUseCliRef()) {
+      return new OrderedVersionSelector(
+          ImmutableList.of(new RequestedVersionSelector(), versionPicker));
     }
     return versionPicker;
   }
 
-  private static ImmutableList<Action> convertFeedbackActions(
+  private static ImmutableList<Action> convertListOfActions(
       net.starlark.java.eval.Sequence<?> feedbackActions, StarlarkThread.PrintHandler printHandler)
       throws EvalException {
     ImmutableList.Builder<Action> actions = ImmutableList.builder();
     for (Object action : feedbackActions) {
-      if (action instanceof StarlarkCallable) {
-        actions.add(new StarlarkAction(((StarlarkCallable) action).getName(),
-            (StarlarkCallable) action, Dict.empty(), printHandler));
-      } else if (action instanceof Action) {
-        actions.add((Action) action);
-      } else {
-        throw Starlark.errorf(
-            "Invalid feedback action '%s 'of type: %s", action, action.getClass());
-      }
+      actions.add(maybeWrapAction(printHandler, action));
     }
     return actions.build();
+  }
+
+  private static Action maybeWrapAction(PrintHandler printHandler, Object action)
+      throws EvalException {
+    if (action instanceof StarlarkCallable) {
+      return new StarlarkAction(((StarlarkCallable) action).getName(),
+          (StarlarkCallable) action, Dict.empty(), printHandler);
+    } else if (action instanceof Action) {
+      return (Action) action;
+    } else {
+      throw Starlark.errorf(
+          "Invalid action '%s 'of type: %s", action, action.getClass());
+    }
   }
 
   @Override
@@ -1955,13 +2109,24 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "suffix",
             doc = "Suffix to use when saving patch files",
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = NoneType.class),
-            },
             named = true,
             positional = false,
             defaultValue = "'.patch'"),
+        @Param(
+            name = "directory_prefix",
+            doc =
+                "Directory prefix used to relativize filenames when writing patch files. E.g. if"
+                    + " filename is third_party/foo/bar/bar.go and we want to write"
+                    + " third_party/foo/PATCHES/bar/bar.go, the value for this field would be"
+                    + " 'third_party/foo'",
+            named = true,
+            positional = false,
+            // TODO: temporarily include a default value to not break existing usage
+            defaultValue = "'None'",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            }),
         @Param(
             name = "directory",
             doc = "Directory in which to save the patch files.",
@@ -1977,14 +2142,32 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc = "When true, strip filenames and line numbers from patch files",
             named = true,
             positional = false,
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "paths",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc = "Only create patch files that match glob. Default is to match all files",
+            defaultValue = "None",
+            positional = false),
       })
   public AutoPatchfileConfiguration autoPatchfileConfiguration(
-      Object fileContentsPrefix, Object suffix, Object directory, boolean stripFileNames) {
+      Object fileContentsPrefix,
+      String suffix,
+      Object directoryPrefix,
+      Object directory,
+      boolean stripFileNames,
+      Object globObj) {
+    Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
     return AutoPatchfileConfiguration.create(
         convertFromNoneable(fileContentsPrefix, null),
-        convertFromNoneable(suffix, null),
+        suffix,
+        convertFromNoneable(directoryPrefix, null),
         convertFromNoneable(directory, null),
-        stripFileNames);
+        stripFileNames,
+        glob);
   }
 }

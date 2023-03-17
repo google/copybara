@@ -19,14 +19,11 @@ package com.google.copybara.git.github.api.testing;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.DirectionFilter.ASC;
 import static com.google.copybara.git.github.api.GitHubApi.PullRequestListParams.SortFilter.CREATED;
+import static com.google.copybara.testing.git.GitTestUtil.createValidator;
+import static com.google.copybara.testing.git.GitTestUtil.getResource;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
-import com.google.api.client.json.gson.GsonFactory;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -36,7 +33,9 @@ import com.google.common.collect.Lists;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddLabels;
-import com.google.copybara.git.github.api.CheckRuns;
+import com.google.copybara.git.github.api.AuthorAssociation;
+import com.google.copybara.git.github.api.CheckRun;
+import com.google.copybara.git.github.api.CheckSuite;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
@@ -51,6 +50,7 @@ import com.google.copybara.git.github.api.Installation;
 import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
+import com.google.copybara.git.github.api.IssueComment;
 import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults;
 import com.google.copybara.git.github.api.IssuesAndPullRequestsSearchResults.IssuesAndPullRequestsSearchResult;
 import com.google.copybara.git.github.api.Label;
@@ -68,19 +68,17 @@ import com.google.copybara.git.github.api.UserPermissionLevel;
 import com.google.copybara.git.github.api.UserPermissionLevel.GitHubUserPermission;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
+import com.google.copybara.testing.git.GitTestUtil.JsonValidator;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
+import net.starlark.java.eval.StarlarkInt;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 /**
  * Base test to run the same tests on various implementations of the GitHubApiTransport
@@ -88,16 +86,13 @@ import org.mockito.MockitoAnnotations;
 public abstract class AbstractGitHubApiTest {
 
   protected GitHubApi api;
-  @Mock
-  protected GitHubApiTransport transport;
+
   @Captor
   protected ArgumentCaptor<ImmutableListMultimap<String, String>> headerCaptor;
   protected Profiler profiler;
 
   @Before
   public void setUpFamework() throws Exception {
-    MockitoAnnotations.initMocks(this);
-
     profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
     api = new GitHubApi(getTransport(), profiler);
@@ -595,30 +590,115 @@ public abstract class AbstractGitHubApiTest {
 
   @Test
   public void test_getCheckRuns_success() throws Exception {
-    trainMockGet("/repos/example/project/commits/12345/check-runs",
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-runs?per_page=100",
         getResource("get_check_runs_testdata.json"));
-    CheckRuns checkRuns =
+    ImmutableList<CheckRun> checkRuns =
         api.getCheckRuns("example/project", "12345");
-    assertThat(checkRuns.getTotalCount()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getStatus()).isEqualTo("completed");
-    assertThat(checkRuns.getCheckRuns().get(0).getConclusion()).isEqualTo("neutral");
-    assertThat(checkRuns.getCheckRuns().get(0).getDetailUrl()).isEqualTo("https://example.com");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getId()).isEqualTo(1);
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getName()).isEqualTo("Octocat App");
-    assertThat(checkRuns.getCheckRuns().get(0).getApp().getSlug()).isEqualTo("octoapp");
+    assertThat(checkRuns).hasSize(1);
+    assertThat(checkRuns.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkRuns.get(0).getConclusion()).isEqualTo("neutral");
+    assertThat(checkRuns.get(0).getDetailUrl()).isEqualTo("https://example.com");
+    assertThat(checkRuns.get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkRuns.get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkRuns.get(0).getApp().getSlug()).isEqualTo("octoapp");
   }
 
   @Test
-  public void testGetCheckRunsHeader_containGitHubHeader() throws Exception {
-    api = new GitHubApi(transport, profiler);
-    api.getCheckRuns("example/project", "12345");
-    verify(transport)
-        .get(any(), headerCaptor.capture(), eq("repos/%s/commits/%s/check-runs"), any());
-    assertThat(headerCaptor.getValue())
-        .containsEntry("Accept", "application/vnd.github.antiope-preview+json");
+  public void test_getCheckRuns_pagination() throws Exception {
+
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=2>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100&page=2",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-runs?per_page=100&page=3",
+        getResource("get_check_runs_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=2>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-runs?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+
+    ImmutableList<CheckRun> checkRuns = api.getCheckRuns("example/project", "12345");
+    assertThat(checkRuns).hasSize(3);
+  }
+  @Test
+  public void test_getCheckSuites_success() throws Exception {
+    trainMockGet(
+        "/repos/example/project/commits/12345/check-suites?per_page=100",
+        getResource("get_check_suites_testdata.json"));
+    ImmutableList<CheckSuite> checkSuites =
+        api.getCheckSuites("example/project", "12345");
+    assertThat(checkSuites).hasSize(1);
+    assertThat(checkSuites.get(0).getStatus()).isEqualTo("completed");
+    assertThat(checkSuites.get(0).getConclusion()).isEqualTo("neutral");
+    assertThat(checkSuites.get(0).getId()).isEqualTo(StarlarkInt.of(5));
+    assertThat(checkSuites.get(0).getApp().getId()).isEqualTo(1);
+    assertThat(checkSuites.get(0).getApp().getName()).isEqualTo("Octocat App");
+    assertThat(checkSuites.get(0).getApp().getSlug()).isEqualTo("octoapp");
   }
 
   @Test
+  public void test_getCheckSuites_pagination() throws Exception {
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=2>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=2",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"next\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=3",
+        getResource("get_check_suites_testdata.json"),
+        ImmutableMap.of("Link", ""
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=2>; rel=\"prev\","
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=3>; rel=\"last\", "
+            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
+            + "&page=1>; rel=\"first\""
+        ), 200);
+
+    ImmutableList<CheckSuite> checkSuites = api.getCheckSuites("example/project", "12345");
+    assertThat(checkSuites).hasSize(3);
+  }
+
+   @Test
   public void testGetPullRequestComments_empty() throws Exception {
     trainMockGet("/repos/example/project/pulls/12345/comments?per_page=100", "[]".getBytes(UTF_8));
     assertThat(api.getPullRequestComments("example/project", 12345)).isEmpty();
@@ -678,7 +758,7 @@ public abstract class AbstractGitHubApiTest {
     trainMockPost("/repos/example/project/issues/12345/comments", validator,
         getResource("pulls_comment_12345_testdata.json"));
     api.postComment("example/project", 12345, comment);
-    assertThat(validator.called).isTrue();
+    assertThat(validator.wasCalled()).isTrue();
   }
 
   @Test
@@ -698,12 +778,24 @@ public abstract class AbstractGitHubApiTest {
     assertThat(organization.getTwoFactorRequirementEnabled()).isTrue();
   }
 
-  protected byte[] getResource(String testfile) throws IOException {
-    return Files.readAllBytes(
-        Paths.get(System.getenv("TEST_SRCDIR"))
-          .resolve(System.getenv("TEST_WORKSPACE"))
-          .resolve("java/com/google/copybara/git/github/api/testing")
-          .resolve(testfile));
+  @Test
+  public void testListIssueComments() throws Exception {
+    trainMockGet(
+        "/repos/example/project/issues/12345/comments?per_page=100",
+        getResource("list_issue_comments_testdata.json"));
+
+    IssueComment comment =
+        Iterables.getOnlyElement(api.listIssueComments("example/project", 12345));
+
+    assertThat(comment.getBody()).isEqualTo("Me too");
+    assertThat(comment.getId()).isEqualTo(1);
+    assertThat(comment.getAuthorAssociation()).isEqualTo(AuthorAssociation.COLLABORATOR);
+    assertThat(comment.getCreatedAt()).isEqualTo(ZonedDateTime.parse("2011-04-14T16:00:49Z"));
+    assertThat(comment.getUpdatedAt()).isEqualTo(ZonedDateTime.parse("2011-04-14T16:00:49Z"));
+    User user = comment.getUser();
+    assertThat(user.getLogin()).isEqualTo("octocat");
+    assertThat(user.getId()).isEqualTo(1);
+    assertThat(user.getType()).isEqualTo("User");
   }
 
   @Test
@@ -723,10 +815,6 @@ public abstract class AbstractGitHubApiTest {
     IssuesAndPullRequestsSearchResult searchResult =
         Iterables.getOnlyElement(searchResults.getItems());
     assertThat(searchResult.getNumber()).isEqualTo(16);
-  }
-
-  private static <T> JsonValidator<T> createValidator(Class<T> clazz, Predicate<T> predicate) {
-    return new JsonValidator<>(clazz, predicate);
   }
 
   /**
@@ -762,32 +850,6 @@ public abstract class AbstractGitHubApiTest {
   public static class TestUpdateReferenceRequest extends UpdateReferenceRequest {
     public TestUpdateReferenceRequest() {
       super("6dcb09b5b57875f334f61aebed695e2e4193db5e", true);
-    }
-  }
-
-  private static class JsonValidator<T> implements Predicate<String> {
-    private boolean called;
-    private final Class<T> clazz;
-    private final Predicate<T> predicate;
-
-    JsonValidator(Class<T> clazz, Predicate<T> predicate) {
-      this.clazz = Preconditions.checkNotNull(clazz);
-      this.predicate = Preconditions.checkNotNull(predicate);
-    }
-
-    @Override
-    public boolean test(String s) {
-      try {
-        T requestObject = GsonFactory.getDefaultInstance().createJsonParser(s).parse(clazz);
-        called = true;
-        return predicate.test(requestObject);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    boolean wasCalled() {
-      return called;
     }
   }
 }

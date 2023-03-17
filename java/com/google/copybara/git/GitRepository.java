@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Range;
+import com.google.common.collect.Sets;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
@@ -78,6 +79,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -177,6 +179,7 @@ public class GitRepository {
   private final boolean verbose;
   private final GitEnvironment gitEnv;
   private final Duration repoTimeout;
+  protected final PushOptionsValidator pushOptionsValidator;
   protected final boolean noVerify;
 
   private static final Map<Character, StatusCode> CHAR_TO_STATUS_CODE =
@@ -184,20 +187,45 @@ public class GitRepository {
           .collect(Collectors.toMap(StatusCode::getCode, Function.identity()));
 
   protected GitRepository(
-      Path gitDir, @Nullable Path workTree, boolean verbose, GitEnvironment gitEnv,
-      Duration repoTimeout, boolean noVerify) {
+      Path gitDir,
+      @Nullable Path workTree,
+      boolean verbose,
+      GitEnvironment gitEnv,
+      Duration repoTimeout,
+      boolean noVerify,
+      PushOptionsValidator pushOptionsValidator) {
     this.gitDir = checkNotNull(gitDir);
     this.workTree = workTree;
     this.verbose = verbose;
     this.gitEnv = checkNotNull(gitEnv);
     this.repoTimeout = checkNotNull(repoTimeout);
     this.noVerify = noVerify;
+    this.pushOptionsValidator = checkNotNull(pushOptionsValidator);
   }
 
   /** Creates a new repository in the given directory. The new repo is not bare. */
-  public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv,
-      Duration repoTimeout, boolean noVerify) {
-    return new GitRepository(path.resolve(".git"), path, verbose, gitEnv, repoTimeout, noVerify);
+  public static GitRepository newRepo(
+      boolean verbose, Path path, GitEnvironment gitEnv, Duration repoTimeout, boolean noVerify) {
+    return new GitRepository(
+        path.resolve(".git"),
+        path,
+        verbose,
+        gitEnv,
+        repoTimeout,
+        noVerify,
+        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()));
+  }
+
+  /** Creates a new repository in the given directory. The new repo is not bare. */
+  public static GitRepository newRepo(
+      boolean verbose,
+      Path path,
+      GitEnvironment gitEnv,
+      Duration repoTimeout,
+      boolean noVerify,
+      PushOptionsValidator pushOptionsValidator) {
+    return new GitRepository(
+        path.resolve(".git"), path, verbose, gitEnv, repoTimeout, noVerify, pushOptionsValidator);
   }
 
   /**
@@ -205,13 +233,38 @@ public class GitRepository {
    * not bare.
    */
   public static GitRepository newRepo(boolean verbose, Path path, GitEnvironment gitEnv) {
-    return newRepo(verbose, path, gitEnv, DEFAULT_REPO_TIMEOUT, /*noVerify=*/false);
+    return newRepo(verbose, path, gitEnv, DEFAULT_REPO_TIMEOUT, /* noVerify= */ false);
   }
 
-  /** Create a new bare repository */
-  public static GitRepository newBareRepo(Path gitDir, GitEnvironment gitEnv, boolean verbose,
-      Duration repoTimeout, boolean noVerify) {
-    return new GitRepository(gitDir, /*workTree=*/ null, verbose, gitEnv, repoTimeout, noVerify);
+  /** Create a new bare repository with a push options validator passes validation for all flags */
+  public static GitRepository newBareRepo(
+      Path gitDir, GitEnvironment gitEnv, boolean verbose, Duration repoTimeout, boolean noVerify) {
+    return new GitRepository(
+        gitDir,
+        /* workTree= */ null,
+        verbose,
+        gitEnv,
+        repoTimeout,
+        noVerify,
+        /* pushOptionsValidator= */ new PushOptionsValidator(Optional.empty()));
+  }
+
+  /** Create a new bare repository with push options validator */
+  public static GitRepository newBareRepo(
+      Path gitDir,
+      GitEnvironment gitEnv,
+      boolean verbose,
+      Duration repoTimeout,
+      boolean noVerify,
+      PushOptionsValidator pushOptionsValidator) {
+    return new GitRepository(
+        gitDir,
+        /* workTree= */ null,
+        verbose,
+        gitEnv,
+        repoTimeout,
+        noVerify,
+        /* pushOptionsValidator= */ pushOptionsValidator);
   }
 
   /**
@@ -455,7 +508,13 @@ public class GitRepository {
 
   @CheckReturnValue
   public PushCmd push() {
-    return new PushCmd(this, /*url=*/null, ImmutableList.of(), /*prune=*/false);
+    return new PushCmd(
+        this,
+        /* url= */ null,
+        /* refspecs= */ ImmutableList.of(),
+        /* prune= */ false,
+        /* pushOptions= */ ImmutableList.of(),
+        /* pushOptionsValidator= */ this.pushOptionsValidator);
   }
 
   @CheckReturnValue
@@ -664,7 +723,13 @@ public class GitRepository {
    */
   public GitRepository withWorkTree(Path newWorkTree) {
     return new GitRepository(
-        this.gitDir, newWorkTree, this.verbose, this.gitEnv, repoTimeout, this.noVerify);
+        this.gitDir,
+        newWorkTree,
+        this.verbose,
+        this.gitEnv,
+        repoTimeout,
+        this.noVerify,
+        this.pushOptionsValidator);
   }
 
   /**
@@ -688,6 +753,10 @@ public class GitRepository {
 
     // This shows progress in the log if not attached to a terminal
     cmd.add("--progress");
+
+    for (String pushOption : pushCmd.pushOptions) {
+      cmd.add(String.format("--push-option=%s", pushOption));
+    }
 
     if (pushCmd.prune) {
       cmd.add("--prune");
@@ -1938,16 +2007,15 @@ public class GitRepository {
     Throwables.throwIfInstanceOf(e, ValidationException.class);
   }
 
-  /**
-   * An object capable of performing a 'git push' operation to a remote repository.
-   */
+  /** An object capable of performing a 'git push' operation to a remote repository. */
   public static class PushCmd {
 
     private final GitRepository repo;
-    @Nullable
-    private final String url;
+    @Nullable private final String url;
     private final ImmutableList<Refspec> refspecs;
     private final boolean prune;
+    private final ImmutableList<String> pushOptions;
+    private final PushOptionsValidator pushOptionsValidator;
 
     @Nullable
     public String getUrl() {
@@ -1958,37 +2026,71 @@ public class GitRepository {
       return refspecs;
     }
 
+    public ImmutableList<String> getPushOptions() {
+      return pushOptions;
+    }
+
     public boolean isPrune() {
       return prune;
     }
 
-
+    /**
+     * Note: this constructor does not validate {@code pushOptions} against {@code
+     * pushOptionsValidator}
+     */
     @CheckReturnValue
-    public PushCmd(GitRepository repo, @Nullable String url, ImmutableList<Refspec> refspecs,
-        boolean prune) {
+    public PushCmd(
+        GitRepository repo,
+        @Nullable String url,
+        ImmutableList<Refspec> refspecs,
+        boolean prune,
+        ImmutableList<String> pushOptions,
+        PushOptionsValidator pushOptionsValidator) {
       this.repo = checkNotNull(repo);
       this.url = url;
       this.refspecs = checkNotNull(refspecs);
-      Preconditions.checkArgument(refspecs.isEmpty() || url != null, "refspec can only be"
-          + " used when a url is passed");
+      Preconditions.checkArgument(
+          refspecs.isEmpty() || url != null, "refspec can only be" + " used when a url is passed");
       this.prune = prune;
+      this.pushOptions = checkNotNull(pushOptions);
+      this.pushOptionsValidator = pushOptionsValidator;
     }
 
     @CheckReturnValue
     public PushCmd withRefspecs(String url, Iterable<Refspec> refspecs) {
-      return new PushCmd(repo, checkNotNull(url), ImmutableList.copyOf(refspecs),
-          prune);
+      return new PushCmd(
+          repo,
+          checkNotNull(url),
+          ImmutableList.copyOf(refspecs),
+          prune,
+          pushOptions,
+          pushOptionsValidator);
     }
 
     @CheckReturnValue
     public PushCmd prune(boolean prune) {
-      return new PushCmd(repo, url, this.refspecs, prune);
+      return new PushCmd(repo, url, this.refspecs, prune, pushOptions, pushOptionsValidator);
+    }
+
+    /**
+     * Returns a new instance of {@code PushCmd} with {@code newPushOptions}
+     *
+     * @param newPushOptions - the new push options to set
+     * @throws ValidationException if {@code newPushOptions} fails validation against a set {@code
+     *     this.pushOptionsValidator}
+     */
+    @CheckReturnValue
+    public PushCmd withPushOptions(ImmutableList<String> newPushOptions)
+        throws ValidationException {
+      pushOptionsValidator.validate(newPushOptions);
+      return new PushCmd(repo, url, this.refspecs, prune, newPushOptions, pushOptionsValidator);
     }
 
     /**
      * Runs the push command and returns the response from the server.
-     * @throws NonFastForwardRepositoryException if local repo is behind destination, unless
-     * force is used.
+     *
+     * @throws NonFastForwardRepositoryException if local repo is behind destination, unless force
+     *     is used.
      */
     public String run() throws RepoException, ValidationException {
       String output = null;
@@ -2326,14 +2428,16 @@ public class GitRepository {
       return commits.build();
     }
 
-    private ZonedDateTime tryParseDate(Map<String, String> fields, String dateField,
-        String commit) {
+    // Do not change this method since we could have old git commits that have incorrect date
+    // formats.
+    private ZonedDateTime tryParseDate(
+        Map<String, String> fields, String dateField, String commit) {
       String value = getField(fields, dateField);
       try {
         return ZonedDateTime.parse(value);
       } catch (DateTimeParseException e) {
-        logger.atSevere().log("Cannot parse date '%s' for commit %s. Using epoch time instead",
-            value, commit);
+        logger.atSevere().withCause(e).log(
+            "Cannot parse date '%s' for commit %s. Using epoch time instead", value, commit);
         return ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
       }
     }
@@ -2549,6 +2653,31 @@ public class GitRepository {
         return "";
       }
       throw re;
+    }
+  }
+
+  /** Interface for validating git options and providing userful error messages on failure. */
+  public interface OptionsValidator {
+    public void validate(List<String> options) throws ValidationException;
+  }
+  /** A version list that comes from a set of Strings */
+  public static class PushOptionsValidator implements OptionsValidator {
+    private final Optional<ImmutableList<String>> allowedOptions;
+
+    public PushOptionsValidator(Optional<ImmutableList<String>> allowedOptions) {
+      this.allowedOptions = allowedOptions;
+    }
+
+    @Override
+    public void validate(List<String> options) throws ValidationException {
+      if (this.allowedOptions.isPresent() && !allowedOptions.get().containsAll(options)) {
+        throw new ValidationException(
+            String.format(
+                "Push options have failed validation. The allowed push options are %s, but found"
+                    + " push options not on the allowlist: %s",
+                allowedOptions.get(),
+                Sets.difference(new HashSet<>(options), new HashSet<>(allowedOptions.get()))));
+      }
     }
   }
 }

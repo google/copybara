@@ -25,6 +25,7 @@
     - [console.warn](#consolewarn)
   - [core](#core)
     - [core.action](#coreaction)
+    - [core.action_migration](#coreaction_migration)
     - [core.autopatch_config](#coreautopatch_config)
     - [core.copy](#corecopy)
     - [core.dynamic_feedback](#coredynamic_feedback)
@@ -53,9 +54,6 @@
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpointnew_destination_ref)
     - [endpoint.new_origin_ref](#endpointnew_origin_ref)
-  - [endpoint_provider](#endpoint_provider)
-    - [endpoint_provider.new_destination_ref](#endpoint_providernew_destination_ref)
-    - [endpoint_provider.new_origin_ref](#endpoint_providernew_origin_ref)
   - [feedback.context](#feedbackcontext)
     - [feedback.context.error](#feedbackcontexterror)
     - [feedback.context.noop](#feedbackcontextnoop)
@@ -81,6 +79,7 @@
     - [gerrit_api_obj.new_destination_ref](#gerrit_api_objnew_destination_ref)
     - [gerrit_api_obj.new_origin_ref](#gerrit_api_objnew_origin_ref)
     - [gerrit_api_obj.post_review](#gerrit_api_objpost_review)
+    - [gerrit_api_obj.submit_change](#gerrit_api_objsubmit_change)
   - [gerritapi.AccountInfo](#gerritapiaccountinfo)
   - [gerritapi.ApprovalInfo](#gerritapiapprovalinfo)
   - [gerritapi.ChangeInfo](#gerritapichangeinfo)
@@ -139,6 +138,7 @@
     - [github_api_obj.get_pull_requests](#github_api_objget_pull_requests)
     - [github_api_obj.get_reference](#github_api_objget_reference)
     - [github_api_obj.get_references](#github_api_objget_references)
+    - [github_api_obj.list_issue_comments](#github_api_objlist_issue_comments)
     - [github_api_obj.new_destination_ref](#github_api_objnew_destination_ref)
     - [github_api_obj.new_origin_ref](#github_api_objnew_origin_ref)
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
@@ -149,6 +149,9 @@
     - [glob](#glob)
     - [new_author](#new_author)
     - [parse_message](#parse_message)
+  - [go](#go)
+    - [go.go_proxy_resolver](#gogo_proxy_resolver)
+    - [go.go_proxy_version_list](#gogo_proxy_version_list)
   - [hg](#hg)
     - [hg.origin](#hgorigin)
   - [mapping_function](#mapping_function)
@@ -170,10 +173,13 @@
     - [patch.apply](#patchapply)
     - [patch.quilt_apply](#patchquilt_apply)
   - [Path](#path)
+    - [path.exists](#pathexists)
     - [path.read_symlink](#pathread_symlink)
     - [path.relativize](#pathrelativize)
+    - [path.remove](#pathremove)
     - [path.resolve](#pathresolve)
     - [path.resolve_sibling](#pathresolve_sibling)
+    - [path.rmdir](#pathrmdir)
   - [PathAttributes](#pathattributes)
   - [re2](#re2)
     - [re2.compile](#re2compile)
@@ -195,6 +201,10 @@
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
+  - [toml](#toml)
+    - [toml.parse](#tomlparse)
+  - [TomlContent](#tomlcontent)
+    - [TomlContent.get](#tomlcontentget)
   - [transformation](#transformation)
   - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
@@ -207,6 +217,7 @@
     - [ctx.destination_reader](#ctxdestination_reader)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
+    - [ctx.list](#ctxlist)
     - [ctx.new_path](#ctxnew_path)
     - [ctx.noop](#ctxnoop)
     - [ctx.now_as_string](#ctxnow_as_string)
@@ -656,12 +667,38 @@ Parameter | Description
 impl | `callable`<br><p>The Skylark function to call</p>
 params | `dict`<br><p>The parameters to the function. Will be available under ctx.params</p>
 
+<a id="core.action_migration" aria-hidden="true"></a>
+### core.action_migration
+
+Defines a migration that is more flexible/less-opinionated migration than `core.workflow`. Most of the users should not use this migration and instead use `core.workflow` for moving code. In particular `core.workflow` provides many helping functionality like version handling, ITERATIVE/SQUASH/CHANGE_REQUEST modes, --read-config-from-change dynamic config, etc.
+
+These are the features that raw_migration provides:<ul>
+   <li>Support for migrations that don't move source code (similar to feedback)</li>
+   <li>Support for migrations that talk to more than one origin/destination endpoits (Feature still in progress)</li>
+  <li>Custom management of versioning: For example moving non-linear/multiple  versions (Instead of `core.workflow`, that moves source code in relation to the previous migrated code and is able to only track one branch).</li>
+</ul>
+
+
+`core.action_migration(name, origin, endpoints, action, description=None, filesystem=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+name | `string`<br><p>The name of the migration.</p>
+origin | `trigger`<br><p>The trigger endpoint of the migration. Accessible as `ctx.origin`</p>
+endpoints | `structure`<br><p>Zero or more endpoints that the migration will have access for read and/or  write. This is a field that should be defined as:<br>```<br>  endpoint = struct(<br>     some_endpoint = foo.foo_api(...configuration...),<br>     other_endpoint = baz.baz_api(...configuration...),<br>  )<br>```<br>Then they will be accessible in the action as `ctx.endpoints.some_endpoint` and `ctx.endpoints.other_endpoint`</p>
+action | `unknown`<br><p>The action to execute when the migration is triggered.<br></p>
+description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
+filesystem | `bool`<br><p>If true, the migration provide access to the filesystem to the endpoints</p>
+
 <a id="core.autopatch_config" aria-hidden="true"></a>
 ### core.autopatch_config
 
 Describes in the configuration for automatic patch file generation
 
-[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False)`
+[`core.autopatch_config`](#coreautopatch_config) `core.autopatch_config(header=None, suffix='.patch', directory_prefix='None', directory='AUTOPATCHES', strip_file_names_and_line_numbers=False, paths=None)`
 
 
 #### Parameters:
@@ -669,9 +706,11 @@ Describes in the configuration for automatic patch file generation
 Parameter | Description
 --------- | -----------
 header | `string` or `NoneType`<br><p>A string to include at the beginning of each patch file</p>
-suffix | `string` or `NoneType`<br><p>Suffix to use when saving patch files</p>
+suffix | `string`<br><p>Suffix to use when saving patch files</p>
+directory_prefix | `string` or `NoneType`<br><p>Directory prefix used to relativize filenames when writing patch files. E.g. if filename is third_party/foo/bar/bar.go and we want to write third_party/foo/PATCHES/bar/bar.go, the value for this field would be 'third_party/foo'</p>
 directory | `string` or `NoneType`<br><p>Directory in which to save the patch files.</p>
 strip_file_names_and_line_numbers | `bool`<br><p>When true, strip filenames and line numbers from patch files</p>
+paths | [`glob`](#glob) or `NoneType`<br><p>Only create patch files that match glob. Default is to match all files</p>
 
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy
@@ -819,7 +858,7 @@ For the purpose of this workflow, it is not considered metadata the commit messa
 
 
 
-`core.feedback(name, origin, destination, actions=[], description=None)`
+`core.feedback(name, origin, destination, actions=[], action=None, description=None)`
 
 
 #### Parameters:
@@ -828,8 +867,9 @@ Parameter | Description
 --------- | -----------
 name | `string`<br><p>The name of the feedback workflow.</p>
 origin | `trigger`<br><p>The trigger of a feedback migration.</p>
-destination | [`endpoint_provider`](#endpoint_provider)<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
-actions | `sequence`<br><p>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
+destination | `endpoint_provider`<br><p>Where to write change metadata to. This is usually a code review system like Gerrit or GitHub PR.</p>
+actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**<br>A list of feedback actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing.<br></p>
+action | `unknown`<br><p>An action to execute when the migration is triggered</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 
 <a id="core.filter_replace" aria-hidden="true"></a>
@@ -1438,7 +1478,7 @@ Handle to read from the destination
 
 Copy files from the destination into the workdir.
 
-`destination_reader.copy_destination_files(glob)`
+`destination_reader.copy_destination_files(glob, path=None)`
 
 
 #### Parameters:
@@ -1446,6 +1486,7 @@ Copy files from the destination into the workdir.
 Parameter | Description
 --------- | -----------
 glob | [`glob`](#glob)<br><p>Files to copy to the workdir, potentially overwriting files checked out from the origin.</p>
+path | [`Path`](#path) or `NoneType`<br><p>Optional path to copy the files to</p>
 
 
 #### Example:
@@ -1574,49 +1615,6 @@ ref | `string`<br><p>The reference.</p>
 
 
 
-## endpoint_provider
-
-An handle for an origin or destination API in a feedback migration.
-
-
-#### Fields:
-
-Name | Description
----- | -----------
-url | `string`<br><p>Return the URL of this endpoint, if any.</p>
-
-<a id="endpoint_provider.new_destination_ref" aria-hidden="true"></a>
-### endpoint_provider.new_destination_ref
-
-Creates a new destination reference out of this endpoint.
-
-[`destination_ref`](#destination_ref) `endpoint_provider.new_destination_ref(ref, type, url=None)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-type | `string`<br><p>The type of this reference.</p>
-url | `string` or `NoneType`<br><p>The url associated with this reference, if any.</p>
-
-<a id="endpoint_provider.new_origin_ref" aria-hidden="true"></a>
-### endpoint_provider.new_origin_ref
-
-Creates a new origin reference out of this endpoint.
-
-[`origin_ref`](#origin_ref) `endpoint_provider.new_origin_ref(ref)`
-
-
-#### Parameters:
-
-Parameter | Description
---------- | -----------
-ref | `string`<br><p>The reference.</p>
-
-
-
 ## feedback.context
 
 Gives access to the feedback migration information and utilities. This context is a concrete implementation for feedback migrations.
@@ -1630,7 +1628,10 @@ action_name | `string`<br><p>The name of the current action.</p>
 cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | [`Console`](#console)<br><p>Get an instance of the console to report errors or warnings</p>
 destination | [`endpoint`](#endpoint)<br><p>An object representing the destination. Can be used to query or modify the destination state</p>
-feedback_name | `string`<br><p>The name of the Feedback migration calling this action.</p>
+endpoints | `structure`<br><p>An object that gives access to the API of the configured endpoints</p>
+feedback_name | `string`<br><p>DEPRECATED: The name of the Feedback migration calling this action. Use migration_name instead.</p>
+fs | `action.filesystem`<br><p>If a migration of type `core.action_migration` sets `filesystem = True`, it gives access to the underlying migration filesystem to manipulate files.</p>
+migration_name | `string`<br><p>The name of the migration calling this action.</p>
 origin | [`endpoint`](#endpoint)<br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
 params | `dict`<br><p>Parameters for the function if created with core.action</p>
 refs | `sequence of string`<br><p>A list containing string representations of the entities that triggered the event</p>
@@ -2014,6 +2015,20 @@ change_id | `string`<br><p>The Gerrit change id.</p>
 revision_id | `string`<br><p>The revision for which the comment will be posted.</p>
 review_input | [`SetReviewInput`](#setreviewinput)<br><p>The review to post to Gerrit.</p>
 
+<a id="gerrit_api_obj.submit_change" aria-hidden="true"></a>
+### gerrit_api_obj.submit_change
+
+Submit a Gerrit change
+
+[`gerritapi.ChangeInfo`](#gerritapichangeinfo) `gerrit_api_obj.submit_change(change_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
+
 
 
 ## gerritapi.AccountInfo
@@ -2246,9 +2261,11 @@ Set of functions to define Git origins and destinations.
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--allowed-git-push-options`</span> | *list* | This is a flag used to allowlist push options sent to git servers. E.g. copybara copy.bara.sky --git-push-option="foo,bar" would make copybara validate push so that the only push options (if there are any) used are 'foo' and 'bar'. If this flag is unset, it will skip push options validation. Set to "" to allow no push options.
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
+<span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
@@ -2298,7 +2315,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-[`endpoint_provider`](#endpoint_provider) `git.gerrit_api(url, checker=None)`
+`endpoint_provider` `git.gerrit_api(url, checker=None)`
 
 
 #### Parameters:
@@ -2436,7 +2453,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-[`endpoint_provider`](#endpoint_provider) `git.github_api(url, checker=None)`
+`endpoint_provider` `git.github_api(url, checker=None)`
 
 
 #### Parameters:
@@ -2453,6 +2470,7 @@ checker | `checker` or `NoneType`<br><p>A checker for the GitHub API transport.<
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.github_destination" aria-hidden="true"></a>
 ### git.github_destination
@@ -2525,7 +2543,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Creates changes in a new pull request in the destination.
 
-`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None, draft=False)`
+`destination` `git.github_pr_destination(url, destination_ref='master', pr_branch=None, partial_fetch=False, allow_empty_diff=True, allow_empty_diff_merge_statuses=[], allow_empty_diff_check_suites_to_conclusion={}, title=None, body=None, integrates=None, api_checker=None, update_description=False, primary_branch_migration=False, checker=None, draft=False)`
 
 
 #### Parameters:
@@ -2537,6 +2555,8 @@ destination_ref | `string`<br><p>Destination reference for the change.</p>
 pr_branch | `string` or `NoneType`<br><p>Customize the pull request branch. Any variable present in the message in the form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable reference (head, PR number, Gerrit change number, etc.).</p>
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 allow_empty_diff | `bool`<br><p>By default, copybara migrates changes without checking existing PRs. If set, copybara will skip pushing a change to an existing PR only if the git three of the pending migrating change is the same as the existing PR.</p>
+allow_empty_diff_merge_statuses | `sequence of string`<br><p>**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set, Copybara skips uploading the change if the tree hasn't changed and it can be merged. When this list is set with values from https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus, it will still upload for the configured statuses. For example, if a user sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the recommended set to use), it wouldn't skip upload if test failed in GitHub for previous export, or if the change cannot be merged. **Note that this field is experimental and is subject to change by GitHub without notice**. Please consult Copybara team before using this field.</p>
+allow_empty_diff_check_suites_to_conclusion | `dict of string`<br><p>**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set, Copybara skips uploading the change if the tree hasn't changed and it can be merged.<br><br>This field allows to configure Check suit slugs and conclusions for those check suites where an upload needs to happen despite no code changes. For example this can be used to upload if tests are failing. A Very common usage would be `{"github-actions" :   ["none", "failure", "timed_out", "cancelled"]}`: This would upload changes when Checks are in progress, has failed, timeout or being cancelled. `github-actions` check suit slug name is the default name for checks run by GitHub actions where the suit is not given a name.</p>
 title | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this title. By default it uses the change first line. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 body | `string` or `NoneType`<br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 integrates | `sequence of git_integrate` or `NoneType`<br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
@@ -2696,6 +2716,7 @@ events | `sequence of string` or `dict of sequence`<br><p>Types of events to sub
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate
@@ -2754,7 +2775,7 @@ refspec_groups | `dict`<br><p>A set of named regexes that can be used to match p
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[])`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None)`
 
 
 #### Parameters:
@@ -2768,7 +2789,8 @@ refspecs | `sequence of string`<br><p>Represents a list of git refspecs to mirro
 prune | `bool`<br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
 partial_fetch | `bool`<br><p>This is an experimental feature that only works for certain origin globs.</p>
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
-actions | `sequence`<br><p>Experimental feature. A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
+actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
+action | `unknown`<br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
@@ -2893,7 +2915,7 @@ partial_fetch | `bool`<br><p>If true, partially fetch only the minimum needed (e
 
 Push to the destination a list of refspecs.
 
-`git.mirrorContext.destination_push(refspec, prune=False)`
+`git.mirrorContext.destination_push(refspec, prune=False, push_options=[])`
 
 
 #### Parameters:
@@ -2902,6 +2924,7 @@ Parameter | Description
 --------- | -----------
 refspec | `sequence of string`<br><p></p>
 prune | `bool`<br><p></p>
+push_options | `sequence of string`<br><p>Additional push options to use with destination push</p>
 
 <a id="git.mirrorContext.error" aria-hidden="true"></a>
 ### git.mirrorContext.error
@@ -3123,7 +3146,7 @@ Get autenticated user info, return null if not found
 
 Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
 
-`github_check_runs_obj` `github_api_obj.get_check_runs(sha)`
+`sequence of github_check_run_obj` `github_api_obj.get_check_runs(sha)`
 
 
 #### Parameters:
@@ -3226,6 +3249,20 @@ ref | `string`<br><p>The name of the reference. For example: "refs/heads/branchN
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
 `sequence of github_api_ref_obj` `github_api_obj.get_references()`
+
+<a id="github_api_obj.list_issue_comments" aria-hidden="true"></a>
+### github_api_obj.list_issue_comments
+
+Lists comments for an issue
+
+`sequence of github_api_issue_comment_obj` `github_api_obj.list_issue_comments(number)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+number | `int`<br><p>Issue or Pull Request number</p>
 
 <a id="github_api_obj.new_destination_ref" aria-hidden="true"></a>
 ### github_api_obj.new_destination_ref
@@ -3451,6 +3488,56 @@ Returns a ChangeMessage parsed from a well formed string.
 Parameter | Description
 --------- | -----------
 message | `string`<br><p>The contents of the change message</p>
+
+
+
+## go
+
+Module for Go related starlark operations
+
+<a id="go.go_proxy_resolver" aria-hidden="true"></a>
+### go.go_proxy_resolver
+
+Go resolver that knows what to do with command line passed refs.
+
+`VersionResolver` `go.go_proxy_resolver(module)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+module | `string`<br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+
+<a id="go.go_proxy_version_list" aria-hidden="true"></a>
+### go.go_proxy_version_list
+
+Returns go proxy version list object
+
+`GoProxyVersionList` `go.go_proxy_version_list(module, ref=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+module | `string`<br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+ref | `string` or `NoneType`<br><p>This parameter is primarily used to track versions at specific branches and revisions. If a value is supplied, the returned version list will attempt to extract version data from ${ref}.info found with go proxy at the /@v/${ref}.info endpoint. You can leave off the .info suffix.</p>
+
+
+#### Example:
+
+
+##### Create a version list for a given go package:
+
+Example of how create a version list for github.com/google/gopacket
+
+```python
+go.go_proxy_version_list(
+        module='github.com/google/gopacket'
+)
+```
+
 
 
 
@@ -4176,7 +4263,7 @@ Module for applying patches.
 
 A transformation that applies the given patch files. If a path does not exist in a patch, it will be ignored.
 
-[`transformation`](#transformation) `patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1)`
+[`transformation`](#transformation) `patch.apply(patches=[], excluded_patch_paths=[], series=None, strip=1, directory='')`
 
 
 #### Parameters:
@@ -4187,6 +4274,7 @@ patches | `sequence of string`<br><p>The list of patchfiles to apply, relative t
 excluded_patch_paths | `sequence of string`<br><p>The list of paths to exclude from each of the patches. Each of the paths will be excluded from all the patches. Note that these are not workdir paths, but paths relative to the patch itself. If not empty, the patch will be applied using 'git apply' instead of GNU Patch.</p>
 series | `string` or `NoneType`<br><p>A file which contains a list of patches to apply. The patch files to apply are interpreted relative to this file and must be written one per line. The patches listed in this file will be applied relative to the checkout dir and the leading path component will be stripped (via the `-p1` flag).<br><br>You can generate a file which matches this format by running 'find . -name *.patch &#124; sort > series'.<br><br>If `patches` is also specified, those patches will be applied before these ones.</p>
 strip | `int`<br><p>Number of segments to strip. (This sets the `-pX` flag, for example `-p0`, `-p1`, etc.) By default it uses `-p1`.</p>
+directory | `string`<br><p>Path relative to the working directory from which to apply patches. This supports patches that specify relative paths in their file diffs but use a different relative path base than the working directory. (This sets the `-d` flag, for example `-d sub/dir/`). By default, it uses the current directory.</p>
 
 
 
@@ -4267,6 +4355,13 @@ name | `string`<br><p>Filename of the path. For foo/bar/baz.txt it would be baz.
 parent | `unknown`<br><p>Get the parent path</p>
 path | `string`<br><p>Full path relative to the checkout directory</p>
 
+<a id="path.exists" aria-hidden="true"></a>
+### path.exists
+
+Check whether a file, directory or symlink exists at this path
+
+`bool` `path.exists()`
+
 <a id="path.read_symlink" aria-hidden="true"></a>
 ### path.read_symlink
 
@@ -4287,6 +4382,13 @@ Constructs a relative path between this path and a given path. For example:<br> 
 Parameter | Description
 --------- | -----------
 other | [`Path`](#path)<br><p>The path to relativize against this path</p>
+
+<a id="path.remove" aria-hidden="true"></a>
+### path.remove
+
+Delete self
+
+`path.remove()`
 
 <a id="path.resolve" aria-hidden="true"></a>
 ### path.resolve
@@ -4315,6 +4417,20 @@ Resolve the given path against this path.
 Parameter | Description
 --------- | -----------
 other | `string` or [`Path`](#path)<br><p>Resolve the given path against this path. The parameter can be a string or a Path.</p>
+
+<a id="path.rmdir" aria-hidden="true"></a>
+### path.rmdir
+
+Delete all files in a directory. If recursive is true, delete descendants of all files in directory
+
+`path.rmdir(recursive=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+recursive | `bool`<br><p>When true, delete descendants of self and of siblings</p>
 
 
 
@@ -4476,7 +4592,7 @@ A RE2 regex pattern object to perform regexes in Starlark
 <a id="re2_pattern.matcher" aria-hidden="true"></a>
 ### re2_pattern.matcher
 
-Return true if the string matches the regex pattern
+Return a Matcher for the given input.
 
 [`re2_matcher`](#re2_matcher) `re2_pattern.matcher(input)`
 
@@ -4544,7 +4660,7 @@ Name | Type | Description
 
 Defines a remote file origin. This is a WIP and experimental. Do not use. 
 
-`origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_selector=None, base_url=None)`
+`origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_resolver=None, version_selector=None, base_url=None)`
 
 
 #### Parameters:
@@ -4557,6 +4673,7 @@ unpack_method | `string`<br><p>The method by which to unpack the remote file. Cu
 archive_source | `string`<br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
 version_list | `VersionList` or `NoneType`<br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 origin_version_selector | `VersionSelector` or `NoneType`<br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
+version_resolver | `VersionResolver` or `NoneType`<br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
 version_selector | `unknown`<br><p>Object that contains version selecting logic. DEPRECATED.</p>
 base_url | `unknown`<br><p>base URL to construct the full URL. DEPRECATED.</p>
 
@@ -4598,6 +4715,72 @@ Structs are immutable objects to group values.
 ```python
 my_struct = struct(foo='bar')
 x = my_struct.foo
+```
+
+
+
+
+## toml
+
+Module for parsing TOML in Copybara.
+
+<a id="toml.parse" aria-hidden="true"></a>
+### toml.parse
+
+Parse the TOML content. Returns a toml object.
+
+[`TomlContent`](#tomlcontent) `toml.parse(content)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+content | `string`<br><p>TOML content to be parsed</p>
+
+
+#### Example:
+
+
+##### Parsing a TOML string:
+
+To parse a TOML string, pass the string into the parser.
+
+```python
+toml.parse("foo = 42")
+```
+
+
+
+
+## TomlContent
+
+Object containing parsed TOML values.
+
+<a id="TomlContent.get" aria-hidden="true"></a>
+### TomlContent.get
+
+Retrieve the value from the parsed TOML for the given key. If the key is not defined, this will return None.
+
+`unknown` `TomlContent.get(key)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+key | `string`<br><p>The dotted key expression</p>
+
+
+#### Example:
+
+
+##### Get the value for a key:
+
+Pass in the name of the key. This will return the value.
+
+```python
+TomlContent.get("foo")
 ```
 
 
@@ -4748,6 +4931,20 @@ Tries to find a label. First it looks at the generated message (that is, labels 
 Parameter | Description
 --------- | -----------
 label | `string`<br><p>The label to find</p>
+
+<a id="ctx.list" aria-hidden="true"></a>
+### ctx.list
+
+List files in the checkout/work directory that matches a glob
+
+`sequence of `[`Path`](#path) `ctx.list(paths)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+paths | [`glob`](#glob)<br><p>A glob representing the paths to list</p>
 
 <a id="ctx.new_path" aria-hidden="true"></a>
 ### ctx.new_path

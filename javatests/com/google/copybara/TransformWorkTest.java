@@ -419,6 +419,15 @@ public class TransformWorkTest {
 
   @Test
   public void testRunGlob() throws IOException, ValidationException, RepoException {
+    checkGlob("run");
+  }
+
+  @Test
+  public void testRunGlobWithList() throws IOException, ValidationException, RepoException {
+    checkGlob("list");
+  }
+
+  private void checkGlob(String method) throws IOException, RepoException, ValidationException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("testRunGlob");
     touchFile(base, "folder/file.txt");
@@ -431,7 +440,7 @@ public class TransformWorkTest {
     runWorkflow("test", ""
         + "def test(ctx):\n"
         + "    message = ''\n"
-        + "    for f in sorted(ctx.run(glob(['**']))):\n"
+        + "    for f in sorted(ctx." + method + "(glob(['**']))):\n"
         + "        message += f.path +'\\n'\n"
         + "    ctx.set_message(message)");
 
@@ -454,9 +463,6 @@ public class TransformWorkTest {
     ValidationException regularFile =
         assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "d1"));
     assertThat(regularFile).hasMessageThat().contains("'d1' already exist and is a regular file");
-    ValidationException escapedDir =
-        assertThrows(ValidationException.class, () -> checkCreateSymlink("d1", "../d1"));
-    assertThat(escapedDir).hasMessageThat().contains("../d1 is not inside the checkout directory");
   }
 
   @Test
@@ -605,10 +611,11 @@ public class TransformWorkTest {
     checkPathOperations("folder/file.txt", ""
         + "path: folder/file.txt\n"
         + "name: file.txt\n"
+        + "file exists: True\n"
         + "sibling path: folder/baz.txt\n"
         + "parent path: folder\n"
         + "parent parent path: \n"
-        + "parent parent parent: None\n");
+        + "parent parent parent: None\n", true);
   }
 
   @Test
@@ -616,18 +623,22 @@ public class TransformWorkTest {
     checkPathOperations("folder/other/file.txt", ""
         + "path: folder/other/file.txt\n"
         + "name: file.txt\n"
+        + "file exists: False\n"
         + "sibling path: folder/other/baz.txt\n"
         + "parent path: folder/other\n"
         + "parent parent path: folder\n"
-        + "parent parent parent: \n");
+        + "parent parent parent: \n", false);
   }
 
-  private void checkPathOperations(String filePath, String output)
+  private void checkPathOperations(String filePath, String output, boolean createFile)
       throws IOException, RepoException, ValidationException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("foo");
     touchFile(base.resolve("not_important.txt"), "");
     Files.createDirectories(workdir.resolve("folder"));
+    if (createFile) {
+      touchFile(base.resolve(filePath), "");
+    }
     origin.addChange(0, base, "message", /*matchesGlob=*/true);
 
     runWorkflow("test", ""
@@ -635,6 +646,7 @@ public class TransformWorkTest {
         + "    f = ctx.new_path('" + filePath + "')\n"
         + "    message = 'path: ' + f.path +'\\n'\n"
         + "    message += 'name: ' + f.name +'\\n'\n"
+        + "    message += 'file exists: ' + str(f.exists()) +'\\n'\n"
         + "    message += 'sibling path: ' + f.resolve_sibling('baz.txt').path + '\\n'\n"
         + "    message += 'parent path: ' + f.parent.path + '\\n'\n"
         + "    message += 'parent parent path: ' + f.parent.parent.path + '\\n'\n"

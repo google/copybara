@@ -16,10 +16,13 @@
 
 package com.google.copybara.approval;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 
 /**
  * A predicate represents an statement over a change. This is an approximation to
@@ -30,12 +33,23 @@ import com.google.common.base.Objects;
  * description and url fields. It should also be conformant with
  * https://github.com/in-toto/attestation/tree/v0.1.0/spec#predicate TODO(malcon): Make it really
  * conformant.
- *
  */
-public abstract class StatementPredicate {
+public class StatementPredicate {
   @Key private final String type;
   @Key private final String description;
   @Key private final String url;
+
+  /**
+   * Utility method that filters out a elements of {@code list} that are instance of class {@code
+   * clazz}
+   *
+   * @param clazz the StatementPredicate subclass to filter for.
+   * @param list the list of StatementPredicates to filter on
+   */
+  public static <T extends StatementPredicate> ImmutableList<T> filterByClass(
+      Class<T> clazz, ImmutableList<? extends StatementPredicate> list) {
+    return list.stream().filter(clazz::isInstance).map(clazz::cast).collect(toImmutableList());
+  }
 
   public StatementPredicate(String type, String description, String url) {
     this.type = type;

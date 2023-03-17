@@ -16,14 +16,20 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.MessageInfo;
 import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
+import com.google.copybara.git.github.api.CheckRun.Conclusion;
+import com.google.copybara.git.github.api.CheckSuite;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
 import com.google.copybara.git.github.api.GitHubApiException;
@@ -42,6 +48,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
   private final boolean partialFetch;
+  private final ImmutableSet<String> allowEmptyDiffMergeStatuses;
+  private final ImmutableSetMultimap<String, Conclusion> allowEmptyDiffCheckSuitesConclusion;
   private final Console console;
   private GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
@@ -54,6 +62,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       @Nullable String prBranchToUpdate,
       boolean partialFetch,
       boolean allowEmptyDiff,
+      ImmutableSet<String> allowEmptyDiffMergeStatuses,
+      ImmutableSetMultimap<String, Conclusion> allowEmptyDiffCheckSuitesConclusion,
       Console console,
       GitHubHost ghHost) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -62,6 +72,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     this.prBranchToUpdate = prBranchToUpdate;
     this.partialFetch = partialFetch;
     this.allowEmptyDiff = allowEmptyDiff;
+    this.allowEmptyDiffMergeStatuses = allowEmptyDiffMergeStatuses;
+    this.allowEmptyDiffCheckSuitesConclusion = allowEmptyDiffCheckSuitesConclusion;
     this.console = Preconditions.checkNotNull(console);
     this.ghHost = Preconditions.checkNotNull(ghHost);
   }
@@ -77,13 +89,13 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       return;
     }
     for (Change<?> originalChange : originChanges) {
-      String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
-      GitHubApi api = gitHubOptions.newGitHubApi(configProjectName);
+      String projectName = ghHost.getProjectNameFromUrl(repoUrl);
+      GitHubApi api = gitHubOptions.newGitHubRestApi(projectName);
 
       try {
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
-                configProjectName,
+                projectName,
                 PullRequestListParams.DEFAULT.withHead(
                     String.format(
                         "%s:%s", ghHost.getUserNameFromUrl(repoUrl), this.prBranchToUpdate)));
@@ -96,54 +108,108 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         }
         SameGitTree sameGitTree =
             new SameGitTree(scratchClone, repoUrl, generalOptions, partialFetch);
-        PullRequest pullRequest =  pullRequests.get(0);
-        if (skipUploadBasedOnPrStatus(pullRequest)
-            && sameGitTree.hasSameTree(pullRequest.getHead().getSha())) {
+        PullRequest pullRequest = pullRequests.get(0);
+        if (sameGitTree.hasSameTree(pullRequest.getHead().getSha())
+            && skipUploadBasedOnPrStatus(projectName, api, pullRequest.getNumber())
+            && skipUploadBasedOnCheckSuites(projectName, api, pullRequest.getHead().getSha())) {
           throw new RedundantChangeException(
               String.format(
                   "Skipping push to the existing pr %s/pull/%s as the change %s is empty.",
                   repoUrl, pullRequest.getNumber(), originalChange.getRef()),
               pullRequest.getHead().getSha());
         }
-      } catch(GitHubApiException e) {
-          if (e.getResponseCode() == ResponseCode.NOT_FOUND
-              || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
-            console.verboseFmt("Branch %s does not exist", this.prBranchToUpdate);
-          }
-          throw e;
+      } catch (GitHubApiException e) {
+        if (e.getResponseCode() == ResponseCode.NOT_FOUND
+            || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
+          console.verboseFmt("Branch %s does not exist", this.prBranchToUpdate);
         }
+        throw e;
+      }
     }
   }
 
-  private boolean skipUploadBasedOnPrStatus(PullRequest pullRequest) {
-    // TODO(malcon): Remove after 2023-01-31 once the feature is proven to be stable
-    if (generalOptions.isTemporaryFeature(
-        "DISABLE_PR_STATUS_SKIP_EMPTY_DIFF", false)) {
+  private boolean skipUploadBasedOnCheckSuites(String project, GitHubApi api, String sha)
+      throws ValidationException, RepoException {
+    // Not used, we skip by default and avoid doing an API rpc.
+    if (allowEmptyDiffCheckSuitesConclusion.isEmpty()) {
       return true;
     }
-    Boolean mergeable = pullRequest.isMergeable();
+    ImmutableList<CheckSuite> checkSuites = api.getCheckSuites(project, sha);
+    boolean slugFound = false;
+    for (CheckSuite suite : checkSuites) {
+      if (!allowEmptyDiffCheckSuitesConclusion.containsKey(suite.getApp().getSlug())) {
+        console.verboseFmt("Skipping Check-suite %s as it not part of skip empty diff suites: %s",
+            suite.getApp().getName(), allowEmptyDiffCheckSuitesConclusion.keys());
+        continue;
+      }
+      slugFound = true;
+      ImmutableSet<Conclusion> conclusions = allowEmptyDiffCheckSuitesConclusion
+          .get(suite.getApp().getSlug());
+      if (conclusions.contains(Conclusion.fromValue(suite.getConclusion())
+          .orElse(Conclusion.NONE))) {
+        console.infoFmt("Uploading change because check-suite %s(%s) conclusion is %s, that is in"
+                + " the list of conclusions to upload on empty diff: %s",
+            suite.getApp().getSlug(), suite.getId(), suite.getConclusion(),
+            conclusions.stream().map(Conclusion::getApiVal).collect(toImmutableList()));
+        return false;
+      } else {
+        console.infoFmt("Ignoring check-suite %s(%s) because conclusion is %s, that is NOT in the"
+                + " list of conclusions to upload on empty diff for this slug: %s",
+            suite.getApp().getSlug(),
+            suite.getId(),
+            suite.getConclusion(),
+            conclusions.stream().map(Conclusion::getApiVal).collect(toImmutableList()));
+      }
+    }
+    if (!slugFound) {
+      console.warnFmt("Skipping upload: Couldn't find any slug name that matched the configured"
+              + " slugs in the config file. copy.bara.sky suits slug names are: %s but present"
+              + " suits for commit %s are: %s",
+          allowEmptyDiffCheckSuitesConclusion.keys(),
+          sha,
+          checkSuites.stream().map(s -> s.getApp().getSlug()).collect(toImmutableList()));
+    }
+    return true;
+  }
+
+  private boolean skipUploadBasedOnPrStatus(String configProjectName, GitHubApi api, long prNumber)
+      throws ValidationException, RepoException {
+    // This call to getPullRequest might look like unnecessary, but it is not. The previous
+    // pull request is received by searching PRs by branch name, and for some reason, GitHub
+    // doesn't return this 'experimental' field. So we are forced to do an additional request
+    // to get the full data of the PR.
+    PullRequest completePr = api.getPullRequest(configProjectName, prNumber);
+    Boolean mergeable = completePr.isMergeable();
     if (mergeable == null || !mergeable) {
-      console.verboseFmt("Not skipping upload because mergeable is: %s", mergeable);
+      console.verboseFmt("Not skipping upload because 'mergeable' is: %s", mergeable);
       return false;
     }
-    String mergeableState = pullRequest.getMergeableState();
+
+    // If user hasn't set any value, we don't look at mergeable status at all and assume we
+    // can skip.
+    if (allowEmptyDiffMergeStatuses.isEmpty()) {
+      return true;
+    }
+
+    String mergeableState = completePr.getMergeableState();
     // By default, if we don't know the status (mergeable_state is not stable API), we upload
     // a new patch
     if (mergeableState == null) {
-      console.verbose("Not skipping upload because mergeable status is null");
+      // Warn because it might be that GH has stopped populating it.
+      console.warn("Not skipping upload because 'mergeable status' is null");
       return false;
     }
-    // Using https://docs.github.com/en/graphql/reference/enums#mergestatestatus
-    switch (mergeableState) {
-      case "clean":
-      case "draft":
-      case "has_hooks":
-      case "behind":
-        console.verboseFmt("Skipping upload because mergeable status is %s", mergeableState);
-        return true;
-      default:
-        console.verboseFmt("Not skipping upload because mergeable status is %s", mergeableState);
-        return false;
+    // Valid values https://docs.github.com/en/graphql/reference/enums#mergestatestatus
+    if (allowEmptyDiffMergeStatuses.contains(mergeableState.toUpperCase())) {
+      console.infoFmt("Uploading change because mergeable status is %s, that is in the"
+              + " list of statuses to upload changes: %s", mergeableState.toUpperCase(),
+          allowEmptyDiffMergeStatuses);
+      return false;
+    } else {
+      console.infoFmt("Skipping upload because mergeable status is %s, that is NOT in the"
+              + " list of statuses to upload changes: %s", mergeableState.toUpperCase(),
+          allowEmptyDiffMergeStatuses);
+      return true;
     }
   }
 
@@ -155,6 +221,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         prBranchToUpdate,
         this.partialFetch,
         this.allowEmptyDiff,
+        this.allowEmptyDiffMergeStatuses,
+        this.allowEmptyDiffCheckSuitesConclusion,
         this.console,
         this.ghHost);
   }

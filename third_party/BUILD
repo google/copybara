@@ -198,6 +198,13 @@ java_library(
     ],
 )
 
+java_library(
+    name = "tomlj",
+    exports = [
+        "@maven//:org_tomlj_tomlj",
+    ],
+)
+
 # Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
 # is fixed
 exports_files(["bazel.patch"])

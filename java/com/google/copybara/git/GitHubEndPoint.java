@@ -32,7 +32,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.api.CheckRuns;
+import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
@@ -45,6 +45,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
+import com.google.copybara.git.github.api.IssueComment;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
@@ -162,7 +163,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
             named = true,
             doc = "The SHA-1 for which we want to get the check runs"),
       })
-  public CheckRuns getCheckRuns(String sha) throws EvalException, RepoException {
+  public ImmutableList<CheckRun> getCheckRuns(String sha) throws EvalException, RepoException {
     try {
       checkCondition(GitRevision.COMPLETE_SHA1_PATTERN.matcher(sha).matches(),
           "Not a valid complete SHA-1: %s", sha);
@@ -591,6 +592,23 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
       apiSupplier.load(console).postComment(project, prNumber.toInt("number"), comment);
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling post_issue_comment: %s", e.getMessage());
+    }
+  }
+
+  @StarlarkMethod(
+      name = "list_issue_comments",
+      doc = "Lists comments for an issue",
+      parameters = {
+        @Param(name = "number", named = true, doc = "Issue or Pull Request number"),
+      })
+  public Sequence<IssueComment> listIssueComments(StarlarkInt issueNumber)
+      throws EvalException, RepoException {
+    try {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return StarlarkList.immutableCopyOf(
+          apiSupplier.load(console).listIssueComments(project, issueNumber.toInt("number")));
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling list_issue_comments: %s", e.getMessage());
     }
   }
 

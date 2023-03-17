@@ -258,18 +258,36 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       name = "destination_push",
       doc = "Push to the destination a list of refspecs.",
       parameters = {
-          @Param(name = "refspec", allowedTypes = {
-              @ParamType(type = Sequence.class, generic1 = String.class)
-          }, named = true),
-          @Param(name = "prune", defaultValue = "False", named = true)
+        @Param(
+            name = "refspec",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            named = true),
+        @Param(name = "prune", defaultValue = "False", named = true),
+        @Param(
+            name = "push_options",
+            doc = "Additional push options to use with destination push",
+            defaultValue = "[]",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            })
       })
-
-  public void destinationPush(Sequence<?> refspec, boolean prune)
+  public void destinationPush(Sequence<?> refspec, boolean prune, Sequence<?> pushOptions)
       throws ValidationException, RepoException, EvalException {
     ImmutableList<Refspec> refspecsToPush =
         toRefSpec(Sequence.cast(refspec, String.class, "refspec"));
+    ImmutableList<String> resolvedPushOptions =
+        ImmutableList.<String>builder()
+            .addAll(convertStringList(pushOptions, "push_options"))
+            .addAll(gitOptions.gitPushOptions)
+            .build();
+
     validatePush(refspecsToPush, refspecs, true);
-    repo.runPush(repo.push().prune(prune).withRefspecs(destinationUrl, refspecsToPush));
+    repo.runPush(
+        repo.push()
+            .prune(prune)
+            .withRefspecs(destinationUrl, refspecsToPush)
+            .withPushOptions(resolvedPushOptions));
   }
 
   private enum FastForwardMode {

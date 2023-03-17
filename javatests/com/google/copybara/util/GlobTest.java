@@ -65,6 +65,7 @@ public class GlobTest {
     Glob glob = parseGlob("glob(['foo/**', 'bar/**']) + glob(['baz/**'])");
 
     assertThat(glob.roots()).containsExactly("foo", "bar", "baz");
+    assertThat(glob.tips()).containsExactly("foo", "bar", "baz");
 
     PathMatcher matcher = glob.relativeTo(workdir);
 
@@ -79,7 +80,9 @@ public class GlobTest {
     Glob glob = parseGlob("glob(['foo/**']) + glob(['foo/bar/**', 'baz/**'])");
     // 'foo/bar' is not a root as it is not in glob(['foo/**'], 'foo/bar/**', 'baz/**'])
     assertThat(glob.roots()).containsExactly("foo", "baz");
+    assertThat(glob.tips()).containsExactly("foo", "baz");
   }
+
 
   @Test
   public void unionWithExcludeAndInclude() throws Exception {
@@ -326,12 +329,34 @@ public class GlobTest {
         .containsExactly("foo");
     assertThat(createGlob(ImmutableList.of("foo/barbar/mer", "foo/bar/mer")).roots())
         .containsExactly("foo/bar", "foo/barbar");
+    assertThat(createGlob(ImmutableList.of("foo/bar/baz/*", "foo/bar")).tips())
+        .containsExactly("foo/bar/baz");
+    assertThat(createGlob(ImmutableList.of("foo/bar/baz/*", "foo/bar/mer/*")).tips())
+        .containsExactly("foo/bar/baz", "foo/bar/mer");
+    assertThat(createGlob(ImmutableList.of("foo/bar/bag/*", "foo/bar/baz/*", "foo/bar/*")).tips())
+        .containsExactly("foo/bar/bag", "foo/bar/baz");
+    assertThat(createGlob(ImmutableList.of("foo/barbar/mer/*", "foo/bar/mer/*")).tips())
+        .containsExactly("foo/barbar/mer", "foo/bar/mer");
   }
 
   @Test
   public void testRoots_overlap() {
     assertThat(createGlob(ImmutableList.of("foo/*", "foo-bar/*", "foo/bar/*")).roots())
         .containsExactly("foo", "foo-bar");
+    assertThat(createGlob(ImmutableList.of("foo/*", "foo-bar/*", "foo/bar/*")).tips())
+        .containsExactly("foo/bar", "foo-bar");
+  }
+
+  @Test
+  public void testTips() {
+    assertThat(createGlob(ImmutableList.of("foo/*", "bar/**", "bar/foobar/*")).tips())
+        .containsExactly("bar", "foo");
+    assertThat(createGlob(ImmutableList.of("foo/*/foobar", "foo/bar/*")).tips())
+        .containsExactly("foo");
+    assertThat(createGlob(ImmutableList.of("foo/*/foobar")).tips())
+        .containsExactly("foo");
+    assertThat(createGlob(ImmutableList.of("foo/bar/*")).tips())
+        .containsExactly("foo/bar");
   }
 
   @Test

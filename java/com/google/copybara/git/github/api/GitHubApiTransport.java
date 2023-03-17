@@ -77,6 +77,14 @@ public interface GitHubApiTransport {
   <T> T post(String path, Object request, Type responseType, String requestType)
       throws RepoException, ValidationException;
 
+  /**
+   * Do a HTTP POST call without a path. Mostly for graphql endpoints. The return type will be
+   * different. Therefore, using generics type here
+   */
+  default <T> T post(Object request, Class<T> clazz) throws RepoException, ValidationException {
+    return post("", request, clazz, "POST GraphQL");
+  }
+
   /** Do a HTTP DELETE call */
   void delete(String path, String requestType) throws RepoException, ValidationException;
 

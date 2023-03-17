@@ -36,6 +36,7 @@ import com.google.copybara.git.gerritapi.IncludeResult;
 import com.google.copybara.git.gerritapi.NotifyType;
 import com.google.copybara.git.gerritapi.ReviewResult;
 import com.google.copybara.git.gerritapi.SetReviewInput;
+import com.google.copybara.git.gerritapi.SubmitInput;
 import com.google.copybara.util.console.Console;
 import java.util.Map;
 import net.starlark.java.annot.Param;
@@ -176,6 +177,21 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling delete_vote: " + e.getMessage(), e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "submit_change",
+      doc = "Submit a Gerrit change",
+      parameters = {
+          @Param(name = "change_id", named = true, doc = "The Gerrit change id."),
+      })
+  public ChangeInfo submitChange(String changeId) throws EvalException {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      return gerritApi.submitChange(changeId, new SubmitInput(NotifyType.NONE));
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException("Error calling submit_change: " + e.getMessage(), e);
     }
   }
 

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.copybara.util.GlobAtom.Root;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
@@ -249,6 +250,22 @@ public class Glob implements StarlarkValue, HasBinary {
     return roots(false);
   }
 
+  /** Similar to #roots, but returns the longest shared paths for single files with the shortes
+   * wildcards instead. This is intended as a better static approximation for git cones. It will
+   * treat any expression with a wildcard as being a "tip".
+   * [ foo/bar, foo/bar/baz] -> foo/bar/baz<br>
+   * [ foo/**, foo/bar/baz] -> foo<br>
+   * [ foo/**, foobar/bar/baz] -> [foo, foobar/bar/baz]<br>
+   * [ foo/**\/bar] -> [foo]<br>
+   * [ foo/*] -> [foo]<br>
+   * [ foo/*, foo/bar/*] -> [foo/bar]<br>
+   * [ foo/{bar|baz}/files] -> [foo]<br>
+   * TODO(hsudhof): consider passing the GlobAtom to GitOrigin directly
+   **/
+  public ImmutableSet<String> tips() {
+    return computeTipsFromIncludes(getIncludes());
+  }
+
   /**
    * If {@code allowFiles} is set to true, then Paths containing no meta characters are retained
    * exactly as they are - for example, {@code foo/bar.txt} is output unmodified and not shortened
@@ -294,6 +311,52 @@ public class Glob implements StarlarkValue, HasBinary {
     }
 
     return ImmutableSet.copyOf(roots);
+  }
+
+  private static ImmutableSet<String> computeTipsFromIncludes(Iterable<GlobAtom> includes) {
+    List<String> wildcards = new ArrayList<>();
+    List<String> singleFiles = new ArrayList<>();
+    for (GlobAtom atom : includes) {
+      Root root = atom.annotatedRoot(false);
+      if (!root.isRecursive()) {
+        singleFiles.add(root.getRoot());
+      } else {
+        wildcards.add(root.getRoot());
+      }
+    }
+    // Remove redundant wildcards - e.g. "foo/**" covers all paths that start with "foo/bar/**"
+    Collections.sort(wildcards, Glob::compareRoots);
+    if (wildcards.contains("")) {
+      return ImmutableSet.of("");
+    }
+    int r = 0;
+    while (r < wildcards.size() - 1) {
+      if (wildcards.get(r + 1).startsWith(wildcards.get(r) + "/")) {
+        wildcards.remove(r + 1);
+      } else {
+        r++;
+      }
+    }
+
+    // Remove redundant single files - e.g. "foo/bar" covers all files that start with "foo"
+    Collections.sort(singleFiles, Collections.reverseOrder(Glob::compareRoots));
+    int t = 0;
+    while (t < singleFiles.size() - 1) {
+      if (singleFiles.get(t).startsWith(singleFiles.get(t + 1) + "/")) {
+        singleFiles.remove(t + 1);
+      } else {
+        t++;
+      }
+    }
+    List<String> tips = new ArrayList<>(wildcards);
+
+    for (String single : singleFiles) {
+      if (wildcards.stream().noneMatch(w -> (single + "/").startsWith(w  + "/"))) {
+        tips.add(single);
+      }
+    }
+    tips.addAll(wildcards);
+    return ImmutableSet.copyOf(tips);
   }
 
   /** A lexicographical String comparator that sorts the '/' char before any other char. */

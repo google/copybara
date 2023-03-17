@@ -44,7 +44,7 @@ public class StarlarkPattern implements StarlarkValue {
 
   @StarlarkMethod(
       name = "matcher",
-      doc = "Return true if the string matches the regex pattern",
+      doc = "Return a Matcher for the given input.",
       parameters = {@Param(name = "input", named = true)})
   public StarlarkMatcher matcher(String input) {
     return new StarlarkMatcher(pattern.matcher(input));

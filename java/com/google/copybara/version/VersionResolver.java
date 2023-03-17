@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Google Inc.
+ * Copyright (C) 2022 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-package com.google.copybara;
+package com.google.copybara.version;
 
-import com.beust.jcommander.Parameters;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.revision.Revision;
+import java.util.Optional;
+import java.util.function.Function;
+import net.starlark.java.eval.StarlarkValue;
 
-/** Options for {@link com.google.copybara.feedback.Feedback} migrations. */
-@Parameters(separators = "=")
-public class FeedbackOptions implements Option {}
+/** Takes a ref and resolves it to the repository */
+public interface VersionResolver extends StarlarkValue {
+  Revision resolve(String ref, Function<String, Optional<String>> assemblyStrategy)
+      throws ValidationException;
+}

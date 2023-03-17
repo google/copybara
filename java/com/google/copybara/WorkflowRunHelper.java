@@ -18,6 +18,8 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
+import static com.google.copybara.TransformWork.COPYBARA_CONFIG_PATH_LABEL;
+import static com.google.copybara.TransformWork.COPYBARA_WORKFLOW_NAME_LABEL;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
 import com.google.common.base.Joiner;
@@ -70,7 +72,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -603,6 +604,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
+      transformWork.addLabel(COPYBARA_CONFIG_PATH_LABEL,
+          workflow.getMainConfigFile().getIdentifier(), "=", true);
+      transformWork.addLabel(COPYBARA_WORKFLOW_NAME_LABEL, workflow.getName(), "=", true);
+
       try (ProfilerTask ignored = profiler().start("transforms")) {
         TransformationStatus status = getTransformation().transform(transformWork);
         if (status.isNoop()) {
@@ -743,21 +748,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               Files.createDirectories(workdir.resolve("merge_import")));
         }
         if (workflow.getAutoPatchfileConfiguration() != null) {
-          Path relativeConfigFile = Path.of(workflow.getMainConfigFile().getIdentifier());
           try {
             AutoPatchUtil.generatePatchFiles(
                 baselineWorkdir,
                 destinationFilesWorkdir,
-                checkoutDir.resolve(
-                    relativeConfigFile.resolveSibling(
-                        Objects.requireNonNull(
-                            workflow.getAutoPatchfileConfiguration().directory()))),
+                Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
+                workflow.getAutoPatchfileConfiguration().directory(),
                 workflow.isVerbose(),
                 workflow.getGeneralOptions().getEnvironment(),
                 workflow.getAutoPatchfileConfiguration().header(),
                 workflow.getAutoPatchfileConfiguration().suffix(),
-                relativeConfigFile.getParent(),
-                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers());
+                checkoutDir,
+                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers(),
+                workflow.getAutoPatchfileConfiguration().glob());
           } catch (InsideGitDirException e) {
             console.errorFmt(
                 "Could not automatically generate patch files. Error received is %s",

@@ -398,6 +398,27 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testSingleAction() throws Exception {
+    String cfg = ""
+        + "def a1(ctx):\n"
+        + "   ctx.console.info('Hello, this is action1 ' + str(ctx.refs))\n"
+        + "   return ctx.success()\n"
+        + "\n"
+        + "git.mirror("
+        + "    name = 'default',"
+        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+        + "    action = a1"
+        + ")\n"
+        + "";
+
+    Migration migration = loadMigration(cfg, "default");
+    migration.run(workdir, ImmutableList.of("my_ref"));
+    console.assertThat().onceInLog(MessageType.INFO,
+        "Hello, this is action1 \\[\"my_ref\"\\]");
+  }
+
+  @Test
   public void testActionFailure() throws Exception {
     ValidationException ve = checkActionFailure();
     assertThat(ve).hasMessageThat().contains("Something bad happened");
@@ -712,6 +733,34 @@ public class GitMirrorTest {
         "REF: refs/heads/create_old:" + one.getCommit().getSha1());
     console.assertThat().onceInLog(MessageType.INFO,
         "REF: refs/heads/create_head:" + two.getCommit().getSha1());
+  }
+
+  @Test
+  public void testPushWithAllowedPushOptionsButUnsupportedAtDestination() throws Exception {
+    String cfg =
+        "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
+            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'], push_options ="
+            + " ['example_push_option'])\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror(    name = 'default',    origin = 'file://"
+            + originRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    destination = 'file://"
+            + destRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    actions = [test],"
+            + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
+    RepoException expectedException =
+        assertThrows(RepoException.class, () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(expectedException).hasMessageThat().contains("--push-option=example_push_option");
+    // expected, this folder doesn't support push options
+    assertThat(expectedException)
+        .hasMessageThat()
+        .contains("the receiving end does not support push options");
   }
 
   @Test

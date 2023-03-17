@@ -70,7 +70,7 @@ public class FileConsoleTest {
 
     List<String> lines = Files.readAllLines(file);
     assertThat(lines).hasSize(6);
-    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(0)).contains("INFO: Copybara (Version: v1)");
     assertThat(lines.get(1)).contains("INFO: This is info");
     assertThat(lines.get(2)).contains("WARNING: This is warning");
     assertThat(lines.get(3)).contains("ERROR: This is error");
@@ -79,7 +79,7 @@ public class FileConsoleTest {
 
     delegate
         .assertThat()
-        .matchesNext(MessageType.INFO, "Copybara source mover [(]Version: v1[)]")
+        .matchesNext(MessageType.INFO, "Copybara [(]Version: v1[)]")
         .matchesNext(MessageType.INFO, "This is info")
         .matchesNext(MessageType.WARNING, "This is warning")
         .matchesNext(MessageType.ERROR, "This is error")
@@ -100,7 +100,7 @@ public class FileConsoleTest {
       fileConsole.verbose("This is verbose");
       List<String> lines = Files.readAllLines(file);
       assertThat(lines).hasSize(3);
-      assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+      assertThat(lines.get(0)).contains("INFO: Copybara (Version: v1)");
       assertThat(lines.get(1)).contains("INFO: This is info");
       assertThat(lines.get(2)).contains("WARNING: This is warning");
       fileConsole.progress("This is progress");
@@ -108,7 +108,7 @@ public class FileConsoleTest {
 
     List<String> lines = Files.readAllLines(file);
     assertThat(lines).hasSize(6);
-    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(0)).contains("INFO: Copybara (Version: v1)");
     assertThat(lines.get(1)).contains("INFO: This is info");
     assertThat(lines.get(2)).contains("WARNING: This is warning");
     assertThat(lines.get(3)).contains("ERROR: This is error");
@@ -158,7 +158,7 @@ f2.get();
 
     List<String> lines = Files.readAllLines(file);
     assertThat(lines).hasSize(6);
-    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(0)).contains("INFO: Copybara (Version: v1)");
     assertThat(lines.get(1)).contains("INFO: This is info");
     assertThat(lines.get(2)).contains("WARNING: This is warning");
     assertThat(lines.get(3)).contains("ERROR: This is error");
@@ -181,7 +181,7 @@ f2.get();
 
     List<String> lines = Files.readAllLines(file);
     assertThat(lines).hasSize(6);
-    assertThat(lines.get(0)).contains("INFO: Copybara source mover (Version: v1)");
+    assertThat(lines.get(0)).contains("INFO: Copybara (Version: v1)");
     assertThat(lines.get(1)).contains("INFO: This is info");
     assertThat(lines.get(2)).contains("WARNING: This is warning");
     assertThat(lines.get(3)).contains("ERROR: This is error");
