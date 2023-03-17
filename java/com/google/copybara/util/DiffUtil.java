@@ -43,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 /** Diff utilities that are repository-agnostic. */
@@ -189,6 +190,8 @@ public class DiffUtil {
     private final boolean ignoreCrAtEol;
     private final boolean singleFile;
     private final Map<String, String> environment;
+    private static final Pattern OUTPUT_ERROR_PATTERN =
+        Pattern.compile("^error:", Pattern.MULTILINE);
 
     private FoldersDiff(boolean verbose, Map<String, String> environment) {
       this.verbose = verbose;
@@ -323,7 +326,10 @@ public class DiffUtil {
       } catch (BadExitStatusWithOutputException e) {
         CommandOutput output = e.getOutput();
         // git diff returns exit status 0 when contents are identical, or 1 when they are different
-        if (!Strings.isNullOrEmpty(output.getStderr())) {
+        // see https://github.com/git/git/blob/master/usage.c#L81 for git error format
+        String outputError = output.getStderr();
+        if (!Strings.isNullOrEmpty(outputError)
+            && OUTPUT_ERROR_PATTERN.matcher(outputError).find()) {
           throw new IOException(String.format(
               "Error executing 'git diff': %s. Stderr: \n%s", e.getMessage(), output.getStderr()),
               e);

@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -71,6 +73,26 @@ public class DiffUtilTest {
             IllegalArgumentException.class,
             () -> DiffUtil.diffFiles(left, foo, VERBOSE, System.getenv()));
     assertThat(e).hasMessageThat().contains("Paths 'one' and 'other' must be sibling directories");
+  }
+
+  @Test
+  public void diffWarningDoesNotThrowException() throws Exception {
+    //set up environment where git warns of diff containing crlf
+    writeFile(left, "file1.txt", "foo\n");
+    writeFile(left, "file2.txt", "foo\r\n");
+    writeFile(right, "file1.txt", "foo\r\n");
+    writeFile(right, "file2.txt", "foo\r");
+    Path foo = Files.createTempDirectory("foo");
+    writeFile(foo, ".gitconfig", ""
+        + "[core]\n"
+        + "autocrlf=true\n"
+        + "safecrlf=warn\n");
+    Map<String, String> testEnv = new HashMap<>(System.getenv());
+    testEnv.put("HOME", foo.toAbsolutePath().toString());
+
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, testEnv);
+
+    assertThat(new String(diffContents, StandardCharsets.UTF_8)).isNotEmpty();
   }
 
   @Test
