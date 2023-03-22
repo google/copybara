@@ -805,7 +805,7 @@ public class GitRepositoryTest {
         () ->
             dest.fetchSingleRef(
                 "file://" + repository.getGitDir(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                false));
+                false, Optional.empty()));
 
     // This is the important part of the test: We do two fetches, the first ones for the default
     // head and if it fails we do one for the ref
@@ -853,7 +853,7 @@ public class GitRepositoryTest {
     GitTestUtil.writeFile(repository.getGitDir(), "HEAD",
         "ref: refs/heads/other");
     dest.fetchSingleRef(
-        "file://" + repository.getGitDir(), rev.getSha1(), false);
+        "file://" + repository.getGitDir(), rev.getSha1(), false, Optional.empty());
   }
 
   @Test
@@ -1334,7 +1334,8 @@ public class GitRepositoryTest {
     Path localGitDir = Files.createTempDirectory("localGitDir");
     GitRepository localRepo = mockRepository(localGitDir, localWorkTree);
 
-    localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch, false);
+    GitRevision ignored = localRepo.fetchSingleRef(
+        mockRemoteRepo.getGitDir().toString(), branch, false, Optional.empty());
 
     assertThat(localRepo.tryToCherryPick(sha1)).isTrue();
   }

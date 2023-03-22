@@ -66,7 +66,8 @@ public class GitRepoTypeTest {
             /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty())) {
           @Override
           public GitRevision fetchSingleRefWithTags(
-              String url, String ref, boolean fetchTags, boolean partialFetch) {
+              String url, String ref, boolean fetchTags, boolean partialFetch,
+              Optional<Integer> depth) {
             interceptedFetches.add(new String[] {url, ref});
             return new GitRevision(this, Strings.repeat("0", 40));
           }

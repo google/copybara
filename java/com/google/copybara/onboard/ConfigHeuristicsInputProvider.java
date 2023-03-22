@@ -102,7 +102,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
           gitOptions.cachedBareRepoForUrl(originUrl.toString()).withWorkTree(origin);
 
       console.progressFmt("Fetching '%s' from %s", currentVersion, originUrl.toString());
-      GitRevision gitRevision = repo.fetchSingleRef(originUrl.toString(), currentVersion, false);
+      GitRevision gitRevision = repo.fetchSingleRef(originUrl.toString(), currentVersion, false,
+          Optional.empty());
       Path git = Files.createDirectories(origin);
 
       console.progressFmt("Checking out git files");

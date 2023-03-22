@@ -61,7 +61,7 @@ public enum GitRepoType {
       Matcher sha1WithPatchSet = SHA_1_WITH_REVIEW_DATA.matcher(ref);
       if (sha1WithPatchSet.matches()) {
         GitRevision rev = repository.fetchSingleRefWithTags(repoUrl, sha1WithPatchSet.group(1),
-            /*fetchTags=*/describeVersion, partialFetch);
+            /*fetchTags=*/describeVersion, partialFetch, Optional.empty());
         return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
                                rev.contextReference(), rev.associatedLabels(), repoUrl);
       }
@@ -93,7 +93,8 @@ public enum GitRepoType {
     private GitRevision fetchFromUrl(GitRepository repository, String repoUrl, String ref,
         boolean describeVersion, boolean partialFetch)
         throws RepoException, ValidationException {
-      return repository.fetchSingleRefWithTags(repoUrl, ref, /*fetchTags=*/describeVersion, partialFetch);
+      return repository.fetchSingleRefWithTags(repoUrl, ref, /*fetchTags=*/describeVersion,
+          partialFetch, Optional.empty());
     }
   },
   @DocField(description = "A git repository hosted in Github")
@@ -160,7 +161,7 @@ public enum GitRepoType {
       String stableRef = GitHubUtil.asHeadRef(githubPrUrl.get().getPrNumber());
       GitRevision gitRevision = repository.fetchSingleRefWithTags(
           "https://github.com/" + githubPrUrl.get().getProject(), stableRef,
-          /*fetchTags=*/describeVersion, partialFetch);
+          /*fetchTags=*/describeVersion, partialFetch, Optional.empty());
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
@@ -170,7 +171,7 @@ public enum GitRepoType {
     }
     if (GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision = repository.fetchSingleRefWithTags(repoUrl, ref,
-          /*fetchTags=*/describeVersion, partialFetch);
+          /*fetchTags=*/describeVersion, partialFetch, Optional.empty());
       return new GitRevision(
           repository,
           gitRevision.getSha1(),

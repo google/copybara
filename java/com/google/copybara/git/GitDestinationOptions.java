@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -113,6 +114,15 @@ public final class GitDestinationOptions implements Option {
   @Parameter(names = "--nogit-destination-rebase",
       description = "Don't rebase the change automatically for workflows CHANGE_REQUEST mode")
   public boolean noRebase = false;
+
+  @Nullable
+  @Parameter(names = "--git-destination-fetch-depth",
+      description = "Use a shallow clone of the specified depth for git.destination")
+  Integer fetchDepth = null;
+
+  public Optional<Integer> getFetchDepth() {
+    return Optional.ofNullable(fetchDepth);
+  }
 
   boolean rebaseWhenBaseline() {
     return !noRebase;

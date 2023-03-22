@@ -1512,6 +1512,69 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void process_shallow() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    DummyRevision ref = new DummyRevision("origin_ref");
+
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+    Files.write(workdir.resolve("excluded"), "some content".getBytes(UTF_8));
+    process(firstCommitWriter(), ref);
+    Files.write(workdir.resolve("test.txt"), "new content".getBytes(UTF_8));
+    process(newWriter(), ref);
+    String head = repo().parseRef("HEAD");
+    options.gitDestination.fetchDepth = 1;
+    // Lets exclude now 'excluded' so that we check that the rebase correctly ignores
+    // the missing file (IOW, it doesn't delete the file in the commit).
+    destinationFiles = Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("excluded"));
+
+    Files.delete(workdir.resolve("excluded"));
+    Files.write(workdir.resolve("test.txt"), "newest content".getBytes(UTF_8));
+    Files.write(workdir.resolve("other.txt"), "other file".getBytes(UTF_8));
+    process(newWriter(), destinationFiles, ref);
+
+    assertThatCheckout(repo(), primaryBranch)
+        .containsFile("test.txt", "newest content")
+        .containsFile("other.txt", "other file")
+        .containsFile("excluded", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void process_partial() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    DummyRevision ref = new DummyRevision("origin_ref");
+    Path included = workdir.resolve("included");
+    Path excluded = workdir.resolve("excluded");
+    Files.createDirectories(included);
+    Files.createDirectories(excluded);
+
+    Files.write(included.resolve("test.txt"), "some content".getBytes(UTF_8));
+    Files.write(excluded.resolve("excluded"), "some content".getBytes(UTF_8));
+    process(firstCommitWriter(), ref);
+    Files.write(included.resolve("test.txt"), "new content".getBytes(UTF_8));
+    process(newWriter(), ref);
+    String head = repo().parseRef("HEAD");
+    options.gitDestination.fetchDepth = 1;
+    partialClone = "True";
+    // Lets exclude now 'excluded' so that we check that the rebase correctly ignores
+    // the missing file (IOW, it doesn't delete the file in the commit).
+    destinationFiles = Glob.createGlob(ImmutableList.of("included/*"));
+
+    Files.delete(excluded.resolve("excluded"));
+    Files.write(included.resolve("test.txt"), "newest content".getBytes(UTF_8));
+    Files.write(included.resolve("other.txt"), "other file".getBytes(UTF_8));
+    process(newWriter(), destinationFiles, ref);
+
+    assertThatCheckout(repo(), primaryBranch)
+        .containsFile("included/test.txt", "newest content")
+        .containsFile("included/other.txt", "other file")
+        .containsFile("excluded/excluded", "some content")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void processWithBaseline_noRebase() throws Exception {
     options.gitDestination.noRebase = true;
     options.setForce(true);

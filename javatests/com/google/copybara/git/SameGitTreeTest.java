@@ -27,6 +27,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +73,8 @@ public class SameGitTreeTest {
       Path localWorkTree = Files.createTempDirectory("localWorkTree");
       Path localGitDir = Files.createTempDirectory("localGitDir");
       GitRepository localRepo = mockRepository(localGitDir, localWorkTree);
-      localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch, false);
+      GitRevision ignored = localRepo.fetchSingleRef(mockRemoteRepo.getGitDir().toString(), branch,
+          false, Optional.empty());
       localRepo.forceCheckout(sha1);
 
       // mock the same sha1 at remote and local

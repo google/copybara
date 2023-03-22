@@ -325,13 +325,15 @@ public class GitRepository {
    * locations. IOW
    * "refs/foo" is allowed but not "refs/foo:remote/origin/foo". Wildcards are also not allowed.
    */
-  public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch)
+  @CanIgnoreReturnValue
+  public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch,
+      Optional<Integer> depth)
       throws RepoException, ValidationException {
-    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false, partialFetch);
+    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false, partialFetch, depth);
   }
 
   public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags,
-      boolean partialFetch) throws RepoException, ValidationException {
+      boolean partialFetch, Optional<Integer> depth) throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -351,7 +353,7 @@ public class GitRepository {
             /*force=*/ true,
             ImmutableList.of(),
             partialFetch,
-            Optional.empty());
+            depth);
       } catch (CannotResolveRevisionException e) {
         // Some servers are configured without HEAD. That is fine, we'll try fetching the SHA
         // instead.
@@ -371,14 +373,14 @@ public class GitRepository {
           /*prune=*/ false,
           /*force=*/ true,
           ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"),
-          partialFetch, Optional.empty());
+          partialFetch, depth);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
       fetch(
           url,
           /*prune=*/ false,
           /*force=*/ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch, Optional.empty());
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch, depth);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     }
   }

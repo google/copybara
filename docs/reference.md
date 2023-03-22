@@ -2301,6 +2301,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
@@ -2374,6 +2375,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
@@ -2506,6 +2508,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
@@ -2617,6 +2620,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
 <span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
 <span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
 <span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.

@@ -411,7 +411,8 @@ public class GitOrigin implements Origin<GitRevision> {
 
 
         if (submodule.getBranch() != null) {
-          subRepo.fetchSingleRef(submoduleUrl, submodule.getBranch(), partialFetch);
+          subRepo.fetchSingleRef(
+              submoduleUrl, submodule.getBranch(), partialFetch, Optional.empty());
         } else {
           subRepo.fetch(
               submoduleUrl, /*prune*/
@@ -446,7 +447,8 @@ public class GitOrigin implements Origin<GitRevision> {
         return;
       }
       generalOptions.console().info(String.format("Rebasing %s to %s", rebaseToRef, rebaseToRef));
-      GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef, partialFetch);
+      GitRevision rebaseRev = repo.fetchSingleRef(repoUrl, rebaseToRef, partialFetch,
+          Optional.empty());
       repo.simpleCommand("update-ref", COPYBARA_TMP_REF, rebaseRev.getSha1());
       repo.rebaseCmd(COPYBARA_TMP_REF)
           .errorAdvice(

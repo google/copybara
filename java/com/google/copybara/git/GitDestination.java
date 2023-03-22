@@ -192,7 +192,8 @@ public class GitDestination implements Destination<GitRevision> {
         destinationOptions.rebaseWhenBaseline(),
         gitOptions.visitChangePageSize,
         gitOptions.gitTagOverwrite,
-        checker);
+        checker,
+        destinationOptions);
   }
 
   /**
@@ -244,6 +245,7 @@ public class GitDestination implements Destination<GitRevision> {
     private final int visitChangePageSize;
     private final boolean gitTagOverwrite;
     @Nullable private final Checker checker;
+    private final GitDestinationOptions destinationOptions;
 
     /** Create a new git.destination writer */
     WriterImpl(
@@ -268,7 +270,8 @@ public class GitDestination implements Destination<GitRevision> {
         boolean rebase,
         int visitChangePageSize,
         boolean gitTagOverwrite,
-        Checker checker) {
+        Checker checker,
+        GitDestinationOptions destinationOptions) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -293,6 +296,7 @@ public class GitDestination implements Destination<GitRevision> {
       this.visitChangePageSize = visitChangePageSize;
       this.gitTagOverwrite = gitTagOverwrite;
       this.checker = checker;
+      this.destinationOptions = checkNotNull(destinationOptions);
     }
 
     @Override
@@ -798,7 +802,8 @@ public class GitDestination implements Destination<GitRevision> {
       String completeFetchRef = getCompleteRef(fetch);
       try (ProfilerTask ignore = generalOptions.profiler().start("destination_fetch")) {
         console.progress("Git Destination: Fetching: " + repoUrl + " " + completeFetchRef);
-        return repo.fetchSingleRef(repoUrl, completeFetchRef, partialFetch);
+        return repo.fetchSingleRef(
+            repoUrl, completeFetchRef, partialFetch, destinationOptions.getFetchDepth());
       } catch (CannotResolveRevisionException e) {
         String warning = format("Git Destination: '%s' doesn't exist in '%s'",
             completeFetchRef, repoUrl);
