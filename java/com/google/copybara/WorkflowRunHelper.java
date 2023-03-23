@@ -58,6 +58,7 @@ import com.google.copybara.util.CommandLineDiffUtil;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.MergeImportTool;
@@ -716,6 +717,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
+      Path preMergeImportWorkdir;
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
         Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
         destinationReader
@@ -733,6 +735,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 destinationApi,
                 destinationReader);
 
+        preMergeImportWorkdir = Files.createDirectories(workdir.resolve("premerge"));
+        FileUtil.copyFilesRecursively(
+            checkoutDir,
+            preMergeImportWorkdir,
+            CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
+            Glob.ALL_FILES);
         MergeImportTool mergeImportTool =
             new MergeImportTool(
                 console,
@@ -750,8 +758,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         if (workflow.getAutoPatchfileConfiguration() != null) {
           try {
             AutoPatchUtil.generatePatchFiles(
-                baselineWorkdir,
-                destinationFilesWorkdir,
+                preMergeImportWorkdir == null ? baselineWorkdir : preMergeImportWorkdir,
+                preMergeImportWorkdir == null ? destinationFilesWorkdir : checkoutDir,
                 Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
                 workflow.getAutoPatchfileConfiguration().directory(),
                 workflow.isVerbose(),
