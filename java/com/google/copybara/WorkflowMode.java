@@ -346,7 +346,7 @@ public enum WorkflowMode {
       runHelper
           .getDestinationWriter()
           .visitChangesWithAnyLabel(
-              /*start=*/ null,
+              /* start= */ null,
               ImmutableList.of(runHelper.getOriginLabelName()),
               (change, matchedLabels) -> {
                 for (String value : matchedLabels.values()) {
@@ -354,6 +354,7 @@ public enum WorkflowMode {
                     if (revisionWithoutReviewInfo(originRevision.asString())
                         .equals(revisionWithoutReviewInfo(value))) {
                       result[0] = new Baseline<>(change.getRevision().asString(), originRevision);
+                      runHelper.getConsole().verboseFmt("Found baseline %s", result[0]);
                       return VisitResult.TERMINATE;
                     }
                   }
