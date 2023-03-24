@@ -35,3 +35,12 @@ java_library(
         "//third_party:jcommander",
     ],
 )
+
+java_library(
+    name = "splitters",
+    srcs = glob(["**/*Splitter.java"]),
+    deps = [
+        "//third_party:guava",
+        "//third_party:jcommander",
+    ],
+)

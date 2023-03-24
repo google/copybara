@@ -53,6 +53,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git/github:api",
         "//java/com/google/copybara/git/github:util",
+        "//java/com/google/copybara/jcommander:splitters",
         "//java/com/google/copybara/jcommander:validators",
         "//java/com/google/copybara/json",
         "//java/com/google/copybara/monitor",

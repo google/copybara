@@ -27,6 +27,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.jcommander.GreaterThanZeroValidator;
+import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -71,6 +72,7 @@ public class GitOptions implements Option {
 
   @Parameter(
       names = "--allowed-git-push-options",
+      splitter = SemicolonSeparatedListSplitter.class,
       description =
           "This is a flag used to allowlist push options sent to git servers. E.g. copybara"
               + " copy.bara.sky --git-push-option=\"foo,bar\" would make copybara validate push so"
