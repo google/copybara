@@ -195,8 +195,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
     @Override
     public ImmutableList<DummyRevision> findBaselinesWithoutLabel(DummyRevision startRevision,
         int limit) throws RepoException {
-      BaselinesWithoutLabelVisitor<DummyRevision> visitor = new BaselinesWithoutLabelVisitor<>(
-          originFiles, limit, /*skipFirst=*/ true);
+      BaselinesWithoutLabelVisitor<DummyRevision> visitor =
+          new BaselinesWithoutLabelVisitor<>(
+              originFiles, limit, Optional.of(startRevision), /* skipFirst= */ false);
       visitChanges(startRevision, visitor);
       return visitor.getResult();
     }

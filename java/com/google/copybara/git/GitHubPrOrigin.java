@@ -598,15 +598,15 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         gitOptions,
         gitOriginOptions,
         generalOptions,
-        /*includeBranchCommitLogs=*/ false,
+        /* includeBranchCommitLogs= */ false,
         submoduleStrategy,
         excludedSubmodules,
         firstParent,
         partialFetch,
         patchTransformation,
         describeVersion,
-        /*configPath=*/ null,
-        /*workflowName=*/ null) {
+        /* configPath= */ null,
+        /* workflowName= */ null) {
 
       /** Disable rebase since this is controlled by useMerge field. */
       @Override
@@ -619,7 +619,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         if (!baselineFromBranch) {
           return super.findBaseline(startRevision, label);
         }
-        return findBaselinesWithoutLabel(startRevision, /*limit=*/ 1).stream()
+        return findBaselinesWithoutLabel(startRevision, /* limit= */ 1).stream()
             .map(e -> new Baseline<>(e.getSha1(), e))
             .findFirst();
       }
@@ -635,7 +635,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         GitRevision baselineRev = getRepository().resolveReference(baseline);
         // Don't skip the first change as it is already the baseline
         BaselinesWithoutLabelVisitor<GitRevision> visitor =
-            new BaselinesWithoutLabelVisitor<>(originFiles, limit, /*skipFirst=*/ false);
+            new BaselinesWithoutLabelVisitor<>(
+                originFiles, limit, Optional.empty(), /* skipFirst= */ false);
         visitChanges(baselineRev, visitor);
         return visitor.getResult();
       }

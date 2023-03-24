@@ -319,6 +319,59 @@ public class GerritOriginTest {
   }
 
   @Test
+  public void testChanges_baselineWithRootsUntouched() throws Exception {
+    String url = "https://" + REPO_URL;
+    Path excluded = remote.resolve("excluded");
+    Path included = remote.resolve("included");
+    Files.createDirectories(included);
+    Files.createDirectories(excluded);
+    Files.write(included.resolve("base.txt"), new byte[0]);
+    repo.add().files("included/base.txt").run();
+
+    git("commit", "-m", "baseline with change", "--date", commitTime);
+    baseline = repo.parseRef("HEAD");
+    Files.write(excluded.resolve("test.txt"), "some content".getBytes(UTF_8));
+    repo.add().files("excluded/test.txt").run();
+
+    git("commit", "-m", "excluded change", "--date", commitTime);
+    firstRevision =
+        new GitRevision(
+            repo,
+            repo.parseRef("HEAD"),
+            GerritChange.gerritPatchSetAsReviewReference(1),
+            "12345",
+            ImmutableListMultimap.<String, String>builder()
+                .put(GerritChange.GERRIT_CHANGE_NUMBER_LABEL, "12345")
+                .put(GerritChange.GERRIT_CHANGE_ID_LABEL, CHANGE_ID)
+                .put(GerritChange.GERRIT_COMPLETE_CHANGE_ID_LABEL, "my_branch-12345")
+                .put(GerritChange.GERRIT_CHANGE_BRANCH, "my_branch")
+                .put(GERRIT_OWNER_EMAIL_LABEL, "the_owner@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "foo@example.com")
+                .put("GERRIT_REVIEWER_EMAIL", "bar@example.com")
+                .put("GERRIT_CC_EMAIL", "baz@example.com")
+                .put(GerritChange.GERRIT_CHANGE_DESCRIPTION_LABEL, CHANGE_DESCRIPTION)
+                .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 1 " + CHANGE_ID)
+                .put(
+                    GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
+                    repo.parseRef("HEAD").substring(0, 7))
+                .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
+                .put(GitRepository.GIT_DESCRIBE_ABBREV, "")
+                .build(),
+            url);
+    git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
+    git("update-ref", "refs/changes/45/12345/2", firstRevision.getSha1());
+    git("update-ref", "refs/changes/45/12345/3", firstRevision.getSha1());
+
+
+    mockChange(12345);
+    Reader<GitRevision> reader =
+        origin.newReader(Glob.createGlob(ImmutableList.of("included/*")), AUTHORING);
+
+    assertThat(reader.findBaselinesWithoutLabel(origin.resolve("12345"), /*limit=*/ 1).get(0)
+        .getSha1())
+        .isEqualTo(baseline);
+}
+  @Test
   public void testIgnoreGerritNoop() throws Exception {
     mockChange(12345);
     GerritOrigin origin =

@@ -50,6 +50,7 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -225,16 +226,17 @@ public class GerritOrigin extends GitOrigin {
         partialFetch,
         patchTransformation,
         describeVersion,
-        /*configPath=*/ null,
-        /*workflowName=*/ null) {
+        /* configPath= */ null,
+        /* workflowName= */ null) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(
           GitRevision startRevision, int limit) throws RepoException, ValidationException {
 
-        // Skip the first change as it is the Gerrit review change
+        // Skip the initial change as it might be the Gerrit review change
         BaselinesWithoutLabelVisitor<GitRevision> visitor =
-            new BaselinesWithoutLabelVisitor<>(originFiles, limit, /*skipFirst=*/ true);
+            new BaselinesWithoutLabelVisitor<>(
+                originFiles, limit, Optional.of(startRevision), /* skipFirst= */ false);
         visitChanges(startRevision, visitor);
         return visitor.getResult();
       }

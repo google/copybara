@@ -17,6 +17,7 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -27,6 +28,7 @@ import com.google.copybara.testing.DummyRevision;
 import com.google.copybara.util.Glob;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.Test;
@@ -38,9 +40,12 @@ public class BaselinesWithoutLabelVisitorTest {
 
   @Test
   public void testResults() {
-    BaselinesWithoutLabelVisitor<DummyRevision> visitor = new BaselinesWithoutLabelVisitor<>(
-        Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")), 10,
-        /*skipFirst=*/false);
+    BaselinesWithoutLabelVisitor<DummyRevision> visitor =
+        new BaselinesWithoutLabelVisitor<>(
+            Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")),
+            10,
+            Optional.empty(),
+            false);
 
     visit(visitor, "one", ImmutableSet.of("foo/aa"));
     visit(visitor, "two", ImmutableSet.of("excluded/aaa"));
@@ -53,10 +58,13 @@ public class BaselinesWithoutLabelVisitorTest {
   }
 
   @Test
-  public void testSkipFirst() {
-    BaselinesWithoutLabelVisitor<DummyRevision> visitor = new BaselinesWithoutLabelVisitor<>(
-        Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")), 10,
-        /*skipFirst=*/true);
+  public void testSkipStart() {
+    BaselinesWithoutLabelVisitor<DummyRevision> visitor =
+        new BaselinesWithoutLabelVisitor<>(
+            Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")),
+            10,
+            /* toSkip= */ Optional.of(new DummyRevision("one")),
+            false);
 
     visit(visitor, "one", ImmutableSet.of("foo/aa"));
     visit(visitor, "two", ImmutableSet.of("excluded/aaa"));
@@ -68,10 +76,29 @@ public class BaselinesWithoutLabelVisitorTest {
   }
 
   @Test
+  public void testSkipFirst() {
+    BaselinesWithoutLabelVisitor<DummyRevision> visitor =
+        new BaselinesWithoutLabelVisitor<>(
+            Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")),
+            10,
+            /* toSkip= */ Optional.empty(),
+            true);
+
+    visit(visitor, "one", ImmutableSet.of("foo/aa"));
+    visit(visitor, "two", ImmutableSet.of("excluded/aaa"));
+    visit(visitor, "three", ImmutableSet.of("foo/bar"));
+
+    assertThat(visitor.getResult().stream().map(DummyRevision::asString)).containsExactly("three");
+  }
+
+  @Test
   public void testLimit() {
-    BaselinesWithoutLabelVisitor<DummyRevision> visitor = new BaselinesWithoutLabelVisitor<>(
-        Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")), 3,
-        /*skipFirst=*/false);
+    BaselinesWithoutLabelVisitor<DummyRevision> visitor =
+        new BaselinesWithoutLabelVisitor<>(
+            Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/bar")),
+            3,
+            Optional.empty(),
+            false);
 
     visit(visitor, "one", ImmutableSet.of("foo/aa"));
     visit(visitor, "two", ImmutableSet.of("excluded/aaa"));

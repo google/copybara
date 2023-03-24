@@ -26,6 +26,7 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.util.Glob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /** A visitor that finds all the parents that match the origin glob. */
 public class BaselinesWithoutLabelVisitor<T> implements ChangesVisitor {
@@ -34,11 +35,15 @@ public class BaselinesWithoutLabelVisitor<T> implements ChangesVisitor {
   private final int limit;
   private final Glob originFiles;
   private boolean skipFirst;
+  private final Optional<? extends Revision> toSkip;
 
-  public BaselinesWithoutLabelVisitor(Glob originFiles, int limit, boolean skipFirst) {
+
+  public BaselinesWithoutLabelVisitor(
+      Glob originFiles, int limit, Optional<? extends Revision> toSkip, boolean skipFirst) {
     this.originFiles = Preconditions.checkNotNull(originFiles);
     Preconditions.checkArgument(limit > 0);
     this.limit = limit;
+    this.toSkip = Preconditions.checkNotNull(toSkip);
     this.skipFirst = skipFirst;
   }
 
@@ -49,7 +54,7 @@ public class BaselinesWithoutLabelVisitor<T> implements ChangesVisitor {
   @SuppressWarnings("unchecked")
   @Override
   public VisitResult visit(Change<? extends Revision> change) {
-    if (skipFirst) {
+    if (skipFirst || (toSkip.isPresent() && change.getRevision().equals(toSkip.get()))) {
       skipFirst = false;
       return VisitResult.CONTINUE;
     }
