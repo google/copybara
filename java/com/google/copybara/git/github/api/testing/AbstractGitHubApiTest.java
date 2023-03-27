@@ -47,7 +47,6 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubCommit;
 import com.google.copybara.git.github.api.Installation;
-import com.google.copybara.git.github.api.Installations;
 import com.google.copybara.git.github.api.Issue;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.git.github.api.IssueComment;
@@ -661,38 +660,44 @@ public abstract class AbstractGitHubApiTest {
 
   @Test
   public void test_getCheckSuites_pagination() throws Exception {
-    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100",
+    trainMockGetWithHeaders(
+        "/repos/example/project/commits/12345/check-suites?per_page=100",
         getResource("get_check_suites_testdata.json"),
-        ImmutableMap.of("Link", ""
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=2>; rel=\"next\", "
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=3>; rel=\"last\", "
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=1>; rel=\"first\""
-        ), 200);
-    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=2",
+        ImmutableMap.of(
+            "Link",
+            "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=2>;"
+                + " rel=\"next\", "
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=3>;"
+                + " rel=\"last\", "
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=1>;"
+                + " rel=\"first\""),
+        200);
+    trainMockGetWithHeaders(
+        "/repos/example/project/commits/12345/check-suites?per_page=100&page=2",
         getResource("get_check_suites_testdata.json"),
-        ImmutableMap.of("Link", ""
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=1>; rel=\"prev\","
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=3>; rel=\"next\", "
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=3>; rel=\"last\", "
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=1>; rel=\"first\""
-        ), 200);
-    trainMockGetWithHeaders("/repos/example/project/commits/12345/check-suites?per_page=100&page=3",
+        ImmutableMap.of(
+            "Link",
+            "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=1>;"
+                + " rel=\"prev\","
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=3>;"
+                + " rel=\"next\", "
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=3>;"
+                + " rel=\"last\", "
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=1>;"
+                + " rel=\"first\""),
+        200);
+    trainMockGetWithHeaders(
+        "/repos/example/project/commits/12345/check-suites?per_page=100&page=3",
         getResource("get_check_suites_testdata.json"),
-        ImmutableMap.of("Link", ""
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=2>; rel=\"prev\","
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=3>; rel=\"last\", "
-            + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100"
-            + "&page=1>; rel=\"first\""
-        ), 200);
+        ImmutableMap.of(
+            "Link",
+            "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=2>;"
+                + " rel=\"prev\","
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=3>;"
+                + " rel=\"last\", "
+                + "<https://api.github.com/repos/example/project/commits/12345/check-suites?per_page=100&page=1>;"
+                + " rel=\"first\""),
+        200);
 
     ImmutableList<CheckSuite> checkSuites = api.getCheckSuites("example/project", "12345");
     assertThat(checkSuites).hasSize(3);
@@ -763,9 +768,11 @@ public abstract class AbstractGitHubApiTest {
 
   @Test
   public void testGetInstallions() throws Exception {
-    trainMockGet("/orgs/octo-org/installations", getResource("get_installations_testdata.json"));
-    Installations installations = api.getInstallations("octo-org");
-    Installation installation = Iterables.getOnlyElement(installations.getInstallations());
+    trainMockGet(
+        "/orgs/octo-org/installations?per_page=100",
+        getResource("get_installations_testdata.json"));
+    ImmutableList<Installation> installations = api.getInstallations("octo-org");
+    Installation installation = Iterables.getOnlyElement(installations);
     assertThat(installation.getAppSlug()).isEqualTo("github-actions");
     assertThat(installation.getTargetType()).isEqualTo("Organization");
     assertThat(installation.getRepositorySelection()).isEqualTo("selected");

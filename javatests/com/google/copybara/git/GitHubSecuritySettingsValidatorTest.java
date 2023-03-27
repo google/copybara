@@ -131,7 +131,7 @@ public final class GitHubSecuritySettingsValidatorTest {
   public void testGitHubSecuritySettingsValidator_withAllStarInstalled() throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/orgs/google/installations"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     GitHubSecuritySettingsValidator validator =
         getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
@@ -153,7 +153,7 @@ public final class GitHubSecuritySettingsValidatorTest {
   public void testGitHubSecuritySettingsValidator_withoutAllStarInstalled() throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/orgs/google/installations"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": -1}]}"));
     GitHubSecuritySettingsValidator validator =
         getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
@@ -171,7 +171,7 @@ public final class GitHubSecuritySettingsValidatorTest {
           throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/orgs/google/installations"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockGitHubUnauthorized());
     GitHubSecuritySettingsValidator validator =
         getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));

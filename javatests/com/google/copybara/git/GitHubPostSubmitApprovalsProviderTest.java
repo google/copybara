@@ -123,7 +123,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
       throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/orgs/google/installations"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     gitTestUtil.mockApi(
         eq("GET"),
@@ -214,7 +214,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
       throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
-        eq("https://api.github.com/orgs/google/installations"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     gitTestUtil.mockApi(
         eq("GET"),
@@ -299,7 +299,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
       throws Exception {
     gitTestUtil.mockApi(
         "GET",
-        "https://api.github.com/orgs/google/installations",
+        "https://api.github.com/orgs/google/installations?per_page=100",
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": -1}]}"));
     gitTestUtil.mockApi(
         "GET",

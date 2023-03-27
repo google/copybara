@@ -19,19 +19,27 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Correspond to JSON schema response for top level object in
  * https://docs.github.com/en/rest/orgs/orgs#list-app-installations-for-an-organization
  *
- * Not all property keys are included here. Add them as needed.
+ * <p>Not all property keys are included here. Add them as needed.
  */
-public class Installations {
+public class Installations implements PaginatedPayload<Installation> {
   @Key("total_count")
   private int installionsCount;
 
   @Key("installations")
-  private List<Installation> installations;
+  private PaginatedList<Installation> installations;
+
+  public Installations() {}
+
+  public Installations(int installionsCount, PaginatedList<Installation> installations) {
+    this.installionsCount = installionsCount;
+    this.installations = installations;
+  }
 
   public int getInstallionsCount() {
     return installionsCount;
@@ -47,5 +55,17 @@ public class Installations {
         .add("installations_count", installionsCount)
         .add("installations", installations)
         .toString();
+  }
+
+  @Override
+  public PaginatedList<Installation> getPayload() {
+    return installations;
+  }
+
+  @Override
+  public PaginatedPayload<Installation> annotatePayload(
+      String apiPrefix, @Nullable String linkHeader) {
+    return new Installations(
+        installionsCount, installations.withPaginationInfo(apiPrefix, linkHeader));
   }
 }

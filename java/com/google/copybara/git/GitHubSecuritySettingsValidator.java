@@ -108,8 +108,8 @@ public class GitHubSecuritySettingsValidator {
 
   private boolean hasAllStar(String organization) throws ValidationException, RepoException {
     try {
-      return api.getInstallations(organization).getInstallations().stream()
-          .anyMatch(i -> i.getAppId() == ALL_STAR_APP_ID);
+      return api.getInstallations(organization).stream()
+          .anyMatch(installation -> installation.getAppId() == ALL_STAR_APP_ID);
     } catch (GitHubApiException e) {
       throw handleGitHubException(
           e,

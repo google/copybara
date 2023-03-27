@@ -289,7 +289,7 @@ public class GitHubApi {
     }
     return builder.build();
   }
-  
+
   /**
    * Create a pull request
    */
@@ -531,9 +531,17 @@ public class GitHubApi {
    * This HTTP request call requires admin:read permissions at the org level.
    * https://docs.github.com/en/rest/orgs/orgs#list-app-installations-for-an-organization
    */
-  public Installations getInstallations(String org) throws RepoException, ValidationException {
+  public ImmutableList<Installation> getInstallations(String org)
+      throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_get_installations")) {
-      return transport.get(Installations.class, "orgs/%s/installations", org);
+      return paginatedGet(
+          "github_api_get_installations",
+          new TypeToken<Installations>() {}.getType(),
+          "App Installation",
+          ImmutableListMultimap.of("Accept", "application/vnd.github.groot-preview+json"),
+          "orgs/%s/installations?per_page=%d",
+          org,
+          MAX_PER_PAGE);
     }
   }
 
