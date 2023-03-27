@@ -927,7 +927,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc =
                 "A set of regexes. Any line that matches any expression in this set, which"
-                    + " might otherwise be transformed, will be ignored.",
+                    + " might otherwise be transformed, will be ignored. Note that this works by"
+                    + " comparing the to-be-transformed string to the ignore regexes, meaning text"
+                    + " outside the transform may not be used to determine whether or not to apply"
+                    + " a transformation. For example, a before='/foo', ignore=['/foo/bar']"
+                    + " approach will not work; the before text must contain a regex group"
+                    + " capturing the portion after /foo if it is used in an ignore sequence.",
             defaultValue = "[]"),
       },
       useStarlarkThread = true)
