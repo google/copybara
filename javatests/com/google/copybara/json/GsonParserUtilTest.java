@@ -41,7 +41,6 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class GsonParserUtilTest {
-  private final GsonParserUtil parserUtil = new GsonParserUtil();
   private final JsonFactory jsonFactory = new GsonFactory();
 
   @Test
@@ -51,7 +50,7 @@ public class GsonParserUtilTest {
     object.addProperty("bar", "baz");
 
     Map<String, ?> parsed =
-        parserUtil.parseHttpResponse(
+        GsonParserUtil.parseHttpResponse(
             getHttpResponse(
                 object.toString().getBytes(StandardCharsets.UTF_8)), Map.class, false);
 
@@ -69,7 +68,7 @@ public class GsonParserUtilTest {
 
     String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
     Map<String, ?> parsed =
-        parserUtil.parseHttpResponse(
+        GsonParserUtil.parseHttpResponse(
             getHttpResponse(content.getBytes(StandardCharsets.UTF_8)), Map.class, true);
 
     // GSON parses integers as BigDecimals
@@ -85,7 +84,7 @@ public class GsonParserUtilTest {
     object.addProperty("bar", "foo");
 
     String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
-    Map<String, ?> parsed = parserUtil.parseString(content, Map.class, true);
+    Map<String, ?> parsed = GsonParserUtil.parseString(content, Map.class, true);
 
     // GSON parses integers as BigDecimals
     assertThat(parsed).isNotNull();
@@ -102,7 +101,7 @@ public class GsonParserUtilTest {
     String content = GsonParserUtil.GSON_NO_EXECUTE_PREFIX + "\n" + object;
     Charset charset = StandardCharsets.UTF_8;
     Map<String, ?> parsed =
-        parserUtil.parseBytes(content.getBytes(charset), charset, Map.class, true);
+        GsonParserUtil.parseBytes(content.getBytes(charset), charset, Map.class, true);
 
     // GSON parses integers as BigDecimals
     assertThat(parsed).isNotNull();
@@ -115,7 +114,7 @@ public class GsonParserUtilTest {
     String badJson = "%foo{)'";
 
     assertThrows(IllegalArgumentException.class,
-        () -> parserUtil.parseString(badJson, Map.class, false));
+        () -> GsonParserUtil.parseString(badJson, Map.class, false));
   }
 
   private HttpResponse getHttpResponse(byte[] content) throws Exception {

@@ -55,7 +55,6 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
-  private static final GsonParserUtil GSON_PARSER_UTIL = new GsonParserUtil();
   private static final String API_URL = "https://api.github.com";
   private final APIType apiType;
   private static final String GITHUB_WEB_URL = "https://github.com";
@@ -94,7 +93,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
       HttpResponse response = httpRequest.execute();
-      Object responseObj = GSON_PARSER_UTIL.parseHttpResponse(response, responseType, false);
+      Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
             ((PaginatedPayload) responseObj)
@@ -160,7 +159,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       HttpRequest httpRequest = requestFactory.buildPostRequest(url,
           new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
-      Object responseObj = GSON_PARSER_UTIL.parseHttpResponse(
+      Object responseObj = GsonParserUtil.parseHttpResponse(
           response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T) ((PaginatedPayload) responseObj).annotatePayload(this.apiType.getURLPrefix(),

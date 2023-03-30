@@ -50,7 +50,7 @@ public class GsonParserUtil {
    * @throws IllegalArgumentException if the JSON can't be parsed to the given {@link Type}
    */
   @Nullable
-  public <T> T parseHttpResponse(
+  public static <T> T parseHttpResponse(
       HttpResponse response,
       Type responseType,
       boolean stripNoExecutePrefix) throws IOException {
@@ -65,7 +65,7 @@ public class GsonParserUtil {
     return parseBytes(bytes, charset, responseType, stripNoExecutePrefix);
   }
 
-  private boolean isResponseEmpty(HttpResponse response) throws IOException {
+  private static boolean isResponseEmpty(HttpResponse response) throws IOException {
     return response.getContent() == null
         || response.getStatusCode() == HttpStatusCodes.STATUS_CODE_NO_CONTENT;
   }
@@ -80,7 +80,7 @@ public class GsonParserUtil {
    * @throws IllegalArgumentException if the JSON can't be parsed to the given {@link Type}
    */
   @SuppressWarnings("unused")
-  public <T> T parseString(
+  public static <T> T parseString(
       String string,
       Type dataType,
       boolean stripNoExecutePrefix)
@@ -99,7 +99,7 @@ public class GsonParserUtil {
    * @throws IllegalArgumentException if the JSON can't be parsed to the given {@link Type}
    */
   @SuppressWarnings("unchecked")
-  public <T> T parseBytes(
+  public static <T> T parseBytes(
       byte[] bytes,
       Charset charset,
       Type dataType,
@@ -125,4 +125,6 @@ public class GsonParserUtil {
                   + "Content: %s\n", dataType, new String(bytes, charset)), e);
     }
   }
+
+  private GsonParserUtil() {}
 }

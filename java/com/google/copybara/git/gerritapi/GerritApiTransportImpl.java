@@ -105,7 +105,6 @@ public class GerritApiTransportImpl implements GerritApiTransport {
   @SuppressWarnings("unchecked")
   public static <T> T execute(Type responseType, HttpRequest httpRequest)
       throws IOException, RepoException {
-    GsonParserUtil parserUtil = new GsonParserUtil();
     HttpResponse response;
     try {
       response = httpRequest.execute();
@@ -113,7 +112,7 @@ public class GerritApiTransportImpl implements GerritApiTransport {
       throw new GerritApiException(e.getStatusCode(), e.getContent(), e.getContent());
     }
     try {
-      return (T) parserUtil.parseHttpResponse(response, responseType, true);
+      return (T) GsonParserUtil.parseHttpResponse(response, responseType, true);
     } catch (IllegalArgumentException e) {
       throw new RepoException(
           String.format("Cannot parse response as type %s.\n"
