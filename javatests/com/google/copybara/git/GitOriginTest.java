@@ -27,6 +27,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -675,6 +676,45 @@ public class GitOriginTest {
     }
 
     assertThat(work.getLabel("GIT_SEQUENTIAL_REVISION_NUMBER")).isEqualTo("4");
+  }
+
+  @Test
+  public void testChangesLabelsPropagateToHead() throws Exception {
+    // Need to "round" it since git doesn't store the milliseconds
+    ZonedDateTime beforeTime = ZonedDateTime.now(ZoneId.systemDefault()).minusSeconds(1);
+    String author = "John Name <john@name.com>";
+    singleFileCommit(author, "change2", "test.txt", "some content2");
+    git("tag", "-m", "This is a tag", "0.1");
+    singleFileCommit(author, "change3", "test.txt", "some content3");
+    singleFileCommit(author, "change4", "test.txt", "some content4");
+
+    ImmutableList<Change<GitRevision>> changes =
+        newReader()
+            .changes(
+                origin.resolve(firstCommitRef),
+                origin
+                    .resolve("HEAD")
+                    .withLabels(ImmutableListMultimap.of("MY_LABEL_KEY", "MY_LABEL_VALUE")))
+            .getChanges();
+
+    String headSHA = origin.resolve("HEAD").getSha1();
+
+    ImmutableList<Change<GitRevision>> headChange =
+        changes.stream()
+            .filter(change -> change.getRevision().getSha1().equals(headSHA))
+            .collect(ImmutableList.toImmutableList());
+    ImmutableList<Change<GitRevision>> notHeadChanges =
+        changes.stream()
+            .filter(change -> !change.getRevision().getSha1().equals(headSHA))
+            .collect(ImmutableList.toImmutableList());
+    assertThat(Iterables.getOnlyElement(headChange).getRevision().associatedLabel("MY_LABEL_KEY"))
+        .isEqualTo(ImmutableList.of("MY_LABEL_VALUE"));
+    assertThat(notHeadChanges).isNotEmpty();
+    assertThat(
+            notHeadChanges.stream()
+                .allMatch(
+                    change -> !change.getRevision().associatedLabels().containsKey("MY_LABEL_KEY")))
+        .isEqualTo(true);
   }
 
   @Test

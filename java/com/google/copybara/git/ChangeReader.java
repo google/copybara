@@ -21,6 +21,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.ChangeMessage;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -68,9 +70,21 @@ class ChangeReader {
 
   ImmutableList<Change<GitRevision>> run(String refExpression)
       throws RepoException, ValidationException {
-    LogCmd logCmd = repository
-        .log(refExpression)
-        .firstParent(firstParent);
+    return run(refExpression, ImmutableMap.of());
+  }
+
+  /**
+   * Computes a list of changes from the {@code refExpression} and propagates labels contained in
+   * {@code labels} onto the resulting change list.
+   *
+   * @param refExpression expression log and parse changes from.
+   * @param labels map where the key is the GitRevision sha and the value is the labels that should
+   *     be attached to parsed GitRevisions corresonding to that sha.
+   */
+  ImmutableList<Change<GitRevision>> run(
+      String refExpression, ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
+      throws RepoException, ValidationException {
+    LogCmd logCmd = repository.log(refExpression).firstParent(firstParent);
     if (limit != -1) {
       logCmd = logCmd.withLimit(limit);
     }
@@ -81,8 +95,9 @@ class ChangeReader {
       logCmd = logCmd.grep(grepString);
     }
     if (partialFetch && roots.contains("")) {
-      throw new ValidationException("Config error: partial_fetch feature is not compatible "
-          + "with fetching the whole repo.");
+      throw new ValidationException(
+          "Config error: partial_fetch feature is not compatible "
+              + "with fetching the whole repo.");
     }
     if (partialFetch) {
       logCmd = logCmd.withPaths(roots);
@@ -90,7 +105,7 @@ class ChangeReader {
     // Log command does not filter by roots here because of how git log works. Some commits (e.g.
     // fake merges) might not include the files in the log, and filtering here would return
     // incorrect results. We do filter later on the changes to match the actual glob.
-    return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run());
+    return parseChanges(logCmd.includeFiles(true).includeMergeDiff(true).run(), labels);
   }
 
   static final String BRANCH_COMMIT_LOG_HEADING = "-- Branch commit log --";
@@ -132,9 +147,10 @@ class ChangeReader {
             .collect(Collectors.toList()));
   }
 
-  private ImmutableList<Change<GitRevision>> parseChanges(ImmutableList<GitLogEntry> logEntries)
+  private ImmutableList<Change<GitRevision>> parseChanges(
+      ImmutableList<GitLogEntry> logEntries,
+      ImmutableMap<String, ImmutableListMultimap<String, String>> labels)
       throws RepoException {
-
     ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
     GitRevision last = null;
     for (GitLogEntry e : logEntries) {
@@ -143,13 +159,18 @@ class ChangeReader {
         continue;
       }
       last = e.getCommit();
-      result.add(new Change<>(
-          e.getCommit().withUrl(url),
-          filterAuthor(e.getAuthor())
-          , e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
-          e.getAuthorDate(),
-          ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
-          e.getFiles(), e.getParents().size() > 1, e.getParents()));
+      ImmutableListMultimap<String, String> labelsToCopy =
+          labels.getOrDefault(e.getCommit().getSha1(), ImmutableListMultimap.of());
+      result.add(
+          new Change<>(
+              e.getCommit().withUrl(url).withLabels(labelsToCopy),
+              filterAuthor(e.getAuthor()),
+              e.getBody() + branchCommitLog(e.getCommit(), e.getParents()),
+              e.getAuthorDate(),
+              ChangeMessage.parseAllAsLabels(e.getBody()).labelsAsMultimap(),
+              e.getFiles(),
+              e.getParents().size() > 1,
+              e.getParents()));
     }
     return result.build().reverse();
   }

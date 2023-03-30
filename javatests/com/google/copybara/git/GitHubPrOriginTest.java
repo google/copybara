@@ -44,6 +44,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -674,6 +675,54 @@ public class GitHubPrOriginTest {
     assertThat(changes.stream()
         .map(c -> c.getRevision().getUrl())
         .allMatch(c -> c.startsWith("https://github.com/")))
+        .isTrue();
+  }
+
+  @Test
+  public void testChangesLabelsProgagateToPRHead() throws Exception {
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/google/example");
+    addFiles(
+        remote,
+        "base",
+        ImmutableMap.<String, String>builder().put("test1.txt", "a").buildOrThrow());
+    String base = remote.parseRef("HEAD");
+
+    addFiles(
+        remote, "one", ImmutableMap.<String, String>builder().put("test2.txt", "b").buildOrThrow());
+    addFiles(
+        remote, "two", ImmutableMap.<String, String>builder().put("test3.txt", "b").buildOrThrow());
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), prHeadSha1);
+
+    MockPullRequest.create(gitUtil).setState("open").setPrNumber(123).mock();
+
+    GitHubPrOrigin origin = githubPrOrigin("url = 'https://github.com/google/example'");
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    GitRevision prHead = origin.resolve("123");
+
+    ImmutableList<Change<GitRevision>> changes =
+        reader
+            .changes(
+                origin.resolveLastRev(base),
+                prHead.withLabels(ImmutableListMultimap.of("MY_LABEL_KEY", "MY_LABEL_VALUE")))
+            .getChanges();
+    ImmutableList<Change<GitRevision>> headChange =
+        changes.stream()
+            .filter(change -> change.getRevision().getSha1().equals(prHeadSha1))
+            .collect(ImmutableList.toImmutableList());
+    ImmutableList<Change<GitRevision>> notHeadChanges =
+        changes.stream()
+            .filter(change -> !change.getRevision().getSha1().equals(prHeadSha1))
+            .collect(ImmutableList.toImmutableList());
+
+    assertThat(prHead.getSha1()).isEqualTo(prHeadSha1);
+    assertThat(Iterables.getOnlyElement(headChange).getRevision().associatedLabel("MY_LABEL_KEY"))
+        .isEqualTo(ImmutableList.of("MY_LABEL_VALUE"));
+    assertThat(notHeadChanges).isNotEmpty();
+    assertThat(
+            notHeadChanges.stream()
+                .allMatch(
+                    change -> !change.getRevision().associatedLabels().containsKey("MY_LABEL_KEY")))
         .isTrue();
   }
 

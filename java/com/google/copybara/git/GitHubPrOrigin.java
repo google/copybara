@@ -668,7 +668,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           return super.changes(fromRef, toRef);
         }
         // HEAD of the Pull Request
-        GitRevision gitRevision = merge.getParents().get(1);
+        GitRevision gitRevision = merge.getParents().get(1).withLabels(toRef.associatedLabels());
         ChangesResponse<GitRevision> prChanges = super.changes(fromRef, gitRevision);
         // Merge might have an effect, but we are not interested on it if the PR doesn't touch
         // origin_files

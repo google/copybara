@@ -27,6 +27,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -466,7 +468,11 @@ public class GitOrigin implements Origin<GitRevision> {
       ChangeReader changeReader = changeReaderBuilder(repoUrl)
           .setFirstParent(firstParent)
           .build();
-      ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange);
+      // toRef might already have labels that we want to maintain in the toRef copy when we return
+      // (fromRef, toRef] (that includes toRef).
+      ImmutableMap<String, ImmutableListMultimap<String, String>> labelsToPropagate =
+          ImmutableMap.of(toRef.getSha1(), toRef.associatedLabels());
+      ImmutableList<Change<GitRevision>> gitChanges = changeReader.run(refRange, labelsToPropagate);
       if (!gitChanges.isEmpty()) {
         return ChangesResponse.forChangesWithMerges(gitChanges);
       }
