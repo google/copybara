@@ -33,12 +33,13 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkList;
+import net.starlark.java.eval.StarlarkValue;
 
 /**
  * Common Starlark methods that allow users to manipulate paths of the workdir/checkoutPath.
  */
 @SuppressWarnings("unused")
-public class CheckoutFileSystem {
+public class CheckoutFileSystem implements StarlarkValue {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
   private final Path checkoutDir;
 
