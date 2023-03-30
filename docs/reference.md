@@ -1119,7 +1119,7 @@ paths | [`glob`](#glob) or `NoneType`<br><p>A glob expression relative to the wo
 first_only | `bool`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline | `bool`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups | `bool`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored.</p>
+ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Note that this works by comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may not be used to determine whether or not to apply a transformation. For example, a before='/foo', ignore=['/foo/bar'] approach will not work; the before text must contain a regex group capturing the portion after /foo if it is used in an ignore sequence.</p>
 
 
 #### Examples:
