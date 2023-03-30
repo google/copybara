@@ -31,6 +31,7 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.revision.Change;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -109,7 +110,7 @@ public final class GitHubSecuritySettingsValidatorTest {
   }
 
   @Test
-  public void testGitHubSecuritySettingsValidator_withoutTwoFactorRequiremnetsEnabled()
+  public void testGitHubSecuritySettingsValidator_withoutTwoFactorRequirementsEnabled()
       throws Exception {
     gitTestUtil.mockApi(
         eq("GET"),
@@ -125,6 +126,30 @@ public final class GitHubSecuritySettingsValidatorTest {
     assertThat(approvals).hasSize(changes.size());
     assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
     assertThat(Iterables.getOnlyElement(approvals).getPredicates()).isEmpty();
+  }
+
+  @Test
+  public void testGitHubSecuritySettingsValidator_withoutTwoFactorRequirementsVisible()
+      throws Exception {
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google"),
+        GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":null}"));
+    GitHubSecuritySettingsValidator validator =
+        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ImmutableList<ChangeWithApprovals> approvals =
+        validator.mapTwoFactorAuth(changes, ORGANIZATION);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).isEmpty();
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            "Copybara could not confirm that 2FA requirement is being enforced *");
   }
 
   @Test

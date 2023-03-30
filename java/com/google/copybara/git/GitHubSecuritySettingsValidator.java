@@ -122,14 +122,17 @@ public class GitHubSecuritySettingsValidator {
   private boolean hasTwoFactorEnabled(String organization, Console console)
       throws ValidationException, RepoException {
     try {
-      // Note: twoFactorRequirementEnabled can also be null (which is false in our GSON response
-      // object) in the payload, this will not throw an error.
-      boolean twoFactorEnabled = api.getOrganization(organization).getTwoFactorRequirementEnabled();
-      if (!twoFactorEnabled) {
-        console.warn(
-            "Copybara was could not confirm that 2FA requirement is enforced in the '%s' GitHub"
-                + " organization, so it will be assumed as being not enforced. If you believe it"
-                + " is, please confirm Copybara is given admin:org permissions and try again.");
+      // Note: twoFactorRequirementEnabled can also be null in the payload, this will not throw an
+      // error, but is a sign the credential used lacks sufficient priviledges.
+      Boolean twoFactorEnabled = api.getOrganization(organization).getTwoFactorRequirementEnabled();
+      if (twoFactorEnabled == null) {
+        console.warnFmt(
+            "Copybara could not confirm that 2FA requirement is being enforced in the '%s' GitHub"
+                + " organization, so it will be assumed as being not enforced."
+                + " Please confirm Copybara is given admin:org permissions with your GitHub org"
+                + " admins and try again.",
+            organization);
+        return false;
       }
       return twoFactorEnabled;
     } catch (GitHubApiException e) {
