@@ -16,15 +16,24 @@
 
 package com.google.copybara.hashing;
 
+import static com.google.copybara.config.SkylarkUtil.convertStringList;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.CheckoutPath;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Sequence;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Hashing utilities */
@@ -49,6 +58,36 @@ public class HashingModule implements StarlarkValue {
       parameters = {@Param(name = "path", doc = "checkout path pointing to a file to be hashed")})
   public String pathSha256Sum(CheckoutPath path) throws IOException {
     return hashFile(path.fullPath(), Hashing.sha256());
+  }
+
+  @StarlarkMethod(
+      name = "str_sha256_sum",
+      doc = "Return the hash of a list of objects based on the algorithm specified",
+      parameters = {
+        @Param(
+            name = "input",
+            named = true,
+            doc = "One or more string inputs to hash.",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+              @ParamType(type = String.class)
+            })
+      })
+  public String hashStringWithSha256(Object input) throws ValidationException, EvalException {
+    if (input instanceof String) {
+      return Hashing.sha256().hashString((String) input, UTF_8).toString();
+    }
+
+    List<String> stringInputs = convertStringList(input, "input");
+    Hasher hasher = Hashing.sha256().newHasher();
+    if (stringInputs.isEmpty()) {
+      throw new ValidationException(
+          "hashing.hash_str_with_sha256 cannot be called with an empty object list.");
+    }
+    for (String stringInput : stringInputs) {
+      hasher.putString(stringInput, UTF_8);
+    }
+    return hasher.hash().toString();
   }
 
   private String hashFile(Path hashPath, HashFunction hashFunc) throws IOException {

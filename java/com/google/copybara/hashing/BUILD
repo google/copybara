@@ -23,6 +23,8 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/exception",
         "//third_party:guava",
         "//third_party:starlark",
     ],

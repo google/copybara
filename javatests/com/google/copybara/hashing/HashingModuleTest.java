@@ -80,4 +80,14 @@ public class HashingModuleTest {
                 + "hash = hashing.path_sha256_sum(checkout_path)");
     assertThat(hash).isEqualTo(expectedHash);
   }
+
+  @Test
+  public void testHash() throws IOException, ValidationException {
+    // generated using `echo -n "myhashinputmyotherinput" | sha256sum`
+    String expectedHash = "40e57c2a84ee4d541e5d50a8458645bce4a5fb257161de085ff432439a3ea81c";
+    String hash =
+        starlark.eval(
+            "hash", "hash = hashing.str_sha256_sum(input=['myhashinput', 'myotherinput'])");
+    assertThat(hash).isEqualTo(expectedHash);
+  }
 }
