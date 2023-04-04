@@ -70,14 +70,17 @@ public final class GitHubSecuritySettingsValidatorTest {
     gitTestUtil.mockRemoteGitRepos();
   }
 
-  private GitHubSecuritySettingsValidator getUnitUnderTest(GitHubApi api) {
-    return new GitHubSecuritySettingsValidator(api, console);
+  private GitHubSecuritySettingsValidator getUnitUnderTest(
+      GitHubApi api, ImmutableList<Integer> allstarAppIds) {
+    return new GitHubSecuritySettingsValidator(api, allstarAppIds, console);
   }
 
   @Test
   public void testGitHubSecuritySettingsValidator_withEmptyChangeList() throws Exception {
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes = ImmutableList.of();
     ImmutableList<ChangeWithApprovals> approvals =
         validator.mapTwoFactorAuth(changes, ORGANIZATION);
@@ -92,7 +95,9 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google"),
         GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":true}"));
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
@@ -117,7 +122,9 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google"),
         GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":false}"));
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
@@ -136,7 +143,9 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google"),
         GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":null}"));
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
@@ -159,7 +168,35 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ImmutableList<ChangeWithApprovals> approvals = validator.mapAllStar(changes, ORGANIZATION);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
+        .containsExactly(
+            new StatementPredicate(
+                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
+                "Whether the organization that the change originated from has allstar installed",
+                Iterables.getLast(changes).getChange().getRevision().getUrl()));
+  }
+
+  @Test
+  public void testGitHubSecuritySettingsValidator_withAllStarInstalledAndOverriden()
+      throws Exception {
+    builder.github.allStarAppIds = ImmutableList.of(12345);
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
+        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 12345}]}"));
+    GitHubSecuritySettingsValidator validator =
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
@@ -181,7 +218,9 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": -1}]}"));
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");
@@ -199,7 +238,9 @@ public final class GitHubSecuritySettingsValidatorTest {
         eq("https://api.github.com/orgs/google/installations?per_page=100"),
         GitTestUtil.mockGitHubUnauthorized());
     GitHubSecuritySettingsValidator validator =
-        getUnitUnderTest(builder.github.newGitHubRestApi(PROJECT_ID));
+        getUnitUnderTest(
+            builder.github.newGitHubRestApi(PROJECT_ID),
+            ImmutableList.copyOf(builder.github.allStarAppIds));
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             PROJECT_ID, ImmutableListMultimap.of(), "3071d674373ab56d8a7f264d308b39b7773b9e44");

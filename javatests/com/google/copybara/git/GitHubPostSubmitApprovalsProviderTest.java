@@ -80,7 +80,9 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         githubHost,
         /* branch= */ "main",
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT), console),
+            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT),
+            ImmutableList.copyOf(gitHubOptions.allStarAppIds),
+            console),
         new GitHubUserApprovalsValidator(
             gitHubOptions.newGitHubGraphQLApi(TRUSTED_TEST_PROJECT), console, githubHost, params));
   }

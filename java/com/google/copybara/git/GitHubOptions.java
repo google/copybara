@@ -61,6 +61,13 @@ public class GitHubOptions implements Option {
       validateWith = GreaterThanZeroListValidator.class)
   public List<Integer> gqlOverride = ImmutableList.of(50, 5, 5);
 
+  @Parameter(
+      names = "--allstar-app-ids",
+      description =
+          "Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.",
+      validateWith = GreaterThanZeroListValidator.class)
+  public List<Integer> allStarAppIds = ImmutableList.of(119816);
+
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);

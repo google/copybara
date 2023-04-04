@@ -30,16 +30,18 @@ import com.google.copybara.util.console.Console;
 
 /** Provides Statement Predicates for GitHub Security related predicates */
 public class GitHubSecuritySettingsValidator {
-  private static final int ALL_STAR_APP_ID = 119816;
   public static final String ALL_STAR_PREDICATE_TYPE = "github.organization.all_star_installed";
   public static final String TWO_FACTOR_PREDICATE_TYPE =
       "github.organization.2FA_requirement_enabled";
   private final GitHubApi api;
+  private final ImmutableList<Integer> allStarAppIds;
   private final Console console;
 
-  public GitHubSecuritySettingsValidator(GitHubApi api, Console console) {
+  public GitHubSecuritySettingsValidator(
+      GitHubApi api, ImmutableList<Integer> allStarAppIds, Console console) {
     this.api = api;
     this.console = console;
+    this.allStarAppIds = allStarAppIds;
   }
 
   /**
@@ -109,7 +111,7 @@ public class GitHubSecuritySettingsValidator {
   private boolean hasAllStar(String organization) throws ValidationException, RepoException {
     try {
       return api.getInstallations(organization).stream()
-          .anyMatch(installation -> installation.getAppId() == ALL_STAR_APP_ID);
+          .anyMatch(installation -> allStarAppIds.contains(installation.getAppId()));
     } catch (GitHubApiException e) {
       throw handleGitHubException(
           e,

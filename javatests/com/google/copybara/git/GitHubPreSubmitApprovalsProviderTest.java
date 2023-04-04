@@ -82,7 +82,9 @@ public final class GitHubPreSubmitApprovalsProviderTest {
         gitHubOptions,
         gitHubHost,
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT), console),
+            gitHubOptions.newGitHubRestApi(TRUSTED_TEST_PROJECT),
+            ImmutableList.copyOf(gitHubOptions.allStarAppIds),
+            console),
         new GitHubUserApprovalsValidator(
             gitHubOptions.newGitHubGraphQLApi(TRUSTED_TEST_PROJECT), console, gitHubHost, params));
   }
