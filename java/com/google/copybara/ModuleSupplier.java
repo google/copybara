@@ -48,6 +48,7 @@ import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.rust.RustModule;
 import com.google.copybara.toml.TomlModule;
 import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
@@ -119,6 +120,7 @@ public class ModuleSupplier {
         new StructModule(),
         new StarlarkDateTimeModule(),
         new GoModule(options.get(RemoteFileOptions.class)),
+        new RustModule(options.get(RemoteFileOptions.class)),
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
         Json.INSTANCE);
