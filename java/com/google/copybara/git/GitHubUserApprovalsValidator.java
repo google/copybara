@@ -94,6 +94,7 @@ public class GitHubUserApprovalsValidator {
                 + " --gql-commit-history-override. Skipping authorship and approval predicate"
                 + " provisioning for this commit...",
             sha);
+        builder.add(change);
         continue;
       }
       AssociatedPullRequestNode pullRequest =

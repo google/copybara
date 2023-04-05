@@ -109,29 +109,30 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
         Iterables.getOnlyElement(extractLabelValues(changes, GitHubPrOrigin.GITHUB_PR_HEAD_SHA));
     String prAuthor =
         Iterables.getOnlyElement(extractLabelValues(changes, GitHubPrOrigin.GITHUB_PR_USER));
-
-    // This assumes that changes come in ascending order towards the HEAD commit. We find the point
-    // where the baseline commit is.
     String baselineSha =
         Iterables.getOnlyElement(
             extractLabelValues(changes, GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1));
-    ChangeWithApprovals baselineChange =
-        approvalsInProgress.stream()
-            .filter(a -> ((GitRevision) a.getChange().getRevision()).getSha1().equals(baselineSha))
-            .findFirst()
-            .get();
-    int baseLineIndex = approvalsInProgress.indexOf(baselineChange);
+
+    // A bit counterintuitive, but it is actually backwards, [latest_change...earliest_change].
+    // This finds the partition point where inclusively at the baseline index and to the right is a
+    // postsubmit commit.
+    int baseLineIndex =
+        Iterables.indexOf(
+            approvalsInProgress,
+            change ->
+                ((GitRevision) change.getChange().getRevision()).getSha1().equals(baselineSha));
 
     // Slice the changes into two sublists representing the postsubmits and presubmits.
-    ImmutableList<ChangeWithApprovals> postSubmitChanges =
-        approvalsInProgress.subList(0, baseLineIndex + 1);
     ImmutableList<ChangeWithApprovals> preSubmitChanges =
-        approvalsInProgress.subList(baseLineIndex + 1, changes.size());
+        baseLineIndex != -1 ? approvalsInProgress.subList(0, baseLineIndex) : approvalsInProgress;
+    ImmutableList<ChangeWithApprovals> postSubmitChanges =
+        baseLineIndex != -1
+            ? approvalsInProgress.subList(baseLineIndex, approvalsInProgress.size())
+            : ImmutableList.of();
 
     // Last step do user validations, concatenate, and return
     return new ApprovalsResult(
         ImmutableList.<ChangeWithApprovals>builder()
-            .addAll(tryPostSubmitUserValidation(postSubmitChanges, baseBranch, console))
             .addAll(
                 tryPresubmitUserValidation(
                     preSubmitChanges,
@@ -140,6 +141,7 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
                     prHeadSha,
                     prAuthor,
                     console))
+            .addAll(tryPostSubmitUserValidation(postSubmitChanges, baseBranch, console))
             .build());
   }
 
@@ -231,8 +233,15 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
   }
 
   private ImmutableList<String> extractLabelValues(
-      ImmutableList<ChangeWithApprovals> changes, String key) {
-    return Iterables.getLast(changes).getChange().getLabels().get(key);
+      ImmutableList<ChangeWithApprovals> changes, String key) throws RepoException {
+    // not all revisions share labels so find the first one that has what we are looking for
+    for (ChangeWithApprovals change : changes) {
+      ImmutableList<String> values = change.getChange().getRevision().associatedLabel(key);
+      if (!values.isEmpty()) {
+        return values;
+      }
+    }
+    throw new RepoException(String.format("Could not find the value for label '%s'", key));
   }
 
   private ImmutableList<UserPredicate> mapToUserPredicates(

@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.approval.ApprovalsProvider.ApprovalsResult;
@@ -90,7 +91,9 @@ public final class GitHubPreSubmitApprovalsProviderTest {
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(
-      String project, ImmutableListMultimap<String, String> labels, String... shas)
+      String project,
+      ImmutableMap<String, ImmutableListMultimap<String, String>> labels,
+      String... shas)
       throws Exception {
     ImmutableList.Builder<ChangeWithApprovals> changes = ImmutableList.builder();
     GitRepository gitRepositoryLocal = gitRepository;
@@ -101,7 +104,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
               sha,
               "reviewRef_unused",
               "main",
-              ImmutableListMultimap.of(),
+              labels.getOrDefault(sha, ImmutableListMultimap.of()),
               String.format("https://github.com/%s", project));
       Change<GitRevision> change =
           new Change<>(
@@ -109,7 +112,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
               new Author("copybarauthor", "copybaraauthor@google.com"),
               "placeholder message",
               ZonedDateTime.now(ZoneId.of("America/Los_Angeles")),
-              labels);
+              ImmutableListMultimap.of());
       ChangeWithApprovals changeWithApprovals = new ChangeWithApprovals(change);
       changes.add(changeWithApprovals);
     }
@@ -220,7 +223,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             "google/copybara",
-            labels,
+            ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
             "3368ee55bcad7df67a18b588144e0888d6fa93ac");
     ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
     assertThat(approvalsResult.getChanges()).isNotEmpty();
@@ -290,7 +293,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
           +           "\"nodes\": ["
           +             "{"
           +               "\"id\": \"C_notreadatall\","
-          +                "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
+          +                "\"oid\": \"5a4c8dae133a7e12407449296b06a9a4f09443d3\","
           +                "\"associatedPullRequests\": {"
           +                  "\"edges\": ["
           +                     "{"
@@ -330,7 +333,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
     ImmutableListMultimap<String, String> labels =
         ImmutableListMultimap.of(
             GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1,
-            "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+            "5a4c8dae133a7e12407449296b06a9a4f09443d3",
             GitHubPrOrigin.GITHUB_BASE_BRANCH,
             "main",
             GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL,
@@ -342,7 +345,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             "google/copybara",
-            labels,
+            ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
             "3368ee55bcad7df67a18b588144e0888d6fa93ac",
             "5a4c8dae133a7e12407449296b06a9a4f09443d3");
     ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
@@ -364,12 +367,6 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 UserPredicate.UserPredicateType.OWNER,
                 Iterables.getLast(changes).getChange().getRevision().getUrl(),
                 "GitHub user 'copybaraauthor' authored change with sha"
-                    + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."),
-            new UserPredicate(
-                "copybarareviewer",
-                UserPredicate.UserPredicateType.LGTM,
-                Iterables.getFirst(changes, null).getChange().getRevision().getUrl(),
-                "GitHub user 'copybarareviewer' approved change with sha"
                     + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."));
 
     assertThat(Iterables.getLast(approvalsResult.getChanges()).getPredicates())
@@ -389,6 +386,12 @@ public final class GitHubPreSubmitApprovalsProviderTest {
                 UserPredicate.UserPredicateType.OWNER,
                 Iterables.getLast(changes).getChange().getRevision().getUrl(),
                 "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '5a4c8dae133a7e12407449296b06a9a4f09443d3'."),
+            new UserPredicate(
+                "copybarareviewer",
+                UserPredicate.UserPredicateType.LGTM,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybarareviewer' approved change with sha"
                     + " '5a4c8dae133a7e12407449296b06a9a4f09443d3'."));
   }
 
@@ -480,7 +483,10 @@ public final class GitHubPreSubmitApprovalsProviderTest {
             GitHubPrOrigin.GITHUB_PR_USER,
             "copybaraauthor");
     ImmutableList<ChangeWithApprovals> changes =
-        generateChangeList("google/copybara", labels, "3368ee55bcad7df67a18b588144e0888d6fa93ac");
+        generateChangeList(
+            "google/copybara",
+            ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
+            "3368ee55bcad7df67a18b588144e0888d6fa93ac");
     ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
     assertThat(approvalsResult.getChanges().size()).isEqualTo(changes.size());
     assertThat(Iterables.getLast(approvalsResult.getChanges()).getPredicates())
