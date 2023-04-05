@@ -16,15 +16,20 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import javax.annotation.Nullable;
 
@@ -39,8 +44,10 @@ public final class AutoPatchUtil {
    * <p>Does not generate any patch files where there is no diff. Patch files are generated using
    * git diff.
    *
-   * @param lhsWorkdir workdir used on lhs of diffing statement e.g. baseline workdir
-   * @param rhsWorkdir workdir used on rhs of diffing statement e.g. destination workdir
+   * @param originWorkdir workdir used on lhs of diffing statement, should be baseline or origin
+   *     workdir
+   * @param destinationWorkdir workdir used on rhs of diffing statement, should be destination
+   *     workdir
    * @param directoryPrefix prefix to all filenames. patch files are written inside this directory.
    *     e.g. if this is third_party/foo and a file is third_party/foo/bar/bar.txt, and
    *     patchFilePrefix is PATCHES, we will write to third_party/foo/PATCHES/bar/bar.txt.patch
@@ -55,8 +62,8 @@ public final class AutoPatchUtil {
    * @param fileMatcher used to prevent AutoPatchUtil from running on certain files
    */
   public static void generatePatchFiles(
-      Path lhsWorkdir,
-      Path rhsWorkdir,
+      Path originWorkdir,
+      Path destinationWorkdir,
       Path directoryPrefix,
       @Nullable String patchFileDirectory,
       boolean verbose,
@@ -74,7 +81,9 @@ public final class AutoPatchUtil {
       patchFileDirectory = "";
     }
     ImmutableList<DiffFile> diffFiles =
-        DiffUtil.diffFiles(lhsWorkdir, rhsWorkdir, verbose, environment);
+        DiffUtil.diffFiles(originWorkdir, destinationWorkdir, verbose, environment);
+    ImmutableSet<String> diffFileNames =
+        diffFiles.stream().map(DiffFile::getName).collect(toImmutableSet());
     // TODO: make this configurable
     for (DiffFile diffFile : diffFiles) {
       if (!diffFile.getOperation().equals(Operation.MODIFIED)) {
@@ -84,8 +93,8 @@ public final class AutoPatchUtil {
         continue;
       }
       String fileName = diffFile.getName();
-      Path onePath = lhsWorkdir.resolve(fileName);
-      Path otherPath = rhsWorkdir.resolve(fileName);
+      Path onePath = originWorkdir.resolve(fileName);
+      Path otherPath = destinationWorkdir.resolve(fileName);
       if (!Files.exists(otherPath)) {
         continue;
       }
@@ -95,15 +104,83 @@ public final class AutoPatchUtil {
       if (stripFileNames) {
         diffString = stripFileNamesAndLineNumbers(diffString);
       }
-      Path fileRelativeDirectoryPrefix =
-          directoryPrefix.relativize(Path.of(fileName.concat(patchFileNameSuffix)));
       Path patchFilePath =
-          rootDirectory
-              .resolve(directoryPrefix)
-              .resolve(Path.of(patchFileDirectory).resolve(fileRelativeDirectoryPrefix));
+          derivePatchFileName(
+              directoryPrefix, patchFileDirectory, patchFileNameSuffix, rootDirectory, fileName);
       Files.createDirectories(patchFilePath.getParent());
       Files.writeString(patchFilePath, patchFilePrefix.concat(diffString));
     }
+    final String finalPatchFileDirectory = patchFileDirectory;
+    SimpleFileVisitor<Path> originFileVisitor =
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            Path patchFileName =
+                derivePatchFileName(
+                    directoryPrefix,
+                    finalPatchFileDirectory,
+                    patchFileNameSuffix,
+                    rootDirectory,
+                    originWorkdir.relativize(file).toString());
+            // There is no longer a diff, but a patch file exists
+            if (!diffFileNames.contains(originWorkdir.relativize(file).toString())
+                && Files.exists(destinationWorkdir.resolve(patchFileName))) {
+              Files.delete(destinationWorkdir.resolve(patchFileName));
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        };
+    SimpleFileVisitor<Path> destinationFileVisitor =
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            if (!file.toString().endsWith(patchFileNameSuffix)) {
+              return FileVisitResult.CONTINUE;
+            }
+            Path fileName =
+                destinationWorkdir.relativize(
+                    Path.of(file.toString().replace(patchFileNameSuffix, "")));
+            fileName = Path.of(fileName.toString().replace(directoryPrefix.toString(), ""));
+            if (fileName.toString().startsWith("/")) {
+              fileName = Path.of(fileName.toString().substring(1));
+            }
+            if (!finalPatchFileDirectory.isBlank()) {
+              fileName = Path.of(fileName.toString().replace(finalPatchFileDirectory, ""));
+            }
+
+            // patch file exists, but the origin file was deleted
+            // if patch file exists both in destination and root directory (which may also be the
+            // destination directory), delete in the root directory
+            // By getting to this point, we know that destination patch file exists
+            Path originFile = originWorkdir.resolve(directoryPrefix).resolve(fileName);
+            Path rootDirectoryPatchFile =
+                rootDirectory
+                    .resolve(directoryPrefix)
+                    .resolve(finalPatchFileDirectory)
+                    .resolve(Path.of(fileName.toString().concat(patchFileNameSuffix)));
+            if (!Files.exists(originFile) && Files.exists(rootDirectoryPatchFile)) {
+              Files.delete(rootDirectoryPatchFile);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        };
+    Files.walkFileTree(originWorkdir, originFileVisitor);
+    Files.walkFileTree(destinationWorkdir, destinationFileVisitor);
+  }
+
+  private static Path derivePatchFileName(
+      Path directoryPrefix,
+      String patchFileDirectory,
+      String patchFileNameSuffix,
+      Path rootDirectory,
+      String fileName) {
+    Path fileRelativeDirectoryPrefix =
+        directoryPrefix.relativize(Path.of(fileName.concat(patchFileNameSuffix)));
+    return rootDirectory
+        .resolve(directoryPrefix)
+        .resolve(Path.of(patchFileDirectory).resolve(fileRelativeDirectoryPrefix));
   }
 
   // Reimplementation of golang packaging code
