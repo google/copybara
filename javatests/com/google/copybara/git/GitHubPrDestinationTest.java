@@ -135,7 +135,7 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
-  public void testCustomTitleAndBody()
+  public void testCustomTitleAndBodyAndAssignees()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
 
@@ -152,18 +152,29 @@ public class GitHubPrDestinationTest {
                 + "  \"title\": \"custom title\",\n"
                 + "  \"body\": \"custom body\""
                 + "}",
-            MockRequestAssertion.equals("{\"base\":\"main\","
-                        + "\"body\":\"custom body\","
-                        + "\"draft\":false,"
-                        + "\"head\":\"feature\","
-                        + "\"title\":\"custom title\"}")));
+            MockRequestAssertion.equals(
+                "{\"base\":\"main\","
+                    + "\"body\":\"custom body\","
+                    + "\"draft\":false,"
+                    + "\"head\":\"feature\","
+                    + "\"title\":\"custom title\"}")));
+    gitUtil.mockApi(
+        "POST",
+        "https://api.github.com/repos/foo/issues/12345/assignees",
+        mockResponseAndValidateRequest(
+            "{\"assignees\": [{\"login\": \"copybara-author\"}]}",
+            MockRequestAssertion.equals("{\"assignees\":[\"copybara-author\"]}")));
 
-    GitHubPrDestination d = skylark.eval("r", "r = git.github_pr_destination("
-        + "    url = 'https://github.com/foo', \n"
-        + "    title = 'custom title',\n"
-        + "    body = 'custom body',\n"
-        + "    destination_ref = 'main'"
-        + ")");
+    GitHubPrDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_pr_destination("
+                + "    url = 'https://github.com/foo', \n"
+                + "    title = 'custom title',\n"
+                + "    body = 'custom body',\n"
+                + "    destination_ref = 'main',\n"
+                + "    assignees = ['copybara-author']"
+                + ")");
     WriterContext writerContext =
         new WriterContext("piper_to_github", "TEST", false, new DummyRevision("feature", "feature"),
             Glob.ALL_FILES.roots());
@@ -179,10 +190,11 @@ public class GitHubPrDestinationTest {
     writer.write(
         TransformResults.of(this.workdir, new DummyRevision("one")), Glob.ALL_FILES, console);
 
-    verify(gitUtil.httpTransport(), times(1))
-        .buildRequest("GET", getPullRequestsUrl("feature"));
+    verify(gitUtil.httpTransport(), times(1)).buildRequest("GET", getPullRequestsUrl("feature"));
     verify(gitUtil.httpTransport(), times(1))
         .buildRequest("POST", "https://api.github.com/repos/foo/pulls");
+    verify(gitUtil.httpTransport(), times(1))
+        .buildRequest("POST", "https://api.github.com/repos/foo/issues/12345/assignees");
   }
 
   @Test

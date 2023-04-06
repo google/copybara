@@ -41,6 +41,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestination.WriterImpl;
 import com.google.copybara.git.GitDestination.WriterState;
+import com.google.copybara.git.github.api.AddAssignees;
 import com.google.copybara.git.github.api.CreatePullRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
@@ -55,6 +56,7 @@ import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -84,6 +86,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
   private final ConfigFile mainConfigFile;
+  private final List<String> assignees;
   @Nullable private final Checker endpointChecker;
 
   @Nullable private String resolvedDestinationRef;
@@ -103,6 +106,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       Iterable<GitIntegrateChanges> integrates,
       @Nullable String title,
       @Nullable String body,
+      List<String> assignees,
       ConfigFile mainConfigFile,
       @Nullable Checker endpointChecker,
       boolean updateDescription,
@@ -122,6 +126,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.writeHook = Preconditions.checkNotNull(writeHook);
     this.integrates = Preconditions.checkNotNull(integrates);
     this.title = title;
+    this.assignees = assignees;
     this.body = body;
     this.updateDescription = updateDescription;
     this.ghHost = Preconditions.checkNotNull(ghHost);
@@ -238,7 +243,10 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 ? msg.toString()
                 : SkylarkUtil.mapLabels(
                     transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
-
+        // figure out assignees here
+        ImmutableList<String> assignees =
+            SkylarkUtil.mapLabels(
+                transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {
             if (!pr.isOpen()) {
@@ -292,6 +300,17 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         console.infoFmt(
             "Pull Request %s/pull/%s created using branch '%s'.",
             asHttpsUrl(), pr.getNumber(), prBranch);
+
+        if (!assignees.isEmpty()) {
+          try {
+            api.addAssignees(getProjectName(), pr.getNumber(), new AddAssignees(assignees));
+          } catch (RepoException e) {
+            console.warnFmt(
+                "Could not add all assignees (%s) to %s/pull/%s with error '%s'",
+                assignees, asHttpsUrl(), pr.getNumber(), e.getMessage());
+          }
+        }
+
         state.pullRequestNumber = pr.getNumber();
         result.add(
             new DestinationEffect(

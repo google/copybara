@@ -33,6 +33,7 @@ import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
 import com.google.copybara.git.github.api.Issue.CreateIssueRequest;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
@@ -297,6 +298,19 @@ public class GitHubApi {
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_create_pull")) {
       return transport.post(request, PullRequest.class, "repos/%s/pulls", projectId);
+    }
+  }
+
+  /**
+   * Adds assignees to an issue or pull request
+   * https://docs.github.com/en/rest/issues/assignees?apiVersion=2022-11-28#add-assignees-to-an-issue
+   */
+  @CanIgnoreReturnValue
+  public Issue addAssignees(String projectId, long number, AddAssignees request)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_add_assignees")) {
+      return transport.post(
+          request, Issue.class, "repos/%s/issues/%d/assignees", projectId, number);
     }
   }
 

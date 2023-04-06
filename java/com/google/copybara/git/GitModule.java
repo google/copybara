@@ -1724,47 +1724,41 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "If set, copybara will skip pushing a change to an existing PR "
                     + "only if the git three of the pending migrating change is the same "
                     + "as the existing PR."),
-          @Param(
-              name = "allow_empty_diff_merge_statuses",
-              allowedTypes = {
-                  @ParamType(type = Sequence.class, generic1 = String.class)
-              },
-              defaultValue = "[]",
-              named = true,
-              positional = false,
-              doc = "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
-                  + " Copybara skips uploading the change if the tree hasn't changed and it can be"
-                  + " merged. When this list is set with values from"
-                  + " https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus,"
-                  + " it will still upload for the configured statuses. For example, if a"
-                  + " user sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the"
-                  + " recommended set to use), it wouldn't skip upload if test failed in GitHub"
-                  + " for previous export, or if the change cannot be merged."
-                  + " **Note that this field is experimental and is subject to change by GitHub"
-                  + " without notice**. Please consult Copybara team before using this field."),
-          @Param(
-              name = "allow_empty_diff_check_suites_to_conclusion",
-              allowedTypes = {
-                  @ParamType(type = Dict.class, generic1 = String.class)
-              },
-              defaultValue = "{}",
-              named = true,
-              positional = false,
-              doc = "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
-                  + " Copybara skips uploading the change if the tree hasn't changed and it can be"
-                  + " merged.<br>"
-                  + "<br>"
-                  + "This field allows to configure Check suit slugs and conclusions for those"
-                  + " check suites where an upload needs to happen despite no code changes. For"
-                  + " example this can be used to upload if tests are failing. A Very common"
-                  + " usage would be"
-                  + " `{\"github-actions\" :"
-                  + "   [\"none\", \"failure\", \"timed_out\", \"cancelled\"]}`:"
-                  + " This would upload changes when Checks are in progress, has failed,"
-                  + " timeout or being cancelled. `github-actions` check suit slug name is the"
-                  + " default name for checks run by GitHub actions where the suit is not given"
-                  + " a name."),
-          @Param(
+        @Param(
+            name = "allow_empty_diff_merge_statuses",
+            allowedTypes = {@ParamType(type = Sequence.class, generic1 = String.class)},
+            defaultValue = "[]",
+            named = true,
+            positional = false,
+            doc =
+                "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
+                    + " Copybara skips uploading the change if the tree hasn't changed and it can"
+                    + " be merged. When this list is set with values from"
+                    + " https://docs.github.com/en/github-ae@latest/graphql/reference/enums#mergestatestatus,"
+                    + " it will still upload for the configured statuses. For example, if a user"
+                    + " sets it to `['DIRTY', 'UNSTABLE', 'UNKNOWN']` (the recommended set to use),"
+                    + " it wouldn't skip upload if test failed in GitHub for previous export, or if"
+                    + " the change cannot be merged. **Note that this field is experimental and is"
+                    + " subject to change by GitHub without notice**. Please consult Copybara team"
+                    + " before using this field."),
+        @Param(
+            name = "allow_empty_diff_check_suites_to_conclusion",
+            allowedTypes = {@ParamType(type = Dict.class, generic1 = String.class)},
+            defaultValue = "{}",
+            named = true,
+            positional = false,
+            doc =
+                "**EXPERIMENTAL feature.** By default, if `allow_empty_diff = False` is set,"
+                    + " Copybara skips uploading the change if the tree hasn't changed and it can"
+                    + " be merged.<br><br>This field allows to configure Check suit slugs and"
+                    + " conclusions for those check suites where an upload needs to happen despite"
+                    + " no code changes. For example this can be used to upload if tests are"
+                    + " failing. A Very common usage would be `{\"github-actions\" :   [\"none\","
+                    + " \"failure\", \"timed_out\", \"cancelled\"]}`: This would upload changes"
+                    + " when Checks are in progress, has failed, timeout or being cancelled."
+                    + " `github-actions` check suit slug name is the default name for checks run by"
+                    + " GitHub actions where the suit is not given a name."),
+        @Param(
             name = "title",
             allowedTypes = {
               @ParamType(type = String.class),
@@ -1790,6 +1784,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 "When creating (or updating if `update_description` is set) a pull request, use"
                     + " this body. By default it uses the change summary. This field accepts"
                     + " a template with labels. For example: `\"Change ${CONTEXT_REFERENCE}\"`"),
+        @Param(
+            name = "assignees",
+            allowedTypes = {
+              @ParamType(type = Sequence.class, generic1 = String.class),
+            },
+            defaultValue = "[]",
+            named = true,
+            positional = false,
+            doc =
+                "The assignees to set when creating a new pull request. The maximum number of"
+                    + " assignees is 10. For example: `assignees = [\"${COPYBARA_AUTHOR}\"]` sets"
+                    + " the pull request assignee to the original author."),
         @Param(
             name = "integrates",
             allowedTypes = {
@@ -1894,6 +1900,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Dict<?, ?> allowEmptyDiffCheckSuitesToConclusion,
       Object title,
       Object body,
+      Sequence<? extends String> assignees,
       Object integrates,
       Object apiChecker,
       Boolean updateDescription,
@@ -1942,6 +1949,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
         convertFromNoneable(title, null),
         convertFromNoneable(body, null),
+        ImmutableList.copyOf(assignees),
         mainConfigFile,
         apiCheckerObj != null ? apiCheckerObj : checkerObj,
         updateDescription,
