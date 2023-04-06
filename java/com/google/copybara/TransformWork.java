@@ -770,7 +770,7 @@ public final class TransformWork extends CheckoutFileSystem
     setDateForCurrentRev(labels);
 
     labels.put(COPYBARA_CURRENT_MESSAGE, ImmutableList.of(getMessage()));
-    labels.put(COPYBARA_AUTHOR, ImmutableList.of(getMessage()));
+    labels.put(COPYBARA_AUTHOR, ImmutableList.of(getAuthor().getName(), getAuthor().getEmail()));
     labels.put(COPYBARA_CURRENT_MESSAGE_TITLE,
         ImmutableList.of(Change.extractFirstLine(metadata.getMessage())));
     return labels;

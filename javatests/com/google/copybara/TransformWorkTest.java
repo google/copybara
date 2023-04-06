@@ -310,21 +310,36 @@ public class TransformWorkTest {
 
   @Test
   public void testGetLabel() {
-    TransformWork work = create("Foo\n\nSOME=TEST\n").withChanges(
-        new Changes(ImmutableList.of(
-            toChange(
-                new DummyRevision("1")
+    TransformWork work =
+        create("Foo\n\nSOME=TEST\n")
+            .withChanges(
+                new Changes(
+                    ImmutableList.of(
+                        toChange(
+                            new DummyRevision("1")
+                                .withLabels(
+                                    ImmutableListMultimap.of(
+                                        "ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
+                        toChange(
+                            new DummyRevision("2")
+                                .withLabels(ImmutableListMultimap.of("TWO", "two"))),
+                        toChange(
+                            new DummyRevision("3")
+                                .withLabels(ImmutableListMultimap.of("THREE", "three")))),
+                    ImmutableList.of()))
+            .withResolvedReference(
+                new DummyRevision("resolved")
                     .withLabels(
-                        ImmutableListMultimap.of("ONE", "one", "SOME", "SHOULD_NOT_HAPPEN"))),
-            toChange(
-                new DummyRevision("2").withLabels(ImmutableListMultimap.of("TWO", "two"))),
-            toChange(
-                new DummyRevision("3").withLabels(ImmutableListMultimap.of("THREE", "three")))
-        ), ImmutableList.of())).withResolvedReference(new DummyRevision("resolved").withLabels(
-        ImmutableListMultimap.of("RESOLVED", "resolved",
-            "ONE", "SHOULD_NOT_HAPPEN",
-            "SOME", "SHOULD_NOT_HAPPEN")));
+                        ImmutableListMultimap.of(
+                            "RESOLVED",
+                            "resolved",
+                            "ONE",
+                            "SHOULD_NOT_HAPPEN",
+                            "SOME",
+                            "SHOULD_NOT_HAPPEN")));
+    work.setAuthor(ORIGINAL_AUTHOR);
 
+    assertThat(work.getAllLabels("COPYBARA_AUTHOR")).containsExactly("Foo Bar", "foo@bar.com");
     assertThat(work.getLabel("SOME")).isEqualTo("TEST");
     assertThat(work.getLabel("ONE")).isEqualTo("one");
     assertThat(work.getLabel("TWO")).isEqualTo("two");
