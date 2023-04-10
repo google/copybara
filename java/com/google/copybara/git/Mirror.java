@@ -200,7 +200,11 @@ public class Mirror implements Migration {
           ? refspec.stream().map(Refspec::withAllowNoFastForward).collect(Collectors.toList())
           : refspec;
       try (ProfilerTask ignore1 = profiler.start("push")) {
-        repo.push().prune(prune).withRefspecs(destination, pushRefspecs).run();
+        repo.push()
+            .prune(prune)
+            .withRefspecs(destination, pushRefspecs)
+            .withPushOptions(ImmutableList.copyOf(gitOptions.gitPushOptions))
+            .run();
       } catch (NonFastForwardRepositoryException e) {
         // Normally we want non-fast-forward to retry, but for git.mirror, given that it handles
         // multiple refs, and that mirrors, it is better to just fail and tell the user.

@@ -736,6 +736,20 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testDefaultMirrorWithPushOptions() throws Exception {
+    // default mirror when user doesn't set actions
+    final Migration mirror = createMirrorObj();
+    options.git.gitPushOptions = ImmutableList.of("example_push_option");
+    RepoException expectedException =
+        assertThrows(RepoException.class, () -> mirror.run(workdir, ImmutableList.of()));
+    assertThat(expectedException).hasMessageThat().contains("--push-option=example_push_option");
+    // expected, this folder doesn't support push options
+    assertThat(expectedException)
+        .hasMessageThat()
+        .contains("the receiving end does not support push options");
+  }
+
+  @Test
   public void testPushWithAllowedPushOptionsButUnsupportedAtDestination() throws Exception {
     String cfg =
         "def test(ctx):\n"
