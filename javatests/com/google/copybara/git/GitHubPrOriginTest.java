@@ -52,6 +52,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.Workflow;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -675,6 +676,59 @@ public class GitHubPrOriginTest {
     assertThat(changes.stream()
         .map(c -> c.getRevision().getUrl())
         .allMatch(c -> c.startsWith("https://github.com/")))
+        .isTrue();
+  }
+
+  @Test
+  public void testChanges_withMergeCommit() throws Exception {
+    GitRepository remote = withTmpWorktree(gitUtil.mockRemoteRepo("github.com/google/example"));
+    addFiles(
+        remote,
+        "first commit",
+        ImmutableMap.<String, String>builder().put("foo.txt", "").buildOrThrow());
+
+    remote.branch("pr_branch").run();
+    remote.forceCheckout("pr_branch");
+    addFiles(
+        remote,
+        "second commit",
+        ImmutableMap.<String, String>builder()
+            .put("foo.txt", "")
+            .put("bar.txt", "")
+            .buildOrThrow());
+
+    remote.forceCheckout("main");
+    remote.simpleCommand("merge", "pr_branch", "--no-ff");
+
+    GitHubPrOrigin origin =
+        githubPrOrigin(
+            "url = 'https://github.com/google/example'", "branch = 'main'", "use_merge = True");
+
+    MockPullRequest.create(gitUtil)
+        .setState("open")
+        .setPrimaryBranch("main")
+        .setPrNumber(123)
+        .setMergeable(true)
+        .mock();
+
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(123), remote.parseRef("pr_branch"));
+    remote.simpleCommand("update-ref", GitHubUtil.asMergeRef(123), remote.parseRef("main"));
+
+    Reader<GitRevision> reader = origin.newReader(Glob.ALL_FILES, authoring);
+    origin.newReader(Glob.ALL_FILES, authoring).checkout(origin.resolve("123"), workdir);
+    ChangesResponse<GitRevision> c = reader.changes(null, origin.resolve("123"));
+    GitRevision mergeRevision = origin.resolve("123");
+
+    List<String> msgs =
+        Lists.transform(
+            reader.changes(/* fromRef= */ null, mergeRevision).getChanges(), Change::getMessage);
+    assertThat(mergeRevision.getSha1()).isEqualTo(remote.parseRef("HEAD"));
+    assertThat(msgs)
+        .containsExactly("first commit\n", "second commit\n", "Merge branch 'pr_branch'\n");
+    assertThat(
+            c.getChanges().stream()
+                .allMatch(
+                    a -> a.getRevision().getUrl().equals("https://github.com/google/example")))
         .isTrue();
   }
 

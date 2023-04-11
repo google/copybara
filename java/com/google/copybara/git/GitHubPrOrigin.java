@@ -679,7 +679,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           return ChangesResponse.forChanges(
               ImmutableList.<Change<GitRevision>>builder()
                   .addAll(prChanges.getChanges())
-                  .add(change(merge.getCommit()))
+                  // merge commit is sourced from git log which doesn't have url context
+                  .add(change(merge.getCommit().withUrl(url)))
                   .build());
         } catch (EmptyChangeException e) {
           throw new RepoException("Error getting the merge commit information: " + merge, e);
