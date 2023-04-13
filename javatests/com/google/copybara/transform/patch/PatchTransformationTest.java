@@ -240,6 +240,17 @@ public class PatchTransformationTest {
   }
 
   @Test
+  public void testParseSkylarkSeries_empty() throws Exception {
+    skylark.addConfigFile("series", "");
+    PatchTransformation transformation =
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  series = 'series',\n"
+                + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
+  }
+
+  @Test
   public void testDescribe() {
     PatchTransformation transform =
         new PatchTransformation(

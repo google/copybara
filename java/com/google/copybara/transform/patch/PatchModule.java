@@ -207,6 +207,8 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       throws EvalException, ValidationException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     ConfigFile seriesFile = parseSeries(series, builder);
+    ValidationException.checkCondition(!builder.build().isEmpty(),
+          String.format("Quilt patch Series %s is empty.", seriesFile.path()));
     return new QuiltTransformation(
         seriesFile,
         builder.build(),
@@ -245,8 +247,6 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
         }
       }
       ImmutableList<ConfigFile> patches = patchesBuilder.build();
-      ValidationException.checkCondition(!patches.isEmpty(),
-          String.format("Quilt Series %s is empty.", seriesFile.path()));
       outputBuilder.addAll(patches);
     } catch (CannotResolveLabel | IOException e) {
       throw Starlark.errorf("Error reading patch series file: %s. Caused by: %s",
