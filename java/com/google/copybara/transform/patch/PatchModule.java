@@ -26,6 +26,7 @@ import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
+import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -130,7 +131,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       StarlarkInt stripI,
       String directory,
       StarlarkThread thread)
-      throws EvalException {
+      throws EvalException, ValidationException {
     int strip = stripI.toInt("strip");
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
@@ -203,7 +204,7 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
   public QuiltTransformation quiltApply(
       String series,
       StarlarkThread thread)
-      throws EvalException {
+      throws EvalException, ValidationException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     ConfigFile seriesFile = parseSeries(series, builder);
     return new QuiltTransformation(
@@ -223,11 +224,13 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
   }
 
   private ConfigFile parseSeries(
-      String series, ImmutableList.Builder<ConfigFile> outputBuilder) throws EvalException {
+      String series, ImmutableList.Builder<ConfigFile> outputBuilder)
+       throws EvalException, ValidationException {
     ConfigFile seriesFile;
     try {
       // Don't use this.resolve(), because its error message mentions patch file instead of series.
       seriesFile = configFile.resolve(series.trim());
+      ImmutableList.Builder<ConfigFile> patchesBuilder = ImmutableList.builder();
       for (String line : LINES.split(seriesFile.readContent())) {
         // Comment at the beginning of the line or
         // a whitespace followed by the hash character.
@@ -237,10 +240,14 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             line = line.substring(0, comment - 1).trim();
           }
           if (!line.isEmpty()) {
-            outputBuilder.add(seriesFile.resolve(line));
+            patchesBuilder.add(seriesFile.resolve(line));
           }
         }
       }
+      ImmutableList<ConfigFile> patches = patchesBuilder.build();
+      ValidationException.checkCondition(!patches.isEmpty(),
+          String.format("Quilt Series %s is empty.", seriesFile.path()));
+      outputBuilder.addAll(patches);
     } catch (CannotResolveLabel | IOException e) {
       throw Starlark.errorf("Error reading patch series file: %s. Caused by: %s",
           series, e.toString());

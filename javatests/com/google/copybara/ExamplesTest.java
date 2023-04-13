@@ -95,7 +95,8 @@ public class ExamplesTest {
       // Quilt requires an extra file.
       if (exampleRef.contains(
               "com.google.copybara.transform.patch.PatchModule#quiltApply")) {
-        executor.addConfigFile("patches/series", "");
+        executor.addConfigFile("patches/series", "patch");
+        executor.addConfigFile("patches/patch", "");
       }
       try {
         val = Strings.isNullOrEmpty(example.testExistingVariable())

@@ -19,12 +19,14 @@ package com.google.copybara.transform.patch;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
@@ -183,6 +185,19 @@ public final class QuiltTransformationTest {
         .containsFile("patches/series", SERIES)
         .containsNoMoreFiles();
   }
+
+    @Test
+  public void parseSkylarkTest_emptySeries() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    skylark.addConfigFile("patches/series", "");
+    assertThrows(ValidationException.class, 
+        () -> skylark.eval("r",
+            "r = patch.quilt_apply(\n"
+                + "  series = 'patches/series',\n"
+                + ")\n"));
+  }
+
 
   @Test
   public void describeTest() {
