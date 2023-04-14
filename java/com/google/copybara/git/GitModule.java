@@ -1794,8 +1794,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 "The assignees to set when creating a new pull request. The maximum number of"
-                    + " assignees is 10. For example: `assignees = [\"${COPYBARA_AUTHOR}\"]` sets"
-                    + " the pull request assignee to the original author."),
+                    + " assignees is 10 and the assignees must be GitHub usernames or a label that"
+                    + " can be resolved to a GitHub username. For example: `assignees ="
+                    + " [\"github-repo-owner1\", \"${YOUR_LABEL}\"]`"),
         @Param(
             name = "integrates",
             allowedTypes = {
