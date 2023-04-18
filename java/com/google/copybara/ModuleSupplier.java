@@ -45,6 +45,7 @@ import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.http.HttpModule;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
+import com.google.copybara.python.PythonModule;
 import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -123,6 +124,7 @@ public class ModuleSupplier {
         new RustModule(options.get(RemoteFileOptions.class)),
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
+        new PythonModule(),
         Json.INSTANCE);
   }
 
