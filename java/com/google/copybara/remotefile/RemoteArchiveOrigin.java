@@ -29,6 +29,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.remotefile.extractutil.ExtractUtil;
 import com.google.copybara.revision.Change;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -39,14 +40,11 @@ import com.google.copybara.version.VersionSelector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nullable;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
 
 /** An Origin class for remote files */
 public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
@@ -161,24 +159,6 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
         MoreFiles.asByteSink(workdir.resolve(filename)).writeFrom(returned);
       }
 
-      private void writeArchiveByUnpacking(Path workdir, InputStream returned)
-          throws IOException, ValidationException {
-        ArchiveEntry archiveEntry;
-        try (ArchiveInputStream inputStream =
-            remoteFileOptions.createArchiveInputStream(returned, remoteFileType)) {
-          while (((archiveEntry = inputStream.getNextEntry()) != null)) {
-            if (!originFiles
-                    .relativeTo(workdir.toAbsolutePath())
-                    .matches(workdir.resolve(Path.of(archiveEntry.getName())))
-                || archiveEntry.isDirectory()) {
-              continue;
-            }
-            Files.createDirectories(workdir.resolve(archiveEntry.getName()).getParent());
-            MoreFiles.asByteSink(workdir.resolve(archiveEntry.getName())).writeFrom(inputStream);
-          }
-        }
-      }
-
       @Override
       public void checkout(RemoteArchiveRevision ref, Path workdir) throws ValidationException {
         try {
@@ -190,7 +170,8 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
             if (remoteFileType == RemoteFileType.AS_IS) {
               writeArchiveAsIs(ref, workdir, returned);
             } else {
-              writeArchiveByUnpacking(workdir, returned);
+              ExtractUtil.extractArchive(
+                  returned, workdir, RemoteFileType.toExtractType(remoteFileType), originFiles);
             }
           }
         } catch (IOException e) {

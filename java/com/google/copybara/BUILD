@@ -215,6 +215,7 @@ java_library(
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
         "//java/com/google/copybara/buildozer:buildozer_options",
+        "//java/com/google/copybara/compression",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/config:parser",

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.buildozer.BuildozerModule;
 import com.google.copybara.buildozer.BuildozerOptions;
+import com.google.copybara.compression.CompressionModule;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -125,6 +126,7 @@ public class ModuleSupplier {
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
         new PythonModule(),
+        new CompressionModule(),
         Json.INSTANCE);
   }
 

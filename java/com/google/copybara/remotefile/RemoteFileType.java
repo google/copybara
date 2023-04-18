@@ -15,11 +15,24 @@
  */
 package com.google.copybara.remotefile;
 
-/** Remote file types supported by Copybara archive import */
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.remotefile.extractutil.ExtractType;
+
+/**
+ * Remote file types supported by Copybara archive import Must be kept in the same ordinal order as
+ * ExtractType
+ */
 public enum RemoteFileType {
   JAR,
   ZIP,
   TAR,
   TAR_GZ,
   AS_IS;
+
+  public static ExtractType toExtractType(RemoteFileType type) throws ValidationException {
+    checkCondition(type != AS_IS, "Cannot convert an as is file type to an extract type");
+    return ExtractType.values()[type.ordinal()];
+  }
 }
