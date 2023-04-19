@@ -108,11 +108,20 @@ public class Mirror implements Migration {
       } else {
         ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
         for (Action action : actions) {
-          GitMirrorContext context = new GitMirrorContext(action,
-              new SkylarkConsole(generalOptions.console()), sourceRefs, refspec, origin,
-              destination, generalOptions.isForced(),
-              repo, generalOptions.getDirFactory(),
-              Dict.empty(), gitOptions);
+          GitMirrorContext context =
+              new GitMirrorContext(
+                  action,
+                  new SkylarkConsole(generalOptions.console()),
+                  generalOptions.profiler(),
+                  sourceRefs,
+                  refspec,
+                  origin,
+                  destination,
+                  generalOptions.isForced(),
+                  repo,
+                  generalOptions.getDirFactory(),
+                  Dict.empty(),
+                  gitOptions);
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();

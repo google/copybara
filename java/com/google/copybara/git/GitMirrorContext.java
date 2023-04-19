@@ -35,6 +35,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitRepository.BranchCmd;
 import com.google.copybara.git.GitRepository.CherryPickCmd;
 import com.google.copybara.git.GitRepository.RebaseCmd;
+import com.google.copybara.profiler.Profiler;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.transform.SkylarkConsole;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
@@ -74,10 +76,21 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   private String originUrl;
   private String destinationUrl;
   private final GitOptions gitOptions;
+  private final Profiler profiler;
 
-  GitMirrorContext(Action currentAction, SkylarkConsole console, List<String> sourceRefs,
-      List<Refspec> refspecs, String originUrl, String destinationUrl, boolean force,
-      GitRepository repo, DirFactory dirFactory, Dict<?, ?> params, GitOptions gitOptions) {
+  GitMirrorContext(
+      Action currentAction,
+      SkylarkConsole console,
+      Profiler profiler,
+      List<String> sourceRefs,
+      List<Refspec> refspecs,
+      String originUrl,
+      String destinationUrl,
+      boolean force,
+      GitRepository repo,
+      DirFactory dirFactory,
+      Dict<?, ?> params,
+      GitOptions gitOptions) {
     super(currentAction, console, ImmutableMap.of(), params);
     this.sourceRefs = sourceRefs;
     this.refspecs = checkNotNull(refspecs);
@@ -87,13 +100,24 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     this.repo = repo;
     this.dirFactory = dirFactory;
     this.gitOptions = gitOptions;
+    this.profiler = checkNotNull(profiler);
   }
 
   @Override
   public GitMirrorContext withParams(Dict<?, ?> params) {
     return new GitMirrorContext(
-        action, console, sourceRefs, refspecs, originUrl, destinationUrl, force, repo,
-        dirFactory, params, gitOptions);
+        action,
+        console,
+        profiler,
+        sourceRefs,
+        refspecs,
+        originUrl,
+        destinationUrl,
+        force,
+        repo,
+        dirFactory,
+        params,
+        gitOptions);
   }
 
   @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
@@ -149,7 +173,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     StarlarkInt depthConverted = convertFromNoneable(depth, null);
     Optional<Integer> depthOptional =
         (depthConverted == null) ? Optional.empty() : Optional.of(depthConverted.toInt("depth"));
-    try {
+    try (ProfilerTask ignored = profiler.start("origin_fetch")) {
       repo.fetch(
           originUrl,
           prune,
@@ -158,6 +182,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           partialFetch,
           depthOptional);
     } catch (CannotResolveRevisionException e) {
+      console.warnFmt("Failed to complete origin_fetch with error '%s'", e.getMessage());
       return false;
     }
     return true;
@@ -281,13 +306,14 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
             .addAll(convertStringList(pushOptions, "push_options"))
             .addAll(gitOptions.gitPushOptions)
             .build();
-
     validatePush(refspecsToPush, refspecs, true);
-    repo.runPush(
-        repo.push()
-            .prune(prune)
-            .withRefspecs(destinationUrl, refspecsToPush)
-            .withPushOptions(resolvedPushOptions));
+    try (ProfilerTask ignored = profiler.start("destination_push")) {
+      repo.runPush(
+          repo.push()
+              .prune(prune)
+              .withRefspecs(destinationUrl, refspecsToPush)
+              .withPushOptions(resolvedPushOptions));
+    }
   }
 
   private enum FastForwardMode {
