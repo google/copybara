@@ -17,6 +17,7 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
@@ -50,6 +51,14 @@ public class GitHubGraphQLApi {
     public Map<String, Object> getVariables() {
       return variables;
     }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this)
+          .add("variables", variables)
+          .add("query", query)
+          .toString();
+    }
   }
 
   private final GitHubApiTransport transport;
@@ -67,7 +76,13 @@ public class GitHubGraphQLApi {
     private int pullRequests;
     private int reviews;
 
-    public GetCommitHistoryParams(int commits, int pullRequests, int reviews) {}
+    public GetCommitHistoryParams() {}
+
+    public GetCommitHistoryParams(int commits, int pullRequests, int reviews) {
+      this.commits = commits;
+      this.pullRequests = pullRequests;
+      this.reviews = reviews;
+    }
 
     public int getCommits() {
       return commits;

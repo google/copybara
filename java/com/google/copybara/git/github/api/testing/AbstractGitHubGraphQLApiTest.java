@@ -61,7 +61,20 @@ public abstract class AbstractGitHubGraphQLApiTest {
   @Test
   public void testGetCommitHistory() throws Exception {
     JsonValidator<GraphQLRequest> validator =
-        createValidator(GraphQLRequest.class, (r) -> r.getQuery().contains("query"));
+        createValidator(
+            GraphQLRequest.class,
+            (r) -> {
+              assertThat(r.getVariables().get("numberOfCommits")).isInstanceOf(Number.class);
+              assertThat(((Number) r.getVariables().get("numberOfCommits")).intValue())
+                  .isEqualTo(5);
+              assertThat(r.getVariables().get("numberOfReviews")).isInstanceOf(Number.class);
+              assertThat(((Number) r.getVariables().get("numberOfReviews")).intValue())
+                  .isEqualTo(5);
+              assertThat(r.getVariables().get("numberOfPRs")).isInstanceOf(Number.class);
+              assertThat(((Number) r.getVariables().get("numberOfPRs")).intValue()).isEqualTo(5);
+              assertThat(r.getQuery()).contains("query");
+              return true;
+            });
     trainMockPost(validator, getResource("commit_history_testdata.json"));
     CommitHistoryResponse response =
         api.getCommitHistory(
