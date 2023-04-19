@@ -331,13 +331,14 @@ public class GitOriginTest {
     repo.simpleCommand("commit", "-m", "second");
     repo.simpleCommand("merge", "foo");
 
-    ImmutableMultimap<String, String> labels = origin().resolve(defaultBranch).associatedLabels();
+    GitRevision revision = origin().resolve(defaultBranch);
+    ImmutableMultimap<String, String> labels = revision.associatedLabels();
     assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT"))
         .isNotEqualTo(labels.get("GIT_DESCRIBE_REQUESTED_VERSION"));
     assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT").stream().anyMatch(x -> x.contains("0.1")))
         .isTrue();
-    assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.2")))
-        .isTrue();
+    assertThat(revision.associatedLabel("GIT_DESCRIBE_ABBREV")
+        .stream().anyMatch(x -> x.equals("0.2"))).isTrue();
   }
 
   @Test
@@ -651,11 +652,14 @@ public class GitOriginTest {
     assertThat(changes.get(0).getMessage()).isEqualTo("change2\n");
     assertThat(changes.get(0).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION"))
         .contains("0.1");
+    assertThat(changes.get(0).getRevision().associatedLabel("GIT_DESCRIBE_ABBREV"))
+        .contains("0.1");
     assertThat(changes.get(1).getMessage()).isEqualTo("change3\n");
 
     assertThat(changes.get(1).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION"))
         .contains("0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7));
-
+    assertThat(changes.get(1).getRevision().associatedLabel("GIT_DESCRIBE_ABBREV"))
+        .contains("0.1");
     assertThat(changes.get(1).getRevision().associatedLabel("GIT_SEQUENTIAL_REVISION_NUMBER"))
         .contains("3");
 
@@ -663,7 +667,8 @@ public class GitOriginTest {
 
     assertThat(changes.get(2).getRevision().associatedLabel("GIT_DESCRIBE_CHANGE_VERSION")).
         contains("0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7));
-
+    assertThat(changes.get(2).getRevision().associatedLabel("GIT_DESCRIBE_ABBREV"))
+        .contains("0.1");
     assertThat(changes.get(2).getRevision().associatedLabel("GIT_SEQUENTIAL_REVISION_NUMBER"))
         .contains("4");
 
@@ -679,6 +684,10 @@ public class GitOriginTest {
             "0.1-2-g" + changes.get(2).getRevision().asString().substring(0, 7),
             "0.1-1-g" + changes.get(1).getRevision().asString().substring(0, 7),
             "0.1"));
+    assertThat(work.getLabel("GIT_DESCRIBE_ABBREV")).isEqualTo("0.1");
+
+    assertThat(work.getAllLabels("GIT_DESCRIBE_ABBREV").getImmutableList())
+        .isEqualTo(ImmutableList.of("0.1", "0.1", "0.1"));
 
     for (Change<GitRevision> change : changes) {
       assertThat(change.getAuthor().getEmail()).isEqualTo("john@name.com");

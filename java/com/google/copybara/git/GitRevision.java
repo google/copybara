@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
@@ -46,6 +47,7 @@ public final class GitRevision implements Revision {
   @Nullable private final String reviewReference;
   @Nullable private final String url;
   private String describe;
+  private String describeAbbrev;
   private String revisionNumber;
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
@@ -190,6 +192,9 @@ public final class GitRevision implements Revision {
     if (label.equals(GitRepository.GIT_SEQUENTIAL_REVISION_NUMBER)) {
       return populateRevisionNumber();
     }
+    if (label.equals(GitRepository.GIT_DESCRIBE_ABBREV)) {
+      return populateDescribeAbbrev();
+    }
     return associatedLabels.get(label);
   }
 
@@ -213,6 +218,22 @@ public final class GitRevision implements Revision {
       }
     }
     return ImmutableList.of(describe);
+  }
+
+  private synchronized ImmutableList<String> populateDescribeAbbrev() {
+    if (associatedLabels.containsKey(GitRepository.GIT_DESCRIBE_ABBREV)) {
+      return associatedLabels.get(GitRepository.GIT_DESCRIBE_ABBREV);
+    }
+
+    if (describeAbbrev == null) {
+      try {
+        describeAbbrev = repository.describeAbbrev(this);
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Cannot get closest tag for %s.", sha1);
+      }
+    }
+    return ImmutableList.of(Strings.nullToEmpty(describeAbbrev));
   }
 
   /** Lazily compute rev number. */

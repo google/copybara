@@ -138,7 +138,6 @@ public class GerritOriginTest {
                     GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
                     repo.parseRef("HEAD").substring(0, 7))
                 .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
-                .put(GitRepository.GIT_DESCRIBE_ABBREV, "")
                 .build(),
             url);
     git("update-ref", "refs/changes/45/12345/1", firstRevision.getSha1());
@@ -168,7 +167,6 @@ public class GerritOriginTest {
                     GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
                     repo.parseRef("HEAD").substring(0, 7))
                 .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
-                .put(GitRepository.GIT_DESCRIBE_ABBREV, "")
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 2 " + CHANGE_ID)
                 .build(),
             url);
@@ -195,7 +193,6 @@ public class GerritOriginTest {
                     GitRepository.GIT_DESCRIBE_REQUESTED_VERSION,
                     repo.parseRef("HEAD").substring(0, 7))
                 .put(GitRepository.GIT_DESCRIBE_FIRST_PARENT, repo.parseRef("HEAD").substring(0, 7))
-                .put(GitRepository.GIT_DESCRIBE_ABBREV, "")
                 .put(DEFAULT_INTEGRATE_LABEL, "gerrit " + url + " 12345 Patch Set 3 " + CHANGE_ID)
                 .build(),
             url);

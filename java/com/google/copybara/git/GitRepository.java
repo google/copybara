@@ -389,8 +389,7 @@ public class GitRepository {
     return rev.withLabels(
         ImmutableListMultimap.of(
             GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
-            GIT_DESCRIBE_FIRST_PARENT, describe(rev, true),
-            GIT_DESCRIBE_ABBREV, Strings.nullToEmpty(describe(rev, false, "--tag", "--abbrev=0")))
+            GIT_DESCRIBE_FIRST_PARENT, describe(rev, true))
     );
   }
 
@@ -414,6 +413,10 @@ public class GitRepository {
 
   public String describe(GitRevision rev, boolean firstParent) throws RepoException {
     return describe(rev, true, firstParent ? new String[]{"--first-parent"} : new String[]{});
+  }
+
+  public String describeAbbrev(GitRevision rev) throws RepoException {
+    return describe(rev, false, "--tag", "--abbrev=0");
   }
 
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
