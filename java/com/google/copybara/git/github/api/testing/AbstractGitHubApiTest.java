@@ -185,6 +185,8 @@ public abstract class AbstractGitHubApiTest {
     assertThat(pullRequest.getHead().getRef()).isEqualTo("example-branch");
     assertThat(pullRequest.getHead().getSha()).isEqualTo(
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    assertThat(pullRequest.getMerged()).isFalse();
+    assertThat(pullRequest.getCommits()).isEqualTo(StarlarkInt.of(3));
   }
 
   @Test
