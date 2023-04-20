@@ -23,6 +23,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkInt;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a pull request returned by https://api.github.com/repos/REPO_ID/pulls/NUMBER */
@@ -38,9 +39,12 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @Key private Revision base;
   @Key("requested_reviewers") private List<User> requestedReviewers;
   @Key private Boolean mergeable;
+  @Key private Boolean merged;
+
   @Key("mergeable_state")
   private String mergeableState;
   @Key private boolean draft;
+  @Key private Integer commits;
 
   @StarlarkMethod(name = "head", doc = "Information about head", structField = true)
   public Revision getHead() {
@@ -55,6 +59,16 @@ public class PullRequest extends PullRequestOrIssue implements StarlarkValue {
   @StarlarkMethod(name = "draft", doc = "Whether pull request is a draft", structField = true)
   public boolean getDraft() {
     return draft;
+  }
+
+  @StarlarkMethod(name = "merged", doc = "Whether pull request has been merged", structField = true)
+  public boolean getMerged() {
+    return merged;
+  }
+
+  @StarlarkMethod(name = "commits", doc = "Number of commits in the PR", structField = true)
+  public StarlarkInt getCommits() {
+    return StarlarkInt.of(commits);
   }
 
   @Nullable
