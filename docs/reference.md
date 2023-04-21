@@ -72,6 +72,7 @@
   - [format](#format)
     - [format.buildifier](#formatbuildifier)
   - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.abandon_change](#gerrit_api_objabandon_change)
     - [gerrit_api_obj.delete_vote](#gerrit_api_objdelete_vote)
     - [gerrit_api_obj.get_actions](#gerrit_api_objget_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_objget_change)
@@ -1905,6 +1906,20 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 Name | Description
 ---- | -----------
 url | `string`<br><p>Return the URL of this endpoint.</p>
+
+<a id="gerrit_api_obj.abandon_change" aria-hidden="true"></a>
+### gerrit_api_obj.abandon_change
+
+Abandon a Gerrit change.
+
+[`gerritapi.ChangeInfo`](#gerritapichangeinfo) `gerrit_api_obj.abandon_change(change_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
 
 <a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
 ### gerrit_api_obj.delete_vote

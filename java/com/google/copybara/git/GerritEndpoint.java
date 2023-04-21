@@ -25,6 +25,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.AbandonInput;
 import com.google.copybara.git.gerritapi.ActionInfo;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
@@ -192,6 +193,19 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       return gerritApi.submitChange(changeId, new SubmitInput(NotifyType.NONE));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling submit_change: " + e.getMessage(), e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "abandon_change",
+      doc = "Abandon a Gerrit change.",
+      parameters = {@Param(name = "change_id", named = true, doc = "The Gerrit change id.")})
+  public ChangeInfo abandonChange(String changeId) throws EvalException {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      return gerritApi.abandonChange(changeId, AbandonInput.createWithoutComment());
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException("Error getting change: " + e.getMessage(), e);
     }
   }
 
