@@ -130,6 +130,11 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
             ? approvalsInProgress.subList(baseLineIndex, approvalsInProgress.size())
             : ImmutableList.of();
 
+    // TODO(linjordan) debug log, remove.
+    logger.atInfo().log(
+        "Partitioned presubmit GitHub changes into presubmit: %s, postsubmit:%s",
+        preSubmitChanges, postSubmitChanges);
+
     // Last step do user validations, concatenate, and return
     return new ApprovalsResult(
         ImmutableList.<ChangeWithApprovals>builder()

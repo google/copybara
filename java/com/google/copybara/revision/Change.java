@@ -197,7 +197,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("revision", revision.asString())
+        .add("revision", revision)
         .add("author", author)
         .add("dateTime", dateTime)
         .add("message", message)
