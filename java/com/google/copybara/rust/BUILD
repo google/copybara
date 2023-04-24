@@ -24,6 +24,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/json",
         "//java/com/google/copybara/remotefile",
+        "//java/com/google/copybara/revision",
         "//java/com/google/copybara/version",
         "//third_party:google_http_client",
         "//third_party:guava",

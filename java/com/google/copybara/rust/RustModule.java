@@ -18,6 +18,7 @@ package com.google.copybara.rust;
 
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.version.VersionResolver;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -45,5 +46,15 @@ public final class RustModule implements StarlarkValue {
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(String crateName) {
     return RustCratesIoVersionList.forCrate(crateName, options);
+  }
+
+  @StarlarkMethod(
+      name = "crates_io_version_resolver",
+      doc = "A version resolver for Rust crates from crates.io",
+      documented = false,
+      parameters = {@Param(name = "crate", named = true, doc = "The name of the rust crate.")})
+  @SuppressWarnings("unused")
+  public VersionResolver getResolver(String crate) {
+    return new RustCratesIoVersionResolver(crate, options);
   }
 }
