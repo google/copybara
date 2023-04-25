@@ -19,7 +19,6 @@ package com.google.copybara.transform;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.transform.TodoReplace.Mode.MAP_OR_FAIL;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -48,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.syntax.Location;
 
@@ -95,10 +95,9 @@ public class TodoReplace implements Transformation {
   }
 
   private Pattern createPattern(ImmutableList<String> todoTags) {
-    return Pattern.compile(
-        "((?:"
-            + todoTags.stream().map(Pattern::quote).collect(joining("|"))
-            + ") ?)(\\(|: )(.*?)(\\)| -)");
+    return Pattern.compile("((?:"
+        + Joiner.on("|").join(todoTags.stream().map(Pattern::quote).collect(Collectors.toList()))
+        + ") ?)\\((.*?)\\)");
   }
 
   @Override
@@ -126,23 +125,16 @@ public class TodoReplace implements Transformation {
       StringBuffer sb = new StringBuffer();
       boolean modified = false;
       while (matcher.find()) {
-        if (matcher.group(3).trim().isEmpty()) {
+        if (matcher.group(2).trim().isEmpty()){
           matcher.appendReplacement(sb, matcher.group(0));
           continue;
         }
-        List<String> users = Splitter.on(",").splitToList(matcher.group(3));
+        List<String> users = Splitter.on(",").splitToList(matcher.group(2));
         List<String> mappedUsers = mapUsers(users, matcher.group(0), file.getPath(), console);
         modified |= !users.equals(mappedUsers);
         String result = matcher.group(1);
         if (!mappedUsers.isEmpty()) {
-          // format the modified TODO/NOTE based on their original syntax
-          if (matcher.group(2).equals("(")) {
-            result += String.format("(%s)", Joiner.on(",").join(mappedUsers));
-          } else {
-            result += String.format(": %s -", Joiner.on(",").join(mappedUsers));
-          }
-        } else if (!matcher.group(2).equals("(")) {
-          result += " -";
+          result += "(" + Joiner.on(",").join(mappedUsers) + ")";
         }
         matcher.appendReplacement(sb, Matcher.quoteReplacement(result));
       }

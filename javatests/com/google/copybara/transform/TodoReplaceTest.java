@@ -97,24 +97,22 @@ public final class TodoReplaceTest {
         + "aaa\n"
         + "// TODO( aaa, bbb,other): Example\n");
     write("two", "// TODO(aaa): Other Example\n");
-    write("three", "" + "aaa\n" + "// TODO: aaa, bbb,other - Example\n");
-    write("four", "// TODO: aaa - Other Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one", "" + "aaa\n" + "// TODO( foo, bar,other): Example\n")
+        .containsFile("one", ""
+            + "aaa\n"
+            + "// TODO( foo, bar,other): Example\n")
         .containsFile("two", "// TODO(foo): Other Example\n")
-        .containsFile("three", "" + "aaa\n" + "// TODO: foo, bar,other - Example\n")
-        .containsFile("four", "// TODO: foo - Other Example\n")
         .containsNoMoreFiles();
 
     run(replace.reverse());
 
     assertThatPath(checkoutDir)
-        .containsFile("one", "" + "aaa\n" + "// TODO( aaa, bbb,other): Example\n")
+        .containsFile("one", ""
+            + "aaa\n"
+            + "// TODO( aaa, bbb,other): Example\n")
         .containsFile("two", "// TODO(aaa): Other Example\n")
-        .containsFile("three", "" + "aaa\n" + "// TODO: aaa, bbb,other - Example\n")
-        .containsFile("four", "// TODO: aaa - Other Example\n")
         .containsNoMoreFiles();
   }
 
@@ -122,13 +120,12 @@ public final class TodoReplaceTest {
   public void testMultipleNotFound() throws Exception {
     TodoReplace replace = todoReplace("mapping = { 'test': 'foo'}");
     write("one", "# TODO(danmane,mrry,opensource): Flip these switches\n");
-    write("two", "# TODO: danmane,mrry,opensource - Flip these switches\n");
     run(replace);
 
     assertThatPath(checkoutDir)
         .containsFile("one", "# TODO(danmane,mrry,opensource): Flip these switches\n")
-        .containsFile("two", "# TODO: danmane,mrry,opensource - Flip these switches\n")
         .containsNoMoreFiles();
+
   }
 
   @Test
@@ -138,42 +135,23 @@ public final class TodoReplaceTest {
         "mode = 'MAP_OR_FAIL'");
 
     write("one.txt", "// TODO(aaa): Example\n");
-    write("two.txt", "// TODO: aaa - Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(foo): Example\n")
-        .containsFile("two.txt", "// TODO: foo - Example\n")
         .containsNoMoreFiles();
 
-    delete("two.txt");
     write("one.txt", "// TODO(bbb): Example\n");
 
     ValidationException notFound = assertThrows(ValidationException.class, () -> run(replace));
     assertThat(notFound)
         .hasMessageThat()
         .contains("Cannot find a mapping 'bbb' in 'TODO(bbb)' (/one.txt)");
-
+    // Does not conform the pattern for users
     write("one.txt", "// TODO(aaa foo/1234): Example\n");
 
     ValidationException noMatch = assertThrows(ValidationException.class, () -> run(replace));
     assertThat(noMatch)
-        .hasMessageThat()
-        .contains("Unexpected 'aaa foo/1234' doesn't match expected format");
-
-    delete("one.txt");
-    write("two.txt", "// TODO: bbb - Example\n");
-
-    ValidationException notFound2 = assertThrows(ValidationException.class, () -> run(replace));
-    assertThat(notFound2)
-        .hasMessageThat()
-        .contains("Cannot find a mapping 'bbb' in 'TODO: bbb -' (/two.txt)");
-    // Does not conform the pattern for users
-
-    write("two.txt", "// TODO: aaa foo/1234 - Example\n");
-
-    ValidationException noMatch2 = assertThrows(ValidationException.class, () -> run(replace));
-    assertThat(noMatch2)
         .hasMessageThat()
         .contains("Unexpected 'aaa foo/1234' doesn't match expected format");
   }
@@ -186,20 +164,16 @@ public final class TodoReplaceTest {
         "default = 'TEST'");
 
     write("one.txt", "// TODO(aaa, nonExistent): Example\n");
-    write("two.txt", "// TODO: aaa, nonExistent - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(foo, TEST): Example\n")
-        .containsFile("two.txt", "// TODO: foo, TEST - Example\n")
         .containsNoMoreFiles();
 
     // Does not conform the pattern, will be replaced by the default anyway
     write("one.txt", "// TODO(aaa foo/1234, nonExistent): Example\n");
-    write("two.txt", "// TODO: aaa foo/1234, nonExistent - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO( TEST): Example\n")
-        .containsFile("two.txt", "// TODO:  TEST - Example\n")
         .containsNoMoreFiles();
   }
 
@@ -211,12 +185,10 @@ public final class TodoReplaceTest {
         "default = 'TEST'");
 
     write("one.txt", "// TODO(bbb, ccc): Example\n");
-    write("two.txt", "// TODO: bbb, ccc - Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(TEST): Example\n")
-        .containsFile("two.txt", "// TODO: TEST - Example\n")
         .containsNoMoreFiles();
   }
 
@@ -227,20 +199,16 @@ public final class TodoReplaceTest {
         "default = 'TEST'");
 
     write("one.txt", "// TODO(bbb, ccc): Example\n");
-    write("two.txt", "// TODO: bbb, ccc - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(TEST): Example\n")
-        .containsFile("two.txt", "// TODO: TEST - Example\n")
         .containsNoMoreFiles();
 
     // Does not conform the pattern, will be replaced by default anyway
     write("one.txt", "// TODO(bbb, ccc foo/1234): Example\n");
-    write("two.txt", "// TODO: bbb, ccc foo/1234 - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO(TEST): Example\n")
-        .containsFile("two.txt", "// TODO: TEST - Example\n")
         .containsNoMoreFiles();
   }
 
@@ -267,20 +235,16 @@ public final class TodoReplaceTest {
         "mode = 'SCRUB_NAMES'");
 
     write("one.txt", "// TODO(aaa, bbb): Example\n");
-    write("two.txt", "// TODO: aaa, bbb - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO: Example\n")
-        .containsFile("two.txt", "// TODO - Example\n")
         .containsNoMoreFiles();
 
     // Does not conform the pattern, will be scrubbed anyway
     write("one.txt", "// TODO(aaa, bbb foo/1234): Example\n");
-    write("two.txt", "// TODO: aaa, bbb foo/1234 - Example\n");
     run(replace);
     assertThatPath(checkoutDir)
         .containsFile("one.txt", "// TODO: Example\n")
-        .containsFile("two.txt", "// TODO - Example\n")
         .containsNoMoreFiles();
   }
 
@@ -291,12 +255,12 @@ public final class TodoReplaceTest {
     write("one.txt", ""
         + "// TODO(aaa): Example\n"
         + "// NOTE(aaa): Example\n");
-    write("two.txt", "" + "// TODO: aaa - Example\n" + "// NOTE: aaa - Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", "" + "// TODO(foo): Example\n" + "// NOTE(foo): Example\n")
-        .containsFile("two.txt", "" + "// TODO: foo - Example\n" + "// NOTE: foo - Example\n")
+        .containsFile("one.txt", ""
+            + "// TODO(foo): Example\n"
+            + "// NOTE(foo): Example\n")
         .containsNoMoreFiles();
 
     replace = todoReplace(
@@ -306,12 +270,12 @@ public final class TodoReplaceTest {
     write("one.txt", ""
         + "// TODO(aaa): Example\n"
         + "// NOTE(aaa): Example\n");
-    write("two.txt", "" + "// TODO: aaa - Example\n" + "// NOTE: aaa - Example\n");
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", "" + "// TODO(aaa): Example\n" + "// NOTE(foo): Example\n")
-        .containsFile("two.txt", "" + "// TODO: aaa - Example\n" + "// NOTE: foo - Example\n")
+        .containsFile("one.txt", ""
+            + "// TODO(aaa): Example\n"
+            + "// NOTE(foo): Example\n")
         .containsNoMoreFiles();
   }
 
@@ -322,12 +286,12 @@ public final class TodoReplaceTest {
     write("one.txt", ""
         + "// TODO(aaa): test\n"
         + "aaaaa\n");
-    write("two.txt", "" + "// TODO: aaa - test\n" + "aaaaa\n");
     run(replace);
 
     assertThatPath(checkoutDir)
-        .containsFile("one.txt", "" + "// TODO(${hello}): test\n" + "aaaaa\n")
-        .containsFile("two.txt", "" + "// TODO: ${hello} - test\n" + "aaaaa\n")
+        .containsFile("one.txt", ""
+            + "// TODO(${hello}): test\n"
+            + "aaaaa\n")
         .containsNoMoreFiles();
   }
 
@@ -352,11 +316,8 @@ public final class TodoReplaceTest {
     TodoReplace replace =
         todoReplace("mapping = { 'aaa': 'foo'}", "ignore ='b/.*'", "mode = 'MAP_OR_FAIL'");
     write("one.txt", "// TODO(b/123, aaa): Example");
-    write("two.txt", "// TODO(b/123, aaa): Example");
     run(replace);
-    assertThatPath(checkoutDir)
-        .containsFile("one.txt", "// TODO(b/123, foo): Example")
-        .containsFile("two.txt", "// TODO(b/123, foo): Example");
+    assertThatPath(checkoutDir).containsFile("one.txt", "// TODO(b/123, foo): Example");
   }
 
   private TransformWork run(Transformation replace) throws Exception {
@@ -372,9 +333,5 @@ public final class TodoReplaceTest {
 
   private void write(String path, String text) throws IOException {
     Files.write(checkoutDir.resolve(path), text.getBytes(UTF_8));
-  }
-
-  private void delete(String path) throws IOException {
-    Files.delete(checkoutDir.resolve(path));
   }
 }
