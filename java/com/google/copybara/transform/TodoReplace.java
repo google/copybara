@@ -125,7 +125,7 @@ public class TodoReplace implements Transformation {
       StringBuffer sb = new StringBuffer();
       boolean modified = false;
       while (matcher.find()) {
-        if (matcher.group(2).trim().isEmpty()){
+        if (matcher.group(2).trim().isEmpty()) {
           matcher.appendReplacement(sb, matcher.group(0));
           continue;
         }
