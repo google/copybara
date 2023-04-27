@@ -144,4 +144,22 @@ public class HttpEndpointTest {
                         + ")\n"));
     assertThat(e).hasMessageThat().contains("does not match endpoint host");
   }
+
+  @Test
+  public void testErrorCode() throws ValidationException {
+    // verify we return error codes instead of throwing
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          assertThat(method).isEqualTo("GET");
+          resp.setStatusCode(404);
+        });
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\")\n"
+                + ")\n"
+                + "resp = endpoint.get(url = \"http://foo.com\")\n");
+    assertThat(resp.getStatusCode()).isEqualTo(404);
+  }
 }
