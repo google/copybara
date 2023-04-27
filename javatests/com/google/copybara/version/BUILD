@@ -17,6 +17,7 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = [
         "LatestVersionSelectorTest.java",
         "OrderedVersionSelectorTest.java",
@@ -24,15 +25,12 @@ all_tests(
         "RequestedVersionSelectorTest.java",
     ],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/templatetoken",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//java/com/google/copybara/version",
-        "//third_party:mockito",
         "//third_party:truth",
     ],
 )

@@ -17,11 +17,10 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = glob(["*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara/remotefile/extractutil",
-        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//third_party:truth",
     ],

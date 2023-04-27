@@ -51,12 +51,11 @@ java_library(
         "-Xlint:unchecked",
     ],
     deps = [
+        ":util",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
-        "//third_party:jsr305",
         "//third_party:shell",
     ],
 )

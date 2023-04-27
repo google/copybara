@@ -17,11 +17,11 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     data = [
     ],
     tests = glob(["**/*.java"]),
     deps = [
-        "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
@@ -29,7 +29,6 @@ all_tests(
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//java/com/google/copybara/version",
-        "//third_party:flogger",
         "//third_party:mockito",
         "//third_party:testparameterinjector",
         "//third_party:truth",

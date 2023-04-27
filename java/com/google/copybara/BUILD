@@ -110,12 +110,7 @@ java_library(
         "Options.java",
     ],
     javacopts = JAVACOPTS,
-    deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
-        "//third_party:re2j",
-        "//third_party:shell",
-    ],
+    deps = ["//third_party:guava"],
 )
 
 java_library(
@@ -210,7 +205,7 @@ java_library(
     deps = [
         ":base",
         ":general_options",
-        "//java/com/google/copybara:starlark_date_time_module",
+        ":starlark_date_time_module",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",

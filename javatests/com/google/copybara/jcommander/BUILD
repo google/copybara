@@ -20,6 +20,7 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = [
         "DurationConverterTest.java",
         "GlobConverterTest.java",
@@ -29,9 +30,7 @@ all_tests(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
-        "//java/com/google/copybara:options",
         "//java/com/google/copybara/git",
-        "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jcommander",
         "//third_party:truth",

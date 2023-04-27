@@ -17,6 +17,7 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
@@ -24,7 +25,6 @@ all_tests(
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",

@@ -19,13 +19,7 @@ java_library(
     testonly = 1,
     srcs = glob(["**/*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara/exception",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
-        "//third_party:guava_testlib",
-        "//third_party:starlark",
-        "//third_party:truth",
     ],
 )

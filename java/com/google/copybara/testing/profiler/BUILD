@@ -26,7 +26,6 @@ java_library(
     deps = [
         "//java/com/google/copybara/profiler",
         "//third_party:guava",
-        "//third_party:jsr305",
         "//third_party:truth",
     ],
 )

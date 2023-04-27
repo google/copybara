@@ -17,10 +17,10 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = glob(["*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/monitor",
@@ -29,6 +29,5 @@ all_tests(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:guava_testlib",
     ],
 )

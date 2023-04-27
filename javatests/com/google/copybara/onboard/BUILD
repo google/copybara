@@ -27,19 +27,15 @@ genrule(
 )
 
 all_tests(
+    name = "all_tests",
     data = [":normalised_buildifier"],
     tests = glob(
         ["*Test.java"],
     ),
     deps = [
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara:copybara_main",
-        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/git",
         "//java/com/google/copybara/onboard",
         "//java/com/google/copybara/onboard/core",
         "//java/com/google/copybara/testing",
@@ -47,8 +43,6 @@ all_tests(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:google_http_client",
-        "//third_party:mockito",
         "//third_party:truth",
     ],
 )

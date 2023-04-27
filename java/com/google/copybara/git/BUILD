@@ -101,8 +101,5 @@ java_library(
     name = "environment",
     srcs = ["GitEnvironment.java"],
     javacopts = JAVACOPTS,
-    deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
-    ],
+    deps = ["//third_party:guava"],
 )

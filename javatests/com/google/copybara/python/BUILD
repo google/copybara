@@ -22,11 +22,8 @@ all_tests(
     env = {"DATA_DIR": "$(rlocationpath //javatests/com/google/copybara/python:testfiles)"},
     tests = glob(["*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/python",
         "//java/com/google/copybara/testing",
-        "//third_party:guava_testlib",
         "//third_party:starlark",
         "//third_party:truth",
     ],

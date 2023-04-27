@@ -17,21 +17,12 @@ load("//javatests/com/google/copybara:test.bzl", "all_tests")
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     tests = ["Re2Test.java"],
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/re2",
         "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/transform",
-        "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:mockito",
-        "//third_party:re2j",
         "//third_party:starlark",
         "//third_party:truth",
     ],
