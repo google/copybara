@@ -20,17 +20,17 @@ import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.ParameterException;
 import com.google.common.base.Splitter;
 
-/**
- * Check that a list of integers is equal or greater than zero
- */
+/** Check that a list of integers is equal or greater than zero */
 public class GreaterThanZeroListValidator implements IParameterValidator {
 
+  @Override
   public void validate(String name, String value) throws ParameterException {
-    for (String element : Splitter.on(",").split(value)) {
+    String delimiter = value.contains(",") ? "," : ";";
+    for (String element : Splitter.on(delimiter).split(value)) {
       if (Integer.parseInt(element) < 1) {
         throw new ParameterException(
-            String.format("Parameter %s elements should be greater than zero (found %s)", name,
-                element));
+            String.format(
+                "Parameter %s elements should be greater than zero (found %s)", name, element));
       }
     }
   }

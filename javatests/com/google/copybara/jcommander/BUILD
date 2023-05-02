@@ -23,12 +23,14 @@ all_tests(
     tests = [
         "DurationConverterTest.java",
         "GlobConverterTest.java",
+        "SemicolonListConverterTest.java",
     ],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara:options",
+        "//java/com/google/copybara/git",
         "//java/com/google/copybara/jcommander:converters",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jcommander",

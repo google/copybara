@@ -38,6 +38,7 @@ import com.google.copybara.git.github.api.GitHubApiTransportWithChecker;
 import com.google.copybara.git.github.api.GitHubGraphQLApi;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
+import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
 import com.google.copybara.util.console.Console;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -65,6 +66,7 @@ public class GitHubOptions implements Option {
       names = "--allstar-app-ids",
       description =
           "Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.",
+      splitter = SemicolonSeparatedListSplitter.class,
       validateWith = GreaterThanZeroListValidator.class)
   public List<Integer> allStarAppIds = ImmutableList.of(119816);
 
