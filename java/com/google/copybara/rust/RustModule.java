@@ -17,6 +17,7 @@
 package com.google.copybara.rust;
 
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionResolver;
 import net.starlark.java.annot.Param;
@@ -56,5 +57,22 @@ public final class RustModule implements StarlarkValue {
   @SuppressWarnings("unused")
   public VersionResolver getResolver(String crate) {
     return new RustCratesIoVersionResolver(crate, options);
+  }
+
+  @StarlarkMethod(
+      name = "check_version_requirement",
+      doc =
+          "Checks a version against a Cargo version requirement. Currently, default and caret"
+              + " requirements are supported. Please see"
+              + " https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html for more"
+              + " information.",
+      documented = false,
+      parameters = {
+        @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
+        @Param(name = "version", named = true, doc = "The version to check")
+      })
+  public boolean checkVersionRequirement(String requirement, String version)
+      throws ValidationException {
+    return RustVersionRequirement.getVersionRequirement(requirement).fulfills(version);
   }
 }
