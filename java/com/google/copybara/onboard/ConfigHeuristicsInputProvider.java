@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
@@ -31,6 +32,7 @@ import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProvider;
 import com.google.copybara.onboard.core.InputProviderResolver;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.net.URL;
@@ -43,6 +45,9 @@ import java.util.Optional;
  * fields like the origin_files glob.
  */
 public class ConfigHeuristicsInputProvider implements InputProvider {
+
+  private static final Glob INCLUDE_EXCLUDE_NOOP =
+      Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("**"));
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
@@ -81,7 +86,10 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       return Optional.empty();
     }
     if (input == Inputs.ORIGIN_GLOB) {
-      return Optional.of(Inputs.ORIGIN_GLOB.asValue(result.get().getOriginGlob()));
+      Glob resultGlob = result.get().getOriginGlob();
+      return resultGlob.equals(INCLUDE_EXCLUDE_NOOP)
+          ? Optional.empty()
+          : Optional.of(Inputs.ORIGIN_GLOB.asValue(resultGlob));
     }
     return Optional.empty();
   }
