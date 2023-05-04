@@ -17,9 +17,9 @@
 package com.google.copybara.transform;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.LocalParallelizer.TransformFunc;
@@ -122,15 +122,13 @@ public final class VerifyMatch implements Transformation {
         if (Files.isSymbolicLink(file.getPath())) {
           continue;
         }
-        String originalFileContent = Files.readString(file.getPath());
+        String originalFileContent = new String(Files.readAllBytes(file.getPath()), UTF_8);
         Matcher matcher = batchPattern.matcher(originalFileContent);
         if (verifyNoMatch == matcher.find()) {
           String error = checkoutDir.relativize(file.getPath()).toString();
           if (verifyNoMatch) {
-            int line = Splitter.on('\n')
-                .splitToList(originalFileContent.substring(0, matcher.start())).size();
-            error += String.format(" - Unexpected match found at line %d - '%s'.\n",
-                line, matcher.group());
+            error += String.format(" - Unexpected match found at char %d - '%s'.\n",
+                matcher.start(), matcher.group());
           } else {
             error += " - Expected string was not present.\n";
           }
