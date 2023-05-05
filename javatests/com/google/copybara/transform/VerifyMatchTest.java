@@ -63,6 +63,23 @@ public final class VerifyMatchTest {
     transform(transformation);
   }
 
+  /**
+   * We should be able to verify files that are not valid UTF-8 (e.g a PDF file because the user
+   * used glob(["**"]) without failing because of bad UTF-8.
+   */
+  @Test
+  public void testInvalidUTF8() throws Exception {
+    VerifyMatch transformation = eval(""
+        + "core.verify_match(\n"
+        + "  regex = 'foo',\n"
+        + "  verify_no_match = True,\n"
+        + ")");
+
+    Path file1 = checkoutDir.resolve("file1.txt");
+    Files.write(file1, new byte[]{(byte) 0xe2, 0x28, (byte) 0xa1});
+    transform(transformation);
+  }
+
   @Test
   public void testSimpleMatchVerifyNoMatchPasses() throws Exception {
     VerifyMatch transformation = eval("core.verify_match(\n"
