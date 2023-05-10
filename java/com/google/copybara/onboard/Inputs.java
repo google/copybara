@@ -102,6 +102,14 @@ public class Inputs {
       "migration_name", "Migration name",
       null, String.class, (s, resolver) -> s);
 
+  public static final Input<String> PACKAGE_NAME =
+      Input.create(
+          "package_name",
+          "The name of the package to import",
+          null,
+          String.class,
+          (value, resolver) -> value);
+
   public static final Input<ConfigGenerator> TEMPLATE = Input.create(
       "template_name", "Template to use for generating the config",
       null, ConfigGenerator.class, (s, resolver) -> {
