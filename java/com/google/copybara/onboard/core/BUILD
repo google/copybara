@@ -20,6 +20,7 @@ java_library(
     name = "core",
     srcs = glob(["**/*.java"]),
     deps = [
+        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:jsr305",
