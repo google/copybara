@@ -1714,7 +1714,7 @@ public class GitRepository {
         return new GitRevision(this, reference);
       }
       throw new CannotResolveRevisionException(
-          "Cannot find '" + reference + "' object in the repository");
+          String.format("Cannot find '%s' object in the repository (%s)", reference, url));
     }
     return new GitRevision(this, parseRef(reference), /*reviewReference=*/null, contextRef,
         ImmutableListMultimap.of(), url);
