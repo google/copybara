@@ -20,6 +20,8 @@ import com.google.api.client.util.Key;
 import com.google.api.client.util.NullValue;
 import com.google.api.client.util.Value;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -58,6 +60,8 @@ public class CheckRun implements StarlarkValue {
   @Key private GitHubApp app;
 
   @Key private Output output;
+
+  @Key("pull_requests") private List<PullRequest> pullRequests;
 
   @StarlarkMethod(
       name = "detail_url",
@@ -127,6 +131,19 @@ public class CheckRun implements StarlarkValue {
     return output;
   }
 
+
+  @StarlarkMethod(
+      name = "pulls",
+      doc = "Pull requests associated with this check_run ('number' only)",
+      structField = true
+  )
+  public ImmutableList<PullRequest> getPullRequests() {
+    if (pullRequests == null) {
+      return ImmutableList.of();
+    }
+    return ImmutableList.copyOf(pullRequests);
+  }
+
   /**
    * Status of a check run
    */
@@ -184,6 +201,25 @@ public class CheckRun implements StarlarkValue {
         .add("name", name)
         .add("app", app)
         .add("output", output)
+        .add("pulls", pullRequests)
         .toString();
+  }
+
+  /** PR submessage in check_run. */
+  public static class PullRequest implements StarlarkValue {
+    @Key int number;
+
+    @StarlarkMethod(
+        name = "number",
+        doc = "Number of a PR liked to the check_run",
+        structField = true)
+    public int getNumber() {
+      return number;
+    }
+
+    @Override
+    public String toString() {
+      return MoreObjects.toStringHelper(this).add("number", number).toString();
+    }
   }
 }
