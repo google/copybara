@@ -32,9 +32,8 @@ public class GeneratorOptions implements Option {
 
   @Parameter(
       names = {"--generator-ask"},
-      description = "Config generator mode when a value is not found. Valid modes:"
-          + "auto, confirm, fail")
-  @VisibleForTesting
+      description =
+          "Config generator mode when a value is not found. Valid modes:" + "auto, confirm, fail")
   public Mode askMode = Mode.CONFIRM;
 
   @Parameter(
