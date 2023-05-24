@@ -56,7 +56,6 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   private static final JsonFactory JSON_FACTORY = new GsonFactory();
   private static final String API_URL = "https://api.github.com";
-  private final APIType apiType;
   private static final String GITHUB_WEB_URL = "https://github.com";
 
   private final GitRepository repo;
@@ -66,16 +65,10 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
 
   public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
       String storePath, Console console) {
-    this(repo, httpTransport, APIType.REST, storePath, console);
-  }
-
-  public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport, APIType apiType,
-      String storePath, Console console) {
     this.repo = Preconditions.checkNotNull(repo);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
     this.storePath = storePath;
     this.console = Preconditions.checkNotNull(console);
-    this.apiType = apiType;
   }
 
   @SuppressWarnings("unchecked")
@@ -83,12 +76,8 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   public <T> T get(String path, Type responseType, ImmutableListMultimap<String, String> headers,
       String requestType)
       throws RepoException, ValidationException {
-    Preconditions.checkArgument(
-        this.apiType == APIType.REST,
-        "No GET requests for GitHub GraphQL transport are implemented at the moment.");
     HttpRequestFactory requestFactory = getHttpRequestFactory(getCredentialsIfPresent(), headers);
-    GenericUrl url = new GenericUrl(this.apiType.getURLPrefix() + path);
-
+    GenericUrl url = getFullEndpointURL(path);
     try {
       console.verboseFmt("Executing %s", requestType);
       HttpRequest httpRequest = requestFactory.buildGetRequest(url);
@@ -96,8 +85,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       Object responseObj = GsonParserUtil.parseHttpResponse(response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
         return (T)
-            ((PaginatedPayload) responseObj)
-                .annotatePayload(this.apiType.getURLPrefix(), maybeGetLinkHeader(response));
+            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
     } catch (HttpResponseException e) {
@@ -152,18 +140,17 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
       throws RepoException, ValidationException {
     HttpRequestFactory requestFactory =
         getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
-
-    GenericUrl url = new GenericUrl(URI.create(this.apiType.getURLPrefix() + path));
+    GenericUrl url = getFullEndpointURL(path);
     try {
       console.verboseFmt("Executing %s", requestType);
-      HttpRequest httpRequest = requestFactory.buildPostRequest(url,
-          new JsonHttpContent(JSON_FACTORY, request));
+      HttpRequest httpRequest =
+          requestFactory.buildPostRequest(url, new JsonHttpContent(JSON_FACTORY, request));
       HttpResponse response = httpRequest.execute();
       Object responseObj = GsonParserUtil.parseHttpResponse(
           response, responseType, false);
       if (responseObj instanceof PaginatedPayload) {
-        return (T) ((PaginatedPayload) responseObj).annotatePayload(this.apiType.getURLPrefix(),
-            maybeGetLinkHeader(response));
+        return (T)
+            ((PaginatedPayload) responseObj).annotatePayload(API_URL, maybeGetLinkHeader(response));
       }
       return (T) responseObj;
 
@@ -173,8 +160,13 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
             "POST", path, JSON_FACTORY.toPrettyString(request), e.getContent());
       } catch (IOException ioE) {
         logger.atSevere().withCause(ioE).log("Error serializing request for error");
-        throw new GitHubApiException(e.getStatusCode(), parseErrorOrIgnore(e),
-                                     "POST", path, "unknown request", e.getContent());
+        throw new GitHubApiException(
+            e.getStatusCode(),
+            parseErrorOrIgnore(e),
+            "POST",
+            path,
+            "unknown request",
+            e.getContent());
       }
     } catch (IOException e) {
       throw new RepoException("Error running GitHub API operation " + path, e);
@@ -185,8 +177,7 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   public void delete(String path, String requestType) throws RepoException, ValidationException {
     HttpRequestFactory requestFactory =
         getHttpRequestFactory(getCredentials(), ImmutableListMultimap.of());
-
-    GenericUrl url = new GenericUrl(URI.create(this.apiType.getURLPrefix() + path));
+    GenericUrl url = getFullEndpointURL(path);
     try {
       console.verboseFmt("Executing %s", requestType);
       requestFactory.buildDeleteRequest(url).execute();
@@ -220,6 +211,11 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           request.setHeaders(httpHeaders);
           request.setParser(new JsonObjectParser(JSON_FACTORY));
         });
+  }
+
+  private GenericUrl getFullEndpointURL(String path) {
+    String maybePrefix = path.startsWith("/") ? "" : "/";
+    return new GenericUrl(URI.create(API_URL + maybePrefix + path));
   }
 
   /**

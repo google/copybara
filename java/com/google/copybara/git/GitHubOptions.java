@@ -30,7 +30,6 @@ import com.google.copybara.checks.ApiChecker;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.git.github.api.APIType;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiTransport;
 import com.google.copybara.git.github.api.GitHubApiTransportImpl;
@@ -120,7 +119,7 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, APIType.REST, console);
+    GitHubApiTransport transport = newTransport(repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -152,7 +151,7 @@ public class GitHubOptions implements Option {
     if (storePath == null) {
       storePath = "~/.git-credentials";
     }
-    GitHubApiTransport transport = newTransport(repo, storePath, APIType.GRAPHQL, console);
+    GitHubApiTransport transport = newTransport(repo, storePath, console);
     if (checker != null) {
       transport = new GitHubApiTransportWithChecker(transport, new ApiChecker(checker, console));
     }
@@ -174,8 +173,8 @@ public class GitHubOptions implements Option {
   }
 
   private GitHubApiTransport newTransport(
-      GitRepository repo, String storePath, APIType apiType, Console console) {
-    return new GitHubApiTransportImpl(repo, newHttpTransport(), apiType, storePath, console);
+      GitRepository repo, String storePath, Console console) {
+    return new GitHubApiTransportImpl(repo, newHttpTransport(), storePath, console);
   }
 
   protected HttpTransport newHttpTransport() {

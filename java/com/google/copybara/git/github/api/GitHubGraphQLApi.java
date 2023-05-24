@@ -162,7 +162,10 @@ public class GitHubGraphQLApi {
             params.getReviews());
     try (ProfilerTask ignore = profiler.start("github_api_get_commit_history")) {
       return transport.post(
-          new GraphQLRequest(getCommitHistoryQuery, variables), CommitHistoryResponse.class);
+          "/graphql",
+          new GraphQLRequest(getCommitHistoryQuery, variables),
+          CommitHistoryResponse.class,
+          "POST GraphQL");
     }
   }
 }
