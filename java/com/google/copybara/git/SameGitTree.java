@@ -60,8 +60,14 @@ public class SameGitTree {
   public boolean hasSameTree(String sha1) throws RepoException, CannotResolveRevisionException {
     String oldHead = saveOldHead();
     try (ProfilerTask ignore2 = generalOptions.profiler().start("fetch_remote_sha1")) {
-      repo.fetch(repoUrl, /*prune=*/ false, /*force=*/ true,
-          ImmutableList.of(sha1), partialFetch, Optional.empty());
+      repo.fetch(
+          repoUrl,
+          /* prune= */ false,
+          /* force= */ true,
+          ImmutableList.of(sha1),
+          partialFetch,
+          Optional.empty(),
+          false);
       return repo.hasSameTree(sha1);
     } catch (RepoException | ValidationException e) {
       logger.atWarning().withCause(e).log(

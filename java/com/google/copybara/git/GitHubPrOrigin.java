@@ -341,10 +341,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       getRepository()
           .fetch(
               ghHost.projectAsUrl(project),
-              /*prune=*/ false,
-              /*force=*/ true,
+              /* prune= */ false,
+              /* force= */ true,
               refspec,
-              partialFetch, Optional.empty());
+              partialFetch,
+              Optional.empty(),
+              false);
     } catch (CannotResolveRevisionException e) {
 
       if (actuallyUseMerge && prData.isMergeable() == null && forceImport()) {
@@ -355,10 +357,12 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
           getRepository()
               .fetch(
                   ghHost.projectAsUrl(project),
-                  /*prune=*/ false,
-                  /*force=*/ true,
+                  /* prune= */ false,
+                  /* force= */ true,
                   refspec,
-                  partialFetch, Optional.empty());
+                  partialFetch,
+                  Optional.empty(),
+                  false);
           e = null;
         } catch (CannotResolveRevisionException e2) {
           // Report the error from the second fetch instead of the original fetch

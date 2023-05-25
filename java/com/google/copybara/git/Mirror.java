@@ -196,8 +196,14 @@ public class Mirror implements Migration {
 
     Profiler profiler = generalOptions.profiler();
     try (ProfilerTask ignore1 = profiler.start("fetch")) {
-      repo.fetch(origin, /*prune=*/true,
-          /*force=*/true, fetchRefspecs, partialFetch, Optional.empty());
+      repo.fetch(
+          origin,
+          /* prune= */ true,
+          /* force= */ true,
+          fetchRefspecs,
+          partialFetch,
+          Optional.empty(),
+          false);
     }
 
     if (generalOptions.dryRunMode) {

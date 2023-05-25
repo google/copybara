@@ -180,7 +180,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           partialFetch,
-          depthOptional);
+          depthOptional,
+          false);
     } catch (CannotResolveRevisionException e) {
       console.warnFmt("Failed to complete origin_fetch with error '%s'", e.getMessage());
       return false;
@@ -237,7 +238,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           partialFetch,
-          depthOptional);
+          depthOptional,
+          false);
     } catch (CannotResolveRevisionException e) {
       return false;
     }

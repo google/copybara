@@ -437,10 +437,11 @@ public class GitTestUtil {
         boolean force,
         Iterable<String> refspecs,
         boolean partialFetch,
-        Optional<Integer> depth)
+        Optional<Integer> depth,
+        boolean tags)
         throws RepoException, ValidationException {
       validator.validateFetch(url, prune, force, refspecs);
-      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch, Optional.empty());
+      return super.fetch(mapUrl(url), prune, force, refspecs, partialFetch, Optional.empty(), tags);
     }
 
     @Override
