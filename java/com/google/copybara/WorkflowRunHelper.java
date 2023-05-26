@@ -754,6 +754,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               destinationFilesWorkdir,
               baselineWorkdir,
               Files.createDirectories(workdir.resolve("merge_import")));
+          workflow.afterMergeTransformations.transform(transformWork);
         }
         if (workflow.getAutoPatchfileConfiguration() != null) {
           try {

@@ -114,6 +114,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean smartPrune;
   private final boolean mergeImport;
   private final AutoPatchfileConfiguration autoPatchfileConfiguration;
+  final Transformation afterMergeTransformations;
   private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
   private final ImmutableList<Action> afterAllMigrationActions;
@@ -148,6 +149,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean smartPrune,
       boolean mergeImport,
       @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
+      Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
       @Nullable String customRevId,
       boolean checkout) {
@@ -184,6 +186,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
+    this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
   }
 

@@ -406,6 +406,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "None"),
         @Param(
+            name = "after_merge_transformations",
+            named = true,
+            doc =
+                "Perform these transformations after merge_import, but before Copybara writes to"
+                    + " the destination. Ex: any BUILD file generations that rely on the results of"
+                    + " merge_import",
+            positional = false,
+            defaultValue = "[]"),
+        @Param(
             name = "migrate_noop_changes",
             named = true,
             doc =
@@ -485,6 +494,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean smartPrune,
       Boolean mergeImport,
       Object autoPatchFileConfigurationObj,
+      net.starlark.java.eval.Sequence<?> afterMergeTransformations,
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
@@ -593,11 +603,24 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             smartPrune,
             mergeImport,
             autoPatchfileConfiguration,
+            asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
+  }
+
+  private Sequence asSingleTransform(net.starlark.java.eval.Sequence<?> transformations)
+      throws EvalException {
+    return Sequence.fromConfig(
+        generalOptions.profiler(),
+        workflowOptions,
+        transformations,
+        "transformations",
+        printHandler,
+        debugOptions::transformWrapper,
+        Sequence.NoopBehavior.NOOP_IF_ANY_NOOP);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj)
