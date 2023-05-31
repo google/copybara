@@ -86,10 +86,12 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   private final GitDestination gitDestination;
   private final boolean submit;
+  private final boolean gerritSubmit;
 
-  private GerritDestination(GitDestination gitDestination, boolean submit) {
+  private GerritDestination(GitDestination gitDestination, boolean submit, boolean gerritSubmit) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
     this.submit = submit;
+    this.gerritSubmit = gerritSubmit;
   }
 
   @Override
@@ -593,8 +595,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             push,
             partialFetch,
             primaryBranchMigrationMode,
-            /*tagName=*/ null,
-            /*tagMsg=*/ null,
+            /* tagName= */ null,
+            /* tagMsg= */ null,
             destinationOptions,
             options.get(GitOptions.class),
             generalOptions,
@@ -616,7 +618,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 primaryBranchMigrationMode),
             integrates,
             checker),
-        submit);
+        submit,
+        gerritSubmit);
   }
 
   @Override
@@ -629,7 +632,10 @@ public final class GerritDestination implements Destination<GitRevision> {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<>();
     if (submit) {
-      return gitDestination.describe(originFiles);
+      return builder
+          .putAll(gitDestination.describe(originFiles))
+          .put("gerritSubmit", "" + gerritSubmit)
+          .build();
     }
     for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
       if (entry.getKey().equals("type")) {
@@ -637,9 +643,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
       builder.put(entry);
     }
-    return builder
-        .put("type", getType())
-        .build();
+    return builder.put("type", getType()).put("gerritSubmit", "" + gerritSubmit).build();
   }
 
   /** What to do in the presence or absent of Change-Id in message. */
