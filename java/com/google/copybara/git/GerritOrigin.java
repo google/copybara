@@ -35,6 +35,7 @@ import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.approval.ApprovalsProvider;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.checks.Checker;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -128,7 +129,7 @@ public class GerritOrigin extends GitOrigin {
 
   @Override
   public GitRevision resolve(@Nullable String reference) throws RepoException, ValidationException {
-    generalOptions.console().progress("Git Origin: Initializing local repo");
+    generalOptions.console().progress("Gerrit Origin: Initializing local repo");
 
     checkCondition(!Strings.isNullOrEmpty(reference), "Expecting a change number as reference");
 
@@ -168,9 +169,13 @@ public class GerritOrigin extends GitOrigin {
     if (response.getOwner().getEmail() != null) {
       labels.put(GerritChange.GERRIT_OWNER_EMAIL_LABEL, response.getOwner().getEmail());
     }
-
-    GitRevision gitRevision = change.fetch(labels.build());
-    return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
+    try {
+      GitRevision gitRevision = change.fetch(labels.build());
+      return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
+    } catch (CannotResolveRevisionException unexpected) {
+      // We got the change via the API so it is unexpected to fail now.
+      throw new RepoException("Unable to fetch change content.", unexpected);
+    }
   }
 
   /** Builds a new {@link GerritOrigin}. */

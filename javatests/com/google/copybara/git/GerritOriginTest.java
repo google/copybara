@@ -316,6 +316,15 @@ public class GerritOriginTest {
   }
 
   @Test
+  public void testChanges_reNotAvailable() throws Exception {
+    mockChange(2345);
+    git("update-ref", "refs/changes/45/2345/1", firstRevision.getSha1());
+    git("update-ref", "refs/changes/45/2345/2", firstRevision.getSha1());
+    assertThrows(RepoException.class, () -> origin.resolve("http://foo.com/#/c/2345/2"));
+  }
+
+
+  @Test
   public void testChanges_baselineWithRootsUntouched() throws Exception {
     String url = "https://" + REPO_URL;
     Path excluded = remote.resolve("excluded");
