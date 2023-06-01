@@ -250,7 +250,12 @@ public class GerritOrigin extends GitOrigin {
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
         return new GerritEndpoint(
-            gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+            gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker),
+            repoUrl,
+            console,
+            // We disallow submitting to the origin, but this has feasible use cases and we can
+            // revisit
+            /*allowSubmitChange*/ false);
       }
 
       @Override

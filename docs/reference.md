@@ -2335,7 +2335,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-`endpoint_provider` `git.gerrit_api(url, checker=None)`
+`endpoint_provider` `git.gerrit_api(url, checker=None, allow_submit=True)`
 
 
 #### Parameters:
@@ -2344,6 +2344,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport.</p>
+allow_submit | `bool`<br><p>Enable the submit_change method</p>
 
 
 
@@ -2448,7 +2449,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Defines a feedback trigger based on updates on a Gerrit change.
 
-`trigger` `git.gerrit_trigger(url, checker=None, events=[])`
+`trigger` `git.gerrit_trigger(url, checker=None, events=[], allow_submit=False)`
 
 
 #### Parameters:
@@ -2458,6 +2459,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
 events | `sequence of string` or `dict of sequence` or `NoneType`<br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
+allow_submit | `bool`<br><p>Enable the submit_change method in the endpoint provided</p>
 
 
 

@@ -536,7 +536,10 @@ public final class GerritDestination implements Destination<GitRevision> {
     public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
       return new GerritEndpoint(
-          gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+          gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker),
+          repoUrl,
+          console,
+          gerritSubmit);
     }
   }
 

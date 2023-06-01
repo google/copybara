@@ -545,10 +545,34 @@ public class GerritEndpointTest {
                   return true;
                 })));
 
-    runFeedback(
+    runFeedbackWithSubmit(
         ImmutableList.<String>builder().add("ctx.destination" + ".submit_change('12345')").build());
 
     assertThat(called.get()).isTrue();
+  }
+  
+    @Test
+  public void submitChange_disallowed() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    gitUtil.mockApi(
+        eq("POST"),
+        startsWith(BASE_URL + "/changes/12345/submit"),
+        mockResponseWithStatus(
+            "{\"id\" : \"12345\"}",
+            200,
+            new MockRequestAssertion(
+                "Always true with side-effect",
+                s -> {
+                  called.set(true);
+                  return true;
+                })));
+
+    ValidationException ve = assertThrows(ValidationException.class, () -> runFeedback(
+        ImmutableList.<String>builder().add("ctx.destination" + ".submit_change('12345')")
+            .build()));
+    assertThat(ve).hasMessageThat()
+        .contains("Gerrit submit_change is only allowed if it is is enabled on the endpoint");
+    assertThat(called.get()).isFalse();
   }
 
   @Test
@@ -665,19 +689,21 @@ public class GerritEndpointTest {
             + "  if c != None and c.id != None:\n"
             + "    ctx.origin.message('Change number ' + str(c.id))\n"
             + "  return ctx.success()\n"
-            + "\n");
+            + "\n", false);
   }
 
-  private ActionMigration feedback(String actionFunction) throws IOException, ValidationException {
+  private ActionMigration feedback(String actionFunction, boolean allowSubmit)
+      throws IOException, ValidationException {
     String config =
         actionFunction
             + "\n"
             + "core.feedback(\n"
             + "    name = 'default',\n"
             + "    origin = testing.dummy_trigger(),\n"
-            + "    destination = git.gerrit_api(url = '"
-            + url
-            + "'),\n"
+            + "    destination = git.gerrit_api("
+            + "                      url = '" + url + "', "
+            + "                      allow_submit = " + (allowSubmit ? "True" : "False")
+            + "    ),\n"
             + "    actions = [test_action,],\n"
             + ")\n"
             + "\n";
@@ -729,7 +755,16 @@ public class GerritEndpointTest {
         feedback(
             "def test_action(ctx):\n"
                 + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
-                + "\n  return ctx.success()\n");
+                + "\n  return ctx.success()\n", false);
+    test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
+  }
+
+  private void runFeedbackWithSubmit(ImmutableList<String> funBody) throws Exception {
+    ActionMigration test =
+        feedback(
+            "def test_action(ctx):\n"
+                + funBody.stream().map(s -> "  " + s).collect(Collectors.joining("\n"))
+                + "\n  return ctx.success()\n", true);
     test.run(workdir, ImmutableList.of("e597746de9c1704e648ddc3ffa0d2096b146d600"));
   }
 

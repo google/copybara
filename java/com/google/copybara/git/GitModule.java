@@ -578,8 +578,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 mainConfigFile,
                 convertFromNoneable(description, null),
                 actions,
-                getEndpointProvider(fixedOriginHttp, originChecker, thread),
-                getEndpointProvider(fixedDestinationHttp, destinationChecker, thread)));
+                getEndpointProvider(fixedOriginHttp, originChecker, false, thread),
+                getEndpointProvider(fixedDestinationHttp, destinationChecker, false, thread)));
     return Starlark.NONE;
   }
 
@@ -2341,11 +2341,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             doc = "A checker for the Gerrit API transport.",
             named = true),
+        @Param(
+            name = "allow_submit",
+            doc = "Enable the submit_change method",
+            defaultValue = "True", // This will be flipped in a follow up.
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public EndpointProvider<GerritEndpoint> gerritApi(
-      String url, Object checkerObj, StarlarkThread thread) throws EvalException {
+      String url, Object checkerObj, Boolean allowSubmit, StarlarkThread thread)
+      throws EvalException {
     checkNotEmpty(url, "url");
     String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
@@ -2353,7 +2359,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return EndpointProvider.wrap(
         new GerritEndpoint(gerritOptions.newGerritApiSupplier(cleanedUrl, checker),
-            cleanedUrl, getGeneralConsole()));
+            cleanedUrl, getGeneralConsole(), allowSubmit));
   }
 
   private Console getGeneralConsole() {
@@ -2389,11 +2395,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "a dict of event types to particular events of that type, e.g. "
                     + "`['LABELS']` or `{'LABELS': 'my_label_name'}`.\n"
                     + "Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`"),
+        @Param(
+            name = "allow_submit",
+            doc = "Enable the submit_change method in the endpoint provided",
+            defaultValue = "False",
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(
-      String url, Object checkerObj, Object events, StarlarkThread thread) throws EvalException {
+      String url, Object checkerObj, Object events, Boolean allowSubmit, StarlarkThread thread)
+      throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
@@ -2404,7 +2416,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gerritOptions.newGerritApiSupplier(url, checker),
         url,
         parsedEvents,
-        getGeneralConsole());
+        getGeneralConsole(),
+        allowSubmit);
   }
 
   private ImmutableSet<GerritEventTrigger> handleGerritEventTypes(Object events)
@@ -2758,12 +2771,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable
   protected LazyResourceLoader<EndpointProvider<?>> getEndpointProvider(
-      String url, @Nullable Checker checker, StarlarkThread thread) {
+      String url, @Nullable Checker checker, boolean allowSubmit, StarlarkThread thread) {
     if (url == null) {
       return null;
     }
     LazyResourceLoader<EndpointProvider<?>> gerritApiLoader =
-        maybeGetGerritApi(url, checker, thread);
+        maybeGetGerritApi(url, checker, allowSubmit, thread);
     if (gerritApiLoader != null) {
       return gerritApiLoader;
     }
@@ -2779,14 +2792,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable
   protected LazyResourceLoader<EndpointProvider<?>> maybeGetGerritApi(
-      String url, @Nullable Checker checker, StarlarkThread thread) {
+      String url, @Nullable Checker checker, boolean allowSubmit, StarlarkThread thread) {
     String host = URI.create(url).getHost();
     if (Strings.isNullOrEmpty(host) || !host.endsWith(".googlesource.com")) {
       return null;
     }
     return (console) -> {
       try {
-        return gerritApi(url, checker, thread);
+        return gerritApi(url, checker, allowSubmit, thread);
       } catch (EvalException e) {
         throw new ValidationException(
             String.format(
