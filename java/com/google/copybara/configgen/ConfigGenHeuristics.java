@@ -21,7 +21,9 @@ import static java.lang.Math.max;
 import static java.util.Comparator.comparingInt;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
@@ -40,6 +42,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -79,14 +82,21 @@ public class ConfigGenHeuristics {
 
   /** Result of the config generation */
   public static class Result {
-    private final Glob originGlob;
 
-    public Result(Glob originFiles) {
+    private final Glob originGlob;
+    private final ImmutableList<GeneratorMove> moves;
+
+    public Result(Glob originFiles, Iterable<GeneratorMove> moves) {
       this.originGlob = originFiles;
+      this.moves = ImmutableList.copyOf(moves);
     }
 
     public Glob getOriginGlob() {
       return originGlob;
+    }
+
+    public ImmutableList<GeneratorMove> getMoves() {
+      return moves;
     }
   }
 
@@ -123,9 +133,79 @@ public class ConfigGenHeuristics {
         consolidateCommonPattern(originGlob, similarFiles.keySet(), p -> p.startsWith("."), ".**");
 
     // Enable to debug what is being generated:
-    // debug(similarFiles, destinationOnly, originGlob);
+    debug(similarFiles, destinationOnly, originGlob);
 
-    return new ConfigGenHeuristics.Result(originGlob.glob);
+    ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
+    return new ConfigGenHeuristics.Result(originGlob.glob, moves);
+  }
+
+  /**
+   * Generates the minimal amount of core.moves from to map files from the origin to the
+   * destination.
+   *
+   * The general algorithm is the following, for each origin/destination file:
+   * - Find the common suffix (e.g. for a/b/c/d.txt and x/y/z/c/d.txt it is c/d.txt). If we remove
+   * that suffix from the origin and destination (a/b and x/y/z), this would be the more general
+   * move that we can do (core.move(a/b, x/y/z)). The heuristic here is that more general moves
+   * are always better.
+   *
+   * - But there is a problem. We need to make sure that this very general move doesn't move
+   * other files to incorrect locations. So now we go over all the files, and for anything with
+   * that prefix, we check that it would move to the correct destination. If all fine, we
+   * add this as the set of moves and remove all the files with that prefix (as we have just
+   * handled all).
+   *
+   * - If any has a wrong destination move, then we move to the next more general suffix (e.g.
+   * c/d.txt -> d.txt) and we retry the whole thing again.
+   *
+   * - In the extreme, if we cannot find a directory move, we add a move from file to file.
+   *
+   * The algorithm is a bit brutal as is quadratic on these checks. If performance is an issue
+   * we can see how to fix it. The expectation is that normally this should be fast because we
+   * find common directories that move large ammount of files.
+   */
+  private ImmutableList<GeneratorMove> generateMoves(Map<Path, Path> similarFiles) {
+    ArrayDeque<Entry<Path, Path>> set = new ArrayDeque<>(similarFiles.entrySet());
+    ImmutableList.Builder<GeneratorMove> result = ImmutableList.builder();
+    files:
+    while (!set.isEmpty()) {
+      Entry<Path, Path> entry = set.remove();
+      Path origin = entry.getKey();
+      Path dest = entry.getValue();
+      Path commonSuffix = commonSuffix(origin, dest);
+      while (commonSuffix != null && !commonSuffix.toString().equals("")) {
+        Path originPrefix = origin.subpath(0, origin.getNameCount() - commonSuffix.getNameCount());
+        Path destPrefix = dest.subpath(0, dest.getNameCount() - commonSuffix.getNameCount());
+        boolean tooBroad = false;
+        HashSet<Entry<Path, Path>> includedPaths = new HashSet<>();
+        for (Entry<Path, Path> e : similarFiles.entrySet()) {
+          if (e.getKey().startsWith(originPrefix)) {
+            if (destPrefix.resolve(
+                    e.getKey().subpath(originPrefix.getNameCount(), e.getKey().getNameCount()))
+                .equals(e.getValue())) {
+              includedPaths.add(e);
+            } else {
+              tooBroad = true;
+              break;
+            }
+          }
+        }
+        if (tooBroad) {
+          if (commonSuffix.getNameCount() == 1) {
+            commonSuffix = commonSuffix.getParent(); // 'foo' -> "", subpath doesn't work here.
+          } else {
+            commonSuffix = commonSuffix.subpath(1, commonSuffix.getNameCount());
+          }
+        } else {
+          // Successfully moves a bunch of files with a directory move
+          set.removeAll(includedPaths);
+          result.add(new GeneratorMove(originPrefix.toString(), destPrefix.toString()));
+          continue files;
+        }
+      }
+      result.add(new GeneratorMove(origin.toString(), dest.toString()));
+    }
+    return result.build();
   }
 
   /** TODO(malcon): Used for debugging what is going on. Can be removed in the future */
@@ -197,6 +277,7 @@ public class ConfigGenHeuristics {
   }
 
   private static class IncludesGlob implements Comparable<IncludesGlob> {
+
     protected final Set<String> includes;
     protected final Set<String> excludes;
     private final Glob glob;
@@ -294,6 +375,7 @@ public class ConfigGenHeuristics {
   }
 
   private static class SimilarityDetector {
+
     // Useful for binaries
     private final HashMultimap<String, Path> hashBased;
     private final RenameDetector<Path> similarLines;
@@ -372,5 +454,48 @@ public class ConfigGenHeuristics {
           }
         });
     return result.build();
+  }
+
+  /** Represents a core.move() to be include in the generation */
+  public static class GeneratorMove {
+
+    private final String before;
+    private final String after;
+
+    public GeneratorMove(String before, String after) {
+      this.before = before;
+      this.after = after;
+    }
+
+    public String getBefore() {
+      return before;
+    }
+
+    public String getAfter() {
+      return after;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof GeneratorMove)) {
+        return false;
+      }
+      GeneratorMove that = (GeneratorMove) o;
+      return Objects.equal(before, that.before)
+          && Objects.equal(after, that.after);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(before, after);
+    }
+
+    @Override
+    public String toString() {
+      return "core.move(\"" + before + "\", \"" + after + "\")";
+    }
   }
 }

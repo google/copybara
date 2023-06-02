@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorMove;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -106,6 +107,33 @@ public class ConfigGenHeuristicsTest {
 
     assertThat(result.getOriginGlob().roots()).containsExactly("");
     globMatches(result.getOriginGlob(), "a/other");
+  }
+
+  @Test
+  public void testMoves() throws IOException {
+    writeFile(origin, "a/b/include/fileA", "foo1");
+    writeFile(origin, "a/b/include/fileB", "foo2");
+    writeFile(origin, "c/X", "XXX");
+
+    writeFile(origin, "a/b/include2/test/fileA", "bar1");
+    writeFile(origin, "a/b/include2/test/fileB", "bar2");
+    writeFile(origin, "a/b/include2/fileC", "bar3");
+
+    writeFile(destination, "x/y/z/fileA", "foo1");
+    writeFile(destination, "x/y/z/fileB", "foo2");
+    writeFile(destination, "c/Y", "XXX");
+
+    writeFile(destination, "x/y/include2/test/fileA", "bar1");
+    writeFile(destination, "x/y/include2/test/fileB", "bar2");
+    writeFile(destination, "x/y/include3/fileC", "bar3");
+
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+    assertThat(result.getMoves()).containsExactly(
+        new GeneratorMove("a/b/include", "x/y/z"),
+        new GeneratorMove("a/b/include2/test", "x/y/include2/test"),
+        new GeneratorMove("a/b/include2/fileC", "x/y/include3/fileC"),
+        new GeneratorMove("c/X", "c/Y")
+    );
   }
 
   @Test
