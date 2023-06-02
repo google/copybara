@@ -219,6 +219,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format",
         "//java/com/google/copybara/git",
+        "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/go",
         "//java/com/google/copybara/hashing",
         "//java/com/google/copybara/hg",

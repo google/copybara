@@ -694,7 +694,7 @@ public class WorkflowTest {
               public ImmutableList<DestinationEffect> write(
                   TransformResult transformResult, Glob destinationFiles, Console console)
                   throws ValidationException, RepoException {
-                assert exception != null;
+                assertThat(exception).isNotNull();
                 Throwables.propagateIfPossible(
                     exception, ValidationException.class, RepoException.class);
                 throw new RuntimeException(exception);
@@ -3582,6 +3582,10 @@ public class WorkflowTest {
     Iterable<MigrationReference<Revision>> refs = info.migrationReferences();
     assertThat(Iterables.getFirst(refs, null).getLastMigrated()
         .associatedLabel(GIT_DESCRIBE_ABBREV)).containsExactly("1_0_0");
+    assertThat(
+        Iterables.getOnlyElement(
+            info.migrationReferences()).getLastMigratedChange().getLabels().get(
+            GIT_DESCRIBE_ABBREV)).containsExactly("1_0_0");
   }
 
   @Test

@@ -20,6 +20,7 @@ import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST_FROM_SOT;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.GitRepository.GIT_DESCRIBE_ABBREV;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -385,11 +386,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
               Change<O> lastMigratedChange = null;
               try {
-                lastMigratedChange = generalOptions.repoTask(
-                    "origin.last_migrated",
-                    () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
-              }  catch (RepoException | ValidationException e) {
+                lastMigratedChange =
+                    generalOptions.repoTask(
+                        "origin.last_migrated",
+                        () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
+                  lastMigratedChange = annotateChange(lastMigratedChange);
+              } catch (RepoException | ValidationException e) {
                 logger.atInfo().withCause(e).log("Error resolving change for %s", lastMigrated);
+                throw e;
               }
               ImmutableList<Change<O>> allChanges =
                   generalOptions.repoTask(
@@ -413,7 +417,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       // We shouldn't use this path for info
                       Paths.get("shouldnt_be_used"),
                       lastResolved,
-                      /*rawSourceRef=*/ null,
+                      /* rawSourceRef= */ null,
                       // We don't create effects on info
                       changeMigrationFinishedEvent -> {});
 
@@ -426,7 +430,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               }
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
-                      String.format("workflow_%s", name), lastMigrated, lastMigratedChange,
+                      String.format("workflow_%s", name),
+                      lastMigrated,
+                      lastMigratedChange,
                       affectedChanges);
 
               return Info.create(
@@ -438,12 +444,23 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   private void annotateChange(ArrayList<Change<O>> annotated, int i) throws ValidationException {
     Change<O> c = annotated.get(i);
+     annotated.set(i, annotateChange(c));
+  }
+
+  @Nullable
+  private Change<O> annotateChange(@Nullable Change<O> annotate) throws ValidationException {
+    if (annotate == null) {
+      return null;
+    }
     try {
-     Revision rev = origin.resolve(c.getRef());
-     annotated.set(i, c.withLabels(rev.associatedLabels()));
-   } catch (RepoException re) {
-     logger.atInfo().log("Failed to annotate change %s", c);
-   }
+      Revision rev = origin.resolve(annotate.getRef());
+      // Force load of tag info
+      ImmutableList<String> ignored = rev.associatedLabel(GIT_DESCRIBE_ABBREV);
+      return  annotate.withLabels(rev.associatedLabels());
+    } catch (RepoException re) {
+      logger.atInfo().log("Failed to annotate change %s", annotate);
+    }
+    return annotate;
   }
 
   @Nullable
