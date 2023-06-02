@@ -393,7 +393,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                   lastMigratedChange = annotateChange(lastMigratedChange);
               } catch (RepoException | ValidationException e) {
                 logger.atInfo().withCause(e).log("Error resolving change for %s", lastMigrated);
-                throw e;
               }
               ImmutableList<Change<O>> allChanges =
                   generalOptions.repoTask(
