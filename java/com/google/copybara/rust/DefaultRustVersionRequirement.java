@@ -38,6 +38,16 @@ public class DefaultRustVersionRequirement extends RustVersionRequirement {
     return new DefaultRustVersionRequirement(requirement);
   }
 
+  /**
+   * Returns true if this class can handle the given Cargo version requirement.
+   *
+   * @param requirement The version requirement to check.
+   * @return A boolean indicating whether the requirement string can be handled by this class.
+   */
+  public static boolean handlesRequirement(String requirement) {
+    return VALID_DEFAULT_FORMAT_REGEX.matcher(requirement).matches();
+  }
+
   private SemanticVersion getRequiredVersion() throws ValidationException {
     return SemanticVersion.createFromVersionString(requirement);
   }

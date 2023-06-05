@@ -28,6 +28,11 @@ abstract class RustVersionRequirement {
   public static RustVersionRequirement getVersionRequirement(String requirement)
       throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
+    if (DefaultRustVersionRequirement.handlesRequirement(requirement)) {
+      return DefaultRustVersionRequirement.create(requirement);
+    } else if (ComparisonRustVersionRequirement.handlesRequirement(requirement)) {
+      return ComparisonRustVersionRequirement.create(requirement);
+    }
     return DefaultRustVersionRequirement.create(requirement);
   }
 

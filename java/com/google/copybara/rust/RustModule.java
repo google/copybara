@@ -62,8 +62,8 @@ public final class RustModule implements StarlarkValue {
   @StarlarkMethod(
       name = "check_version_requirement",
       doc =
-          "Checks a version against a Cargo version requirement. Currently, default and caret"
-              + " requirements are supported. Please see"
+          "Checks a version against a Cargo version requirement. Currently, default, caret, and"
+              + " comparison requirements are supported. Please see"
               + " https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html for more"
               + " information.",
       documented = false,
@@ -73,6 +73,8 @@ public final class RustModule implements StarlarkValue {
       })
   public boolean checkVersionRequirement(String requirement, String version)
       throws ValidationException {
+    // TODO(chriscampos): Return this as a StarlarkValue object, so we can check against the
+    // requirement multiple times.
     return RustVersionRequirement.getVersionRequirement(requirement).fulfills(version);
   }
 }
