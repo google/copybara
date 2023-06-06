@@ -84,19 +84,19 @@ public class ConfigGenHeuristics {
   public static class Result {
 
     private final Glob originGlob;
-    private final ImmutableList<GeneratorMove> moves;
+    private final GeneratorTransformations transformations;
 
-    public Result(Glob originFiles, Iterable<GeneratorMove> moves) {
+    public Result(Glob originFiles, GeneratorTransformations transformations) {
       this.originGlob = originFiles;
-      this.moves = ImmutableList.copyOf(moves);
+      this.transformations = transformations;
     }
 
     public Glob getOriginGlob() {
       return originGlob;
     }
 
-    public ImmutableList<GeneratorMove> getMoves() {
-      return moves;
+    public GeneratorTransformations getTransformations() {
+      return transformations;
     }
   }
 
@@ -136,7 +136,7 @@ public class ConfigGenHeuristics {
     debug(similarFiles, destinationOnly, originGlob);
 
     ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
-    return new ConfigGenHeuristics.Result(originGlob.glob, moves);
+    return new ConfigGenHeuristics.Result(originGlob.glob, new GeneratorTransformations(moves));
   }
 
   /**
@@ -456,7 +456,7 @@ public class ConfigGenHeuristics {
     return result.build();
   }
 
-  /** Represents a core.move() to be include in the generation */
+  /** Represents a core.move() to be included in the generation */
   public static class GeneratorMove {
 
     private final String before;
@@ -496,6 +496,20 @@ public class ConfigGenHeuristics {
     @Override
     public String toString() {
       return "core.move(\"" + before + "\", \"" + after + "\")";
+    }
+  }
+
+  /** Represents a collection of transformations to be included in the generation */
+  public static class GeneratorTransformations {
+    private final ImmutableList<GeneratorMove> moves;
+
+    public GeneratorTransformations(
+        ImmutableList<GeneratorMove> moves) {
+      this.moves = moves;
+    }
+
+    public ImmutableList<GeneratorMove> getMoves() {
+      return moves;
     }
   }
 }

@@ -128,7 +128,7 @@ public class ConfigGenHeuristicsTest {
     writeFile(destination, "x/y/include3/fileC", "bar3");
 
     ConfigGenHeuristics.Result result = createHeuristics().run();
-    assertThat(result.getMoves()).containsExactly(
+    assertThat(result.getTransformations().getMoves()).containsExactly(
         new GeneratorMove("a/b/include", "x/y/z"),
         new GeneratorMove("a/b/include2/test", "x/y/include2/test"),
         new GeneratorMove("a/b/include2/fileC", "x/y/include3/fileC"),
