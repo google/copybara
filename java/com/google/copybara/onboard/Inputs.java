@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformations;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.Converter;
 import com.google.copybara.onboard.core.Input;
@@ -61,6 +62,11 @@ public class Inputs {
   public static final Input<URL> GIT_DESTINATION_URL = Input.create(
       "git_destination_url", "Git URL to serve as origin repository",
       null, URL.class, URL_CONVERTER);
+
+  /** Should be accessed as optional. As it can only be inferred */
+  public static final Input<GeneratorTransformations> TRANSFORMATIONS = Input.createInfer(
+      "transformations", "`core.move`s and other transformations",
+      null, GeneratorTransformations.class);
 
   public static final Input<Glob> ORIGIN_GLOB =
       Input.create(

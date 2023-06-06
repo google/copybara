@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.configgen.ConfigGenHeuristics;
+import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformations;
 import com.google.copybara.configgen.ConfigGenHeuristics.Result;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -91,6 +92,10 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
           ? Optional.empty()
           : Optional.of(Inputs.ORIGIN_GLOB.asValue(resultGlob));
     }
+    if (input == Inputs.TRANSFORMATIONS) {
+      GeneratorTransformations transformations = result.get().getTransformations();
+      return Optional.of(Inputs.TRANSFORMATIONS.asValue(transformations));
+    }
     return Optional.empty();
   }
 
@@ -105,6 +110,9 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
     }
 
     try {
+      // TODO(malcon): Refactor this class to not depend on git. IOW, be able to generate configs
+      // for existing sources for non-git repositories. This would also make the testing of
+      // this class easier.
       Path origin = generalOptions.getDirFactory().newTempDir("checkout");
       GitRepository repo =
           gitOptions.cachedBareRepoForUrl(originUrl.toString()).withWorkTree(origin);
@@ -133,6 +141,6 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
 
   @Override
   public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
-    return defaultPriority(ImmutableSet.of(Inputs.ORIGIN_GLOB));
+    return defaultPriority(ImmutableSet.of(Inputs.ORIGIN_GLOB, Inputs.TRANSFORMATIONS));
   }
 }
