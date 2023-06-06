@@ -53,8 +53,7 @@ public class InputProviderResolverImplTest {
 
   private static final Input<String> INFER =
       Input.createInfer("InputProviderResolverImplTestInfer",
-          "just for test", null, String.class,
-          (s, resolver) -> s);
+          "just for test", null, String.class);
 
   private static final Input<String> RESOLVE =
       Input.<String>create(
