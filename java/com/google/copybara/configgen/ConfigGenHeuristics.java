@@ -172,10 +172,20 @@ public class ConfigGenHeuristics {
       Entry<Path, Path> entry = set.remove();
       Path origin = entry.getKey();
       Path dest = entry.getValue();
+      if (origin.equals(dest)) {
+        // already correctly positioned
+        continue;
+      }
       Path commonSuffix = commonSuffix(origin, dest);
-      while (commonSuffix != null && !commonSuffix.toString().equals("")) {
-        Path originPrefix = origin.subpath(0, origin.getNameCount() - commonSuffix.getNameCount());
-        Path destPrefix = dest.subpath(0, dest.getNameCount() - commonSuffix.getNameCount());
+      while (commonSuffix != null && !commonSuffix.toString().isEmpty()) {
+        Path originPrefix =
+            commonSuffix.getNameCount() != origin.getNameCount()
+                ? origin.subpath(0, origin.getNameCount() - commonSuffix.getNameCount())
+                : Path.of("");
+        Path destPrefix =
+            commonSuffix.getNameCount() != dest.getNameCount()
+                ? dest.subpath(0, dest.getNameCount() - commonSuffix.getNameCount())
+                : Path.of("");
         boolean tooBroad = false;
         HashSet<Entry<Path, Path>> includedPaths = new HashSet<>();
         for (Entry<Path, Path> e : similarFiles.entrySet()) {

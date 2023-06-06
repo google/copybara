@@ -163,6 +163,21 @@ public class ConfigGenHeuristicsTest {
     globNoMatch(result.getOriginGlob(), "a/anything");
   }
 
+  @Test
+  public void testMoves_completeSuffixOverlap() throws IOException {
+    writeFile(origin, "a/b/include/fileA", "foo1");
+    writeFile(origin, "a/b/include/fileB", "foo2");
+    writeFile(origin, "LICENSE", "foo3");
+
+    writeFile(destination, "include/fileA", "foo1");
+    writeFile(destination, "include/fileB", "foo2");
+    writeFile(destination, "LICENSE", "foo3");
+
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+    assertThat(result.getTransformations().getMoves())
+        .containsExactly(new GeneratorMove("a/b", ""));
+  }
+
   private void globMatches(Glob glob, String path) {
     Path root = Paths.get("/");
     PathMatcher matcher = glob.relativeTo(root);
