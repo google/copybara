@@ -398,11 +398,15 @@ public class GitRepository {
   }
 
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
-    return rev.withLabels(
-        ImmutableListMultimap.of(
-            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
-            GIT_DESCRIBE_FIRST_PARENT, describe(rev, true))
-    );
+    ImmutableListMultimap.Builder<String, String> describeLabels = ImmutableListMultimap.builder();
+    describeLabels.put(GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false));
+    describeLabels.put(GIT_DESCRIBE_FIRST_PARENT, describe(rev, true));
+    String describeAbbrev = describeAbbrev(rev);
+    // We only want to populate this label if a value exists
+    if (describeAbbrev != null) {
+      describeLabels.put(GIT_DESCRIBE_ABBREV, describeAbbrev(rev));
+    }
+    return rev.withLabels(describeLabels.build());
   }
 
   @Nullable
