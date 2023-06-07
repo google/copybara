@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -227,6 +228,38 @@ public final class SkylarkUtil {
 
     @SuppressWarnings("unchecked") // safe
     Dict<K, StarlarkList<V>> res = (Dict<K, StarlarkList<V>>) x;
+    return res;
+  }
+
+  /** Casts a Dict nested in another Dict */
+  public static <K, W, V> Dict<K, Dict<W, V>> castOfDictNestedInDict(
+      Object x, Class<K> keyType, Class<W> nestedKeyType, Class<V> nestedValueType, String what)
+      throws EvalException {
+    Preconditions.checkNotNull(x);
+    if (!(x instanceof Dict)) {
+      throw Starlark.errorf("got %s for '%s', want dict", Starlark.type(x), what);
+    }
+    for (Entry<?, ?> e : ((Map<?, ?>) x).entrySet()) {
+      if (!keyType.isAssignableFrom(e.getKey().getClass())) {
+        throw Starlark.errorf(
+            "Key not assignable. Wanted %s, got %s",
+            Starlark.classType(keyType), Starlark.type(e.getKey()));
+      }
+      for (Map.Entry<?, ?> n : ((Map<?, ?>) e.getValue()).entrySet()) {
+        if (!nestedKeyType.isAssignableFrom(n.getKey().getClass())) {
+          throw Starlark.errorf(
+              "Nested key type not assignable. Wanted %s, got %s",
+              Starlark.classType(nestedKeyType), Starlark.type(n.getKey()));
+        }
+        if (!nestedValueType.isAssignableFrom(n.getValue().getClass())) {
+          throw Starlark.errorf(
+              "Nested value type not assignable. Wanted %s, got %s",
+              Starlark.classType(nestedValueType), Starlark.type(n.getValue()));
+        }
+      }
+    }
+    @SuppressWarnings("unchecked") // safe
+    Dict<K, Dict<W, V>> res = (Dict<K, Dict<W, V>>) x;
     return res;
   }
 }
