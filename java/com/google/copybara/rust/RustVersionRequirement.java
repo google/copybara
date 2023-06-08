@@ -22,9 +22,14 @@ import com.google.copybara.exception.ValidationException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a Cargo version requirement */
-abstract class RustVersionRequirement {
+@StarlarkBuiltin(name = "rust_version_requirement", doc = "Represents a Cargo version requirement.")
+abstract class RustVersionRequirement implements StarlarkValue {
   public static RustVersionRequirement getVersionRequirement(String requirement)
       throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
@@ -43,6 +48,12 @@ abstract class RustVersionRequirement {
    * @return A boolean indicating if the version fulfills this version requirement.
    * @throws ValidationException If there is an issue parsing the version string.
    */
+  @StarlarkMethod(
+      name = "fulfills",
+      parameters = {@Param(name = "fulfills", named = true, doc = "The version requirement")},
+      doc =
+          "Given a semantic version string, returns true if the version fulfills this version"
+              + " requirement.")
   public abstract boolean fulfills(String version) throws ValidationException;
 
   @AutoValue

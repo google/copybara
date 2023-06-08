@@ -60,6 +60,26 @@ public final class RustModule implements StarlarkValue {
   }
 
   @StarlarkMethod(
+      name = "create_version_requirement",
+      doc =
+          "Represents a Cargo version requirement. You can compare version strings against this"
+              + "object to determine if they meet this requirement or not. ",
+      documented = true,
+      parameters = {
+        @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
+      })
+  @Example(
+      title = "Create a version requirement object",
+      before = "Example:  Create a requirement object and compare a version string against it.",
+      code =
+          "rust.create_version_requirement(\">= 0.5\")")
+  @SuppressWarnings("unused")
+  public RustVersionRequirement getVersionRequirement(String requirement)
+      throws ValidationException {
+    return RustVersionRequirement.getVersionRequirement(requirement);
+  }
+
+  @StarlarkMethod(
       name = "check_version_requirement",
       doc =
           "Checks a version against a Cargo version requirement. Currently, default, caret, and"
@@ -73,8 +93,7 @@ public final class RustModule implements StarlarkValue {
       })
   public boolean checkVersionRequirement(String requirement, String version)
       throws ValidationException {
-    // TODO(chriscampos): Return this as a StarlarkValue object, so we can check against the
-    // requirement multiple times.
+    // TODO(chriscampos): Remove this in favor of getVersionRequirement
     return RustVersionRequirement.getVersionRequirement(requirement).fulfills(version);
   }
 }

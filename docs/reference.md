@@ -199,6 +199,8 @@
   - [remotefiles](#remotefiles)
     - [remotefiles.github_archive](#remotefilesgithub_archive)
     - [remotefiles.origin](#remotefilesorigin)
+  - [rust_version_requirement](#rust_version_requirement)
+    - [rust_version_requirement.fulfills](#rust_version_requirementfulfills)
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
@@ -4708,6 +4710,26 @@ base_url | `unknown`<br><p>base URL to construct the full URL. DEPRECATED.</p>
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--remote-http-files-connection-timeout`</span> | *duration* | Timeout for the fetch operation, e.g. 30s.  Example values: 30s, 20m, 1h, etc.
+
+
+
+## rust_version_requirement
+
+Represents a Cargo version requirement.
+
+<a id="rust_version_requirement.fulfills" aria-hidden="true"></a>
+### rust_version_requirement.fulfills
+
+Given a semantic version string, returns true if the version fulfills this version requirement.
+
+`bool` `rust_version_requirement.fulfills(fulfills)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+fulfills | `string`<br><p>The version requirement</p>
 
 
 
