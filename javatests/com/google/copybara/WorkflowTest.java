@@ -3529,6 +3529,27 @@ public class WorkflowTest {
   }
 
   @Test
+  public void sameVersionAndLastRevNullThrowsVE() throws Exception {
+    options.setLastRevision(null);
+    options.workflowOptions.importSameVersion = true;
+    options.setForce(true);
+    options.workflowOptions.initHistory = true;
+    origin.addSimpleChange(100);
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    ValidationException ve =
+        assertThrows(
+            ValidationException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
+
+    assertThat(ve)
+        .hasMessageThat()
+        .contains(
+            "Could not process ref. If using --same-version flag, please either (1) check our"
+                + " METADATA file to confirm version is properly formatted or (2) also use the"
+                + " --last-rev flag to manually specify");
+  }
+
+  @Test
   @SuppressWarnings("unchecked")
   public void givenLastRevFlagInfoCommandUsesIt() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
