@@ -66,11 +66,11 @@ public class DefaultRustVersionRequirement extends RustVersionRequirement {
     SemanticVersion requiredVersion = getRequiredVersion();
     if (requiredVersion.majorVersion() > 0) {
       return SemanticVersion.create(requiredVersion.majorVersion() + 1, 0, 0);
-    } else if (requiredVersion.minorVersion() > 0) {
-      return SemanticVersion.create(0, requiredVersion.minorVersion() + 1, 0);
+    } else if (requiredVersion.minorVersion().orElse(0) > 0) {
+      return SemanticVersion.create(0, requiredVersion.minorVersion().orElse(0) + 1, 0);
     }
 
-    return SemanticVersion.create(0, 0, requiredVersion.patchVersion() + 1);
+    return SemanticVersion.create(0, 0, requiredVersion.patchVersion().orElse(0) + 1);
   }
 
   @Override

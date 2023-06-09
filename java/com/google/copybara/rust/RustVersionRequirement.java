@@ -21,6 +21,7 @@ import com.google.common.base.Splitter;
 import com.google.copybara.exception.ValidationException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -61,14 +62,15 @@ abstract class RustVersionRequirement implements StarlarkValue {
     private static final Pattern VALID_VERSION_PATTERN =
         Pattern.compile("^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?$");
 
-    private static final Comparator<SemanticVersion> COMPARATOR =
+    private static final Comparator<SemanticVersion> VERSION_COMPARATOR =
         Comparator.comparing(SemanticVersion::majorVersion)
-            .thenComparing(SemanticVersion::minorVersion)
-            .thenComparing(SemanticVersion::patchVersion);
+            .thenComparing(SemanticVersion::minorVersion, Comparator.comparingInt(k -> k.orElse(0)))
+            .thenComparing(
+                SemanticVersion::patchVersion, Comparator.comparingInt(k -> k.orElse(0)));
 
     public static SemanticVersion create(int majorVersion, int minorVersion, int patchVersion) {
       return new AutoValue_RustVersionRequirement_SemanticVersion(
-          majorVersion, minorVersion, patchVersion);
+          majorVersion, Optional.of(minorVersion), Optional.of(patchVersion));
     }
 
     public static SemanticVersion createFromVersionString(String version)
@@ -80,8 +82,12 @@ abstract class RustVersionRequirement implements StarlarkValue {
       List<String> versionParts = Splitter.on(".").splitToList(version);
 
       int majorVersion = Integer.parseInt(versionParts.get(0));
-      int minorVersion = versionParts.size() >= 2 ? Integer.parseInt(versionParts.get(1)) : 0;
-      int patchVersion = versionParts.size() >= 3 ? Integer.parseInt(versionParts.get(2)) : 0;
+      Optional<Integer> minorVersion =
+          Optional.ofNullable(
+              versionParts.size() >= 2 ? Integer.parseInt(versionParts.get(1)) : null);
+      Optional<Integer> patchVersion =
+          Optional.ofNullable(
+              versionParts.size() >= 3 ? Integer.parseInt(versionParts.get(2)) : null);
 
       return new AutoValue_RustVersionRequirement_SemanticVersion(
           majorVersion, minorVersion, patchVersion);
@@ -89,13 +95,13 @@ abstract class RustVersionRequirement implements StarlarkValue {
 
     @Override
     public int compareTo(SemanticVersion other) {
-      return COMPARATOR.compare(this, other);
+      return VERSION_COMPARATOR.compare(this, other);
     }
 
     public abstract int majorVersion();
 
-    public abstract int minorVersion();
+    public abstract Optional<Integer> minorVersion();
 
-    public abstract int patchVersion();
+    public abstract Optional<Integer> patchVersion();
   }
 }

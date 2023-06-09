@@ -36,9 +36,11 @@ public class ComparisonRustVersionRequirementTest {
     assertThat(getVersionRequirement("= 1.2.0").fulfills("1.2.0")).isTrue();
     assertThat(getVersionRequirement("= 1.2.0").fulfills("2.3.1")).isFalse();
     assertThat(getVersionRequirement("= 1.3").fulfills("1.3.0")).isTrue();
-    assertThat(getVersionRequirement("= 1.3").fulfills("1.3.2")).isFalse();
+    assertThat(getVersionRequirement("= 1.3").fulfills("1.3.2")).isTrue();
+    assertThat(getVersionRequirement("= 1.3").fulfills("1.4")).isFalse();
     assertThat(getVersionRequirement("= 2").fulfills("2.0.0")).isTrue();
-    assertThat(getVersionRequirement("= 2").fulfills("2.4.3")).isFalse();
+    assertThat(getVersionRequirement("= 2").fulfills("2.4.3")).isTrue();
+    assertThat(getVersionRequirement("= 2").fulfills("3.0.0")).isFalse();
   }
 
   @Test
@@ -65,5 +67,7 @@ public class ComparisonRustVersionRequirementTest {
     assertThat(getVersionRequirement("<= 3.0.0").fulfills("2.5.4")).isTrue();
     assertThat(getVersionRequirement("<= 3.0.0").fulfills("3.0.0")).isTrue();
     assertThat(getVersionRequirement("<= 3.0.0").fulfills("3.9.2")).isFalse();
+    assertThat(getVersionRequirement("<= 0.6").fulfills("0.6.4")).isTrue();
+    assertThat(getVersionRequirement("<= 0.6").fulfills("0.7.0")).isFalse();
   }
 }
