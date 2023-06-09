@@ -77,7 +77,7 @@ public class DefaultRustVersionRequirementTest {
   @Test
   public void testBadVersionRequirementString() {
     ValidationException e =
-        assertThrows(ValidationException.class, () -> getVersionRequirement("foo"));
+        assertThrows(ValidationException.class, () -> DefaultRustVersionRequirement.create("foo"));
     assertThat(e.getMessage())
         .contains("The string foo is not a valid default or caret version requirement.");
   }

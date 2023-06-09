@@ -38,8 +38,12 @@ abstract class RustVersionRequirement implements StarlarkValue {
       return DefaultRustVersionRequirement.create(requirement);
     } else if (ComparisonRustVersionRequirement.handlesRequirement(requirement)) {
       return ComparisonRustVersionRequirement.create(requirement);
+    } else if (MultipleRustVersionRequirement.handlesRequirement(requirement)) {
+      return MultipleRustVersionRequirement.create(requirement);
     }
-    return DefaultRustVersionRequirement.create(requirement);
+
+    throw new ValidationException(
+        String.format("The requirement %s is currently not supported.", requirement));
   }
 
   /**
