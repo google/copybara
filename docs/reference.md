@@ -2801,7 +2801,7 @@ refspec_groups | `dict`<br><p>A set of named regexes that can be used to match p
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None)`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None, origin_checker=None, destination_checker=None)`
 
 
 #### Parameters:
@@ -2817,6 +2817,8 @@ partial_fetch | `bool`<br><p>This is an experimental feature that only works for
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
 actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 action | `unknown`<br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
+origin_checker | `checker` or `NoneType`<br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
+destination_checker | `checker` or `NoneType`<br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
@@ -2882,6 +2884,8 @@ Name | Description
 action_name | `string`<br><p>The name of the current action.</p>
 cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | [`Console`](#console)<br><p>Get an instance of the console to report errors or warnings</p>
+destination_api | [`endpoint`](#endpoint)<br><p>Returns a handle to platform specific api, inferred from the destination url when possible.</p>
+origin_api | [`endpoint`](#endpoint)<br><p>Returns a handle to platform specific api, inferred from the origin url when possible.</p>
 params | `dict`<br><p>Parameters for the function if created with core.action</p>
 refs | `sequence`<br><p>A list containing string representations of the entities that triggered the event</p>
 

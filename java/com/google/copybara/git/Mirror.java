@@ -25,7 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionResult;
 import com.google.copybara.action.ActionResult.Result;
@@ -69,11 +71,24 @@ public class Mirror implements Migration {
   private final ConfigFile mainConfigFile;
   @Nullable private final String description;
   private final Iterable<Action> actions;
+  private final LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider;
+  private final LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider;
 
-  Mirror(GeneralOptions generalOptions, GitOptions gitOptions, String name, String origin,
-      String destination, List<Refspec> refspec,
-      GitDestinationOptions gitDestinationOptions, boolean prune, boolean partialFetch,
-      ConfigFile mainConfigFile, @Nullable String description, ImmutableList<Action> actions) {
+  Mirror(
+      GeneralOptions generalOptions,
+      GitOptions gitOptions,
+      String name,
+      String origin,
+      String destination,
+      List<Refspec> refspec,
+      GitDestinationOptions gitDestinationOptions,
+      boolean prune,
+      boolean partialFetch,
+      ConfigFile mainConfigFile,
+      @Nullable String description,
+      ImmutableList<Action> actions,
+      @Nullable LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider,
+      @Nullable LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -86,6 +101,8 @@ public class Mirror implements Migration {
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.description = description;
     this.actions = Preconditions.checkNotNull(actions);
+    this.originApiEndpointProvider = originApiEndpointProvider;
+    this.destinationApiEndpointProvider = destinationApiEndpointProvider;
   }
 
   @Override
@@ -121,7 +138,9 @@ public class Mirror implements Migration {
                   repo,
                   generalOptions.getDirFactory(),
                   Dict.empty(),
-                  gitOptions);
+                  gitOptions,
+                  originApiEndpointProvider,
+                  destinationApiEndpointProvider);
           try {
             action.run(context);
             ActionResult actionResult = context.getActionResult();
