@@ -67,6 +67,7 @@ public final class GeneralOptions implements Option {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   public static final String NOANSI = "--noansi";
+  public static final String NOPROMPT = "--noprompt";
   public static final String FORCE = "--force";
   public static final String CONFIG_ROOT_FLAG = "--config-root";
   public static final String OUTPUT_ROOT_FLAG = "--output-root";
@@ -349,11 +350,15 @@ public final class GeneralOptions implements Option {
     return new CommandRunner(cmd, commandsTimeout);
   }
 
-  // We don't use JCommander for parsing this flag but we do it manually since
+  // We don't use JCommander for parsing these flags but we do it manually since
   // the parsing could fail and we need to report errors using one console
   @SuppressWarnings("unused")
   @Parameter(names = NOANSI, description = "Don't use ANSI output for messages")
   boolean noansi = false;
+  @Parameter(names = NOPROMPT,
+      description = "Don't prompt, this will answer all prompts with 'yes'", arity = 1)
+  boolean noPrompt = false;
+
 
   @Parameter(
       names = FORCE,

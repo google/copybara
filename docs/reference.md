@@ -645,6 +645,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
 <span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
+<span style="white-space: nowrap;">`--noprompt`</span> | *boolean* | Don't prompt, this will answer all prompts with 'yes'
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
 <span style="white-space: nowrap;">`--repo-timeout`</span> | *duration* | Repository operation timeout duration.  Example values: 30s, 20m, 1h, etc.

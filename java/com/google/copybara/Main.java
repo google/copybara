@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import static com.google.copybara.GeneralOptions.NOPROMPT;
 import static com.google.copybara.MainArguments.COPYBARA_SKYLARK_CONFIG_FILENAME;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
@@ -51,6 +52,7 @@ import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.FileConsole;
 import com.google.copybara.util.console.LogConsole;
+import com.google.copybara.util.console.NoPromptConsole;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -387,6 +389,10 @@ public class Main {
       console = LogConsole.readWriteConsole(System.in, System.err, verbose);
     } else {
       console = new AnsiConsole(System.in, System.err, verbose);
+    }
+    Optional<String> noPrompt = findFlagValue(args, NOPROMPT);
+    if (noPrompt.isPresent() && noPrompt.get().equals("true")) {
+      console = new NoPromptConsole(console, true);
     }
     Optional<String> maybeConsoleFilePath = findFlagValue(args, GeneralOptions.CONSOLE_FILE_PATH);
     if (!maybeConsoleFilePath.isPresent()) {
