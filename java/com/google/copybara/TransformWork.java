@@ -491,7 +491,8 @@ public final class TransformWork extends CheckoutFileSystem
     // Try to find the label in the current changes migrated. We prioritize current
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
-    for (Change<?> change : changes.getCurrent()) {
+    Sequence<? extends Change<?>> currentChanges = changes.getCurrent();
+    for (Change<?> change : currentChanges) {
       Sequence<String> val = change.getLabelsAllForSkylark().get(label);
       if (val != null) {
         result.addAll(val);
@@ -502,6 +503,18 @@ public final class TransformWork extends CheckoutFileSystem
       ImmutableList<String> revVal = change.getRevision().associatedLabel(label);
       if (!revVal.isEmpty()) {
         result.addAll(revVal);
+        if (!all) {
+          return StarlarkList.immutableCopyOf(result);
+        }
+      }
+    }
+
+    if (currentChanges.isEmpty() && currentRev != null) {
+      // Find the label in the current revision.
+      // We can get here if --same-version is used, as currentChanges will be empty.
+      ImmutableList<String> currentRevLabel = currentRev.associatedLabels().get(label);
+      if (!currentRevLabel.isEmpty()) {
+        result.addAll(currentRevLabel);
         if (!all) {
           return StarlarkList.immutableCopyOf(result);
         }

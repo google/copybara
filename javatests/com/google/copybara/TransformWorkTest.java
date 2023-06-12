@@ -375,6 +375,20 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testGetLabelFromCurrentRev_whenNoChangesMigrated() {
+    TransformWork work =
+        create("Foo :)")
+            .withChanges(new Changes(ImmutableList.of(), ImmutableList.of()))
+            .withCurrentRev(
+                new DummyRevision("foo")
+                    .withLabels(ImmutableListMultimap.of("CURRENT_VERSION", "1")))
+            .withResolvedReference(
+                new DummyRevision("foo")
+                    .withLabels(ImmutableListMultimap.of("CURRENT_VERSION", "2")));
+    assertThat(work.getLabel("CURRENT_VERSION")).isEqualTo("1");
+  }
+
+  @Test
   public void testConsole() throws IOException, ValidationException, RepoException {
     FileSystem fileSystem = Jimfs.newFileSystem();
     Path base = fileSystem.getPath("foo");
