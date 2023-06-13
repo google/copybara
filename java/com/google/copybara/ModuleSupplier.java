@@ -44,6 +44,7 @@ import com.google.copybara.hashing.HashingModule;
 import com.google.copybara.hg.HgModule;
 import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
+import com.google.copybara.html.HtmlModule;
 import com.google.copybara.http.HttpModule;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
@@ -121,6 +122,7 @@ public class ModuleSupplier {
         new ArchiveModule(),
         new Re2Module(),
         new TomlModule(),
+        new HtmlModule(),
         new XmlModule(),
         new StructModule(),
         new StarlarkDateTimeModule(),

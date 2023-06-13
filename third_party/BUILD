@@ -206,6 +206,13 @@ java_library(
 )
 
 java_library(
+    name = "jsoup",
+    exports = [
+        "@maven//:org_jsoup_jsoup",
+    ],
+)
+
+java_library(
     name = "sun_mail",
     exports = [
         "@maven//:com_sun_mail_javax_mail",
