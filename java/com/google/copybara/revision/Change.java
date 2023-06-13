@@ -211,6 +211,11 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
         Revision.addNewLabels(labels, newLabels), changeFiles, merge, parents);
   }
 
+  public Change<R> withChangeFiles(ImmutableSet<String> newChangeFiles) {
+    return new Change<>(
+        revision, author, message, dateTime, labels, newChangeFiles, merge, parents);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
