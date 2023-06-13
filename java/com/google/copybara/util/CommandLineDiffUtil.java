@@ -47,7 +47,7 @@ public final class CommandLineDiffUtil {
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());
     CommandOutputWithStatus output;
     try {
-      output = new CommandRunner(cmd).withVerbose(false).execute();
+      output = new CommandRunner(cmd).withVerbose(false).withMaxStdOutLogLines(0).execute();
     } catch (BadExitStatusWithOutputException e) {
       if (e.getOutput().getTerminationStatus().getExitCode() == 1
           || e.getOutput().getTerminationStatus().getExitCode() == 2) {
