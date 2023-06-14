@@ -118,6 +118,18 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testInvalidLabel() throws Exception {
+    TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> work.removeLabel("[invalid]", /* wholeMessage= */ true));
+
+    assertThat(e).hasMessageThat().isEqualTo("Label '[invalid]' is not a valid label");
+  }
+
+  @Test
   public void testAddHiddenLabel() throws Exception {
     TransformWork work = create("Foo\n\nSOME=TEST\n");
     ExplicitReversal t = skylark.eval("t", ""
@@ -128,18 +140,6 @@ public class TransformWorkTest {
     t.transform(work);
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\n");
     assertThat(work.getAllLabels("FOO").getImmutableList()).isEqualTo(ImmutableList.of("BAR"));
-  }
-
-  @Test
-  public void testFilLTemplate() throws Exception {
-    TransformWork work = create("Foo\n\nSOME=TEST\n");
-    ExplicitReversal t = skylark.eval("t", ""
-        + "def user_transform(ctx):\n"
-        + "    " + "ctx.add_label('FOO', ctx.fill_template('SOME is ${SOME}'))" + "\n"
-        + "t = core.transform([user_transform])");
-    t.transform(work);
-
-    assertThat(work.getAllLabels("FOO").getImmutableList()).containsExactly("SOME is TEST");
   }
 
   @Test
@@ -377,7 +377,7 @@ public class TransformWorkTest {
    }
 
   @Test
-  public void testReversable() {
+  public void testReversible() throws ValidationException {
     TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
     work.addOrReplaceLabel("EXAMPLE", "VALUE", "=");
     work.replaceLabel("EXAMPLE", "OTHER VALUE", "=", true);

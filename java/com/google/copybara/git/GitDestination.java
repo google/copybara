@@ -685,7 +685,8 @@ public class GitDestination implements Destination<GitRevision> {
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
-    private String addDestinationLabels(MessageInfo messageInfo, String summary) {
+    private String addDestinationLabels(MessageInfo messageInfo, String summary)
+        throws ValidationException {
       ChangeMessage msg = ChangeMessage.parseMessage(summary);
       for (LabelFinder label : messageInfo.labelsToAdd) {
         msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());

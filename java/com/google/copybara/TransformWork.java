@@ -271,7 +271,6 @@ public final class TransformWork extends CheckoutFileSystem
     return TransformationStatus.noop(message);
   }
 
-
   @StarlarkMethod(
       name = "add_label",
       doc = "Add a label to the end of the description",
@@ -289,7 +288,8 @@ public final class TransformWork extends CheckoutFileSystem
             positional = false,
             defaultValue = "False"),
       })
-  public void addLabel(String label, String value, String separator, Boolean hidden) {
+  public void addLabel(String label, String value, String separator, boolean hidden)
+      throws ValidationException {
     if (hidden) {
       addHiddenLabels(ImmutableListMultimap.of(label, value));
     } else {
@@ -310,7 +310,8 @@ public final class TransformWork extends CheckoutFileSystem
             doc = "The separator to use for the label",
             defaultValue = "\"=\""),
       })
-  public void addOrReplaceLabel(String label, String value, String separator) {
+  public void addOrReplaceLabel(String label, String value, String separator)
+      throws ValidationException {
     setMessage(ChangeMessage.parseMessage(getMessage())
         .withNewOrReplacedLabel(label, separator, value)
         .toString());
@@ -343,7 +344,8 @@ public final class TransformWork extends CheckoutFileSystem
                     + "make it replace labels in the whole message.",
             defaultValue = "False"),
       })
-  public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage) {
+  public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage)
+      throws ValidationException {
     setMessage(parseMessage(wholeMessage)
         .withReplacedLabel(labelName, separator, value)
         .toString());
@@ -361,11 +363,12 @@ public final class TransformWork extends CheckoutFileSystem
                     + "make it replace labels in the whole message.",
             defaultValue = "False"),
       })
-  public void removeLabel(String label, Boolean wholeMessage) {
+  public void removeLabel(String label, Boolean wholeMessage) throws ValidationException {
     setMessage(parseMessage(wholeMessage).withRemovedLabelByName(label).toString());
   }
 
-  public void removeLabelWithValue(String label, String value, Boolean wholeMessage) {
+  public void removeLabelWithValue(String label, String value, Boolean wholeMessage)
+      throws ValidationException {
     setMessage(parseMessage(wholeMessage).withRemovedLabelByNameAndValue(label, value).toString());
   }
 

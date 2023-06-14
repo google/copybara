@@ -17,8 +17,10 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import org.junit.Before;
@@ -80,5 +82,24 @@ public class ChangeMessageTest {
             .put("label_values('Other-label')[1]", "BB")
             .buildOrThrow();
     skylarkTestExecutor.verifyFields(var, expectedFieldValues);
+  }
+
+  @Test
+  public void testInvalidLabel() throws Exception {
+    ChangeMessage msg =
+        ChangeMessage.parseMessage(
+            ""
+                + "Test parse title message\n"
+                + "\n"
+                + "GitOrigin-RevId: 12345\n"
+                + "Other-label: AA");
+
+    assertThat(msg.withRemovedLabelByName("GitOrigin-RevId").getLabels().get(0).getName())
+        .isEqualTo("Other-label");
+
+    ValidationException e =
+        assertThrows(ValidationException.class, () -> msg.withRemovedLabelByName("(Invalid)"));
+
+    assertThat(e).hasMessageThat().isEqualTo("Label '(Invalid)' is not a valid label");
   }
 }

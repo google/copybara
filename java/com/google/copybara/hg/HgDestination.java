@@ -169,11 +169,9 @@ public class HgDestination implements Destination<HgRevision> {
       return hgOptions.cachedBareRepoForUrl(repoUrl);
     }
 
-    /**
-     * Returns the message for a change with any labels, if set
-     */
+    /** Returns the message for a change with any labels, if set */
     static ChangeMessage getChangeMessage(
-        TransformResult transformResult, String originLabelSeparator) {
+        TransformResult transformResult, String originLabelSeparator) throws ValidationException {
       MessageInfo messageInfo = new MessageInfo(transformResult.isSetRevId()
           ? ImmutableList.of(new LabelFinder(
               transformResult.getRevIdLabel() + originLabelSeparator
