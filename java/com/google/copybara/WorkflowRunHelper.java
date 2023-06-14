@@ -66,6 +66,7 @@ import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -741,13 +742,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             preMergeImportWorkdir,
             CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
             Glob.ALL_FILES);
+        Pattern debugPattern =
+            workflow.getWorkflowOptions().debugMergeImport != null ? Pattern.compile(
+                workflow.getWorkflowOptions().debugMergeImport) : null;
         MergeImportTool mergeImportTool =
             new MergeImportTool(
                 console,
                 new CommandLineDiffUtil(
                     workflow.getGeneralOptions().getDiffBin(),
-                    workflow.getGeneralOptions().getEnvironment()),
-                workflow.getWorkflowOptions().threadsForMergeImport);
+                    workflow.getGeneralOptions().getEnvironment(),
+                    debugPattern),
+                workflow.getWorkflowOptions().threadsForMergeImport, debugPattern);
         try (ProfilerTask ignored = profiler().start("merge_tool")) {
           mergeImportTool.mergeImport(
               checkoutDir,

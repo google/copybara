@@ -21,9 +21,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.util.console.Console;
 import com.google.copybara.shell.CommandException;
+import com.google.copybara.util.console.Console;
+import com.google.re2j.Pattern;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,6 +33,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * A tool that assists with Merge Imports
@@ -46,14 +49,17 @@ public final class MergeImportTool {
   private final Console console;
   private final CommandLineDiffUtil commandLineDiffUtil;
   private final int threadsForMergeImport;
+  @Nullable
+  private final Pattern debugMergeImport;
   private static final int THREADS_MIN_SIZE = 5;
 
   // TODO refactor to accept a diffing tool
   public MergeImportTool(Console console, CommandLineDiffUtil commandLineDiffUtil,
-      int threadsForMergeImport) {
+      int threadsForMergeImport, @Nullable Pattern debugMergeImport) {
     this.console = console;
     this.commandLineDiffUtil = commandLineDiffUtil;
     this.threadsForMergeImport = threadsForMergeImport;
+    this.debugMergeImport = debugMergeImport;
   }
 
   /**
@@ -77,7 +83,9 @@ public final class MergeImportTool {
     HashSet<Path> mergeErrorPaths = new HashSet<>();
     HashSet<Path> troublePaths = new HashSet<>();
     HashSet<FilePathInformation> filesToProcess = new HashSet<>();
-
+    maybeDebugFolder(originWorkdir, "current");
+    maybeDebugFolder(baselineWorkdir, "baseline");
+    maybeDebugFolder(destinationWorkdir, "destination");
     SimpleFileVisitor<Path> originWorkdirFileVisitor =
         new SimpleFileVisitor<Path>() {
           @Override
@@ -144,6 +152,36 @@ public final class MergeImportTool {
       troublePaths.forEach(
           path ->
               console.warn(String.format("diff3 exited with code 2 for path %s, skipping", path)));
+    }
+  }
+
+  /**
+   * Debug the contents of the file that are used by diff3. We just show the SHA-1 of the file
+   * instead of the content.
+   */
+  private void maybeDebugFolder(Path path, String name) throws IOException {
+    if (debugMergeImport != null) {
+      SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+          if (!debugMergeImport.matches(file.toString())) {
+            return FileVisitResult.CONTINUE;
+          }
+          if (attrs.isSymbolicLink()) {
+            console.verboseFmt("MERGE_DEBUG %s %s: symlink", name, path.relativize(file));
+            return FileVisitResult.CONTINUE;
+          }
+          try {
+            console.verboseFmt("MERGE_DEBUG %s %s:\n%s", name, path.relativize(file),
+             Files.readString(file, StandardCharsets.UTF_8));
+          } catch (IOException e) {
+            logger.atWarning().withCause(e).log("Cannot hash file %s", file);
+          }
+
+          return FileVisitResult.CONTINUE;
+        }
+      };
+      Files.walkFileTree(path, visitor);
     }
   }
 

@@ -19,25 +19,33 @@ package com.google.copybara.util;
 import com.google.common.collect.Lists;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /** Diff utilities that shell out to a diffing commandline tool */
 public final class CommandLineDiffUtil {
 
   final String diffBin;
   private final Map<String, String> environmentVariables;
+  @Nullable
+  private final Pattern debugPattern;
 
-  public CommandLineDiffUtil(String diffBin, Map<String, String> environmentVariables) {
+  public CommandLineDiffUtil(String diffBin, Map<String, String> environmentVariables,
+      @Nullable Pattern debugPattern) {
     this.diffBin = diffBin;
     this.environmentVariables = environmentVariables;
+    this.debugPattern = debugPattern;
   }
 
   public CommandOutputWithStatus diff(Path lhs, Path rhs, Path baseline, Path workDir)
       throws CommandException, IOException {
+    boolean debug = debugPattern != null && debugPattern.matcher(lhs.toString()).matches();
+
     // myfile oldfile yourfile
     String mArg = "-m";
     ArrayList<String> argv =
@@ -47,7 +55,11 @@ public final class CommandLineDiffUtil {
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());
     CommandOutputWithStatus output;
     try {
-      output = new CommandRunner(cmd).withVerbose(false).withMaxStdOutLogLines(0).execute();
+      if (debug) {
+        output = new CommandRunner(cmd).execute();
+      } else {
+        output = new CommandRunner(cmd).withVerbose(false).withMaxStdOutLogLines(0).execute();
+      }
     } catch (BadExitStatusWithOutputException e) {
       if (e.getOutput().getTerminationStatus().getExitCode() == 1
           || e.getOutput().getTerminationStatus().getExitCode() == 2) {

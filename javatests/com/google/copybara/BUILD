@@ -147,6 +147,7 @@ all_tests(
         "//third_party:jcommander",
         "//third_party:jimfs",
         "//third_party:mockito",
+        "//third_party:re2j",
         "//third_party:shell",
         "//third_party:starlark",
         "//third_party:testparameterinjector",
