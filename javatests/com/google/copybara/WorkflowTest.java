@@ -41,6 +41,7 @@ import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -3027,32 +3028,38 @@ public class WorkflowTest {
 
   @Test
   public void testOnFinishHook() throws Exception {
-    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    origin.singleFileChange(0, "one commit", "foo.txt", "1",
+        ImmutableListMultimap.of("FOO", "BAR"));
 
-    String config = ""
-        + "def _test_impl(ctx):\n"
-        + "  for effect in ctx.effects:\n"
-        + "    ctx.origin.message(effect.origin_refs[0].ref + ' created ' "
-        + "+ effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
-        + "    ctx.destination.message(effect.origin_refs[0].ref + ' created ' "
-        + "+ effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
-        + "\n"
-        + "def other(ctx):\n"
-        + "  ctx.origin.message('constant')\n"
-        + "  ctx.destination.message('constant')\n"
-        + "\n"
-        + "def test(name, number = 2):\n"
-        + "  return core.action(impl = _test_impl,\n"
-        + "                               params = { 'name': name, 'number': number})\n"
-        + "\n"
-        + "core.workflow(\n"
-        + "  name = 'default',\n"
-        + "  origin = testing.origin(),\n"
-        + "  destination = testing.destination(),\n"
-        + "  transformations = [],\n"
-        + "  authoring = " + authoring + ",\n"
-        + "  after_migration = [test('example'), test('other', 42), other]"
-        + ")\n";
+    String config =
+        "def _test_impl(ctx):\n"
+            + "  for effect in ctx.effects:\n"
+            + "    ctx.origin.message(effect.origin_refs[0].ref + ' created ' +"
+            + " effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+            + "    ctx.destination.message(effect.origin_refs[0].ref + ' created ' +"
+            + " effect.destination_ref.id + ' ' + ctx.params['name'] + str(ctx.params['number']))\n"
+            + "\n"
+            + "def other(ctx):\n"
+            + "  ctx.origin.message('constant')\n"
+            + "  ctx.destination.message('constant')\n"
+            + "\n"
+            + "def test(name, number = 2):\n"
+            + "  return core.action(impl = _test_impl,\n"
+            + "                               params = { 'name': name, 'number': number})\n"
+            + "\n"
+            + "def template(ctx):\n"
+            + "  ctx.origin.message(ctx.template_fill('${FOO}'))\n"
+            + "\n"
+            + "core.workflow(\n"
+            + "  name = 'default',\n"
+            + "  origin = testing.origin(),\n"
+            + "  destination = testing.destination(),\n"
+            + "  transformations = [],\n"
+            + "  authoring = "
+            + authoring
+            + ",\n"
+            + "  after_migration = [test('example'), test('other', 42), other]"
+            + ")\n";
     loadConfig(config).getMigration("default").run(workdir, ImmutableList.of());
     assertThat(origin.getEndpoint().getMessages())
         .containsExactly("0 created destination/1 example2",

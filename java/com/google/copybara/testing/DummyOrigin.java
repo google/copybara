@@ -38,6 +38,7 @@ import com.google.copybara.revision.Change;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -96,11 +97,13 @@ public class DummyOrigin implements Origin<DummyRevision> {
     changeIdToGroup.put(rev.asString(), group);
   }
 
+  @CanIgnoreReturnValue
   public DummyOrigin addSimpleChange(int timestamp) throws IOException {
     addSimpleChange(timestamp, changes.size() + " change");
     return this;
   }
 
+  @CanIgnoreReturnValue
   public DummyOrigin addSimpleChangeWithContextReference(int timestamp, String contextRef)
       throws IOException {
     Path path = fs.getPath("" + changes.size());
@@ -123,11 +126,20 @@ public class DummyOrigin implements Origin<DummyRevision> {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public DummyOrigin addSimpleChange(int timestamp, String message) throws IOException {
     return singleFileChange(timestamp, message, "file.txt", String.valueOf(changes.size()));
   }
 
+  @CanIgnoreReturnValue
   public DummyOrigin singleFileChange(int timestamp, String message, String strPath, String content)
+      throws IOException {
+    return singleFileChange(timestamp, message, strPath, content, ImmutableListMultimap.of());
+  }
+
+  @CanIgnoreReturnValue
+  public DummyOrigin singleFileChange(int timestamp, String message, String strPath, String content,
+      ImmutableListMultimap<String, String> labels)
       throws IOException {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
@@ -139,16 +151,23 @@ public class DummyOrigin implements Origin<DummyRevision> {
     Path writePath = path.resolve(strPath);
     Files.createDirectories(writePath.getParent());
     Files.write(writePath, content.getBytes(StandardCharsets.UTF_8));
-    addChange(timestamp, path, message, /*matchesGlob=*/true);
+    addChange(timestamp, path, message, /*matchesGlob=*/true, labels);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public DummyOrigin addChange(int timestamp, Path path, String message, boolean matchesGlob) {
+    return addChange(timestamp, path, message, matchesGlob, ImmutableListMultimap.of());
+  }
+
+  @CanIgnoreReturnValue
+  public DummyOrigin addChange(int timestamp, Path path, String message, boolean matchesGlob,
+      ImmutableListMultimap<String, String> labels) {
     Path previousChanges = changes.isEmpty() ? null : Iterables.getLast(changes).changesBase;
     changes.add(new DummyRevision(
         "" + changes.size(), message, author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
+        /*contextReference=*/ null, labels,
         matchesGlob, previousChanges, "", Optional.empty()));
     return this;
   }

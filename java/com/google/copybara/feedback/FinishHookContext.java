@@ -22,10 +22,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.Endpoint;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionContext;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -33,6 +35,7 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.transform.SkylarkConsole;
 import java.util.Map;
 import java.util.stream.Collectors;
+import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
@@ -167,5 +170,23 @@ public class FinishHookContext extends ActionContext<FinishHookContext> implemen
                   Collectors.toMap(
                       Map.Entry::getKey, e -> StarlarkList.immutableCopyOf(e.getValue()))));
     }
+
+    @StarlarkMethod(
+        name = "fill_template",
+        doc = "Replaces variables in templates with the values from this revision.",
+        parameters = {
+            @Param(name = "template", doc = "The template to use", named = true),
+        }
+    )
+    @Example(
+        title = "Use the SHA1 in a string",
+        before = "Create a custom transformation which is successful.",
+        code = "filled_template = revision.fill_template('Current Revision: ${GIT_SHORT_SHA1}')",
+        after = "filled_template will contain (for example) 'Current Revision: abcdef12'")
+    public String filLTemplate(String template) throws ValidationException {
+      return LabelFinder.mapLabels(revision::associatedLabel, template);
+    }
   }
+
 }
+

@@ -65,6 +65,7 @@
     - [feedback.finish_hook_context.record_effect](#feedbackfinish_hook_contextrecord_effect)
     - [feedback.finish_hook_context.success](#feedbackfinish_hook_contextsuccess)
   - [feedback.revision_context](#feedbackrevision_context)
+    - [feedback.revision_context.fill_template](#feedbackrevision_contextfill_template)
   - [filter_replace](#filter_replace)
   - [folder](#folder)
     - [folder.destination](#folderdestination)
@@ -218,6 +219,7 @@
     - [ctx.destination_api](#ctxdestination_api)
     - [ctx.destination_info](#ctxdestination_info)
     - [ctx.destination_reader](#ctxdestination_reader)
+    - [ctx.fill_template](#ctxfill_template)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
     - [ctx.list](#ctxlist)
@@ -1779,6 +1781,35 @@ Information about the revision request/resolved for the migration
 Name | Description
 ---- | -----------
 labels | `dict[string, sequence of string]`<br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
+
+<a id="feedback.revision_context.fill_template" aria-hidden="true"></a>
+### feedback.revision_context.fill_template
+
+Replaces variables in templates with the values from this revision.
+
+`string` `feedback.revision_context.fill_template(template)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+template | `string`<br><p>The template to use</p>
+
+
+#### Example:
+
+
+##### Use the SHA1 in a string:
+
+Create a custom transformation which is successful.
+
+```python
+filled_template = revision.fill_template('Current Revision: ${GIT_SHORT_SHA1}')
+```
+
+filled_template will contain (for example) 'Current Revision: abcdef12'
+
 
 
 
@@ -4955,6 +4986,35 @@ Returns an object to store additional configuration and data for the destination
 Returns a handle to read files from the destination, if supported by the destination.
 
 [`destination_reader`](#destination_reader) `ctx.destination_reader()`
+
+<a id="ctx.fill_template" aria-hidden="true"></a>
+### ctx.fill_template
+
+Replaces variables in templates with the values from this revision.
+
+`string` `ctx.fill_template(template)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+template | `string`<br><p>The template to use</p>
+
+
+#### Example:
+
+
+##### Use the SHA1 in a string:
+
+Create a custom transformation which is successful.
+
+```python
+filled_template = ctx.fill_template('Current Revision: ${GIT_SHORT_SHA1}')
+```
+
+filled_template will contain (for example) 'Current Revision: abcdef12'
+
 
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels

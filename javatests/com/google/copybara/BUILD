@@ -127,6 +127,7 @@ all_tests(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:copybara_main",
+        "//java/com/google/copybara:labels",
         "//java/com/google/copybara:starlark_date_time_module",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/checks",

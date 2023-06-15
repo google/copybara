@@ -85,7 +85,6 @@ BASE_SRCS = [
     "EndpointProvider.java",
     "Info.java",
     "LazyResourceLoader.java",
-    "LabelFinder.java",
     "Metadata.java",
     "MigrationInfo.java",
     "Option.java",
@@ -102,6 +101,20 @@ BASE_SRCS = [
     "WorkflowOptions.java",
     "WriterContext.java",
 ]
+
+java_library(
+    name = "labels",
+    srcs = [
+        "LabelFinder.java",
+    ],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/templatetoken",
+        "//third_party:guava",
+        "//third_party:re2j",
+    ],
+)
 
 java_library(
     name = "options",
@@ -128,6 +141,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        ":labels",
         ":local_parallelizer",
         "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
@@ -145,7 +159,6 @@ java_library(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
-        "//third_party:re2j",
         "//third_party:starlark",
     ],
 )
@@ -199,12 +212,14 @@ java_library(
             "Main.java",
             "GeneralOptions.java",
             "StarlarkDateTimeModule.java",
+            "LabelFinder.java",
         ] + BASE_SRCS,
     ),
     javacopts = JAVACOPTS,
     deps = [
         ":base",
         ":general_options",
+        ":labels",
         ":starlark_date_time_module",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",

@@ -558,6 +558,21 @@ public final class TransformWork extends CheckoutFileSystem
     return console;
   }
 
+  @StarlarkMethod(
+      name = "fill_template",
+      doc = "Replaces variables in templates with the values from this revision.",
+      parameters = {
+        @Param(name = "template", doc = "The template to use", named = true),
+      })
+  @Example(
+      title = "Use the SHA1 in a string",
+      before = "Create a custom transformation which is successful.",
+      code = "filled_template = ctx.fill_template('Current Revision: ${GIT_SHORT_SHA1}')",
+      after = "filled_template will contain (for example) 'Current Revision: abcdef12'")
+  public String filLTemplate(String template) throws ValidationException {
+    return LabelFinder.mapLabels(this::getAllLabels, template);
+  }
+
   public MigrationInfo getMigrationInfo() {
     return migrationInfo;
   }

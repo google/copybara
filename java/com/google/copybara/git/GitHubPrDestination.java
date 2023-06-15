@@ -30,12 +30,12 @@ import com.google.copybara.ChangeMessage;
 import com.google.copybara.Destination;
 import com.google.copybara.Endpoint;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LabelFinder;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.ConfigFile;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -235,17 +235,17 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         String title =
             GitHubPrDestination.this.title == null
                 ? msg.firstLine()
-                : SkylarkUtil.mapLabels(
+                : LabelFinder.mapLabels(
                     transformResult.getLabelFinder(), GitHubPrDestination.this.title, "title");
 
         String prBody =
             GitHubPrDestination.this.body == null
                 ? msg.toString()
-                : SkylarkUtil.mapLabels(
+                : LabelFinder.mapLabels(
                     transformResult.getLabelFinder(), GitHubPrDestination.this.body, "body");
         // figure out assignees here
         ImmutableList<String> assignees =
-            SkylarkUtil.mapLabels(
+            LabelFinder.mapLabels(
                 transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {

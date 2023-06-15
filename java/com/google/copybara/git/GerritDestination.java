@@ -44,7 +44,6 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.Checker;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
@@ -337,7 +336,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       String topic = null;
       if (topicTemplate != null) {
         topic =
-            SkylarkUtil.mapLabels(transformResult.getLabelFinder(), topicTemplate, "topic");
+            LabelFinder.mapLabels(transformResult.getLabelFinder(), topicTemplate, "topic");
       }
       if (!Strings.isNullOrEmpty(gerritOptions.gerritTopic)) {
         if (topic != null) {
@@ -356,15 +355,15 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
 
       options.putAll("r",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), reviewersTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("cc",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), ccTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("label",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), labelsTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       String result = components.get(0);

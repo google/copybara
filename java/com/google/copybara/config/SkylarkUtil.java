@@ -19,25 +19,14 @@ package com.google.copybara.config;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.copybara.LabelFinder;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.starlark.StarlarkUtil;
-import com.google.copybara.templatetoken.LabelTemplate;
-import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -51,8 +40,6 @@ import net.starlark.java.eval.StarlarkList;
  * (And rename to StarlarkConfigUtil)
  */
 public final class SkylarkUtil {
-  private static final Pattern LABEL_VAR = Pattern
-      .compile("\\$\\{(" + LabelFinder.VALID_LABEL.pattern() + ")}");
 
   private SkylarkUtil() {
   }
@@ -100,45 +87,6 @@ public final class SkylarkUtil {
       throws EvalException {
     // TODO(malcon): Remove this method and inline this call:
     StarlarkUtil.check(condition, format, args);
-  }
-  /**
-   * A utility for resolving list of string labels to values
-   */
-  public static ImmutableList<String> mapLabels(
-      Function<String, ? extends Collection<String>> labelsMapper, List<String> list) {
-    ImmutableList.Builder<String> result = ImmutableList.builder();
-    for (String element : list) {
-      Matcher matcher = LABEL_VAR.matcher(element);
-      if (!matcher.matches()) {
-        result.add(element);
-        continue;
-      }
-      String label = matcher.group(1);
-      Collection<String> values = labelsMapper.apply(label);
-      if (values == null) {
-        continue;
-      }
-      result.addAll(Objects.requireNonNull(values));
-    }
-    return result.build();
-  }
-
-  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
-      String template) throws ValidationException {
-    return mapLabels(labelsMapper, template, null);
-  }
-
-  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
-      String template, String fieldName)
-      throws ValidationException {
-    try {
-      return new LabelTemplate(template).resolve(labelsMapper.andThen(
-          e ->  e == null ? null : Iterables.getFirst(e, null)));
-    } catch (LabelNotFoundException e) {
-      throw new ValidationException(
-          String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
-              e.getLabel(), template, fieldName), e);
-    }
   }
 
   /**
