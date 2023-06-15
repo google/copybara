@@ -143,6 +143,7 @@
     - [github_api_obj.list_issue_comments](#github_api_objlist_issue_comments)
     - [github_api_obj.new_destination_ref](#github_api_objnew_destination_ref)
     - [github_api_obj.new_origin_ref](#github_api_objnew_origin_ref)
+    - [github_api_obj.new_release_request](#github_api_objnew_release_request)
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
     - [github_api_obj.update_pull_request](#github_api_objupdate_pull_request)
     - [github_api_obj.update_reference](#github_api_objupdate_reference)
@@ -3356,6 +3357,33 @@ Creates a new origin reference out of this endpoint.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The reference.</p>
+
+<a id="github_api_obj.new_release_request" aria-hidden="true"></a>
+### github_api_obj.new_release_request
+
+Create a handle for creating a new release.
+
+`github_create_release_obj` `github_api_obj.new_release_request(tag_name)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+tag_name | `string`<br><p>The git tag to use for the release.</p>
+
+
+#### Example:
+
+
+##### Create a new release:
+
+After uploading a new commit
+
+```python
+endpoint.new_release_request(tag_name='v1.0.2').with_name('1.0.2').execute()
+```
+
 
 <a id="github_api_obj.post_issue_comment" aria-hidden="true"></a>
 ### github_api_obj.post_issue_comment
