@@ -104,6 +104,18 @@ public class ConsoleTest {
   }
 
   @Test
+  public void testWarnIf() {
+    TestingConsole verboseDelegate = new TestingConsole();
+    CapturingConsole verboseConsole = CapturingConsole.captureAllConsole(verboseDelegate);
+
+    verboseConsole.warnFmtIf(true, "this does show up '%s'", "TEST TEST TEST");
+    verboseConsole.warnFmtIf(false, "this does not show up, '%s'", "TEST TEST TEST");
+
+    assertThat(verboseConsole.getMessages())
+        .containsExactly(new Message(MessageType.WARNING, "this does show up 'TEST TEST TEST'"));
+  }
+
+  @Test
   public void progressPrefix() {
     TestingConsole delegate = new TestingConsole();
     Console console = new PrefixConsole("FOO ", delegate);
