@@ -120,6 +120,7 @@ public class Main {
     }
     // This is useful when debugging user issues
     logger.atInfo().log("Running: %s", Joiner.on(' ').join(args));
+    console.verboseFmt("Running: %s", Joiner.on(' ').join(args));
 
     console.startupMessage(getVersion());
 
