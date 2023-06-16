@@ -574,7 +574,7 @@ public class GitHubApi {
    * Create a release
    * https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
    */
-  Release createRelease(String project, CreateReleaseRequest req)
+  public Release createRelease(String project, CreateReleaseRequest req)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("github_api_create_release")) {
       return transport.post(req, Release.class, "/repos/%s/releases", project);

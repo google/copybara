@@ -15,11 +15,7 @@
  */
 package com.google.copybara.git.github.api;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.api.client.util.Key;
-import com.google.copybara.exception.RepoException;
-import com.google.copybara.exception.ValidationException;
 import com.google.errorprone.annotations.Keep;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -47,13 +43,9 @@ public class CreateReleaseRequest implements StarlarkValue  {
   @Keep  @Key("make_latest") private Boolean makeLatest;
   @Keep  @Key("generate_release_notes") private Boolean generateReleaseNotes;
 
-  private GitHubApi api = null;
-  private String project = null;
 
-  public CreateReleaseRequest(String tagName, GitHubApi api, String project) {
+  public CreateReleaseRequest(String tagName) {
     this.tagName = tagName;
-    this.api = checkNotNull(api);
-    this.project = checkNotNull(project);
   }
 
   public CreateReleaseRequest() {
@@ -122,15 +114,6 @@ public class CreateReleaseRequest implements StarlarkValue  {
     this.generateReleaseNotes = generateReleaseNotes;
     return this;
   }
-
-  @StarlarkMethod(
-      name = "execute",
-      doc = "Generate the release on GitHub."
-  )
-  public Release execute() throws ValidationException, RepoException {
-    return api.createRelease(project, this);
-  }
-
 
   public String getTagName() {
     return tagName;

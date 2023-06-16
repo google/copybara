@@ -129,6 +129,7 @@
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_objadd_label)
     - [github_api_obj.create_issue](#github_api_objcreate_issue)
+    - [github_api_obj.create_release](#github_api_objcreate_release)
     - [github_api_obj.create_status](#github_api_objcreate_status)
     - [github_api_obj.delete_reference](#github_api_objdelete_reference)
     - [github_api_obj.get_authenticated_user](#github_api_objget_authenticated_user)
@@ -3166,6 +3167,20 @@ title | `string`<br><p>Title of the issue</p>
 body | `string`<br><p>Body of the issue.</p>
 assignees | `sequence`<br><p>GitHub users to whom the issue will be assigned.</p>
 
+<a id="github_api_obj.create_release" aria-hidden="true"></a>
+### github_api_obj.create_release
+
+Create a new GitHub release.
+
+`github_release_obj` `github_api_obj.create_release(request)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+request | `github_create_release_obj`<br><p>The populated release object. See new_release_request.</p>
+
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
 ### github_api_obj.create_status
 
@@ -3376,12 +3391,12 @@ tag_name | `string`<br><p>The git tag to use for the release.</p>
 #### Example:
 
 
-##### Create a new release:
+##### Create a new release request.:
 
 After uploading a new commit
 
 ```python
-endpoint.new_release_request(tag_name='v1.0.2').with_name('1.0.2').execute()
+endpoint.new_release_request(tag_name='v1.0.2').with_name('1.0.2')
 ```
 
 

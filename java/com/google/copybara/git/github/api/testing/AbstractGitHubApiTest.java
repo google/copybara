@@ -855,16 +855,14 @@ public abstract class AbstractGitHubApiTest {
         String.format("/repos/%s/releases", project),
         validator,
         getResource("create_release_testdata.json"));
-    Release response = new CreateReleaseRequest("v1.0.1", api, project)
+    Release response = api.createRelease(project, new CreateReleaseRequest("v1.0.1")
         .withBody("This is the body")
         .withName("1.0.1")
-        .withCommitish("abcdef01")
-        .execute();
+        .withCommitish("abcdef01"));
     assertThat(response.getTarball())
         .isEqualTo("https://api.github.com/repos/octocat/Hello-World/tarball/v1.0.0");
     assertThat(response.getZip())
         .isEqualTo("https://api.github.com/repos/octocat/Hello-World/zipball/v1.0.0");
-
   }
 
   /**

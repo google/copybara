@@ -716,9 +716,8 @@ public class GitHubEndpointTest {
         ))));
     runFeedback(
         ImmutableList.<String>builder()
-            .add(
-                "res = ctx.destination.new_release_request(tag_name='v1.0.2').with_name('1.0.2')"
-                    + ".execute()")
+            .add("req = ctx.destination.new_release_request(tag_name='v1.0.2').with_name('1.0.2')")
+            .add("res = ctx.destination.create_release(req)")
             .addAll(checkFieldStarLark("res", "id", "123456"))
             .addAll(checkFieldStarLark("res", "zip", "'https://github.com/zip'"))
             .addAll(checkFieldStarLark("res", "tarball", "'https://github.com/tar'"))
