@@ -62,6 +62,52 @@ public final class AutoPatchUtilTest {
   }
 
   @Test
+  public void generatedPatchFilesAreReversible() throws Exception {
+    writeFile(origin, SOME_DIR.concat("file1.txt"), "foo-origin");
+    writeFile(origin, SOME_DIR.concat("file2.txt"), "bar-origin");
+    writeFile(
+        origin,
+        SOME_DIR.concat("file3.java"),
+        String.format(fileFormat, "foo", "foo", "foo", "foo"));
+
+    writeFile(
+        origin, SOME_DIR.concat("file3.txt"), "foo-origin\n\nsome common content\n\nfoo-origin");
+    writeFile(destination, SOME_DIR.concat("file1.txt"), "foo-destination");
+    writeFile(destination, SOME_DIR.concat("file2.txt"), "bar-destination");
+    writeFile(
+        destination,
+        SOME_DIR.concat("file3.java"),
+        String.format(fileFormat, "bar", "bar", "bar", "bar"));
+
+    AutoPatchUtil.generatePatchFiles(
+        origin,
+        destination,
+        Path.of(SOME_DIR),
+        null,
+        VERBOSE,
+        System.getenv(),
+        PATCH_FILE_PREFIX,
+        PATCH_FILE_NAME_SUFFIX,
+        root,
+        false,
+        Glob.ALL_FILES);
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file1.txt"))))
+        .isEqualTo("foo-destination");
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file2.txt"))))
+        .isEqualTo("bar-destination");
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file3.java"))))
+        .isEqualTo(String.format(fileFormat, "bar", "bar", "bar", "bar"));
+
+    AutoPatchUtil.reversePatchFiles(destination, root.resolve(SOME_DIR), PATCH_FILE_NAME_SUFFIX);
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file1.txt"))))
+        .isEqualTo("foo-origin");
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file2.txt"))))
+        .isEqualTo("bar-origin");
+    assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file3.java"))))
+        .isEqualTo(String.format(fileFormat, "foo", "foo", "foo", "foo"));
+  }
+
+  @Test
   public void patchFilesGeneratedAndWritten() throws Exception {
     writeFile(origin, SOME_DIR.concat("file1.txt"), "foo-origin");
     writeFile(origin, SOME_DIR.concat("file2.txt"), "bar-origin");
