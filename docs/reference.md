@@ -2368,7 +2368,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-`endpoint_provider` `git.gerrit_api(url, checker=None, allow_submit=True)`
+`endpoint_provider` `git.gerrit_api(url, checker=None, allow_submit=False)`
 
 
 #### Parameters:

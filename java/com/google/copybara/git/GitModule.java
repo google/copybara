@@ -2344,7 +2344,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "allow_submit",
             doc = "Enable the submit_change method",
-            defaultValue = "True", // This will be flipped in a follow up.
+            defaultValue = "False",
             named = true),
       },
       useStarlarkThread = true)
