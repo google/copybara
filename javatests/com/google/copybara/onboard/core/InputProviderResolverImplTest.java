@@ -28,6 +28,7 @@ import com.google.copybara.onboard.StarlarkConverter;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.util.Optional;
 import org.junit.Before;
@@ -255,6 +256,16 @@ public class InputProviderResolverImplTest {
             Mode.AUTO,
             console);
     assertThat(resolver.resolve(RESOLVE)).isEqualTo("other");
+  }
+
+  @Test
+  public void testParseStarlarkGlob() throws Exception {
+    InputProviderResolver resolver =
+        InputProviderResolverImpl.create(
+            ImmutableList.of(), ImmutableList.of(), starlarkConverter, Mode.FAIL, console);
+
+    assertThat(resolver.parseStarlark("glob(include=['**'], exclude=['bin/**'])", Glob.class))
+        .isEqualTo(Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("bin/**")));
   }
 
   /**

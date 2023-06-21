@@ -174,7 +174,7 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
   @SuppressWarnings("unchecked")
   public <T> T parseStarlark(String starlark, Class<T> type) throws CannotConvertException {
     Object convert = starlarkConverter.convert(starlark, this);
-    if (type.isAssignableFrom(convert.getClass())) {
+    if (!type.isAssignableFrom(convert.getClass())) {
       throw new CannotConvertException(
           String.format("Invalid input: %s. Not of type %s", starlark, type.getName()));
     }
