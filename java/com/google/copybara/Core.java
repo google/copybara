@@ -99,6 +99,7 @@ import net.starlark.java.eval.StarlarkThread.CallStackEntry;
 import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
+import net.starlark.java.syntax.Location;
 
 /**
  * Main configuration class for creating migrations.
@@ -166,11 +167,21 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       try {
         builder.add(toTransformation(t, "transformations", printHandler).reverse());
       } catch (NonReversibleValidationException e) {
-        throw Starlark.errorf("%s", e.getMessage());
+        throw Starlark.errorf("%s at %s", e.getMessage(), getLocation(t));
       }
     }
 
     return StarlarkList.immutableCopyOf(builder.build().reverse());
+  }
+
+  private Location getLocation(Object transformationOrCallable) {
+    if (transformationOrCallable instanceof StarlarkCallable) {
+      return ((StarlarkCallable) transformationOrCallable).getLocation();
+    }
+    if (transformationOrCallable instanceof Transformation) {
+      return ((Transformation) transformationOrCallable).location();
+    }
+    return Location.BUILTIN;
   }
 
   @SuppressWarnings({"unused", "unchecked"})

@@ -97,6 +97,17 @@ public class CoreTest {
   }
 
   @Test
+  public void testInvalidReverse_hasLocation() {
+    ValidationException expected =
+        assertThrows(ValidationException.class, () -> skylark.eval("f", 
+            "f = core.reverse([core.replace("
+                + "before = '${x}', after = '#', regex_groups = {'x': '.*'},),])"));
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("at copy.bara.sky:1:31");
+  }
+
+  @Test
   public void testConsole() throws Exception {
     skylark.<String>eval("f", "f = core.console.info('Hello World')");
     console.assertThat().logContains(MessageType.INFO, "Hello World");
