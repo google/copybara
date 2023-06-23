@@ -68,6 +68,13 @@ public class Inputs {
       "transformations", "`core.move`s and other transformations",
       null, GeneratorTransformations.class);
 
+  public static final Input<Boolean> NEW_PACKAGE =
+      Input.createInfer(
+          "new_package",
+          "Whether or not this package already exists in third_party",
+          null,
+          Boolean.class);
+
   public static final Input<Glob> ORIGIN_GLOB =
       Input.create(
           "origin_glob",

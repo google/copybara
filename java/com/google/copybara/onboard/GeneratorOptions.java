@@ -47,4 +47,9 @@ public class GeneratorOptions implements Option {
       description = "Inputs for code generation", converter = MapConverter.class)
   @VisibleForTesting
   ImmutableMap<String, String> inputs = ImmutableMap.of();
+
+  @Parameter(
+      names = "--new-package",
+      description = "Whether or not files from this package exist in the destination.")
+  public boolean newPackage;
 }
