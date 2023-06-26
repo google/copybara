@@ -28,6 +28,7 @@ import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
@@ -99,6 +100,15 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
       return DestinationReader.NOT_IMPLEMENTED;
     }
 
+    default DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return DestinationReader.NOT_IMPLEMENTED;
+    }
+
+    default Optional<PatchRegenerator> getPatchRegenerator(Console console) {
+      return Optional.empty();
+    }
+
     /**
      * Returns the {@link DestinationInfo} object for this destination.
      *
@@ -110,6 +120,37 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
     @Nullable
     default DestinationInfo getDestinationInfo() {
       return null;
+    }
+  }
+
+  /** Writers that implement PatchRegenerator can be used with RegenerateCmd */
+  interface PatchRegenerator {
+    /**
+     * Write the files in the workdir to an already-existing change created by Copybara. This is
+     * used to update a pending change with new patch files. Implementations should not update
+     * anything in the destination other than files.
+     */
+    default void updateChange(
+        String workflowName, Path workdir, Glob destinationFiles, String changeToUpdate)
+        throws ValidationException, RepoException {
+      throw new ValidationException("update change not implemented for this destination");
+    }
+
+    /**
+     * Detect regen baseline when not supplied by CLI. The regen baseline is a string referencing a
+     * previous patch-consistent state, e.g. a change created by running a workflow.
+     */
+    default Optional<String> inferRegenBaseline() throws ValidationException {
+      return Optional.empty();
+    }
+
+    /**
+     * Detect regen target when not supplied by CLI The regen target is a string referencing a
+     * non-copybara edited patch-inconsistent state for which patch files need to be regenerated,
+     * i.e. a pending change with edits to patch-modified files.
+     */
+    default Optional<String> inferRegenTarget() throws ValidationException {
+      return Optional.empty();
     }
   }
 

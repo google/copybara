@@ -48,6 +48,7 @@ import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
 import com.google.copybara.python.PythonModule;
 import com.google.copybara.re2.Re2Module;
+import com.google.copybara.regenerate.RegenerateOptions;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.rust.RustModule;
@@ -160,7 +161,8 @@ public class ModuleSupplier {
             new RemoteFileOptions(),
             new DebugOptions(generalOptions),
             new GeneratorOptions(),
-            new HttpOptions()));
+            new HttpOptions(),
+            new RegenerateOptions()));
   }
 
   /**

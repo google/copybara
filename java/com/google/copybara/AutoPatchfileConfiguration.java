@@ -22,11 +22,12 @@ import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
+/** Parameters for customizing auto patch file generation. */
 @AutoValue
 @StarlarkBuiltin(
     name = "core.autopatch_config",
     doc = "The configuration that describes automatic patch file generation")
-abstract class AutoPatchfileConfiguration implements StarlarkValue {
+public abstract class AutoPatchfileConfiguration implements StarlarkValue {
 
   public static AutoPatchfileConfiguration create(
       String header,

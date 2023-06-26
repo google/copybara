@@ -41,6 +41,7 @@ import com.google.copybara.hg.HgOptions;
 import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
+import com.google.copybara.regenerate.RegenerateOptions;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.testing.TestingModule.TestingOptions;
 import com.google.copybara.transform.debug.DebugOptions;
@@ -103,6 +104,8 @@ public class OptionsBuilder {
   public HgOriginOptions hgOrigin = new HgOriginOptions();
 
   public TestingOptions testingOptions = new TestingOptions();
+
+  public RegenerateOptions regenerateOptions = new RegenerateOptions();
 
   public final OptionsBuilder setWorkdirToRealTempDir() {
     return setWorkdirToRealTempDir(StandardSystemProperty.USER_DIR.value());
@@ -185,7 +188,8 @@ public class OptionsBuilder {
         buildifier,
         buildozer,
         generator,
-        http);
+        http,
+        regenerateOptions);
   }
 
   public final Options build() {

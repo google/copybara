@@ -47,6 +47,7 @@ import com.google.copybara.profiler.ConsoleProfilerListener;
 import com.google.copybara.profiler.Listener;
 import com.google.copybara.profiler.LogProfilerListener;
 import com.google.copybara.profiler.Profiler;
+import com.google.copybara.regenerate.RegenerateCmd;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
@@ -291,7 +292,8 @@ public class Main {
         new HelpCmd(jcommander),
         new OnboardCmd(),
         new GeneratorCmd(moduleSet),
-        new VersionCmd());
+        new VersionCmd(),
+        new RegenerateCmd(configLoaderProvider));
   }
 
   /**

@@ -162,94 +162,109 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       return endpoint;
     }
 
+    /** Read from the latest processed change. */
+    public class DestinationReaderImpl extends DestinationReader {
+      Path workdir;
+
+      public DestinationReaderImpl(Path workdir) {
+        this.workdir = workdir;
+      }
+
+      @Override
+      public String readFile(String path) throws RepoException {
+        try {
+          Objects.requireNonNull(filePrefix);
+          return Files.readString(filePrefix.resolve(path));
+        } catch (IOException e) {
+          throw new RepoException(String.format("Could not read file at path %s", path), e);
+        }
+      }
+
+      @Override
+      public void copyDestinationFiles(Glob glob, Object path)
+          throws RepoException, ValidationException {
+        if (processed.isEmpty()) {
+          return;
+        }
+        CheckoutPath checkoutPath = convertFromNoneable(path, null);
+        ProcessedChange processedChange = Iterables.getLast(processed);
+        PathMatcher matcher = glob.relativeTo(Paths.get(""));
+        for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+          Path p = Paths.get(e.getKey());
+          if (matcher.matches(p)) {
+            try {
+              if (checkoutPath == null) {
+                Files.createDirectories(workdir.resolve(p).getParent());
+                Files.writeString(p, e.getValue());
+              } else {
+                if (p.toString().startsWith("/")) {
+                  p = Paths.get("/").relativize(p);
+                }
+                Files.createDirectories(
+                    checkoutPath
+                        .getCheckoutDir()
+                        .resolve(checkoutPath.getPath())
+                        .resolve(p)
+                        .getParent());
+                Files.writeString(
+                    checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()).resolve(p),
+                    e.getValue());
+              }
+            } catch (IOException ex) {
+              throw new RepoException("Copy destination files failed", ex);
+            }
+          }
+        }
+      }
+
+      @Override
+      public void copyDestinationFilesToDirectory(Glob glob, Path directory)
+          throws RepoException, ValidationException {
+        if (processed.isEmpty()) {
+          return;
+        }
+        ProcessedChange processedChange = Iterables.getLast(processed);
+        PathMatcher matcher = glob.relativeTo(Paths.get(""));
+        for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+          Path p = Paths.get(e.getKey());
+          if (matcher.matches(p)) {
+            try {
+              Path resolvedPath;
+              if (p.toString().startsWith("/")) {
+                resolvedPath = directory.resolve(Paths.get("/").relativize(p));
+              } else {
+                resolvedPath = directory.resolve(p);
+              }
+              Files.createDirectories(resolvedPath.getParent());
+              Files.writeString(resolvedPath, e.getValue());
+            } catch (IOException ex) {
+              throw new RepoException("Copy destination files failed", ex);
+            }
+          }
+        }
+      }
+
+      @Override
+      public boolean exists(String path) {
+        if (filePrefix != null) {
+          return Files.exists(filePrefix.resolve(path));
+        } else {
+          return Files.exists(Path.of(path));
+        }
+      }
+    }
+
     @Override
     public DestinationReader getDestinationReader(
         Console console, @Nullable Baseline<?> baseline, Path workdir)
         throws ValidationException, RepoException {
-      return new DestinationReader() {
-        @Override
-        public String readFile(String path) throws RepoException {
-          try {
-            Objects.requireNonNull(filePrefix);
-            return Files.readString(filePrefix.resolve(path));
-          } catch (IOException e) {
-            throw new RepoException(String.format("Could not read file at path %s", path), e);
-          }
-        }
+      return new DestinationReaderImpl(workdir);
+    }
 
-        @Override
-        public void copyDestinationFiles(Glob glob, Object path)
-            throws RepoException, ValidationException {
-          if (processed.isEmpty()) {
-            return;
-          }
-          CheckoutPath checkoutPath = convertFromNoneable(path, null);
-          ProcessedChange processedChange = Iterables.getLast(processed);
-          PathMatcher matcher = glob.relativeTo(Paths.get(""));
-          for (Entry<String, String> e : processedChange.workdir.entrySet()) {
-            Path p = Paths.get(e.getKey());
-            if (matcher.matches(p)) {
-              try {
-                if (checkoutPath == null) {
-                  Files.createDirectories(workdir.resolve(p).getParent());
-                  Files.writeString(p, e.getValue());
-                } else {
-                  if (p.toString().startsWith("/")) {
-                    p = Paths.get("/").relativize(p);
-                  }
-                  Files.createDirectories(
-                      checkoutPath
-                          .getCheckoutDir()
-                          .resolve(checkoutPath.getPath())
-                          .resolve(p)
-                          .getParent());
-                  Files.writeString(
-                      checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()).resolve(p),
-                      e.getValue());
-                }
-              } catch (IOException ex) {
-                throw new RepoException("Copy destination files failed", ex);
-              }
-            }
-          }
-        }
-
-        @Override
-        public void copyDestinationFilesToDirectory(Glob glob, Path directory)
-            throws RepoException, ValidationException {
-          if (processed.isEmpty()) {
-            return;
-          }
-          ProcessedChange processedChange = Iterables.getLast(processed);
-          PathMatcher matcher = glob.relativeTo(Paths.get(""));
-          for (Entry<String, String> e : processedChange.workdir.entrySet()) {
-            Path p = Paths.get(e.getKey());
-            if (matcher.matches(p)) {
-              try {
-                Path resolvedPath;
-                if (p.toString().startsWith("/")) {
-                  resolvedPath = directory.resolve(Paths.get("/").relativize(p));
-                } else {
-                  resolvedPath = directory.resolve(p);
-                }
-                Files.createDirectories(resolvedPath.getParent());
-                Files.writeString(resolvedPath, e.getValue());
-              } catch (IOException ex) {
-                throw new RepoException("Copy destination files failed", ex);
-              }
-            }
-          }
-        }
-
-        @Override
-        public boolean exists(String path) {
-          if (filePrefix != null) {
-            return Files.exists(filePrefix.resolve(path));
-          } else {
-            return Files.exists(Path.of(path));
-          }
-        }
-      };
+    @Override
+    public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+        throws ValidationException, RepoException {
+      return new DestinationReaderImpl(workdir);
     }
 
     @Override
