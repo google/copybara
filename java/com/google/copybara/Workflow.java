@@ -60,6 +60,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -114,6 +115,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean setRevId;
   private final boolean smartPrune;
   private final boolean mergeImport;
+  private final boolean useReversePatchBaseline;
   private final AutoPatchfileConfiguration autoPatchfileConfiguration;
   final Transformation afterMergeTransformations;
   private final boolean migrateNoopChanges;
@@ -149,6 +151,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean setRevId,
       boolean smartPrune,
       boolean mergeImport,
+      boolean useReversePatchBaseline,
       @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
       Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
@@ -186,6 +189,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
+    this.useReversePatchBaseline = useReversePatchBaseline;
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
@@ -288,7 +292,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
             allEffects.addAll(event.getDestinationEffects());
             eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
           });
-      try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
+      try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase(Locale.ROOT))) {
         mode.run(helper);
       } finally {
         if (!getGeneralOptions().dryRunMode) {
@@ -703,8 +707,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mergeImport;
   }
 
+  boolean isUseReversePatchBaseline() {
+    return useReversePatchBaseline;
+  }
+
   @Nullable
-  AutoPatchfileConfiguration getAutoPatchfileConfiguration() {
+  public AutoPatchfileConfiguration getAutoPatchfileConfiguration() {
     return autoPatchfileConfiguration;
   }
 

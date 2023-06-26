@@ -613,6 +613,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             setRevId,
             smartPrune,
             mergeImport,
+            workflowOptions.useReversePatchBaseline,
             autoPatchfileConfiguration,
             asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
@@ -1797,13 +1798,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             convertFromNoneable(description, null),
             mainConfigFile,
             trigger,
-            new StructImpl(ImmutableMap.of(
-                "destination", destination.getEndpoint()
-            )),
+            new StructImpl(ImmutableMap.of("destination", destination.getEndpoint())),
             handleActionActionsMigration(actionList, action),
             generalOptions,
             "feedback",
-            /*filesystem=*/ false);
+            /* fileSystem= */ false);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;

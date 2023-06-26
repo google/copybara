@@ -241,6 +241,15 @@ public class WorkflowOptions implements Option {
   String baselineForMergeImport = null;
 
   @Parameter(
+      names = "--use-reverse-patch-baseline",
+      description =
+          "Reverse apply the existing patch files in the destination to obtain a baseline for merge"
+              + " import. This requires line numbers and file names to be present in the patches."
+              + " This patch handling process correctly represents changes introduced by copybara"
+              + " config edits as origin changes.")
+  public boolean useReversePatchBaseline = false;
+
+  @Parameter(
       names = "--threads-for-merge-import",
       description =
           "Number of threads to use for executing the diff tool for the merge import mode.")
