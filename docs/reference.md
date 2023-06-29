@@ -211,6 +211,7 @@
     - [toml.parse](#tomlparse)
   - [TomlContent](#tomlcontent)
     - [TomlContent.get](#tomlcontentget)
+    - [TomlContent.get_or_default](#tomlcontentget_or_default)
   - [transformation](#transformation)
   - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
@@ -4908,6 +4909,34 @@ Pass in the name of the key. This will return the value.
 
 ```python
 TomlContent.get("foo")
+```
+
+
+<a id="TomlContent.get_or_default" aria-hidden="true"></a>
+### TomlContent.get_or_default
+
+Retrieve the value from the parsed TOML for the given key. If the key is not defined, this will return the default value.
+
+`unknown` `TomlContent.get_or_default(key, default)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+key | `string`<br><p>The dotted key expression</p>
+default | `unknown`<br><p>The default value to return if the key isn't found.</p>
+
+
+#### Example:
+
+
+##### Get the value for a key, with a default value:
+
+Pass in the name of the key. This will return the value.
+
+```python
+TomlContent.get_or_default("foo", "bar")
 ```
 
 
