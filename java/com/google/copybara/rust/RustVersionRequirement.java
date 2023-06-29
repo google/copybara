@@ -17,11 +17,10 @@
 package com.google.copybara.rust;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.base.Splitter;
 import com.google.copybara.exception.ValidationException;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -64,7 +63,7 @@ abstract class RustVersionRequirement implements StarlarkValue {
   @AutoValue
   abstract static class SemanticVersion implements Comparable<SemanticVersion> {
     private static final Pattern VALID_VERSION_PATTERN =
-        Pattern.compile("^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?$");
+        Pattern.compile("^([0-9]+)(\\.[0-9]+)?(\\.[0-9]+)?(\\+?.*)?$");
 
     private static final Comparator<SemanticVersion> VERSION_COMPARATOR =
         Comparator.comparing(SemanticVersion::majorVersion)
@@ -79,19 +78,18 @@ abstract class RustVersionRequirement implements StarlarkValue {
 
     public static SemanticVersion createFromVersionString(String version)
         throws ValidationException {
+      Matcher matcher = VALID_VERSION_PATTERN.matcher(version);
       ValidationException.checkCondition(
-          VALID_VERSION_PATTERN.matcher(version).matches(),
+          matcher.matches(),
           String.format("The string %s is not a valid Rust semantic version.", version));
 
-      List<String> versionParts = Splitter.on(".").splitToList(version);
-
-      int majorVersion = Integer.parseInt(versionParts.get(0));
+      int majorVersion = Integer.parseInt(matcher.group(1));
       Optional<Integer> minorVersion =
-          Optional.ofNullable(
-              versionParts.size() >= 2 ? Integer.parseInt(versionParts.get(1)) : null);
+          Optional.ofNullable(matcher.group(2) != null
+              ? Integer.parseInt(matcher.group(2).replace(".", "")) : null);
       Optional<Integer> patchVersion =
-          Optional.ofNullable(
-              versionParts.size() >= 3 ? Integer.parseInt(versionParts.get(2)) : null);
+          Optional.ofNullable(matcher.group(3) != null
+              ? Integer.parseInt(matcher.group(3).replace(".", "")) : null);
 
       return new AutoValue_RustVersionRequirement_SemanticVersion(
           majorVersion, minorVersion, patchVersion);
