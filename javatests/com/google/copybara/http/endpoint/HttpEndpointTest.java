@@ -75,6 +75,31 @@ public class HttpEndpointTest {
   }
 
   @Test
+  public void testGetMultiHost() throws ValidationException {
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          assertThat(method).isEqualTo("GET");
+          resp.setStatusCode(204);
+        });
+    HttpEndpointResponse fooRes =
+        starlark.eval(
+            "fooRes",
+            "endpoint = testing.get_endpoint(http.endpoint(hosts = [\"foo.com\","
+                + " \"bar.com\"]))\n"
+                + "fooRes = endpoint.get(url = \"http://foo.com\")\n"
+                + "barRes = endpoint.get(url = \"http://bar.com\")\n");
+    assertThat(fooRes.getStatusCode()).isEqualTo(204);
+    HttpEndpointResponse barRes =
+        starlark.eval(
+            "barRes",
+            "endpoint = testing.get_endpoint(http.endpoint(hosts = [\"foo.com\","
+                + " \"bar.com\"]))\n"
+                + "fooRes = endpoint.get(url = \"http://foo.com\")\n"
+                + "barRes = endpoint.get(url = \"http://bar.com\")\n");
+    assertThat(barRes.getStatusCode()).isEqualTo(204);
+  }
+
+  @Test
   public void testPost() throws ValidationException {
     http.mockHttp(
         (method, url, req, resp) -> {
@@ -176,7 +201,25 @@ public class HttpEndpointTest {
                         + "resp = endpoint.get(\n"
                         + "  url = \"http://foohost.com/fooresource\",\n"
                         + ")\n"));
-    assertThat(e).hasMessageThat().contains("does not match endpoint host");
+    assertThat(e).hasMessageThat().contains("Illegal host");
+  }
+
+  @Test
+  public void testInvalidUrlError() {
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                starlark.eval(
+                    "resp",
+                    "endpoint = testing.get_endpoint(\n"
+                        + "  http.endpoint(hosts = [\"foohost.com\", \"foohost2.com\","
+                        + " \"foohost3.com\"])\n"
+                        + ")\n"
+                        + "resp = endpoint.get(\n"
+                        + "  url = \"http://notfoohost.com\",\n"
+                        + ")\n"));
+    assertThat(e).hasMessageThat().contains("Illegal host");
   }
 
   @Test

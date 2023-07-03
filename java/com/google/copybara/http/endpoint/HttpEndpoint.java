@@ -30,6 +30,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.Auth;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
@@ -45,14 +46,14 @@ import net.starlark.java.eval.NoneType;
  * <p>This endpoint is currently bound to a specific host, as a security restriction.
  */
 public class HttpEndpoint implements Endpoint {
-  String host;
+  private final List<String> hosts;
   HttpTransport transport;
   Console console;
   @Nullable Checker checker;
 
   public HttpEndpoint(
-      Console console, HttpTransport transport, String host, @Nullable Checker checker) {
-    this.host = host;
+      Console console, HttpTransport transport, List<String> hosts, @Nullable Checker checker) {
+    this.hosts = hosts;
     this.transport = transport;
     this.console = console;
     this.checker = checker;
@@ -193,14 +194,19 @@ public class HttpEndpoint implements Endpoint {
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
-    if (!url.getHost().equals(host)) {
+    if (!hosts.contains(url.getHost())) {
       throw new ValidationException(
-          String.format("url host %s does not match endpoint host %s", url.getHost(), host));
+          String.format(
+              "Illegal host: url host %s matches none of endpoint hosts {%s}",
+              url.getHost(), String.join(",", hosts)));
     }
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.of("type", "http_endpoint", "host", host);
+    ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
+    builder.put("type", "http_endpoint");
+    builder.putAll("host", hosts);
+    return builder.build();
   }
 }

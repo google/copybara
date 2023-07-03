@@ -35,6 +35,7 @@ import com.google.copybara.http.multipart.HttpEndpointUrlEncodedFormContent;
 import com.google.copybara.http.multipart.TextPart;
 import com.google.copybara.util.console.Console;
 import java.net.URLEncoder;
+import java.util.List;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -74,9 +75,17 @@ public class HttpModule implements StarlarkValue {
       name = "endpoint",
       doc =
           "Endpoint that executes any sort of http request. Currently restricted"
-              + "to requests to a specific host.",
+              + "to requests to specific hosts.",
       parameters = {
-        @Param(name = "host", named = true),
+        @Param(
+            name = "host",
+            doc = "DEPRECATED. A single host to allow HTTP traffic to.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+            },
+            defaultValue = "''",
+            positional = false),
         @Param(
             name = "checker",
             allowedTypes = {
@@ -87,11 +96,23 @@ public class HttpModule implements StarlarkValue {
             doc = "A checker that will check calls made by the endpoint",
             named = true,
             positional = false),
+        @Param(
+            name = "hosts",
+            doc = "A list of hosts to allow HTTP traffic to.",
+            named = true,
+            allowedTypes = {@ParamType(type = Sequence.class)},
+            defaultValue = "[]",
+            positional = false),
       })
-  public EndpointProvider<HttpEndpoint> endpoint(String host, @Nullable Object checkerIn)
-      throws ValidationException {
+  public EndpointProvider<HttpEndpoint> endpoint(
+      @Nullable String host, @Nullable Object checkerIn, Sequence<? extends String> hosts)
+      throws ValidationException, EvalException {
     @Nullable Checker checker = SkylarkUtil.convertFromNoneable(checkerIn, null);
-    return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), host, checker));
+    List<String> h = SkylarkUtil.convertStringList(hosts, "hosts");
+    if (host != null && !host.isEmpty()) {
+      h.add(host);
+    }
+    return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), h, checker));
   }
 
   @StarlarkMethod(
