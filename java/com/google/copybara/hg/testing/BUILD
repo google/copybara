@@ -26,8 +26,5 @@ java_library(
         "-Xlint:unchecked",
     ],
     visibility = ["//visibility:public"],
-    deps = [
-        "//java/com/google/copybara/testing",
-        "//third_party:guava",
-    ],
+    deps = ["//java/com/google/copybara/testing"],
 )

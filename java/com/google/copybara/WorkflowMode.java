@@ -124,6 +124,11 @@ public enum WorkflowMode {
       if (runHelper.isSquashWithoutHistory()) {
         changes = ImmutableList.of();
       }
+      checkCondition(
+          current != null,
+          "Could not process ref. If using --same-version flag, please either (1) check our"
+              + " METADATA file to confirm version is properly formatted or (2) also use the"
+              + " --last-rev flag to manually specify");
       helperForChanges.migrate(
           current,
           lastRev,

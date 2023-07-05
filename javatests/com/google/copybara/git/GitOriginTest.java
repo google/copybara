@@ -337,8 +337,8 @@ public class GitOriginTest {
         .isNotEqualTo(labels.get("GIT_DESCRIBE_REQUESTED_VERSION"));
     assertThat(labels.get("GIT_DESCRIBE_FIRST_PARENT").stream().anyMatch(x -> x.contains("0.1")))
         .isTrue();
-    assertThat(revision.associatedLabel("GIT_DESCRIBE_ABBREV")
-        .stream().anyMatch(x -> x.equals("0.2"))).isTrue();
+    assertThat(labels.get("GIT_DESCRIBE_ABBREV").stream().anyMatch(x -> x.equals("0.2")))
+        .isTrue();
   }
 
   @Test
@@ -355,6 +355,8 @@ public class GitOriginTest {
         .containsExactly("0.1");
 
     assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_FIRST_PARENT"))
+        .contains("0.1");
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_ABBREV"))
         .contains("0.1");
 
     moreOriginArgs = "describe_version = False";
@@ -384,6 +386,8 @@ public class GitOriginTest {
                 .associatedLabels()
                 .get("GIT_DESCRIBE_REQUESTED_VERSION"))
         .containsExactly("0.1-1-g" + head.asString().substring(0, 7));
+    assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_ABBREV"))
+        .contains("0.1");
   }
 
   @Test

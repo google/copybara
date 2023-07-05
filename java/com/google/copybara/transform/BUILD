@@ -24,6 +24,7 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:labels",
         "//java/com/google/copybara:local_parallelizer",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/config:base",

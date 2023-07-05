@@ -706,6 +706,26 @@ public class GitHubEndpointTest {
     verify(gitUtil.httpTransport()).buildRequest(eq("GET"), contains("issues/12345/comments"));
   }
 
+  @Test
+  public void testCreateRelease() throws Exception {
+    gitUtil.mockApi(eq("POST"), contains("/releases"), mockResponse(toJson(
+        ImmutableMap.of(
+            "id", 123456,
+            "zipball_url", "https://github.com/zip",
+            "tarball_url", "https://github.com/tar"
+        ))));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add("req = ctx.destination.new_release_request(tag_name='v1.0.2').with_name('1.0.2')")
+            .add("res = ctx.destination.create_release(req)")
+            .addAll(checkFieldStarLark("res", "id", "123456"))
+            .addAll(checkFieldStarLark("res", "zip", "'https://github.com/zip'"))
+            .addAll(checkFieldStarLark("res", "tarball", "'https://github.com/tar'"))
+            .build());
+    verify(gitUtil.httpTransport())
+        .buildRequest(eq("POST"), contains("google/example/releases"));
+  }
+
   private String toJson(Object obj) throws IOException {
     return GsonFactory.getDefaultInstance().toPrettyString(obj);
   }

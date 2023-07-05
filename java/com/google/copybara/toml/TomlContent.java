@@ -75,6 +75,40 @@ public class TomlContent implements StarlarkValue {
     }
   }
 
+  @StarlarkMethod(
+      name = "get_or_default",
+      doc = "Retrieve the value from the parsed TOML for the given key. "
+          + "If the key is not defined, this will return the default value.",
+      parameters = {
+          @Param(
+              name = "key",
+              doc = "The dotted key expression",
+              allowedTypes = {@ParamType(type = String.class)},
+              named = true),
+          @Param(
+              name = "default",
+              doc = "The default value to return if the key isn't found.",
+              named = true),
+      })
+  @Example(
+      title = "Get the value for a key, with a default value",
+      before = "Pass in the name of the key. This will return the value.",
+      code = "TomlContent.get_or_default(\"foo\", \"bar\")")
+  @SuppressWarnings("unused")
+  public Object getOrDefault(String key, Object defaultValue)
+      throws ValidationException, EvalException {
+    try {
+      Object value = convertToStarlarkValue(parsedToml.get(key));
+      if (value.equals(Starlark.NONE)) {
+        return defaultValue;
+      }
+      return value;
+    } catch (IllegalArgumentException | TomlInvalidTypeException e) {
+      throw new EvalException(
+          String.format("There was an error retrieving the value for the given key %s", key), e);
+    }
+  }
+
   /**
    * Converts the value to an object that can cast to a StarlarkValue.
    *

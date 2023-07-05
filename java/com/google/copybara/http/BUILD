@@ -26,8 +26,6 @@ java_library(
         "//java/com/google/copybara/http/multipart",
         "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
-        "//third_party:guava",
-        "//third_party:jcommander",
         "//third_party:jsr305",
         "//third_party:starlark",
     ],

@@ -44,7 +44,6 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.checks.Checker;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RedundantChangeException;
 import com.google.copybara.exception.RepoException;
@@ -86,10 +85,12 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   private final GitDestination gitDestination;
   private final boolean submit;
+  private final boolean gerritSubmit;
 
-  private GerritDestination(GitDestination gitDestination, boolean submit) {
+  private GerritDestination(GitDestination gitDestination, boolean submit, boolean gerritSubmit) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
     this.submit = submit;
+    this.gerritSubmit = gerritSubmit;
   }
 
   @Override
@@ -335,7 +336,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       String topic = null;
       if (topicTemplate != null) {
         topic =
-            SkylarkUtil.mapLabels(transformResult.getLabelFinder(), topicTemplate, "topic");
+            LabelFinder.mapLabels(transformResult.getLabelFinder(), topicTemplate, "topic");
       }
       if (!Strings.isNullOrEmpty(gerritOptions.gerritTopic)) {
         if (topic != null) {
@@ -354,15 +355,15 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
 
       options.putAll("r",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), reviewersTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), reviewersTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("cc",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), ccTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), ccTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       options.putAll("label",
-          SkylarkUtil.mapLabels(transformResult.getLabelFinder(), labelsTemplate)
+          LabelFinder.mapLabels(transformResult.getLabelFinder(), labelsTemplate)
               .stream().map(Optional::of).collect(Collectors.toList()));
 
       String result = components.get(0);
@@ -534,7 +535,10 @@ public final class GerritDestination implements Destination<GitRevision> {
     public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
       gerritOptions.validateEndpointChecker(endpointChecker, repoUrl);
       return new GerritEndpoint(
-          gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker), repoUrl, console);
+          gerritOptions.newGerritApiSupplier(repoUrl, endpointChecker),
+          repoUrl,
+          console,
+          gerritSubmit);
     }
   }
 
@@ -593,8 +597,8 @@ public final class GerritDestination implements Destination<GitRevision> {
             push,
             partialFetch,
             primaryBranchMigrationMode,
-            /*tagName=*/ null,
-            /*tagMsg=*/ null,
+            /* tagName= */ null,
+            /* tagMsg= */ null,
             destinationOptions,
             options.get(GitOptions.class),
             generalOptions,
@@ -616,7 +620,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 primaryBranchMigrationMode),
             integrates,
             checker),
-        submit);
+        submit,
+        gerritSubmit);
   }
 
   @Override
@@ -629,7 +634,10 @@ public final class GerritDestination implements Destination<GitRevision> {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<>();
     if (submit) {
-      return gitDestination.describe(originFiles);
+      return builder
+          .putAll(gitDestination.describe(originFiles))
+          .put("gerritSubmit", "" + gerritSubmit)
+          .build();
     }
     for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
       if (entry.getKey().equals("type")) {
@@ -637,9 +645,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
       builder.put(entry);
     }
-    return builder
-        .put("type", getType())
-        .build();
+    return builder.put("type", getType()).put("gerritSubmit", "" + gerritSubmit).build();
   }
 
   /** What to do in the presence or absent of Change-Id in message. */

@@ -197,7 +197,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("revision", revision.asString())
+        .add("revision", revision)
         .add("author", author)
         .add("dateTime", dateTime)
         .add("message", message)
@@ -209,6 +209,11 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
   public Change<R> withLabels(ImmutableListMultimap<String, String> newLabels) {
     return new Change<>(revision, author, message, dateTime,
         Revision.addNewLabels(labels, newLabels), changeFiles, merge, parents);
+  }
+
+  public Change<R> withChangeFiles(ImmutableSet<String> newChangeFiles) {
+    return new Change<>(
+        revision, author, message, dateTime, labels, newChangeFiles, merge, parents);
   }
 
   @Override

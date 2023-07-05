@@ -28,10 +28,8 @@ import com.google.copybara.exception.ValidationException;
  */
 public interface IntegrateLabel {
 
-  /**
-   * Get the merge message
-   */
-  String mergeMessage(ImmutableList<LabelFinder> labelsToAdd);
+  /** Get the merge message */
+  String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) throws ValidationException;
 
   /**
    * Get the revision to integrate
@@ -42,7 +40,8 @@ public interface IntegrateLabel {
     Preconditions.checkNotNull(revision);
     return new IntegrateLabel() {
       @Override
-      public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) {
+      public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd)
+          throws ValidationException {
         return IntegrateLabel.withLabels("Merge of " + revision.getSha1(), labelsToAdd);
       }
 
@@ -58,7 +57,8 @@ public interface IntegrateLabel {
     };
   }
 
-  static String withLabels(String msg, ImmutableList<LabelFinder> labelsToAdd) {
+  static String withLabels(String msg, ImmutableList<LabelFinder> labelsToAdd)
+      throws ValidationException {
     ChangeMessage result = ChangeMessage.parseMessage(msg);
     for (LabelFinder labelFinder : labelsToAdd) {
       result = result.withLabel(

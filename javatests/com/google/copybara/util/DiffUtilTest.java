@@ -45,12 +45,13 @@ public class DiffUtilTest {
 
   // Command requires the working dir as a File, and Jimfs does not support Path.toFile()
   @Rule public final TemporaryFolder tmpFolder = new TemporaryFolder();
+  Path rootPath;
   private Path left;
   private Path right;
 
   @Before
   public void setUp() throws Exception {
-    Path rootPath = tmpFolder.getRoot().toPath();
+    rootPath = tmpFolder.getRoot().toPath();
     left = createDir(rootPath, "left");
     right = createDir(rootPath, "right");
   }
@@ -115,7 +116,7 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo\n");
 
     byte[] diffContentsIgnoreCr =
-        DiffUtil.diffFileWithIgnoreCrAtEol(left, right, VERBOSE, System.getenv());
+        DiffUtil.diffFileWithIgnoreCrAtEol(left.getParent(), left, right, VERBOSE, System.getenv());
     String diffContents =
         new String(DiffUtil.diff(left, right, VERBOSE, System.getenv()), StandardCharsets.UTF_8);
 
@@ -182,6 +183,34 @@ public class DiffUtilTest {
     assertThat(byName.get("moved_new_name.txt").getOperation()).isEqualTo(Operation.ADD);
     assertThat(byName.get("added.txt").getOperation()).isEqualTo(Operation.ADD);
   }
+
+  @Test
+  public void testReverseApplyPatches() throws Exception {
+    writeFile(left, "file1.txt", "a\n");
+    writeFile(right, "file1.txt", "b\n");
+
+    String patch =
+        "diff --git a/left/file1.txt b/right/file1.txt\n"
+            + "index e48b03e..257cc56 100644\n"
+            + "--- a/left/file1.txt\n"
+            + "+++ b/right/file1.txt\n"
+            + "@@ -1 +1 @@\n"
+            + "-a\n"
+            + "+b\n";
+
+    String patchName = "patch.txt";
+    writeFile(rootPath, patchName, patch);
+
+    // before applying the patch,
+    String contents = Files.readString(right.resolve("file1.txt"));
+    assertThat(contents).isEqualTo("b\n");
+
+    DiffUtil.reverseApplyPatches(ImmutableList.of(rootPath.resolve(patchName)), right);
+
+    contents = Files.readString(right.resolve("file1.txt"));
+    assertThat(contents).isEqualTo("a\n");
+  }
+
   /**
    * Don't treat origin/destination folders as flags or other special argument. This means that
    * we run 'git options -- origin dest' instead of 'git options origin dest' that is

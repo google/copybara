@@ -80,7 +80,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
   }
 
   @Override
-  public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) {
+  public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) throws ValidationException {
     return IntegrateLabel.withLabels(String.format("Merge pull request #%d from %s",
         prNumber, originBranch), labelsToAdd);
   }

@@ -24,7 +24,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
-
 import javax.annotation.Nullable;
 
 /**
@@ -89,7 +88,7 @@ class GerritIntegrateLabel implements IntegrateLabel {
   }
 
   @Override
-  public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) {
+  public String mergeMessage(ImmutableList<LabelFinder> labelsToAdd) throws ValidationException {
     if (changeId != null) {
       labelsToAdd = ImmutableList.<LabelFinder>builder().addAll(labelsToAdd)
           .add(new LabelFinder("Change-Id: " + changeId)).build();

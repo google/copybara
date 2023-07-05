@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -37,7 +38,6 @@ import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
@@ -58,22 +58,21 @@ public class DiffUtil {
    */
   public static byte[] diff(Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    return new FoldersDiff(verbose, environment)
-        .run(one, other);
+    return new FoldersDiff(verbose, environment).run(one.getParent(), one, other);
   }
 
   /**
    * Calculates the diff between two files with --ignore-cr-at-eol set
    *
-   * <p>Returns the signle file diff as an encoding-independent {@code byte[]}
+   * <p>Returns the single file diff as an encoding-independent {@code byte[]}
    */
   public static byte[] diffFileWithIgnoreCrAtEol(
-      Path one, Path other, boolean verbose, Map<String, String> environment)
+      Path root, Path one, Path other, boolean verbose, Map<String, String> environment)
       throws IOException, InsideGitDirException {
     return new FoldersDiff(verbose, environment)
         .withIgnoreCrAtEol()
         .withSingleFile()
-        .run(one, other);
+        .run(root, one, other);
   }
 
   /**
@@ -110,11 +109,14 @@ public class DiffUtil {
   public static ImmutableList<DiffFile> diffFiles(
       Path one, Path other, boolean verbose, @Nullable Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    String cmdResult = new String(new FoldersDiff(verbose, environment)
-        .withZOption()
-        .withNameStatus()
-        .withNoRenames()
-        .run(one, other), StandardCharsets.UTF_8);
+    String cmdResult =
+        new String(
+            new FoldersDiff(verbose, environment)
+                .withZOption()
+                .withNameStatus()
+                .withNoRenames()
+                .run(one.getParent(), one, other),
+            UTF_8);
 
     ImmutableList.Builder<DiffFile> result = ImmutableList.builder();
     for (Iterator<String> iterator = Splitter.on((char) 0).split(cmdResult).iterator();
@@ -133,6 +135,11 @@ public class DiffUtil {
       result.add(new DiffFile(file.substring(file.indexOf("/") + 1), op));
     }
     return result.build();
+  }
+
+  public static void reverseApplyPatches(List<Path> patchFiles, Path applyDirectory)
+      throws IOException {
+    FoldersDiff.reverseApplyPatches(patchFiles, applyDirectory);
   }
 
   public static class DiffFile {
@@ -288,7 +295,7 @@ public class DiffUtil {
           /*singleFile=*/ true);
     }
 
-    private byte[] run(Path one, Path other) throws IOException, InsideGitDirException {
+    private byte[] run(Path root, Path one, Path other) throws IOException, InsideGitDirException {
       Preconditions.checkArgument(
           singleFile || one.getParent().equals(other.getParent()),
           "Paths 'one' and 'other' must be sibling directories.");
@@ -298,7 +305,6 @@ public class DiffUtil {
       } else {
         checkNotInsideGitRepo(one, verbose, gitEnv);
       }
-      Path root = one.getParent();
       List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color",
           // Be careful, no test coverage for this:
           "--no-ext-diff");
@@ -339,7 +345,29 @@ public class DiffUtil {
         throw new IOException("Error executing 'git diff'", e);
       }
     }
+
+    /** Apply the patches in reverse to the directory. */
+    private static void reverseApplyPatches(List<Path> patchFiles, Path applyDirectory)
+        throws IOException {
+      GitEnvironment gitEnv = new GitEnvironment(ImmutableMap.of());
+      List<String> params = com.google.api.client.util.Lists.newArrayList();
+      params.add(gitEnv.resolveGitBinary());
+      params.add("apply");
+      params.add("--reverse");
+      params.add("-p2");
+      params.add("--allow-empty");
+      params.addAll(patchFiles.stream().map(Path::toString).collect(toImmutableList()));
+      Command cmd =
+          new Command(params.toArray(new String[] {}), ImmutableMap.of(), applyDirectory.toFile());
+      try {
+        new CommandRunner(cmd).withVerbose(true).execute();
+      } catch (CommandException e) {
+        throw new IOException("Error executing 'git apply'", e);
+      }
+    }
   }
+
+
 
   /**
    * Given a git compatible diff, returns the diff colorized if the console allows it.

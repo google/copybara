@@ -49,13 +49,16 @@ public class GerritTriggerTest {
         skylarkTestExecutor.eval(
             "e", "e = git.gerrit_trigger("
                 + "url = 'https://test.googlesource.com/example',"
-                + "events = ['LABELS'])");
+                + "events = ['LABELS'], allow_submit = True)");
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",
           "url", "https://test.googlesource.com/example",
-                "events", "LABELS");
+                "events", "LABELS",
+                "gerritSubmit", "true");
     assertThat(gerritTrigger.getEndpoint().describe())
-        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+        .containsExactly("type", "gerrit_api",
+            "url", "https://test.googlesource.com/example",
+            "gerritSubmit", "true");
   }
 
   @Test
@@ -64,15 +67,19 @@ public class GerritTriggerTest {
         skylarkTestExecutor.eval(
             "e", "e = git.gerrit_trigger("
                 + "url = 'https://test.googlesource.com/example',"
-                + "events = {'LABELS': ['foo', 'bar']})");
+                + "events = {'LABELS': ['foo', 'bar']},"
+                + " allow_submit = False)");
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",
           "url", "https://test.googlesource.com/example",
                 "events", "LABELS",
                 "SUBTYPES_LABELS", "foo",
-                "SUBTYPES_LABELS", "bar");
+                "SUBTYPES_LABELS", "bar",
+                "gerritSubmit", "false");
     assertThat(gerritTrigger.getEndpoint().describe())
-        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+        .containsExactly("type", "gerrit_api",
+            "url", "https://test.googlesource.com/example",
+            "gerritSubmit", "false");
   }
 
   @Test
@@ -83,15 +90,18 @@ public class GerritTriggerTest {
             "e = git.gerrit_trigger(\n"
                 + "url = 'https://test.googlesource.com/example', \n"
                 + "events = ['LABELS'],\n"
-                + "checker = testing.dummy_checker(),\n"
+                + "checker = testing.dummy_checker(),"
+                + "allow_submit = False\n"
                 + ")\n");
 
     assertThat(gerritTrigger.describe())
         .containsExactly("type", "gerrit_trigger",
           "url", "https://test.googlesource.com/example",
-          "events", "LABELS");
+          "events", "LABELS",
+          "gerritSubmit", "false");
     assertThat(gerritTrigger.getEndpoint().describe())
-        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example");
+        .containsExactly("type", "gerrit_api", "url", "https://test.googlesource.com/example",
+            "gerritSubmit", "false");
   }
 
   @Test

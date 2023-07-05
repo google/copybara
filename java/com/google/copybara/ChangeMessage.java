@@ -22,6 +22,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.doc.annotations.DocSignaturePrefix;
+import com.google.copybara.exception.ValidationException;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.util.ArrayList;
 import java.util.List;
@@ -147,9 +148,9 @@ public final class ChangeMessage implements StarlarkValue {
     return StarlarkList.empty();
   }
 
-
   @CheckReturnValue
-  public ChangeMessage withLabel(String name, String separator, String value) {
+  public ChangeMessage withLabel(String name, String separator, String value)
+      throws ValidationException {
     List<LabelFinder> newLabels = new ArrayList<>(labels);
     // Add an additional line if none of the previous elements are labels
     if (!newLabels.isEmpty() && newLabels.stream().noneMatch(LabelFinder::isLabel)) {
@@ -161,7 +162,8 @@ public final class ChangeMessage implements StarlarkValue {
   }
 
   @CheckReturnValue
-  public ChangeMessage withReplacedLabel(String labelName, String separator , String value) {
+  public ChangeMessage withReplacedLabel(String labelName, String separator, String value)
+      throws ValidationException {
     validateLabelName(labelName);
     List<LabelFinder> newLabels = labels.stream().map(label -> label.isLabel(labelName)
         ? new LabelFinder(labelName + separator + value)
@@ -171,7 +173,8 @@ public final class ChangeMessage implements StarlarkValue {
   }
 
   @CheckReturnValue
-  public ChangeMessage withNewOrReplacedLabel(String labelName, String separator, String value) {
+  public ChangeMessage withNewOrReplacedLabel(String labelName, String separator, String value)
+      throws ValidationException {
     validateLabelName(labelName);
     List<LabelFinder> newLabels = new ArrayList<>();
     boolean wasReplaced = false;
@@ -192,11 +195,9 @@ public final class ChangeMessage implements StarlarkValue {
     return newChangeMessage;
   }
 
-  /**
-   * Remove a label by name if it exist.
-   */
+  /** Remove a label by name if it exist. */
   @CheckReturnValue
-  public ChangeMessage withRemovedLabelByName(String name) {
+  public ChangeMessage withRemovedLabelByName(String name) throws ValidationException {
     validateLabelName(name);
     ImmutableList<LabelFinder> filteredLabels =
         labels
@@ -206,11 +207,10 @@ public final class ChangeMessage implements StarlarkValue {
     return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
-  /**
-   * Remove a label by name and value if it exist.
-   */
+  /** Remove a label by name and value if it exist. */
   @CheckReturnValue
-  public ChangeMessage withRemovedLabelByNameAndValue(String name, String value) {
+  public ChangeMessage withRemovedLabelByNameAndValue(String name, String value)
+      throws ValidationException {
     validateLabelName(name);
     ImmutableList<LabelFinder> filteredLabels =
         labels
@@ -220,9 +220,9 @@ public final class ChangeMessage implements StarlarkValue {
     return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
-  private static String validateLabelName(String label) {
-    Preconditions.checkArgument(LabelFinder.VALID_LABEL.matcher(label).matches(),
-        "Label '%s' is not a valid label", label);
+  private static String validateLabelName(String label) throws ValidationException {
+    ValidationException.checkCondition(
+        LabelFinder.VALID_LABEL.matcher(label).matches(), "Label '%s' is not a valid label", label);
     return label;
   }
 

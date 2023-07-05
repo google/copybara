@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.Options;
 import com.google.copybara.Origin;
 import com.google.copybara.Transformation;
@@ -90,6 +91,7 @@ import com.google.copybara.version.VersionSelector.SearchPattern;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -451,8 +453,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "prune",
             named = true,
-            doc = "Remove remote refs that don't have a origin counterpart. Prune is ignored if"
-                + " actions are used (Action is in charge of doing the pruning)",
+            doc =
+                "Remove remote refs that don't have a origin counterpart. Prune is ignored if"
+                    + " actions are used (Action is in charge of doing the pruning)",
             defaultValue = "False"),
         @Param(
             name = "partial_fetch",
@@ -470,31 +473,57 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc = "A description of what this migration achieves",
             defaultValue = "None"),
-          @Param(
-              name = "actions",
-              doc =
-                  "DEPRECATED: **DO NOT USE**"
-                      + "A list of mirror actions to perform, with the following semantics:\n"
-                      + "  - There is no guarantee of the order of execution.\n"
-                      + "  - Actions need to be independent from each other.\n"
-                      + "  - Failure in one action might prevent other actions from executing."
-                      + " --force can be used to continue for 'user' errors like non-fast-forward"
-                      + " errors.\n"
-                      + "\n"
-                      + "Actions will be in charge of doing the fetch, push, rebases, merges,etc."
-                      + "Only fetches/pushes for the declared refspec are allowed",
-              defaultValue = "[]",
-              positional = false,
-              named = true),
-          @Param(
-              name = "action",
-              doc =
-                  "An action to execute when the migration is triggered. Actions can fetch,"
-                      + " push, rebase, merge, etc. Only fetches/pushes for the declared refspec"
-                      + " are allowed",
-              defaultValue = "None",
-              positional = false,
-              named = true),
+        @Param(
+            name = "actions",
+            doc =
+                "DEPRECATED: **DO NOT USE**"
+                    + "A list of mirror actions to perform, with the following semantics:\n"
+                    + "  - There is no guarantee of the order of execution.\n"
+                    + "  - Actions need to be independent from each other.\n"
+                    + "  - Failure in one action might prevent other actions from executing."
+                    + " --force can be used to continue for 'user' errors like non-fast-forward"
+                    + " errors.\n"
+                    + "\n"
+                    + "Actions will be in charge of doing the fetch, push, rebases, merges,etc."
+                    + "Only fetches/pushes for the declared refspec are allowed",
+            defaultValue = "[]",
+            positional = false,
+            named = true),
+        @Param(
+            name = "action",
+            doc =
+                "An action to execute when the migration is triggered. Actions can fetch,"
+                    + " push, rebase, merge, etc. Only fetches/pushes for the declared refspec"
+                    + " are allowed",
+            defaultValue = "None",
+            positional = false,
+            named = true),
+        @Param(
+            name = "origin_checker",
+            doc =
+                "Checker for applicable gerrit or github apis that can be inferred from the"
+                    + " origin url. You can omit this if there no intention to use"
+                    + " aforementioned APIs.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            positional = false,
+            named = true),
+        @Param(
+            name = "destination_checker",
+            doc =
+                "Checker for applicable gerrit or github apis that can be inferred from the"
+                    + " destination url. You can omit this if there no intention to use"
+                    + " aforementioned APIs.",
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            positional = false,
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GitMirrorOptions.class)
@@ -508,6 +537,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object description,
       net.starlark.java.eval.Sequence<?> actionList,
       Object action,
+      Object rawOriginChecker,
+      Object rawDestinationChecker,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -525,6 +556,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         throw Starlark.errorf("%s", e.getMessage());
       }
     }
+    String fixedOriginHttp = fixHttp(origin, thread.getCallerLocation());
+    String fixedDestinationHttp = fixHttp(destination, thread.getCallerLocation());
+    Checker originChecker = convertFromNoneable(rawOriginChecker, null);
+    Checker destinationChecker = convertFromNoneable(rawDestinationChecker, null);
     ImmutableList<Action> actions = convertActions(actionList, action, printHandler);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     GlobalMigrations.getGlobalMigrations(module)
@@ -534,15 +569,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 generalOptions,
                 gitOptions,
                 name,
-                fixHttp(origin, thread.getCallerLocation()),
-                fixHttp(destination, thread.getCallerLocation()),
+                fixedOriginHttp,
+                fixedDestinationHttp,
                 refspecs,
                 options.get(GitDestinationOptions.class),
                 prune,
                 partialFetch,
                 mainConfigFile,
                 convertFromNoneable(description, null),
-                actions));
+                actions,
+                getEndpointProvider(fixedOriginHttp, originChecker, false, thread),
+                getEndpointProvider(fixedDestinationHttp, destinationChecker, false, thread)));
     return Starlark.NONE;
   }
 
@@ -2304,11 +2341,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             doc = "A checker for the Gerrit API transport.",
             named = true),
+        @Param(
+            name = "allow_submit",
+            doc = "Enable the submit_change method",
+            defaultValue = "False",
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public EndpointProvider<GerritEndpoint> gerritApi(
-      String url, Object checkerObj, StarlarkThread thread) throws EvalException {
+      String url, Object checkerObj, Boolean allowSubmit, StarlarkThread thread)
+      throws EvalException {
     checkNotEmpty(url, "url");
     String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
@@ -2316,7 +2359,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     return EndpointProvider.wrap(
         new GerritEndpoint(gerritOptions.newGerritApiSupplier(cleanedUrl, checker),
-            cleanedUrl, getGeneralConsole()));
+            cleanedUrl, getGeneralConsole(), allowSubmit));
   }
 
   private Console getGeneralConsole() {
@@ -2352,11 +2395,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "a dict of event types to particular events of that type, e.g. "
                     + "`['LABELS']` or `{'LABELS': 'my_label_name'}`.\n"
                     + "Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`"),
+        @Param(
+            name = "allow_submit",
+            doc = "Enable the submit_change method in the endpoint provided",
+            defaultValue = "False",
+            named = true),
       },
       useStarlarkThread = true)
   @UsesFlags(GerritOptions.class)
   public GerritTrigger gerritTrigger(
-      String url, Object checkerObj, Object events, StarlarkThread thread) throws EvalException {
+      String url, Object checkerObj, Object events, Boolean allowSubmit, StarlarkThread thread)
+      throws EvalException {
     checkNotEmpty(url, "url");
     url = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
@@ -2367,7 +2416,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         gerritOptions.newGerritApiSupplier(url, checker),
         url,
         parsedEvents,
-        getGeneralConsole());
+        getGeneralConsole(),
+        allowSubmit);
   }
 
   private ImmutableSet<GerritEventTrigger> handleGerritEventTypes(Object events)
@@ -2717,5 +2767,67 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         !submodules.equals("NO") || excludedSubmodules.isEmpty(),
         "Expected excluded submodule list to be empty when submodules is NO, but got %s",
         excludedSubmodules);
+  }
+
+  @Nullable
+  protected LazyResourceLoader<EndpointProvider<?>> getEndpointProvider(
+      String url, @Nullable Checker checker, boolean allowSubmit, StarlarkThread thread) {
+    if (url == null) {
+      return null;
+    }
+    LazyResourceLoader<EndpointProvider<?>> gerritApiLoader =
+        maybeGetGerritApi(url, checker, allowSubmit, thread);
+    if (gerritApiLoader != null) {
+      return gerritApiLoader;
+    }
+
+    LazyResourceLoader<EndpointProvider<?>> githubApiLoader =
+        maybeGetGitHubApi(url, checker, thread);
+    if (githubApiLoader != null) {
+      return githubApiLoader;
+    }
+
+    return null;
+  }
+
+  @Nullable
+  protected LazyResourceLoader<EndpointProvider<?>> maybeGetGerritApi(
+      String url, @Nullable Checker checker, boolean allowSubmit, StarlarkThread thread) {
+    String host = URI.create(url).getHost();
+    if (Strings.isNullOrEmpty(host) || !host.endsWith(".googlesource.com")) {
+      return null;
+    }
+    return (console) -> {
+      try {
+        return gerritApi(url, checker, allowSubmit, thread);
+      } catch (EvalException e) {
+        throw new ValidationException(
+            String.format(
+                "Detected a gerrit repository URL, but was not able to construct a Gerrit API"
+                    + " loader. Error = '%s'",
+                e.getMessage()),
+            e);
+      }
+    };
+  }
+
+  @Nullable
+  protected LazyResourceLoader<EndpointProvider<?>> maybeGetGitHubApi(
+      String url, @Nullable Checker checker, StarlarkThread thread) {
+    if (!GITHUB_COM.isGitHubUrl(url)) {
+      return null;
+    }
+    return (console) -> {
+      try {
+        return githubApi(url, checker, thread);
+      } catch (EvalException e) {
+        throw new ValidationException(
+            String.format(
+                "Detected a GitHub repository URL, but was not able to construct a GitHub API"
+                    + " loader. Error = '%s'",
+                e.getMessage()),
+            e);
+      }
+    };
   }
 }

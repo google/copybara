@@ -29,6 +29,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
+import com.google.copybara.remotefile.extractutil.ExtractUtil;
 import com.google.copybara.revision.Change;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -39,14 +40,10 @@ import com.google.copybara.version.VersionSelector;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import javax.annotation.Nullable;
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
 
 /** An Origin class for remote files */
 public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
@@ -99,23 +96,35 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
             });
   }
 
-  private RemoteArchiveRevision resolveWithResolver(
-      @Nullable String version, Function<String, Optional<String>> urlAssemblyStrategy)
-      throws ValidationException {
-    Preconditions.checkArgument(
-        this.versionResolver != null,
-        "--version-selector-use-cli-ref or --forced is set to true, yet no version resolver was"
-            + " provided.");
-    return (RemoteArchiveRevision) this.versionResolver.resolve(version, urlAssemblyStrategy);
+  private Optional<String> getUrlAssemblyStrategy(String label) {
+    try {
+      return Optional.ofNullable(resolveURLTemplate(archiveSourceUrl, label));
+    } catch (LabelNotFoundException e) {
+      return Optional.empty();
+    }
   }
 
   /**
+   * This is used to resolve new refs.
+   *
    * @param versionRef the version to target. If left null/empty, we will deduce intended version
    *     from what was supplied to the RemoteArchiveOrigin constructor.
    */
   @Override
   public RemoteArchiveRevision resolve(@Nullable String versionRef)
       throws RepoException, ValidationException {
+    boolean canUseResolverOnCliRef =
+        this.generalOptions.isVersionSelectorUseCliRef() || this.generalOptions.isForced();
+    this.generalOptions
+        .console()
+        .warnFmtIf(
+            !canUseResolverOnCliRef
+                && !Strings.isNullOrEmpty(versionRef)
+                && this.versionResolver != null,
+            "Resolve version ref for '%s' was detected, but will not apply the supplied resolver."
+                + " Consider setting --force or --use-version-selector-ref to true.",
+            versionRef);
+
     // It's a versionless import.
     if (versionList == null || versionSelector == null) {
       return new RemoteArchiveRevision(new RemoteArchiveVersion(archiveSourceUrl, ""));
@@ -126,18 +135,12 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
           versionSelector
               .select(versionList, versionRef, generalOptions.console())
               .orElseThrow(() -> new ValidationException("Version selector returned no results."));
-      Function<String, Optional<String>> urlAssemblyStrategy =
-          label -> {
-            try {
-              return Optional.ofNullable(resolveURLTemplate(archiveSourceUrl, label));
-            } catch (LabelNotFoundException e) {
-              return Optional.empty();
-            }
-          };
 
-      if ((generalOptions.isVersionSelectorUseCliRef() || generalOptions.isForced())
-          && !Strings.isNullOrEmpty(versionRef)) {
-        return resolveWithResolver(version, urlAssemblyStrategy);
+      if (canUseResolverOnCliRef
+          && !Strings.isNullOrEmpty(versionRef)
+          && this.versionResolver != null) {
+        return (RemoteArchiveRevision)
+            this.versionResolver.resolve(version, this::getUrlAssemblyStrategy);
       }
 
       RemoteArchiveVersion remoteArchiveVersion =
@@ -151,6 +154,35 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
     }
   }
 
+  /** This is used to resolve the baseline. */
+  @Override
+  public RemoteArchiveRevision resolveLastRev(String versionRef)
+      throws RepoException, ValidationException {
+    Preconditions.checkState(
+        !Strings.isNullOrEmpty(versionRef),
+        "Last migrated revision reference must not be null or empty.");
+    if (versionResolver != null) {
+      return (RemoteArchiveRevision)
+          this.versionResolver.resolve(versionRef, this::getUrlAssemblyStrategy);
+    }
+
+    this.generalOptions
+        .console()
+        .warnFmt(
+            "No version resolver was supplied, will attempt to resolve baseline version by url"
+                + " template.");
+    String fullUrl =
+        this.getUrlAssemblyStrategy(versionRef)
+            .orElseThrow(
+                () ->
+                    new ValidationException(
+                        String.format(
+                            "Could not construct remote archive version from url='%s' and"
+                                + " ref='%s'",
+                            archiveSourceUrl, versionRef)));
+    return new RemoteArchiveRevision(new RemoteArchiveVersion(fullUrl, versionRef));
+  }
+
   @Override
   public Reader<RemoteArchiveRevision> newReader(Glob originFiles, Authoring authoring) {
     return new Reader<RemoteArchiveRevision>() {
@@ -159,24 +191,6 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
           throws IOException {
         String filename = ref.getUrl().substring(archiveSourceUrl.lastIndexOf("/") + 1);
         MoreFiles.asByteSink(workdir.resolve(filename)).writeFrom(returned);
-      }
-
-      private void writeArchiveByUnpacking(Path workdir, InputStream returned)
-          throws IOException, ValidationException {
-        ArchiveEntry archiveEntry;
-        try (ArchiveInputStream inputStream =
-            remoteFileOptions.createArchiveInputStream(returned, remoteFileType)) {
-          while (((archiveEntry = inputStream.getNextEntry()) != null)) {
-            if (!originFiles
-                    .relativeTo(workdir.toAbsolutePath())
-                    .matches(workdir.resolve(Path.of(archiveEntry.getName())))
-                || archiveEntry.isDirectory()) {
-              continue;
-            }
-            Files.createDirectories(workdir.resolve(archiveEntry.getName()).getParent());
-            MoreFiles.asByteSink(workdir.resolve(archiveEntry.getName())).writeFrom(inputStream);
-          }
-        }
       }
 
       @Override
@@ -190,7 +204,8 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
             if (remoteFileType == RemoteFileType.AS_IS) {
               writeArchiveAsIs(ref, workdir, returned);
             } else {
-              writeArchiveByUnpacking(workdir, returned);
+              ExtractUtil.extractArchive(
+                  returned, workdir, RemoteFileType.toExtractType(remoteFileType), originFiles);
             }
           }
         } catch (IOException e) {

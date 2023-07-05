@@ -106,11 +106,7 @@ public class GitHubGraphQLTest extends AbstractGitHubGraphQLApiTest {
           }
         };
     return new GitHubApiTransportImpl(
-        repo,
-        httpTransport,
-        APIType.GRAPHQL,
-        "some_storage_file",
-        new TestingConsole());
+        repo, httpTransport, "some_storage_file", new TestingConsole());
   }
 
   @Override

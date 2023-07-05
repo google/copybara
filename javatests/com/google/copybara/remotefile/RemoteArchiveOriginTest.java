@@ -459,6 +459,51 @@ public final class RemoteArchiveOriginTest {
   }
 
   @Test
+  public void testArchiveCheckoutWithCliRefDisabledOnLastRev() throws Exception {
+    generalOptions.setVersionSelectorUseCliRefForTest(false);
+    when(transport.open(new URL("https://v0.1.1.tar")))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
+    when(versionResolver.resolve(eq("v0.1.1"), any()))
+        .thenReturn(
+            new RemoteArchiveRevision(new RemoteArchiveVersion("https://v0.1.1.tar", "v0.1.1")));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://${VERSION}.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR);
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    reader.checkout(underTest.resolveLastRev("v0.1.1"), workdir);
+
+    verify(versionResolver, times(1)).resolve(eq("v0.1.1"), any());
+    assertThatPath(workdir).containsFile("test/test.txt", "hello world");
+  }
+
+  @Test
+  public void testArchiveCheckoutWithoutResolverOnLastRev() throws Exception {
+    generalOptions.setVersionSelectorUseCliRefForTest(false);
+    when(transport.open(new URL("https://v0.1.1.tar")))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
+    when(versionResolver.resolve(eq("v0.1.1"), any()))
+        .thenReturn(
+            new RemoteArchiveRevision(new RemoteArchiveVersion("https://v0.1.1.tar", "v0.1.1")));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://${VERSION}.tar", versionList, versionSelector, null, RemoteFileType.TAR);
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    reader.checkout(underTest.resolveLastRev("v0.1.1"), workdir);
+
+    assertThatPath(workdir).containsFile("test/test.txt", "hello world");
+  }
+
+  @Test
   public void testDescribe() throws Exception {
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(

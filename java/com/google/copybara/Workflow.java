@@ -20,6 +20,7 @@ import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST_FROM_SOT;
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static com.google.copybara.git.GitRepository.GIT_DESCRIBE_ABBREV;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -59,6 +60,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -113,7 +115,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean setRevId;
   private final boolean smartPrune;
   private final boolean mergeImport;
+  private final boolean useReversePatchBaseline;
   private final AutoPatchfileConfiguration autoPatchfileConfiguration;
+  final Transformation afterMergeTransformations;
   private final boolean migrateNoopChanges;
   private final boolean checkLastRevState;
   private final ImmutableList<Action> afterAllMigrationActions;
@@ -147,7 +151,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean setRevId,
       boolean smartPrune,
       boolean mergeImport,
+      boolean useReversePatchBaseline,
       @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
+      Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
       @Nullable String customRevId,
       boolean checkout) {
@@ -183,7 +189,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
+    this.useReversePatchBaseline = useReversePatchBaseline;
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
+    this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
   }
 
@@ -284,7 +292,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
             allEffects.addAll(event.getDestinationEffects());
             eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
           });
-      try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase())) {
+      try (ProfilerTask ignored = profiler().start(mode.toString().toLowerCase(Locale.ROOT))) {
         mode.run(helper);
       } finally {
         if (!getGeneralOptions().dryRunMode) {
@@ -382,10 +390,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
               Change<O> lastMigratedChange = null;
               try {
-                lastMigratedChange = generalOptions.repoTask(
-                    "origin.last_migrated",
-                    () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
-              }  catch (RepoException | ValidationException e) {
+                lastMigratedChange =
+                    generalOptions.repoTask(
+                        "origin.last_migrated",
+                        () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
+                  lastMigratedChange = annotateChange(lastMigratedChange);
+              } catch (RepoException | ValidationException e) {
                 logger.atInfo().withCause(e).log("Error resolving change for %s", lastMigrated);
               }
               ImmutableList<Change<O>> allChanges =
@@ -410,7 +420,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       // We shouldn't use this path for info
                       Paths.get("shouldnt_be_used"),
                       lastResolved,
-                      /*rawSourceRef=*/ null,
+                      /* rawSourceRef= */ null,
                       // We don't create effects on info
                       changeMigrationFinishedEvent -> {});
 
@@ -423,7 +433,9 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               }
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
-                      String.format("workflow_%s", name), lastMigrated, lastMigratedChange,
+                      String.format("workflow_%s", name),
+                      lastMigrated,
+                      lastMigratedChange,
                       affectedChanges);
 
               return Info.create(
@@ -435,12 +447,23 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   private void annotateChange(ArrayList<Change<O>> annotated, int i) throws ValidationException {
     Change<O> c = annotated.get(i);
+     annotated.set(i, annotateChange(c));
+  }
+
+  @Nullable
+  private Change<O> annotateChange(@Nullable Change<O> annotate) throws ValidationException {
+    if (annotate == null) {
+      return null;
+    }
     try {
-     Revision rev = origin.resolve(c.getRef());
-     annotated.set(i, c.withLabels(rev.associatedLabels()));
-   } catch (RepoException re) {
-     logger.atInfo().log("Failed to annotate change %s", c);
-   }
+      Revision rev = origin.resolve(annotate.getRef());
+      // Force load of tag info
+      ImmutableList<String> ignored = rev.associatedLabel(GIT_DESCRIBE_ABBREV);
+      return  annotate.withLabels(rev.associatedLabels());
+    } catch (RepoException re) {
+      logger.atInfo().log("Failed to annotate change %s", annotate);
+    }
+    return annotate;
   }
 
   @Nullable
@@ -684,8 +707,12 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return mergeImport;
   }
 
+  boolean isUseReversePatchBaseline() {
+    return useReversePatchBaseline;
+  }
+
   @Nullable
-  AutoPatchfileConfiguration getAutoPatchfileConfiguration() {
+  public AutoPatchfileConfiguration getAutoPatchfileConfiguration() {
     return autoPatchfileConfiguration;
   }
 

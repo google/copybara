@@ -72,6 +72,7 @@ public class HttpEndpointRequest implements StarlarkValue {
       if (auth != null) {
         request.setInterceptor(auth.basicAuthInterceptor());
       }
+      request.setThrowExceptionOnExecuteError(false);
     }
     return request;
   }

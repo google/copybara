@@ -24,7 +24,6 @@ java_library(
     ],
     deps = [
         "//java/com/google/copybara/doc:annotations",
-        "//java/com/google/copybara/util/console",
         "//third_party:guava",
         "//third_party:re2j",
         "//third_party:starlark",

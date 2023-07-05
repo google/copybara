@@ -20,6 +20,7 @@ package(default_visibility = ["//visibility:public"])
 licenses(["notice"])
 
 all_tests(
+    name = "all_tests",
     shard_count = 6,
     tags = ["local"],
     tests = [
@@ -37,7 +38,6 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console/testing",
-        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

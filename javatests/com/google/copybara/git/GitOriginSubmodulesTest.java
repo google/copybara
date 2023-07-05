@@ -394,7 +394,9 @@ public class GitOriginSubmodulesTest {
         false,
         true,
         ImmutableList.of("refs/heads/*:refs/heads/*"),
-        false, Optional.empty());
+        false,
+        Optional.empty(),
+        false);
     String primaryBranch = r2.getPrimaryBranch();
 
     OptionsBuilder options = new OptionsBuilder()

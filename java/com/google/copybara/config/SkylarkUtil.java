@@ -19,24 +19,14 @@ package com.google.copybara.config;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.copybara.LabelFinder;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.starlark.StarlarkUtil;
-import com.google.copybara.templatetoken.LabelTemplate;
-import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -50,8 +40,6 @@ import net.starlark.java.eval.StarlarkList;
  * (And rename to StarlarkConfigUtil)
  */
 public final class SkylarkUtil {
-  private static final Pattern LABEL_VAR = Pattern
-      .compile("\\$\\{(" + LabelFinder.VALID_LABEL.pattern() + ")}");
 
   private SkylarkUtil() {
   }
@@ -99,45 +87,6 @@ public final class SkylarkUtil {
       throws EvalException {
     // TODO(malcon): Remove this method and inline this call:
     StarlarkUtil.check(condition, format, args);
-  }
-  /**
-   * A utility for resolving list of string labels to values
-   */
-  public static ImmutableList<String> mapLabels(
-      Function<String, ? extends Collection<String>> labelsMapper, List<String> list) {
-    ImmutableList.Builder<String> result = ImmutableList.builder();
-    for (String element : list) {
-      Matcher matcher = LABEL_VAR.matcher(element);
-      if (!matcher.matches()) {
-        result.add(element);
-        continue;
-      }
-      String label = matcher.group(1);
-      Collection<String> values = labelsMapper.apply(label);
-      if (values == null) {
-        continue;
-      }
-      result.addAll(Objects.requireNonNull(values));
-    }
-    return result.build();
-  }
-
-  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
-      String template) throws ValidationException {
-    return mapLabels(labelsMapper, template, null);
-  }
-
-  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
-      String template, String fieldName)
-      throws ValidationException {
-    try {
-      return new LabelTemplate(template).resolve(labelsMapper.andThen(
-          e ->  e == null ? null : Iterables.getFirst(e, null)));
-    } catch (LabelNotFoundException e) {
-      throw new ValidationException(
-          String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
-              e.getLabel(), template, fieldName), e);
-    }
   }
 
   /**
@@ -227,6 +176,38 @@ public final class SkylarkUtil {
 
     @SuppressWarnings("unchecked") // safe
     Dict<K, StarlarkList<V>> res = (Dict<K, StarlarkList<V>>) x;
+    return res;
+  }
+
+  /** Casts a Dict nested in another Dict */
+  public static <K, W, V> Dict<K, Dict<W, V>> castOfDictNestedInDict(
+      Object x, Class<K> keyType, Class<W> nestedKeyType, Class<V> nestedValueType, String what)
+      throws EvalException {
+    Preconditions.checkNotNull(x);
+    if (!(x instanceof Dict)) {
+      throw Starlark.errorf("got %s for '%s', want dict", Starlark.type(x), what);
+    }
+    for (Entry<?, ?> e : ((Map<?, ?>) x).entrySet()) {
+      if (!keyType.isAssignableFrom(e.getKey().getClass())) {
+        throw Starlark.errorf(
+            "Key not assignable. Wanted %s, got %s",
+            Starlark.classType(keyType), Starlark.type(e.getKey()));
+      }
+      for (Map.Entry<?, ?> n : ((Map<?, ?>) e.getValue()).entrySet()) {
+        if (!nestedKeyType.isAssignableFrom(n.getKey().getClass())) {
+          throw Starlark.errorf(
+              "Nested key type not assignable. Wanted %s, got %s",
+              Starlark.classType(nestedKeyType), Starlark.type(n.getKey()));
+        }
+        if (!nestedValueType.isAssignableFrom(n.getValue().getClass())) {
+          throw Starlark.errorf(
+              "Nested value type not assignable. Wanted %s, got %s",
+              Starlark.classType(nestedValueType), Starlark.type(n.getValue()));
+        }
+      }
+    }
+    @SuppressWarnings("unchecked") // safe
+    Dict<K, Dict<W, V>> res = (Dict<K, Dict<W, V>>) x;
     return res;
   }
 }

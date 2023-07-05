@@ -100,7 +100,9 @@ public final class AutoPatchUtil {
       }
       String diffString =
           new String(
-              DiffUtil.diffFileWithIgnoreCrAtEol(onePath, otherPath, verbose, environment), UTF_8);
+              DiffUtil.diffFileWithIgnoreCrAtEol(
+                  originWorkdir.getParent(), onePath, otherPath, verbose, environment),
+              UTF_8);
       if (stripFileNames) {
         diffString = stripFileNamesAndLineNumbers(diffString);
       }
@@ -168,6 +170,33 @@ public final class AutoPatchUtil {
         };
     Files.walkFileTree(originWorkdir, originFileVisitor);
     Files.walkFileTree(destinationWorkdir, destinationFileVisitor);
+  }
+
+  public static void reversePatchFiles(Path diffRoot, Path patchDir, String fileSuffix)
+      throws IOException {
+    // obtain list of patch files to apply
+    ImmutableList.Builder<Path> files = ImmutableList.builder();
+    Files.walkFileTree(
+        patchDir,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            if (file.toString().endsWith(fileSuffix)) {
+              files.add(file);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    DiffUtil.reverseApplyPatches(files.build(), diffRoot);
+  }
+
+  public static Glob getAutopatchGlob(String directoryPrefix, @Nullable String directory) {
+    Path autopatchDirectoryPath = Path.of(directoryPrefix);
+    if (directory != null) {
+      autopatchDirectoryPath = autopatchDirectoryPath.resolve(directory);
+    }
+    autopatchDirectoryPath = autopatchDirectoryPath.resolve("**");
+    return Glob.createGlob(ImmutableList.of(autopatchDirectoryPath.toString()));
   }
 
   private static Path derivePatchFileName(

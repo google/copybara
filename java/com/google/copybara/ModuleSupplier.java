@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.buildozer.BuildozerModule;
 import com.google.copybara.buildozer.BuildozerOptions;
+import com.google.copybara.compression.CompressionModule;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderModule;
 import com.google.copybara.folder.FolderOriginOptions;
@@ -45,6 +46,7 @@ import com.google.copybara.hg.HgOriginOptions;
 import com.google.copybara.http.HttpModule;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.onboard.GeneratorOptions;
+import com.google.copybara.python.PythonModule;
 import com.google.copybara.re2.Re2Module;
 import com.google.copybara.remotefile.RemoteFileModule;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -123,6 +125,8 @@ public class ModuleSupplier {
         new RustModule(options.get(RemoteFileOptions.class)),
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
+        new PythonModule(),
+        new CompressionModule(),
         Json.INSTANCE);
   }
 

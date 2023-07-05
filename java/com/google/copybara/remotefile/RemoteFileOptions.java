@@ -22,14 +22,8 @@ import com.google.common.base.Suppliers;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.jcommander.DurationConverter;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.Duration;
 import java.util.function.Supplier;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 
 /** Options for loading files from a source other than the origin. Use with caution. */
 @Parameters(separators = "=")
@@ -48,19 +42,4 @@ public class RemoteFileOptions implements Option {
     return transport.get();
   }
 
-  public ArchiveInputStream createArchiveInputStream(
-      InputStream inputStream, RemoteFileType fileType) throws ValidationException, IOException {
-    switch (fileType) {
-      case JAR:
-      case ZIP:
-        return new ZipArchiveInputStream(inputStream);
-      case TAR:
-        return new TarArchiveInputStream(inputStream);
-      case TAR_GZ:
-        return new TarArchiveInputStream(new GzipCompressorInputStream(inputStream));
-      default:
-        throw new ValidationException(
-            String.format("Failed to get archive input stream for file type: %s", fileType));
-    }
-  }
 }

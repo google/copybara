@@ -178,11 +178,12 @@ class GerritChange {
     String metaRef = String.format("refs/changes/%02d/%d/meta", change % 100, change);
     repository.fetch(
         repoUrl,
-        /*prune=*/ true,
-        /*force=*/ true,
+        /* prune= */ true,
+        /* force= */ true,
         ImmutableList.of(ref + ":refs/gerrit/" + ref, metaRef + ":refs/gerrit/" + metaRef),
         false,
-        Optional.empty());
+        Optional.empty(),
+        false);
     GitRevision gitRevision = repository.resolveReference("refs/gerrit/" + ref);
     GitRevision metaRevision = repository.resolveReference("refs/gerrit/" + metaRef);
     String changeId = getChangeIdFromMeta(repository, metaRevision , metaRef);

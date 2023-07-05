@@ -778,6 +778,51 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testMirrorWithApiHandles() throws Exception {
+    String cfg =
+        "def test(ctx):\n"
+            + "    origin_api = ctx.origin_api\n"
+            + "    destination_api = ctx.destination_api\n"
+            + "    if type(origin_api) != 'gerrit_api_obj':\n"
+            + "        fail('this was not supposed to happen: expected gerrit_api_obj, but got ' +"
+            + " type(origin_api))\n"
+            + "    if type(destination_api) != 'github_api_obj':\n"
+            + "        fail('this was not supposed to happen: expected github_api_obj, but got ' +"
+            + " type(destination_api))\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "git.mirror(\n"
+            + "    name = 'default',\n"
+            + "    origin = 'https://copybara.googlesource.com/copybara/',\n"
+            + "    destination = 'https://github.com/google/copybara',\n"
+            + "    actions = [test],\n"
+            + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    mirror.run(workdir, ImmutableList.of());
+  }
+
+  @Test
+  public void testMirrorWithApiHandles_noInferredApiHandle() throws Exception {
+    String cfg =
+        "def test(ctx):\n"
+            + "    origin_api = ctx.origin_api\n"
+            + "    destination_api = ctx.destination_api\n"
+            + "    if type(origin_api) == 'NoneType' and type(destination_api) == 'NoneType':\n"
+            + "        return ctx.success()\n"
+            + "    fail('this was not supposed to happen: expected NoneType, but got ' +"
+            + " type(origin_api) + ' and ' + type(destination_api))\n"
+            + "\n"
+            + "git.mirror(\n"
+            + "    name = 'default',\n"
+            + "    origin = 'not.github.or.gerrit.com',\n"
+            + "    destination = 'foo.bar.baz.com',\n"
+            + "    actions = [test],\n"
+            + ")";
+    Migration mirror = loadMigration(cfg, "default");
+    mirror.run(workdir, ImmutableList.of());
+  }
+
+  @Test
   public void testCherrypick() throws Exception {
     String primaryBranch = originRepo.getPrimaryBranch();
     String cfg =

@@ -202,6 +202,28 @@ public final class FileUtil {
   }
 
   /**
+   * Deletes the files that match the Glob.
+   *
+   * <p>Note that this method doesn't delete the directories, only the files inside those
+   * directories. This is fine for our use case since the majority of SCMs don't care about empty
+   * directories.
+   *
+   * @throws IOException If it fails traversing or deleting the tree.
+   */
+  public static int deleteFilesRecursively(Path path, Glob glob) throws IOException {
+    AtomicInteger counter = new AtomicInteger();
+    // Optimization to only visit folders that match the Glob. This avoids needless work for huge
+    // file trees where only a specific subset will be matched by the Glob (e.g., foo/bar/**).
+    for (String root : glob.roots()) {
+      Path rootPath = path.resolve(root);
+      if (Files.exists(rootPath)) {
+        counter.addAndGet(deleteFilesRecursively(rootPath, glob.relativeTo(path)));
+      }
+    }
+    return counter.get();
+  }
+
+  /**
    * Delete all the contents of a path recursively.
    *
    * <p>First we try to delete securely. In case the FileSystem doesn't support it,

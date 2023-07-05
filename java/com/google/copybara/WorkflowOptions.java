@@ -241,10 +241,28 @@ public class WorkflowOptions implements Option {
   String baselineForMergeImport = null;
 
   @Parameter(
+      names = "--use-reverse-patch-baseline",
+      description =
+          "Reverse apply the existing patch files in the destination to obtain a baseline for merge"
+              + " import. This requires line numbers and file names to be present in the patches."
+              + " This patch handling process correctly represents changes introduced by copybara"
+              + " config edits as origin changes.")
+  public boolean useReversePatchBaseline = false;
+
+  @Parameter(
       names = "--threads-for-merge-import",
       description =
           "Number of threads to use for executing the diff tool for the merge import mode.")
   int threadsForMergeImport = 40;
+
+  @Parameter(
+      names = "--debug-merge-import",
+      description = "Debug merge import for files matching the regex. You can use something like"
+          + " \".*/myfile.cc\" and it will show debugging information for files that matches that"
+          + " regex (e.g. foo/myfile.cc)",
+      hidden = true,
+      arity = 1)
+  String debugMergeImport = null;
 
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {

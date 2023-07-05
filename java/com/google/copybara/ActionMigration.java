@@ -41,6 +41,8 @@ import com.google.copybara.transform.SkylarkConsole;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Objects;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Structure;
@@ -118,10 +120,14 @@ public class ActionMigration implements Migration {
     ImmutableList<ActionResult> allResults = allResultsBuilder.build();
     // This check also returns true if there are no actions
     if (allResults.stream().allMatch(a -> a.getResult() == Result.NO_OP)) {
-      String detailedMessage = allResults.isEmpty()
-          ? "actions field is empty"
-          :  allResults.stream().map(ActionResult::getMsg)
-              .collect(ImmutableList.toImmutableList()).toString();
+      String detailedMessage =
+          allResults.isEmpty()
+              ? "actions field is empty"
+              : allResults.stream()
+                  .map(ActionResult::getMsg)
+                  .filter(Objects::nonNull)
+                  .collect(ImmutableList.toImmutableList())
+                  .toString();
       throw new EmptyChangeException(
           String.format(
               "%s migration '%s' was noop. Detailed messages: %s",
@@ -130,7 +136,7 @@ public class ActionMigration implements Migration {
   }
 
   private String capitalize(String str) {
-    return str.substring(0, 1).toUpperCase() + str.substring(1);
+    return str.substring(0, 1).toUpperCase(Locale.ROOT) + str.substring(1);
   }
 
   @Override

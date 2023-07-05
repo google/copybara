@@ -195,6 +195,25 @@ public class CopyOrMoveTest {
   }
 
   @Test
+  public void testMoveDirs() throws Exception {
+    CopyOrMove copier = skylark.eval("m", "m = "
+        + "core.move("
+        + "    before = 'a/b/include',"
+        + "    after = 'x/y/z',"
+        + ")");
+    touch("a/b/include/fileA");
+    touch("a/b/include/fileB");
+    touch("a/c/include/fileC");
+    transform(copier);
+
+    assertThatPath(checkoutDir)
+        .containsFiles("x/y/z/fileA")
+        .containsFiles("x/y/z/fileB")
+        .containsFiles("a/c/include/fileC")
+        .containsNoMoreFiles();
+  }
+
+  @Test
   public void testMoveOverwrite() throws Exception {
     CopyOrMove mover = skylark.eval("m", "m = "
         + "core.move("

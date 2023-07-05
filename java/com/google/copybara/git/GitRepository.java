@@ -329,11 +329,17 @@ public class GitRepository {
   public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch,
       Optional<Integer> depth)
       throws RepoException, ValidationException {
-    return fetchSingleRefWithTags(url, ref, /*fetchTags=*/false, partialFetch, depth);
+    return fetchSingleRefWithTags(url, ref, /* fetchTags= */ false, partialFetch, depth, false);
   }
 
-  public GitRevision fetchSingleRefWithTags(String url, String ref, boolean fetchTags,
-      boolean partialFetch, Optional<Integer> depth) throws RepoException, ValidationException {
+  public GitRevision fetchSingleRefWithTags(
+      String url,
+      String ref,
+      boolean fetchTags,
+      boolean partialFetch,
+      Optional<Integer> depth,
+      boolean useFetchTagsOption)
+      throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
           + " contain local ref path locations or wildcards is not supported. Invalid ref: " + ref);
@@ -345,15 +351,16 @@ public class GitRepository {
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
     if (isSha1Reference(ref)) {
-      // Tags are fetched by the default refspec
+      boolean tags = useFetchTagsOption && !partialFetch && fetchTags;
       try {
         fetch(
             url,
-            /*prune=*/ false,
-            /*force=*/ true,
+            /* prune= */ false,
+            /* force= */ true,
             ImmutableList.of(),
             partialFetch,
-            depth);
+            depth,
+            tags);
       } catch (CannotResolveRevisionException e) {
         // Some servers are configured without HEAD. That is fine, we'll try fetching the SHA
         // instead.
@@ -370,27 +377,36 @@ public class GitRepository {
     if (fetchTags) {
       fetch(
           url,
-          /*prune=*/ false,
-          /*force=*/ true,
+          /* prune= */ false,
+          /* force= */ true,
           ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"),
-          partialFetch, depth);
+          partialFetch,
+          depth,
+          false);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     } else {
       fetch(
           url,
-          /*prune=*/ false,
-          /*force=*/ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref), partialFetch, depth);
+          /* prune= */ false,
+          /* force= */ true,
+          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref),
+          partialFetch,
+          depth,
+          false);
       return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
     }
   }
 
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {
-    return rev.withLabels(
-        ImmutableListMultimap.of(
-            GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false),
-            GIT_DESCRIBE_FIRST_PARENT, describe(rev, true))
-    );
+    ImmutableListMultimap.Builder<String, String> describeLabels = ImmutableListMultimap.builder();
+    describeLabels.put(GIT_DESCRIBE_REQUESTED_VERSION, describe(rev, false));
+    describeLabels.put(GIT_DESCRIBE_FIRST_PARENT, describe(rev, true));
+    String describeAbbrev = describeAbbrev(rev);
+    // We only want to populate this label if a value exists
+    if (describeAbbrev != null) {
+      describeLabels.put(GIT_DESCRIBE_ABBREV, describeAbbrev(rev));
+    }
+    return rev.withLabels(describeLabels.build());
   }
 
   @Nullable
@@ -432,15 +448,25 @@ public class GitRepository {
    * @param prune if remotely non-present refs should be deleted locally
    * @param force force updates even for non fast-forward updates
    * @param refspecs a set refspecs in the form of 'foo' for branches, 'refs/some/ref' or
-   * 'refs/foo/bar:refs/bar/foo'.
+   *     'refs/foo/bar:refs/bar/foo'.
    * @return the set of fetched references and what action was done ( rejected, new reference,
-   * updated, etc.)
+   *     updated, etc.)
    */
   @CanIgnoreReturnValue
-  public FetchResult fetch(String url, boolean prune, boolean force, Iterable<String> refspecs,
-      boolean partialFetch, Optional<Integer> depth) throws RepoException, ValidationException {
+  public FetchResult fetch(
+      String url,
+      boolean prune,
+      boolean force,
+      Iterable<String> refspecs,
+      boolean partialFetch,
+      Optional<Integer> depth,
+      boolean tags)
+      throws RepoException, ValidationException {
 
     List<String> args = Lists.newArrayList("fetch", validateUrl(url));
+    if (tags) {
+      args.add("--tags");
+    }
     if (depth.isPresent()) {
       args.add(String.format("--depth=%d", depth.get()));
     }
@@ -1714,7 +1740,7 @@ public class GitRepository {
         return new GitRevision(this, reference);
       }
       throw new CannotResolveRevisionException(
-          "Cannot find '" + reference + "' object in the repository");
+          String.format("Cannot find '%s' object in the repository (%s)", reference, url));
     }
     return new GitRevision(this, parseRef(reference), /*reviewReference=*/null, contextRef,
         ImmutableListMultimap.of(), url);

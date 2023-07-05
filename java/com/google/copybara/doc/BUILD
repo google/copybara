@@ -33,9 +33,6 @@ java_plugin(
     deps = [
         "//third_party:autocommon",
         "//third_party:guava",
-        "//third_party:jcommander",
-        "//third_party:jsr305",
-        "//third_party:re2j",
         "//third_party:starlark",
     ],
 )
@@ -66,10 +63,8 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
     ],
+    tags = ["keep_dep"],
     visibility = [
         "//visibility:public",
-    ],
-    deps = [
-        "//third_party:guava",
     ],
 )

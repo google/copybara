@@ -21,7 +21,6 @@ java_library(
     srcs = glob(["**/*.java"]),
     deps = [
         "//third_party:google_http_client",
-        "//third_party:guava",
         "//third_party:jsr305",
     ],
 )

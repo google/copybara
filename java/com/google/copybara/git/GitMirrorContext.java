@@ -26,6 +26,9 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.flogger.FluentLogger;
+import com.google.copybara.Endpoint;
+import com.google.copybara.EndpointProvider;
+import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.action.Action;
 import com.google.copybara.action.ActionContext;
 import com.google.copybara.config.SkylarkUtil;
@@ -46,6 +49,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -77,6 +81,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
   private String destinationUrl;
   private final GitOptions gitOptions;
   private final Profiler profiler;
+  private final LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider;
+  private final LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider;
 
   GitMirrorContext(
       Action currentAction,
@@ -90,7 +96,9 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       GitRepository repo,
       DirFactory dirFactory,
       Dict<?, ?> params,
-      GitOptions gitOptions) {
+      GitOptions gitOptions,
+      LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider,
+      LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider) {
     super(currentAction, console, ImmutableMap.of(), params);
     this.sourceRefs = sourceRefs;
     this.refspecs = checkNotNull(refspecs);
@@ -101,6 +109,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
     this.dirFactory = dirFactory;
     this.gitOptions = gitOptions;
     this.profiler = checkNotNull(profiler);
+    this.originApiEndpointProvider = originApiEndpointProvider;
+    this.destinationApiEndpointProvider = destinationApiEndpointProvider;
   }
 
   @Override
@@ -117,7 +127,36 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
         repo,
         dirFactory,
         params,
-        gitOptions);
+        gitOptions,
+        originApiEndpointProvider,
+        destinationApiEndpointProvider);
+  }
+
+  @StarlarkMethod(
+      name = "origin_api",
+      doc =
+          "Returns a handle to platform specific api, inferred from the origin url when possible.",
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
+  public Endpoint getOriginApiEndpointProvider() throws RepoException, ValidationException {
+    return originApiEndpointProvider == null
+        ? null
+        : originApiEndpointProvider.load(console).getEndpoint();
+  }
+
+  @StarlarkMethod(
+      name = "destination_api",
+      doc =
+          "Returns a handle to platform specific api, inferred from the destination url when"
+              + " possible.",
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
+  public Endpoint getDestinationApiEndPointProvider() throws RepoException, ValidationException {
+    return destinationApiEndpointProvider == null
+        ? null
+        : destinationApiEndpointProvider.load(console).getEndpoint();
   }
 
   @StarlarkMethod(name = "console", doc = "Get an instance of the console to report errors or"
@@ -180,7 +219,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           partialFetch,
-          depthOptional);
+          depthOptional,
+          false);
     } catch (CannotResolveRevisionException e) {
       console.warnFmt("Failed to complete origin_fetch with error '%s'", e.getMessage());
       return false;
@@ -237,7 +277,8 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
           force,
           refspecsToFetch.stream().map(Refspec::toString).collect(toImmutableList()),
           partialFetch,
-          depthOptional);
+          depthOptional,
+          false);
     } catch (CannotResolveRevisionException e) {
       return false;
     }

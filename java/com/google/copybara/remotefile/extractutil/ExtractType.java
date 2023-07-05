@@ -13,23 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.remotefile.extractutil;
 
-package com.google.copybara.git.github.api;
-
-/** Determines which GitHub api to use. */
-public enum APIType {
-  REST {
-    @Override
-    public String getURLPrefix() {
-      return "https://api.github.com/";
-    }
-  },
-  GRAPHQL {
-    @Override
-    public String getURLPrefix() {
-      return "https://api.github.com/graphql";
-    }
-  };
-
-  abstract String getURLPrefix();
+/** Supported archive types. */
+public enum ExtractType {
+  JAR,
+  ZIP,
+  TAR,
+  TAR_GZ,
 }

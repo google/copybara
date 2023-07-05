@@ -20,9 +20,11 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ListMultimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitRepository.GitLogEntry;
@@ -43,7 +45,7 @@ public final class GitRevision implements Revision {
   private final GitRepository repository;
   private final String sha1;
   @Nullable private final String reference;
-  private final ImmutableListMultimap<String, String> associatedLabels;
+  private final ListMultimap<String, String> associatedLabels;
   @Nullable private final String reviewReference;
   @Nullable private final String url;
   private String describe;
@@ -97,15 +99,13 @@ public final class GitRevision implements Revision {
     this.repository = Preconditions.checkNotNull(repository);
     this.sha1 = sha1;
     this.reference = reference;
-    ImmutableListMultimap.Builder<String, String> labelBuilder =
-        ImmutableListMultimap.<String, String>builder()
-        .putAll(associatedLabels);
+    ArrayListMultimap<String, String> labels = ArrayListMultimap.create();
+    labels.putAll(associatedLabels);
     if (!associatedLabels.containsKey("GIT_SHA1")) {
-      labelBuilder
-         .put("GIT_SHA1", sha1)
-         .put("GIT_SHORT_SHA1", sha1.substring(0, 7));
+      labels.put("GIT_SHA1", sha1);
+      labels.put("GIT_SHORT_SHA1", sha1.substring(0, 7));
     }
-    this.associatedLabels = labelBuilder.build();
+    this.associatedLabels = labels;
     this.url = url;
   }
 
@@ -180,7 +180,7 @@ public final class GitRevision implements Revision {
 
   @Override
   public ImmutableListMultimap<String, String> associatedLabels() {
-    return associatedLabels;
+    return ImmutableListMultimap.copyOf(associatedLabels);
   }
 
   @Override
@@ -195,7 +195,7 @@ public final class GitRevision implements Revision {
     if (label.equals(GitRepository.GIT_DESCRIBE_ABBREV)) {
       return populateDescribeAbbrev();
     }
-    return associatedLabels.get(label);
+    return ImmutableList.copyOf(associatedLabels.get(label));
   }
 
   /**
@@ -222,7 +222,7 @@ public final class GitRevision implements Revision {
 
   private synchronized ImmutableList<String> populateDescribeAbbrev() {
     if (associatedLabels.containsKey(GitRepository.GIT_DESCRIBE_ABBREV)) {
-      return associatedLabels.get(GitRepository.GIT_DESCRIBE_ABBREV);
+      return ImmutableList.copyOf(associatedLabels.get(GitRepository.GIT_DESCRIBE_ABBREV));
     }
 
     if (describeAbbrev == null) {
@@ -232,6 +232,9 @@ public final class GitRevision implements Revision {
         logger.atWarning().withCause(e).log(
             "Cannot get closest tag for %s.", sha1);
       }
+    }
+    if (describeAbbrev != null) {
+      associatedLabels.put(GitRepository.GIT_DESCRIBE_ABBREV, describeAbbrev);
     }
     return ImmutableList.of(Strings.nullToEmpty(describeAbbrev));
   }
@@ -252,11 +255,12 @@ public final class GitRevision implements Revision {
   }
 
   GitRevision withUrl(String url) {
-    return new GitRevision(repository, sha1, reviewReference, reference, associatedLabels, url);
+    return new GitRevision(repository, sha1, reviewReference, reference,
+        ImmutableListMultimap.copyOf(associatedLabels), url);
   }
 
   GitRevision withLabels(ImmutableListMultimap<String, String> labels) {
     return new GitRevision(repository, sha1, reviewReference, reference,
-        Revision.addNewLabels(associatedLabels, labels), url);
+        Revision.addNewLabels(ImmutableListMultimap.copyOf(associatedLabels), labels), url);
   }
 }

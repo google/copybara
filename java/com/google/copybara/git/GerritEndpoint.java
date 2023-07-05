@@ -25,6 +25,7 @@ import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.AbandonInput;
 import com.google.copybara.git.gerritapi.ActionInfo;
 import com.google.copybara.git.gerritapi.ChangeInfo;
 import com.google.copybara.git.gerritapi.ChangesQuery;
@@ -59,10 +60,14 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
   private final String url;
   private final Console console;
 
-  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console) {
+  private final boolean allowSubmitChange;
+
+  GerritEndpoint(LazyResourceLoader<GerritApi> apiSupplier, String url, Console console,
+      boolean allowSubmitChange) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);
+    this.allowSubmitChange = allowSubmitChange;
   }
 
   @StarlarkMethod(
@@ -186,12 +191,27 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       parameters = {
           @Param(name = "change_id", named = true, doc = "The Gerrit change id."),
       })
-  public ChangeInfo submitChange(String changeId) throws EvalException {
+  public ChangeInfo submitChange(String changeId) throws EvalException, ValidationException {
+    ValidationException.checkCondition(allowSubmitChange,
+        "Gerrit submit_change is only allowed if it is is enabled on the endpoint");
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.submitChange(changeId, new SubmitInput(NotifyType.NONE));
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling submit_change: " + e.getMessage(), e);
+    }
+  }
+
+  @StarlarkMethod(
+      name = "abandon_change",
+      doc = "Abandon a Gerrit change.",
+      parameters = {@Param(name = "change_id", named = true, doc = "The Gerrit change id.")})
+  public ChangeInfo abandonChange(String changeId) throws EvalException {
+    try {
+      GerritApi gerritApi = apiSupplier.load(console);
+      return gerritApi.abandonChange(changeId, AbandonInput.createWithoutComment());
+    } catch (RepoException | ValidationException | RuntimeException e) {
+      throw new EvalException("Error getting change: " + e.getMessage(), e);
     }
   }
 
@@ -228,22 +248,21 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
                 .withInclude(getIncludeResults(includeResults))));
   }
 
-  @StarlarkMethod(
-      name = "url",
-      doc = "Return the URL of this endpoint.",
-      structField = true)
+  @Override
+  @StarlarkMethod(name = "url", doc = "Return the URL of this endpoint.", structField = true)
   public String getUrl() {
     return url;
   }
 
   @Override
   public GerritEndpoint withConsole(Console console) {
-    return new GerritEndpoint(this.apiSupplier, this.url, console);
+    return new GerritEndpoint(this.apiSupplier, this.url, console, allowSubmitChange);
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
-    return ImmutableSetMultimap.of("type", "gerrit_api", "url", url);
+    return ImmutableSetMultimap.of(
+        "type", "gerrit_api", "url", url, "gerritSubmit", "" + allowSubmitChange);
   }
 
   @Override

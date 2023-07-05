@@ -569,6 +569,19 @@ public class GitHubApi {
     }
   }
 
+
+  /**
+   * Create a release
+   * https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
+   */
+  public Release createRelease(String project, CreateReleaseRequest req)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_create_release")) {
+      return transport.post(req, Release.class, "/repos/%s/releases", project);
+    }
+  }
+
+
   private RepoException treatGitHubException(GitHubApiException e, String entity)
       throws ValidationException, GitHubApiException {
     if (e.getResponseCode() == ResponseCode.NOT_FOUND) {

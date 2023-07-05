@@ -49,7 +49,6 @@ import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.checks.DescriptionChecker;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.AccessValidationException;
 import com.google.copybara.exception.CannotResolveRevisionException;
@@ -686,7 +685,8 @@ public class GitDestination implements Destination<GitRevision> {
       return writeHook.afterPush(serverResponse, messageInfo, head, originChanges);
     }
 
-    private String addDestinationLabels(MessageInfo messageInfo, String summary) {
+    private String addDestinationLabels(MessageInfo messageInfo, String summary)
+        throws ValidationException {
       ChangeMessage msg = ChangeMessage.parseMessage(summary);
       for (LabelFinder label : messageInfo.labelsToAdd) {
         msg = msg.withNewOrReplacedLabel(label.getName(), label.getSeparator(), label.getValue());
@@ -743,9 +743,9 @@ public class GitDestination implements Destination<GitRevision> {
       String tagName = null;
       String tagMsg = null;
       try {
-        tagName = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagNameTemplate);
+        tagName = LabelFinder.mapLabels(transformResult.getLabelFinder(), tagNameTemplate);
         if (tagMsgTemplate != null) {
-          tagMsg = SkylarkUtil.mapLabels(transformResult.getLabelFinder(), tagMsgTemplate);
+          tagMsg = LabelFinder.mapLabels(transformResult.getLabelFinder(), tagMsgTemplate);
         }
       } catch (ValidationException e) {
         console.warnFmt("Get label failed. Error: %s Cause: %s", e.getMessage(), e.getCause());

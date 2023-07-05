@@ -118,6 +118,18 @@ public class TransformWorkTest {
   }
 
   @Test
+  public void testInvalidLabel() throws Exception {
+    TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> work.removeLabel("[invalid]", /* wholeMessage= */ true));
+
+    assertThat(e).hasMessageThat().isEqualTo("Label '[invalid]' is not a valid label");
+  }
+
+  @Test
   public void testAddHiddenLabel() throws Exception {
     TransformWork work = create("Foo\n\nSOME=TEST\n");
     ExplicitReversal t = skylark.eval("t", ""
@@ -365,13 +377,27 @@ public class TransformWorkTest {
    }
 
   @Test
-  public void testReversable() {
+  public void testReversible() throws ValidationException {
     TransformWork work = create("Foo\n\nSOME=TEST\nOTHER=FOO\n");
     work.addOrReplaceLabel("EXAMPLE", "VALUE", "=");
     work.replaceLabel("EXAMPLE", "OTHER VALUE", "=", true);
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\nEXAMPLE=OTHER VALUE\n");
     work.removeLabel("EXAMPLE", /*wholeMessage=*/true);
     assertThat(work.getMessage()).isEqualTo("Foo\n\nSOME=TEST\nOTHER=FOO\n");
+  }
+
+  @Test
+  public void testGetLabelFromCurrentRev_whenNoChangesMigrated() {
+    TransformWork work =
+        create("Foo :)")
+            .withChanges(new Changes(ImmutableList.of(), ImmutableList.of()))
+            .withCurrentRev(
+                new DummyRevision("foo")
+                    .withLabels(ImmutableListMultimap.of("CURRENT_VERSION", "1")))
+            .withResolvedReference(
+                new DummyRevision("foo")
+                    .withLabels(ImmutableListMultimap.of("CURRENT_VERSION", "2")));
+    assertThat(work.getLabel("CURRENT_VERSION")).isEqualTo("1");
   }
 
   @Test

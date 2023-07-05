@@ -65,6 +65,7 @@
     - [feedback.finish_hook_context.record_effect](#feedbackfinish_hook_contextrecord_effect)
     - [feedback.finish_hook_context.success](#feedbackfinish_hook_contextsuccess)
   - [feedback.revision_context](#feedbackrevision_context)
+    - [feedback.revision_context.fill_template](#feedbackrevision_contextfill_template)
   - [filter_replace](#filter_replace)
   - [folder](#folder)
     - [folder.destination](#folderdestination)
@@ -72,6 +73,7 @@
   - [format](#format)
     - [format.buildifier](#formatbuildifier)
   - [gerrit_api_obj](#gerrit_api_obj)
+    - [gerrit_api_obj.abandon_change](#gerrit_api_objabandon_change)
     - [gerrit_api_obj.delete_vote](#gerrit_api_objdelete_vote)
     - [gerrit_api_obj.get_actions](#gerrit_api_objget_actions)
     - [gerrit_api_obj.get_change](#gerrit_api_objget_change)
@@ -127,6 +129,7 @@
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_objadd_label)
     - [github_api_obj.create_issue](#github_api_objcreate_issue)
+    - [github_api_obj.create_release](#github_api_objcreate_release)
     - [github_api_obj.create_status](#github_api_objcreate_status)
     - [github_api_obj.delete_reference](#github_api_objdelete_reference)
     - [github_api_obj.get_authenticated_user](#github_api_objget_authenticated_user)
@@ -141,6 +144,7 @@
     - [github_api_obj.list_issue_comments](#github_api_objlist_issue_comments)
     - [github_api_obj.new_destination_ref](#github_api_objnew_destination_ref)
     - [github_api_obj.new_origin_ref](#github_api_objnew_origin_ref)
+    - [github_api_obj.new_release_request](#github_api_objnew_release_request)
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
     - [github_api_obj.update_pull_request](#github_api_objupdate_pull_request)
     - [github_api_obj.update_reference](#github_api_objupdate_reference)
@@ -198,6 +202,8 @@
   - [remotefiles](#remotefiles)
     - [remotefiles.github_archive](#remotefilesgithub_archive)
     - [remotefiles.origin](#remotefilesorigin)
+  - [rust_version_requirement](#rust_version_requirement)
+    - [rust_version_requirement.fulfills](#rust_version_requirementfulfills)
   - [SetReviewInput](#setreviewinput)
   - [struct](#struct)
     - [struct](#struct)
@@ -205,6 +211,7 @@
     - [toml.parse](#tomlparse)
   - [TomlContent](#tomlcontent)
     - [TomlContent.get](#tomlcontentget)
+    - [TomlContent.get_or_default](#tomlcontentget_or_default)
   - [transformation](#transformation)
   - [transformation_status](#transformation_status)
   - [TransformWork](#transformwork)
@@ -215,6 +222,7 @@
     - [ctx.destination_api](#ctxdestination_api)
     - [ctx.destination_info](#ctxdestination_info)
     - [ctx.destination_reader](#ctxdestination_reader)
+    - [ctx.fill_template](#ctxfill_template)
     - [ctx.find_all_labels](#ctxfind_all_labels)
     - [ctx.find_label](#ctxfind_label)
     - [ctx.list](#ctxlist)
@@ -644,6 +652,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
 <span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
+<span style="white-space: nowrap;">`--noprompt`</span> | *boolean* | Don't prompt, this will answer all prompts with 'yes'
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
 <span style="white-space: nowrap;">`--repo-timeout`</span> | *duration* | Repository operation timeout duration.  Example values: 30s, 20m, 1h, etc.
@@ -1119,7 +1128,7 @@ paths | [`glob`](#glob) or `NoneType`<br><p>A glob expression relative to the wo
 first_only | `bool`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline | `bool`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups | `bool`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Note that this works by comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may not be used to determine whether or not to apply a transformation. For example, a before='/foo', ignore=['/foo/bar'] approach will not work; the before text must contain a regex group capturing the portion after /foo if it is used in an ignore sequence.</p>
+ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Note that `ignore` is matched to the whole file, not just the parts that match `before` comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may be used to determine whether or not to apply a transformation.</p>
 
 
 #### Examples:
@@ -1380,7 +1389,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, autopatch_config=None, migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1406,6 +1415,7 @@ set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the des
 smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
 merge_import | `bool`<br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
 autopatch_config | [`core.autopatch_config`](#coreautopatch_config) or `NoneType`<br><p>Configuration that describes the setting for automatic patch file generation</p>
+after_merge_transformations | `sequence`<br><p>Perform these transformations after merge_import, but before Copybara writes to the destination. Ex: any BUILD file generations that rely on the results of merge_import</p>
 migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
 experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
@@ -1442,6 +1452,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--threads-for-merge-import`</span> | *int* | Number of threads to use for executing the diff tool for the merge import mode.
 <span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
 <span style="white-space: nowrap;">`--to-folder`</span> | *boolean* | Sometimes a user wants to test what the outcome would be for a workflow without changing the configuration or adding an auxiliary testing workflow. This flags allowsto change an existing workflow to use folder.destination
+<span style="white-space: nowrap;">`--use-reverse-patch-baseline`</span> | *boolean* | Reverse apply the existing patch files in the destination to obtain a baseline for merge import. This requires line numbers and file names to be present in the patches. This patch handling process correctly represents changes introduced by copybara config edits as origin changes.
 <span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity
 
 
@@ -1775,6 +1786,35 @@ Name | Description
 ---- | -----------
 labels | `dict[string, sequence of string]`<br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
 
+<a id="feedback.revision_context.fill_template" aria-hidden="true"></a>
+### feedback.revision_context.fill_template
+
+Replaces variables in templates with the values from this revision.
+
+`string` `feedback.revision_context.fill_template(template)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+template | `string`<br><p>The template to use</p>
+
+
+#### Example:
+
+
+##### Use the SHA1 in a string:
+
+Create a custom transformation which is successful.
+
+```python
+filled_template = revision.fill_template('Current Revision: ${GIT_SHORT_SHA1}')
+```
+
+filled_template will contain (for example) 'Current Revision: abcdef12'
+
+
 
 
 ## filter_replace
@@ -1904,6 +1944,20 @@ Gerrit API endpoint implementation for feedback migrations and after migration h
 Name | Description
 ---- | -----------
 url | `string`<br><p>Return the URL of this endpoint.</p>
+
+<a id="gerrit_api_obj.abandon_change" aria-hidden="true"></a>
+### gerrit_api_obj.abandon_change
+
+Abandon a Gerrit change.
+
+[`gerritapi.ChangeInfo`](#gerritapichangeinfo) `gerrit_api_obj.abandon_change(change_id)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+change_id | `string`<br><p>The Gerrit change id.</p>
 
 <a id="gerrit_api_obj.delete_vote" aria-hidden="true"></a>
 ### gerrit_api_obj.delete_vote
@@ -2316,7 +2370,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API operations.
 
-`endpoint_provider` `git.gerrit_api(url, checker=None)`
+`endpoint_provider` `git.gerrit_api(url, checker=None, allow_submit=False)`
 
 
 #### Parameters:
@@ -2325,6 +2379,7 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport.</p>
+allow_submit | `bool`<br><p>Enable the submit_change method</p>
 
 
 
@@ -2429,7 +2484,7 @@ primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the '
 
 Defines a feedback trigger based on updates on a Gerrit change.
 
-`trigger` `git.gerrit_trigger(url, checker=None, events=[])`
+`trigger` `git.gerrit_trigger(url, checker=None, events=[], allow_submit=False)`
 
 
 #### Parameters:
@@ -2439,6 +2494,7 @@ Parameter | Description
 url | `string`<br><p>Indicates the Gerrit repo URL.</p>
 checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API transport provided by this trigger.</p>
 events | `sequence of string` or `dict of sequence` or `NoneType`<br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
+allow_submit | `bool`<br><p>Enable the submit_change method in the endpoint provided</p>
 
 
 
@@ -2782,7 +2838,7 @@ refspec_groups | `dict`<br><p>A set of named regexes that can be used to match p
 
 Mirror git references between repositories
 
-`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None)`
+`git.mirror(name, origin, destination, refspecs=['refs/heads/*'], prune=False, partial_fetch=False, description=None, actions=[], action=None, origin_checker=None, destination_checker=None)`
 
 
 #### Parameters:
@@ -2798,6 +2854,8 @@ partial_fetch | `bool`<br><p>This is an experimental feature that only works for
 description | `string` or `NoneType`<br><p>A description of what this migration achieves</p>
 actions | `sequence`<br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 action | `unknown`<br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
+origin_checker | `checker` or `NoneType`<br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
+destination_checker | `checker` or `NoneType`<br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
@@ -2863,6 +2921,8 @@ Name | Description
 action_name | `string`<br><p>The name of the current action.</p>
 cli_labels | `dict[string, string]`<br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | [`Console`](#console)<br><p>Get an instance of the console to report errors or warnings</p>
+destination_api | [`endpoint`](#endpoint)<br><p>Returns a handle to platform specific api, inferred from the destination url when possible.</p>
+origin_api | [`endpoint`](#endpoint)<br><p>Returns a handle to platform specific api, inferred from the origin url when possible.</p>
 params | `dict`<br><p>Parameters for the function if created with core.action</p>
 refs | `sequence`<br><p>A list containing string representations of the entities that triggered the event</p>
 
@@ -3109,6 +3169,20 @@ title | `string`<br><p>Title of the issue</p>
 body | `string`<br><p>Body of the issue.</p>
 assignees | `sequence`<br><p>GitHub users to whom the issue will be assigned.</p>
 
+<a id="github_api_obj.create_release" aria-hidden="true"></a>
+### github_api_obj.create_release
+
+Create a new GitHub release.
+
+`github_release_obj` `github_api_obj.create_release(request)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+request | `github_create_release_obj`<br><p>The populated release object. See new_release_request.</p>
+
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
 ### github_api_obj.create_status
 
@@ -3300,6 +3374,33 @@ Creates a new origin reference out of this endpoint.
 Parameter | Description
 --------- | -----------
 ref | `string`<br><p>The reference.</p>
+
+<a id="github_api_obj.new_release_request" aria-hidden="true"></a>
+### github_api_obj.new_release_request
+
+Create a handle for creating a new release.
+
+`github_create_release_obj` `github_api_obj.new_release_request(tag_name)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+tag_name | `string`<br><p>The git tag to use for the release.</p>
+
+
+#### Example:
+
+
+##### Create a new release request.:
+
+After uploading a new commit
+
+```python
+endpoint.new_release_request(tag_name='v1.0.2').with_name('1.0.2')
+```
+
 
 <a id="github_api_obj.post_issue_comment" aria-hidden="true"></a>
 ### github_api_obj.post_issue_comment
@@ -4694,6 +4795,26 @@ Name | Type | Description
 
 
 
+## rust_version_requirement
+
+Represents a Cargo version requirement.
+
+<a id="rust_version_requirement.fulfills" aria-hidden="true"></a>
+### rust_version_requirement.fulfills
+
+Given a semantic version string, returns true if the version fulfills this version requirement.
+
+`bool` `rust_version_requirement.fulfills(fulfills)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+fulfills | `string`<br><p>The version requirement</p>
+
+
+
 ## SetReviewInput
 
 Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#review-input
@@ -4788,6 +4909,34 @@ Pass in the name of the key. This will return the value.
 
 ```python
 TomlContent.get("foo")
+```
+
+
+<a id="TomlContent.get_or_default" aria-hidden="true"></a>
+### TomlContent.get_or_default
+
+Retrieve the value from the parsed TOML for the given key. If the key is not defined, this will return the default value.
+
+`unknown` `TomlContent.get_or_default(key, default)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+key | `string`<br><p>The dotted key expression</p>
+default | `unknown`<br><p>The default value to return if the key isn't found.</p>
+
+
+#### Example:
+
+
+##### Get the value for a key, with a default value:
+
+Pass in the name of the key. This will return the value.
+
+```python
+TomlContent.get_or_default("foo", "bar")
 ```
 
 
@@ -4910,6 +5059,35 @@ Returns an object to store additional configuration and data for the destination
 Returns a handle to read files from the destination, if supported by the destination.
 
 [`destination_reader`](#destination_reader) `ctx.destination_reader()`
+
+<a id="ctx.fill_template" aria-hidden="true"></a>
+### ctx.fill_template
+
+Replaces variables in templates with the values from this revision.
+
+`string` `ctx.fill_template(template)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+template | `string`<br><p>The template to use</p>
+
+
+#### Example:
+
+
+##### Use the SHA1 in a string:
+
+Create a custom transformation which is successful.
+
+```python
+filled_template = ctx.fill_template('Current Revision: ${GIT_SHORT_SHA1}')
+```
+
+filled_template will contain (for example) 'Current Revision: abcdef12'
+
 
 <a id="ctx.find_all_labels" aria-hidden="true"></a>
 ### ctx.find_all_labels

@@ -69,9 +69,15 @@ public final class Input<T> {
    * Create an Input object that can only be inferred, never asked to the user.
    */
   public static <T> Input<T> createInfer(String name, String description, @Nullable T defaultValue,
-      Class<T> type, Converter<? extends T> converter) {
+      Class<T> type) {
 
-    Input<T> result = new Input<>(name, description, defaultValue, type, converter, true);
+    Input<T> result = new Input<>(name, description, defaultValue, type,
+        (value, resolver) -> {
+          throw new CannotConvertException(
+              String.format(
+                  "Input of type '%s' (%s) could not be inferred. Cannot convert user input: %s",
+                  name, description, value));
+        }, true);
     if (INPUTS.put(name, result) != null) {
       throw new IllegalStateException("Two calls for the same Input name '" + name + "'");
     }

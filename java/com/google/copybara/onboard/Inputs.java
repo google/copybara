@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformations;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.Converter;
 import com.google.copybara.onboard.core.Input;
@@ -62,6 +63,18 @@ public class Inputs {
       "git_destination_url", "Git URL to serve as origin repository",
       null, URL.class, URL_CONVERTER);
 
+  /** Should be accessed as optional. As it can only be inferred */
+  public static final Input<GeneratorTransformations> TRANSFORMATIONS = Input.createInfer(
+      "transformations", "`core.move`s and other transformations",
+      null, GeneratorTransformations.class);
+
+  public static final Input<Boolean> NEW_PACKAGE =
+      Input.createInfer(
+          "new_package",
+          "Whether or not this package already exists in third_party",
+          null,
+          Boolean.class);
+
   public static final Input<Glob> ORIGIN_GLOB =
       Input.create(
           "origin_glob",
@@ -101,6 +114,14 @@ public class Inputs {
   public static final Input<String> MIGRATION_NAME = Input.create(
       "migration_name", "Migration name",
       null, String.class, (s, resolver) -> s);
+
+  public static final Input<String> PACKAGE_NAME =
+      Input.create(
+          "package_name",
+          "The name of the package to import",
+          null,
+          String.class,
+          (value, resolver) -> value);
 
   public static final Input<ConfigGenerator> TEMPLATE = Input.create(
       "template_name", "Template to use for generating the config",

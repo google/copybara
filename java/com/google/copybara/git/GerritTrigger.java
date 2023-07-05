@@ -36,30 +36,35 @@ public class GerritTrigger implements Trigger {
   private final String url;
   private final ImmutableSet<GerritEventTrigger> events;
   private final Console console;
-
+  private final boolean allowSubmitChange;
+  
   GerritTrigger(
       LazyResourceLoader<GerritApi> apiSupplier,
       String url,
       ImmutableSet<GerritEventTrigger> events,
-      Console console) {
+      Console console,
+      boolean allowSubmitChange) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.events = Preconditions.checkNotNull(events);
     this.console = console;
+    this.allowSubmitChange = allowSubmitChange;
   }
 
   @Override
   public Endpoint getEndpoint() {
-    return new GerritEndpoint(apiSupplier, url, console);
+    return new GerritEndpoint(apiSupplier, url, console, allowSubmitChange);
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
     ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
-    builder.put("type", "gerrit_trigger");
-    builder.put("url", url);
-    builder.putAll("events",
+    builder.put("type", "gerrit_trigger")
+        .put("url", url)
+        .put("gerritSubmit", "" + allowSubmitChange)
+        .putAll("events",
         events.stream().map(s -> s.type().name()).collect(Collectors.toList()));
+
     for (GerritEventTrigger trigger : events) {
       if (trigger.subtypes().isEmpty()) {
         continue;

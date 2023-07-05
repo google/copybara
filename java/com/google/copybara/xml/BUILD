@@ -21,7 +21,7 @@ java_library(
     srcs = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/doc:annotations",  # Used for doc generation
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//third_party:starlark",
     ],

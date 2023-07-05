@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.GeneralOptions.OUTPUT_ROOT_FLAG;
 import static com.google.copybara.TransformWork.COPYBARA_CONFIG_PATH_LABEL;
 import static com.google.copybara.TransformWork.COPYBARA_WORKFLOW_NAME_LABEL;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.util.FileUtil.CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
 
 import com.google.common.base.Joiner;
@@ -66,6 +67,7 @@ import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -717,70 +719,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
-      Path preMergeImportWorkdir;
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
-        Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
-        destinationReader
-            .get()
-            .copyDestinationFilesToDirectory(
-                workflow.getDestinationFiles(), destinationFilesWorkdir);
-        Path baselineWorkdir =
-            checkoutBaselineAndTransform(
-                lastRev,
-                metadata,
-                changes,
-                originBaselineForPrune,
-                console,
-                originApi,
-                destinationApi,
-                destinationReader);
-
-        preMergeImportWorkdir = Files.createDirectories(workdir.resolve("premerge"));
-        FileUtil.copyFilesRecursively(
+        runMergeImport(
+            console,
+            destinationReader.get(),
             checkoutDir,
-            preMergeImportWorkdir,
-            CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
-            Glob.ALL_FILES);
-        MergeImportTool mergeImportTool =
-            new MergeImportTool(
-                console,
-                new CommandLineDiffUtil(
-                    workflow.getGeneralOptions().getDiffBin(),
-                    workflow.getGeneralOptions().getEnvironment()),
-                workflow.getWorkflowOptions().threadsForMergeImport);
-        try (ProfilerTask ignored = profiler().start("merge_tool")) {
-          mergeImportTool.mergeImport(
-              checkoutDir,
-              destinationFilesWorkdir,
-              baselineWorkdir,
-              Files.createDirectories(workdir.resolve("merge_import")));
-        }
-        if (workflow.getAutoPatchfileConfiguration() != null) {
-          try {
-            AutoPatchUtil.generatePatchFiles(
-                preMergeImportWorkdir == null ? baselineWorkdir : preMergeImportWorkdir,
-                preMergeImportWorkdir == null ? destinationFilesWorkdir : checkoutDir,
-                Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
-                workflow.getAutoPatchfileConfiguration().directory(),
-                workflow.isVerbose(),
-                workflow.getGeneralOptions().getEnvironment(),
-                workflow.getAutoPatchfileConfiguration().header(),
-                workflow.getAutoPatchfileConfiguration().suffix(),
-                checkoutDir,
-                workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers(),
-                workflow.getAutoPatchfileConfiguration().glob());
-          } catch (InsideGitDirException e) {
-            console.errorFmt(
-                "Could not automatically generate patch files. Error received is %s",
-                e.getMessage());
-            throw new ValidationException("Error automatically generating patch files", e);
-          }
-        }
+            lastRev,
+            metadata,
+            changes,
+            originBaselineForPrune,
+            originApi,
+            destinationApi,
+            transformWork);
       }
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
         if (workflow.isSmartPrune() && workflow.getWorkflowOptions().canUseSmartPrune()) {
-          ValidationException.checkCondition(destinationBaseline.getOriginRevision() != null,
+          checkCondition(
+              destinationBaseline.getOriginRevision() != null,
               "smart_prune is not compatible with %s flag for now",
               WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG);
           Path baselineWorkdir =
@@ -820,6 +776,113 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Verify
           .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
       return result;
+    }
+
+    private void runMergeImport(
+        Console console,
+        DestinationReader reader,
+        Path checkoutDir,
+        O lastRev,
+        Metadata metadata,
+        Changes changes,
+        O originBaselineForPrune,
+        LazyResourceLoader<Endpoint> originApi,
+        LazyResourceLoader<Endpoint> destinationApi,
+        TransformWork transformWork)
+        throws IOException, ValidationException, RepoException {
+      Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
+      reader.copyDestinationFilesToDirectory(
+          workflow.getDestinationFiles(), destinationFilesWorkdir);
+      Path baselineWorkdir;
+      if (workflow.isUseReversePatchBaseline()) {
+        baselineWorkdir =
+            checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
+      } else {
+        baselineWorkdir =
+            checkoutBaselineAndTransform(
+                lastRev,
+                metadata,
+                changes,
+                originBaselineForPrune,
+                console,
+                originApi,
+                destinationApi,
+                () -> reader);
+      }
+
+      Path preMergeImportWorkdir = Files.createDirectories(workdir.resolve("premerge"));
+      FileUtil.copyFilesRecursively(
+          checkoutDir,
+          preMergeImportWorkdir,
+          CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
+          Glob.ALL_FILES);
+      Pattern debugPattern =
+          workflow.getWorkflowOptions().debugMergeImport != null
+              ? Pattern.compile(workflow.getWorkflowOptions().debugMergeImport)
+              : null;
+      MergeImportTool mergeImportTool =
+          new MergeImportTool(
+              console,
+              new CommandLineDiffUtil(
+                  workflow.getGeneralOptions().getDiffBin(),
+                  workflow.getGeneralOptions().getEnvironment(),
+                  debugPattern),
+              workflow.getWorkflowOptions().threadsForMergeImport,
+              debugPattern);
+      try (ProfilerTask ignored = profiler().start("merge_tool")) {
+        mergeImportTool.mergeImport(
+            checkoutDir,
+            destinationFilesWorkdir,
+            baselineWorkdir,
+            Files.createDirectories(workdir.resolve("merge_import")));
+      }
+      try (ProfilerTask ignore = profiler().start("after_merge_transformations")) {
+        workflow.afterMergeTransformations.transform(transformWork);
+      }
+      if (workflow.getAutoPatchfileConfiguration() != null) {
+        try {
+          AutoPatchUtil.generatePatchFiles(
+              preMergeImportWorkdir == null ? baselineWorkdir : preMergeImportWorkdir,
+              preMergeImportWorkdir == null ? destinationFilesWorkdir : checkoutDir,
+              Path.of(workflow.getAutoPatchfileConfiguration().directoryPrefix()),
+              workflow.getAutoPatchfileConfiguration().directory(),
+              workflow.isVerbose(),
+              workflow.getGeneralOptions().getEnvironment(),
+              workflow.getAutoPatchfileConfiguration().header(),
+              workflow.getAutoPatchfileConfiguration().suffix(),
+              checkoutDir,
+              workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers(),
+              workflow.getAutoPatchfileConfiguration().glob());
+        } catch (InsideGitDirException e) {
+          console.errorFmt(
+              "Could not automatically generate patch files. Error received is %s", e.getMessage());
+          throw new ValidationException("Error automatically generating patch files", e);
+        }
+      }
+    }
+
+    private Path checkoutReversePatchBaseline(
+        DestinationReader reader, @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration)
+        throws ValidationException, IOException, RepoException {
+      checkCondition(
+          autoPatchfileConfiguration != null,
+          "auto patch configuration is required for reversing patch files");
+      // copy the current destination files to the baseline directory
+      Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
+      reader.copyDestinationFilesToDirectory(workflow.getDestinationFiles(), baselineWorkdir);
+
+      // copy the autopatch files from the destination to a separate directory
+      Path autopatchWorkdir = Files.createDirectories(workdir.resolve("autopatch"));
+      Glob autopatchGlob =
+          AutoPatchUtil.getAutopatchGlob(
+              autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory());
+      reader.copyDestinationFilesToDirectory(autopatchGlob, autopatchWorkdir);
+
+      // reverse apply the patchfiles ot the baseline directory
+      AutoPatchUtil.reversePatchFiles(
+          baselineWorkdir, autopatchWorkdir, autoPatchfileConfiguration.suffix());
+
+      return baselineWorkdir;
     }
 
     private Path checkoutBaselineAndTransform(
@@ -865,7 +928,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       console.warnFmt("No-op detected, this could happen for several reasons:\n\n"
               + "    - origin_files doesn't include the files. Current origin_files: %s\n\n"
               + "    - Previous transformations didn't do what you were expecting. You can"
-              + "      inspect the work directory state (if run locally) at %s\n\n"
+              + " inspect the work directory state (if run locally) at %s\n\n"
               + "    - Current version of the config doesn't work for an older (or newer)"
               + " revision being migrated. This can be fixed by either wrapping the failing"
               + " transformation with %s"

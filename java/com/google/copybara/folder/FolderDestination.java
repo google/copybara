@@ -115,7 +115,11 @@ public class FolderDestination implements Destination<Revision> {
         throw e;
       }
       console.progress("FolderDestination: Deleting destination files in " + localFolder);
-      FileUtil.deleteFilesRecursively(localFolder, destinationFiles.relativeTo(localFolder));
+      int numDeletedFiles = FileUtil.deleteFilesRecursively(localFolder, destinationFiles);
+      console.info(
+          String.format(
+              "FolderDestination: Deleted %d existing destination files in %s",
+              numDeletedFiles, localFolder));
 
       console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
       FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder,

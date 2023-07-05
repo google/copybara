@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,8 +54,8 @@ public final class MergeImportToolTest {
     baselineWorkdir = createDir(rootPath, "baseline");
     diffToolWorkdir = createDir(rootPath, "diffTool");
     console = new TestingConsole();
-    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null);
-    underTest = new MergeImportTool(console, commandLineDiffUtil, 10);
+    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null, null);
+    underTest = new MergeImportTool(console, commandLineDiffUtil, 10, null);
   }
 
   @Test
@@ -68,6 +69,32 @@ public final class MergeImportToolTest {
     underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
 
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
+        .isEqualTo("foo\n".concat(commonFileContents).concat("bar\n"));
+  }
+
+  @Test
+  public void testMergeDebug() throws Exception {
+    Pattern p = Pattern.compile(".*foo.txt");
+    commandLineDiffUtil = new CommandLineDiffUtil(DIFF3_BIN, null, p);
+    underTest = new MergeImportTool(console, commandLineDiffUtil, 10, p);
+
+    String commonFileContents = "a\nb\nc\n";
+    writeFile(baselineWorkdir, "foo.txt", commonFileContents);
+    writeFile(originWorkdir, "foo.txt", "foo\n".concat(commonFileContents));
+    writeFile(destinationWorkdir, "foo.txt", commonFileContents.concat("bar\n"));
+
+    writeFile(baselineWorkdir, "bar.txt", commonFileContents);
+    writeFile(originWorkdir, "bar.txt", "foo\n".concat(commonFileContents));
+    writeFile(destinationWorkdir, "bar.txt", commonFileContents.concat("bar\n"));
+
+    underTest.mergeImport(originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir);
+
+    console.assertThat().timesInLog(3, MessageType.VERBOSE, "MERGE_DEBUG.*foo.txt.*");
+    console.assertThat().timesInLog(0, MessageType.VERBOSE, "MERGE_DEBUG.*bar.txt.*");
+
+    assertThat(Files.readString(originWorkdir.resolve("foo.txt")))
+        .isEqualTo("foo\n".concat(commonFileContents).concat("bar\n"));
+    assertThat(Files.readString(originWorkdir.resolve("bar.txt")))
         .isEqualTo("foo\n".concat(commonFileContents).concat("bar\n"));
   }
 

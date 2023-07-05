@@ -42,6 +42,7 @@ java_library(
         ":core",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara:labels",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
@@ -101,8 +102,5 @@ java_library(
     name = "environment",
     srcs = ["GitEnvironment.java"],
     javacopts = JAVACOPTS,
-    deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
-    ],
+    deps = ["//third_party:guava"],
 )

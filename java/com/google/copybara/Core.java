@@ -99,6 +99,7 @@ import net.starlark.java.eval.StarlarkThread.CallStackEntry;
 import net.starlark.java.eval.StarlarkThread.PrintHandler;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.eval.Structure;
+import net.starlark.java.syntax.Location;
 
 /**
  * Main configuration class for creating migrations.
@@ -166,11 +167,21 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       try {
         builder.add(toTransformation(t, "transformations", printHandler).reverse());
       } catch (NonReversibleValidationException e) {
-        throw Starlark.errorf("%s", e.getMessage());
+        throw Starlark.errorf("%s at %s", e.getMessage(), getLocation(t));
       }
     }
 
     return StarlarkList.immutableCopyOf(builder.build().reverse());
+  }
+
+  private Location getLocation(Object transformationOrCallable) {
+    if (transformationOrCallable instanceof StarlarkCallable) {
+      return ((StarlarkCallable) transformationOrCallable).getLocation();
+    }
+    if (transformationOrCallable instanceof Transformation) {
+      return ((Transformation) transformationOrCallable).location();
+    }
+    return Location.BUILTIN;
   }
 
   @SuppressWarnings({"unused", "unchecked"})
@@ -406,6 +417,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "None"),
         @Param(
+            name = "after_merge_transformations",
+            named = true,
+            doc =
+                "Perform these transformations after merge_import, but before Copybara writes to"
+                    + " the destination. Ex: any BUILD file generations that rely on the results of"
+                    + " merge_import",
+            positional = false,
+            defaultValue = "[]"),
+        @Param(
             name = "migrate_noop_changes",
             named = true,
             doc =
@@ -485,6 +505,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean smartPrune,
       Boolean mergeImport,
       Object autoPatchFileConfigurationObj,
+      net.starlark.java.eval.Sequence<?> afterMergeTransformations,
       Boolean migrateNoopChanges,
       Object customRevIdField,
       Object description,
@@ -592,12 +613,26 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             setRevId,
             smartPrune,
             mergeImport,
+            workflowOptions.useReversePatchBaseline,
             autoPatchfileConfiguration,
+            asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
+  }
+
+  private Sequence asSingleTransform(net.starlark.java.eval.Sequence<?> transformations)
+      throws EvalException {
+    return Sequence.fromConfig(
+        generalOptions.profiler(),
+        workflowOptions,
+        transformations,
+        "transformations",
+        printHandler,
+        debugOptions::transformWrapper,
+        Sequence.NoopBehavior.NOOP_IF_ANY_NOOP);
   }
 
   private static ImmutableList<Token> getChangeIdentity(Object changeIdentityObj)
@@ -926,13 +961,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "ignore",
             named = true,
             doc =
-                "A set of regexes. Any line that matches any expression in this set, which"
-                    + " might otherwise be transformed, will be ignored. Note that this works by"
-                    + " comparing the to-be-transformed string to the ignore regexes, meaning text"
-                    + " outside the transform may not be used to determine whether or not to apply"
-                    + " a transformation. For example, a before='/foo', ignore=['/foo/bar']"
-                    + " approach will not work; the before text must contain a regex group"
-                    + " capturing the portion after /foo if it is used in an ignore sequence.",
+                "A set of regexes. Any line that matches any expression in this set, which might"
+                    + " otherwise be transformed, will be ignored. Note that `ignore` is matched to"
+                    + " the whole file, not just the parts that match `before` comparing the"
+                    + " to-be-transformed string to the ignore regexes, meaning text outside the"
+                    + " transform may be used to determine whether or not to apply a"
+                    + " transformation.",
             defaultValue = "[]"),
       },
       useStarlarkThread = true)
@@ -1763,13 +1797,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             convertFromNoneable(description, null),
             mainConfigFile,
             trigger,
-            new StructImpl(ImmutableMap.of(
-                "destination", destination.getEndpoint()
-            )),
+            new StructImpl(ImmutableMap.of("destination", destination.getEndpoint())),
             handleActionActionsMigration(actionList, action),
             generalOptions,
             "feedback",
-            /*filesystem=*/ false);
+            /* fileSystem= */ false);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, migration, module);
     return Starlark.NONE;

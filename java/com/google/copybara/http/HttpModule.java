@@ -27,6 +27,7 @@ import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.multipart.FilePart;
 import com.google.copybara.http.multipart.HttpEndpointFormPart;
 import com.google.copybara.http.multipart.HttpEndpointMultipartFormContent;
+import com.google.copybara.http.multipart.HttpEndpointUrlEncodedFormContent;
 import com.google.copybara.http.multipart.TextPart;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
@@ -34,6 +35,7 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
@@ -58,6 +60,20 @@ public class HttpModule implements StarlarkValue {
       parameters = {@Param(name = "host", named = true)})
   public EndpointProvider<HttpEndpoint> endpoint(String host) throws ValidationException {
     return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), host));
+  }
+
+  @StarlarkMethod(
+      name = "urlencoded_form",
+      doc = "Creates a url-encoded form HTTP body.",
+      parameters = {
+        @Param(
+            name = "body",
+            doc = "HTTP body object, property name will be used as key and value as value.",
+            allowedTypes = {@ParamType(type = Dict.class)},
+            defaultValue = "{}"),
+      })
+  public HttpEndpointUrlEncodedFormContent urlEncodedFormContent(Object body) {
+    return new HttpEndpointUrlEncodedFormContent(body);
   }
 
   @StarlarkMethod(

@@ -113,7 +113,9 @@ public class GeneratorCmd implements CopybaraCmd {
     BuildifierOptions buildifierOptions = commandEnv.getOptions().get(BuildifierOptions.class);
     Command cmd =
         new Command(
-            new String[] {buildifierOptions.buildifierBin, "-type=bzl", config.toString()},
+            new String[] {
+              buildifierOptions.buildifierBin, "-type=bzl", config.toAbsolutePath().toString()
+            },
             /* environmentVariables= */ null,
             config.getParent().toFile());
     try {

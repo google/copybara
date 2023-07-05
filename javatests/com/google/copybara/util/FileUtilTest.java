@@ -323,4 +323,17 @@ public class FileUtilTest {
     verify(validator).validate(ArgumentMatchers.eq(one.resolve("foo/include.txt")));
     verifyNoMoreInteractions(validator);
    }
+
+  @Test
+  public void testDeleteRecursively_withGlob() throws Exception {
+    touch(temp.resolve("foo/include.txt"));
+    touch(temp.resolve("foo/exclude.txt"));
+    touch(temp.resolve("other.txt"));
+
+    int numDeleted =
+        FileUtil.deleteFilesRecursively(
+            temp, Glob.createGlob(ImmutableList.of("foo/**"), ImmutableList.of("foo/exclude.txt")));
+    assertThat(numDeleted).isEqualTo(1);
+    assertThatPath(temp).containsFiles("foo/exclude.txt", "other.txt").containsNoMoreFiles();
+  }
 }

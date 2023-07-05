@@ -63,6 +63,35 @@ public final class VerifyMatchTest {
     transform(transformation);
   }
 
+  /**
+   * We should be able to verify files that are not valid UTF-8 (e.g a PDF file because the user
+   * used glob(["**"]) without failing because of bad UTF-8.
+   */
+  @Test
+  public void testInvalidUTF8() throws Exception {
+    VerifyMatch transformation = eval(""
+        + "core.verify_match(\n"
+        + "  regex = 'foo',\n"
+        + "  verify_no_match = True,\n"
+        + ")");
+
+    Path f = checkoutDir.resolve("file1.txt");
+    Files.write(f, new byte[]{(byte) 0xe2, 0x28, (byte) 0xa1});
+    transform(transformation);
+  }
+
+  @Test
+  public void testInvalidUTF8_still_matchs() throws Exception {
+    VerifyMatch transformation = eval(""
+        + "core.verify_match(\n"
+        + "  regex = 'foo',\n"
+        + ")");
+
+    Path f = checkoutDir.resolve("file1.txt");
+    Files.write(f, new byte[]{(byte) 0xe2, 0x28, (byte) 0xa1, 'f', 'o', 'o'});
+    transform(transformation);
+  }
+
   @Test
   public void testSimpleMatchVerifyNoMatchPasses() throws Exception {
     VerifyMatch transformation = eval("core.verify_match(\n"
@@ -139,7 +168,24 @@ public final class VerifyMatchTest {
         .onceInLog(
             MessageType.ERROR,
             ".*Error validating 'verify_match 'foo'': file1.txt - Unexpected match found at"
-                + " char 0 - 'foo'..*");
+                + " line 1 - 'foo'..*");
+  }
+
+  @Test
+  public void testNoMatchMultiline() throws Exception {
+    VerifyMatch transformation = eval("core.verify_match(\n"
+        + "  regex = 'foo',\n"
+        + "  verify_no_match = True,\n"
+        + ")");
+    Path file1 = checkoutDir.resolve("file1.txt");
+    writeFile(file1, "bar\n\nfoo\nbar\nother\n");
+    assertThrows(ValidationException.class, () -> transform(transformation));
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
+            ".*Error validating 'verify_match 'foo'': file1.txt - Unexpected match found at"
+                + " line 3 - 'foo'..*");
   }
 
   @Test

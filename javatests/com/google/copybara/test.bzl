@@ -16,7 +16,7 @@
 This file contains macros used in the copybara project.
 """
 
-def all_tests(tests, deps, name = "all_tests", tags = [], shard_count = 1, data = [], env = {}):
+def all_tests(tests, deps, name, tags = [], shard_count = 1, data = [], env = {}):
     """
     This macro encapsulates the java_test rules used in the copybara project.
 
@@ -36,8 +36,8 @@ def all_tests(tests, deps, name = "all_tests", tags = [], shard_count = 1, data 
         pos = native.package_name().rfind("javatests/") + len("javatests/")
         test_class = native.package_name()[pos:].replace("/", ".") + "." + suffix
         native.java_test(
-            name = file[:-5],
-            srcs = [file],
+            name = file[:-5] + "_" + name,
+            srcs = tests,
             javacopts = [
                 "-Xlint:unchecked",
                 "-Xep:FutureReturnValueIgnored:OFF",

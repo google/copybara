@@ -651,4 +651,27 @@ public class ActionMigrationTest {
         .hasMessageThat().contains(
             "Temporarily core.action_migration only supports one endpoint called destination");
   }
+
+  @Test
+  public void testActionMigration_noopNullMsgDoesNotNPE() throws Exception {
+    String config =
+        ""
+            + "def test_action(ctx):\n"
+            + "    return ctx.noop()\n" // no argument for ctx.noop() will return a null messsage
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = testing.dummy_endpoint(),\n"
+            + "    ),"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+    Migration actionMigration = loadConfig(config).getMigration("default");
+
+    // should be an empty change and not null pointer exception
+    assertThrows(
+        EmptyChangeException.class, () -> actionMigration.run(workdir, ImmutableList.of("12345")));
+  }
 }

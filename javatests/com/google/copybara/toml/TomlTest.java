@@ -135,6 +135,36 @@ public class TomlTest {
   }
 
   @Test
+  public void testTomlGetOrDefaultValue_string() throws Exception {
+    String toml = "'foo = \"bar\"'";
+    String key = "doesNotExist";
+    String defaultValue = "'capybara'";
+
+    assertThat((parseTomlOrDefault(String.class, toml, key, defaultValue)))
+        .isEqualTo("capybara");
+  }
+
+  @Test
+  public void testTomlGetOrDefaultValue_int() throws Exception {
+    String toml = "'foo = 1'";
+    String key = "doesNotExist";
+    String defaultValue = "3";
+
+    assertThat((parseTomlOrDefault(StarlarkInt.class, toml, key, defaultValue)))
+        .isEqualTo(StarlarkInt.of(3));
+  }
+
+  @Test
+  public void testTomlGetOrDefaultValue_object() throws Exception {
+    String toml = "'foo = []'";
+    String key = "doesNotExist";
+    String defaultValue = "[\"baz\"]";
+
+    assertThat((parseTomlOrDefault(Iterable.class, toml, key, defaultValue)))
+        .containsExactly("baz");
+  }
+
+  @Test
   public void testKeyDoesNotExist() throws ValidationException {
     NoneType result = parseToml(NoneType.class, "'foo = 42'", "bar");
     assertThat(result).isInstanceOf(NoneType.class);
@@ -159,4 +189,13 @@ public class TomlTest {
     );
   }
 
+  private <T> T parseTomlOrDefault(Class<T> clazz, String content, String key, String defaultValue)
+      throws ValidationException {
+    return clazz.cast(skylark.eval(
+        "x",
+        String.format("toml_content = %s\n"
+                + "toml_result = toml.parse(content = toml_content)\n"
+                + "x = toml_result.get_or_default(key ='%s', default = %s)", content, key,
+            defaultValue)));
+  }
 }

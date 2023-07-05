@@ -271,7 +271,6 @@ public final class TransformWork extends CheckoutFileSystem
     return TransformationStatus.noop(message);
   }
 
-
   @StarlarkMethod(
       name = "add_label",
       doc = "Add a label to the end of the description",
@@ -289,7 +288,8 @@ public final class TransformWork extends CheckoutFileSystem
             positional = false,
             defaultValue = "False"),
       })
-  public void addLabel(String label, String value, String separator, Boolean hidden) {
+  public void addLabel(String label, String value, String separator, boolean hidden)
+      throws ValidationException {
     if (hidden) {
       addHiddenLabels(ImmutableListMultimap.of(label, value));
     } else {
@@ -310,7 +310,8 @@ public final class TransformWork extends CheckoutFileSystem
             doc = "The separator to use for the label",
             defaultValue = "\"=\""),
       })
-  public void addOrReplaceLabel(String label, String value, String separator) {
+  public void addOrReplaceLabel(String label, String value, String separator)
+      throws ValidationException {
     setMessage(ChangeMessage.parseMessage(getMessage())
         .withNewOrReplacedLabel(label, separator, value)
         .toString());
@@ -343,7 +344,8 @@ public final class TransformWork extends CheckoutFileSystem
                     + "make it replace labels in the whole message.",
             defaultValue = "False"),
       })
-  public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage) {
+  public void replaceLabel(String labelName, String value, String separator, Boolean wholeMessage)
+      throws ValidationException {
     setMessage(parseMessage(wholeMessage)
         .withReplacedLabel(labelName, separator, value)
         .toString());
@@ -361,11 +363,12 @@ public final class TransformWork extends CheckoutFileSystem
                     + "make it replace labels in the whole message.",
             defaultValue = "False"),
       })
-  public void removeLabel(String label, Boolean wholeMessage) {
+  public void removeLabel(String label, Boolean wholeMessage) throws ValidationException {
     setMessage(parseMessage(wholeMessage).withRemovedLabelByName(label).toString());
   }
 
-  public void removeLabelWithValue(String label, String value, Boolean wholeMessage) {
+  public void removeLabelWithValue(String label, String value, Boolean wholeMessage)
+      throws ValidationException {
     setMessage(parseMessage(wholeMessage).withRemovedLabelByNameAndValue(label, value).toString());
   }
 
@@ -491,7 +494,8 @@ public final class TransformWork extends CheckoutFileSystem
     // Try to find the label in the current changes migrated. We prioritize current
     // changes over resolvedReference. Since in iterative mode this would be more
     // specific to the current migration.
-    for (Change<?> change : changes.getCurrent()) {
+    Sequence<? extends Change<?>> currentChanges = changes.getCurrent();
+    for (Change<?> change : currentChanges) {
       Sequence<String> val = change.getLabelsAllForSkylark().get(label);
       if (val != null) {
         result.addAll(val);
@@ -502,6 +506,18 @@ public final class TransformWork extends CheckoutFileSystem
       ImmutableList<String> revVal = change.getRevision().associatedLabel(label);
       if (!revVal.isEmpty()) {
         result.addAll(revVal);
+        if (!all) {
+          return StarlarkList.immutableCopyOf(result);
+        }
+      }
+    }
+
+    if (currentChanges.isEmpty() && currentRev != null) {
+      // Find the label in the current revision.
+      // We can get here if --same-version is used, as currentChanges will be empty.
+      ImmutableList<String> currentRevLabel = currentRev.associatedLabels().get(label);
+      if (!currentRevLabel.isEmpty()) {
+        result.addAll(currentRevLabel);
         if (!all) {
           return StarlarkList.immutableCopyOf(result);
         }
@@ -543,6 +559,21 @@ public final class TransformWork extends CheckoutFileSystem
       + " warnings", structField = true)
   public Console getConsole() {
     return console;
+  }
+
+  @StarlarkMethod(
+      name = "fill_template",
+      doc = "Replaces variables in templates with the values from this revision.",
+      parameters = {
+        @Param(name = "template", doc = "The template to use", named = true),
+      })
+  @Example(
+      title = "Use the SHA1 in a string",
+      before = "Create a custom transformation which is successful.",
+      code = "filled_template = ctx.fill_template('Current Revision: ${GIT_SHORT_SHA1}')",
+      after = "filled_template will contain (for example) 'Current Revision: abcdef12'")
+  public String filLTemplate(String template) throws ValidationException {
+    return LabelFinder.mapLabels(this::getAllLabels, template);
   }
 
   public MigrationInfo getMigrationInfo() {

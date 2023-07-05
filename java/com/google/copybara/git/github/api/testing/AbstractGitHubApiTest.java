@@ -41,6 +41,7 @@ import com.google.copybara.git.github.api.CheckSuite;
 import com.google.copybara.git.github.api.CombinedStatus;
 import com.google.copybara.git.github.api.CommentBody;
 import com.google.copybara.git.github.api.CreatePullRequest;
+import com.google.copybara.git.github.api.CreateReleaseRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
@@ -59,6 +60,7 @@ import com.google.copybara.git.github.api.Organization;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
+import com.google.copybara.git.github.api.Release;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
@@ -93,7 +95,7 @@ public abstract class AbstractGitHubApiTest {
   protected Profiler profiler;
 
   @Before
-  public void setUpFamework() throws Exception {
+  public void setUpFramework() throws Exception {
     profiler = new Profiler(Ticker.systemTicker());
     profiler.init(ImmutableList.of(new LogProfilerListener()));
     api = new GitHubApi(getTransport(), profiler);
@@ -838,6 +840,29 @@ public abstract class AbstractGitHubApiTest {
     IssuesAndPullRequestsSearchResult searchResult =
         Iterables.getOnlyElement(searchResults.getItems());
     assertThat(searchResult.getNumber()).isEqualTo(16);
+  }
+
+  @Test
+  public void testCreateRelease() throws Exception {
+    String project = "google/copybara";
+    JsonValidator<CreateReleaseRequest> validator = createValidator(CreateReleaseRequest.class,
+        (CreateReleaseRequest request) ->
+            request.getName().equals("1.0.1")
+            && request.getTagName().equals("v1.0.1")
+            && request.getTargetCommitish().equals("abcdef01")
+            && request.getBody().equals("This is the body"));
+    trainMockPost(
+        String.format("/repos/%s/releases", project),
+        validator,
+        getResource("create_release_testdata.json"));
+    Release response = api.createRelease(project, new CreateReleaseRequest("v1.0.1")
+        .withBody("This is the body")
+        .withName("1.0.1")
+        .withCommitish("abcdef01"));
+    assertThat(response.getTarball())
+        .isEqualTo("https://api.github.com/repos/octocat/Hello-World/tarball/v1.0.0");
+    assertThat(response.getZip())
+        .isEqualTo("https://api.github.com/repos/octocat/Hello-World/zipball/v1.0.0");
   }
 
   /**

@@ -755,7 +755,7 @@ public class GerritDestinationTest {
     assertThat(submitCalled.get()).isTrue();
     assertThat(result).hasSize(1);
     assertThat(result.get(0).getErrors()).isEmpty();
-
+    assertThat(destination.describe(glob).get("gerritSubmit")).isEqualTo(ImmutableSet.of("true"));
   }
 
   @Test

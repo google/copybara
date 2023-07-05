@@ -30,10 +30,12 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Endpoint;
 import com.google.copybara.LazyResourceLoader;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.CheckRun;
 import com.google.copybara.git.github.api.CombinedStatus;
+import com.google.copybara.git.github.api.CreateReleaseRequest;
 import com.google.copybara.git.github.api.CreateStatusRequest;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApi.PullRequestListParams;
@@ -49,6 +51,7 @@ import com.google.copybara.git.github.api.IssueComment;
 import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
+import com.google.copybara.git.github.api.Release;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
 import com.google.copybara.git.github.api.UpdatePullRequest;
@@ -609,6 +612,43 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
           apiSupplier.load(console).listIssueComments(project, issueNumber.toInt("number")));
     } catch (ValidationException | RuntimeException e) {
       throw Starlark.errorf("Error calling list_issue_comments: %s", e.getMessage());
+    }
+  }
+
+  @StarlarkMethod(
+      name = "new_release_request",
+      doc = "Create a handle for creating a new release.",
+      parameters = {
+        @Param(name = "tag_name", named = true, doc = "The git tag to use for the release."),
+      })
+  @Example(
+      title = "Create a new release request.",
+      before = "After uploading a new commit",
+      code = "" + "endpoint.new_release_request(tag_name='v1.0.2').with_name('1.0.2')")
+  public CreateReleaseRequest createReleaseRequest(String tagName)
+      throws EvalException {
+    try {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return new CreateReleaseRequest(tagName);
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling new_release_request: %s", e.getMessage());
+    }
+  }
+
+  @StarlarkMethod(
+      name = "create_release",
+      doc = "Create a new GitHub release.",
+      parameters = {
+          @Param(name = "request", named = true, 
+              doc = "The populated release object. See new_release_request."),
+      })
+  public Release createRelease(CreateReleaseRequest request)
+      throws EvalException, RepoException {
+    try {
+      String project = ghHost.getProjectNameFromUrl(url);
+      return apiSupplier.load(console).createRelease(project, request);
+    } catch (ValidationException | RuntimeException e) {
+      throw Starlark.errorf("Error calling new_release_request: %s", e.getMessage());
     }
   }
 

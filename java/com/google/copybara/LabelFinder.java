@@ -18,8 +18,17 @@ package com.google.copybara;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.copybara.exception.ValidationException;
+import com.google.copybara.templatetoken.LabelTemplate;
+import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * A simple line finder/parser for labels like:
@@ -41,6 +50,9 @@ public class LabelFinder {
 
   public static final Pattern VALID_LABEL = Pattern.compile(VALID_LABEL_EXPR);
 
+  private static final java.util.regex.Pattern LABEL_VAR = java.util.regex.Pattern
+      .compile("\\$\\{(" + VALID_LABEL_EXPR + ")}");
+
   private static final Pattern URL = Pattern.compile(VALID_LABEL + "://.*");
 
   private static final Pattern LABEL_PATTERN = Pattern.compile(
@@ -51,6 +63,46 @@ public class LabelFinder {
   public LabelFinder(String line) {
     matcher = LABEL_PATTERN.matcher(line);
     this.line = line;
+  }
+
+  /**
+   * A utility for resolving list of string labels to values
+   */
+  public static ImmutableList<String> mapLabels(
+      Function<String, ? extends Collection<String>> labelsMapper, List<String> list) {
+    ImmutableList.Builder<String> result = ImmutableList.builder();
+    for (String element : list) {
+      java.util.regex.Matcher matcher = LABEL_VAR.matcher(element);
+      if (!matcher.matches()) {
+        result.add(element);
+        continue;
+      }
+      String label = matcher.group(1);
+      Collection<String> values = labelsMapper.apply(label);
+      if (values == null) {
+        continue;
+      }
+      result.addAll(Objects.requireNonNull(values));
+    }
+    return result.build();
+  }
+
+  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
+      String template) throws ValidationException {
+    return mapLabels(labelsMapper, template, null);
+  }
+
+  public static String mapLabels(Function<String, ? extends Collection<String>> labelsMapper,
+      String template, String fieldName)
+      throws ValidationException {
+    try {
+      return new LabelTemplate(template).resolve(labelsMapper.andThen(
+          e ->  e == null ? null : Iterables.getFirst(e, null)));
+    } catch (LabelNotFoundException e) {
+      throw new ValidationException(
+          String.format("Cannot find '%s' label for template '%s' defined in field '%s'",
+              e.getLabel(), template, fieldName), e);
+    }
   }
 
   public boolean isLabel() {

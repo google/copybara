@@ -24,6 +24,7 @@ import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.template.Field.Location;
+import com.google.copybara.util.Glob;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.util.HashSet;
@@ -117,6 +118,19 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
    */
   protected String keywordStringLiteral(String value) {
     return "\"" + value + "\"";
+  }
+
+  /** Buildifier won't format lists with newlines unless at least one of them is in a new line */
+  protected String newLineHack(Glob glob) {
+    String asString = glob.toString();
+    // Skip for a common glob case.
+    if (asString.equals("glob(include = [\"**\"])")) {
+      return asString;
+    }
+    if (asString.contains("[\"")) {
+      return asString.replace("[\"", "[\n                 \"");
+    }
+    return asString;
   }
 
   /**

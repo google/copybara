@@ -85,7 +85,6 @@ BASE_SRCS = [
     "EndpointProvider.java",
     "Info.java",
     "LazyResourceLoader.java",
-    "LabelFinder.java",
     "Metadata.java",
     "MigrationInfo.java",
     "Option.java",
@@ -104,18 +103,27 @@ BASE_SRCS = [
 ]
 
 java_library(
+    name = "labels",
+    srcs = [
+        "LabelFinder.java",
+    ],
+    javacopts = JAVACOPTS,
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/templatetoken",
+        "//third_party:guava",
+        "//third_party:re2j",
+    ],
+)
+
+java_library(
     name = "options",
     srcs = [
         "Option.java",
         "Options.java",
     ],
     javacopts = JAVACOPTS,
-    deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
-        "//third_party:re2j",
-        "//third_party:shell",
-    ],
+    deps = ["//third_party:guava"],
 )
 
 java_library(
@@ -133,6 +141,7 @@ java_library(
     srcs = BASE_SRCS,
     javacopts = JAVACOPTS,
     deps = [
+        ":labels",
         ":local_parallelizer",
         "//java/com/google/copybara/approval",
         "//java/com/google/copybara/authoring",
@@ -150,7 +159,6 @@ java_library(
         "//third_party:guava",
         "//third_party:jcommander",
         "//third_party:jsr305",
-        "//third_party:re2j",
         "//third_party:starlark",
     ],
 )
@@ -204,17 +212,20 @@ java_library(
             "Main.java",
             "GeneralOptions.java",
             "StarlarkDateTimeModule.java",
+            "LabelFinder.java",
         ] + BASE_SRCS,
     ),
     javacopts = JAVACOPTS,
     deps = [
         ":base",
         ":general_options",
-        "//java/com/google/copybara:starlark_date_time_module",
+        ":labels",
+        ":starlark_date_time_module",
         "//java/com/google/copybara/action",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
         "//java/com/google/copybara/buildozer:buildozer_options",
+        "//java/com/google/copybara/compression",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
         "//java/com/google/copybara/config:parser",
@@ -223,6 +234,7 @@ java_library(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format",
         "//java/com/google/copybara/git",
+        "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/go",
         "//java/com/google/copybara/hashing",
         "//java/com/google/copybara/hg",
@@ -230,6 +242,7 @@ java_library(
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/onboard:options",
         "//java/com/google/copybara/profiler",
+        "//java/com/google/copybara/python",
         "//java/com/google/copybara/re2",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",

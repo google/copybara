@@ -63,6 +63,13 @@ public interface Console extends AutoCloseable {
     warn(String.format(format, args));
   }
 
+  /** Console warn if {@code condition} is true, otherwise do nothing. */
+  @FormatMethod
+  default void warnFmtIf(boolean condition, String format, Object... args) {
+    if (condition) {
+      warnFmt(format, args);
+    }
+  }
 
   /**
    * Returns true if verbose
