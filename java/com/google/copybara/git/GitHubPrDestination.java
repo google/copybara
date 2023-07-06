@@ -249,6 +249,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
                 transformResult.getLabelFinder(), GitHubPrDestination.this.assignees);
         for (PullRequest pr : pullRequests) {
           if (pr.getHead().getRef().equals(prBranch)) {
+            // TODO(linjordan): I think this is always open? getPullRequests by default filters on open?
             if (!pr.isOpen()) {
               console.warnFmt(
                   "Pull request for branch %s already exists as %s/pull/%s, but is closed - "
