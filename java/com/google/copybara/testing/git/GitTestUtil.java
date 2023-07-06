@@ -168,6 +168,11 @@ public class GitTestUtil {
 
   public void mockRemoteGitRepos(Validator validator, GitRepository credentialsRepo)
       throws IOException {
+    mockRemoteGitRepos(credentialsRepo, new GitOptionsForTest(optionsBuilder.general, validator));
+  }
+
+  public void mockRemoteGitRepos(GitRepository credentialsRepo, GitOptionsForTest opts)
+      throws IOException {
     assertWithMessage("mockRemoteGitRepos() method called more than once in this test")
         .that(mockHttpTransport)
         .isNull();
@@ -190,7 +195,7 @@ public class GitTestUtil {
                           }));
                     }));
 
-    optionsBuilder.git = new GitOptionsForTest(optionsBuilder.general, validator);
+    optionsBuilder.git = opts;
     optionsBuilder.github = mockGitHubOptions(credentialsRepo);
     optionsBuilder.gerrit = mockGerritOptions(credentialsRepo);
   }
@@ -486,7 +491,8 @@ public class GitTestUtil {
       for (String prefix : mappingPrefixes) {
         if (url.startsWith(prefix)) {
           Path repo = httpsRepos.resolve(url.replace(prefix, ""));
-          assertWithMessage(repo.toString()).that(Files.isDirectory(repo)).isTrue();
+          assertWithMessage(String.format("Url %s is not mocked for %s", url, repo))
+              .that(Files.isDirectory(repo)).isTrue();
           return "file:///" + repo;
         }
       }

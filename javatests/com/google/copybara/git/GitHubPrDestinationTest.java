@@ -60,7 +60,9 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.testing.git.GitTestUtil.CompleteRefValidator;
+import com.google.copybara.testing.git.GitTestUtil.GitOptionsForTest;
 import com.google.copybara.testing.git.GitTestUtil.MockRequestAssertion;
+import com.google.copybara.testing.git.GitTestUtil.Validator;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.Identity;
 import com.google.copybara.util.console.Message.MessageType;
@@ -306,6 +308,51 @@ public class GitHubPrDestinationTest {
   }
 
   @Test
+  public void testWrite_primaryBranchModeBadBranch()
+      throws ValidationException, IOException, RepoException {
+    primaryBranchMigration = "True";
+    Validator validator = new CompleteRefValidator();
+    GitOptionsForTest gitOpts =
+        new GitOptionsForTest(options.general, validator) {
+          boolean first = true;
+
+          @Override
+          protected GitRepository initRepo(GitRepository repo) throws RepoException {
+            if (first) {
+              first = false;
+              throw new RepoException("No branch for you!");
+            }
+            return super.initRepo(repo);
+          }
+
+          @Override
+          public GitRepository cachedBareRepoForUrl(String url) throws RepoException {
+            if (first) {
+              first = false;
+              throw new RepoException("No branch for you!");
+            }
+            return super.cachedBareRepoForUrl(url);
+          }
+        };
+
+    options.git = gitOpts;
+    options.gitDestination = new GitDestinationOptions(options.general, options.git);
+    options.gitDestination.committerEmail = "commiter@email";
+    options.gitDestination.committerName = "Bara Kopi";
+    options.githubDestination.destinationPrBranch = "feature";
+    gitUtil = new GitTestUtil(options);
+    gitUtil.mockRemoteGitRepos(null, gitOpts);
+
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@github.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
+    skylark = new SkylarkTestExecutor(options);
+
+    checkWrite(new DummyRevision("dummyReference"));
+  }
+
+  @Test
   public void testWrite_destinationPrBranchFlag()
       throws ValidationException, IOException, RepoException {
     options.githubDestination.destinationPrBranch = "feature";
@@ -470,11 +517,12 @@ public class GitHubPrDestinationTest {
     GitHubPrDestination d =
         skylark.eval(
             "r", "r = git.github_pr_destination(" + "    url = 'https://github.com/foo',"
-                + "    destination_ref = 'main'" + ")");
-
+                + "    destination_ref = 'main', "
+                + "    primary_branch_migration = " +  primaryBranchMigration + ",\n"
+                + ")");
+    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     Writer<GitRevision> writer = d.newWriter(new WriterContext("piper_to_github_pr", "TEST", false,
         revision, Glob.ALL_FILES.roots()));
-    GitRepository remote = gitUtil.mockRemoteRepo("github.com/foo");
     addFiles(
         remote,
         null,

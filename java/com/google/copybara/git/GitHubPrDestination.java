@@ -406,16 +406,18 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     }
   }
 
-  @Nullable String getDestinationRef() throws ValidationException {
+  String getDestinationRef() throws ValidationException {
     if (!primaryBranchMigrationMode || !PRIMARY_BRANCHES.contains(destinationRef)) {
       return destinationRef;
     }
     if (resolvedDestinationRef == null) {
       try {
-        resolvedDestinationRef = localRepo.load(generalOptions.console()).getPrimaryBranch(url);
-      } catch (RepoException e) {
+        GitRepository repo = localRepo.load(generalOptions.console());
+        String primaryBranch = repo.getPrimaryBranch(url);
+        resolvedDestinationRef = primaryBranch == null ? destinationRef : primaryBranch;
+       } catch (RepoException e) {
         generalOptions.console().warnFmt("Error detecting primary branch: %s", e);
-        return null;
+        resolvedDestinationRef = destinationRef;
       }
     }
     return resolvedDestinationRef;
