@@ -1747,8 +1747,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false,
             doc =
-                "Customize the pull request branch. Any variable present in the message in the "
-                    + "form of ${CONTEXT_REFERENCE} will be replaced by the corresponding stable "
+                "Customize the pull request branch. The token ${CONTEXT_REFERENCE} will be replaced"
+                    + " with the corresponding stable "
                     + "reference (head, PR number, Gerrit change number, etc.)."),
         @Param(
             name = "partial_fetch",
