@@ -127,8 +127,10 @@ public class RegenerateCmd implements CopybaraCmd {
                     new ValidationException(
                         "this destination does not support regenerating patch files"));
 
-    Path previousPath = workdir.resolve("previous");
-    Path nextPath = workdir.resolve("next");
+    // use the same directory names as workflow
+    Path previousPath = workdir.resolve("premerge");
+    Path nextPath = workdir.resolve("checkout");
+
     Path autopatchPath = workdir.resolve("autopatches");
     Files.createDirectories(previousPath);
     Files.createDirectories(nextPath);
@@ -155,23 +157,25 @@ public class RegenerateCmd implements CopybaraCmd {
                 new ValidationException(
                     "Regen target was neither supplied nor able to be inferred. Supply with"
                         + " --regen-target parameter"));
+    // download all files except for patch files
+    AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
+    Glob autopatchGlob =
+        AutoPatchUtil.getAutopatchGlob(
+            autopatchConfig.directoryPrefix(), autopatchConfig.directory());
+    Glob patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
 
     // copy the baseline to one directory
     DestinationReader previousDestinationReader =
         destinationWriter.getDestinationReader(console, regenBaseline, workdir);
     previousDestinationReader.copyDestinationFilesToDirectory(
-        workflow.getDestinationFiles(), previousPath);
+        patchlessDestinationFiles, previousPath);
 
     // copy the target to another directory
     DestinationReader nextDestinationReader =
         destinationWriter.getDestinationReader(console, regenTarget, workdir);
-    nextDestinationReader.copyDestinationFilesToDirectory(workflow.getDestinationFiles(), nextPath);
+    nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
 
     // copy existing autopatch files to a third directory
-    AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
-    Glob autopatchGlob =
-        AutoPatchUtil.getAutopatchGlob(
-            autopatchConfig.directoryPrefix(), autopatchConfig.directory());
     previousDestinationReader.copyDestinationFilesToDirectory(autopatchGlob, autopatchPath);
 
     // reverse autopatch files on the target directory here to get a pristine import

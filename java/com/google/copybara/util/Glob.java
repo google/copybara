@@ -114,7 +114,7 @@ public class Glob implements StarlarkValue, HasBinary {
    * Compute the 'set difference' of two Globs, which is a Glob that will match any Path which is
    * matched by the first Glob, but not matched by the second Glob.
    */
-  private static Glob difference(Glob glob1, Glob glob2) {
+  public static Glob difference(Glob glob1, Glob glob2) {
     if (glob1.exclude == null) {
       return new Glob(glob1.include, glob1.globInclude, glob2);
     }
@@ -250,10 +250,11 @@ public class Glob implements StarlarkValue, HasBinary {
     return roots(false);
   }
 
-  /** Similar to #roots, but returns the longest shared paths for single files with the shortes
+  /**
+   * Similar to #roots, but returns the longest shared paths for single files with the shortes
    * wildcards instead. This is intended as a better static approximation for git cones. It will
-   * treat any expression with a wildcard as being a "tip".
-   * [ foo/bar, foo/bar/baz] -> foo/bar/baz<br>
+   * treat any expression with a wildcard as being a "tip". <br>
+   * [ foo/bar, foo/bar/baz] -> foo/bar/baz <br>
    * [ foo/**, foo/bar/baz] -> foo<br>
    * [ foo/**, foobar/bar/baz] -> [foo, foobar/bar/baz]<br>
    * [ foo/**\/bar] -> [foo]<br>
@@ -261,7 +262,7 @@ public class Glob implements StarlarkValue, HasBinary {
    * [ foo/*, foo/bar/*] -> [foo/bar]<br>
    * [ foo/{bar|baz}/files] -> [foo]<br>
    * TODO(hsudhof): consider passing the GlobAtom to GitOrigin directly
-   **/
+   */
   public ImmutableSet<String> tips() {
     return computeTipsFromIncludes(getIncludes());
   }
@@ -351,7 +352,7 @@ public class Glob implements StarlarkValue, HasBinary {
     List<String> tips = new ArrayList<>(wildcards);
 
     for (String single : singleFiles) {
-      if (wildcards.stream().noneMatch(w -> (single + "/").startsWith(w  + "/"))) {
+      if (wildcards.stream().noneMatch(w -> (single + "/").startsWith(w + "/"))) {
         tips.add(single);
       }
     }
