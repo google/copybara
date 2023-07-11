@@ -15,20 +15,11 @@
 package(default_visibility = ["//visibility:public"])
 
 java_library(
-    name = "http",
+    name = "json",
     srcs = glob(["**/*.java"]),
     deps = [
-        "//java/com/google/copybara:base",
-        "//java/com/google/copybara/checks",
-        "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/exception",
-        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/http/endpoint",
-        "//java/com/google/copybara/http/json",
-        "//java/com/google/copybara/http/multipart",
-        "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
-        "//third_party:jsr305",
         "//third_party:starlark",
     ],
 )

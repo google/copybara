@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import com.google.copybara.http.auth.Auth;
 import com.google.copybara.http.auth.KeySource;
 import com.google.copybara.http.auth.TomlKeySource;
 import com.google.copybara.http.endpoint.HttpEndpoint;
+import com.google.copybara.http.json.HttpEndpointJsonContent;
 import com.google.copybara.http.multipart.FilePart;
 import com.google.copybara.http.multipart.HttpEndpointFormPart;
 import com.google.copybara.http.multipart.HttpEndpointMultipartFormContent;
@@ -175,6 +176,20 @@ public class HttpModule implements StarlarkValue {
       String name, CheckoutPath path, String contentType, Object filenameIn) {
     @Nullable String filename = SkylarkUtil.convertOptionalString(filenameIn);
     return new FilePart(name, path.getCheckoutDir().resolve(path.getPath()), contentType, filename);
+  }
+
+  @StarlarkMethod(
+      name = "json",
+      doc = "Creates a JSON HTTP body.",
+      parameters = {
+        @Param(
+            name = "body",
+            doc = "HTTP body object, property name will be used as key and value as value.",
+            allowedTypes = {@ParamType(type = Object.class)},
+            defaultValue = "{}"),
+      })
+  public HttpEndpointJsonContent jsonContent(Object body) {
+    return new HttpEndpointJsonContent(body);
   }
 
   private interface AuthInputReceiver {
