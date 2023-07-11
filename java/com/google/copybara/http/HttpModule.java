@@ -16,6 +16,8 @@
 
 package com.google.copybara.http;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.checks.Checker;
@@ -32,6 +34,7 @@ import com.google.copybara.http.multipart.HttpEndpointMultipartFormContent;
 import com.google.copybara.http.multipart.HttpEndpointUrlEncodedFormContent;
 import com.google.copybara.http.multipart.TextPart;
 import com.google.copybara.util.console.Console;
+import java.net.URLEncoder;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -52,6 +55,19 @@ public class HttpModule implements StarlarkValue {
   public HttpModule(Console console, HttpOptions options) {
     this.console = console;
     this.options = options;
+  }
+
+  @StarlarkMethod(
+      name = "url_encode",
+      doc = "URL-encode the input string",
+      parameters = {
+        @Param(
+            name = "input",
+            doc = "The string to be encoded.",
+            allowedTypes = {@ParamType(type = String.class)})
+      })
+  public String urlEncode(String input) {
+    return URLEncoder.encode(input, UTF_8);
   }
 
   @StarlarkMethod(
