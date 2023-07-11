@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -37,16 +38,14 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DirFactory;
 import com.google.copybara.util.console.Console;
-
-import net.starlark.java.annot.StarlarkBuiltin;
-import net.starlark.java.eval.StarlarkValue;
-
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.eval.StarlarkValue;
 
 /** Integrate changes from a url present in the migrated change label. */
 @StarlarkBuiltin(
@@ -73,11 +72,17 @@ public class GitIntegrateChanges implements StarlarkValue {
    * @throws CannotIntegrateException if a change cannot be integrated due to a user error
    * @throws RepoException if a git related error happens during the integrate
    */
-  void run(GitRepository repository, GeneralOptions generalOptions,
-      MessageInfo messageInfo, Predicate<String> externalFileMatcher, TransformResult result,
-      boolean ignoreIntegrationErrors) throws CannotIntegrateException, RepoException {
+  void run(
+      GitRepository repository,
+      String repoUrl,
+      GeneralOptions generalOptions,
+      MessageInfo messageInfo,
+      Predicate<String> externalFileMatcher,
+      TransformResult result,
+      boolean ignoreIntegrationErrors)
+      throws CannotIntegrateException, RepoException {
     try {
-      doIntegrate(repository, generalOptions, externalFileMatcher, result, messageInfo);
+      doIntegrate(repository, repoUrl, generalOptions, externalFileMatcher, result, messageInfo);
     } catch (CannotIntegrateException e) {
       if (ignoreIntegrationErrors || ignoreErrors) {
         logger.atWarning().withCause(e).log("Cannot integrate changes");
@@ -95,30 +100,41 @@ public class GitIntegrateChanges implements StarlarkValue {
     }
   }
 
-  private void doIntegrate(GitRepository repository, GeneralOptions generalOptions,
-      Predicate<String> externalFiles, TransformResult result, MessageInfo messageInfo)
+  private void doIntegrate(
+      GitRepository repository,
+      String repoUrl,
+      GeneralOptions generalOptions,
+      Predicate<String> externalFiles,
+      TransformResult result,
+      MessageInfo messageInfo)
       throws CannotIntegrateException, RepoException {
-
     for (LabelFinder label : result.findAllLabels()) {
       if (!label.isLabel() || !this.label.equals(label.getName())) {
         continue;
       }
-      if (label.getValue().isEmpty()) {
+      if (Strings.isNullOrEmpty(label.getValue())) {
         throw new CannotIntegrateException("Found an empty value for label " + this.label);
       }
-      try (ProfilerTask ignore = generalOptions.profiler().start("integrate",
-          ImmutableMap.of("URL", label.getValue()))) {
-        generalOptions.console().progressFmt("Integrating change from '%s' using strategy %s",
-            label.getValue(), strategy);
-        IntegrateLabel integrateLabel = GitHubPrIntegrateLabel.parse(label.getValue(), repository,
-            generalOptions);
+      try (ProfilerTask ignore =
+          generalOptions.profiler().start("integrate", ImmutableMap.of("URL", label.getValue()))) {
+        generalOptions
+            .console()
+            .progressFmt(
+                "Integrating change from '%s' using strategy %s", label.getValue(), strategy);
+        IntegrateLabel integrateLabel =
+            GitHubPrIntegrateLabel.parse(label.getValue(), repository, generalOptions);
         if (integrateLabel == null) {
-          integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository,
-              generalOptions);
+          integrateLabel = GerritIntegrateLabel.parse(label.getValue(), repository, generalOptions);
           if (integrateLabel == null) {
+            // would derive url from repo remote, but there is no guarantee a remote is configured.
             GitRevision gitRevision =
-                GitRepoType.GIT.resolveRef(repository, /*repoUrl=*/null, label.getValue(),
-                    generalOptions, /*describeVersion=*/false, /*partialFetch*/ false);
+                GitRepoType.GIT.resolveRef(
+                    repository,
+                    repoUrl,
+                    label.getValue(),
+                    generalOptions,
+                    /* describeVersion= */ false,
+                    /* partialFetch= */ false);
             integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
           }
         }

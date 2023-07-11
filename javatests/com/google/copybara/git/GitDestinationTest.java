@@ -223,6 +223,7 @@ public class GitDestinationTest {
                 + "    partial_fetch = %s,\n"
                 + "    checker = %s,\n"
                 + "    primary_branch_migration = %s,\n"
+                + "    integrates = [git.integrate()],\n"
                 + ")",
             url, fetch, push, partialClone, checker, primaryBranchMigration));
   }
@@ -2088,6 +2089,56 @@ public class GitDestinationTest {
     // Double check that we can access it as a label.
     assertThat(ChangeMessage.parseMessage(body).labelsAsMultimap())
         .containsEntry("DummyOrigin-RevId", "first_commit");
+  }
+
+  @Test
+  public void testLabelWithIntegrationLabel() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    Writer<GitRevision> writer = firstCommitWriter();
+    Files.write(workdir.resolve("test.txt"), "".getBytes(UTF_8));
+    DummyRevision rev = new DummyRevision("first_commit");
+    String msg =
+        "This is a message\n"
+            + "\n"
+            + "I have an integration label below\n"
+            + "THE_LABEL: value\n"
+            + "COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS";
+    writer.write(
+        new TransformResult(
+                workdir,
+                rev,
+                rev.getAuthor(),
+                msg,
+                rev, /*workflowName*/
+                "default",
+                TransformWorks.EMPTY_CHANGES,
+                "first_commit",
+                /* setRevId= */ true,
+                ImmutableList::of,
+                DummyOrigin.LABEL_NAME)
+            .withLabelFinder(
+                Functions.forMap(
+                    ImmutableMap.of(
+                        "COPYBARA_INTEGRATE_REVIEW", ImmutableList.of("INTEGRATE_THIS")))),
+        destinationFiles,
+        console);
+
+    String body = lastCommit("HEAD").getBody();
+    assertThat(body)
+        .isEqualTo(
+            "This is a message\n"
+                + "\n"
+                + "I have an integration label below\n"
+                + "THE_LABEL: value\n"
+                + "COPYBARA_INTEGRATE_REVIEW=INTEGRATE_THIS\n"
+                + "DummyOrigin-RevId: first_commit\n");
+    // Double check that we can access it as a label.
+    assertThat(ChangeMessage.parseMessage(body).labelsAsMultimap())
+        .containsEntry("DummyOrigin-RevId", "first_commit");
+    console
+        .assertThat()
+        .logContains(MessageType.VERBOSE, String.format("Integrates for %s: 1", url));
   }
 
   @Test

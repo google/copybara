@@ -570,9 +570,14 @@ public class GitDestination implements Destination<GitRevision> {
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
       for (GitIntegrateChanges integrate : integrates) {
-        integrate.run(alternate, generalOptions, messageInfo,
+        integrate.run(
+            alternate,
+            repoUrl,
+            generalOptions,
+            messageInfo,
             path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
-            transformResult, ignoreIntegrationErrors);
+            transformResult,
+            ignoreIntegrationErrors);
       }
 
       ValidationException.checkCondition(
