@@ -17,6 +17,11 @@ load("@rules_jvm_external//:specs.bzl", "maven")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 COPYBARA_MAVEN_ARTIFACTS = [
+    maven.artifact("com.google.auto.value", "auto-value-annotations", "1.10.1"),
+    maven.artifact("com.google.auto.value", "auto-value", "1.9"),
+    maven.artifact("com.google.auto", "auto-common", "1.2.1"),
+    maven.artifact("com.google.code.findbugs", "jsr305", "3.0.2", neverlink = True),
+    maven.artifact("com.google.code.gson", "gson", "2.8.9"),
     maven.artifact("com.github.stephenc.jcip", "jcip-annotations", "1.0-1"),
     maven.artifact("com.google.auto.service", "auto-service", "1.0"),
     maven.artifact("com.google.auto.service", "auto-service-annotations", "1.0.1"),
@@ -34,13 +39,14 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("com.google.guava", "guava", "31.1-jre"),
     maven.artifact("com.google.http-client", "google-http-client-gson", "1.27.0"),
     maven.artifact("com.google.http-client", "google-http-client-test", "1.27.0", testonly = True),
-    maven.artifact("com.google.http-client", "google-http-client", "1.27.0"),
+    maven.artifact("com.google.http-client", "google-http-client", "1.42.3"),
     maven.artifact("com.google.jimfs", "jimfs", "1.2"),
     maven.artifact("com.google.re2j", "re2j", "1.6"),
     maven.artifact("com.google.testparameterinjector", "test-parameter-injector", "1.8", testonly = True),
     maven.artifact("com.google.truth", "truth", "1.1.3", testonly = True),
     maven.artifact("com.google.truth.extensions", "truth-java8-extension", "0.41", testonly = True),
     maven.artifact("com.googlecode.java-diff-utils", "diffutils", "1.3.0"),
+    maven.artifact("commons-codec", "commons-codec", "1.15"),
     maven.artifact("com.ryanharter.auto.value", "auto-value-gson-extension", "1.3.1"),
     maven.artifact("com.ryanharter.auto.value", "auto-value-gson-runtime", "1.3.1"),
     maven.artifact("com.ryanharter.auto.value", "auto-value-gson-factory", "1.3.1"),
