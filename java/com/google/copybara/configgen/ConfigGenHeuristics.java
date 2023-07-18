@@ -23,7 +23,6 @@ import static java.util.Comparator.comparingInt;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.hash.Hashing;
@@ -135,7 +134,7 @@ public class ConfigGenHeuristics {
     // Enable to debug what is being generated:
     debug(similarFiles, destinationOnly, originGlob);
 
-    ImmutableList<GeneratorMove> moves = generateMoves(similarFiles);
+    ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
     return new ConfigGenHeuristics.Result(originGlob.glob, new GeneratorTransformations(moves));
   }
 
@@ -143,30 +142,28 @@ public class ConfigGenHeuristics {
    * Generates the minimal amount of core.moves from to map files from the origin to the
    * destination.
    *
-   * The general algorithm is the following, for each origin/destination file:
-   * - Find the common suffix (e.g. for a/b/c/d.txt and x/y/z/c/d.txt it is c/d.txt). If we remove
-   * that suffix from the origin and destination (a/b and x/y/z), this would be the more general
-   * move that we can do (core.move(a/b, x/y/z)). The heuristic here is that more general moves
-   * are always better.
+   * <p>The general algorithm is the following, for each origin/destination file: - Find the common
+   * suffix (e.g. for a/b/c/d.txt and x/y/z/c/d.txt it is c/d.txt). If we remove that suffix from
+   * the origin and destination (a/b and x/y/z), this would be the more general move that we can do
+   * (core.move(a/b, x/y/z)). The heuristic here is that more general moves are always better.
    *
-   * - But there is a problem. We need to make sure that this very general move doesn't move
-   * other files to incorrect locations. So now we go over all the files, and for anything with
-   * that prefix, we check that it would move to the correct destination. If all fine, we
-   * add this as the set of moves and remove all the files with that prefix (as we have just
-   * handled all).
+   * <p>- But there is a problem. We need to make sure that this very general move doesn't move
+   * other files to incorrect locations. So now we go over all the files, and for anything with that
+   * prefix, we check that it would move to the correct destination. If all fine, we add this as the
+   * set of moves and remove all the files with that prefix (as we have just handled all).
    *
-   * - If any has a wrong destination move, then we move to the next more general suffix (e.g.
+   * <p>- If any has a wrong destination move, then we move to the next more general suffix (e.g.
    * c/d.txt -> d.txt) and we retry the whole thing again.
    *
-   * - In the extreme, if we cannot find a directory move, we add a move from file to file.
+   * <p>- In the extreme, if we cannot find a directory move, we add a move from file to file.
    *
-   * The algorithm is a bit brutal as is quadratic on these checks. If performance is an issue
-   * we can see how to fix it. The expectation is that normally this should be fast because we
-   * find common directories that move large ammount of files.
+   * <p>The algorithm is a bit brutal as is quadratic on these checks. If performance is an issue we
+   * can see how to fix it. The expectation is that normally this should be fast because we find
+   * common directories that move large amount of files.
    */
-  private ImmutableList<GeneratorMove> generateMoves(Map<Path, Path> similarFiles) {
+  private ImmutableSet<GeneratorMove> generateMoves(Map<Path, Path> similarFiles) {
     ArrayDeque<Entry<Path, Path>> set = new ArrayDeque<>(similarFiles.entrySet());
-    ImmutableList.Builder<GeneratorMove> result = ImmutableList.builder();
+    ImmutableSet.Builder<GeneratorMove> result = ImmutableSet.builder();
     files:
     while (!set.isEmpty()) {
       Entry<Path, Path> entry = set.remove();
@@ -511,14 +508,13 @@ public class ConfigGenHeuristics {
 
   /** Represents a collection of transformations to be included in the generation */
   public static class GeneratorTransformations {
-    private final ImmutableList<GeneratorMove> moves;
+    private final ImmutableSet<GeneratorMove> moves;
 
-    public GeneratorTransformations(
-        ImmutableList<GeneratorMove> moves) {
+    public GeneratorTransformations(ImmutableSet<GeneratorMove> moves) {
       this.moves = moves;
     }
 
-    public ImmutableList<GeneratorMove> getMoves() {
+    public ImmutableSet<GeneratorMove> getMoves() {
       return moves;
     }
   }
