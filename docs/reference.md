@@ -4768,7 +4768,7 @@ Name | Type | Description
 
 Defines a remote file origin. This is a WIP and experimental. Do not use. 
 
-`origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_resolver=None, version_selector=None, base_url=None)`
+`origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_resolver=None)`
 
 
 #### Parameters:
@@ -4782,8 +4782,6 @@ archive_source | `string`<br><p>Template or literal URL to download archive from
 version_list | `VersionList` or `NoneType`<br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 origin_version_selector | `VersionSelector` or `NoneType`<br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
 version_resolver | `VersionResolver` or `NoneType`<br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
-version_selector | `unknown`<br><p>Object that contains version selecting logic. DEPRECATED.</p>
-base_url | `unknown`<br><p>base URL to construct the full URL. DEPRECATED.</p>
 
 
 

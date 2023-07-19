@@ -166,17 +166,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             allowedTypes = {
               @ParamType(type = VersionResolver.class),
               @ParamType(type = NoneType.class)
-            }),
-        @Param( // TODO(linjordan): remove
-            name = "version_selector",
-            defaultValue = "None",
-            doc = "Object that contains version selecting logic. DEPRECATED.",
-            named = true),
-        @Param( // TODO(linjordan): remove
-            name = "base_url",
-            named = true,
-            doc = "base URL to construct the full URL. DEPRECATED.",
-            defaultValue = "None")
+            })
       })
   @UsesFlags(RemoteFileOptions.class)
   public RemoteArchiveOrigin remoteArchiveOrigin(
@@ -186,10 +176,8 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       String archiveSourceURL,
       Object versionList,
       Object versionSelector,
-      Object versionResolver,
-      Object unusedVersionSelector, // TODO(linjordan): remove
-      Object baseURL // TODO(linjordan): remove
-      ) throws EvalException, ValidationException {
+      Object versionResolver)
+      throws EvalException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
     RemoteFileType remoteFileType = stringToEnum("unpack_method", fileType, RemoteFileType.class);
