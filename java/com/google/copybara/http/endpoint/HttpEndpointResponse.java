@@ -18,6 +18,9 @@ package com.google.copybara.http.endpoint;
 
 import com.google.api.client.http.HttpResponse;
 import java.io.IOException;
+import java.util.List;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -43,5 +46,18 @@ public class HttpEndpointResponse implements StarlarkValue {
   @StarlarkMethod(name = "contents_string", doc = "response contents as string")
   public String responseAsString() throws IOException {
     return response.parseAsString();
+  }
+
+  @StarlarkMethod(
+      name = "header",
+      doc = "Returns the value of the response header specified by the field name",
+      parameters = {
+        @Param(
+            name = "key",
+            named = true,
+            allowedTypes = {@ParamType(type = String.class)}),
+      })
+  public List<String> responseHeader(String key) {
+    return response.getHeaders().getHeaderStringValues(key);
   }
 }

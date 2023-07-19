@@ -31,6 +31,7 @@ import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import java.util.Arrays;
 import java.util.List;
 import net.starlark.java.eval.Dict;
 import org.junit.Before;
@@ -108,7 +109,7 @@ public class HttpEndpointTest {
   }
 
   @Test
-  public void testHeader() throws ValidationException {
+  public void testRequestHeader() throws ValidationException {
     ImmutableMap<String, List<String>> expectedHeaders =
         ImmutableMap.of(
             "content-type", ImmutableList.of("application/json"),
@@ -132,6 +133,33 @@ public class HttpEndpointTest {
                 + "  }"
                 + ")\n");
     assertThat(resp.getStatusCode()).isEqualTo(204);
+  }
+
+  @Test
+  public void testResponseHeader() throws ValidationException {
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          resp.addHeader("Content-Type", "application/json");
+          resp.addHeader("Accept-Language", "en");
+          resp.addHeader("Accept-Language", "de");
+        });
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\")\n"
+                + ")\n"
+                + "resp = endpoint.get(url = \"http://foo.com\")\n");
+
+    // non existent header
+    assertThat(resp.responseHeader("random")).isEmpty();
+
+    // one item header
+    assertThat(resp.responseHeader("Content-Type")).containsExactly("application/json");
+
+    // multiple items header
+    List<String> header = Arrays.asList("en", "de");
+    assertThat(resp.responseHeader("Accept-Language")).containsExactlyElementsIn(header);
   }
 
   @Test
