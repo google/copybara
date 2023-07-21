@@ -726,7 +726,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             checkoutDir,
             lastRev,
             metadata,
-            changes,
             originBaselineForPrune,
             originApi,
             destinationApi,
@@ -741,9 +740,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               WorkflowOptions.CHANGE_REQUEST_PARENT_FLAG);
           Path baselineWorkdir =
               checkoutBaselineAndTransform(
+                  "destination_baseline",
                   lastRev,
                   metadata,
-                  changes,
                   destinationBaseline.getOriginRevision(),
                   console,
                   originApi,
@@ -784,7 +783,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Path checkoutDir,
         O lastRev,
         Metadata metadata,
-        Changes changes,
         O originBaselineForPrune,
         LazyResourceLoader<Endpoint> originApi,
         LazyResourceLoader<Endpoint> destinationApi,
@@ -800,9 +798,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       } else {
         baselineWorkdir =
             checkoutBaselineAndTransform(
+                "baseline",
                 lastRev,
                 metadata,
-                changes,
                 originBaselineForPrune,
                 console,
                 originApi,
@@ -886,16 +884,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     private Path checkoutBaselineAndTransform(
+        String subdirName,
         O lastRev,
         Metadata metadata,
-        Changes changes,
         O baseline,
         Console console,
         LazyResourceLoader<Endpoint> originApi,
         LazyResourceLoader<Endpoint> destinationApi,
         ResourceSupplier<DestinationReader> destinationReader)
         throws IOException, RepoException, ValidationException {
-      Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
+      Path baselineWorkdir = Files.createDirectories(workdir.resolve(subdirName));
 
       PrefixConsole baselineConsole = new PrefixConsole("Migrating baseline for diff: ", console);
       checkout(baseline, baselineConsole, baselineWorkdir, "origin.baseline.checkout");
@@ -907,7 +905,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   // work with the transformations
                   metadata,
                   // We don't care about the changes that are imported.
-                  changes,
+                  Changes.EMPTY,
                   baselineConsole,
                   new MigrationInfo(workflow.getRevIdLabel(), writer),
                   resolvedRef,
