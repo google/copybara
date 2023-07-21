@@ -19,15 +19,20 @@ package com.google.copybara.http.endpoint;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpTransport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.http.testing.MockHttpTester;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.util.List;
+import net.starlark.java.eval.Dict;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +54,7 @@ public class HttpEndpointTest {
             return http.getTransport();
           }
         };
+    optionsBuilder.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
@@ -161,5 +167,40 @@ public class HttpEndpointTest {
                 + ")\n"
                 + "resp = endpoint.get(url = \"http://foo.com\")\n");
     assertThat(resp.getStatusCode()).isEqualTo(404);
+  }
+
+  @Test
+  public void testCheckerFailsUrlCheck() throws Exception {
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"badword.com\", checker ="
+                + " testing.dummy_checker())\n"
+                + ")\n");
+    assertThrows(
+        CheckerException.class, () -> endpoint.get("http://badword.com", Dict.of(null), null));
+  }
+
+  private static class TestContent implements HttpEndpointBody {
+    @Override
+    public HttpContent getContent() {
+      return null;
+    }
+    // checker fails by default
+  }
+
+  @Test
+  public void testCheckerFailsContentCheck() throws Exception {
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", checker ="
+                + " testing.dummy_checker())\n"
+                + ")\n");
+    assertThrows(
+        CheckerException.class,
+        () -> endpoint.post("http://foo.com", Dict.of(null), new TestContent(), null));
   }
 }

@@ -18,15 +18,16 @@ package com.google.copybara.http.multipart;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpMediaType;
 import com.google.api.client.http.MultipartContent;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.http.endpoint.HttpEndpointBody;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * Constructs data for an http request containing a multipart form data payload.
- */
+/** Constructs data for an http request containing a multipart form data payload. */
 public class HttpEndpointMultipartFormContent implements HttpEndpointBody, StarlarkValue {
   List<HttpEndpointFormPart> parts;
 
@@ -48,5 +49,12 @@ public class HttpEndpointMultipartFormContent implements HttpEndpointBody, Starl
       this.body = content;
     }
     return body;
+  }
+
+  @Override
+  public void checkContent(Checker checker, Console console) throws IOException, CheckerException {
+    for (HttpEndpointFormPart part : parts) {
+      part.checkPart(checker, console);
+    }
   }
 }

@@ -19,6 +19,11 @@ import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.MultipartContent;
 import com.google.api.client.http.MultipartContent.Part;
+import com.google.common.collect.ImmutableMap;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
+import com.google.copybara.util.console.Console;
+import java.io.IOException;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -40,5 +45,10 @@ public class TextPart implements HttpEndpointFormPart, StarlarkValue {
             HttpEndpointFormPart.setContentDispositionHeader(new HttpHeaders(), name, null),
             ByteArrayContent.fromString(null, text));
     content.addPart(part);
+  }
+
+  @Override
+  public void checkPart(Checker checker, Console console) throws CheckerException, IOException {
+    checker.doCheck(ImmutableMap.of("name", name, "text", text), console);
   }
 }

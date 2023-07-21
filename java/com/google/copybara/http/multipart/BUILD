@@ -18,8 +18,11 @@ java_library(
     name = "multipart",
     srcs = glob(["**/*.java"]),
     deps = [
+        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/http/endpoint",
+        "//java/com/google/copybara/util/console",
         "//third_party:google_http_client",
+        "//third_party:guava",
         "//third_party:jsr305",
         "//third_party:starlark",
     ],

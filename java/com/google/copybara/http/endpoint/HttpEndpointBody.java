@@ -16,11 +16,16 @@
 package com.google.copybara.http.endpoint;
 
 import com.google.api.client.http.HttpContent;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 
-/**
- * An object containing the content portion of an http request
- */
+/** An object containing the content portion of an http request */
 public interface HttpEndpointBody {
   HttpContent getContent() throws IOException;
+
+  default void checkContent(Checker checker, Console console) throws CheckerException, IOException {
+    throw new CheckerException("checker not implemented for this content type");
+  }
 }

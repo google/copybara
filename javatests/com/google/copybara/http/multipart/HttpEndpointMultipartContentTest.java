@@ -17,23 +17,31 @@ package com.google.copybara.http.multipart;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.testing.http.MockLowLevelHttpRequest;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
+import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
+import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.testing.MockHttpTester;
+import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
+import net.starlark.java.eval.Dict;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,6 +67,7 @@ public class HttpEndpointMultipartContentTest {
           }
         };
     optionsBuilder.testingOptions.checkoutDirectory = tempFolder.getRoot().toPath();
+    optionsBuilder.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
     starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
@@ -173,6 +182,73 @@ public class HttpEndpointMultipartContentTest {
             + ")");
   }
 
+  @Test
+  public void testCheckSucceeds() throws Exception {
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          return;
+        });
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", checker ="
+                + " testing.dummy_checker())\n"
+                + ")\n");
+    var unused =
+        endpoint.post(
+            "http://foo.com",
+            Dict.of(null),
+            new HttpEndpointMultipartFormContent(
+                ImmutableList.of(new TextPart("goodword", "contents"))),
+            null);
+  }
+
+  @Test
+  public void testTextCheckFails() throws Exception {
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", checker ="
+                + " testing.dummy_checker())\n"
+                + ")\n");
+    assertThrows(
+        CheckerException.class,
+        () ->
+            endpoint.post(
+                "http://foo.com",
+                Dict.of(null),
+                new HttpEndpointMultipartFormContent(
+                    ImmutableList.of(new TextPart("badword", "contents"))),
+                null));
+  }
+
+  @Test
+  public void testFileCheckFails() throws Exception {
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", checker ="
+                + " testing.dummy_checker())\n"
+                + ")\n");
+
+    // create a file in the checkout directory
+    Path testPath = tempFolder.getRoot().toPath().resolve("testfile.txt");
+    MoreFiles.asByteSink(testPath).asCharSink(UTF_8).write("badword");
+
+    assertThrows(
+        CheckerException.class,
+        () ->
+            endpoint.post(
+                "http://foo.com",
+                Dict.of(null),
+                new HttpEndpointMultipartFormContent(
+                    ImmutableList.of(new FilePart("name", testPath, "application/text", null))),
+                null));
+  }
+
   private Map<String, String> getHeaders(String message) {
     List<String> messageLines = Splitter.on("\n").splitToList(message);
     Map<String, String> headers = new HashMap<>();
@@ -212,10 +288,7 @@ public class HttpEndpointMultipartContentTest {
       }
     }
     throw new RuntimeException(
-        String.format(
-            "param key %s not found in header %s",
-            paramKey,
-            headerValue));
+        String.format("param key %s not found in header %s", paramKey, headerValue));
   }
 
   private String getBoundary(MockLowLevelHttpRequest req) {

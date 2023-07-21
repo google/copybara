@@ -19,21 +19,22 @@ import com.google.api.client.http.FileContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.MultipartContent;
 import com.google.api.client.http.MultipartContent.Part;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
+import com.google.copybara.util.console.Console;
+import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * Represents a file field in a multipart http form payload
- */
+/** Represents a file field in a multipart http form payload */
 public class FilePart implements HttpEndpointFormPart, StarlarkValue {
   String name;
   Path filePath;
   String contentType;
   @Nullable String filename;
 
-  public FilePart(
-      String name, Path filePath, String contentType, @Nullable String filename) {
+  public FilePart(String name, Path filePath, String contentType, @Nullable String filename) {
     this.name = name;
     this.filePath = filePath;
     this.contentType = contentType;
@@ -48,5 +49,10 @@ public class FilePart implements HttpEndpointFormPart, StarlarkValue {
             HttpEndpointFormPart.setContentDispositionHeader(headers, name, filename),
             new FileContent(contentType, filePath.toFile()));
     content.addPart(part);
+  }
+
+  @Override
+  public void checkPart(Checker checker, Console console) throws CheckerException, IOException {
+    checker.doCheck(filePath, console);
   }
 }

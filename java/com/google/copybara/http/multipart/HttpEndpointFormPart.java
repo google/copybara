@@ -17,15 +17,18 @@ package com.google.copybara.http.multipart;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.MultipartContent;
+import com.google.copybara.checks.Checker;
+import com.google.copybara.checks.CheckerException;
+import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.StringJoiner;
 import javax.annotation.Nullable;
 
-/**
- * Represents a single part of a multipart form data request.
- */
+/** Represents a single part of a multipart form data request. */
 public interface HttpEndpointFormPart {
   void addToContent(MultipartContent content) throws IOException;
+
+  void checkPart(Checker checker, Console console) throws IOException, CheckerException;
 
   // Return a copy of the given headers with the content disposition header for form parts
   static HttpHeaders setContentDispositionHeader(

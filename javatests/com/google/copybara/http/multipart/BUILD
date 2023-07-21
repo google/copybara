@@ -20,12 +20,16 @@ all_tests(
     name = "all_tests",
     tests = glob(["*Test.java"]),
     deps = [
+        "//java/com/google/copybara/checks",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http",
+        "//java/com/google/copybara/http/endpoint",
+        "//java/com/google/copybara/http/multipart",
         "//java/com/google/copybara/http/testing",
         "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
         "//third_party:google_http_client_test",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

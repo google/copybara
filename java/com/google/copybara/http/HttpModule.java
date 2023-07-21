@@ -18,6 +18,7 @@ package com.google.copybara.http;
 
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.Auth;
@@ -57,9 +58,23 @@ public class HttpModule implements StarlarkValue {
       doc =
           "Endpoint that executes any sort of http request. Currently restricted"
               + "to requests to a specific host.",
-      parameters = {@Param(name = "host", named = true)})
-  public EndpointProvider<HttpEndpoint> endpoint(String host) throws ValidationException {
-    return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), host));
+      parameters = {
+        @Param(name = "host", named = true),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A checker that will check calls made by the endpoint",
+            named = true,
+            positional = false),
+      })
+  public EndpointProvider<HttpEndpoint> endpoint(String host, @Nullable Object checkerIn)
+      throws ValidationException {
+    @Nullable Checker checker = SkylarkUtil.convertFromNoneable(checkerIn, null);
+    return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), host, checker));
   }
 
   @StarlarkMethod(

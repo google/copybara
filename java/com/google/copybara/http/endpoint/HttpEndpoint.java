@@ -21,8 +21,10 @@ import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpTransport;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
+import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.Auth;
@@ -46,11 +48,14 @@ public class HttpEndpoint implements Endpoint {
   String host;
   HttpTransport transport;
   Console console;
+  @Nullable Checker checker;
 
-  public HttpEndpoint(Console console, HttpTransport transport, String host) {
+  public HttpEndpoint(
+      Console console, HttpTransport transport, String host, @Nullable Checker checker) {
     this.host = host;
     this.transport = transport;
     this.console = console;
+    this.checker = checker;
   }
 
   @StarlarkMethod(
@@ -175,6 +180,15 @@ public class HttpEndpoint implements Endpoint {
 
     HttpEndpointRequest req =
         new HttpEndpointRequest(url, method, headers, transport, content, auth);
+
+    if (checker != null) {
+      checker.doCheck(
+          ImmutableMap.of(
+              "url", url.toString(),
+              "headers", headers.toString()),
+          console);
+      endpointContent.checkContent(checker, console);
+    }
     return new HttpEndpointResponse(req.build().execute());
   }
 
