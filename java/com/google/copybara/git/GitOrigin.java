@@ -256,6 +256,10 @@ public class GitOrigin implements Origin<GitRevision> {
 
   @Override
   public GitRevision resolveLastRev(String ref) throws RepoException, ValidationException {
+    if (gitOriginOptions.useGitFuzzyLastRev()) {
+      FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
+      ref = selector.selectVersion(ref, getRepository(), repoUrl, generalOptions.console());
+    }
     return resolveStringRef(ref);
   }
 

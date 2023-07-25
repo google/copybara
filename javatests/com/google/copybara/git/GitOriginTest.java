@@ -1111,7 +1111,24 @@ public class GitOriginTest {
     assertThat(instant).isEqualTo(Instant.parse(COMMIT_TIME));
   }
 
-  
+  @Test
+  public void testFuzzyGitOriginTag() throws Exception {
+    repo.tag("1.0.0").run();
+
+    // Before tag is used, git fetch fails because the version is slightly different
+    CannotResolveRevisionException e =
+        assertThrows(
+            CannotResolveRevisionException.class,
+            () -> origin.resolveLastRev("v1.0.0").contextReference());
+    assertThat(e.getMessage()).isEqualTo("Cannot find reference(s): [v1.0.0, refs/tags/*]");
+
+    // After tag is enabled, the version is matched to the similar tag available in the repo
+    options.gitOrigin.gitFuzzyLastRev = true;
+    String ref = origin.resolveLastRev("v1.0.0").contextReference();
+
+    assertThat(ref).isEqualTo("1.0.0");
+  }
+
   @Test
   public void doNotCountCommitsOutsideOfOriginFileRoots() throws Exception {
     writeFile(remote, "excluded_file.txt", "some content");

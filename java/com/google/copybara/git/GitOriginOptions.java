@@ -57,6 +57,19 @@ public class GitOriginOptions implements Option {
     return !noGitVersionSelector;
   }
 
+  @Parameter(
+      names = "--git-fuzzy-last-rev",
+      description =
+          "By default Copybara will try to migrate the revision listed as the version in"
+              + " the metadata file from github. This flag tells Copybara to first find the git tag"
+              + " which most closely matches the metadata version, and use that for the"
+              + " migration.", arity = 1)
+  boolean gitFuzzyLastRev = false;
+
+  public boolean useGitFuzzyLastRev() {
+    return gitFuzzyLastRev;
+  }
+
   public ApprovalsProvider approvalsProvider = new NoneApprovedProvider();
 
   void maybeRunCheckoutHook(Path checkoutDir, GeneralOptions generalOptions) throws RepoException {
