@@ -2669,7 +2669,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableList<String> extraGroups = versionPicker.getUnmatchedGroups();
     check(extraGroups.isEmpty(), "Extra refspec_groups not used in pattern: %s", extraGroups);
 
-    if (options.get(GeneralOptions.class).isForced()) {
+    GeneralOptions generalOptions = options.get(GeneralOptions.class);
+    if (generalOptions.isForced() || generalOptions.isVersionSelectorUseCliRef()) {
       return new OrderedVersionSelector(ImmutableList.of(
           new RequestedVersionSelector(),
           versionPicker));

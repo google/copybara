@@ -23,7 +23,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
- * Given a requested version, it return it as the selected version. None otherwise.
+ * Given a requested version, it returns it as the selected version. None otherwise.
  */
 public class RequestedVersionSelector implements VersionSelector {
 

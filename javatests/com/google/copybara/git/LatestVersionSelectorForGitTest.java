@@ -79,7 +79,7 @@ public class LatestVersionSelectorForGitTest {
     for (String b : ImmutableList.of("vAlpha1", "vBeta1", "vCharly10", "vCharly2")) {
       repo.branch(b).run();
     }
-
+    cliReference = null;
     checkTagsCustomSelector(
         "refspec_format = 'refs/heads/v${s0}${n1}',"
             + " refspec_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}",
@@ -88,8 +88,22 @@ public class LatestVersionSelectorForGitTest {
   }
 
   @Test
+  public void testVersionSelector_branchRequested() throws Exception {
+    for (String b : ImmutableList.of("vAlpha1", "vBeta1", "vCharly10", "vCharly2")) {
+      repo.branch(b).run();
+    }
+    cliReference = "vBeta1";
+    checkTagsCustomCoreSelector(
+        "format = 'refs/heads/v${s0}${n1}',"
+            + " regex_groups = {'s0' : '[a-zA-Z]+', 'n1' : '[0-9]+'}",
+        "vBeta1",
+        "refs/heads/v*");
+  }
+
+  @Test
   public void testVersionSelector_noMatch() throws Exception {
     createTags("1.0", "1.1", "1.2");
+    options.general.setVersionSelectorUseCliRefForTest(false);
     ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
     assertThat(e)
         .hasMessageThat()
@@ -134,6 +148,29 @@ public class LatestVersionSelectorForGitTest {
     assertThat(origin.describe(Glob.ALL_FILES).get("refspec")).containsExactly(expectedRefspec);
   }
 
+  private void checkTagsCustomCoreSelector(
+      String fields, String expectedResult, String expectedRefspec)
+      throws RepoException, com.google.copybara.exception.ValidationException {
+
+    GitOrigin origin =
+        skylark.eval(
+            "result",
+            "result = "
+                + "git.origin(\n"
+                + "    url = '"
+                + url
+                + "',\n"
+                + "    version_selector = core.latest_version("
+                + fields
+                + "),\n"
+                + ")");
+
+    GitRevision version = origin.resolve(/* reference= */ cliReference);
+    assertThat(version.contextReference()).isEqualTo(expectedResult);
+    assertThat(version.contextReference()).isEqualTo(expectedResult);
+    assertThat(origin.describe(Glob.ALL_FILES).get("refspec")).containsExactly(expectedRefspec);
+  }
+
   @Test
   public void testResolve() throws Exception {
     createTags("1.0.0");
@@ -157,7 +194,7 @@ public class LatestVersionSelectorForGitTest {
 
     assertThat(options.testingOptions.destination.processed).hasSize(1);
     assertThat(options.testingOptions.destination.processed.get(0).getWorkdir())
-    .containsExactly("test.txt", "some content");
+        .containsExactly("test.txt", "some content");
 
     writeFile(remote, "test.txt", "some content2");
     repo.add().files("test.txt").run();
@@ -165,8 +202,7 @@ public class LatestVersionSelectorForGitTest {
 
     createTags("foo", "1.1.0");
     options.general.setForceForTest(false);
-    skylark.loadConfig(cfg).getMigration("default")
-        .run(workdir, ImmutableList.of());
+    skylark.loadConfig(cfg).getMigration("default").run(workdir, ImmutableList.of());
 
     assertThat(options.testingOptions.destination.processed.get(1).getWorkdir())
         .containsExactly("test.txt", "some content2");

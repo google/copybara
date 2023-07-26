@@ -70,6 +70,9 @@ public class GitOrigin implements Origin<GitRevision> {
    */
   private static final String COPYBARA_TMP_REF = "refs/heads/copybara_dont_use_internal";
 
+  private static final ImmutableSet<String> REF_PREFIXES =
+      ImmutableSet.of("refs/heads/", "refs/tags/");
+
   enum SubmoduleStrategy {
     /** Don't download any submodule. */
     NO,
@@ -202,19 +205,22 @@ public class GitOrigin implements Origin<GitRevision> {
         GitRepository repository = getRepository();
         ImmutableList<Refspec> specs = getVersionSelectorRefspec(repository);
         RefspecVersionList list = new RefspecVersionList(repository, specs, repoUrl);
+        for (String prefix : REF_PREFIXES) {
+          if (list.list().contains(prefix + reference)) {
+            reference = prefix + reference;
+          }
+        }
         Optional<String> res = versionSelector.select(list, reference, console);
         checkCondition(res.isPresent(), "Cannot find any matching version for latest_version");
         ref = res.get();
         // It is rare that a branch and a tag has the same name. The reason for this is that
         // destinations expect that the context_reference is a non-full reference. Also it is
         // more readable when we use it in transformations.
-        if (ref.startsWith("refs/heads/")) {
-          ref = ref.substring("refs/heads/".length());
+        for (String prefix : REF_PREFIXES) {
+          if (ref.startsWith(prefix)) {
+            ref = ref.substring(prefix.length());
+          }
         }
-        if (ref.startsWith("refs/tags/")) {
-          ref = ref.substring("refs/tags/".length());
-        }
-
       }
     } else if (Strings.isNullOrEmpty(reference)) {
       checkCondition(getConfigRef() != null, "No reference was passed as a command line argument "
