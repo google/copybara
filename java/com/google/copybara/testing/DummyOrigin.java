@@ -118,11 +118,20 @@ public class DummyOrigin implements Origin<DummyRevision> {
     Files.write(writePath, String.valueOf(changes.size()).getBytes(StandardCharsets.UTF_8));
     /*matchesGlob=*/
     Path previousChanges = changes.isEmpty() ? null : Iterables.getLast(changes).changesBase;
-    changes.add(new DummyRevision(
-        "" + changes.size(), changes.size() + " change", author, path,
-        ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
-        contextRef, /*referenceLabels=*/ ImmutableListMultimap.of(),
-        true, previousChanges, null, Optional.empty()));
+    changes.add(
+        new DummyRevision(
+            "" + changes.size(),
+            changes.size() + " change",
+            author,
+            path,
+            ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
+            contextRef,
+            /* fixedReference= */ null,
+            /* referenceLabels= */ ImmutableListMultimap.of(),
+            true,
+            previousChanges,
+            null,
+            Optional.empty()));
     return this;
   }
 
@@ -167,7 +176,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
     changes.add(new DummyRevision(
         "" + changes.size(), message, author, path,
         ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
-        /*contextReference=*/ null, labels,
+        /*contextReference=*/ null, /*fixedReference=*/ null, labels,
         matchesGlob, previousChanges, "", Optional.empty()));
     return this;
   }

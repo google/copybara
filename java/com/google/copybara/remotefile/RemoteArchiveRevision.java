@@ -18,6 +18,7 @@ package com.google.copybara.remotefile;
 
 import static com.google.common.base.Strings.nullToEmpty;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.revision.Revision;
@@ -48,6 +49,18 @@ public class RemoteArchiveRevision implements Revision {
   @Override
   public String asString() {
     return version.getVersion();
+  }
+
+  @Override
+  public String contextReference() {
+    return version.getVersion();
+  }
+
+  @Override
+  public String fixedReference() {
+    return !Strings.isNullOrEmpty(version.getVersion())
+        ? version.getVersion()
+        : version.getFullUrl();
   }
 
   @Override

@@ -61,6 +61,9 @@ public class DummyRevision implements Revision {
   private final ZonedDateTime timestamp;
   @Nullable
   private final String contextReference;
+
+  @Nullable
+  private final String fixedReference;
   private final ImmutableListMultimap<String, String> referenceLabels;
   private final boolean matchesGlob;
   @Nullable private final Path previousPath;
@@ -71,9 +74,10 @@ public class DummyRevision implements Revision {
   public DummyRevision(String reference) {
     this(reference, "DummyReference message", DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference), /*timestamp=*/null,
-        /*contextReference=*/ null, /*referenceLabels=*/ ImmutableListMultimap.of(),
-         /*matchesGlob=*/true, /*previousPath=*/null, /*url*/ null,
-         /*revisionType=*/ Optional.empty());
+        /*contextReference=*/ null, /*fixedReference=*/ null,
+        /*referenceLabels=*/ ImmutableListMultimap.of(),
+        /*matchesGlob=*/true, /*previousPath=*/null, /*url*/ null,
+        /*revisionType=*/ Optional.empty());
   }
 
   public DummyRevision(String reference, @Nullable String contextReference) {
@@ -83,7 +87,8 @@ public class DummyRevision implements Revision {
         DEFAULT_AUTHOR,
         Paths.get("/DummyReference", reference),
         /*timestamp=*/ null,
-        /*contextReference=*/ contextReference,
+        contextReference,
+        /*fixedReference=*/ null,
         /*referenceLabels=*/ ImmutableListMultimap.of(),
         /*matchesGlob=*/ true,
         /*previousPath=*/ null, null,
@@ -93,14 +98,16 @@ public class DummyRevision implements Revision {
   DummyRevision(
       String reference, String message, Author author, Path changesBase,
       @Nullable ZonedDateTime timestamp, @Nullable String contextReference,
-      ImmutableListMultimap<String, String> referenceLabels, boolean matchesGlob,
-      @Nullable Path previousPath, @Nullable String url, Optional<String> revisionType) {
+      @Nullable String fixedReference, ImmutableListMultimap<String, String> referenceLabels,
+      boolean matchesGlob, @Nullable Path previousPath, @Nullable String url,
+      Optional<String> revisionType) {
     this.reference = Preconditions.checkNotNull(reference);
     this.message = Preconditions.checkNotNull(message);
     this.author = Preconditions.checkNotNull(author);
     this.changesBase = Preconditions.checkNotNull(changesBase);
     this.timestamp = timestamp;
     this.contextReference = contextReference;
+    this.fixedReference = fixedReference;
     this.referenceLabels = Preconditions.checkNotNull(referenceLabels);
     this.matchesGlob = matchesGlob;
     this.previousPath = previousPath;
@@ -123,46 +130,82 @@ public class DummyRevision implements Revision {
   public DummyRevision withTimestamp(ZonedDateTime newTimestamp) {
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, newTimestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath, this.url,
-        this.revisionType);
+        this.contextReference, this.fixedReference, this.referenceLabels, this.matchesGlob,
+        this.previousPath, this.url, this.revisionType);
   }
 
   public DummyRevision withAuthor(Author newAuthor) {
     return new DummyRevision(
         this.reference, this.message, newAuthor, this.changesBase, this.timestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath, this.url,
-        this.revisionType);
+        this.contextReference, this.fixedReference, this.referenceLabels, this.matchesGlob,
+        this.previousPath, this.url, this.revisionType);
   }
 
   public DummyRevision withContextReference(String contextReference) {
     Preconditions.checkNotNull(contextReference);
     return new DummyRevision(
         this.reference, this.message, this.author, this.changesBase, this.timestamp,
-        contextReference, this.referenceLabels, this.matchesGlob, this.previousPath, this.url,
+        contextReference, this.fixedReference, this.referenceLabels, this.matchesGlob,
+        this.previousPath, this.url, this.revisionType);
+  }
+
+  public DummyRevision withFixedReference(String fixedReference) {
+    Preconditions.checkNotNull(fixedReference);
+    return new DummyRevision(
+        this.reference, this.message, this.author, this.changesBase, this.timestamp,
+        contextReference, fixedReference, this.referenceLabels, this.matchesGlob, this.previousPath,
+        this.url,
         this.revisionType);
   }
 
   public DummyRevision withLabels(ImmutableListMultimap<String, String> labels) {
     Preconditions.checkNotNull(labels);
     return new DummyRevision(
-        this.reference, this.message, this.author, this.changesBase, this.timestamp,
-        this.contextReference, labels, this.matchesGlob, this.previousPath, this.url,
+        this.reference,
+        this.message,
+        this.author,
+        this.changesBase,
+        this.timestamp,
+        this.contextReference,
+        this.fixedReference,
+        labels,
+        this.matchesGlob,
+        this.previousPath,
+        this.url,
         this.revisionType);
   }
 
   public DummyRevision withUrl(String url) {
     Preconditions.checkNotNull(url);
     return new DummyRevision(
-        this.reference, this.message, this.author, this.changesBase, this.timestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath, url,
+        this.reference,
+        this.message,
+        this.author,
+        this.changesBase,
+        this.timestamp,
+        this.contextReference,
+        this.fixedReference,
+        this.referenceLabels,
+        this.matchesGlob,
+        this.previousPath,
+        url,
         this.revisionType);
   }
 
   public DummyRevision withRevisionType(Optional<String> revisionType) {
     Preconditions.checkNotNull(revisionType);
     return new DummyRevision(
-        this.reference, this.message, this.author, this.changesBase, this.timestamp,
-        this.contextReference, this.referenceLabels, this.matchesGlob, this.previousPath, this.url,
+        this.reference,
+        this.message,
+        this.author,
+        this.changesBase,
+        this.timestamp,
+        this.contextReference,
+        this.fixedReference,
+        this.referenceLabels,
+        this.matchesGlob,
+        this.previousPath,
+        this.url,
         revisionType);
   }
 
@@ -224,6 +267,12 @@ public class DummyRevision implements Revision {
     return contextReference;
   }
 
+  @Nullable
+  @Override
+  public String fixedReference() {
+    return fixedReference;
+  }
+
   @Override
   public ImmutableListMultimap<String, String> associatedLabels() {
     return referenceLabels;
@@ -241,6 +290,7 @@ public class DummyRevision implements Revision {
     return message;
   }
 
+  @Override
   public String getUrl() {
     return url;
   }

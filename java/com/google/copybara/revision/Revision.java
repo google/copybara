@@ -62,6 +62,17 @@ public interface Revision {
   }
 
   /**
+   * If not null, returns a fixed value identifying the repo state for this {@code Revision}.
+   *
+   * <p>For example if the user passed 'main' in the command line, this would return the SHA-1 of
+   * the current HEAD of main while {@link #contextReference()} would return 'main'.
+   */
+  @Nullable
+  default String fixedReference() {
+    return null;
+  }
+
+  /**
    * Return any associated label with the revision. Keys are the label name and values are the
    * content of the label.
    *

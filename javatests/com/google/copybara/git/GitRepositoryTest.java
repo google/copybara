@@ -1379,6 +1379,7 @@ public class GitRepositoryTest {
     repo.simpleCommand("commit", "foo.txt", "-m", "message_a");
 
     assertThat(repo.getHeadRef().contextReference()).isEqualTo(branch);
+    assertThat(repo.getHeadRef().fixedReference()).isEqualTo(repository.getHeadRef().getSha1());
   }
 
   @Test

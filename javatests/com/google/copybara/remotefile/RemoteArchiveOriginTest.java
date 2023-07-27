@@ -459,6 +459,31 @@ public final class RemoteArchiveOriginTest {
   }
 
   @Test
+  public void testVersionResolver() throws Exception {
+    generalOptions.setVersionSelectorUseCliRefForTest(true);
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.1"));
+    when(versionList.list()).thenReturn(ImmutableSet.of("v0.1.1"));
+    when(transport.open(new URL("https://v0.1.1.tar")))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
+    when(versionResolver.resolve(eq("v0.1.1"), any()))
+        .thenReturn(
+            new RemoteArchiveRevision(new RemoteArchiveVersion("https://v0.1.1.tar", "v0.1.1")));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://${VERSION}.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR);
+    RemoteArchiveRevision rev = underTest.resolve("v0.1.1");
+    assertThat(rev.contextReference()).isEqualTo("v0.1.1");
+    assertThat(rev.fixedReference()).isEqualTo("v0.1.1");
+  }
+
+  @Test
   public void testArchiveCheckoutWithCliRefDisabledOnLastRev() throws Exception {
     generalOptions.setVersionSelectorUseCliRefForTest(false);
     when(transport.open(new URL("https://v0.1.1.tar")))

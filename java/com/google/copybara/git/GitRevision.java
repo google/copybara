@@ -116,6 +116,11 @@ public final class GitRevision implements Revision {
   }
 
   @Override
+  public String fixedReference() {
+    return sha1;
+  }
+
+  @Override
   public ZonedDateTime readTimestamp() throws RepoException {
     // TODO(malcon): We should be able to skip this for revisions coming from 'git log'.
     ImmutableList<GitLogEntry> entry = repository.log(sha1).withLimit(1).run();
