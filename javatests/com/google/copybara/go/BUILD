@@ -23,6 +23,7 @@ all_tests(
     tests = glob(["**/*.java"]),
     deps = [
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/go",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",

@@ -21,6 +21,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.version.RefspecVersionList.TagVersionList;
 import com.google.copybara.git.version.RequestedShaVersionSelector;
+import com.google.copybara.go.PseudoVersionSelector;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.version.CorrectorVersionSelector;
 import com.google.copybara.version.OrderedVersionSelector;
@@ -40,12 +41,14 @@ public class FuzzyClosestVersionSelector {
     ValidationException.checkCondition(!Strings.isNullOrEmpty(requestedRef),
         "Fuzzy version finding requires a ref to be explicitly specified");
 
-    OrderedVersionSelector selector = new OrderedVersionSelector(ImmutableList.of(
-        new RequestedShaVersionSelector(),
-        new RequestedExactMatchSelector(),
-        new CorrectorVersionSelector(console),
-        new RequestedVersionSelector()
-    ));
+    OrderedVersionSelector selector =
+        new OrderedVersionSelector(
+            ImmutableList.of(
+                new PseudoVersionSelector(),
+                new RequestedShaVersionSelector(),
+                new RequestedExactMatchSelector(),
+                new CorrectorVersionSelector(console),
+                new RequestedVersionSelector()));
     try {
       return selector.select(new TagVersionList(repo, url), requestedRef, console).get();
     } catch (RepoException e) {
