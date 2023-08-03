@@ -20,7 +20,6 @@ import static com.google.copybara.LazyResourceLoader.memoized;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST;
 import static com.google.copybara.WorkflowMode.CHANGE_REQUEST_FROM_SOT;
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.git.GitRepository.GIT_DESCRIBE_ABBREV;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -394,7 +393,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                     generalOptions.repoTask(
                         "origin.last_migrated",
                         () -> (lastMigrated == null) ? null : oReader.change(lastMigrated));
-                  lastMigratedChange = annotateChange(lastMigratedChange);
               } catch (RepoException | ValidationException e) {
                 logger.atInfo().withCause(e).log("Error resolving change for %s", lastMigrated);
               }
@@ -405,13 +403,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                         ChangesResponse<O> changes = oReader.changes(lastMigrated, lastResolved);
                         // Add additional labels to first and last available
                         if (!changes.isEmpty()) {
-                          ArrayList<Change<O>> annotated = new ArrayList<>(changes.getChanges());
-                          int i = 0;
-                          annotateChange(annotated, i);
-                          if (annotated.size() > 1) {
-                            annotateChange(annotated, annotated.size() - 1);
-                          }
-                          return ImmutableList.copyOf(annotated);
+                          return changes.getChanges();
                         }
                         return ImmutableList.of();
                       });
@@ -443,27 +435,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                   getDestinationDescription(),
                   ImmutableList.of(migrationRef));
             });
-  }
-
-  private void annotateChange(ArrayList<Change<O>> annotated, int i) throws ValidationException {
-    Change<O> c = annotated.get(i);
-     annotated.set(i, annotateChange(c));
-  }
-
-  @Nullable
-  private Change<O> annotateChange(@Nullable Change<O> annotate) throws ValidationException {
-    if (annotate == null) {
-      return null;
-    }
-    try {
-      Revision rev = origin.resolve(annotate.getRef());
-      // Force load of tag info
-      ImmutableList<String> ignored = rev.associatedLabel(GIT_DESCRIBE_ABBREV);
-      return  annotate.withLabels(rev.associatedLabels());
-    } catch (RepoException re) {
-      logger.atInfo().log("Failed to annotate change %s", annotate);
-    }
-    return annotate;
   }
 
   @Nullable
