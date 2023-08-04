@@ -57,6 +57,7 @@ all_tests(
     tests = ["ConfigHeuristicsInputProviderTest.java"],
     deps = [
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/onboard",
@@ -64,6 +65,7 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:mockito",
         "//third_party:truth",

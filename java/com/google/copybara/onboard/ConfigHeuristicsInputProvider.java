@@ -26,6 +26,7 @@ import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformation
 import com.google.copybara.configgen.ConfigGenHeuristics.Result;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.FuzzyClosestVersionSelector;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRevision;
@@ -116,6 +117,9 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       Path origin = generalOptions.getDirFactory().newTempDir("checkout");
       GitRepository repo =
           gitOptions.cachedBareRepoForUrl(originUrl.toString()).withWorkTree(origin);
+
+      FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
+      currentVersion = selector.selectVersion(currentVersion, repo, originUrl.toString(), console);
 
       console.progressFmt("Fetching '%s' from %s", currentVersion, originUrl.toString());
       GitRevision gitRevision = repo.fetchSingleRef(originUrl.toString(), currentVersion, false,
