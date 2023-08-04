@@ -321,6 +321,30 @@ public final class AutoPatchUtilTest {
         .isFalse();
   }
 
+  @Test
+  public void crAtEolDiff() throws Exception {
+    writeFile(origin, SOME_DIR.concat("file1.txt"), "foo\r\n");
+    writeFile(destination, SOME_DIR.concat("file1.txt"), "foo\n");
+
+    AutoPatchUtil.generatePatchFiles(
+        origin,
+        destination,
+        Path.of(SOME_DIR),
+        null,
+        VERBOSE,
+        System.getenv(),
+        "I'm a file prefix",
+        PATCH_FILE_NAME_SUFFIX,
+        root,
+        true,
+        Glob.ALL_FILES);
+
+    assertThat(
+            Files.exists(
+                root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isFalse();
+  }
+
   private Path createDir(Path parent, String name) throws IOException {
     Path path = parent.resolve(name);
     Files.createDirectories(path);

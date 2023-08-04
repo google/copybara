@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.DiffUtil.DiffFile;
@@ -103,6 +104,10 @@ public final class AutoPatchUtil {
               DiffUtil.diffFileWithIgnoreCrAtEol(
                   originWorkdir.getParent(), onePath, otherPath, verbose, environment),
               UTF_8);
+      if (Strings.isNullOrEmpty(diffString)) {
+        // diff was carriage return at end of line
+        continue;
+      }
       if (stripFileNames) {
         diffString = stripFileNamesAndLineNumbers(diffString);
       }
