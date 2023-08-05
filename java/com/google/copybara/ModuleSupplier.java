@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.archive.ArchiveModule;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.buildozer.BuildozerModule;
 import com.google.copybara.buildozer.BuildozerOptions;
@@ -117,6 +118,7 @@ public class ModuleSupplier {
         new MetadataModule(),
         new Authoring.Module(),
         new RemoteFileModule(options),
+        new ArchiveModule(),
         new Re2Module(),
         new TomlModule(),
         new XmlModule(),

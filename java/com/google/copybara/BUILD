@@ -222,6 +222,7 @@ java_library(
         ":labels",
         ":starlark_date_time_module",
         "//java/com/google/copybara/action",
+        "//java/com/google/copybara/archive",
         "//java/com/google/copybara/authoring",
         "//java/com/google/copybara/buildozer",
         "//java/com/google/copybara/buildozer:buildozer_options",

@@ -2,6 +2,8 @@
 ## Table of Contents
 
 
+  - [archive](#archive)
+    - [archive.extract](#archiveextract)
   - [author](#author)
   - [authoring](#authoring)
     - [authoring.allowed](#authoringallowed)
@@ -241,6 +243,29 @@
     - [ctx.write_path](#ctxwrite_path)
   - [xml](#xml)
     - [xml.xpath](#xmlxpath)
+
+
+
+## archive
+
+Functions to work with archives.
+
+<a id="archive.extract" aria-hidden="true"></a>
+### archive.extract
+
+Extract the contents of the archive to a path.
+
+`archive.extract(archive, type="AUTO", destination_folder=None, paths=None)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+archive | [`Path`](#path)<br><p>The path to the archive file.</p>
+type | `string`<br><p>The archive type. Supported types: AUTO, JAR, ZIP, TAR, and TAR_GZ. AUTO will try to infer the archive type automatically.</p>
+destination_folder | [`Path`](#path) or `NoneType`<br><p>The path to extract the archive to. This defaults to the directory where the archive is located.</p>
+paths | [`glob`](#glob) or `NoneType`<br><p>An optional glob that is used to filter the files extracted from the archive.</p>
 
 
 
