@@ -35,6 +35,19 @@ def all_tests(tests, deps, name, tags = [], shard_count = 1, data = [], env = {}
         suffix = relative_target.replace("/", ".")
         pos = native.package_name().rfind("javatests/") + len("javatests/")
         test_class = native.package_name()[pos:].replace("/", ".") + "." + suffix
+
+        # These deps are automatically included with Bazel, but not with the
+        # internal BUILD system. So add them explicitly here.
+        default_deps = [
+            "//third_party:guava",
+            "//third_party:jsr305",
+            "//third_party:junit",
+        ]
+        test_tags = tags[::]
+        for x in default_deps:
+            test_tags.append("req_dep=%s" % x)
+        test_deps = [dep for dep in deps if dep not in default_deps] + default_deps
+
         native.java_test(
             name = file[:-5] + "_" + name,
             srcs = tests,
@@ -44,14 +57,8 @@ def all_tests(tests, deps, name, tags = [], shard_count = 1, data = [], env = {}
             ],
             test_class = test_class,
             data = data,
-            deps = deps + [
-                # These deps are automatically included with Bazel, but not with the
-                # internal BUILD system. So add them explicitly here.
-                "//third_party:guava",
-                "//third_party:jsr305",
-                "//third_party:junit",
-            ],
-            tags = tags,
+            deps = test_deps,
+            tags = test_tags,
             shard_count = shard_count,
             env = env,
         )

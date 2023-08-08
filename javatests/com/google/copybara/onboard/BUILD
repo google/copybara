@@ -33,11 +33,9 @@ all_tests(
         ["*Test.java"],
     ),
     deps = [
-        "//java/com/google/copybara:base",
         "//java/com/google/copybara:copybara_lib",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/config:base",
-        "//java/com/google/copybara/configgen",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",

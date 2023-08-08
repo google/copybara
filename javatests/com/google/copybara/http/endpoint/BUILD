@@ -27,7 +27,6 @@ all_tests(
         "//java/com/google/copybara/http/testing",
         "//java/com/google/copybara/testing",
         "//third_party:google_http_client",
-        "//third_party:mockito",
         "//third_party:starlark",
         "//third_party:truth",
     ],
