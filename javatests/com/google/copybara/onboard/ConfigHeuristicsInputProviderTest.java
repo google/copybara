@@ -18,6 +18,7 @@ package com.google.copybara.onboard;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
+import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,7 +28,9 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRevision;
@@ -38,10 +41,12 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,18 +55,19 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public final class ConfigHeuristicsInputProviderTest {
+public class ConfigHeuristicsInputProviderTest {
   private String url;
   private Path destination;
-  private TestingConsole console;
-  private GeneralOptions generalOptions;
+  protected TestingConsole console;
+  protected GeneralOptions generalOptions;
+  protected OptionsBuilder optionsBuilder;
 
   @Before
   public void setup() throws Exception {
     console = new TestingConsole();
     url = "https://example.com/origin";
     destination = Files.createTempDirectory("destination");
-    OptionsBuilder optionsBuilder = new OptionsBuilder();
+    optionsBuilder = getOptionsBuilder(console);
     generalOptions = optionsBuilder.general;
 
     Path userHomeForTest = Files.createTempDirectory("home");
@@ -116,5 +122,15 @@ public final class ConfigHeuristicsInputProviderTest {
     // computed
     assertThat(Files.isDirectory(destination)).isTrue();
     assertThat(glob).isEmpty();
+  }
+
+  public OptionsBuilder getOptionsBuilder(TestingConsole console) throws IOException {
+    return new OptionsBuilder().setConsole(this.console).setOutputRootToTmpDir();
+  }
+
+  public GitEnvironment getEnv() {
+    Map<String, String> joinedEnv = Maps.newHashMap(optionsBuilder.general.getEnvironment());
+    joinedEnv.putAll(getGitEnv().getEnvironment());
+    return new GitEnvironment(joinedEnv);
   }
 }

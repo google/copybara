@@ -14,6 +14,8 @@
 
 load("//javatests/com/google/copybara:test.bzl", "all_tests")
 
+package(default_visibility = ["//visibility:public"])
+
 licenses(["notice"])
 
 # This is required because golang binaries have the build architecture in their
@@ -29,14 +31,32 @@ genrule(
 all_tests(
     name = "all_tests",
     data = [":normalised_buildifier"],
+    tags = ["local"],
     tests = glob(
-        ["*Test.java"],
+        ["**/*.java"],
+        exclude = ["ConfigHeuristicsInputProviderTest.java"],
     ),
     deps = [
         "//java/com/google/copybara:copybara_lib",
-        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/onboard",
+        "//java/com/google/copybara/onboard/core",
+        "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/testing/git",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:truth",
+    ],
+)
+
+all_tests(
+    name = "config_heuristic_input_test",
+    tags = ["local"],
+    tests = ["ConfigHeuristicsInputProviderTest.java"],
+    deps = [
+        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/onboard",
@@ -44,7 +64,6 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:mockito",
         "//third_party:truth",
