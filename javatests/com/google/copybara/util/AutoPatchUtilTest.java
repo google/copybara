@@ -184,6 +184,38 @@ public final class AutoPatchUtilTest {
   }
 
   @Test
+  public void directoryPrefixNoTrailingSlash_patchFilesGeneratedAndWritten()
+      throws Exception {
+    String trailingSlash = "some/dir";
+    writeFile(origin, trailingSlash.concat("/file1.txt"), "foo-origin");
+    writeFile(destination, trailingSlash.concat("/file1.txt"), "foo-destination");
+
+    AutoPatchUtil.generatePatchFiles(
+        origin,
+        destination,
+        Path.of(trailingSlash),
+        null,
+        VERBOSE,
+        System.getenv(),
+        PATCH_FILE_PREFIX,
+        PATCH_FILE_NAME_SUFFIX,
+        root,
+        true,
+        Glob.ALL_FILES);
+
+    assertThat(
+            Files.readString(
+                root.resolve(trailingSlash).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isEqualTo(
+            PATCH_FILE_PREFIX.concat(
+                "@@\n"
+                    + "-foo-origin\n"
+                    + "\\ No newline at end of file\n"
+                    + "+foo-destination\n"
+                    + "\\ No newline at end of file\n"));
+  }
+
+  @Test
   public void emptyDiffGeneratesNoPatchFiles() throws Exception {
     writeFile(origin, SOME_DIR.concat("file1.txt"), "foo");
     writeFile(origin, SOME_DIR.concat("b/file2.txt"), "bar");

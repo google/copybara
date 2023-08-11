@@ -150,11 +150,14 @@ public final class AutoPatchUtil {
                 destinationWorkdir.relativize(
                     Path.of(file.toString().replace(patchFileNameSuffix, "")));
             fileName = Path.of(fileName.toString().replace(directoryPrefix.toString(), ""));
-            if (fileName.toString().startsWith("/")) {
-              fileName = Path.of(fileName.toString().substring(1));
+            if (fileName.isAbsolute()) {
+              fileName = fileName.subpath(0, fileName.getNameCount());
             }
             if (!finalPatchFileDirectory.isBlank()) {
               fileName = Path.of(fileName.toString().replace(finalPatchFileDirectory, ""));
+            }
+            if (fileName.isAbsolute()) {
+               fileName = fileName.subpath(0, fileName.getNameCount());
             }
 
             // patch file exists, but the origin file was deleted
