@@ -494,7 +494,7 @@ public enum WorkflowMode {
     }
   }
 
-  private static boolean isHistorySupported(WorkflowRunHelper<?, ?> helper) {
+  public static boolean isHistorySupported(WorkflowRunHelper<?, ?> helper) {
     return helper.destinationSupportsPreviousRef() && helper.getOriginReader().supportsHistory();
   }
 
@@ -522,11 +522,9 @@ public enum WorkflowMode {
     .collect(ImmutableList.toImmutableList());
   }
 
-  /**
-   * Returns the last rev if possible. If --force is not enabled it will fail if not found.
-   */
+  /** Returns the last rev if possible. If --force is not enabled it will fail if not found. */
   @Nullable
-  private static <O extends Revision, D extends Revision> O maybeGetLastRev(
+  public static <O extends Revision, D extends Revision> O maybeGetLastRev(
       WorkflowRunHelper<O, D> runHelper) throws RepoException, ValidationException {
     try {
       return runHelper.getLastRev();

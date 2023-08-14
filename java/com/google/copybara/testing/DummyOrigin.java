@@ -337,4 +337,8 @@ public class DummyOrigin implements Origin<DummyRevision> {
   public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
     return descriptionLabels;
   }
+
+  public DummyRevision getLatestChange() {
+    return changes.get(changes.size() - 1);
+  }
 }

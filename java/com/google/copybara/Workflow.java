@@ -343,7 +343,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     }
   }
 
-  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef, String rawSourceRef,
+  public WorkflowRunHelper<O, D> newRunHelper(
+      Path workdir,
+      O resolvedRef,
+      String rawSourceRef,
       Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor)
       throws ValidationException {
 

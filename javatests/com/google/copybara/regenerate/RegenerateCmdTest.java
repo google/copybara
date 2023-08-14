@@ -16,6 +16,7 @@
 package com.google.copybara.regenerate;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,7 +135,7 @@ public class RegenerateCmdTest {
           }
         };
     options.testingOptions.destination = destination;
-
+    
     origin = new DummyOrigin();
     origin.addSimpleChange(0);
     options.testingOptions.origin = origin;
@@ -284,6 +285,120 @@ public class RegenerateCmdTest {
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
+  @Test
+  public void testRegenImportBaseline_generatesPatch() throws Exception {
+    setupTarget("bar");
+
+    String testfile = "asdf.txt";
+    // different contents should generate diff
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    options.regenerateOptions.setRegenTarget("bar");
+    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
+
+    RegenerateCmd cmd = getCmd(getConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(path -> Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+  }
+
+  @Test
+  public void testRegenImportBaseline_noDiff() throws Exception {
+    setupTarget("bar");
+
+    String testfile = "asdf.txt";
+    // same contents should generate no diff
+    origin.singleFileChange(0, "foo description", testfile, "bar");
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    options.regenerateOptions.setRegenTarget("bar");
+    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
+
+    RegenerateCmd cmd = getCmd(getConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+  }
+
+  @Test
+  public void testNoLineNumbers_throws() {
+    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+    options.regenerateOptions.setRegenBaseline("foo");
+    options.regenerateOptions.setRegenTarget("bar");
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            cmd.run(
+                new CommandEnv(
+                    workdir,
+                    options.build(),
+                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+  }
+
+  @Test
+  public void testNoLineNumbers_noThrowWhenUsingImportingBaseline() {
+    options.regenerateOptions.setRegenImportBaseline(true);
+    options.regenerateOptions.setRegenTarget("bar");
+
+    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            cmd.run(
+                new CommandEnv(
+                    workdir,
+                    options.build(),
+                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+  }
+
+  @Test
+  public void testMissingAutopatchConfig_throws() {
+    options.regenerateOptions.setRegenImportBaseline(true);
+    options.regenerateOptions.setRegenTarget("bar");
+
+    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+
+    assertThrows(
+        ValidationException.class,
+        () ->
+            cmd.run(
+                new CommandEnv(
+                    workdir,
+                    options.build(),
+                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+  }
+
   private RegenerateCmd getCmd(String configString) {
     ModuleSet moduleSet = skylark.createModuleSet();
     return new RegenerateCmd(
@@ -308,9 +423,9 @@ public class RegenerateCmdTest {
     return "core.workflow(\n"
         + "    name = 'default',\n"
         + "    origin = testing.origin(),\n"
-        + "    origin_files = glob(['include/mainline-file.txt']),\n"
+        + "    origin_files = glob(['**']),\n"
         + "    destination = testing.destination(),\n"
-        + "    mode = 'ITERATIVE',\n"
+        + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
@@ -318,6 +433,35 @@ public class RegenerateCmdTest {
         + "      directory = 'AUTOPATCH',\n"
         + "      suffix = '.patch'\n"
         + "    ),\n"
+        + ")";
+  }
+
+  private String getConfigStringWithStripLineNumbers() {
+    return "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = testing.origin(),\n"
+        + "    origin_files = glob(['**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'SQUASH',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    autopatch_config = core.autopatch_config(\n"
+        + "      header = '# header',\n"
+        + "      directory_prefix = ''\n,"
+        + "      directory = 'AUTOPATCH',\n"
+        + "      suffix = '.patch',\n"
+        + "      strip_file_names_and_line_numbers = True,\n"
+        + "    ),\n"
+        + ")";
+  }
+
+  private String getConfigStringWithMissingAutopatchConfig() {
+    return "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = testing.origin(),\n"
+        + "    origin_files = glob(['**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'SQUASH',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + ")";
   }
 }

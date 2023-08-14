@@ -103,8 +103,11 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
   }
 
   @Override
-  protected WorkflowRunHelper<O, D> newRunHelper(Path workdir, O resolvedRef,
-      String rawSourceRef, Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor)
+  public WorkflowRunHelper<O, D> newRunHelper(
+      Path workdir,
+      O resolvedRef,
+      String rawSourceRef,
+      Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor)
       throws ValidationException {
     Reader<O> reader = this.getOrigin().newReader(this.getOriginFiles(), this.getAuthoring());
     return new ReloadingRunHelper(

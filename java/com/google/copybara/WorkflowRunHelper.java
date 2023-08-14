@@ -92,7 +92,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   @Nullable final String rawSourceRef;
   private final Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor;
 
-  WorkflowRunHelper(
+  public WorkflowRunHelper(
       Workflow<O, D> workflow,
       Path workdir,
       O resolvedRef,
@@ -405,7 +405,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param originBaselineForMergeImport the revision to populate baseline for merge_import mode
      */
     @CanIgnoreReturnValue
-    final ImmutableList<DestinationEffect> migrate(
+    public final ImmutableList<DestinationEffect> migrate(
         O rev,
         @Nullable O lastRev,
         Console processConsole,
@@ -963,13 +963,36 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
   }
 
+  public Path importAndTransformRevision(
+      Console console,
+      O lastRev,
+      O currentRev,
+      ResourceSupplier<DestinationReader> destinationReader)
+      throws RepoException, ValidationException, IOException {
+
+    ChangeMigrator<O, D> migrator = getDefaultMigrator();
+    LazyResourceLoader<Endpoint> originApi = c -> getOriginReader().getFeedbackEndPoint(c);
+    LazyResourceLoader<Endpoint> destinationApi =
+        c -> getDestinationWriter().getFeedbackEndPoint(c);
+
+    return migrator.checkoutBaselineAndTransform(
+        "premerge",
+        lastRev,
+        new Metadata("foo", new Author("foo", "foo@foo.com"), ImmutableSetMultimap.of()),
+        currentRev,
+        console,
+        originApi,
+        destinationApi,
+        destinationReader);
+  }
+
   /**
    * Get last imported revision or fail if it cannot be found.
    *
    * @throws RepoException if a last revision couldn't be found
    */
   @Nullable
-  O getLastRev() throws RepoException, ValidationException {
+  public O getLastRev() throws RepoException, ValidationException {
     O lastRev = maybeGetLastRev();
     if (lastRev == null && !isInitHistory()) {
       throw new CannotResolveRevisionException(String.format(

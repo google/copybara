@@ -33,6 +33,10 @@ public class RegenerateOptions implements Option {
     return Optional.ofNullable(regenBaseline);
   }
 
+  public boolean getRegenImportBaseline() {
+    return regenImportBaseline;
+  }
+
   public Optional<String> getRegenTarget() {
     return Optional.ofNullable(regenTarget);
   }
@@ -46,6 +50,17 @@ public class RegenerateOptions implements Option {
   @VisibleForTesting
   public void setRegenBaseline(@Nullable String regenBaseline) {
     this.regenBaseline = regenBaseline;
+  }
+
+  @Parameter(
+      names = "--regen-import-baseline",
+      arity = 1,
+      description = "create the baseline by doing a workflow import")
+  private boolean regenImportBaseline = false;
+
+  @VisibleForTesting
+  public void setRegenImportBaseline(boolean regenImportBaseline) {
+    this.regenImportBaseline = regenImportBaseline;
   }
 
   @Nullable
