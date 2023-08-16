@@ -93,18 +93,6 @@ public class GerritApi {
   }
 
   /**
-   * @deprecated use getProject instead. Method will be removed soon.
-   */
-  @Deprecated
-  public Map<String, ProjectInfo> listProjects(ListProjectsInput listProjectsInput)
-      throws RepoException, ValidationException {
-    try (ProfilerTask ignore = profiler.start("gerrit_list_projects")) {
-      return transport.get("/projects/?" + listProjectsInput.asUrlParams(),
-          new TypeToken<Map<String, ProjectInfo>>() {}.getType());
-    }
-  }
-
-  /**
    * Look for a Gerrit project using its ID. The ID differs from the name in that certain
    * characters are escaped. E.g. plugins%2Freplication vs plugins/replication.
    *
