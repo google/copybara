@@ -33,6 +33,7 @@ public class ListProjectsInput {
   @Nullable private String prefix;
   @Nullable private String regex;
 
+  @Deprecated
   public ListProjectsInput() {
   }
 
@@ -62,6 +63,7 @@ public class ListProjectsInput {
     return new ListProjectsInput(branch, description, limit , skip, prefix, regex);
   }
 
+  @Deprecated
   public ListProjectsInput withRegex(String regex) {
     return new ListProjectsInput(branch, description, limit , skip, prefix, regex);
   }

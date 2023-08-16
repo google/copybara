@@ -23,10 +23,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.TypeToken;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.GerritApiException.ResponseCode;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A mini API for getting and updating Gerrit projects through the Gerrit REST API.
@@ -90,11 +92,32 @@ public class GerritApi {
     }
   }
 
+  /**
+   * @deprecated use getProject instead. Method will be removed soon.
+   */
+  @Deprecated
   public Map<String, ProjectInfo> listProjects(ListProjectsInput listProjectsInput)
       throws RepoException, ValidationException {
     try (ProfilerTask ignore = profiler.start("gerrit_list_projects")) {
       return transport.get("/projects/?" + listProjectsInput.asUrlParams(),
           new TypeToken<Map<String, ProjectInfo>>() {}.getType());
+    }
+  }
+
+  /**
+   * Look for a Gerrit project using its ID. The ID differs from the name in that certain
+   * characters are escaped. E.g. plugins%2Freplication vs plugins/replication.
+   *
+   * @return a ProjectInfo if project is found, otherwise empty.
+   */
+  public Optional<ProjectInfo> getProjectById(String id) throws ValidationException, RepoException {
+    try (ProfilerTask ignore = profiler.start("gerrit_list_projects")) {
+      return Optional.of(transport.get("/projects/" + id, ProjectInfo.class));
+    } catch (GerritApiException e) {
+      if (e.getResponseCode() == ResponseCode.NOT_FOUND) {
+        return Optional.empty();
+      }
+      throw e;
     }
   }
 

@@ -62,6 +62,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -374,6 +375,36 @@ public class GerritApiTest {
     assertThat(projects.get("external/bison").getDescription()).isEqualTo("GNU parser generator");
     assertThat(projects.get("external/gcc").getId()).isEqualTo("external%2Fgcc");
     assertThat(projects.get("external/openssl").getId()).isEqualTo("external%2Fopenssl");
+  }
+
+  @Test
+  public void testGetProject() throws Exception {
+    mockResponse(new CheckRequest("GET", "/projects/plugins%2Freplication"), ""
+        + ")]}'\n"
+        + "{\n"
+        + "    \"id\": \"plugins%2Freplication\",\n"
+        + "    \"name\": \"plugins/replication\",\n"
+        + "    \"parent\": \"Public-Plugins\",\n"
+        + "    \"description\": \"Copies to other servers using the Git protocol\",\n"
+        + "    \"state\": \"ACTIVE\",\n"
+        + "    \"labels\": {\n"
+        + "      \"Code-Review\": {\n"
+        + "        \"values\": {\n"
+        + "          \" 0\": \"No score\",\n"
+        + "          \"+1\": \"Approved\"\n"
+        + "        },\n"
+        + "        \"default_value\": 0\n"
+        + "      }\n"
+        + "    }\n"
+        + "  }");
+
+    assertThat(gerritApi.getProjectById("plugins/replication")).isEqualTo(Optional.empty());
+
+    Optional<ProjectInfo> found = gerritApi.getProjectById("plugins%2Freplication");
+    assertThat(found.isPresent()).isTrue();
+    assertThat(found.get().getId()).isEqualTo("plugins%2Freplication");
+    assertThat(found.get().getName()).isEqualTo("plugins/replication");
+    assertThat(found.get().getDescription()).startsWith("Copies to other");
   }
 
   @Test
