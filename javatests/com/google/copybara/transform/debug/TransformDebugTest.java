@@ -101,6 +101,19 @@ public class TransformDebugTest {
   }
 
   @Test
+  public void testFileGlobMatch_wrongSymlink() throws Exception {
+    options.debug.debugFileBreak = "test*.txt";
+    mockAnswer("Replace foo1", "c");
+    mockAnswer("Replace foo2", "c");
+    Files.createSymbolicLink(workdir.resolve("test3.txt"), workdir.resolve("path/to/nowhere"));
+    runWorkflow();
+    verify(console).ask(matches("Debugger stopped after 'Replace foo1'(.|\n)*"), anyString(),
+        any());
+    verify(console).ask(matches("Debugger stopped after 'Replace foo2'(.|\n)*"), anyString(),
+        any());
+  }
+
+  @Test
   public void testTransformMatch() throws Exception {
     options.debug.debugTransformBreak = "Replace foo1";
     mockAnswer("Replace foo1", "c");

@@ -222,6 +222,10 @@ public final class TransformDebug implements Transformation {
           Glob.ALL_FILES.relativeTo(work.getCheckoutDir()));
 
       for (FileState beforeFile : files) {
+        // Ignore symlinks.
+        if (Files.isSymbolicLink(beforeFile.getPath())) {
+          continue;
+        }
         Path relative = work.getCheckoutDir().relativize(beforeFile.getPath());
         byte[] bytes = Files.readAllBytes(beforeFile.getPath());
         result.put(relative.toString(),
