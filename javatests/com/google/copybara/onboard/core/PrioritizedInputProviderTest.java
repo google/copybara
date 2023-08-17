@@ -42,9 +42,9 @@ public class PrioritizedInputProviderTest {
   public void testSimple() throws CannotProvideException, InterruptedException {
     InputProvider provider = new PrioritizedInputProvider(INPUT,
         ImmutableList.of(
-            new ConstantProvider(INPUT, "10", 10),
-            new ConstantProvider(INPUT, "20", 20),
-            new ConstantProvider(INPUT, null, 30)
+            new ConstantProvider<>(INPUT, "10", 10),
+            new ConstantProvider<>(INPUT, "20", 20),
+            new ConstantProvider<>(INPUT, null, 30)
         ));
 
     assertThat(provider.provides()).containsExactly(INPUT, 30);
@@ -55,7 +55,7 @@ public class PrioritizedInputProviderTest {
   public void testNone() throws CannotProvideException, InterruptedException {
     InputProvider provider = new PrioritizedInputProvider(INPUT,
         ImmutableList.of(
-            new ConstantProvider(INPUT, null, 10)
+            new ConstantProvider<>(INPUT, null, 10)
         ));
 
     assertThat(provider.provides()).containsExactly(INPUT, 10);

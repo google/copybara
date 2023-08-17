@@ -43,21 +43,21 @@ public class ConstantProviderTest {
 
   @Test
   public void testSimple() throws CannotProvideException, InterruptedException {
-    ConstantProvider provider = new ConstantProvider(INPUT, "hello");
+    ConstantProvider<String> provider = new ConstantProvider<>(INPUT, "hello");
     assertThat(provider.provides()).containsExactly(INPUT, DEFAULT_PRIORITY);
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("hello"));
   }
 
   @Test
   public void testNoValue() throws CannotProvideException, InterruptedException {
-    ConstantProvider provider = new ConstantProvider(INPUT, null);
+    ConstantProvider<String> provider = new ConstantProvider<>(INPUT, null);
     assertThat(provider.provides()).containsExactly(INPUT, DEFAULT_PRIORITY);
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.empty());
   }
 
   @Test
   public void testNotFound() {
-    ConstantProvider provider = new ConstantProvider(INPUT, null);
+    ConstantProvider<String> provider = new ConstantProvider<>(INPUT, null);
     assertThat(Assert.assertThrows(IllegalArgumentException.class,
         () -> provider.resolve(OTHER, RESOLVER))).hasMessageThat()
         .contains("This shouldn't happen");

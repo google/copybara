@@ -16,7 +16,11 @@
 
 package com.google.copybara.onboard;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
@@ -31,6 +35,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Standard {@link Input}s that can be used by config generators.
@@ -123,15 +128,26 @@ public class Inputs {
           String.class,
           (value, resolver) -> value);
 
-  public static final Input<ConfigGenerator> TEMPLATE = Input.create(
-      "template_name", "Template to use for generating the config",
-      null, ConfigGenerator.class, (s, resolver) -> {
-        ConfigGenerator configGenerator = resolver.getGenerators().get(s);
-        if (configGenerator != null) {
-          return configGenerator;
-        }
-        throw new CannotConvertException(
-            String.format("Invalid template '%s'. Available templates: %s",
-                s, Joiner.on(", ").join(resolver.getGenerators().keySet())));
-      });
+  private static Input<ConfigGenerator> template;
+  public static Input<ConfigGenerator> templateInput() {
+    return checkNotNull(template, "Template input has to be set before call");
+  }
+
+  public static void maybeSetTemplates(List<ConfigGenerator> values) {
+    if (template != null) {
+      return;
+    }
+    ImmutableMap<String, ConfigGenerator> templates = Maps.uniqueIndex(values, v -> v.name());
+    template = Input.create(
+        "template_name", "Template to use for generating the config",
+        null, ConfigGenerator.class, (s, resolver) -> {
+          ConfigGenerator configGenerator = templates.get(s);
+          if (configGenerator!=null) {
+            return configGenerator;
+          }
+          throw new CannotConvertException(
+              String.format("Invalid template '%s'. Available templates: %s",
+                  s, Joiner.on(", ").join(templates.keySet())));
+        });
+  }
 }

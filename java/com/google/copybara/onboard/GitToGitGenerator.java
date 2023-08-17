@@ -85,4 +85,10 @@ public final class GitToGitGenerator extends TemplateConfigGenerator {
   public String toString() {
     return name();
   }
+
+  /** No autodetection for this template for now */
+  @Override
+  public boolean isGenerator(InputProviderResolver resolver) {
+    return false;
+  }
 }

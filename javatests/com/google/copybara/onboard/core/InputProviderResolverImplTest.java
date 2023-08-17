@@ -69,6 +69,7 @@ public class InputProviderResolverImplTest {
               throw new CannotConvertException(
                   String.format("Cannot convert %s: %s", s, e.getMessage()));
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               throw new RuntimeException("Unexpected", e);
             }
           });
@@ -92,7 +93,6 @@ public class InputProviderResolverImplTest {
                 new DepProvider(ONE, TWO),
                 new DepProvider(TWO, THREE),
                 new ConstantProvider<>(THREE, "hello")),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -104,7 +104,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new ConstantProvider<>(ONE, null)),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.FAIL,
             console);
@@ -116,7 +115,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new ConstantProvider<>(INFER, "aa")),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.FAIL,
             console);
@@ -128,7 +126,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new ConstantProvider<>(INFER, null)),
-            ImmutableList.of(),
             starlarkConverter,
             // We don't use the console to ask the user for a value
             Mode.CONFIRM,
@@ -149,7 +146,6 @@ public class InputProviderResolverImplTest {
                 new DepProvider(ONE, TWO),
                 new DepProvider(TWO, THREE),
                 new ConstantProvider<>(THREE, "hello")),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.CONFIRM,
             console);
@@ -161,7 +157,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new DepProvider(ONE, TWO, TWO), new OnlyOnce(TWO)),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -177,7 +172,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new ConstantProvider<>(ONE, "hello")),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -192,7 +186,6 @@ public class InputProviderResolverImplTest {
                 new DepProvider(ONE, TWO),
                 new DepProvider(TWO, THREE),
                 new DepProvider(THREE, ONE)),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -219,7 +212,6 @@ public class InputProviderResolverImplTest {
                     return defaultPriority(ImmutableSet.of(ONE));
                   }
                 }),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -235,7 +227,6 @@ public class InputProviderResolverImplTest {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
             ImmutableList.of(new DepProvider(TWO, RESOLVE), new ConstantProvider<>(RESOLVE, null)),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -251,7 +242,6 @@ public class InputProviderResolverImplTest {
         InputProviderResolverImpl.create(
             ImmutableList.of(
                 new ConstantProvider<>(TWO, "other"), new ConstantProvider<>(RESOLVE, null)),
-            ImmutableList.of(),
             starlarkConverter,
             Mode.AUTO,
             console);
@@ -262,7 +252,7 @@ public class InputProviderResolverImplTest {
   public void testParseStarlarkGlob() throws Exception {
     InputProviderResolver resolver =
         InputProviderResolverImpl.create(
-            ImmutableList.of(), ImmutableList.of(), starlarkConverter, Mode.FAIL, console);
+            ImmutableList.of(), starlarkConverter, Mode.FAIL, console);
 
     assertThat(resolver.parseStarlark("glob(include=['**'], exclude=['bin/**'])", Glob.class))
         .isEqualTo(Glob.createGlob(ImmutableList.of("**"), ImmutableList.of("bin/**")));

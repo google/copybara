@@ -18,12 +18,10 @@ package com.google.copybara.onboard;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
-import com.google.copybara.onboard.core.template.ConfigGenerator;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -64,11 +62,6 @@ public class InputsTest {
           @Override
           public <T> Optional<T> resolveOptional(Input<T> input) throws InterruptedException {
             return InputProviderResolver.super.resolveOptional(input);
-          }
-
-          @Override
-          public ImmutableMap<String, ConfigGenerator> getGenerators() {
-            return InputProviderResolver.super.getGenerators();
           }
 
           @Override

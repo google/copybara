@@ -29,6 +29,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.format.BuildifierOptions;
 import com.google.copybara.git.GitOptions;
+import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.ConstantProvider;
 import com.google.copybara.onboard.core.InputProvider;
@@ -46,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * A command that generates a config file based on user and inferred inputs.
@@ -71,11 +73,17 @@ public class GeneratorCmd implements CopybaraCmd {
     GeneratorOptions genOpts = commandEnv.getOptions().get(GeneratorOptions.class);
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
 
+    ImmutableList<ConfigGenerator> generators = generators();
+    Inputs.maybeSetTemplates(generators);
+    for (ConfigGenerator generator : generators) {
+      // force the generator to initialize its Inputs so tha they are declared in the registry
+      var unused = generator.consumes();
+    }
+
     try {
       InputProviderResolver resolver =
           InputProviderResolverImpl.create(
               inputProviders(genOpts, commandEnv, console),
-              generators(),
               new StarlarkConverter(moduleSet, console),
               genOpts.askMode,
               console);
@@ -84,12 +92,14 @@ public class GeneratorCmd implements CopybaraCmd {
         console.error("Cannot infer a path to place the generated config");
         return ExitCode.COMMAND_LINE_ERROR;
       }
-      Optional<ConfigGenerator> template = resolver.resolveOptional(Inputs.TEMPLATE);
-      if (template.isEmpty()) {
+      ConfigGenerator template;
+      try {
+        template = selectGenerator(resolver, genOpts.template, console);
+      } catch (CannotConvertException e) {
         console.error("Cannot infer a template for generating a config. Use --template flag.");
         return ExitCode.COMMAND_LINE_ERROR;
       }
-      String config = template.get().generate(resolver);
+      String config = template.generate(resolver);
 
       Path configDestination = path.get().resolve("copy.bara.sky");
       Files.write(configDestination, config.getBytes(StandardCharsets.UTF_8));
@@ -131,14 +141,7 @@ public class GeneratorCmd implements CopybaraCmd {
       throws CannotProvideException {
 
     ImmutableMap<String, String> inputs = genOpts.inputs;
-    // Special case --template to make it easier for users.
-    if (genOpts.template != null) {
-      inputs =
-          ImmutableMap.<String, String>builder()
-              .putAll(inputs)
-              .put(Inputs.TEMPLATE.name(), genOpts.template)
-              .buildOrThrow();
-    }
+
     return ImmutableList.of(
         new ConstantProvider<>(
             Inputs.GENERATOR_FOLDER, commandEnv.getOptions().get(GeneralOptions.class).getCwd()),
@@ -151,6 +154,26 @@ public class GeneratorCmd implements CopybaraCmd {
         new MapBasedInputProvider(inputs, InputProvider.COMMAND_LINE_PRIORITY));
   }
 
+  private ConfigGenerator selectGenerator(
+      InputProviderResolver resolver, @Nullable String cliTemplate, Console console)
+      throws CannotConvertException, CannotProvideException, InterruptedException {
+    ImmutableList<ConfigGenerator> generators = generators();
+    if (cliTemplate != null) {
+      return Inputs.templateInput().convert(cliTemplate, resolver);
+    }
+    for (ConfigGenerator generator : generators) {
+      if (generator.isGenerator(resolver)) {
+        console.info("Using '" + generator.name() + "' template");
+        return generator;
+      }
+    }
+    return resolver.resolve(Inputs.templateInput());
+  }
+
+
+  /**
+   * A priority ordered lists of templates that can be useds
+   */
   protected ImmutableList<ConfigGenerator> generators() {
     return ImmutableList.of(
         new GitToGitGenerator()

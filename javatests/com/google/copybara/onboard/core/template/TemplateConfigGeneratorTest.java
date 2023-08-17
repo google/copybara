@@ -58,6 +58,11 @@ public class TemplateConfigGeneratorTest {
       }
 
       @Override
+      public boolean isGenerator(InputProviderResolver resolver) {
+        return true;
+      }
+
+      @Override
       protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
         return ImmutableMap.of(
             Field.required("foo"), "hello",
@@ -90,6 +95,11 @@ public class TemplateConfigGeneratorTest {
       @Override
       public ImmutableSet<Input<?>> consumes() {
         return ImmutableSet.of();
+      }
+
+      @Override
+      public boolean isGenerator(InputProviderResolver resolver) throws InterruptedException {
+        return true;
       }
 
       @Override

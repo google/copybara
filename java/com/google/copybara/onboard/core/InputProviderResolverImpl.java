@@ -20,11 +20,8 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
-import com.google.copybara.onboard.core.template.ConfigGenerator;
 import com.google.copybara.util.console.Console;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,7 +36,6 @@ import java.util.Optional;
  */
 public final class InputProviderResolverImpl implements InputProviderResolver {
 
-  private final ImmutableMap<String, ConfigGenerator> generators;
   private final Converter<Object> starlarkConverter;
   private final Mode askMode;
   private final Console console;
@@ -48,18 +44,10 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
 
   public static InputProviderResolver create(
       Collection<InputProvider> providers,
-      ImmutableList<ConfigGenerator> generators,
       Converter<Object> starlarkConverter,
       Mode askMode,
       Console console)
       throws CannotProvideException {
-    ImmutableMap.Builder<String, ConfigGenerator> generatorMap = ImmutableMap.builder();
-
-    for (ConfigGenerator generator : generators) {
-      // force the generator to initialize its Inputs so tha they are declared in the registry
-      var unused = generator.consumes();
-      generatorMap.put(generator.name(), generator);
-    }
 
     HashMultimap<Input<?>, InputProvider> map = HashMultimap.create();
     for (InputProvider provider : providers) {
@@ -84,7 +72,6 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
     }
     return new InputProviderResolverImpl(
         providersMap,
-        generatorMap.buildOrThrow(),
         starlarkConverter,
         askMode,
         console,
@@ -93,12 +80,10 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
 
   private InputProviderResolverImpl(
       Map<Input<?>, InputProvider> inputProviders,
-      ImmutableMap<String, ConfigGenerator> generators,
       Converter<Object> starlarkConverter,
       Mode askMode,
       Console console,
       ImmutableSet<String> loopDetector) {
-    this.generators = generators;
     this.starlarkConverter = starlarkConverter;
     this.askMode = askMode;
     this.console = console;
@@ -139,7 +124,6 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
         inputProvider,
         new InputProviderResolverImpl(
             inputProviders,
-            generators,
             starlarkConverter,
             askMode,
             console,
@@ -163,11 +147,6 @@ public final class InputProviderResolverImpl implements InputProviderResolver {
                   + " of type %s",
               provider, result.get().getClass(), input, input.type()));
     }
-  }
-
-  @Override
-  public ImmutableMap<String, ConfigGenerator> getGenerators() {
-    return generators;
   }
 
   @Override

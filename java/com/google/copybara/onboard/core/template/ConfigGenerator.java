@@ -37,4 +37,7 @@ public interface ConfigGenerator {
 
   /** List of {@link Input}s that the generator consumes */
   ImmutableSet<Input<?>> consumes();
+
+  /** Returns true if this generator is a valid generator given the inputs (e.g. output folder) */
+  boolean isGenerator(InputProviderResolver resolver) throws InterruptedException;
 }
