@@ -37,7 +37,7 @@ import java.io.IOException;
 import javax.annotation.Nullable;
 
 /**
- * RegenerateCmd is used to re-create the patch representing the destination-only changes after
+ * RegenerateCmd is used to recreate the patch representing the destination-only changes after
  * manual edits are made to a destination change.
  */
 public class RegenerateCmd implements CopybaraCmd {
@@ -71,7 +71,7 @@ public class RegenerateCmd implements CopybaraCmd {
             .loadWithDependencies(console);
 
     String workflowName = configFileArgs.getWorkflowName();
-    console.infoFmt("running regenerate for workflow %s", workflowName);
+    console.infoFmt("Running regenerate for workflow %s", workflowName);
 
     Migration migration = config.getConfig().getMigration(workflowName);
     checkCondition(

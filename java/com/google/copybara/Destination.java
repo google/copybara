@@ -149,7 +149,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
      * non-copybara edited patch-inconsistent state for which patch files need to be regenerated,
      * i.e. a pending change with edits to patch-modified files.
      */
-    default Optional<String> inferRegenTarget() throws ValidationException {
+    default Optional<String> inferRegenTarget() throws ValidationException, RepoException {
       return Optional.empty();
     }
   }

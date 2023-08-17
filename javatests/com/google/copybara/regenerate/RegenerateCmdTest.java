@@ -350,36 +350,32 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testNoLineNumbers_throws() {
+  public void testNoLineNumbers_usesImportBaseline() throws Exception {
     RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
-    options.regenerateOptions.setRegenBaseline("foo");
+    setupTarget("bar");
     options.regenerateOptions.setRegenTarget("bar");
 
-    assertThrows(
-        ValidationException.class,
-        () ->
-            cmd.run(
-                new CommandEnv(
-                    workdir,
-                    options.build(),
-                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
-  }
+    // set an origin file that contains a diff
+    String testfile = "asdf.txt";
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-  @Test
-  public void testNoLineNumbers_noThrowWhenUsingImportingBaseline() {
-    options.regenerateOptions.setRegenImportBaseline(true);
-    options.regenerateOptions.setRegenTarget("bar");
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
 
-    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
-    assertThrows(
-        ValidationException.class,
-        () ->
-            cmd.run(
-                new CommandEnv(
-                    workdir,
-                    options.build(),
-                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(path -> Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
   }
 
   @Test

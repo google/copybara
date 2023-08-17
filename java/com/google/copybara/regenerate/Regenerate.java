@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
 
 /**
  * Regenerate contains the implementation of the logic to checkout the correct versions of code and
- * calling the helper classes to diffeand upload the contents.
+ * calling the helper classes to diff and upload the contents.
  */
 public class Regenerate<O extends Revision, D extends Revision> {
 
@@ -91,11 +91,6 @@ public class Regenerate<O extends Revision, D extends Revision> {
         "regenerate patch files requires the workflow %s to have an autopatch file configuration"
             + " set",
         workflow.getName());
-    checkCondition(
-        !workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers()
-            || regenerateOptions.getRegenImportBaseline(),
-        "regenerate patch files requires the file names and line numbers to be present unless using"
-            + " import regen baseline");
     this.autoPatchfileConfiguration = workflow.getAutoPatchfileConfiguration();
   }
 
@@ -142,7 +137,9 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
-    if (regenerateOptions.getRegenImportBaseline()) {
+    // if no line numbers in the patches, default to the import baseline
+    if (autopatchConfig.stripFileNamesAndLineNumbers()
+        || regenerateOptions.getRegenImportBaseline()) {
       previousPath =
           prepareDiffWithImportBaseline(
               autopatchConfig, workflow, workdir, nextPath, regenTarget, destinationWriter);
