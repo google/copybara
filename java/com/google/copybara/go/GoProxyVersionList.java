@@ -23,6 +23,7 @@ import com.google.common.base.Ascii;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.config.LabelsAwareModule;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -32,6 +33,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Optional;
+import javax.annotation.Nullable;
+import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Used to fetch versions available for a given module at go proxy */
@@ -41,6 +47,7 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
   private final Optional<String> latestVersionURL;
   private final Optional<String> dotInfoURL;
   private final RemoteFileOptions remoteFileOptions;
+  private final String module;
 
   private static final GsonFactory GSON_FACTORY = GsonFactory.getDefaultInstance();
 
@@ -54,6 +61,7 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
   }
 
   private GoProxyVersionList(String module, RemoteFileOptions remoteFileOptions) {
+    this.module = module;
     this.dotInfoURL = Optional.empty();
     // returns plain text
     this.listVersionsURL =
@@ -68,13 +76,17 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
   }
 
   private GoProxyVersionList(String module, String dotInfo, RemoteFileOptions remoteFileOptions) {
-    this.dotInfoURL =
-        Optional.of(
-            String.format(
-                "https://proxy.golang.org/%s/@v/%s.info", normalizeModuleName(module), dotInfo));
+    this.module = module;
+    this.dotInfoURL = getDotInfoURL(module, dotInfo);
     this.listVersionsURL = Optional.empty();
     this.latestVersionURL = Optional.empty();
     this.remoteFileOptions = remoteFileOptions;
+  }
+
+  private Optional<String> getDotInfoURL(String module, String dotInfo) {
+    return Optional.of(
+        String.format(
+            "https://proxy.golang.org/%s/@v/%s.info", normalizeModuleName(module), dotInfo));
   }
 
   /** Takes upper case A-Z characters and replaces them with !a-z */
@@ -111,7 +123,7 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
         // "Version":..., "Origin": ...}.
         // if in the future, we want to capture or read "Origin" info, consider created a new GSON
         // representation instead of the reuse of GoVersionObject we see here
-        GoVersionObject versionObject = executeHTTPQuery(dotInfoURL.get(), GoVersionObject.class);
+        GoVersionObject versionObject = getVersionObject(dotInfoURL);
         return ImmutableSet.of(versionObject.getVersion());
       }
 
@@ -120,11 +132,50 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
         return ImmutableSet.copyOf(versionListResponseString.split("\n"));
       }
       // try the back up endpoint.
-      GoVersionObject versionObject =
-          executeHTTPQuery(latestVersionURL.get(), GoVersionObject.class);
+      GoVersionObject versionObject = getVersionObject(latestVersionURL);
       return ImmutableSet.of(versionObject.getVersion());
     } catch (RepoException e) {
       throw new ValidationException("Failed to obtain go proxy version list", e);
     }
+  }
+
+  private GoVersionObject getVersionObject(Optional<String> dotInfoURL) throws RepoException {
+    return executeHTTPQuery(dotInfoURL.get(), GoVersionObject.class);
+  }
+
+  @StarlarkMethod(
+      name = "get_info",
+      doc =
+          "Return the results of an info query. An object is only returned if a ref was specified.",
+      parameters = {
+        @Param(
+            name = "ref",
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "The reference to query for. This is optional, and the default will be the latest"
+                    + " version, or the ref if passed into this object during creation.",
+            named = true,
+            defaultValue = "None"),
+      },
+      allowReturnNones = true)
+  @Nullable
+  public GoVersionObject getInfoQuery(Object ref) throws ValidationException {
+    Optional<String> maybeDotInfo = Optional.ofNullable(SkylarkUtil.convertFromNoneable(ref, null));
+    try {
+      if (maybeDotInfo.isPresent()) {
+        return getVersionObject(getDotInfoURL(module, maybeDotInfo.get()));
+      } else if (dotInfoURL.isPresent()) {
+        return getVersionObject(dotInfoURL);
+      } else if (latestVersionURL.isPresent()) {
+        return getVersionObject(latestVersionURL);
+      }
+    } catch (RepoException e) {
+      throw new ValidationException("Failed to obtain go proxy version info", e);
+    }
+
+    return null;
   }
 }

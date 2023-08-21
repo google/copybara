@@ -190,4 +190,77 @@ public class GoProxyVersioningTest {
     assertThat(revision.getUrl())
         .isEqualTo("https://proxy.golang.org/github.com/google/example/@v/v0.5.9.zip");
   }
+
+  @Test
+  public void testGoProxyVersionList_getInfoQuery_withRef() throws Exception {
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://proxy.golang.org/github.com/google/example/@v/list",
+            "",
+            "https://proxy.golang.org/github.com/google/example/@latest",
+            "",
+            "https://proxy.golang.org/github.com/google/example/@v/main.info",
+            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
+                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
+                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+    GoVersionObject versionObj =
+        skylark.eval(
+            "version_object",
+            "version_object = go.go_proxy_version_list(module='github.com/google/example',"
+                + " ref='main').get_info()");
+    assertThat(versionObj.getVersion()).isEqualTo("v0.5.9");
+    assertThat(versionObj.getTime()).isEqualTo("2022-10-02T22:41:56Z");
+    assertThat(versionObj.getOrigin().getVcs()).isEqualTo("git");
+    assertThat(versionObj.getOrigin().getUrl()).isEqualTo("https://github.com/google/example");
+    assertThat(versionObj.getOrigin().getRef()).isEqualTo("refs/tags/v0.5.9");
+    assertThat(versionObj.getOrigin().getHash())
+        .isEqualTo("a97318bf6562f1ed2632c5f985db51b1ac5bdcd0");
+  }
+
+  @Test
+  public void testGoProxyVersionList_getInfoQuery_withoutRef() throws Exception {
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://proxy.golang.org/github.com/google/example/@latest",
+            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
+                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
+                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+    // Since we don't have a ref defined, we query latest.
+    GoVersionObject versionObject =
+        skylark.eval(
+            "version_object",
+            "version_object ="
+                + " go.go_proxy_version_list(module='github.com/google/example').get_info()");
+    assertThat(versionObject.getVersion()).isEqualTo("v0.5.9");
+    assertThat(versionObject.getTime()).isEqualTo("2022-10-02T22:41:56Z");
+    assertThat(versionObject.getOrigin().getVcs()).isEqualTo("git");
+    assertThat(versionObject.getOrigin().getUrl()).isEqualTo("https://github.com/google/example");
+    assertThat(versionObject.getOrigin().getRef()).isEqualTo("refs/tags/v0.5.9");
+    assertThat(versionObject.getOrigin().getHash())
+        .isEqualTo("a97318bf6562f1ed2632c5f985db51b1ac5bdcd0");
+  }
+
+  @Test
+  public void testGoProxyVersionList_manualRef() throws Exception {
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://proxy.golang.org/github.com/google/example/@v/v0.5.9.info",
+            "{\"Version\":\"v0.5.9\",\"Time\":\"2022-10-02T22:41:56Z\",\"Origin\":{\"VCS\":\"git\""
+                + ",\"URL\":\"https://github.com/google/example\",\"Ref\":\"refs/tags/v0.5.9\","
+                + "\"Hash\":\"a97318bf6562f1ed2632c5f985db51b1ac5bdcd0\"}}"));
+    // We query using the ref passed into get_info.
+    GoVersionObject versionObject =
+        skylark.eval(
+            "version_object",
+            "version_object ="
+                + " go.go_proxy_version_list(module='github.com/google/example').get_info(ref ="
+                + " \"v0.5.9\")");
+    assertThat(versionObject.getVersion()).isEqualTo("v0.5.9");
+    assertThat(versionObject.getTime()).isEqualTo("2022-10-02T22:41:56Z");
+    assertThat(versionObject.getOrigin().getVcs()).isEqualTo("git");
+    assertThat(versionObject.getOrigin().getUrl()).isEqualTo("https://github.com/google/example");
+    assertThat(versionObject.getOrigin().getRef()).isEqualTo("refs/tags/v0.5.9");
+    assertThat(versionObject.getOrigin().getHash())
+        .isEqualTo("a97318bf6562f1ed2632c5f985db51b1ac5bdcd0");
+  }
 }

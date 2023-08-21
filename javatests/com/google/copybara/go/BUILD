@@ -31,6 +31,7 @@ all_tests(
         "//java/com/google/copybara/util/console/testing",
         "//java/com/google/copybara/version",
         "//third_party:mockito",
+        "//third_party:starlark",
         "//third_party:testparameterinjector",
         "//third_party:truth",
     ],
