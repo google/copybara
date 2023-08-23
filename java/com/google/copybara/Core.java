@@ -756,7 +756,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         before,
         after,
         convertStringMap(regexes, "regex_groups"),
-        workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
         thread.getCallerLocation());
@@ -942,7 +941,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         before,
         after,
         convertStringMap(regexes, "regex_groups"),
-        workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
         thread.getCallerLocation());

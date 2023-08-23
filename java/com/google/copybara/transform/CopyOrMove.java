@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
-import com.google.copybara.WorkflowOptions;
 import com.google.copybara.exception.NonReversibleValidationException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.RegexTemplateTokens;
@@ -62,14 +61,12 @@ public class CopyOrMove implements Transformation {
   private final ImmutableMap<String, Pattern> regexGroups;
   private final boolean overwrite;
   @Nullable private final Location location;
-  private final WorkflowOptions workflowOptions;
   private final boolean isCopy;
 
   private CopyOrMove(
       RegexTemplateTokens before,
       RegexTemplateTokens after,
       Map<String, Pattern> regexGroups,
-      WorkflowOptions workflowOptions,
       Glob paths,
       boolean overwrite,
       @Nullable Location location,
@@ -80,7 +77,6 @@ public class CopyOrMove implements Transformation {
     this.paths = paths;
     this.overwrite = overwrite;
     this.location = location;
-    this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.isCopy = isCopy;
   }
 
@@ -88,7 +84,6 @@ public class CopyOrMove implements Transformation {
       String before,
       String after,
       Map<String, String> regexGroups,
-      WorkflowOptions workflowOptions,
       Glob paths,
       boolean overwrite,
       Location location,
@@ -104,7 +99,6 @@ public class CopyOrMove implements Transformation {
         beforeTokens,
         afterTokens,
         parsedRegexGroups,
-        workflowOptions,
         paths,
         overwrite,
         location,
@@ -115,26 +109,24 @@ public class CopyOrMove implements Transformation {
       String before,
       String after,
       Map<String, String> regexGroups,
-      WorkflowOptions workflowOptions,
       Glob paths,
       boolean overwrite,
       Location location)
       throws EvalException {
     return create(
-        before, after, regexGroups, workflowOptions, paths, overwrite, location, /*isCopy=*/ false);
+        before, after, regexGroups, paths, overwrite, location, /*isCopy=*/ false);
   }
 
   public static CopyOrMove createCopy(
       String before,
       String after,
       Map<String, String> regexGroups,
-      WorkflowOptions workflowOptions,
       Glob paths,
       boolean overwrite,
       Location location)
       throws EvalException {
     return create(
-        before, after, regexGroups, workflowOptions, paths, overwrite, location, /*isCopy=*/ true);
+        before, after, regexGroups, paths, overwrite, location, /*isCopy=*/ true);
   }
 
   @Override
@@ -358,7 +350,6 @@ public class CopyOrMove implements Transformation {
         after,
         before,
         regexGroups,
-        workflowOptions,
         paths,
         /*overwrite=*/ false,
         location,
