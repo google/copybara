@@ -39,6 +39,7 @@
     - [core.latest_version](#corelatest_version)
     - [core.move](#coremove)
     - [core.remove](#coreremove)
+    - [core.rename](#corerename)
     - [core.replace](#corereplace)
     - [core.replace_mapper](#corereplace_mapper)
     - [core.reverse](#corereverse)
@@ -1132,6 +1133,61 @@ core.transform(
     reversal = [core.remove(glob(['foo/static/**.css', 'foo/static/**.html']))]
 )
 ```
+
+
+<a id="core.rename" aria-hidden="true"></a>
+### core.rename
+
+A transformation for renaming several filenames in the working directory. This is a simplified version of core.move() for just renaming filenames without needing to use regex_groups. Note that it doesn't rename directories, only regular files.
+
+[`transformation`](#transformation) `core.rename(before, after, paths=glob(["**"]), overwrite=False, suffix=False)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+before | `string`<br><p>The filepath or suffix to change</p>
+after | `string`<br><p>A filepath or suffix to use as replacement</p>
+paths | [`glob`](#glob) or `NoneType`<br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be renamed. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively. Note that if reversible transformation is needed, the glob should match the filenames too in that case (or alternatively use an explicit reversal by using `core.transformation()`.</p>
+overwrite | `bool`<br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
+suffix | `bool`<br><p>By default before/after match whole path segments. e.g. before = "FOO" wouldn't match `example/barFOO`. Sometimes only part of the path name needs to be replaced, e.g. renaming extensions. When `suffix` is set to true, it will match partial parts of the path string.</p>
+
+
+#### Examples:
+
+
+##### Rename files:
+
+Rename all FOO files:
+
+```python
+core.rename("FOO", "FOO.txt")
+```
+
+In this example, any `FOO` in any directory will be renamed to `FOO.txt`.
+
+
+##### Rename extension:
+
+Rename *.md files to *.txt files:
+
+```python
+core.rename(".md", ".txt", suffix = True)
+```
+
+In this example, `foo/bar.md` will be renamed to `foo/bar.txt`.
+
+
+##### Rename files only in certain paths:
+
+Renaming files in certain paths:
+
+```python
+core.rename("/FOO", "/FOO.txt", paths = glob(['dir1/**', 'dir2/**']))
+```
+
+In this example, `dir1/FOO` will be renamed to `dir1/FOO.txt`. Note that FOO files outside `dir1` and `dir2` won't be renamed
 
 
 <a id="core.replace" aria-hidden="true"></a>

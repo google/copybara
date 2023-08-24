@@ -58,6 +58,7 @@ import com.google.copybara.transform.CopyOrMove;
 import com.google.copybara.transform.ExplicitReversal;
 import com.google.copybara.transform.FilterReplace;
 import com.google.copybara.transform.Remove;
+import com.google.copybara.transform.Rename;
 import com.google.copybara.transform.Replace;
 import com.google.copybara.transform.ReplaceMapper;
 import com.google.copybara.transform.ReversibleFunction;
@@ -758,6 +759,96 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         workflowOptions,
         convertFromNoneable(paths, Glob.ALL_FILES),
         overwrite,
+        thread.getCallerLocation());
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "rename",
+      doc = "A transformation for renaming several filenames in the working directory. This is"
+          + " a simplified version of core.move() for just renaming filenames without needing"
+          + " to use regex_groups. Note that it doesn't rename directories, only regular files.",
+      parameters = {
+        @Param(
+            name = "before",
+            named = true,
+            doc = "The filepath or suffix to change"),
+        @Param(
+            name = "after",
+            named = true,
+            doc = "A filepath or suffix to use as replacement"),
+        @Param(
+            name = "paths",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "A glob expression relative to 'before' if it represents a directory."
+                    + " Only files matching the expression will be renamed. For example,"
+                    + " glob([\"**.java\"]), matches all java files recursively inside"
+                    + " 'before' folder. Defaults to match all the files recursively. Note that"
+                    + " if reversible transformation is needed, the glob should match the filenames"
+                    + " too in that case (or alternatively use an explicit reversal by using"
+                    + " `core.transformation()`.",
+            defaultValue = "None"),
+        @Param(
+            name = "overwrite",
+            named = true,
+            doc =
+                "Overwrite destination files if they already exist. Note that this makes the"
+                    + " transformation non-reversible, since there is no way to know if the file"
+                    + " was overwritten or not in the reverse workflow.",
+            defaultValue = "False"
+        ),
+        @Param(
+            name = "suffix",
+            named = true,
+            doc = "By default before/after match whole path segments. e.g. before = \"FOO\""
+                + " wouldn't match `example/barFOO`. Sometimes only part of the path name needs"
+                + " to be replaced, e.g. renaming extensions. When `suffix` is set to true, it"
+                + " will match partial parts of the path string.",
+            defaultValue = "False"),
+      },
+      useStarlarkThread = true)
+  @DocDefault(field = "paths", value = "glob([\"**\"])")
+  @Example(
+      title = "Rename files",
+      before = "Rename all FOO files:",
+      code = "core.rename(\"FOO\", \"FOO.txt\")",
+      after = "In this example, any `FOO` in any directory will be renamed to `FOO.txt`.")
+  @Example(
+      title = "Rename extension",
+      before = "Rename *.md files to *.txt files:",
+      code = "core.rename(\".md\", \".txt\", suffix = True)",
+      after = "In this example, `foo/bar.md` will be renamed to `foo/bar.txt`.")
+  @Example(
+      title = "Rename files only in certain paths",
+      before = "Renaming files in certain paths:",
+      code = "core.rename(\"/FOO\", \"/FOO.txt\", paths = glob(['dir1/**', 'dir2/**']))",
+      after = "In this example, `dir1/FOO` will be renamed to `dir1/FOO.txt`. Note that"
+          + " FOO files outside `dir1` and `dir2` won't be renamed")
+  public Transformation rename(
+      String before,
+      String after,
+      Object paths,
+      Boolean overwrite,
+      Boolean suffix,
+      StarlarkThread thread)
+      throws EvalException {
+
+    check(
+        !Objects.equals(before, after),
+        "Renaming from the same filename to the same filename is a noop. Remove the"
+            + " transformation.");
+
+    return new Rename(
+        before,
+        after,
+        convertFromNoneable(paths, Glob.ALL_FILES),
+        overwrite,
+        suffix,
         thread.getCallerLocation());
   }
 

@@ -94,7 +94,7 @@ public class ExamplesTest {
       String exampleRef = module.getName() + "#" + name + ": " + example.title();
       // Quilt requires an extra file.
       if (exampleRef.contains(
-              "com.google.copybara.transform.patch.PatchModule#quiltApply")) {
+          "com.google.copybara.transform.patch.PatchModule#quiltApply")) {
         executor.addConfigFile("patches/series", "patch");
         executor.addConfigFile("patches/patch", "");
       }
@@ -116,7 +116,8 @@ public class ExamplesTest {
 
     private final String name;
     private final Class<?> cls;
-    @Nullable private final Throwable error;
+    @Nullable
+    private final Throwable error;
 
     Result(String name, Class<?> cls, @Nullable Throwable error) {
       this.name = name;
@@ -130,7 +131,7 @@ public class ExamplesTest {
 
     @Override
     public String toString() {
-      return name +":\n" + error;
+      return name + ":\n" + error;
     }
   }
 }
