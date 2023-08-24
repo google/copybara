@@ -53,6 +53,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("org.apache.commons", "commons-compress", "1.23.0"),
     maven.artifact("org.apache.tomcat", "tomcat-annotations-api", "8.0.5"),
     maven.artifact("org.apache.velocity", "velocity", "1.7"),
+    maven.artifact("org.jsoup", "jsoup", "1.16.1"),
     maven.artifact("org.tomlj", "tomlj", "1.1.0"),
     maven.artifact("com.sun.mail", "javax.mail", "1.5.6"),
 ]
