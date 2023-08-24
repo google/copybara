@@ -93,10 +93,15 @@ public final class BuildozerOptions implements Option {
     }
   }
 
+  void run(Console console, Path checkoutDir, Iterable<BuildozerCommand> commands)
+      throws ValidationException, TargetNotFoundException {
+    String unused = runCaptureOutput(console, checkoutDir, commands);
+  }
+
   /**
    * Runs buildozer with the given commands.
    */
-  void run(Console console, Path checkoutDir, Iterable<BuildozerCommand> commands)
+  String runCaptureOutput(Console console, Path checkoutDir, Iterable<BuildozerCommand> commands)
       throws ValidationException, TargetNotFoundException {
     List<String> args = Lists.newArrayList(
         buildozerBin, "-buildifier=" + buildifierOptions.buildifierBin);
@@ -121,6 +126,7 @@ public final class BuildozerOptions implements Option {
       if (!output.getStderr().isEmpty()) {
         logger.atInfo().log("buildozer stderr: %s", output.getStderr());
       }
+      return output.getStdout();
     } catch (BadExitStatusWithOutputException e) {
       // Don't print the output for common/known errors.
       if (generalOptions.isVerbose()) {

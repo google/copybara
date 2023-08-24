@@ -30,6 +30,7 @@ java_library(
     deps = [
         ":buildozer_options",
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara:general_options",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",

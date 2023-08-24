@@ -113,7 +113,7 @@ public class ModuleSupplier {
         new FormatModule(
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
         new BuildozerModule(
-            options.get(WorkflowOptions.class), options.get(BuildozerOptions.class)),
+            options.get(WorkflowOptions.class), options.get(BuildozerOptions.class), general),
         new PatchModule(options.get(PatchingOptions.class)),
         new MetadataModule(),
         new Authoring.Module(),

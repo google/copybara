@@ -15,6 +15,7 @@
     - [buildozer.create](#buildozercreate)
     - [buildozer.delete](#buildozerdelete)
     - [buildozer.modify](#buildozermodify)
+    - [buildozer.print](#buildozerprint)
   - [change](#change)
   - [ChangeMessage](#changemessage)
     - [message.label_values](#messagelabel_values)
@@ -502,6 +503,22 @@ buildozer.modify(
 )
 ```
 
+
+<a id="buildozer.print" aria-hidden="true"></a>
+### buildozer.print
+
+Executes a buildozer print command and returns the output. This is designed to be used in the context of a transform
+
+`string` `buildozer.print(ctx, attr, target)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+ctx | [`TransformWork`](#transformwork)<br><p>The TransformWork object</p>
+attr | `string`<br><p>The attribute from the target rule to print.</p>
+target | `string`<br><p>The target to print from.</p>
 
 
 

@@ -18,10 +18,12 @@ package com.google.copybara.buildozer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.copybara.CheckoutPath;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.TransformWork;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.exception.ValidationException;
 import java.util.ArrayList;
 import java.util.List;
 import net.starlark.java.annot.Param;
@@ -43,10 +45,17 @@ public final class BuildozerModule implements StarlarkValue {
 
   private final BuildozerOptions buildozerOptions;
   private final WorkflowOptions workflowOptions;
+  private final BuildozerPrintExecutor buildozerPrintExecutor;
 
-  public BuildozerModule(WorkflowOptions workflowOptions, BuildozerOptions buildozerOptions) {
+  public BuildozerModule(
+      WorkflowOptions workflowOptions,
+      BuildozerOptions buildozerOptions,
+      GeneralOptions generalOptions) {
     this.workflowOptions = Preconditions.checkNotNull(workflowOptions);
     this.buildozerOptions = Preconditions.checkNotNull(buildozerOptions);
+    this.buildozerPrintExecutor =
+        BuildozerPrintExecutor.create(
+            buildozerOptions, Preconditions.checkNotNull(generalOptions).console());
   }
 
   private static ImmutableList<Target> getTargetList(Object arg) throws EvalException {
@@ -305,5 +314,23 @@ public final class BuildozerModule implements StarlarkValue {
       })
   public Command cmd(String forward, Object reverse) throws EvalException {
     return Command.fromConfig(forward, SkylarkUtil.convertOptionalString(reverse));
+  }
+
+  @StarlarkMethod(
+      name = "print",
+      doc =
+          "Executes a buildozer print command and returns the output. This is designed to be used"
+              + " in the context of a transform",
+      parameters = {
+        @Param(
+            name = "ctx",
+            doc = "The TransformWork object",
+            allowedTypes = {@ParamType(type = TransformWork.class)},
+            named = true),
+        @Param(name = "attr", doc = "The attribute from the target rule to print.", named = true),
+        @Param(name = "target", doc = "The target to print from.", named = true),
+      })
+  public String print(TransformWork ctx, String attr, String target) throws ValidationException {
+    return buildozerPrintExecutor.run(ctx.getCheckoutDir(), attr, target);
   }
 }
