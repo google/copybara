@@ -380,11 +380,28 @@ public class Main {
     return new PathBasedConfigFile(configPath, /*rootPath=*/ null, /*identifierPrefix=*/ null);
   }
 
+  /* Java22+ adds a "isTerminal" method while older versions return null.
+  We use reflection to maintain backwards compatibility */
+  private boolean isTerminal() {
+    java.io.Console systemConsole = System.console();
+    if (systemConsole == null) {
+      return false;
+    }
+    try {
+      if ((Boolean) systemConsole.getClass().getMethod("isTerminal").invoke(systemConsole)) {
+        return true;
+      }
+    } catch (ReflectiveOperationException e) {
+      // Ignore
+    }
+    return false;
+  }
+
   protected Console getConsole(String[] args) {
     boolean verbose = isVerbose(args);
     // If System.console() is not present, we are forced to use LogConsole
     Console console;
-    if (System.console() == null) {
+    if (!isTerminal()) {
       console = LogConsole.writeOnlyConsole(System.err, verbose);
     } else if (Arrays.asList(args).contains(GeneralOptions.NOANSI)) {
       // The System.console doesn't detect redirects/pipes, but at least we have
