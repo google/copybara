@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.util.Glob;
 import javax.annotation.Nullable;
@@ -37,5 +38,10 @@ public interface ConfigItemDescription {
         new ImmutableSetMultimap.Builder<String, String>()
         .put("type", getType());
     return builder.build();
+  }
+
+  /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
+  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    return ImmutableList.of();
   }
 }

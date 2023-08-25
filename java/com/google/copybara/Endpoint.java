@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.effect.DestinationEffect.DestinationRef;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.OriginRef;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
@@ -68,7 +69,8 @@ public interface Endpoint extends StarlarkValue {
   ImmutableSetMultimap<String, String> describe();
 
   /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
-  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials()
+      throws ValidationException {
     return ImmutableList.of();
   }
 

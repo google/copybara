@@ -191,6 +191,23 @@ public class ActionMigration implements Migration {
     return descriptionBuilder.build();
   }
 
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription()
+      throws ValidationException {
+    ImmutableList.Builder<ImmutableSetMultimap<String, String>> allCreds = ImmutableList.builder();
+    allCreds.addAll(trigger.getEndpoint().describeCredentials());
+    for (String name : endpoints.getFieldNames()) {
+      try {
+        if (endpoints.getValue(name) instanceof Endpoint) {
+          allCreds.addAll(((Endpoint) endpoints.getValue(name)).describeCredentials());
+        }
+      } catch (EvalException e) {
+        throw new ValidationException("Cannot get credentials from " + name, e);
+      }
+    }
+    return allCreds.build();
+  }
+
   Trigger getTrigger() {
     return trigger;
   }
@@ -204,7 +221,7 @@ public class ActionMigration implements Migration {
     return MoreObjects.toStringHelper(this)
         .add("name", name)
         .add("trigger", trigger)
-        .add("endponts", endpoints)
+        .add("endpoints", endpoints)
         .add("actions", actions)
         .toString();
   }

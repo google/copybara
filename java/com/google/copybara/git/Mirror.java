@@ -278,6 +278,11 @@ public class Mirror implements Migration {
   }
 
   @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription() {
+    return ImmutableList.of();
+  }
+
+  @Override
   public ConfigFile getMainConfigFile() {
     return mainConfigFile;
   }

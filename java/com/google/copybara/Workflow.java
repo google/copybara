@@ -489,6 +489,15 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return destination.describe(destinationFiles);
   }
 
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription() {
+    ImmutableList.Builder<ImmutableSetMultimap<String, String>> allCreds = ImmutableList.builder();
+    for (ConfigItemDescription ep : ImmutableList.of(origin, destination)) {
+      allCreds.addAll(ep.describeCredentials());
+    }
+    return allCreds.build();
+  }
+
   public Glob getOriginFiles() {
     return originFiles;
   }

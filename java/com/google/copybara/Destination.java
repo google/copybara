@@ -63,6 +63,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
     @Nullable
     DestinationStatus getDestinationStatus(Glob destinationFiles, String labelName)
         throws RepoException, ValidationException;
+
     /**
      * Returns true if this destination stores revisions in the repository so that
      * {@link #getDestinationStatus(Glob, String)}  can be used for discovering the state of the

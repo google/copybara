@@ -85,4 +85,10 @@ public interface Migration {
    * purposes.
    */
   ImmutableSetMultimap<String, String> getDestinationDescription();
+
+  /**
+   * Returns a multimap containing enough data to fingerprint credentials used.
+   */
+  ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription()
+      throws ValidationException;
 }

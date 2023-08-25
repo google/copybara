@@ -115,8 +115,8 @@ public class HttpEndpointTest {
   @Test
   public void testGet_auth() throws ValidationException {
 
-      String username = "testuser";
-      String password = "testpassword";
+    String username = "testuser";
+    String password = "testpassword";
     http.mockHttp(
         (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
       starlark.eval(
