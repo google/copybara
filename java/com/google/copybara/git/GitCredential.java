@@ -26,6 +26,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.copybara.credentials.ConstantCredentialIssuer;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.shell.BadExitStatusException;
@@ -159,6 +161,12 @@ public final class GitCredential {
     /** Get the password. BE CAREFUL AND DON'T LOG IT! */
     public String getPassword_BeCareful() {
       return password;
+    }
+
+    public UsernamePasswordIssuer toIssuer() {
+      return UsernamePasswordIssuer.create(
+          ConstantCredentialIssuer.createConstantOpenValue(username),
+          ConstantCredentialIssuer.createConstantSecret("password", password));
     }
   }
 }

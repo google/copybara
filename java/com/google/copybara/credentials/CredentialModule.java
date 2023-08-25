@@ -91,7 +91,7 @@ public class CredentialModule implements StarlarkValue {
       })
   public UsernamePasswordIssuer usernamePassword(
       CredentialIssuer username, CredentialIssuer password) {
-    return new AutoValue_CredentialModule_UsernamePasswordIssuer(username, password);
+    return UsernamePasswordIssuer.create(username, password);
   }
 
   /** A username/password pair issuer */
@@ -103,6 +103,11 @@ public class CredentialModule implements StarlarkValue {
 
     public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
       return ImmutableList.of(username().describe(), password().describe());
+    }
+
+    public static UsernamePasswordIssuer create(
+        CredentialIssuer username, CredentialIssuer password) {
+      return new AutoValue_CredentialModule_UsernamePasswordIssuer(username, password);
     }
   }
 }

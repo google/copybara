@@ -87,6 +87,7 @@ java_library(
     deps = [
         ":environment",
         "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/util",
