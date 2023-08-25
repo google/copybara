@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.credentials;
 
-package com.google.copybara.http;
+import com.google.common.collect.ImmutableSetMultimap;
+import net.starlark.java.eval.StarlarkValue;
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.copybara.Option;
-import com.google.copybara.exception.ValidationException;
+/**
+ * An object able to mint credentials. The issuer should handle caching etc.
+ */
+public interface CredentialIssuer extends StarlarkValue {
 
-/** Options relating to the http endpoint. */
-public class HttpOptions implements Option {
-  HttpTransport transport;
+  /**
+   * Issue a Credential to be used by an endpoint
+   */
+  Credential issue() throws CredentialIssuingException;
 
-  public HttpTransport getTransport() throws ValidationException {
-    if (transport == null) {
-      transport = new NetHttpTransport();
-    }
-    return transport;
-  }
+  /**
+   * Metadata describing this issuer.
+   */
+  ImmutableSetMultimap<String, String> describe();
 }

@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.util.Glob;
+import javax.annotation.Nullable;
 
 /**
  * Interface for self-description. The information returned should be sufficient to create a new
@@ -31,7 +32,7 @@ public interface ConfigItemDescription {
   }
 
   /** Returns a key-value ist of the options the endpoint was instantiated with. */
-  default ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+  default ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<String, String>()
         .put("type", getType());

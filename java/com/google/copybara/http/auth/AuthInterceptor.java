@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,28 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.google.copybara.http.auth;
 
 import com.google.api.client.http.HttpExecuteInterceptor;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * Representation for authentication information for an http request.
- * TODO(b/273968171): Generalize this interface beyond http to create a single
- * common auth interface for copybara.
- */
-public class Auth implements StarlarkValue {
+/** Interface for adding auth headers to requests */
+public interface AuthInterceptor extends StarlarkValue {
 
-  private final KeySource username;
-  private final KeySource password;
 
-  public Auth(KeySource username, KeySource password) {
-    this.username = username;
-    this.password = password;
-  }
+  /**
+   * Self-description for all used credentials.
+   */
+  ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials();
 
-  public HttpExecuteInterceptor basicAuthInterceptor() {
-    return (req) -> req.getHeaders().setBasicAuthentication(username.get(), password.get());
-  }
+  /**
+   * Interceptor for adding authentication
+   */
+  HttpExecuteInterceptor interceptor()
+      throws CredentialRetrievalException, CredentialIssuingException;
+
+
 }

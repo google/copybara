@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.credentials;
 
-package com.google.copybara.http.auth;
+import com.google.copybara.exception.ValidationException;
 
-import java.io.IOException;
+/**
+ * An Exception thrown if retrieving a credential fails.
+ */
+public class CredentialRetrievalException extends ValidationException {
 
-/** provider for auth credentials */
-public interface KeySource {
-  String get() throws IOException;
+  public CredentialRetrievalException(String message) {
+    super(message);
+  }
 
-  /**
-   * Signifies the key source was unable to locate the key
-   * it is attempting to get.
-   * Extends IOException to work more easily with the
-   * http client interceptor type signature.
-   */
-  class KeyNotFoundException extends IOException {
-    public KeyNotFoundException(String message) {
-      super(message);
-    }
+  public CredentialRetrievalException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

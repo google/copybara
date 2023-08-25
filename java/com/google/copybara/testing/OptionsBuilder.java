@@ -26,6 +26,7 @@ import com.google.copybara.Option;
 import com.google.copybara.Options;
 import com.google.copybara.WorkflowOptions;
 import com.google.copybara.buildozer.BuildozerOptions;
+import com.google.copybara.credentials.CredentialOptions;
 import com.google.copybara.folder.FolderDestinationOptions;
 import com.google.copybara.folder.FolderOriginOptions;
 import com.google.copybara.format.BuildifierOptions;
@@ -82,6 +83,7 @@ public class OptionsBuilder {
   public RemoteFileOptions remoteFile = new RemoteFileOptions();
   public BuildifierOptions buildifier = new BuildifierOptions();
   public GeneratorOptions generator = new GeneratorOptions();
+  public CredentialOptions credentialOptions = new CredentialOptions();
 
   public String buildozerBin = null;
 
@@ -189,7 +191,8 @@ public class OptionsBuilder {
         buildozer,
         generator,
         http,
-        regenerateOptions);
+        regenerateOptions,
+        credentialOptions);
   }
 
   public final Options build() {

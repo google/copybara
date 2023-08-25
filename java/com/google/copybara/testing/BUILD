@@ -36,6 +36,7 @@ java_library(
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format:buildifier_options",

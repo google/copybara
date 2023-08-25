@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.effect.DestinationEffect.DestinationRef;
 import com.google.copybara.revision.OriginRef;
@@ -63,8 +64,13 @@ public interface Endpoint extends StarlarkValue {
     printer.append(toString());
   }
 
-  /** Returns a key-value ist of the options the endpoint was instantiated with. */
+  /** Returns a key-value list of the options the endpoint was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
+
+  /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
+  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    return ImmutableList.of();
+  }
 
   @StarlarkMethod(
       name = "new_origin_ref",

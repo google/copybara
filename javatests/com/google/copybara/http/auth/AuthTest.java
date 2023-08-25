@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.Base64;
 import com.google.common.io.MoreFiles;
+import com.google.copybara.credentials.CredentialOptions;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.http.testing.MockHttpTester;
@@ -41,6 +42,7 @@ public class AuthTest {
   private SkylarkTestExecutor starlark;
   private MockHttpTester http;
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  
   private final HttpOptions httpOptions =
       new HttpOptions() {
         @Override
@@ -49,11 +51,15 @@ public class AuthTest {
         }
       };
 
+  private CredentialOptions credentialOptions;
+
   @Before
   public void setUp() {
     http = new MockHttpTester();
     OptionsBuilder optionsBuilder = new OptionsBuilder();
+    credentialOptions = new CredentialOptions();
     optionsBuilder.http = httpOptions;
+    optionsBuilder.credentialOptions = credentialOptions;
     starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
@@ -75,14 +81,20 @@ public class AuthTest {
         });
     starlark.eval(
         "resp",
-        String.format(""
-            + "endpoint = testing.get_endpoint(\n"
-            + "  http.endpoint(host = \"foo.com\")\n"
-            + ")\n"
-            + "resp = endpoint.post(\n"
-            + "  url = \"http://foo.com\",\n"
-            + "  auth = http.auth(\"%s\", \"%s\")\n"
-            + ")", username, password));
+        String.format(
+            ""
+                + "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(hosts = ["
+                + "    http.host(host='foo.com',"
+                + "      auth=credentials.username_password("
+                + "        credentials.static_value('%s'),"
+                + "        credentials.static_secret('password', '%s')))])\n"
+                + ")\n"
+                + "resp = endpoint.post(\n"
+                + "  url = \"http://foo.com\",\n"
+                + "  auth = True"
+                + ")",
+            username, password));
   }
 
   @Test
@@ -91,7 +103,7 @@ public class AuthTest {
     String password = "testpassword";
 
     Path configPath = tempFolder.getRoot().toPath().resolve("credentials.toml");
-    httpOptions.credentialFile = configPath;
+    credentialOptions.credentialFile = configPath;
 
     MoreFiles.asByteSink(configPath)
         .asCharSink(UTF_8)
@@ -110,14 +122,16 @@ public class AuthTest {
         String.format(
             ""
                 + "endpoint = testing.get_endpoint(\n"
-                + "  http.endpoint(host = \"foo.com\")\n"
+                + "  http.endpoint(hosts = ["
+                + "    http.host(host='foo.com',"
+                + "      auth=credentials.username_password("
+                + "        credentials.toml_key_source('%s'),"
+                + "        credentials.static_secret('password', '%s'),"
+                + "        ))])\n"
                 + ")\n"
                 + "resp = endpoint.post(\n"
                 + "  url = \"http://foo.com\",\n"
-                + "  auth = http.auth(\n"
-                + "    http.toml_key_source(\"%s\"),\n"
-                + "    \"%s\"\n"
-                + "  )"
+                + "  auth = True"
                 + ")",
             tomlKeyPath, password));
   }

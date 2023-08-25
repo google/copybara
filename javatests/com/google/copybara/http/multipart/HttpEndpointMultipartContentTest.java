@@ -201,7 +201,7 @@ public class HttpEndpointMultipartContentTest {
             Dict.of(null),
             new HttpEndpointMultipartFormContent(
                 ImmutableList.of(new TextPart("goodword", "contents"))),
-            null);
+            false);
   }
 
   @Test
@@ -221,7 +221,7 @@ public class HttpEndpointMultipartContentTest {
                 Dict.of(null),
                 new HttpEndpointMultipartFormContent(
                     ImmutableList.of(new TextPart("badword", "contents"))),
-                null));
+                false));
   }
 
   @Test
@@ -246,7 +246,7 @@ public class HttpEndpointMultipartContentTest {
                 Dict.of(null),
                 new HttpEndpointMultipartFormContent(
                     ImmutableList.of(new FilePart("name", testPath, "application/text", null))),
-                null));
+                false));
   }
 
   private Map<String, String> getHeaders(String message) {

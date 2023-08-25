@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.google.copybara.http.auth;
+package com.google.copybara.credentials;
 
+import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
@@ -23,10 +24,8 @@ import net.starlark.java.eval.StarlarkValue;
 import org.tomlj.Toml;
 import org.tomlj.TomlParseResult;
 
-/**
- * Fetches a value located within a toml file.
- */
-public class TomlKeySource implements KeySource, StarlarkValue {
+/** Fetches a value located within a toml file. */
+public class TomlKeySource implements CredentialIssuer, StarlarkValue {
 
   Path file;
   String dotPath;
@@ -37,12 +36,23 @@ public class TomlKeySource implements KeySource, StarlarkValue {
   }
 
   @Override
-  public String get() throws IOException {
-    TomlParseResult tomlParseResult = Toml.parse(file);
+  public Credential issue() throws CredentialIssuingException {
+    TomlParseResult tomlParseResult = null;
+    try {
+      tomlParseResult = Toml.parse(file);
+    } catch (IOException e) {
+      throw new CredentialIssuingException("Error reading Toml file.", e);
+    }
     @Nullable String data = tomlParseResult.getString(dotPath);
     if (data == null) {
-      throw new KeyNotFoundException(String.format("key %s not found in file %s", dotPath, file));
+      throw new CredentialIssuingException(
+          String.format("key %s not found in file %s", dotPath, file));
     }
-    return data;
+    return new StaticSecret(dotPath, data);
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe() {
+    return ImmutableSetMultimap.of("type", "Toml", "dotPath", dotPath);
   }
 }

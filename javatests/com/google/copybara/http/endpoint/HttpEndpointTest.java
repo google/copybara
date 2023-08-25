@@ -24,6 +24,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.checks.CheckerException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
@@ -73,6 +74,61 @@ public class HttpEndpointTest {
                 + "resp = endpoint.get(url = \"http://foo.com\")\n");
     assertThat(resp.getStatusCode()).isEqualTo(204);
   }
+
+  @Test
+  public void testGet_auth() throws ValidationException {
+
+      String username = "testuser";
+      String password = "testpassword";
+    http.mockHttp(
+        (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
+      starlark.eval(
+          "resp",
+          String.format(""
+              + "endpoint = testing.get_endpoint(\n"
+              + "  http.endpoint(hosts = ["
+              + "    http.host(host='foo.com',"
+              + "      auth=credentials.username_password("
+              + "        credentials.static_value('%s'),"
+              + "        credentials.static_secret('password', '%s')))])\n"
+              + ")\n"
+              + "resp = endpoint.post(\n"
+              + "  url = \"http://foo.com\",\n"
+              + "  auth = True"
+              + ")", username, password));
+    }
+
+  @Test
+  public void testDescribe() throws ValidationException {
+
+    String username = "testuser";
+    String password = "testpassword";
+    http.mockHttp(
+        (method, url, req, resp) -> assertThat(req.getHeaders().get("authorization")).isNotEmpty());
+    HttpEndpoint endpoint = starlark.eval(
+        "endpoint",
+        String.format(""
+            + "endpoint = testing.get_endpoint(\n"
+            + "  http.endpoint(hosts = ["
+            + "    http.host(host='foo.com',"
+            + "      auth=credentials.username_password("
+            + "        credentials.static_value('%s'),"
+            + "        credentials.static_secret('password', '%s')))])\n"
+            + ")\n", username, password));
+    ImmutableList<ImmutableSetMultimap<String, String>> creds = endpoint.describeCredentials();
+    assertThat(creds).hasSize(2);
+    assertThat(creds.get(0)).containsExactly(
+        "type", "constant",
+        "name", "testuser",
+        "open", "true", "host",
+        "foo.com");
+    assertThat(creds.get(1)).containsExactly(
+        "type", "constant",
+        "name", "password",
+        "open", "false",
+        "host", "foo.com");
+  }
+
 
   @Test
   public void testGetMultiHost() throws ValidationException {
@@ -250,7 +306,7 @@ public class HttpEndpointTest {
                 + " testing.dummy_checker())\n"
                 + ")\n");
     assertThrows(
-        CheckerException.class, () -> endpoint.get("http://badword.com", Dict.of(null), null));
+        CheckerException.class, () -> endpoint.get("http://badword.com", Dict.of(null), false));
   }
 
   private static class TestContent implements HttpEndpointBody {
@@ -272,6 +328,6 @@ public class HttpEndpointTest {
                 + ")\n");
     assertThrows(
         CheckerException.class,
-        () -> endpoint.post("http://foo.com", Dict.of(null), new TestContent(), null));
+        () -> endpoint.post("http://foo.com", Dict.of(null), new TestContent(), false));
   }
 }

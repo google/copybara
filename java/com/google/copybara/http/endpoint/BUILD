@@ -21,6 +21,7 @@ java_library(
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/util/console",

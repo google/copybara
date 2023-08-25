@@ -27,11 +27,11 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.http.auth.Auth;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -46,13 +46,15 @@ import net.starlark.java.eval.NoneType;
  * <p>This endpoint is currently bound to a specific host, as a security restriction.
  */
 public class HttpEndpoint implements Endpoint {
-  private final List<String> hosts;
+  private final ImmutableMap<String, Optional<AuthInterceptor>> hosts;
   HttpTransport transport;
   Console console;
   @Nullable Checker checker;
 
   public HttpEndpoint(
-      Console console, HttpTransport transport, List<String> hosts, @Nullable Checker checker) {
+      Console console, HttpTransport transport, ImmutableMap<String,
+      Optional<AuthInterceptor>> hosts,
+      @Nullable Checker checker) {
     this.hosts = hosts;
     this.transport = transport;
     this.console = console;
@@ -78,13 +80,12 @@ public class HttpEndpoint implements Endpoint {
             name = "auth",
             named = true,
             positional = false,
-            defaultValue = "None",
+            defaultValue = "False",
             allowedTypes = {
-              @ParamType(type = Auth.class),
-              @ParamType(type = NoneType.class),
+              @ParamType(type = Boolean.class),
             }),
       })
-  public HttpEndpointResponse get(String url, Object headers, Object auth)
+  public HttpEndpointResponse get(String url, Object headers, Boolean auth)
       throws EvalException, ValidationException, IOException {
     return handleRequest(url, "GET", headers, null, auth);
   }
@@ -113,17 +114,14 @@ public class HttpEndpoint implements Endpoint {
               @ParamType(type = HttpEndpointBody.class),
               @ParamType(type = NoneType.class),
             }),
-        @Param(
-            name = "auth",
-            named = true,
-            positional = false,
-            defaultValue = "None",
-            allowedTypes = {
-              @ParamType(type = Auth.class),
-              @ParamType(type = NoneType.class),
-            }),
+          @Param(
+              name = "auth",
+              named = true,
+              positional = false,
+              defaultValue = "False"
+          )
       })
-  public HttpEndpointResponse post(String urlIn, Object headersIn, Object content, Object auth)
+  public HttpEndpointResponse post(String urlIn, Object headersIn, Object content, Boolean auth)
       throws EvalException, ValidationException, IOException {
     return handleRequest(urlIn, "POST", headersIn, content, auth);
   }
@@ -143,23 +141,22 @@ public class HttpEndpoint implements Endpoint {
             allowedTypes = {@ParamType(type = Dict.class)},
             defaultValue = "{}",
             doc = "dict of http headers for the request"),
-        @Param(
-            name = "auth",
-            named = true,
-            positional = false,
-            defaultValue = "None",
-            allowedTypes = {
-              @ParamType(type = Auth.class),
-              @ParamType(type = NoneType.class),
-            }),
+          @Param(
+              name = "auth",
+              named = true,
+              positional = false,
+              defaultValue = "False",
+              allowedTypes = {
+                  @ParamType(type = Boolean.class),
+              })
       })
-  public HttpEndpointResponse delete(String urlIn, Object headersIn, Object auth)
+  public HttpEndpointResponse delete(String urlIn, Object headersIn, Boolean auth)
       throws EvalException, ValidationException, IOException {
     return handleRequest(urlIn, "DELETE", headersIn, null, auth);
   }
 
   private HttpEndpointResponse handleRequest(
-      String urlIn, String method, Object headersIn, Object endpointContentIn, Object authIn)
+      String urlIn, String method, Object headersIn, Object endpointContentIn, boolean auth)
       throws EvalException, ValidationException, IOException {
     GenericUrl url = new GenericUrl(urlIn);
     validateUrl(url);
@@ -177,10 +174,16 @@ public class HttpEndpoint implements Endpoint {
       content = endpointContent.getContent();
     }
 
-    @Nullable Auth auth = SkylarkUtil.convertFromNoneable(authIn, null);
+    @Nullable AuthInterceptor creds = null;
+    if (auth) {
+      creds = hosts.get(url.getHost()).orElseThrow(
+          () -> new EvalException(
+              String.format("Autentication was requested, but no creds provided for %s", url)));
+    }
 
     HttpEndpointRequest req =
-        new HttpEndpointRequest(url, method, headers, transport, content, auth);
+        new HttpEndpointRequest(url, method, headers, transport, content,
+            auth && creds != null ? creds : null);
 
     if (checker != null) {
       checker.doCheck(
@@ -194,19 +197,35 @@ public class HttpEndpoint implements Endpoint {
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
-    if (!hosts.contains(url.getHost())) {
-      throw new ValidationException(
-          String.format(
-              "Illegal host: url host %s matches none of endpoint hosts {%s}",
-              url.getHost(), String.join(",", hosts)));
-    }
+    ValidationException.checkCondition(hosts.containsKey(url.getHost()),
+        String.format(
+            "Illegal host: url host %s matches none of endpoint hosts {%s}",
+            url.getHost(), String.join(",", hosts.keySet())));
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
     ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
     builder.put("type", "http_endpoint");
-    builder.putAll("host", hosts);
+    builder.putAll("host", hosts.keySet());
     return builder.build();
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    ImmutableList.Builder<ImmutableSetMultimap<String, String>> list = ImmutableList.builder();
+    for (Entry<String, Optional<AuthInterceptor>> entry : hosts.entrySet()) {
+      if (entry.getValue().isEmpty()) {
+        continue;
+      }
+      for (ImmutableSetMultimap<String, String> credEntry:
+          entry.getValue().get().describeCredentials()) {
+        ImmutableSetMultimap.Builder<String, String> describe = ImmutableSetMultimap.builder();
+        describe.putAll(credEntry);
+        describe.putAll("host", entry.getKey());
+        list.add(describe.build());
+      }
+    }
+    return list.build();
   }
 }

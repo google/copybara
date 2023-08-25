@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.credentials;
 
-package com.google.copybara.http;
-
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.copybara.Option;
-import com.google.copybara.exception.ValidationException;
+import java.nio.file.Path;
+import javax.annotation.Nullable;
 
-/** Options relating to the http endpoint. */
-public class HttpOptions implements Option {
-  HttpTransport transport;
+/**
+ * Flags related to credentials
+ */
+public class CredentialOptions implements Option {
 
-  public HttpTransport getTransport() throws ValidationException {
-    if (transport == null) {
-      transport = new NetHttpTransport();
-    }
-    return transport;
-  }
+  /*
+  TODO(b/270712326) enable this flag
+  @Parameter(
+      names = "--credential-file",
+      description = "location of toml file for reading credentials"
+  )
+   */
+  @Nullable public Path credentialFile = null;
 }

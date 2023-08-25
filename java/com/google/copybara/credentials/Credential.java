@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.credentials;
 
-package com.google.copybara.http;
+/** Holder for a credential. */
+public interface Credential {
 
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.copybara.Option;
-import com.google.copybara.exception.ValidationException;
+  /** A safe value that describes the credential */
+  String printableValue();
 
-/** Options relating to the http endpoint. */
-public class HttpOptions implements Option {
-  HttpTransport transport;
+  /** Whether the creential is still believed to be valid */
+  boolean valid();
 
-  public HttpTransport getTransport() throws ValidationException {
-    if (transport == null) {
-      transport = new NetHttpTransport();
-    }
-    return transport;
-  }
+  /** The raw secret, this should not be used outside of framework code. */
+  String provideSecret() throws CredentialRetrievalException;
 }

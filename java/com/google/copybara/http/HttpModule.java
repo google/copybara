@@ -18,14 +18,16 @@ package com.google.copybara.http;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableMap;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.http.auth.Auth;
-import com.google.copybara.http.auth.KeySource;
-import com.google.copybara.http.auth.TomlKeySource;
+import com.google.copybara.http.auth.AuthInterceptor;
+import com.google.copybara.http.auth.UsernamePasswordInterceptor;
 import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.json.HttpEndpointJsonContent;
 import com.google.copybara.http.multipart.FilePart;
@@ -35,7 +37,7 @@ import com.google.copybara.http.multipart.HttpEndpointUrlEncodedFormContent;
 import com.google.copybara.http.multipart.TextPart;
 import com.google.copybara.util.console.Console;
 import java.net.URLEncoder;
-import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -105,14 +107,23 @@ public class HttpModule implements StarlarkValue {
             positional = false),
       })
   public EndpointProvider<HttpEndpoint> endpoint(
-      @Nullable String host, @Nullable Object checkerIn, Sequence<? extends String> hosts)
+      @Nullable String host, @Nullable Object checkerIn, Sequence<?> hosts)
       throws ValidationException, EvalException {
     @Nullable Checker checker = SkylarkUtil.convertFromNoneable(checkerIn, null);
-    List<String> h = SkylarkUtil.convertStringList(hosts, "hosts");
-    if (host != null && !host.isEmpty()) {
-      h.add(host);
+    ImmutableMap.Builder<String, Optional<AuthInterceptor>> h = ImmutableMap.builder();
+    for (Object o : hosts) {
+      if (o instanceof HostCredential) {
+        HostCredential withCred = (HostCredential) o;
+        h.put(withCred.host(), withCred.creds());
+      } else {
+        h.put((String) o, Optional.empty());
+      }
     }
-    return EndpointProvider.wrap(new HttpEndpoint(console, options.getTransport(), h, checker));
+    if (host != null && !host.isEmpty()) {
+      h.put(host, Optional.empty());
+    }
+    return EndpointProvider.wrap(
+        new HttpEndpoint(console, options.getTransport(), h.buildKeepingLast(), checker));
   }
 
   @StarlarkMethod(
@@ -229,60 +240,62 @@ public class HttpModule implements StarlarkValue {
     return new HttpEndpointJsonContent(body);
   }
 
-  private interface AuthInputReceiver {
-    KeySource receive(Object in, String name) throws ValidationException;
+  @StarlarkMethod(
+      name = "host",
+      doc = "Wraps a host and potentially credentials for http auth.",
+      parameters = {
+        @Param(
+            name = "host",
+            doc = "The host to be contacted.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+            },
+            positional = false),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials. Also accepts a "
+                + "username_password.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false)
+      })
+  public HostCredential host(String host, Object maybeCreds) {
+    maybeCreds = maybeCreds instanceof UsernamePasswordIssuer
+        ? new UsernamePasswordInterceptor((UsernamePasswordIssuer) maybeCreds) : maybeCreds;
+    AuthInterceptor creds = SkylarkUtil.convertFromNoneable(maybeCreds, null);
+    return new AutoValue_HttpModule_HostCredential(host, Optional.ofNullable(creds));
   }
 
   @StarlarkMethod(
-      name = "auth",
-      doc = "Create authentication credentials for the request",
+      name = "username_password_auth",
+      doc = "Authentication via username and password.",
       parameters = {
-        @Param(
-            name = "username",
-            doc = "Accepts a string or a key source such as toml_key_source.",
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = KeySource.class),
-            }),
-        @Param(
-            name = "password",
-            doc = "Accepts a string or a key source such as toml_key_source.",
-            allowedTypes = {
-              @ParamType(type = String.class),
-              @ParamType(type = KeySource.class),
-            })
+          @Param(
+              name = "",
+              doc = "The host to be contacted.",
+              named = true,
+              allowedTypes = {
+                  @ParamType(type = UsernamePasswordIssuer.class),
+              },
+              positional = false),
       })
-  public Auth auth(Object usernameIn, Object passwordIn) throws ValidationException {
-    AuthInputReceiver input =
-        (Object in, String name) -> {
-          KeySource out;
-          if (in instanceof String) {
-            out = () -> (String) in;
-          } else if (in instanceof KeySource) {
-            out = (KeySource) in;
-          } else {
-            throw new ValidationException(String.format("invalid input %s for %s", in, name));
-          }
-          return out;
-        };
-    return new Auth(input.receive(usernameIn, "username"), input.receive(passwordIn, "password"));
+  public UsernamePasswordInterceptor usernamePasswordAuth(UsernamePasswordIssuer up) {
+    return new UsernamePasswordInterceptor(up);
   }
 
-  @StarlarkMethod(
-      name = "toml_key_source",
-      doc =
-          "Supply an authentication credential from the "
-              + "file pointed to by the --http-credential-file flag.",
-      parameters = {
-        @Param(
-            name = "dot_path",
-            doc = "Dot path to the data field containing the credential.",
-            allowedTypes = {@ParamType(type = String.class)})
-      })
-  public KeySource tomlKeySource(String dotPath) throws ValidationException {
-    if (options.credentialFile == null) {
-      throw new ValidationException("Credential file for toml key source has not been supplied");
-    }
-    return new TomlKeySource(options.credentialFile, dotPath);
+
+
+  /** A username/password issuer pair tied to a host */
+  @AutoValue
+  public abstract static class HostCredential implements StarlarkValue {
+    public abstract String host();
+
+    public abstract Optional<AuthInterceptor> creds();
   }
 }

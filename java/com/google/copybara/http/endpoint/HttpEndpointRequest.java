@@ -22,7 +22,9 @@ import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpTransport;
-import com.google.copybara.http.auth.Auth;
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import java.io.IOException;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
@@ -38,7 +40,7 @@ public class HttpEndpointRequest implements StarlarkValue {
   String method;
   HttpHeaders headers;
   @Nullable HttpContent content;
-  @Nullable Auth auth;
+  @Nullable AuthInterceptor auth;
 
   // Client parameters
   HttpTransport transport;
@@ -52,7 +54,7 @@ public class HttpEndpointRequest implements StarlarkValue {
       HttpHeaders headers,
       HttpTransport transport,
       @Nullable HttpContent content,
-      @Nullable Auth auth) {
+      @Nullable AuthInterceptor auth) {
     this.url = url;
     this.method = method;
     this.headers = headers;
@@ -61,7 +63,8 @@ public class HttpEndpointRequest implements StarlarkValue {
     this.auth = auth;
   }
 
-  public HttpRequest build() throws IOException {
+  public HttpRequest build()
+      throws IOException, CredentialRetrievalException, CredentialIssuingException {
     if (request == null) {
       HttpRequestFactory factory = transport.createRequestFactory();
       request = factory.buildRequest(method, url, null);
@@ -70,7 +73,7 @@ public class HttpEndpointRequest implements StarlarkValue {
         request.setContent(content);
       }
       if (auth != null) {
-        request.setInterceptor(auth.basicAuthInterceptor());
+        request.setInterceptor(auth.interceptor());
       }
       request.setThrowExceptionOnExecuteError(false);
     }

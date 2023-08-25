@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.copybara.credentials;
 
-package com.google.copybara.http;
-
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 
-/** Options relating to the http endpoint. */
-public class HttpOptions implements Option {
-  HttpTransport transport;
+/**
+ * An Exception thrown if minting a credential fails.
+ */
+public class CredentialIssuingException extends ValidationException  {
 
-  public HttpTransport getTransport() throws ValidationException {
-    if (transport == null) {
-      transport = new NetHttpTransport();
-    }
-    return transport;
+  public CredentialIssuingException(String message) {
+    super(message);
+  }
+
+  public CredentialIssuingException(String message, Throwable cause) {
+    super(message, cause);
   }
 }
