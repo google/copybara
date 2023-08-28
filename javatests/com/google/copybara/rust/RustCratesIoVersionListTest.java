@@ -197,4 +197,23 @@ public class RustCratesIoVersionListTest {
     assertThat(resultFeatures).containsKey("example-feature");
     assertThat(resultFeatures.get("example-feature").get(0)).isEqualTo("feature2");
   }
+
+  @Test
+  public void testRustCrateIoVersionList_cratesWithUpperCaseName() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("Example"));
+    v1.add("vers", new JsonPrimitive("0.1.0"));
+    String content =
+        ImmutableList.of(v1).stream().map(JsonElement::toString).collect(Collectors.joining("\n"));
+
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of(
+            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
+            content));
+    // The crate name starts with an uppercase letter, but when we look up in the index, we use the
+    // lowercase spelling.
+    VersionList versionList =
+        skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='Example')");
+    assertThat(versionList.list()).containsExactlyElementsIn(ImmutableList.of("0.1.0"));
+  }
 }

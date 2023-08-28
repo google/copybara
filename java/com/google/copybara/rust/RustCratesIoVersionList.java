@@ -18,6 +18,7 @@ package com.google.copybara.rust;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -63,19 +64,21 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
     String url = CRATES_IO_INDEX_URL;
 
     int nameLength = crateName.length();
+    String indexCrateName = Ascii.toLowerCase(crateName);
 
     if (nameLength <= 2) {
       // If the crate name's length is less than or equal to 2, then the version info is located at
       // /<name length>/<crate name>
-      url += String.format("/%d/%s", nameLength, crateName);
+      url += String.format("/%d/%s", nameLength, indexCrateName);
     } else if (nameLength == 3) {
       // If the crate name's length is equal to 3, then the version info is at:
       // /3/<first char>/<crate name>
-      url += String.format("/%d/%c/%s", nameLength, crateName.charAt(0), crateName);
+      url += String.format("/%d/%c/%s", nameLength, indexCrateName.charAt(0), indexCrateName);
     } else {
       url +=
           String.format(
-              "/%s/%s/%s", crateName.substring(0, 2), crateName.substring(2, 4), crateName);
+              "/%s/%s/%s",
+              indexCrateName.substring(0, 2), indexCrateName.substring(2, 4), indexCrateName);
     }
 
     BufferedReader reader = new BufferedReader(new StringReader(executeHTTPQuery(url)));
