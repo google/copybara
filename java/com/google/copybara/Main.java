@@ -388,13 +388,11 @@ public class Main {
       return false;
     }
     try {
-      if ((Boolean) systemConsole.getClass().getMethod("isTerminal").invoke(systemConsole)) {
-        return true;
-      }
+      return (Boolean) systemConsole.getClass().getMethod("isTerminal").invoke(systemConsole);
     } catch (ReflectiveOperationException e) {
       // Ignore
     }
-    return false;
+    return true;
   }
 
   protected Console getConsole(String[] args) {
