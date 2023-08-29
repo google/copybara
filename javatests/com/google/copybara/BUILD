@@ -94,7 +94,10 @@ all_tests(
     name = "single_patch_tests",
     shard_count = 1,
     tags = ["local"],
-    tests = ["util/SinglePatchUtilTest.java"],
+    tests = [
+        "util/SinglePatchTest.java",
+        "util/SinglePatchUtilTest.java",
+    ],
     deps = [
         "//java/com/google/copybara/util",
         "//third_party:truth",
