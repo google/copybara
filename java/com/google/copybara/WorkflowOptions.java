@@ -240,14 +240,20 @@ public class WorkflowOptions implements Option {
           "Origin baseline to use for merge import. This overrides any inferred origin baseline")
   String baselineForMergeImport = null;
 
-  @Parameter(
-      names = "--use-reverse-patch-baseline",
-      description =
-          "Reverse apply the existing patch files in the destination to obtain a baseline for merge"
-              + " import. This requires line numbers and file names to be present in the patches."
-              + " This patch handling process correctly represents changes introduced by copybara"
-              + " config edits as origin changes.")
+  // TODO(b/296915559): Remove reverse patch baseline in favor of SinglePatch
+  @Parameter(names = "--use-reverse-patch-baseline", description =
+      "Reverse apply the existing patch files in the destination to obtain a baseline for merge"
+          + " import. This requires line numbers and file names to be present in the patches."
+          + " This patch handling process correctly represents changes introduced by copybara"
+          + " config edits as origin changes.")
   public boolean useReversePatchBaseline = false;
+
+  // TODO(b/296915559): When ready, make SinglePatch the default and add a workflow config parameter
+  //  to disable
+  @Parameter(names = "--use-single-patch", description =
+      "Under development. If merge import is enabled, use "
+          + "SinglePatch to capture destination-only changes.")
+  public boolean useSinglePatch = false;
 
   @Parameter(
       names = "--threads-for-merge-import",

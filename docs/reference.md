@@ -1551,6 +1551,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--threads-min-size`</span> | *int* | Minimum size of the lists to process to run them in parallel
 <span style="white-space: nowrap;">`--to-folder`</span> | *boolean* | Sometimes a user wants to test what the outcome would be for a workflow without changing the configuration or adding an auxiliary testing workflow. This flags allowsto change an existing workflow to use folder.destination
 <span style="white-space: nowrap;">`--use-reverse-patch-baseline`</span> | *boolean* | Reverse apply the existing patch files in the destination to obtain a baseline for merge import. This requires line numbers and file names to be present in the patches. This patch handling process correctly represents changes introduced by copybara config edits as origin changes.
+<span style="white-space: nowrap;">`--use-single-patch`</span> | *boolean* | Under development. If merge import is enabled, use SinglePatch to capture destination-only changes.
 <span style="white-space: nowrap;">`--workflow-identity-user`</span> | *string* | Use a custom string as a user for computing change identity
 
 

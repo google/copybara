@@ -114,6 +114,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean setRevId;
   private final boolean smartPrune;
   private final boolean mergeImport;
+  private final boolean useSinglePatch;
   private final boolean useReversePatchBaseline;
   private final AutoPatchfileConfiguration autoPatchfileConfiguration;
   final Transformation afterMergeTransformations;
@@ -151,6 +152,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean smartPrune,
       boolean mergeImport,
       boolean useReversePatchBaseline,
+      boolean useSinglePatch,
       @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
       Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
@@ -189,6 +191,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
     this.useReversePatchBaseline = useReversePatchBaseline;
+    this.useSinglePatch = useSinglePatch;
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
@@ -683,6 +686,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   boolean isUseReversePatchBaseline() {
     return useReversePatchBaseline;
+  }
+
+  boolean useSinglePatch() {
+    return useSinglePatch;
   }
 
   @Nullable
