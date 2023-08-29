@@ -75,6 +75,15 @@ public class DefaultRustVersionRequirementTest {
   }
 
   @Test
+  public void testPreReleaseVersionRequirements() throws Exception {
+    assertThat(getVersionRequirement("1.2.3-alpha.1").fulfills("1.2.3-alpha.1")).isTrue();
+    assertThat(getVersionRequirement("1.2.3-alpha.1").fulfills("1.2.3")).isTrue();
+    assertThat(getVersionRequirement("1.2.3-alpha.1").fulfills("1.5")).isTrue();
+    assertThat(getVersionRequirement("1.2.3-alpha.2").fulfills("1.2.3-alpha.1")).isFalse();
+    assertThat(getVersionRequirement("1.2.3-rc.1").fulfills("1.2.3-beta.1")).isFalse();
+  }
+
+  @Test
   public void testBadVersionRequirementString() {
     ValidationException e =
         assertThrows(ValidationException.class, () -> DefaultRustVersionRequirement.create("foo"));

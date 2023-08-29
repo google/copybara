@@ -17,6 +17,7 @@
 package com.google.copybara.rust;
 
 import com.google.copybara.exception.ValidationException;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -26,7 +27,7 @@ import java.util.regex.Pattern;
  */
 public class TildeRustVersionRequirement extends RustVersionRequirement {
   static final Pattern VALID_TILDE_FORMAT_REGEX =
-      Pattern.compile("~\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?$");
+      Pattern.compile("~\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\+?.*)?$");
   private final String requirement;
 
   private TildeRustVersionRequirement(String requirement) throws ValidationException {
@@ -59,9 +60,9 @@ public class TildeRustVersionRequirement extends RustVersionRequirement {
 
     if (required.minorVersion().isPresent()) {
       return SemanticVersion.create(
-          required.majorVersion(), required.minorVersion().orElse(0) + 1, 0);
+          required.majorVersion(), required.minorVersion().orElse(0) + 1, 0, Optional.empty());
     } else {
-      return SemanticVersion.create(required.majorVersion() + 1, 0, 0);
+      return SemanticVersion.create(required.majorVersion() + 1, 0, 0, Optional.empty());
     }
   }
 

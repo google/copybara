@@ -59,4 +59,13 @@ public class RustVersionRequirementTest {
     assertThat(version.minorVersion()).isEqualTo(Optional.of(2));
     assertThat(version.patchVersion()).isEqualTo(Optional.of(3));
   }
+
+  @Test
+  public void testSemanticVersion_withPreReleaseVersion() throws Exception {
+    SemanticVersion version = SemanticVersion.createFromVersionString("1.2.3-alpha.1");
+    assertThat(version.majorVersion()).isEqualTo(1);
+    assertThat(version.minorVersion()).isEqualTo(Optional.of(2));
+    assertThat(version.patchVersion()).isEqualTo(Optional.of(3));
+    assertThat(version.preReleaseIdentifier()).isEqualTo(Optional.of("alpha.1"));
+  }
 }

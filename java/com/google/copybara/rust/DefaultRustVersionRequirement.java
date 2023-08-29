@@ -17,12 +17,13 @@
 package com.google.copybara.rust;
 
 import com.google.copybara.exception.ValidationException;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /** Class that represents the default cargo version requirement. e.g., "1.2.3" or "^1.2.3" */
 public class DefaultRustVersionRequirement extends RustVersionRequirement {
   static final Pattern VALID_DEFAULT_FORMAT_REGEX =
-      Pattern.compile("^\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?$");
+      Pattern.compile("^\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(-(.*))?(-(.*))?$");
   private final String requirement;
 
   private DefaultRustVersionRequirement(String requirement) throws ValidationException {
@@ -58,19 +59,21 @@ public class DefaultRustVersionRequirement extends RustVersionRequirement {
   private SemanticVersion getNextVersion() throws ValidationException {
     // Handle special cases: 0 and 0.0
     if (requirement.equals("0")) {
-      return SemanticVersion.create(1, 0, 0);
+      return SemanticVersion.create(1, 0, 0, Optional.empty());
     } else if (requirement.equals("0.0")) {
-      return SemanticVersion.create(0, 1, 0);
+      return SemanticVersion.create(0, 1, 0, Optional.empty());
     }
 
     SemanticVersion requiredVersion = getRequiredVersion();
     if (requiredVersion.majorVersion() > 0) {
-      return SemanticVersion.create(requiredVersion.majorVersion() + 1, 0, 0);
+      return SemanticVersion.create(requiredVersion.majorVersion() + 1, 0, 0, Optional.empty());
     } else if (requiredVersion.minorVersion().orElse(0) > 0) {
-      return SemanticVersion.create(0, requiredVersion.minorVersion().orElse(0) + 1, 0);
+      return SemanticVersion.create(
+          0, requiredVersion.minorVersion().orElse(0) + 1, 0, Optional.empty());
     }
 
-    return SemanticVersion.create(0, 0, requiredVersion.patchVersion().orElse(0) + 1);
+    return SemanticVersion.create(
+        0, 0, requiredVersion.patchVersion().orElse(0) + 1, Optional.empty());
   }
 
   @Override

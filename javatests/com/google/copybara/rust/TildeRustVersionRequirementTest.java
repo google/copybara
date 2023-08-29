@@ -42,6 +42,18 @@ public class TildeRustVersionRequirementTest {
   }
 
   @Test
+  public void testPreReleaseVersionRequirement() throws Exception {
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.0.5"))
+        .isTrue();
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.0.0"))
+        .isTrue();
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("1.1.0"))
+        .isFalse();
+    assertThat(RustVersionRequirement.getVersionRequirement("~1.0.0-beta.1").fulfills("0.5.0"))
+        .isFalse();
+  }
+
+  @Test
   public void testInvalidMultipleVersionRequirement() {
     ValidationException e =
         assertThrows(ValidationException.class, () -> TildeRustVersionRequirement.create("-6.2.3"));

@@ -16,8 +16,14 @@
 
 package com.google.copybara.rust;
 
+import static com.google.common.collect.Comparators.emptiesLast;
+import static java.lang.Math.min;
+
 import com.google.auto.value.AutoValue;
+import com.google.common.primitives.Ints;
 import com.google.copybara.exception.ValidationException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -65,17 +71,22 @@ abstract class RustVersionRequirement implements StarlarkValue {
   @AutoValue
   abstract static class SemanticVersion implements Comparable<SemanticVersion> {
     private static final Pattern VALID_VERSION_PATTERN =
-        Pattern.compile("^([0-9]+)(\\.[0-9]+)?(\\.[0-9]+)?(\\+?.*)?$");
+        Pattern.compile("^([0-9]+)(\\.[0-9]+)?(\\.[0-9]+)?(-(.*))?(\\+?.*)?$");
 
     private static final Comparator<SemanticVersion> VERSION_COMPARATOR =
         Comparator.comparing(SemanticVersion::majorVersion)
             .thenComparing(SemanticVersion::minorVersion, Comparator.comparingInt(k -> k.orElse(0)))
+            .thenComparing(SemanticVersion::patchVersion, Comparator.comparingInt(k -> k.orElse(0)))
             .thenComparing(
-                SemanticVersion::patchVersion, Comparator.comparingInt(k -> k.orElse(0)));
+                SemanticVersion::preReleaseIdentifier, emptiesLast(getPreReleaseComparator()));
 
-    public static SemanticVersion create(int majorVersion, int minorVersion, int patchVersion) {
+    public static SemanticVersion create(
+        int majorVersion,
+        int minorVersion,
+        int patchVersion,
+        Optional<String> preReleaseIdentifier) {
       return new AutoValue_RustVersionRequirement_SemanticVersion(
-          majorVersion, Optional.of(minorVersion), Optional.of(patchVersion));
+          majorVersion, Optional.of(minorVersion), Optional.of(patchVersion), preReleaseIdentifier);
     }
 
     public static SemanticVersion createFromVersionString(String version)
@@ -92,9 +103,10 @@ abstract class RustVersionRequirement implements StarlarkValue {
       Optional<Integer> patchVersion =
           Optional.ofNullable(matcher.group(3) != null
               ? Integer.parseInt(matcher.group(3).replace(".", "")) : null);
+      Optional<String> preReleaseIdentifier = Optional.ofNullable(matcher.group(5));
 
       return new AutoValue_RustVersionRequirement_SemanticVersion(
-          majorVersion, minorVersion, patchVersion);
+          majorVersion, minorVersion, patchVersion, preReleaseIdentifier);
     }
 
     @Override
@@ -107,5 +119,43 @@ abstract class RustVersionRequirement implements StarlarkValue {
     public abstract Optional<Integer> minorVersion();
 
     public abstract Optional<Integer> patchVersion();
+
+    public abstract Optional<String> preReleaseIdentifier();
+
+    public static Comparator<String> getPreReleaseComparator() {
+      return new Comparator<>() {
+        @Override
+        public int compare(String o1, String o2) {
+          // This follows the SemVer specification: https://semver.org/#spec-item-11
+          if (o1.equals(o2)) {
+            return 0;
+          }
+
+          // Split the pre-release strings into lists, separated by .
+          ArrayList<String> list1 = new ArrayList<>(Arrays.asList(o1.split("\\.")));
+          ArrayList<String> list2 = new ArrayList<>(Arrays.asList(o2.split("\\.")));
+
+          for (int i = 0; i < min(list1.size(), list2.size()); i++) {
+            // If both elements are numeric, they are compared as numbers.
+            int result;
+            String elem1 = list1.get(i);
+            String elem2 = list2.get(i);
+            // Numeric elements are compared as numbers.
+            if (Ints.tryParse(elem1) != null && Ints.tryParse(elem2) != null) {
+              result = Integer.compare(Integer.parseInt(elem1), Integer.parseInt(elem2));
+            } else {
+              result = elem1.compareTo(elem2);
+            }
+
+            if (result != 0) {
+              return result;
+            }
+          }
+
+          // If the pre-release identifiers are equal to this point, the larger identifier wins.
+          return Integer.compare(list1.size(), list2.size());
+        }
+      };
+    }
   }
 }

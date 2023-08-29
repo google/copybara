@@ -70,4 +70,41 @@ public class ComparisonRustVersionRequirementTest {
     assertThat(getVersionRequirement("<= 0.6").fulfills("0.6.4")).isTrue();
     assertThat(getVersionRequirement("<= 0.6").fulfills("0.7.0")).isFalse();
   }
+
+  @Test
+  public void testEqualsTo_withPreReleaseVersion() throws Exception {
+    assertThat(getVersionRequirement("= 1.2.0-beta.1").fulfills("1.2.0-beta.1")).isTrue();
+    assertThat(getVersionRequirement("= 1.2.0-beta.1").fulfills("1.2.0")).isFalse();
+    assertThat(getVersionRequirement("= 1.2.0-rc.2").fulfills("1.2.0-rc.1")).isFalse();
+  }
+
+  @Test
+  public void testGreaterThan_withPreReleaseVersion() throws Exception {
+    assertThat(getVersionRequirement("> 1.2.0-beta.1").fulfills("1.2.5-beta.4")).isTrue();
+    assertThat(getVersionRequirement("> 1.2.0-beta.1").fulfills("1.2.0-beta.1")).isFalse();
+  }
+
+  @Test
+  public void testGreaterThanOrEqualTo_withPreReleaseVersion() throws Exception {
+    assertThat(getVersionRequirement(">= 1.2.0-alpha.1").fulfills("2.0.0")).isTrue();
+    assertThat(getVersionRequirement(">= 1.2.0-alpha.1").fulfills("1.2.0-alpha.1")).isTrue();
+    assertThat(getVersionRequirement(">= 1.2.0-alpha.1").fulfills("1.2.0")).isTrue();
+    assertThat(getVersionRequirement(">= 1.2.0-alpha.1").fulfills("0.2.4")).isFalse();
+  }
+
+  @Test
+  public void testLessThan_withPreReleaseVersion() throws Exception {
+    assertThat(getVersionRequirement("< 0.8.5-rc.2").fulfills("0.8.5-rc.1")).isTrue();
+    assertThat(getVersionRequirement("< 0.8.5-rc.14").fulfills("0.8.5-rc.9")).isTrue();
+    assertThat(getVersionRequirement("< 0.8.5-rc.5").fulfills("0.8.5-rc.9")).isFalse();
+  }
+
+  @Test
+  public void testLessThanOrEqualTo_withPreReleaseVersion() throws Exception {
+    assertThat(getVersionRequirement("<= 3.0.0-alpha.1").fulfills("3.0.0-alpha.0")).isTrue();
+    assertThat(getVersionRequirement("<= 3.0.0-alpha.1").fulfills("3.0.0-alpha.1")).isTrue();
+    assertThat(getVersionRequirement("<= 3.0.0-alpha.1").fulfills("3.0.0")).isFalse();
+    assertThat(getVersionRequirement("<= 0.6.1-beta.5").fulfills("0.6.0")).isTrue();
+    assertThat(getVersionRequirement("<= 0.6.1-beta.5").fulfills("0.6.1")).isFalse();
+  }
 }
