@@ -408,6 +408,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             positional = false),
         @Param(
+            name = "single_patch_path",
+            named = true,
+            // TODO(b/296915559) remove under development warning
+            doc = "Under development. The path that the single patch file will be read from and "
+                + "written to when single patch mode is enabled.",
+            defaultValue = "\"/zz/copybara-single-patch-do-not-edit\"",
+            positional = false
+        ),
+        @Param(
             name = "autopatch_config",
             doc = "Configuration that describes the setting for automatic patch file generation",
             allowedTypes = {
@@ -505,6 +514,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean setRevId,
       Boolean smartPrune,
       Boolean mergeImport,
+      String singlePatchPath,
       Object autoPatchFileConfigurationObj,
       net.starlark.java.eval.Sequence<?> afterMergeTransformations,
       Boolean migrateNoopChanges,
@@ -616,6 +626,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             mergeImport,
             workflowOptions.useReversePatchBaseline,
             workflowOptions.useSinglePatch,
+            singlePatchPath,
             autoPatchfileConfiguration,
             asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
