@@ -91,6 +91,17 @@ all_tests(
 )
 
 all_tests(
+    name = "single_patch_tests",
+    shard_count = 1,
+    tags = ["local"],
+    tests = ["util/SinglePatchUtilTest.java"],
+    deps = [
+        "//java/com/google/copybara/util",
+        "//third_party:truth",
+    ],
+)
+
+all_tests(
     name = "workflow_test",
     shard_count = 5,
     tags = ["local"],
