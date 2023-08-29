@@ -19,9 +19,9 @@ load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_vers
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-    RULES_JVM_EXTERNAL_TAG = "4.2"
+    RULES_JVM_EXTERNAL_TAG = "5.2"
 
-    RULES_JVM_EXTERNAL_SHA = "cd1a77b7b02e8e008439ca76fd34f5b07aecb8c752961f9640dea15e9e5ba1ca"
+    RULES_JVM_EXTERNAL_SHA = "f86fd42a809e1871ca0aabe89db0d440451219c3ce46c58da240c7dcdc00125f"
 
     maybe(
         http_archive,
@@ -36,9 +36,11 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "rules_jvm_external",
-        sha256 = RULES_JVM_EXTERNAL_SHA,
+        # sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
+	patches = ["@io_bazel//third_party:rules_jvm_external_5.2.patch"],
+        patch_args= ["-p1"],
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -170,7 +172,7 @@ def copybara_repositories():
             "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.29.0/bazel-gazelle-v0.29.0.tar.gz",
         ],
     )
-
+    
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
@@ -181,3 +183,4 @@ def copybara_repositories():
         ],
         build_file = Label("//external/third_party:jcommander.BUILD"),
     )
+
