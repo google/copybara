@@ -35,7 +35,7 @@ import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a Cargo version requirement */
 @StarlarkBuiltin(name = "rust_version_requirement", doc = "Represents a Cargo version requirement.")
-abstract class RustVersionRequirement implements StarlarkValue {
+public abstract class RustVersionRequirement implements StarlarkValue {
   public static RustVersionRequirement getVersionRequirement(String requirement)
       throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
@@ -68,8 +68,11 @@ abstract class RustVersionRequirement implements StarlarkValue {
               + " requirement.")
   public abstract boolean fulfills(String version) throws ValidationException;
 
+  /**
+   * Represents a semantic version for a Rust crate.
+   */
   @AutoValue
-  abstract static class SemanticVersion implements Comparable<SemanticVersion> {
+  public abstract static class SemanticVersion implements Comparable<SemanticVersion> {
     private static final Pattern VALID_VERSION_PATTERN =
         Pattern.compile("^([0-9]+)(\\.[0-9]+)?(\\.[0-9]+)?(-(.*))?(\\+?.*)?$");
 
