@@ -16,7 +16,9 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.hash.Hashing;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +45,28 @@ public final class SinglePatchUtilTest {
   }
 
   @Test
-  public void testGenerateSinglePatch() {
-    SinglePatch singlePatch = SinglePatchUtil.generateSinglePatch(destination, baseline);
+  public void testGenerateSinglePatch() throws IOException {
+    SinglePatch singlePatch = SinglePatchUtil.generateSinglePatch(destination, baseline,
+        Hashing.sha256());
     assertThat(singlePatch).isNotNull();
+  }
+
+  @Test
+  public void testGenerateSinglePatchHashesFile() throws IOException {
+
+    String testPath = "test/foo";
+    String testContents = "hello";
+    byte[] testBytes = testContents.getBytes(UTF_8);
+
+    Files.createDirectories(destination.resolve(testPath).getParent());
+    Files.write(destination.resolve(testPath), testBytes);
+
+    SinglePatch singlePatch = SinglePatchUtil.generateSinglePatch(destination, baseline,
+        Hashing.sha256());
+
+    assertThat(singlePatch.getFileHashes()).containsExactly(
+        testPath, new String(Hashing.sha256().hashBytes(testBytes).asBytes(), UTF_8)
+    );
   }
 
 }
