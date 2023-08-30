@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Map;
 
 /**
  * Contains utilities for working with SinglePatch objects
@@ -44,8 +45,8 @@ public class SinglePatchUtil {
    * @param baseline is the version to diff against.
    */
   public static SinglePatch generateSinglePatch(Path destination, Path baseline,
-      HashFunction hashFunction)
-      throws IOException {
+      HashFunction hashFunction, Map<String, String> environment)
+      throws IOException, InsideGitDirException {
     ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
     Files.walkFileTree(destination, new SimpleFileVisitor<>() {
       @Override
@@ -58,7 +59,8 @@ public class SinglePatchUtil {
       }
 
     });
-    return new SinglePatch(hashesBuilder.build());
+    byte[] diff = DiffUtil.diff(destination, baseline, false, environment);
+    return new SinglePatch(hashesBuilder.build(), diff);
   }
 
 }
