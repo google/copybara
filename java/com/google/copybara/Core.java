@@ -408,17 +408,22 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                     + " files. The inputs to the diffing tool are (1) origin file (2) baseline file"
                     + " (3) destination file. This can be used to perpetuate destination-only"
                     + " changes in non source of truth repositories.",
-            defaultValue = "False",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+              @ParamType(type = MergeImportConfiguration.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
             positional = false),
         @Param(
             name = "single_patch_path",
             named = true,
             // TODO(b/296915559) remove under development warning
-            doc = "Under development. The path that the single patch file will be read from and "
-                + "written to when single patch mode is enabled.",
+            doc =
+                "Under development. The path that the single patch file will be read from and "
+                    + "written to when single patch mode is enabled.",
             defaultValue = "\"/zz/copybara-single-patch-do-not-edit\"",
-            positional = false
-        ),
+            positional = false),
         @Param(
             name = "autopatch_config",
             doc = "Configuration that describes the setting for automatic patch file generation",
@@ -516,7 +521,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object changeIdentityObj,
       Boolean setRevId,
       Boolean smartPrune,
-      Boolean mergeImport,
+      Object mergeImportObj,
       String singlePatchPath,
       Object autoPatchFileConfigurationObj,
       net.starlark.java.eval.Sequence<?> afterMergeTransformations,
@@ -592,6 +597,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     if (defaultAuthorFlag != null) {
       resolvedAuthoring = new Authoring(defaultAuthorFlag, authoring.getMode(),
           authoring.getAllowlist());
+    }
+
+    MergeImportConfiguration mergeImport;
+    if (mergeImportObj instanceof Boolean) {
+      Boolean objectValue = (Boolean) mergeImportObj;
+      mergeImport = objectValue ? MergeImportConfiguration.create("", Glob.ALL_FILES) : null;
+    } else {
+      mergeImport = convertFromNoneable(mergeImportObj, null);
     }
 
     AutoPatchfileConfiguration autoPatchfileConfiguration =
@@ -2278,6 +2291,29 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @Override
   public void setPrintHandler(StarlarkThread.PrintHandler printHandler) {
     this.printHandler = printHandler;
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "merge_import_config",
+      doc = "Describes which paths merge_import mode should be applied",
+      parameters = {
+        @Param(
+            name = "package_path",
+            doc = "Package location (ex. 'google3/third_party/java/foo').",
+            allowedTypes = {@ParamType(type = String.class)},
+            named = true,
+            positional = false),
+        @Param(
+            name = "glob",
+            doc = "Glob of paths to apply merge_import mode, relative to package_path",
+            allowedTypes = {@ParamType(type = Glob.class)},
+            named = true,
+            positional = false)
+      })
+  public MergeImportConfiguration mergeImportConfiguration(String packagePath, Object globObj) {
+    Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
+    return MergeImportConfiguration.create(packagePath, glob);
   }
 
   @SuppressWarnings("unused")

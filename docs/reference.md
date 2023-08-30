@@ -39,6 +39,7 @@
     - [core.filter_replace](#corefilter_replace)
     - [core.format](#coreformat)
     - [core.latest_version](#corelatest_version)
+    - [core.merge_import_config](#coremerge_import_config)
     - [core.move](#coremove)
     - [core.remove](#coreremove)
     - [core.rename](#corerename)
@@ -50,6 +51,7 @@
     - [core.verify_match](#coreverify_match)
     - [core.workflow](#coreworkflow)
   - [core.autopatch_config](#coreautopatch_config)
+  - [core.merge_import_config](#coremerge_import_config)
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_readercopy_destination_files)
@@ -1081,6 +1083,21 @@ core.latest_version(
 ```
 
 
+<a id="core.merge_import_config" aria-hidden="true"></a>
+### core.merge_import_config
+
+Describes which paths merge_import mode should be applied
+
+[`core.merge_import_config`](#coremerge_import_config) `core.merge_import_config(package_path, glob)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+package_path | `string`<br><p>Package location (ex. 'google3/third_party/java/foo').</p>
+glob | [`glob`](#glob)<br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
+
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
 
@@ -1525,7 +1542,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=False, single_patch_path="/zz/copybara-single-patch-do-not-edit", autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=None, single_patch_path="/zz/copybara-single-patch-do-not-edit", autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1549,7 +1566,7 @@ after_workflow | `sequence`<br><p>Run a feedback workflow after all the changes 
 change_identity | `string` or `NoneType`<br><p>By default, Copybara hashes several fields so that each change has an unique identifier that at the same time reuses the generated destination change. This allows to customize the identity hash generation so that the same identity is used in several workflows. At least ${copybara_config_path} has to be present. Current user is added to the hash automatically.<br><br>Available variables:<ul>  <li>${copybara_config_path}: Main config file path</li>  <li>${copybara_workflow_name}: The name of the workflow being run</li>  <li>${copybara_reference}: The requested reference. In general Copybara tries its best to give a repetable reference. For example Gerrit change number or change-id or GitHub Pull Request number. If it cannot find a context reference it uses the resolved revision.</li>  <li>${label:label_name}: A label present for the current change. Exposed in the message or not.</li></ul>If any of the labels cannot be found it defaults to the default identity (The effect would be no reuse of destination change between workflows)</p>
 set_rev_id | `bool`<br><p>Copybara adds labels like 'GitOrigin-RevId' in the destination in order to track what was the latest change imported. For `CHANGE_REQUEST` workflows it is not used and is purely informational. This field allows to disable it for that mode. Destinations might ignore the flag.</p>
 smart_prune | `bool`<br><p>By default CHANGE_REQUEST workflows cannot restore scrubbed files. This flag does a best-effort approach in restoring the non-affected snippets. For now we only revert the non-affected files. This only works for CHANGE_REQUEST mode.</p>
-merge_import | `bool`<br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
+merge_import | `bool` or [`core.merge_import_config`](#coremerge_import_config) or `NoneType`<br><p>A migration mode that shells out to a diffing tool (default is diff3) to merge all files. The inputs to the diffing tool are (1) origin file (2) baseline file (3) destination file. This can be used to perpetuate destination-only changes in non source of truth repositories.</p>
 single_patch_path | `string`<br><p>Under development. The path that the single patch file will be read from and written to when single patch mode is enabled.</p>
 autopatch_config | [`core.autopatch_config`](#coreautopatch_config) or `NoneType`<br><p>Configuration that describes the setting for automatic patch file generation</p>
 after_merge_transformations | `sequence`<br><p>Perform these transformations after merge_import, but before Copybara writes to the destination. Ex: any BUILD file generations that rely on the results of merge_import</p>
@@ -1598,6 +1615,12 @@ Name | Type | Description
 ## core.autopatch_config
 
 The configuration that describes automatic patch file generation
+
+
+
+## core.merge_import_config
+
+The paths for which to perpetuate destination-only changes in non source of truth repositories.
 
 
 

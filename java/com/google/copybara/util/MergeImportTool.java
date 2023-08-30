@@ -21,14 +21,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.exception.ValidationException;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.shell.CommandException;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
@@ -77,7 +78,12 @@ public final class MergeImportTool {
    * @param diffToolWorkdir A working directory for the CommandLineDiffUtil
    */
   public void mergeImport(
-      Path originWorkdir, Path destinationWorkdir, Path baselineWorkdir, Path diffToolWorkdir)
+      Path originWorkdir,
+      Path destinationWorkdir,
+      Path baselineWorkdir,
+      Path diffToolWorkdir,
+      Glob matcher,
+      Path packagePath)
       throws IOException, ValidationException {
     HashSet<Path> visitedSet = new HashSet<>();
     HashSet<Path> mergeErrorPaths = new HashSet<>();
@@ -96,7 +102,13 @@ public final class MergeImportTool {
             Path relativeFile = originWorkdir.relativize(file);
             Path baselineFile = baselineWorkdir.resolve(relativeFile);
             Path destinationFile = destinationWorkdir.resolve(relativeFile);
-            if (!Files.exists(destinationFile) || !Files.exists(baselineFile)) {
+            Path relativizedFile = packagePath.relativize(relativeFile);
+            boolean match =
+                matcher
+                    .relativeTo(Paths.get(""))
+                    .matches(Path.of("/".concat(relativizedFile.toString())));
+
+            if (!Files.exists(destinationFile) || !Files.exists(baselineFile) || !match) {
               return FileVisitResult.CONTINUE;
             }
             filesToProcess.add(

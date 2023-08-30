@@ -113,7 +113,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final ImmutableList<Token> changeIdentity;
   private final boolean setRevId;
   private final boolean smartPrune;
-  private final boolean mergeImport;
+  private final MergeImportConfiguration mergeImport;
   private final boolean useSinglePatch;
   private final String singlePatchPath;
   private final boolean useReversePatchBaseline;
@@ -151,7 +151,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       ImmutableList<Token> changeIdentity,
       boolean setRevId,
       boolean smartPrune,
-      boolean mergeImport,
+      @Nullable MergeImportConfiguration mergeImport,
       boolean useReversePatchBaseline,
       boolean useSinglePatch,
       String singlePatchPath,
@@ -684,6 +684,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   }
 
   boolean isMergeImport() {
+    return mergeImport != null;
+  }
+
+  MergeImportConfiguration getMergeImport() {
     return mergeImport;
   }
 
