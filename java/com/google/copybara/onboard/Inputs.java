@@ -113,13 +113,14 @@ public class Inputs {
       });
 
   public static final Input<Path> GENERATOR_FOLDER = Input.create(
-      "generator_folder", "The folder where the config will be create",
+      "generator_folder", "The folder where the assets will be created",
       null, Path.class, (first, resolver) -> Paths.get(first));
 
   public static final Input<String> MIGRATION_NAME = Input.create(
       "migration_name", "Migration name",
       null, String.class, (s, resolver) -> s);
 
+  @SuppressWarnings("unused")
   public static final Input<String> PACKAGE_NAME =
       Input.create(
           "package_name",
