@@ -22,7 +22,7 @@ LOCAL_TESTS = [
     "MigrateCmdTest.java",
     "util/DiffUtilTest.java",
     "util/AutoPatchUtilTest.java",
-    "util/SinglePatchUtilTest.java",
+    "util/SinglePatchTest.java",
     "WorkflowTest.java",
 ]
 
@@ -92,11 +92,11 @@ all_tests(
 )
 
 all_tests(
-    name = "single_patch_util_tests",
+    name = "single_patch_tests",
     shard_count = 1,
     tags = ["local"],
     tests = [
-        "util/SinglePatchUtilTest.java",
+        "util/SinglePatchTest.java",
     ],
     deps = [
         "//java/com/google/copybara/util",
