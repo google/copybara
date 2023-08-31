@@ -180,7 +180,8 @@ public final class AutoPatchUtil {
     Files.walkFileTree(destinationWorkdir, destinationFileVisitor);
   }
 
-  public static void reversePatchFiles(Path diffRoot, Path patchDir, String fileSuffix)
+  public static void reversePatchFiles(
+      Path diffRoot, Path patchDir, String fileSuffix, Map<String, String> environment)
       throws IOException {
     // obtain list of patch files to apply
     ImmutableList.Builder<Path> files = ImmutableList.builder();
@@ -195,7 +196,7 @@ public final class AutoPatchUtil {
             return FileVisitResult.CONTINUE;
           }
         });
-    DiffUtil.reverseApplyPatches(files.build(), diffRoot);
+    DiffUtil.reverseApplyPatches(files.build(), diffRoot, environment);
   }
 
   public static Glob getAutopatchGlob(String directoryPrefix, @Nullable String directory) {

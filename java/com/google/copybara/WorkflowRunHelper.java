@@ -876,9 +876,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory());
       reader.copyDestinationFilesToDirectory(autopatchGlob, autopatchWorkdir);
 
-      // reverse apply the patchfiles ot the baseline directory
+      // reverse apply the patchfiles to the baseline directory
       AutoPatchUtil.reversePatchFiles(
-          baselineWorkdir, autopatchWorkdir, autoPatchfileConfiguration.suffix());
+          baselineWorkdir,
+          autopatchWorkdir,
+          autoPatchfileConfiguration.suffix(),
+          workflow.getGeneralOptions().getEnvironment());
 
       return baselineWorkdir;
     }

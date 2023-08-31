@@ -48,12 +48,14 @@ public class DiffUtilTest {
   Path rootPath;
   private Path left;
   private Path right;
+  public Map<String, String> testEnv;
 
   @Before
   public void setUp() throws Exception {
     rootPath = tmpFolder.getRoot().toPath();
     left = createDir(rootPath, "left");
     right = createDir(rootPath, "right");
+    testEnv = System.getenv();
   }
 
   @Test
@@ -61,8 +63,7 @@ public class DiffUtilTest {
     Path foo = createDir(left, "foo");
     IllegalArgumentException e =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> DiffUtil.diff(left, foo, VERBOSE, System.getenv()));
+            IllegalArgumentException.class, () -> DiffUtil.diff(left, foo, VERBOSE, testEnv));
     assertThat(e).hasMessageThat().contains("Paths 'one' and 'other' must be sibling directories");
   }
 
@@ -71,8 +72,7 @@ public class DiffUtilTest {
     Path foo = createDir(left, "foo");
     IllegalArgumentException e =
         assertThrows(
-            IllegalArgumentException.class,
-            () -> DiffUtil.diffFiles(left, foo, VERBOSE, System.getenv()));
+            IllegalArgumentException.class, () -> DiffUtil.diffFiles(left, foo, VERBOSE, testEnv));
     assertThat(e).hasMessageThat().contains("Paths 'one' and 'other' must be sibling directories");
   }
 
@@ -88,10 +88,10 @@ public class DiffUtilTest {
         + "[core]\n"
         + "autocrlf=true\n"
         + "safecrlf=warn\n");
-    Map<String, String> testEnv = new HashMap<>(System.getenv());
-    testEnv.put("HOME", foo.toAbsolutePath().toString());
+    Map<String, String> env = new HashMap<>(testEnv);
+    env.put("HOME", foo.toAbsolutePath().toString());
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, testEnv);
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, env);
 
     assertThat(new String(diffContents, StandardCharsets.UTF_8)).isNotEmpty();
   }
@@ -103,11 +103,11 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo");
     writeFile(right, "b/file2.txt", "bar");
 
-    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, System.getenv());
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, testEnv);
 
     assertThat(diffContents).isEmpty();
 
-    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, System.getenv())).isEmpty();
+    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, testEnv)).isEmpty();
   }
 
   @Test
@@ -116,9 +116,9 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo\n");
 
     byte[] diffContentsIgnoreCr =
-        DiffUtil.diffFileWithIgnoreCrAtEol(left.getParent(), left, right, VERBOSE, System.getenv());
+        DiffUtil.diffFileWithIgnoreCrAtEol(left.getParent(), left, right, VERBOSE, testEnv);
     String diffContents =
-        new String(DiffUtil.diff(left, right, VERBOSE, System.getenv()), StandardCharsets.UTF_8);
+        new String(DiffUtil.diff(left, right, VERBOSE, testEnv), StandardCharsets.UTF_8);
 
     assertThat(diffContentsIgnoreCr).isEmpty();
     assertThat(diffContents)
@@ -139,16 +139,16 @@ public class DiffUtilTest {
     writeFile(right, "file1.txt", "foo-right");
     writeFile(right, "file2.txt", "bar-right");
 
-    assertThat(DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
-        f -> false)).isEmpty();
+    assertThat(DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, testEnv), f -> false))
+        .isEmpty();
 
-    String all = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
-        f -> true);
+    String all = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, testEnv), f -> true);
     assertThat(all).contains("diff --git a/left/file1.txt b/right/file1.txt");
     assertThat(all).contains("diff --git a/left/file2.txt b/right/file2.txt");
 
-    String one = DiffUtil.filterDiff(DiffUtil.diff(left, right, VERBOSE, System.getenv()),
-        f -> f.equals("left/file1.txt"));
+    String one =
+        DiffUtil.filterDiff(
+            DiffUtil.diff(left, right, VERBOSE, testEnv), f -> f.equals("left/file1.txt"));
     assertThat(one).contains("diff --git a/left/file1.txt b/right/file1.txt");
     assertThat(one).contains("-foo-left\n"
         + "\\ No newline at end of file\n"
@@ -171,7 +171,7 @@ public class DiffUtilTest {
     writeFile(right, "modified.txt", "foo");
     writeFile(right, "added.txt", "");
 
-    ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE, System.getenv());
+    ImmutableList<DiffFile> result = DiffUtil.diffFiles(left, right, VERBOSE, testEnv);
     ImmutableMap<String, DiffFile> byName = Maps.uniqueIndex(result, DiffFile::getName);
 
     assertThat(byName.get("deleted.txt").getOperation()).isEqualTo(Operation.DELETE);
@@ -205,7 +205,7 @@ public class DiffUtilTest {
     String contents = Files.readString(right.resolve("file1.txt"));
     assertThat(contents).isEqualTo("b\n");
 
-    DiffUtil.reverseApplyPatches(ImmutableList.of(rootPath.resolve(patchName)), right);
+    DiffUtil.reverseApplyPatches(ImmutableList.of(rootPath.resolve(patchName)), right, testEnv);
 
     contents = Files.readString(right.resolve("file1.txt"));
     assertThat(contents).isEqualTo("a\n");
@@ -224,7 +224,7 @@ public class DiffUtilTest {
     writeFile(left, "file1.txt", "foo");
     writeFile(right, "file1.txt", "foo");
 
-    assertThat(DiffUtil.diff(left, right, VERBOSE, System.getenv())).isEmpty();
+    assertThat(DiffUtil.diff(left, right, VERBOSE, testEnv)).isEmpty();
   }
 
   private Path createDir(Path parent, String name) throws IOException {

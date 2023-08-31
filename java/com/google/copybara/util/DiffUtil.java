@@ -137,9 +137,10 @@ public class DiffUtil {
     return result.build();
   }
 
-  public static void reverseApplyPatches(List<Path> patchFiles, Path applyDirectory)
+  public static void reverseApplyPatches(
+      List<Path> patchFiles, Path applyDirectory, Map<String, String> environment)
       throws IOException {
-    FoldersDiff.reverseApplyPatches(patchFiles, applyDirectory);
+    FoldersDiff.reverseApplyPatches(patchFiles, applyDirectory, environment);
   }
 
   public static class DiffFile {
@@ -347,9 +348,10 @@ public class DiffUtil {
     }
 
     /** Apply the patches in reverse to the directory. */
-    private static void reverseApplyPatches(List<Path> patchFiles, Path applyDirectory)
+    private static void reverseApplyPatches(
+        List<Path> patchFiles, Path applyDirectory, Map<String, String> environment)
         throws IOException {
-      GitEnvironment gitEnv = new GitEnvironment(ImmutableMap.of());
+      GitEnvironment gitEnv = new GitEnvironment(environment);
       List<String> params = com.google.api.client.util.Lists.newArrayList();
       params.add(gitEnv.resolveGitBinary());
       params.add("apply");

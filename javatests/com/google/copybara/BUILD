@@ -161,3 +161,20 @@ bzl_library(
     srcs = ["test.bzl"],
     visibility = ["//visibility:private"],
 )
+
+java_library(
+    name = "patchtests",
+    testonly = True,
+    srcs = [
+        "util/AutoPatchUtilTest.java",
+        "util/DiffUtilTest.java",
+    ],
+    # Used for extending the tests internally. Not a public API.
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/com/google/copybara/util",
+        "//third_party:guava",
+        "//third_party:junit",
+        "//third_party:truth",
+    ],
+)

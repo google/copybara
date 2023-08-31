@@ -224,7 +224,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
     previousDestinationReader.copyDestinationFilesToDirectory(autopatchGlob, autopatchPath);
 
     // reverse autopatch files on the target directory here to get a pristine import
-    AutoPatchUtil.reversePatchFiles(previousPath, autopatchPath, autopatchConfig.suffix());
+    AutoPatchUtil.reversePatchFiles(
+        previousPath,
+        autopatchPath,
+        autopatchConfig.suffix(),
+        workflow.getGeneralOptions().getEnvironment());
   }
 
   private Path prepareDiffWithImportBaseline(
