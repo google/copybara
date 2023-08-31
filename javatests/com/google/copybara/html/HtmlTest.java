@@ -53,7 +53,7 @@ public class HtmlTest {
                 + "  <p> 1 </p>"
                 + "</body>"
                 + "'\n"
-                + "e = html.select_elements(content, '//p')");
+                + "e = html.xpath(content, '//p')");
     assertThat(elements).hasSize(1);
   }
 
@@ -72,7 +72,7 @@ public class HtmlTest {
                 + "  </random>"
                 + "</body>"
                 + "'\n"
-                + "e = html.select_elements(content, '//p')");
+                + "e = html.xpath(content, '//p')");
     assertThat(elements).hasSize(3);
   }
 
@@ -91,7 +91,7 @@ public class HtmlTest {
                 + "  </random>"
                 + "</body>"
                 + "'\n"
-                + "e = html.select_elements(content, '//dev')");
+                + "e = html.xpath(content, '//dev')");
     assertThat(elements).isEmpty();
   }
 
@@ -106,7 +106,7 @@ public class HtmlTest {
                 + "  <p> 1 </p>"
                 + "</body>"
                 + "'\n"
-                + "e = html.select_elements(content, '//p/text()')");
+                + "e = html.xpath(content, '//p/text()')");
     assertThat(elements).isEmpty();
   }
 
@@ -121,7 +121,7 @@ public class HtmlTest {
                 + "  <p id=\"example\" name=\"one\"> 1 </p>"
                 + "</body>"
                 + "'\n"
-                + "e = html.select_elements(content, '//p')");
+                + "e = html.xpath(content, '//p')");
     assertThat(elements).hasSize(1);
     assertThat(elements.get(0).attr("id")).isEqualTo("example");
     assertThat(elements.get(0).attr("name")).isEqualTo("one");

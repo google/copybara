@@ -33,10 +33,11 @@ import org.jsoup.nodes.Element;
 public class HtmlModule implements StarlarkValue {
 
   @StarlarkMethod(
-      name = "select_elements",
-      doc = "Run an xpath expression on HTML content to select elements.",
+      name = "xpath",
+      doc = "Run an xpath expression on HTML content to select elements. This only supports"
+          + " a subset of xpath expressions.",
       parameters = {
-        @Param(name = "htmlContent", doc = "The HTML content", named = true),
+        @Param(name = "content", doc = "The HTML content", named = true),
         @Param(name = "expression", doc = "XPath expression to select elements", named = true),
       })
   public List<HtmlElement> selectElements(String htmlContent, String expression)

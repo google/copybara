@@ -20,6 +20,7 @@ java_library(
     name = "html",
     srcs = glob(["**/*.java"]),
     deps = [
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//third_party:guava",
         "//third_party:jsoup",

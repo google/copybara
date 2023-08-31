@@ -162,6 +162,8 @@
     - [go.go_proxy_version_list](#gogo_proxy_version_list)
   - [hg](#hg)
     - [hg.origin](#hgorigin)
+  - [html](#html)
+    - [html.xpath](#htmlxpath)
   - [mapping_function](#mapping_function)
   - [metadata](#metadata)
     - [metadata.add_header](#metadataadd_header)
@@ -3767,6 +3769,27 @@ Parameter | Description
 --------- | -----------
 url | `string`<br><p>Indicates the URL of the Hg repository</p>
 ref | `string`<br><p>Represents the default reference that will be used to read a revision from the repository. The reference defaults to `default`, the most recent revision on the default branch. References can be in a variety of formats:<br><ul> <li> A global identifier for a revision. Example: f4e0e692208520203de05557244e573e981f6c72</li><li> A bookmark in the repository.</li><li> A branch in the repository, which returns the tip of that branch. Example: default</li><li> A tag in the repository. Example: tip</li></ul></p>
+
+
+
+## html
+
+Set of functions to work with HTML in copybara
+
+<a id="html.xpath" aria-hidden="true"></a>
+### html.xpath
+
+Run an xpath expression on HTML content to select elements. This only supports a subset of xpath expressions.
+
+`sequence of HtmlElement` `html.xpath(content, expression)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+content | `string`<br><p>The HTML content</p>
+expression | `string`<br><p>XPath expression to select elements</p>
 
 
 
