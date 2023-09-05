@@ -99,6 +99,7 @@ all_tests(
         "util/SinglePatchTest.java",
     ],
     deps = [
+        "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util",
         "//third_party:truth",
     ],

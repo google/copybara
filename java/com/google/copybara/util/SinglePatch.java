@@ -15,6 +15,7 @@
  */
 package com.google.copybara.util;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Splitter;
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
+import com.google.copybara.exception.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,6 +32,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -81,7 +84,7 @@ public class SinglePatch {
           throws IOException {
         HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);
         hashesBuilder.put(destination.relativize(file).toString(),
-            new String(hashCode.asBytes(), UTF_8));
+            hashCode.toString());
         return FileVisitResult.CONTINUE;
       }
 
@@ -106,7 +109,8 @@ public class SinglePatch {
     return line;
   }
 
-  public static SinglePatch fromBytes(byte[] bytes) throws IOException {
+  public static SinglePatch fromBytes(byte[] bytes, HashFunction hashFunction)
+      throws IOException, ValidationException {
     try (
         ByteArrayInputStream in = new ByteArrayInputStream(bytes);
         BufferedReader br = new BufferedReader(new InputStreamReader(in))
@@ -115,11 +119,13 @@ public class SinglePatch {
       String line = mustReadUncommentedLine(br);
 
       while (!line.equals(hashSectionDelimiterLine)) {
-        List<String> splits = Splitter.on(" ").limit(2).splitToList(line);
+        List<String> splits = Splitter.on(": ").limit(2).splitToList(line);
         if (splits.size() != 2) {
           throw new IOException(
               "failed to parse single patch hashes: unexpected number of elements");
         }
+        validateParsedPathValue(splits.get(0));
+        validateParsedHashValue(splits.get(1), hashFunction);
         fileHashesBuilder.put(splits.get(0), splits.get(1));
 
         line = mustReadUncommentedLine(br);
@@ -140,7 +146,7 @@ public class SinglePatch {
   }
 
   public ImmutableMap<String, String> getFileHashes() {
-    return fileHashes;
+    return ImmutableMap.copyOf(fileHashes);
   }
 
   public byte[] getDiffContent() {
@@ -155,7 +161,7 @@ public class SinglePatch {
       outWriter.write(header);
 
       for (Entry<String, String> entry : fileHashes.entrySet()) {
-        outWriter.write(String.format("%s %s\n",
+        outWriter.write(String.format("%s: %s\n",
             entry.getKey(),
             entry.getValue()));
       }
@@ -195,4 +201,27 @@ public class SinglePatch {
     return String.format("%s\n%s\n", fileHashes, new String(diffContent, UTF_8));
   }
 
+  private static void validateParsedPathValue(String path) throws ValidationException {
+    try {
+      var unused = Path.of(path);
+    } catch (InvalidPathException e) {
+      throw new ValidationException("Parsed path value is invalid.", e);
+    }
+  }
+
+  private static void validateParsedHashValue(String hash, HashFunction hashFunction)
+      throws ValidationException {
+    try {
+      var unused = HashCode.fromString(hash);
+    } catch (IllegalArgumentException e) {
+      throw new ValidationException("Parsed hash value is invalid.", e);
+    }
+
+    // HashCode.fromString() does not check if the length is wrong for any particular hash function.
+    // Check legth of hash string against number of bits.
+    int hashLengthInHex = hashFunction.bits() / 4;
+    checkCondition(hash.length() == hashLengthInHex, String.format(
+        "Parsed hash value has incorrect number of hex chars. Parsed length: %d. %s length: %d",
+        hash.length(), hashFunction, hashLengthInHex));
+  }
 }
