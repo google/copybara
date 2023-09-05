@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
 import java.io.IOException;
@@ -196,7 +197,13 @@ public final class AutoPatchUtil {
             return FileVisitResult.CONTINUE;
           }
         });
-    DiffUtil.reverseApplyPatches(files.build(), diffRoot, environment);
+    DiffUtil.reverseApplyPatches(null, files.build(), diffRoot, environment);
+  }
+
+  public static void reversePatch(Path diffRoot, byte[] patchContent,
+      Map<String, String> environment)
+      throws IOException, ValidationException {
+    DiffUtil.reverseApplyPatches(patchContent, ImmutableList.of(), diffRoot, environment);
   }
 
   public static Glob getAutopatchGlob(String directoryPrefix, @Nullable String directory) {

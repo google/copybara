@@ -137,10 +137,17 @@ public class DiffUtil {
     return result.build();
   }
 
-  public static void reverseApplyPatches(
-      List<Path> patchFiles, Path applyDirectory, Map<String, String> environment)
+  /**
+   * Apply the patches in reverse to the directory using git apply. At lease one of either
+   * inputStream or a nonempty patchFiles should be supplied.
+   *
+   * @param patchBytes is an optional diff that will be streamed to the command through stdin.
+   * @param patchFiles is a list of paths to patch files that will be supplied to the command.
+   */
+  public static void reverseApplyPatches(@Nullable byte[] patchBytes, List<Path> patchFiles,
+      Path applyDirectory, Map<String, String> environment)
       throws IOException {
-    FoldersDiff.reverseApplyPatches(patchFiles, applyDirectory, environment);
+    FoldersDiff.reverseApplyPatches(patchBytes, patchFiles, applyDirectory, environment);
   }
 
   public static class DiffFile {
@@ -347,9 +354,8 @@ public class DiffUtil {
       }
     }
 
-    /** Apply the patches in reverse to the directory. */
-    private static void reverseApplyPatches(
-        List<Path> patchFiles, Path applyDirectory, Map<String, String> environment)
+    private static void reverseApplyPatches(@Nullable byte[] patchBytes, List<Path> patchFiles,
+        Path applyDirectory, Map<String, String> environment)
         throws IOException {
       GitEnvironment gitEnv = new GitEnvironment(environment);
       List<String> params = com.google.api.client.util.Lists.newArrayList();
@@ -359,10 +365,17 @@ public class DiffUtil {
       params.add("-p2");
       params.add("--allow-empty");
       params.addAll(patchFiles.stream().map(Path::toString).collect(toImmutableList()));
+      if (patchBytes != null) {
+        params.add("-");
+      }
       Command cmd =
           new Command(params.toArray(new String[] {}), ImmutableMap.of(), applyDirectory.toFile());
       try {
-        new CommandRunner(cmd).withVerbose(true).execute();
+        CommandRunner runner = new CommandRunner(cmd).withVerbose(true);
+        if (patchBytes != null) {
+          runner = runner.withInput(patchBytes);
+        }
+        runner.execute();
       } catch (CommandException e) {
         throw new IOException("Error executing 'git apply'", e);
       }

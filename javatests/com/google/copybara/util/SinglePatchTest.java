@@ -16,6 +16,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
@@ -57,7 +58,7 @@ public final class SinglePatchTest {
 
   @Test
   public void testGenerateSinglePatch() throws IOException, InsideGitDirException {
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
     assertThat(singlePatch).isNotNull();
   }
@@ -71,7 +72,7 @@ public final class SinglePatchTest {
     Files.createDirectories(destination.resolve(testPath).getParent());
     Files.write(destination.resolve(testPath), testBytes);
 
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     assertThat(singlePatch.getFileHashes()).containsExactly(
@@ -88,17 +89,17 @@ public final class SinglePatchTest {
     String testBaselineContents = "baseline\n";
     write(baseline, testPath, testBaselineContents);
 
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     assertThat(new String(singlePatch.getDiffContent(), UTF_8)).isEqualTo(""
-        + "diff --git a/destination/test/foo b/baseline/test/foo\n"
-        + "index ce01362..180b47c 100644\n"
-        + "--- a/destination/test/foo\n"
-        + "+++ b/baseline/test/foo\n"
+        + "diff --git a/baseline/test/foo b/destination/test/foo\n"
+        + "index 180b47c..ce01362 100644\n"
+        + "--- a/baseline/test/foo\n"
+        + "+++ b/destination/test/foo\n"
         + "@@ -1 +1 @@\n"
-        + "-hello\n"
-        + "+baseline\n");
+        + "-baseline\n"
+        + "+hello\n");
   }
 
   @Test
@@ -112,24 +113,24 @@ public final class SinglePatchTest {
     write(destination, testPath2, "destination test 2\n");
     write(baseline, testPath2, "baseline test 2\n");
 
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     assertThat(new String(singlePatch.getDiffContent(), UTF_8)).isEqualTo(""
-        + "diff --git a/destination/test/bar b/baseline/test/bar\n"
-        + "index 8630a48..55208f4 100644\n"
-        + "--- a/destination/test/bar\n"
-        + "+++ b/baseline/test/bar\n"
+        + "diff --git a/baseline/test/bar b/destination/test/bar\n"
+        + "index 55208f4..8630a48 100644\n"
+        + "--- a/baseline/test/bar\n"
+        + "+++ b/destination/test/bar\n"
         + "@@ -1 +1 @@\n"
-        + "-destination test 2\n"
-        + "+baseline test 2\n"
-        + "diff --git a/destination/test/foo b/baseline/test/foo\n"
-        + "index 06c9033..fd50d5b 100644\n"
-        + "--- a/destination/test/foo\n"
-        + "+++ b/baseline/test/foo\n"
+        + "-baseline test 2\n"
+        + "+destination test 2\n"
+        + "diff --git a/baseline/test/foo b/destination/test/foo\n"
+        + "index fd50d5b..06c9033 100644\n"
+        + "--- a/baseline/test/foo\n"
+        + "+++ b/destination/test/foo\n"
         + "@@ -1 +1 @@\n"
-        + "-destination test\n"
-        + "+baseline test\n");
+        + "-baseline test\n"
+        + "+destination test\n");
   }
 
   @Test
@@ -142,7 +143,7 @@ public final class SinglePatchTest {
     String testBaselineContents = "hello";
     write(baseline, testPath, testBaselineContents);
 
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     assertThat(new String(singlePatch.getDiffContent(), UTF_8)).isEqualTo("");
@@ -164,7 +165,7 @@ public final class SinglePatchTest {
 
   @Test
   public void testSerializeEmptyPatch() throws Exception {
-    SinglePatch emptyPatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch emptyPatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
     byte[] emptyPatchBytes = emptyPatch.toBytes();
     SinglePatch deserializedPatch = SinglePatch.fromBytes(emptyPatchBytes, Hashing.sha256());
@@ -176,7 +177,7 @@ public final class SinglePatchTest {
   public void testDeserializedObjectIsEquivalent_singleFile() throws Exception {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");
-    SinglePatch testSinglePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch testSinglePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
     byte[] testPatchBytes = testSinglePatch.toBytes();
 
@@ -189,13 +190,13 @@ public final class SinglePatchTest {
   public void testDeserializedObjectNotEquivalent_addedFile() throws Exception {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     // add new file to destination
     write(destination, "test/new", "asdf");
 
-    SinglePatch differentPatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch differentPatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
     byte[] differentPatchBytes = differentPatch.toBytes();
 
@@ -208,13 +209,13 @@ public final class SinglePatchTest {
   public void testDeserializedObjectNotEquivalent_changedFile() throws Exception {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     // update file in destination
     write(destination, "test/path", "newcontents");
 
-    SinglePatch differentPatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch differentPatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
     byte[] differentPatchBytes = differentPatch.toBytes();
 
@@ -227,7 +228,7 @@ public final class SinglePatchTest {
   public void testFromBytes_invalidPathValueThrows() throws Exception {
     write(baseline, "foo", "hello");
     write(destination, "foo", "hello");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     // Manually make an edit to the byte format
@@ -246,7 +247,7 @@ public final class SinglePatchTest {
   public void testFromBytes_invalidHashValueThrows_invalidChar() throws Exception {
     write(baseline, "foo", "hello");
     write(destination, "foo", "hello");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     String singlePatchContent = new String(singlePatch.toBytes(), UTF_8);
@@ -265,7 +266,7 @@ public final class SinglePatchTest {
   public void testFromBytes_invalidHashValueThrows_wrongHashLength() throws Exception {
     write(baseline, "foo", "hello");
     write(destination, "foo", "hello");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(destination, baseline,
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv());
 
     String singlePatchContent = new String(singlePatch.toBytes(), UTF_8);
@@ -278,5 +279,26 @@ public final class SinglePatchTest {
     Throwable throwable = assertThrows(ValidationException.class,
         () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8), Hashing.sha256()));
     assertThat(throwable).hasMessageThat().contains("hash value has incorrect number of hex chars");
+  }
+  
+  @Test
+  public void testReverseSinglePatch_appliesDiff() throws Exception {
+    write(baseline, "foonodiff", "foo");
+    write(destination, "foonodiff", "foo");
+
+    write(baseline, "bardiff", "bar");
+    write(destination, "bardiff", "newbar");
+
+    // verify destination before reversing contains the new content
+    assertThatPath(destination).containsFile("foonodiff", "foo");
+    assertThatPath(destination).containsFile("bardiff", "newbar");
+
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
+        Hashing.sha256(), System.getenv());
+    singlePatch.reverseSinglePatch(destination, System.getenv());
+
+    // destination after reversing should contain the old content
+    assertThatPath(destination).containsFile("foonodiff", "foo");
+    assertThatPath(destination).containsFile("bardiff", "bar");
   }
 }

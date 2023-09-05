@@ -71,10 +71,10 @@ public class SinglePatch {
    * folders which the parent of the destination will be used as the working directory for when
    * created. The locations of the folders will affect the paths that appear in the diff output.
    *
-   * @param destination is the version containing all the destination only changes.
    * @param baseline is the version to diff against.
+   * @param destination is the version containing all the destination only changes.
    */
-  public static SinglePatch generateSinglePatch(Path destination, Path baseline,
+  public static SinglePatch generateSinglePatch(Path baseline, Path destination,
       HashFunction hashFunction, Map<String, String> environment)
       throws IOException, InsideGitDirException {
     ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
@@ -89,7 +89,7 @@ public class SinglePatch {
       }
 
     });
-    byte[] diff = DiffUtil.diff(destination, baseline, false, environment);
+    byte[] diff = DiffUtil.diff(baseline, destination, true, environment);
     return new SinglePatch(hashesBuilder.build(), diff);
   }
 
@@ -153,7 +153,7 @@ public class SinglePatch {
     return Arrays.copyOf(diffContent, diffContent.length);
   }
 
-  byte[] toBytes() throws IOException {
+  public byte[] toBytes() throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
 
     // OutputStreamWriter for this part for idiomatic string writing
@@ -171,6 +171,15 @@ public class SinglePatch {
     out.write(diffContent);
 
     return out.toByteArray();
+  }
+
+  /**
+   * reverseSinglePatch applies the diff contained in the patch in reverse on the input
+   * destination directory, obtaining the origin directory sans any destination-only changes.
+   */
+  public void reverseSinglePatch(Path dir, Map<String, String> environment)
+      throws IOException, ValidationException {
+    AutoPatchUtil.reversePatch(dir, this.getDiffContent(), environment);
   }
 
   @Override

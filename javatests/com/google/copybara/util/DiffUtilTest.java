@@ -205,7 +205,8 @@ public class DiffUtilTest {
     String contents = Files.readString(right.resolve("file1.txt"));
     assertThat(contents).isEqualTo("b\n");
 
-    DiffUtil.reverseApplyPatches(ImmutableList.of(rootPath.resolve(patchName)), right, testEnv);
+    DiffUtil.reverseApplyPatches(null, ImmutableList.of(rootPath.resolve(patchName)),
+        right, testEnv);
 
     contents = Files.readString(right.resolve("file1.txt"));
     assertThat(contents).isEqualTo("a\n");

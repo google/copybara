@@ -100,6 +100,7 @@ all_tests(
     ],
     deps = [
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
         "//third_party:truth",
     ],
