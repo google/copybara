@@ -1364,7 +1364,7 @@ public class GitRepository {
       }
       String branch = getSubmoduleField(submoduleName, "branch");
       if (branch != null && branch.equals(".")) {
-        branch = "HEAD";
+        branch = null;
       }
       FileUtil.checkNormalizedRelative(path);
       // If the url is relative, construct a url using the parent module remote url.
