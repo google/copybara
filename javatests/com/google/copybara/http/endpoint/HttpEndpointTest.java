@@ -32,6 +32,7 @@ import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import net.starlark.java.eval.Dict;
@@ -73,6 +74,42 @@ public class HttpEndpointTest {
             "endpoint = testing.get_endpoint(http.endpoint(host = \"foo.com\"))\n"
                 + "resp = endpoint.get(url = \"http://foo.com\")\n");
     assertThat(resp.getStatusCode()).isEqualTo(204);
+  }
+
+  @Test
+  public void testFollowRedirect() throws ValidationException, IOException {
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          String lastChar = Character.toString(url.charAt(url.length() - 1));
+          int num = Integer.parseInt(lastChar);
+          if (num == 1) {
+            resp.setStatusCode(307);
+            resp.addHeader("Location", "http://foo.com/2");
+            resp.setContent("didn't redirect");
+          } else {
+            resp.setStatusCode(204);
+            resp.setContent("redirected");
+          }
+        });
+
+    // Default case, automatically follow redirects
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            "endpoint = testing.get_endpoint(http.endpoint(host = \"foo.com\"))\n"
+                + "resp = endpoint.get(url = \"http://foo.com/1\")\n");
+    assertThat(resp.getStatusCode()).isEqualTo(204);
+    assertThat(resp.responseAsString()).isEqualTo("redirected");
+
+    // Don't follow redirects
+    HttpEndpointResponse resp2 =
+        starlark.eval(
+            "resp",
+            "endpoint = testing.get_endpoint(http.endpoint(host = \"foo.com\"))\n"
+                + "endpoint.followRedirects(False) \n"
+                + "resp = endpoint.get(url = \"http://foo.com/1\")\n");
+    assertThat(resp2.getStatusCode()).isEqualTo(307);
+    assertThat(resp2.responseAsString()).isEqualTo("didn't redirect");
   }
 
   @Test

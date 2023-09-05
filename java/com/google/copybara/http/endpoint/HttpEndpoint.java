@@ -19,6 +19,7 @@ package com.google.copybara.http.endpoint;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpTransport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -51,9 +52,13 @@ public class HttpEndpoint implements Endpoint {
   Console console;
   @Nullable Checker checker;
 
+  /** Whether to automatically follow redirects, true by default. */
+  private boolean followRedirects = true;
+
   public HttpEndpoint(
-      Console console, HttpTransport transport, ImmutableMap<String,
-      Optional<AuthInterceptor>> hosts,
+      Console console,
+      HttpTransport transport,
+      ImmutableMap<String, Optional<AuthInterceptor>> hosts,
       @Nullable Checker checker) {
     this.hosts = hosts;
     this.transport = transport;
@@ -114,12 +119,7 @@ public class HttpEndpoint implements Endpoint {
               @ParamType(type = HttpEndpointBody.class),
               @ParamType(type = NoneType.class),
             }),
-          @Param(
-              name = "auth",
-              named = true,
-              positional = false,
-              defaultValue = "False"
-          )
+        @Param(name = "auth", named = true, positional = false, defaultValue = "False")
       })
   public HttpEndpointResponse post(String urlIn, Object headersIn, Object content, Boolean auth)
       throws EvalException, ValidationException, IOException {
@@ -141,14 +141,14 @@ public class HttpEndpoint implements Endpoint {
             allowedTypes = {@ParamType(type = Dict.class)},
             defaultValue = "{}",
             doc = "dict of http headers for the request"),
-          @Param(
-              name = "auth",
-              named = true,
-              positional = false,
-              defaultValue = "False",
-              allowedTypes = {
-                  @ParamType(type = Boolean.class),
-              })
+        @Param(
+            name = "auth",
+            named = true,
+            positional = false,
+            defaultValue = "False",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            })
       })
   public HttpEndpointResponse delete(String urlIn, Object headersIn, Boolean auth)
       throws EvalException, ValidationException, IOException {
@@ -176,14 +176,19 @@ public class HttpEndpoint implements Endpoint {
 
     @Nullable AuthInterceptor creds = null;
     if (auth) {
-      creds = hosts.get(url.getHost()).orElseThrow(
-          () -> new EvalException(
-              String.format("Autentication was requested, but no creds provided for %s", url)));
+      creds =
+          hosts
+              .get(url.getHost())
+              .orElseThrow(
+                  () ->
+                      new EvalException(
+                          String.format(
+                              "Autentication was requested, but no creds provided for %s", url)));
     }
 
     HttpEndpointRequest req =
-        new HttpEndpointRequest(url, method, headers, transport, content,
-            auth && creds != null ? creds : null);
+        new HttpEndpointRequest(
+            url, method, headers, transport, content, auth && creds != null ? creds : null);
 
     if (checker != null) {
       checker.doCheck(
@@ -193,14 +198,30 @@ public class HttpEndpoint implements Endpoint {
           console);
       endpointContent.checkContent(checker, console);
     }
-    return new HttpEndpointResponse(req.build().execute());
+    HttpRequest request = req.build();
+    request.setFollowRedirects(this.followRedirects);
+    return new HttpEndpointResponse(request.execute());
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
-    ValidationException.checkCondition(hosts.containsKey(url.getHost()),
+    ValidationException.checkCondition(
+        hosts.containsKey(url.getHost()),
         String.format(
             "Illegal host: url host %s matches none of endpoint hosts {%s}",
             url.getHost(), String.join(",", hosts.keySet())));
+  }
+
+  @StarlarkMethod(
+      name = "followRedirects",
+      doc = "Sets whether to follow redirects automatically",
+      parameters = {
+        @Param(
+            name = "followRedirects",
+            doc = "Whether to follow redirects automatically",
+            allowedTypes = {@ParamType(type = Boolean.class)}),
+      })
+  public void setFollowRedirects(boolean followRedirects) {
+    this.followRedirects = followRedirects;
   }
 
   @Override
@@ -218,7 +239,7 @@ public class HttpEndpoint implements Endpoint {
       if (entry.getValue().isEmpty()) {
         continue;
       }
-      for (ImmutableSetMultimap<String, String> credEntry:
+      for (ImmutableSetMultimap<String, String> credEntry :
           entry.getValue().get().describeCredentials()) {
         ImmutableSetMultimap.Builder<String, String> describe = ImmutableSetMultimap.builder();
         describe.putAll(credEntry);
