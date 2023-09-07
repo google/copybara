@@ -180,9 +180,18 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         }
       }
 
+      private void writeFile(Path path, String contents) throws RepoException {
+        try {
+          Files.createDirectories(path.getParent());
+          Files.writeString(path, contents);
+        } catch (IOException e) {
+          throw new RepoException("Failed to write file", e);
+        }
+      }
+
       @Override
       public void copyDestinationFiles(Glob glob, Object path)
-          throws RepoException, ValidationException {
+          throws RepoException {
         if (processed.isEmpty()) {
           return;
         }
@@ -192,26 +201,13 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         for (Entry<String, String> e : processedChange.workdir.entrySet()) {
           Path p = Paths.get(e.getKey());
           if (matcher.matches(p)) {
-            try {
-              if (checkoutPath == null) {
-                Files.createDirectories(workdir.resolve(p).getParent());
-                Files.writeString(p, e.getValue());
-              } else {
-                if (p.toString().startsWith("/")) {
-                  p = Paths.get("/").relativize(p);
-                }
-                Files.createDirectories(
-                    checkoutPath
-                        .getCheckoutDir()
-                        .resolve(checkoutPath.getPath())
-                        .resolve(p)
-                        .getParent());
-                Files.writeString(
-                    checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()).resolve(p),
-                    e.getValue());
+            if (checkoutPath == null) {
+              writeFile(workdir.resolve(p), e.getValue());
+            } else {
+              if (p.toString().startsWith("/")) {
+                p = Paths.get("/").relativize(p);
               }
-            } catch (IOException ex) {
-              throw new RepoException("Copy destination files failed", ex);
+              writeFile(checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath().resolve(p)), e.getValue());
             }
           }
         }
@@ -219,27 +215,19 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
       @Override
       public void copyDestinationFilesToDirectory(Glob glob, Path directory)
-          throws RepoException, ValidationException {
+          throws RepoException {
         if (processed.isEmpty()) {
           return;
         }
         ProcessedChange processedChange = Iterables.getLast(processed);
-        PathMatcher matcher = glob.relativeTo(Paths.get(""));
+        PathMatcher absoluteMatcher = glob.relativeTo(Paths.get(""));
+        PathMatcher relativeMatcher = glob.relativeTo(directory);
         for (Entry<String, String> e : processedChange.workdir.entrySet()) {
           Path p = Paths.get(e.getKey());
-          if (matcher.matches(p)) {
-            try {
-              Path resolvedPath;
-              if (p.toString().startsWith("/")) {
-                resolvedPath = directory.resolve(Paths.get("/").relativize(p));
-              } else {
-                resolvedPath = directory.resolve(p);
-              }
-              Files.createDirectories(resolvedPath.getParent());
-              Files.writeString(resolvedPath, e.getValue());
-            } catch (IOException ex) {
-              throw new RepoException("Copy destination files failed", ex);
-            }
+          if (p.toString().startsWith("/") && absoluteMatcher.matches(p)) {
+            writeFile(directory.resolve(Paths.get("/").relativize(p)), e.getValue());
+          } else if (relativeMatcher.matches(directory.resolve(p))) {
+            writeFile(directory.resolve(p), e.getValue());
           }
         }
       }

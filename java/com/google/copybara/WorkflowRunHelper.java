@@ -63,6 +63,7 @@ import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.MergeImportTool;
+import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
@@ -75,6 +76,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
@@ -402,7 +404,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param changes changes included in this migration
      * @param destinationBaseline it not null, use this baseline in the destination
      * @param changeIdentityRevision the revision to be used for computing the change identity
-     * @param originBaselineForMergeImport the revision to populate baseline for merge_import mode
+     * @param originBaselineForMergeImport the revision to populate baseline for merge_import
+     *     mode
      */
     @CanIgnoreReturnValue
     public final ImmutableList<DestinationEffect> migrate(
@@ -589,7 +592,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
       // Lazy loading to avoid running afoul of checks unless the instance is actually used.
       LazyResourceLoader<Endpoint> originApi = c -> reader.getFeedbackEndPoint(c);
-      LazyResourceLoader<Endpoint> destinationApi = c-> writer.getFeedbackEndPoint(c);
+      LazyResourceLoader<Endpoint> destinationApi = c -> writer.getFeedbackEndPoint(c);
       ResourceSupplier<DestinationReader> destinationReader = () ->
           writer.getDestinationReader(console, destinationBaseline, checkoutDir);
 
@@ -839,6 +842,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       try (ProfilerTask ignore = profiler().start("after_merge_transformations")) {
         workflow.afterMergeTransformations.transform(transformWork);
       }
+
+      Optional<byte[]> singlePatch = Optional.empty();
+      if (workflow.useSinglePatch()) {
+        try {
+          singlePatch = Optional.of(
+              SinglePatch.generateSinglePatch(preMergeImportWorkdir, checkoutDir,
+              workflow.getDestination().getHashFunction(),
+              workflow.getGeneralOptions().getEnvironment()).toBytes());
+        } catch (InsideGitDirException e) {
+          throw new ValidationException("Error generating single patch", e);
+        }
+      }
+
       if (workflow.getAutoPatchfileConfiguration() != null) {
         try {
           AutoPatchUtil.generatePatchFiles(
@@ -858,6 +874,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               "Could not automatically generate patch files. Error received is %s", e.getMessage());
           throw new ValidationException("Error automatically generating patch files", e);
         }
+      }
+      // Write the SinglePatch file after auto patches are generated so that it does not get
+      // included in the auto patches.
+      if (singlePatch.isPresent()) {
+        Files.createDirectories(checkoutDir.resolve(workflow.getSinglePatchPath()).getParent());
+        Files.write(checkoutDir.resolve(workflow.getSinglePatchPath()), singlePatch.get());
       }
     }
 

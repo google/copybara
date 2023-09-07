@@ -19,6 +19,8 @@ package com.google.copybara;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -180,9 +182,17 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
   String getLabelNameWhenOrigin() throws ValidationException;
 
   /**
-   * This class represents the status of the destination. It includes the baseline revision
-   * and if it is a code review destination, the list of pending changes that have been already
-   * migrated. In order: First change is the oldest one.
+   * A hash function that is preferred by the Destination for uses cases where hashing is involved,
+   * e.g. {@link com.google.copybara.util.SinglePatch}
+   */
+  default HashFunction getHashFunction() {
+    return Hashing.sha256();
+  }
+
+  /**
+   * This class represents the status of the destination. It includes the baseline revision and if
+   * it is a code review destination, the list of pending changes that have been already migrated.
+   * In order: First change is the oldest one.
    */
   final class DestinationStatus {
 

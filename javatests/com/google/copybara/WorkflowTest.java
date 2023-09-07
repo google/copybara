@@ -47,7 +47,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.hash.Hashing;
 import com.google.common.jimfs.Jimfs;
+import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
@@ -85,6 +87,7 @@ import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -103,6 +106,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -2041,6 +2045,132 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_singlePatch_generatesSinglePatchFile()
+      throws IOException, ValidationException, RepoException {
+    options.workflowOptions.useSinglePatch = true;
+    skylark = new SkylarkTestExecutor(options);
+    mergeImport = "True";
+    Path testDir = Files.createTempDirectory("testDir");
+
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+
+    // populate the baseline
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    String singlePatchPath = workflow.getSinglePatchPath();
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // merge import will not run if there is no lastRev, so create and import
+    // a second change that isn't baseline
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "dir/bar.txt", "Another file");
+    origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(
+        destination
+            .processed
+            .get(destination.processed.size() - 1)
+            .getWorkdir()
+            .get("dir/foo.txt"))
+        .isEqualTo("a\nb\nc\n");
+
+    assertThat(
+        destination
+            .processed
+            .get(destination.processed.size() - 1)
+            .getWorkdir()
+            .get(singlePatchPath))
+        .isNotEmpty();
+  }
+
+  @Test
+  public void mergeImport_singlePatch_recreatesPostTransformationState()
+      throws IOException, ValidationException, RepoException {
+    // Check that reverse applying the SinglePatch results in the expected state
+    // This is to verify that workflow is diffing the correct things, not to
+    // test SinglePatch internals.
+
+    options.workflowOptions.useSinglePatch = true;
+    skylark = new SkylarkTestExecutor(options);
+    mergeImport = "True";
+    Path testDir = Files.createTempDirectory("testDir");
+
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+
+    // populate the baseline
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    String singlePatchPath = workflow.getSinglePatchPath();
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // add a new origin change to import and a destination-only change to create a SinglePatch diff
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "dir/bar.txt", "Another file");
+    origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
+
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    FileUtil.copyFilesRecursively(base2, base3, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base3, "dir/foo.txt", "a\nb\nfoo\nc\n");
+
+    WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
+        ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+    wr.write(TransformResults.of(base3, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)), console());
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    ImmutableMap<String, String> latestWorkdir = destination.processed.get(
+        destination.processed.size() - 1).getWorkdir();
+
+    // check that destination change is persisted
+    Path destContents = Files.createDirectories(testDir.resolve("destContents"));
+    for (Entry<String, String> file : latestWorkdir.entrySet()) {
+      writeFile(destContents, file.getKey(), file.getValue());
+    }
+    assertThatPath(destContents).containsFile("dir/foo.txt", "a\nb\nfoo\nc\n");
+
+    // write destination state to directory
+    Path base4 = Files.createDirectories(testDir.resolve("base4"));
+    for (Entry<String, String> e : latestWorkdir.entrySet()) {
+      writeFile(base4, e.getKey(), e.getValue());
+    }
+
+    // reverse apply generated patches
+    SinglePatch singlePatch = SinglePatch.fromBytes(
+        latestWorkdir.get(singlePatchPath).getBytes(UTF_8),
+        Hashing.sha256());
+    singlePatch.reverseSinglePatch(base4, System.getenv());
+
+    // verify that directory state now matches origin state (no transformations)
+    assertThatPath(base4).containsFile("dir/foo.txt", "a\nb\nc\n");
+    assertThatPath(base4).containsFile("dir/bar.txt", "Another file");
+  }
+
+  @Test
   public void mergeImport_reversePatchBaseline()
       throws IOException, ValidationException, RepoException {
     // test when patches are reversed to obtain the merge base, we get the correct result
@@ -2084,9 +2214,9 @@ public class WorkflowTest {
         new ProcessedChange(
             TransformResults.of(base3, new DummyRevision("1")),
             ImmutableMap.of(
-                "/dir/foo.txt",
+                "dir/foo.txt",
                 "a\nb\nc\nbar",
-                "/dir/GOIMPORT/AUTOPATCHES/foo.txt.patch",
+                "dir/GOIMPORT/AUTOPATCHES/foo.txt.patch",
                 "diff --git a/premerge/dir/foo.txt b/checkout/dir/foo.txt\n"
                     + "index de98044..941de5d 100644\n"
                     + "--- a/premerge/dir/foo.txt\n"
@@ -2180,11 +2310,11 @@ public class WorkflowTest {
         new ProcessedChange(
             TransformResults.of(base3, new DummyRevision("1")),
             ImmutableMap.of(
-                "/dir/foo.txt",
+                "dir/foo.txt",
                 "a\nb\nc\nbar",
-                "/dir/no_patch.txt",
+                "dir/no_patch.txt",
                 "a\nb\nc\n",
-                "/dir/to_delete.txt",
+                "dir/to_delete.txt",
                 "I will be deleted"),
             "1",
             Glob.createGlob(ImmutableList.of(destinationFiles)),
@@ -2228,14 +2358,14 @@ public class WorkflowTest {
                 .getWorkdir()
                 .containsKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch"))
         .isFalse();
-    assertThat(destination.processed.get(1).getWorkdir().get("/dir/to_delete.txt"))
+    assertThat(destination.processed.get(1).getWorkdir().get("dir/to_delete.txt"))
         .isEqualTo("I will be deleted");
     assertThat(
             destination
                 .processed
                 .get(destination.processed.size() - 1)
                 .getWorkdir()
-                .containsKey("/dir/to_delete.txt"))
+                .containsKey("dir/to_delete.txt"))
         .isFalse();
   }
 
@@ -2280,11 +2410,11 @@ public class WorkflowTest {
         new ProcessedChange(
             TransformResults.of(base3, new DummyRevision("1")),
             ImmutableMap.of(
-                "/dir/foo.txt",
+                "dir/foo.txt",
                 "a\nb\nc\nbar",
-                "/dir/no_patch.txt",
+                "dir/no_patch.txt",
                 "a\nb\nc\n",
-                "/dir/to_delete.txt",
+                "dir/to_delete.txt",
                 "I will be deleted"),
             "1",
             Glob.createGlob(ImmutableList.of(destinationFiles)),
@@ -2331,14 +2461,14 @@ public class WorkflowTest {
                 .getWorkdir()
                 .containsKey("dir/GOIMPORT/AUTOPATCHES/no_patch.txt.patch"))
         .isFalse();
-    assertThat(destination.processed.get(1).getWorkdir().get("/dir/to_delete.txt"))
+    assertThat(destination.processed.get(1).getWorkdir().get("dir/to_delete.txt"))
         .isEqualTo("I will be deleted");
     assertThat(
             destination
                 .processed
                 .get(destination.processed.size() - 1)
                 .getWorkdir()
-                .containsKey("/dir/to_delete.txt"))
+                .containsKey("dir/to_delete.txt"))
         .isFalse();
   }
 
@@ -2374,7 +2504,7 @@ public class WorkflowTest {
     destination.processed.add(
         new ProcessedChange(
             TransformResults.of(base3, new DummyRevision("1")),
-            ImmutableMap.of("/foo.txt", "a\nb\nc\nbar", "/to_delete.txt", "I will be deleted"),
+            ImmutableMap.of("foo.txt", "a\nb\nc\nbar", "to_delete.txt", "I will be deleted"),
             "1",
             Glob.createGlob(ImmutableList.of(destinationFiles)),
             false));
@@ -2388,14 +2518,14 @@ public class WorkflowTest {
     assertThat(
             destination.processed.get(destination.processed.size() - 1).getWorkdir().get("foo.txt"))
         .isEqualTo("foo\na\nb\nc\nbar");
-    assertThat(destination.processed.get(1).getWorkdir().get("/to_delete.txt"))
+    assertThat(destination.processed.get(1).getWorkdir().get("to_delete.txt"))
         .isEqualTo("I will be deleted");
     assertThat(
             destination
                 .processed
                 .get(destination.processed.size() - 1)
                 .getWorkdir()
-                .containsKey("/to_delete.txt"))
+                .containsKey("to_delete.txt"))
         .isFalse();
   }
 

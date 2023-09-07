@@ -422,7 +422,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc =
                 "Under development. The path that the single patch file will be read from and "
                     + "written to when single patch mode is enabled.",
-            defaultValue = "\"/zz/copybara-single-patch-do-not-edit\"",
+            defaultValue = "\"zz/copybara-single-patch-do-not-edit\"",
             positional = false),
         @Param(
             name = "autopatch_config",
