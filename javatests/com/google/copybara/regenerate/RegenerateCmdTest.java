@@ -16,6 +16,7 @@
 package com.google.copybara.regenerate;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hashing;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.ConfigLoader;
 import com.google.copybara.Destination.PatchRegenerator;
@@ -42,6 +44,7 @@ import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,6 +56,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -75,6 +79,8 @@ public class RegenerateCmdTest {
   Path destinationRoot;
   Path regenBaseline;
   Path regenTarget;
+
+  private static final String singlePatchFilePath = "zz/spfoo";
 
   @Before
   public void setup() throws IOException {
@@ -172,10 +178,7 @@ public class RegenerateCmdTest {
     verify(patchRegenerator)
         .updateChange(
             any(),
-            argThat(
-                path -> {
-                  return true;
-                }),
+            any(),
             eq(Glob.ALL_FILES),
             eq("bar"));
 
@@ -382,8 +385,7 @@ public class RegenerateCmdTest {
   public void testMissingAutopatchConfig_throws() {
     options.regenerateOptions.setRegenImportBaseline(true);
     options.regenerateOptions.setRegenTarget("bar");
-
-    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+    RegenerateCmd cmd = getCmd(getConfigStringWithMissingAutopatchConfig());
 
     assertThrows(
         ValidationException.class,
@@ -393,6 +395,116 @@ public class RegenerateCmdTest {
                     workdir,
                     options.build(),
                     ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+  }
+
+  @Test
+  public void testSinglePatch_doesNotGenerate_disabled()
+      throws IOException, ValidationException, RepoException {
+    options.regenerateOptions.setRegenBaseline("foo");
+    options.regenerateOptions.setRegenTarget("bar");
+    setupBaseline("foo");
+    setupTarget("bar");
+    options.workflowOptions.useSinglePatch = false;
+
+    String testfile = "asdf.txt";
+    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            pathArg.capture(),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+    assertThatPath(pathArg.getValue()).containsNoFiles(singlePatchFilePath);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+  }
+
+  @Test
+  public void testSinglePatch_generatesFile()
+      throws IOException, ValidationException, RepoException {
+    options.regenerateOptions.setRegenBaseline("foo");
+    options.regenerateOptions.setRegenTarget("bar");
+    setupBaseline("foo");
+    setupTarget("bar");
+    options.workflowOptions.useSinglePatch = true;
+
+    String testfile = "asdf.txt";
+    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            pathArg.capture(),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+  }
+
+  @Test
+  public void testSinglePatch_capturesDiff()
+      throws IOException, ValidationException, RepoException {
+    options.regenerateOptions.setRegenBaseline("foo");
+    options.regenerateOptions.setRegenTarget("bar");
+    setupBaseline("foo");
+    setupTarget("bar");
+    options.workflowOptions.useSinglePatch = true;
+
+    String testfile = "asdf.txt";
+    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            pathArg.capture(),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+
+    SinglePatch singlePatch = SinglePatch.fromBytes(
+        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath)),
+        Hashing.sha256()
+    );
+
+    assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
+    singlePatch.reverseSinglePatch(regenTarget, System.getenv());
+    assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("foo");
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   private RegenerateCmd getCmd(String configString) {
@@ -429,6 +541,24 @@ public class RegenerateCmdTest {
         + "      directory = 'AUTOPATCH',\n"
         + "      suffix = '.patch'\n"
         + "    ),\n"
+        + ")";
+  }
+
+  private String getSinglePatchConfigString() {
+    return "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = testing.origin(),\n"
+        + "    origin_files = glob(['**']),\n"
+        + "    destination = testing.destination(),\n"
+        + "    mode = 'SQUASH',\n"
+        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    autopatch_config = core.autopatch_config(\n"
+        + "      header = '# header',\n"
+        + "      directory_prefix = ''\n,"
+        + "      directory = 'AUTOPATCH',\n"
+        + "      suffix = '.patch'\n"
+        + "    ),\n"
+        + "    single_patch_path = '" + singlePatchFilePath + "'\n"
         + ")";
   }
 

@@ -704,11 +704,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return useReversePatchBaseline;
   }
 
-  boolean useSinglePatch() {
+  public boolean useSinglePatch() {
     return useSinglePatch;
   }
 
-  String getSinglePatchPath() {
+  public String getSinglePatchPath() {
     return singlePatchPath;
   }
 

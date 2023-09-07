@@ -36,6 +36,7 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.util.AutoPatchUtil;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -165,6 +166,18 @@ public class Regenerate<O extends Revision, D extends Revision> {
           regenTarget);
     }
 
+    Optional<byte[]> singlePatch = Optional.empty();
+    if (workflow.useSinglePatch()) {
+      try {
+        singlePatch = Optional.of(
+            SinglePatch.generateSinglePatch(previousPath, nextPath,
+                workflow.getDestination().getHashFunction(),
+                workflow.getGeneralOptions().getEnvironment()).toBytes());
+      } catch (InsideGitDirException e) {
+        throw new ValidationException("Error generating single patch", e);
+      }
+    }
+
     // generate new autopatch files in the target directory
     try {
       AutoPatchUtil.generatePatchFiles(
@@ -186,6 +199,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
                   + " inside git repository %s. Error received is %s",
               e.getPath(), e.getGitDirPath(), e.getMessage()),
           e);
+    }
+
+    if (singlePatch.isPresent()) {
+      Files.createDirectories(nextPath.resolve(workflow.getSinglePatchPath()).getParent());
+      Files.write(nextPath.resolve(workflow.getSinglePatchPath()), singlePatch.get());
     }
 
     // push the new set of files
