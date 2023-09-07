@@ -21,7 +21,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Destination;
+import com.google.copybara.DestinationReader;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Origin;
 import com.google.copybara.TransformResult;
 import com.google.copybara.WriterContext;
 import com.google.copybara.effect.DestinationEffect;
@@ -85,6 +87,22 @@ public class FolderDestination implements Destination<Revision> {
     public void visitChanges(Revision start, ChangesVisitor visitor)
         throws ValidationException {
       throw new ValidationException(HISTORY_NOT_SUPPORTED);
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(
+        Console console, Origin.Baseline<?> baseline, Path workdir) throws RepoException {
+      return getDestinationReader(console, "", workdir);
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+        throws RepoException {
+      try {
+        return new FolderDestinationReader(getFolderPath(console), workdir);
+      } catch (IOException e) {
+        throw new RepoException("Failed to initialize destination reader.", e);
+      }
     }
 
     @Override
