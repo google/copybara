@@ -30,6 +30,7 @@
     - [core.action](#coreaction)
     - [core.action_migration](#coreaction_migration)
     - [core.autopatch_config](#coreautopatch_config)
+    - [core.convert_encoding](#coreconvert_encoding)
     - [core.copy](#corecopy)
     - [core.dynamic_feedback](#coredynamic_feedback)
     - [core.dynamic_transform](#coredynamic_transform)
@@ -765,6 +766,41 @@ directory_prefix | `string` or `NoneType`<br><p>Directory prefix used to relativ
 directory | `string` or `NoneType`<br><p>Directory in which to save the patch files.</p>
 strip_file_names_and_line_numbers | `bool`<br><p>When true, strip filenames and line numbers from patch files</p>
 paths | [`glob`](#glob) or `NoneType`<br><p>Only create patch files that match glob. Default is to match all files</p>
+
+<a id="core.convert_encoding" aria-hidden="true"></a>
+### core.convert_encoding
+
+Change the encoding for a set of files
+
+[`transformation`](#transformation) `core.convert_encoding(before, after, paths)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+before | `string`<br><p>The expected encoding of the files before transformation. Charset should be in the format expected by https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html</p>
+after | `string`<br><p>The encoding to convert to. Same format as 'before'</p>
+paths | [`glob`](#glob)<br><p>The files to be deleted</p>
+
+
+#### Example:
+
+
+##### ISO-8859-1 to UTF-8:
+
+Convert some files from ISO-8859-1 to UTF-8
+
+```python
+core.convert_encoding(
+    before = 'ISO-8859-1',
+    after = 'UTF-8',
+    paths = glob(["foo/*.txt"]),
+)
+```
+
+In this example, `foo/one.txt` encoding will be changed from ISO-8859-1 to UTF-8.
+
 
 <a id="core.copy" aria-hidden="true"></a>
 ### core.copy

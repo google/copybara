@@ -77,6 +77,9 @@ import com.google.copybara.version.RequestedVersionSelector;
 import com.google.copybara.version.VersionSelector;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.IllegalFormatException;
 import java.util.Map;
 import java.util.Objects;
@@ -989,6 +992,54 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + ")")
   public Remove remove(Glob paths, StarlarkThread thread) {
     return new Remove(paths, thread.getCallerLocation());
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "convert_encoding",
+      doc = "Change the encoding for a set of files",
+      parameters = {
+          @Param(
+              name = "before",
+              named = true,
+              doc =
+                  "The expected encoding of the files before transformation. Charset should be"
+                      + " in the format expected by "
+                      + "https://docs.oracle.com/javase/8/docs/api/java/nio/charset/Charset.html"),
+          @Param(
+              name = "after",
+              named = true,
+              doc = "The encoding to convert to. Same format as 'before'"),
+
+          @Param(name = "paths", named = true, doc = "The files to be deleted"),
+      },
+      useStarlarkThread = true)
+  @Example(
+      title = "ISO-8859-1 to UTF-8",
+      before = "Convert some files from ISO-8859-1 to UTF-8",
+      code =
+          "core.convert_encoding(\n"
+              + "    before = 'ISO-8859-1',\n"
+              + "    after = 'UTF-8',\n"
+              + "    paths = glob([\"foo/*.txt\"]),\n"
+              + ")",
+      after = "In this example, `foo/one.txt` encoding will be changed from ISO-8859-1 to UTF-8.")
+  public Transformation convertEncoding(String before, String after, Glob paths,
+      StarlarkThread thread)
+      throws EvalException {
+    Charset cBefore;
+    try {
+      cBefore = Charset.forName(before);
+    } catch (UnsupportedCharsetException | IllegalCharsetNameException e) {
+      throw new EvalException("Incorrect charset " + before + " for 'before': " + e.getMessage());
+    }
+    Charset cAfter = null;
+    try {
+      cAfter = Charset.forName(after);
+    } catch (UnsupportedCharsetException | IllegalCharsetNameException e) {
+      throw new EvalException("Incorrect charset " + after + " for 'after': " + e.getMessage());
+    }
+    return new ConvertEncoding(cBefore, cAfter, paths);
   }
 
   @SuppressWarnings("unused")
@@ -2308,4 +2359,5 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         stripFileNames,
         glob);
   }
+
 }
