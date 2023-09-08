@@ -152,19 +152,19 @@ public class RegenerateCmdTest {
   private void setupBaseline(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
     regenBaseline = destinationRoot.resolve(name);
+    options.regenerateOptions.setRegenBaseline(name);
   }
 
   private void setupTarget(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
     regenTarget = destinationRoot.resolve(name);
+    options.regenerateOptions.setRegenTarget(name);
   }
 
   @Test
   public void testCallsUpdateChange() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
 
     RegenerateCmd cmd = getCmd(getConfigString());
 
@@ -189,8 +189,6 @@ public class RegenerateCmdTest {
   public void testPatchFileIsGenerated() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
@@ -219,8 +217,6 @@ public class RegenerateCmdTest {
   public void testPatchFileNotGenerated() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
 
     String testfile = "asdf.txt";
     // file contents are the same
@@ -250,8 +246,8 @@ public class RegenerateCmdTest {
   public void testInferredBaselineused() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
-    options.regenerateOptions.setRegenTarget("bar");
 
+    options.regenerateOptions.setRegenBaseline(null);
     when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.of("foo"));
 
     RegenerateCmd cmd = getCmd(getConfigString());
@@ -271,8 +267,8 @@ public class RegenerateCmdTest {
   public void testInferredTargetused() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
-    options.regenerateOptions.setRegenBaseline("foo");
 
+    options.regenerateOptions.setRegenTarget(null);
     when(patchRegenerator.inferRegenTarget()).thenReturn(Optional.of("bar"));
 
     RegenerateCmd cmd = getCmd(getConfigString());
@@ -297,7 +293,6 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", testfile, "foo");
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    options.regenerateOptions.setRegenTarget("bar");
     options.regenerateOptions.setRegenImportBaseline(true);
     options.workflowOptions.lastRevision = origin.getLatestChange().asString();
 
@@ -329,7 +324,6 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", testfile, "bar");
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    options.regenerateOptions.setRegenTarget("bar");
     options.regenerateOptions.setRegenImportBaseline(true);
     options.workflowOptions.lastRevision = origin.getLatestChange().asString();
 
@@ -356,7 +350,6 @@ public class RegenerateCmdTest {
   public void testNoLineNumbers_usesImportBaseline() throws Exception {
     RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
     setupTarget("bar");
-    options.regenerateOptions.setRegenTarget("bar");
 
     // set an origin file that contains a diff
     String testfile = "asdf.txt";
@@ -384,7 +377,6 @@ public class RegenerateCmdTest {
   @Test
   public void testMissingAutopatchConfig_throws() {
     options.regenerateOptions.setRegenImportBaseline(true);
-    options.regenerateOptions.setRegenTarget("bar");
     RegenerateCmd cmd = getCmd(getConfigStringWithMissingAutopatchConfig());
 
     assertThrows(
@@ -400,8 +392,6 @@ public class RegenerateCmdTest {
   @Test
   public void testSinglePatch_doesNotGenerate_disabled()
       throws IOException, ValidationException, RepoException {
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
     setupBaseline("foo");
     setupTarget("bar");
     options.workflowOptions.useSinglePatch = false;
@@ -434,8 +424,6 @@ public class RegenerateCmdTest {
   @Test
   public void testSinglePatch_generatesFile()
       throws IOException, ValidationException, RepoException {
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
     setupBaseline("foo");
     setupTarget("bar");
     options.workflowOptions.useSinglePatch = true;
@@ -468,8 +456,6 @@ public class RegenerateCmdTest {
   @Test
   public void testSinglePatch_capturesDiff()
       throws IOException, ValidationException, RepoException {
-    options.regenerateOptions.setRegenBaseline("foo");
-    options.regenerateOptions.setRegenTarget("bar");
     setupBaseline("foo");
     setupTarget("bar");
     options.workflowOptions.useSinglePatch = true;
@@ -503,6 +489,79 @@ public class RegenerateCmdTest {
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
     singlePatch.reverseSinglePatch(regenTarget, System.getenv());
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("foo");
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+  }
+
+  // test existing single patch is used to generate new patch
+  @Test
+  public void testRegenerate_singlePatch_usesSinglePatchBaseline() throws Exception{
+    // generate a SinglePatch, make a new edit, use the directory
+    // with the generated patch as baseline to regenerate again
+    setupBaseline("foo");
+    setupTarget("bar");
+    options.workflowOptions.useSinglePatch = true;
+
+    String testfile = "asdf.txt";
+    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            pathArg.capture(),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+    assertThatPath(pathArg.getValue()).containsFile(testfile, "bar");
+    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+
+    // setup second run
+    setupBaseline("bar");
+    setupTarget("foobar");
+
+    // the directory uploaded from the previous run is the new baseline state
+    clearDir(regenBaseline);
+    FileUtil.copyFilesRecursively(pathArg.getValue(), regenBaseline,
+        CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    Files.write(regenTarget.resolve(testfile), "foobar".getBytes());
+
+    clearDir(workdir);
+    exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            pathArg.capture(),
+            eq(Glob.ALL_FILES),
+            eq("foobar"));
+
+    assertThatPath(pathArg.getValue()).containsFile(testfile, "foobar");
+    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+
+    SinglePatch singlePatch = SinglePatch.fromBytes(
+        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath)),
+        Hashing.sha256()
+    );
+    singlePatch.reverseSinglePatch(pathArg.getValue(), System.getenv());
+
+    // we should capture the diff between the baseline of the previous import, not the current
+    // import
+    assertThatPath(pathArg.getValue()).containsFile(testfile, "foo");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
@@ -589,5 +648,10 @@ public class RegenerateCmdTest {
         + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + ")";
+  }
+
+  private void clearDir(Path dir) throws IOException {
+    FileUtil.deleteRecursively(dir);
+    Files.createDirectories(dir);
   }
 }

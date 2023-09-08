@@ -19,6 +19,7 @@ package com.google.copybara.regenerate;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.copybara.AutoPatchfileConfiguration;
 import com.google.copybara.Destination.PatchRegenerator;
 import com.google.copybara.Destination.Writer;
@@ -51,7 +52,7 @@ import javax.annotation.Nullable;
 public class Regenerate<O extends Revision, D extends Revision> {
 
   Console console;
-  AutoPatchfileConfiguration autoPatchfileConfiguration;
+  @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration;
   Workflow<O, D> workflow;
   Path workdir;
   GeneralOptions generalOptions;
@@ -65,8 +66,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
       GeneralOptions generalOptions,
       WorkflowOptions workflowOptions,
       RegenerateOptions regenerateOptions,
-      @Nullable String sourceRef)
-      throws ValidationException {
+      @Nullable String sourceRef) {
     return new Regenerate<>(
         workflow, workdir, generalOptions, workflowOptions, regenerateOptions, sourceRef);
   }
@@ -77,8 +77,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
       GeneralOptions generalOptions,
       WorkflowOptions workflowOptions,
       RegenerateOptions regenerateOptions,
-      @Nullable String sourceRef)
-      throws ValidationException {
+      @Nullable String sourceRef) {
     this.workflow = workflow;
     this.workdir = workdir;
     this.generalOptions = generalOptions;
@@ -86,12 +85,6 @@ public class Regenerate<O extends Revision, D extends Revision> {
     this.regenerateOptions = regenerateOptions;
     this.console = generalOptions.console();
     this.sourceRef = sourceRef;
-
-    checkCondition(
-        workflow.getAutoPatchfileConfiguration() != null,
-        "regenerate patch files requires the workflow %s to have an autopatch file configuration"
-            + " set",
-        workflow.getName());
     this.autoPatchfileConfiguration = workflow.getAutoPatchfileConfiguration();
   }
 
@@ -117,7 +110,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         "this destination does not support regenerating patch files"));
 
     // use the same directory names as workflow
-    // TODO(b/296111124)kj
+    // TODO(b/296111124)
     Path previousPath = workdir.resolve("premerge");
     Path nextPath = workdir.resolve("checkout");
 
@@ -138,9 +131,14 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
-    // if no line numbers in the patches, default to the import baseline
-    if (autopatchConfig.stripFileNamesAndLineNumbers()
-        || regenerateOptions.getRegenImportBaseline()) {
+    // If there are no line numbers in the patches and the workflow is not using SinglePatch,
+    // default to the import baseline (as long as SinglePatch is not being used).
+    boolean noLineNumbers =
+        autopatchConfig == null || autopatchConfig.stripFileNamesAndLineNumbers();
+    boolean useImportBaseline =
+        regenerateOptions.getRegenImportBaseline() || (!workflow.useSinglePatch() && noLineNumbers);
+
+    if (useImportBaseline) {
       previousPath =
           prepareDiffWithImportBaseline(
               autopatchConfig, workflow, workdir, nextPath, regenTarget, destinationWriter);
@@ -155,15 +153,30 @@ public class Regenerate<O extends Revision, D extends Revision> {
                   new ValidationException(
                       "Regen baseline was neither supplied nor able to be inferred. Supply with"
                           + " --regen-baseline parameter"));
-      prepareDiffWithReversePatchBaseline(
-          autopatchConfig,
-          workflow,
-          destinationWriter,
-          previousPath,
-          nextPath,
-          autopatchPath,
-          regenBaseline,
-          regenTarget);
+      if (workflow.useSinglePatch()) {
+        prepareDiffWithSinglePatchBaseline(
+            autopatchConfig,
+            workflow,
+            destinationWriter,
+            previousPath,
+            nextPath,
+            autopatchPath,
+            regenBaseline,
+            regenTarget
+        );
+      } else {
+        checkCondition(autopatchConfig != null,
+            "Autopatch config required to regenerate from patch files");
+        prepareDiffWithReversePatchBaseline(
+            autopatchConfig,
+            workflow,
+            destinationWriter,
+            previousPath,
+            nextPath,
+            autopatchPath,
+            regenBaseline,
+            regenTarget);
+      }
     }
 
     Optional<byte[]> singlePatch = Optional.empty();
@@ -178,27 +191,29 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
-    // generate new autopatch files in the target directory
-    try {
-      AutoPatchUtil.generatePatchFiles(
-          previousPath,
-          nextPath,
-          Path.of(autopatchConfig.directoryPrefix()),
-          autopatchConfig.directory(),
-          workflow.isVerbose(),
-          workflow.getGeneralOptions().getEnvironment(),
-          autopatchConfig.header(),
-          autopatchConfig.suffix(),
-          nextPath,
-          autopatchConfig.stripFileNamesAndLineNumbers(),
-          autopatchConfig.glob());
-    } catch (InsideGitDirException e) {
-      throw new ValidationException(
-          String.format(
-              "Could not automatically generate patch files because temporary directory %s is"
-                  + " inside git repository %s. Error received is %s",
-              e.getPath(), e.getGitDirPath(), e.getMessage()),
-          e);
+    if (autopatchConfig != null) {
+      // generate new autopatch files in the target directory
+      try {
+        AutoPatchUtil.generatePatchFiles(
+            previousPath,
+            nextPath,
+            Path.of(autopatchConfig.directoryPrefix()),
+            autopatchConfig.directory(),
+            workflow.isVerbose(),
+            workflow.getGeneralOptions().getEnvironment(),
+            autopatchConfig.header(),
+            autopatchConfig.suffix(),
+            nextPath,
+            autopatchConfig.stripFileNamesAndLineNumbers(),
+            autopatchConfig.glob());
+      } catch (InsideGitDirException e) {
+        throw new ValidationException(
+            String.format(
+                "Could not automatically generate patch files because temporary directory %s is"
+                    + " inside git repository %s. Error received is %s",
+                e.getPath(), e.getGitDirPath(), e.getMessage()),
+            e);
+      }
     }
 
     if (singlePatch.isPresent()) {
@@ -249,18 +264,70 @@ public class Regenerate<O extends Revision, D extends Revision> {
         workflow.getGeneralOptions().getEnvironment());
   }
 
+  private void prepareDiffWithSinglePatchBaseline(
+      @Nullable AutoPatchfileConfiguration autopatchConfig,
+      Workflow<O, D> workflow,
+      Writer<D> destinationWriter,
+      Path previousPath,
+      Path nextPath,
+      Path patchPath,
+      String regenBaseline,
+      String regenTarget)
+      throws ValidationException, RepoException, IOException {
+
+    Glob patchlessDestinationFiles = workflow.getDestinationFiles();
+
+    // download all files except for patch files
+    if (autopatchConfig != null) {
+      Glob autopatchGlob =
+          AutoPatchUtil.getAutopatchGlob(
+              autopatchConfig.directoryPrefix(), autopatchConfig.directory());
+      patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, autopatchGlob);
+    }
+
+    Glob singlePatchGlob = Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath()));
+    patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, singlePatchGlob);
+
+    // copy the baseline to one directory
+    DestinationReader previousDestinationReader =
+        destinationWriter.getDestinationReader(console, regenBaseline, workdir);
+    previousDestinationReader.copyDestinationFilesToDirectory(
+        patchlessDestinationFiles, previousPath);
+
+    // copy the target to another directory
+    DestinationReader nextDestinationReader =
+        destinationWriter.getDestinationReader(console, regenTarget, workdir);
+    nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
+
+    // copy singlepatch file to a third directory
+    previousDestinationReader.copyDestinationFilesToDirectory(singlePatchGlob, patchPath);
+
+    // reverse patch files on the target directory here to get a pristine import
+    Path singlePatchPath = patchPath.resolve(workflow.getSinglePatchPath());
+    if (Files.exists(singlePatchPath)) {
+      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
+          workflow.getDestination().getHashFunction());
+      singlePatch.reverseSinglePatch(previousPath, workflow.getGeneralOptions().getEnvironment());
+    } else {
+      console.warn("SinglePatch enabled but no SinglePatch file encountered");
+    }
+  }
+
   private Path prepareDiffWithImportBaseline(
-      AutoPatchfileConfiguration autopatchConfig,
+      @Nullable AutoPatchfileConfiguration autopatchConfig,
       Workflow<O, D> workflow,
       Path workdir,
       Path nextPath,
       String regenTarget,
       Writer<D> destinationWriter)
       throws ValidationException, RepoException, IOException {
-    Glob autopatchGlob =
-        AutoPatchUtil.getAutopatchGlob(
-            autopatchConfig.directoryPrefix(), autopatchConfig.directory());
-    Glob patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
+    Glob patchlessDestinationFiles = workflow.getDestinationFiles();
+    if (autopatchConfig != null) {
+      Glob autopatchGlob =
+          AutoPatchUtil.getAutopatchGlob(
+              autopatchConfig.directoryPrefix(), autopatchConfig.directory());
+      patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
+    }
 
     O resolvedRef = workflow.getOrigin().resolve(sourceRef);
     WorkflowRunHelper<O, D> runHelper =
