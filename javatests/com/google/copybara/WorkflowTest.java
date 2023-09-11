@@ -2099,7 +2099,7 @@ public class WorkflowTest {
 
   @Test
   public void mergeImport_singlePatch_recreatesPostTransformationState()
-      throws IOException, ValidationException, RepoException {
+      throws Exception {
     // Check that reverse applying the SinglePatch results in the expected state
     // This is to verify that workflow is diffing the correct things, not to
     // test SinglePatch internals.
@@ -2170,6 +2170,97 @@ public class WorkflowTest {
     assertThatPath(base4).containsFile("dir/bar.txt", "Another file");
   }
 
+  private void writeProcessedChange(ProcessedChange change, Path dir) throws IOException {
+    for (Entry<String, String> entry : change.getWorkdir().entrySet()) {
+      writeFile(dir, entry.getKey(), entry.getValue());
+    }
+  }
+
+  private ProcessedChange latestProcessedChange() {
+    return destination.processed.get(destination.processed.size() - 1);
+  }
+
+  @Test
+  public void mergeImport_singlePatch_singlePatchBaseline() throws Exception {
+    // options setup
+    options.workflowOptions.useSinglePatch = true;
+    skylark = new SkylarkTestExecutor(options);
+
+    // config setup
+    mergeImport = "True";
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    Path testDir = Files.createTempDirectory("singlePatch");
+    String singlePatchPath = workflow.getSinglePatchPath();
+
+    // create writer for emulating manual destination changes
+    WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
+        ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+
+    // create origin change
+    Path o1 = Files.createDirectories(testDir.resolve("o1"));
+    writeFile(o1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(0, o1, "test change", true);
+
+    // import into the destination
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a destination-only change
+    Path d1 = Files.createDirectories(testDir.resolve("d1"));
+    writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
+
+    // write the destination change
+    wr.write(TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)), console());
+
+    // create second origin change
+    Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/foo.txt", "a\nb\nc\n");
+    writeFile(o2, "dir/bar.txt", "Another file");
+    origin.addChange(1, o2, "change 2", true);
+
+    // import the second origin change, which should use merge import
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // verify the first merge import
+    Path out1 = Files.createDirectories(testDir.resolve("out1"));
+    writeProcessedChange(latestProcessedChange(), out1);
+    // the destination change should be persisted
+    assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nfoo\nc\n");
+    // a single patch file should exist transforming the destination repo
+    // into the latest origin change
+    assertThatPath(out1).containsFiles(singlePatchPath);
+    SinglePatch sp = SinglePatch.fromBytes(Files.readAllBytes(out1.resolve(singlePatchPath)),
+        Hashing.sha256());
+    sp.reverseSinglePatch(out1, System.getenv());
+    assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nc\n");
+    assertThatPath(out1).containsFile("dir/bar.txt", "Another file");
+
+    // create a config change and run the workflow
+    // this will reveal whether import baseline or single patch baseline is being used
+    originFiles = "glob(['**'], exclude = ['copy.bara.sky', 'excluded/**', 'dir/bar.txt'])";
+    workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // verify the second merge import
+    Path out2 = Files.createDirectories(testDir.resolve("out2"));
+    writeProcessedChange(latestProcessedChange(), out2);
+    // the destination and config changes should be persisted
+    assertThatPath(out2).containsFile("dir/foo.txt", "a\nb\nfoo\nc\n");
+
+    // if import baseline is used, then this file will still remain in the destination
+    // alongside a patch that creates it
+    assertThatPath(out2).containsNoFiles("dir/bar.txt");
+
+    // verify that the patch takes the output state back to the origin state
+    assertThatPath(out2).containsFiles(singlePatchPath);
+    sp = SinglePatch.fromBytes(Files.readAllBytes(out2.resolve(singlePatchPath)), Hashing.sha256());
+    sp.reverseSinglePatch(out2, System.getenv());
+    assertThatPath(out2).containsFile("dir/foo.txt", "a\nb\nc\n");
+    assertThatPath(out2).containsNoFiles("dir/bar.txt");
+  }
   @Test
   public void mergeImport_reversePatchBaseline()
       throws IOException, ValidationException, RepoException {

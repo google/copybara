@@ -791,14 +791,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         LazyResourceLoader<Endpoint> destinationApi,
         TransformWork transformWork)
         throws IOException, ValidationException, RepoException {
+      // get a glob excluding any patch files
+      Glob patchlessDestinationFiles = patchlessDestinationFiles(workflow);
+
       Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
       reader.copyDestinationFilesToDirectory(
-          workflow.getDestinationFiles(), destinationFilesWorkdir);
-      Path baselineWorkdir;
+          patchlessDestinationFiles, destinationFilesWorkdir);
+
+
+      Path baselineWorkdir = null;
       if (workflow.isUseReversePatchBaseline()) {
         baselineWorkdir =
             checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
-      } else {
+      } else if (workflow.useSinglePatch()) {
+        // If there is a single patch file, then use it.
+        // Otherwise, fall back to baseline import.
+        Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
+        reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlePatchWorkdir);
+        if (Files.exists(singlePatchWorkdir.resolve(workflow.getSinglePatchPath()))) {
+          baselineWorkdir = checkoutSinglePatchBaseline(reader);
+        }
+      }
+
+      if (baselineWorkdir == null) {
         baselineWorkdir =
             checkoutBaselineAndTransform(
                 "baseline",
@@ -906,6 +921,49 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           autopatchWorkdir,
           autoPatchfileConfiguration.suffix(),
           workflow.getGeneralOptions().getEnvironment());
+
+      return baselineWorkdir;
+    }
+
+    static Glob patchlessDestinationFiles(
+        Workflow<? extends Revision, ? extends Revision> workflow) {
+      Glob destinationFiles = workflow.getDestinationFiles();
+      AutoPatchfileConfiguration autoPatchfileConfiguration =
+          workflow.getAutoPatchfileConfiguration();
+      if (autoPatchfileConfiguration != null) {
+        destinationFiles = Glob.difference(destinationFiles, AutoPatchUtil.getAutopatchGlob(
+            autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory()));
+      }
+      if (workflow.useSinglePatch()) {
+        destinationFiles = Glob.difference(destinationFiles,
+            Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath())));
+      }
+      return destinationFiles;
+    }
+
+    static Glob singlePatchGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
+      return Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath()));
+    }
+
+    private Path checkoutSinglePatchBaseline(DestinationReader reader)
+        throws ValidationException, IOException, RepoException {
+      // copy the current destination files to the baseline directory
+      Glob baselineFiles = patchlessDestinationFiles(workflow);
+
+      Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
+      reader.copyDestinationFilesToDirectory(baselineFiles, baselineWorkdir);
+
+      // copy the singlepatch file from the destination to a separate directory
+      Path singlepatchWorkdir = Files.createDirectories(workdir.resolve("singlepatch"));
+      reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
+      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.getSinglePatchPath());
+
+      if (Files.exists(singlePatchPath)) {
+        SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
+            workflow.getDestination().getHashFunction());
+        singlePatch.reverseSinglePatch(baselineWorkdir,
+            workflow.getGeneralOptions().getEnvironment());
+      }
 
       return baselineWorkdir;
     }
