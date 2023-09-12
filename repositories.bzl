@@ -39,8 +39,8 @@ def copybara_repositories():
         # sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
-	patches = ["@io_bazel//third_party:rules_jvm_external_5.2.patch"],
-        patch_args= ["-p1"],
+        patches = ["@io_bazel//third_party:rules_jvm_external_5.2.patch"],
+        patch_args = ["-p1"],
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -172,7 +172,7 @@ def copybara_repositories():
             "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.29.0/bazel-gazelle-v0.29.0.tar.gz",
         ],
     )
-    
+
     # LICENSE: The Apache Software License, Version 2.0
     maybe(
         http_archive,
@@ -183,4 +183,3 @@ def copybara_repositories():
         ],
         build_file = Label("//external/third_party:jcommander.BUILD"),
     )
-

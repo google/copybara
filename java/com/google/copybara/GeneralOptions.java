@@ -154,7 +154,7 @@ public final class GeneralOptions implements Option {
    * Returns current working directory
    */
   public Path getCwd() {
-    return fileSystem.getPath(environment.get("PWD"));
+    return fileSystem.getPath(environment.getOrDefault("PWD", System.getProperty("user.dir")));
   }
 
   /**
