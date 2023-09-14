@@ -102,6 +102,7 @@ all_tests(
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:singlepatch",
         "//third_party:truth",
     ],
 )
@@ -125,6 +126,7 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:singlepatch",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jimfs",

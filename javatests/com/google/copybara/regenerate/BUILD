@@ -28,6 +28,7 @@ all_tests(
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:singlepatch",
         "//java/com/google/copybara/util/console",
         "//third_party:mockito",
         "//third_party:truth",

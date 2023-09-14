@@ -17,13 +17,16 @@ package com.google.copybara.util;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static net.starlark.java.eval.StarlarkSemantics.DEFAULT;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
+import com.google.copybara.CoreGlobal;
 import com.google.copybara.exception.ValidationException;
+import com.google.re2j.Pattern;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,6 +44,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.Module;
+import net.starlark.java.eval.Mutability;
+import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkThread;
+import net.starlark.java.syntax.FileOptions;
+import net.starlark.java.syntax.ParserInput;
+import net.starlark.java.syntax.SyntaxError;
 
 /**
  * SinglePatch represents the difference between what exists in the destination files and the output
@@ -54,14 +65,19 @@ public class SinglePatch {
       + "# Do not edit.\n";
 
   private static final String hashSectionDelimiterLine = "--hash-delimiter--";
+  private static final String destinationFilesSectionDelimiterLine = "--destination-files-delimiter--";
 
 
   private final ImmutableMap<String, String> fileHashes;
   private final byte[] diffContent;
 
-  public SinglePatch(ImmutableMap<String, String> fileHashes, byte[] diffContent) {
+  private final Glob destinationFiles;
+
+  public SinglePatch(ImmutableMap<String, String> fileHashes, byte[] diffContent,
+      Glob destinationFiles) {
     this.fileHashes = fileHashes;
     this.diffContent = diffContent;
+    this.destinationFiles = destinationFiles;
   }
 
   /**
@@ -73,9 +89,10 @@ public class SinglePatch {
    *
    * @param baseline is the version to diff against.
    * @param destination is the version containing all the destination only changes.
+   * @param destinationFiles describes what files should be included in the patch.
    */
   public static SinglePatch generateSinglePatch(Path baseline, Path destination,
-      HashFunction hashFunction, Map<String, String> environment)
+      HashFunction hashFunction, Map<String, String> environment, Glob destinationFiles)
       throws IOException, InsideGitDirException {
     ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
     Files.walkFileTree(destination, new SimpleFileVisitor<>() {
@@ -90,7 +107,7 @@ public class SinglePatch {
 
     });
     byte[] diff = DiffUtil.diff(baseline, destination, true, environment);
-    return new SinglePatch(hashesBuilder.build(), diff);
+    return new SinglePatch(hashesBuilder.build(), diff, destinationFiles);
   }
 
   private static String mustReadLine(BufferedReader reader) throws IOException {
@@ -109,6 +126,25 @@ public class SinglePatch {
     return line;
   }
 
+  private static Glob evaluateDestinationFilesGlob(String destinationFilesSection)
+      throws ValidationException {
+
+    // sanity check the input
+    final String globRegex = "^glob\\(.*\\)$";
+    Pattern pattern = Pattern.compile(globRegex);
+    checkCondition(pattern.matches(destinationFilesSection), "destination files has incorrect format");
+
+    try (Mutability mu = Mutability.create("CopybaraSinglePatch")) {
+      StarlarkThread thread = new StarlarkThread(mu, DEFAULT);
+      ParserInput input = ParserInput.fromString(destinationFilesSection, "single-patch");
+      ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
+      Starlark.addMethods(envBuilder, new CoreGlobal());
+      return (Glob) Starlark.eval(input, FileOptions.DEFAULT, Module.withPredeclared(DEFAULT, envBuilder.build()), thread);
+    } catch (SyntaxError.Exception|EvalException|InterruptedException e) {
+      throw new ValidationException("Failed to parseSinglePatch destination files", e);
+    }
+  }
+
   public static SinglePatch fromBytes(byte[] bytes, HashFunction hashFunction)
       throws IOException, ValidationException {
     try (
@@ -118,6 +154,14 @@ public class SinglePatch {
       ImmutableMap.Builder<String, String> fileHashesBuilder = new ImmutableMap.Builder<>();
       String line = mustReadUncommentedLine(br);
 
+      StringBuilder destinationFilesSectionBuilder = new StringBuilder();
+      while (!line.equals(destinationFilesSectionDelimiterLine)) {
+        destinationFilesSectionBuilder.append(line);
+        line = mustReadUncommentedLine(br);
+      }
+      Glob destination = evaluateDestinationFilesGlob(destinationFilesSectionBuilder.toString());
+
+      line = mustReadUncommentedLine(br);
       while (!line.equals(hashSectionDelimiterLine)) {
         List<String> splits = Splitter.on(": ").limit(2).splitToList(line);
         if (splits.size() != 2) {
@@ -131,7 +175,7 @@ public class SinglePatch {
         line = mustReadUncommentedLine(br);
       }
 
-      line = br.readLine();
+      line = br.readLine(); // can be null if there is no diff output
       ByteArrayOutputStream diffContentOut = new ByteArrayOutputStream();
       try (OutputStreamWriter diffContentWriter = new OutputStreamWriter(diffContentOut)) {
         while (line != null) {
@@ -140,17 +184,21 @@ public class SinglePatch {
         }
       }
 
-      return new SinglePatch(fileHashesBuilder.build(), diffContentOut.toByteArray());
+      return new SinglePatch(fileHashesBuilder.build(), diffContentOut.toByteArray(), destination);
     }
 
   }
 
-  public ImmutableMap<String, String> getFileHashes() {
+  ImmutableMap<String, String> getFileHashes() {
     return ImmutableMap.copyOf(fileHashes);
   }
 
-  public byte[] getDiffContent() {
+  byte[] getDiffContent() {
     return Arrays.copyOf(diffContent, diffContent.length);
+  }
+
+  Glob getDestinationFiles() {
+    return destinationFiles;
   }
 
   public byte[] toBytes() throws IOException {
@@ -159,6 +207,9 @@ public class SinglePatch {
     // OutputStreamWriter for this part for idiomatic string writing
     try (OutputStreamWriter outWriter = new OutputStreamWriter(out)) {
       outWriter.write(header);
+
+      outWriter.write(destinationFiles.toString() + "\n");
+      outWriter.write(destinationFilesSectionDelimiterLine + "\n");
 
       for (Entry<String, String> entry : fileHashes.entrySet()) {
         outWriter.write(String.format("%s: %s\n",
@@ -174,8 +225,8 @@ public class SinglePatch {
   }
 
   /**
-   * reverseSinglePatch applies the diff contained in the patch in reverse on the input
-   * destination directory, obtaining the origin directory sans any destination-only changes.
+   * reverseSinglePatch applies the diff contained in the patch in reverse on the input destination
+   * directory, obtaining the origin directory sans any destination-only changes.
    */
   public void reverseSinglePatch(Path dir, Map<String, String> environment)
       throws IOException, ValidationException {
@@ -194,6 +245,10 @@ public class SinglePatch {
 
     SinglePatch that = (SinglePatch) obj;
     if (!this.fileHashes.equals(that.fileHashes)) {
+      return false;
+    }
+
+    if (!this.destinationFiles.equals(that.destinationFiles)) {
       return false;
     }
 

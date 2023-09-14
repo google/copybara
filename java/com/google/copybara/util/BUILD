@@ -16,13 +16,28 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
+SINGLEPATCH_SRCS = ["SinglePatch.java"]
+
+ORIGINUTIL_SRCS = ["OriginUtil.java"]
+
+java_library(
+    name = "singlepatch",
+    srcs = SINGLEPATCH_SRCS,
+    deps = [
+        ":util",
+        "//java/com/google/copybara:coreglobal",
+        "//java/com/google/copybara/exception",
+        "//third_party:guava",
+        "//third_party:re2j",
+        "//third_party:starlark",
+    ],
+)
+
 java_library(
     name = "util",
     srcs = glob(
         ["**/*.java"],
-        exclude = [
-            "OriginUtil.java",
-        ],
+        exclude = SINGLEPATCH_SRCS + ORIGINUTIL_SRCS,
     ),
     javacopts = [
         "-Xlint:unchecked",
@@ -47,7 +62,7 @@ java_library(
 
 java_library(
     name = "origin_util",
-    srcs = ["OriginUtil.java"],
+    srcs = ORIGINUTIL_SRCS,
     javacopts = [
         "-Xlint:unchecked",
     ],

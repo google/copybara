@@ -864,7 +864,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           singlePatch = Optional.of(
               SinglePatch.generateSinglePatch(preMergeImportWorkdir, checkoutDir,
               workflow.getDestination().getHashFunction(),
-              workflow.getGeneralOptions().getEnvironment()).toBytes());
+              workflow.getGeneralOptions().getEnvironment(),
+              workflow.getDestinationFiles()).toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating single patch", e);
         }
