@@ -156,6 +156,10 @@ public final class SinglePatchTest {
     Files.write(folder.resolve(relativePath), bytes);
   }
 
+  public void delete(Path folder, String relativePath) throws IOException {
+    Files.delete(folder.resolve(relativePath));
+  }
+
   @Test
   public void testPatchContainsHeader() throws IOException, InsideGitDirException {
     SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
@@ -328,7 +332,7 @@ public final class SinglePatchTest {
         () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8), Hashing.sha256()));
     assertThat(throwable).hasMessageThat().contains("hash value has incorrect number of hex chars");
   }
-  
+
   @Test
   public void testReverseSinglePatch_appliesDiff() throws Exception {
     write(baseline, "foonodiff", "foo");
@@ -392,5 +396,70 @@ public final class SinglePatchTest {
     // destination after reversing should contain the old content
     assertThatPath(destination).containsFile("foonodiff", "foo");
     assertThatPath(destination).containsFile("barremoved", "bar");
+  }
+
+  @Test
+  public void testValidateDirectory_success() throws Exception {
+    write(destination, "dir/foo", "aaa");
+    write(destination, "dir/bar", "bbb");
+
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
+        Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
+
+    // should not throw
+    singlePatch.validateDirectory(SinglePatch.filesInDir(destination),
+        SinglePatch.simpleHashGetter(destination, Hashing.sha256()));
+  }
+
+  @Test
+  public void testValidateDirectory_fileAddedToDestination() throws Exception {
+    write(destination, "dir/foo", "aaa");
+
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
+        Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
+
+    write(destination, "dir/bar", "bbb");
+
+    Throwable t = assertThrows(ValidationException.class,
+        () -> singlePatch.validateDirectory(SinglePatch.filesInDir(destination),
+            SinglePatch.simpleHashGetter(destination, Hashing.sha256())));
+
+    assertThat(t).hasMessageThat().contains("files in directory not present in SinglePatch");
+  }
+
+  @Test
+  public void testValidateDirectory_fileRemovedFromDestination() throws Exception {
+    write(destination, "dir/foo", "aaa");
+    write(destination, "dir/bar", "bbb");
+
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
+        Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
+
+    delete(destination, "dir/bar");
+
+    Throwable t = assertThrows(ValidationException.class,
+        () -> singlePatch.validateDirectory(SinglePatch.filesInDir(destination),
+            SinglePatch.simpleHashGetter(destination, Hashing.sha256())));
+
+    assertThat(t).hasMessageThat()
+        .contains("files not found in directory but present in SinglePatch");
+  }
+
+  @Test
+  public void testValidateDirectory_fileChanged() throws Exception {
+    write(destination, "dir/foo", "aaa");
+
+    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
+        Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
+
+    write(destination, "dir/foo", "bbb");
+
+    Throwable t = assertThrows(ValidationException.class,
+        () -> singlePatch.validateDirectory(SinglePatch.filesInDir(destination),
+            SinglePatch.simpleHashGetter(destination, Hashing.sha256())));
+
+    assertThat(t).hasMessageThat()
+        .containsMatch(
+            ".* has hash value [\\d\\w]+ in SinglePatch but [\\d\\w]+ in directory");
   }
 }

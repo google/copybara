@@ -28,7 +28,9 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
-/** An api handle to read files from the destination, rather than just the origin. */
+/**
+ * An api handle to read files from the destination, rather than just the origin.
+ */
 @StarlarkBuiltin(
     name = "destination_reader",
     doc = "Handle to read from the destination",
@@ -67,10 +69,12 @@ public abstract class DestinationReader implements StarlarkValue {
         }
 
         @Override
-        public void copyDestinationFiles(Glob glob, Object path) {}
+        public void copyDestinationFiles(Glob glob, Object path) {
+        }
 
         @Override
-        public void copyDestinationFilesToDirectory(Glob glob, Path directory) {}
+        public void copyDestinationFilesToDirectory(Glob glob, Path directory) {
+        }
 
         @Override
         public boolean exists(String path) {
@@ -82,7 +86,7 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "read_file",
       doc = "Read a file from the destination.",
       parameters = {
-        @Param(name = "path", named = true, doc = "Path to the file."),
+          @Param(name = "path", named = true, doc = "Path to the file."),
       })
   @Example(
       title = "Read a file from the destination's baseline",
@@ -102,21 +106,21 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "copy_destination_files",
       doc = "Copy files from the destination into the workdir.",
       parameters = {
-        @Param(
-            name = "glob",
-            named = true,
-            doc =
-                "Files to copy to the "
-                    + "workdir, potentially overwriting files checked out from the origin."),
-        @Param(
-            name = "path",
-            named = true,
-            doc = "Optional path to copy the files to",
-            allowedTypes = {
-              @ParamType(type = CheckoutPath.class),
-              @ParamType(type = NoneType.class)
-            },
-            defaultValue = "None")
+          @Param(
+              name = "glob",
+              named = true,
+              doc =
+                  "Files to copy to the "
+                      + "workdir, potentially overwriting files checked out from the origin."),
+          @Param(
+              name = "path",
+              named = true,
+              doc = "Optional path to copy the files to",
+              allowedTypes = {
+                  @ParamType(type = CheckoutPath.class),
+                  @ParamType(type = NoneType.class)
+              },
+              defaultValue = "None")
       })
   @Example(
       title = "Copy files from the destination's baseline",
@@ -147,8 +151,25 @@ public abstract class DestinationReader implements StarlarkValue {
       name = "file_exists",
       doc = "Checks whether a given file exists in the destination.",
       parameters = {
-        @Param(name = "path", named = true, doc = "Path to the file."),
+          @Param(name = "path", named = true, doc = "Path to the file."),
       })
   @SuppressWarnings("unused")
   public abstract boolean exists(String path);
+
+  /**
+   * Fetch the destination version at which this file was last modified.
+   */
+  public String lastModified(String path) throws RepoException {
+    throw new UnsupportedOperationException(
+        "Last modified is not implemented in this destination reader.");
+  }
+
+  /**
+   * Obtain the hash of the destination file at this path.
+   */
+  public String getHash(String path) throws RepoException {
+    throw new UnsupportedOperationException(
+        "Get hash is not implemented in this destination reader."
+    );
+  }
 }

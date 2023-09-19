@@ -15,16 +15,19 @@
  */
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static net.starlark.java.eval.StarlarkSemantics.DEFAULT;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.CoreGlobal;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Pattern;
 import java.io.BufferedReader;
@@ -37,6 +40,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
@@ -44,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.stream.Stream;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Module;
 import net.starlark.java.eval.Mutability;
@@ -65,7 +70,8 @@ public class SinglePatch {
       + "# Do not edit.\n";
 
   private static final String hashSectionDelimiterLine = "--hash-delimiter--";
-  private static final String destinationFilesSectionDelimiterLine = "--destination-files-delimiter--";
+  private static final String destinationFilesSectionDelimiterLine =
+      "--destination-files-delimiter--";
 
 
   private final ImmutableMap<String, String> fileHashes;
@@ -132,15 +138,17 @@ public class SinglePatch {
     // sanity check the input
     final String globRegex = "^glob\\(.*\\)$";
     Pattern pattern = Pattern.compile(globRegex);
-    checkCondition(pattern.matches(destinationFilesSection), "destination files has incorrect format");
+    checkCondition(pattern.matches(destinationFilesSection),
+        "destination files has incorrect format");
 
     try (Mutability mu = Mutability.create("CopybaraSinglePatch")) {
       StarlarkThread thread = new StarlarkThread(mu, DEFAULT);
       ParserInput input = ParserInput.fromString(destinationFilesSection, "single-patch");
       ImmutableMap.Builder<String, Object> envBuilder = ImmutableMap.builder();
       Starlark.addMethods(envBuilder, new CoreGlobal());
-      return (Glob) Starlark.eval(input, FileOptions.DEFAULT, Module.withPredeclared(DEFAULT, envBuilder.build()), thread);
-    } catch (SyntaxError.Exception|EvalException|InterruptedException e) {
+      return (Glob) Starlark.eval(input, FileOptions.DEFAULT,
+          Module.withPredeclared(DEFAULT, envBuilder.build()), thread);
+    } catch (SyntaxError.Exception | EvalException | InterruptedException e) {
       throw new ValidationException("Failed to parseSinglePatch destination files", e);
     }
   }
@@ -186,7 +194,6 @@ public class SinglePatch {
 
       return new SinglePatch(fileHashesBuilder.build(), diffContentOut.toByteArray(), destination);
     }
-
   }
 
   ImmutableMap<String, String> getFileHashes() {
@@ -231,6 +238,97 @@ public class SinglePatch {
   public void reverseSinglePatch(Path dir, Map<String, String> environment)
       throws IOException, ValidationException {
     AutoPatchUtil.reversePatch(dir, this.getDiffContent(), environment);
+  }
+
+  /**
+   * Functional interface for obtaining a hash, given a file.
+   */
+  public interface HashGetter {
+
+    String getHashString(String filePath) throws IOException, RepoException;
+  }
+
+  /**
+   * Return a {@link HashGetter} that obtains the hash by reading the file at the path relative to
+   * the passed in directory and hashing it.
+   */
+  public static HashGetter simpleHashGetter(Path dir, HashFunction hashFunction) {
+    return (String path) -> MoreFiles.asByteSource(dir.resolve(path)).hash(hashFunction).toString();
+  }
+
+  /**
+   * A utility method for obtaining a list of files from a directory.
+   */
+  public static ImmutableSet<String> filesInDir(Path dir) throws IOException {
+    try (Stream<Path> files = Files.walk(dir)) {
+      return files
+          .filter(file -> !Files.isDirectory(file))
+          .map(dir::relativize)
+          .map(Path::toString)
+          .collect(toImmutableSet());
+    }
+  }
+
+  /**
+   * Validating will apply some checks verify that a directory matches the state of the
+   * destination directory used when this SinglePatch was created.
+   *
+   * <p>This check can detect if changes were made to the destination that the SinglePatch
+   * does not account for. If such changes exist, then it does not make sense to use this
+   * SinglePatch to construct the baseline, and {@link #reverseSinglePatch(Path, Map)} should not be
+   * used on the passed-in directory.
+   *
+   * @param files is a list of relative paths of all files in the directory
+   * @param hashFetcher is a function that obtains the hash of a file, given the relative path
+   */
+  public void validateDirectory(ImmutableSet<String> files, HashGetter hashFetcher)
+      throws IOException, ValidationException, RepoException {
+    Path root = Path.of("/");
+    PathMatcher destinationFilesMatcher = destinationFiles.relativeTo(root);
+
+    ImmutableSet<String> directoryFiles = files.stream()
+        .map(Path::of)
+        .map(root::resolve)
+        .filter(destinationFilesMatcher::matches)
+        .map(root::relativize)
+        .map(Path::toString)
+        .collect(toImmutableSet());
+
+    // check that all directory files are present in file hashes
+    ImmutableSet<String> singlePatchFiles = fileHashes.keySet();
+    ImmutableSet<String> directoryOnlyFiles = directoryFiles.stream()
+        .filter(file -> !singlePatchFiles.contains(file))
+        .collect(toImmutableSet());
+
+    if (!directoryOnlyFiles.isEmpty()) {
+      throw new ValidationException(
+          String.format("Encountered files in directory not present in SinglePatch: %s",
+              directoryOnlyFiles));
+    }
+
+    // check that all SinglePatch files are present in directory
+    ImmutableSet<String> singlePatchOnlyFiles = singlePatchFiles.stream()
+        .filter(file -> !directoryFiles.contains(file))
+        .collect(toImmutableSet());
+
+    if (!singlePatchOnlyFiles.isEmpty()) {
+      throw new ValidationException(
+          String.format("Encountered files not found in directory but present in SinglePatch: %s",
+              singlePatchFiles));
+    }
+
+    // verify that all file hashes in the directory match the SinglePatch file hashes
+    for (Entry<String, String> hashEntry : fileHashes.entrySet()) {
+      String fileName = hashEntry.getKey();
+      String expectedHash = hashEntry.getValue();
+      String actualHash = hashFetcher.getHashString(fileName);
+      if (!expectedHash.equals(actualHash)) {
+        throw new ValidationException(
+            String.format("File %s has hash value %s in SinglePatch but %s in directory",
+                fileName, expectedHash, actualHash)
+        );
+      }
+    }
   }
 
   @Override

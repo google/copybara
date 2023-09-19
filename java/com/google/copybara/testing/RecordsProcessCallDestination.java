@@ -16,8 +16,10 @@
 
 package com.google.copybara.testing;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -28,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.hash.Hashing;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.Destination;
 import com.google.copybara.DestinationInfo;
@@ -63,8 +66,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -95,6 +100,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     this.programmedErrors = new ArrayDeque<>(errors);
   }
 
+  /**
+   * Support reading files from the DestinationReader not uploaded using this destination.
+   * In the event of a conflict, files managed by ProcessedChange objects take priority.
+   */
   public static RecordsProcessCallDestination withFilePrefix(Path filePrefix) {
     RecordsProcessCallDestination toReturn = new RecordsProcessCallDestination();
     toReturn.filePrefix = filePrefix;
@@ -165,19 +174,42 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     /** Read from the latest processed change. */
     public class DestinationReaderImpl extends DestinationReader {
       Path workdir;
+      @Nullable Integer baseline;
 
-      public DestinationReaderImpl(Path workdir) {
+      public DestinationReaderImpl(Path workdir, @Nullable String baseline) {
         this.workdir = workdir;
+        if (baseline != null && !baseline.equals("HEAD")) {
+          this.baseline = Integer.parseInt(baseline);
+        }
+      }
+
+      private Optional<ProcessedChange> getProcessed() {
+        if (baseline != null && baseline >= 0 && baseline < processed.size()) {
+          return Optional.of(processed.get(baseline));
+        }
+        if (processed.size() > 0) {
+          return Optional.of(Iterables.getLast(processed));
+        }
+        return Optional.empty();
       }
 
       @Override
       public String readFile(String path) throws RepoException {
-        try {
-          Objects.requireNonNull(filePrefix);
-          return Files.readString(filePrefix.resolve(path));
-        } catch (IOException e) {
-          throw new RepoException(String.format("Could not read file at path %s", path), e);
+        Optional<ProcessedChange> processedChange = getProcessed();
+        if (processedChange.isPresent() && processedChange.get().getWorkdir().containsKey(path)) {
+          return processedChange.get().getWorkdir().get(path);
         }
+
+        if (filePrefix != null && Files.exists(filePrefix.resolve(path))) {
+          try {
+            String relativePath = path.startsWith("/") ? path.substring(1) : path;
+            return Files.readString(filePrefix.resolve(relativePath));
+          } catch (IOException e) {
+            throw new RepoException("failed to read file", e);
+          }
+        }
+
+        throw new RepoException(String.format("Could not read file at path %s", path));
       }
 
       private void writeFile(Path path, String contents) throws RepoException {
@@ -192,23 +224,40 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       @Override
       public void copyDestinationFiles(Glob glob, Object path)
           throws RepoException {
+        CheckoutPath checkoutPath = convertFromNoneable(path, null);
+
+        if (filePrefix != null) {
+          PathMatcher filePrefixMatcher = glob.relativeTo(filePrefix);
+          try (Stream<Path> prefixFiles = Files.walk(filePrefix)) {
+            for (Path file : prefixFiles
+                .filter(Files::isRegularFile)
+                .filter(filePrefixMatcher::matches)
+                .collect(toImmutableList())) {
+              String contents = Files.readString(file);
+              writeFile(checkoutPath.getCheckoutDir().resolve(filePrefix.relativize(file)),
+                  contents);
+            }
+          } catch (IOException e) {
+            throw new RepoException("failed to copy files from filePrefix directory", e);
+          }
+        }
         if (processed.isEmpty()) {
           return;
         }
-        CheckoutPath checkoutPath = convertFromNoneable(path, null);
-        ProcessedChange processedChange = Iterables.getLast(processed);
-        PathMatcher matcher = glob.relativeTo(Paths.get(""));
-        for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+        Optional<ProcessedChange> processedChange = getProcessed();
+        if (processedChange.isEmpty()) {
+          return; // nothing to copy
+        }
+
+        PathMatcher absoluteMatcher = glob.relativeTo(Paths.get(""));
+        PathMatcher relativeMatcher = glob.relativeTo(checkoutPath.getCheckoutDir());
+        for (Entry<String, String> e : processedChange.get().getWorkdir().entrySet()) {
           Path p = Paths.get(e.getKey());
-          if (matcher.matches(p)) {
-            if (checkoutPath == null) {
-              writeFile(workdir.resolve(p), e.getValue());
-            } else {
-              if (p.toString().startsWith("/")) {
-                p = Paths.get("/").relativize(p);
-              }
-              writeFile(checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath().resolve(p)), e.getValue());
-            }
+          if (p.toString().startsWith("/") && absoluteMatcher.matches(p)) {
+            writeFile(checkoutPath.getCheckoutDir().resolve(Paths.get("/").relativize(p)),
+                e.getValue());
+          } else if (relativeMatcher.matches(checkoutPath.getCheckoutDir().resolve(p))) {
+            writeFile(checkoutPath.getCheckoutDir().resolve(p), e.getValue());
           }
         }
       }
@@ -216,13 +265,30 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       @Override
       public void copyDestinationFilesToDirectory(Glob glob, Path directory)
           throws RepoException {
+        if (filePrefix != null) {
+          PathMatcher filePrefixMatcher = glob.relativeTo(filePrefix);
+          try (Stream<Path> prefixFiles = Files.walk(filePrefix)) {
+            for (Path file : prefixFiles
+                .filter(Files::isRegularFile)
+                .filter(filePrefixMatcher::matches)
+                .collect(toImmutableList())) {
+              String contents = Files.readString(file);
+              writeFile(directory.resolve(filePrefix.relativize(file)), contents);
+            }
+          } catch (IOException e) {
+            throw new RepoException("failed to copy files from filePrefix directory", e);
+          }
+        }
         if (processed.isEmpty()) {
           return;
         }
-        ProcessedChange processedChange = Iterables.getLast(processed);
+        Optional<ProcessedChange> processedChange = getProcessed();
+        if (processedChange.isEmpty()) {
+          return; //nothing to copy
+        }
         PathMatcher absoluteMatcher = glob.relativeTo(Paths.get(""));
         PathMatcher relativeMatcher = glob.relativeTo(directory);
-        for (Entry<String, String> e : processedChange.workdir.entrySet()) {
+        for (Entry<String, String> e : processedChange.get().getWorkdir().entrySet()) {
           Path p = Paths.get(e.getKey());
           if (p.toString().startsWith("/") && absoluteMatcher.matches(p)) {
             writeFile(directory.resolve(Paths.get("/").relativize(p)), e.getValue());
@@ -234,11 +300,36 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
 
       @Override
       public boolean exists(String path) {
-        if (filePrefix != null) {
-          return Files.exists(filePrefix.resolve(path));
-        } else {
-          return Files.exists(Path.of(path));
+        if (filePrefix != null && Files.exists(filePrefix.resolve(path))) {
+          return true;
         }
+        Optional<ProcessedChange> processedChange = getProcessed();
+        return processedChange.map(change -> change.getWorkdir().containsKey(path)).orElse(false);
+      }
+
+      @Override
+      public String lastModified(String path) {
+        for (int i = processed.size() - 1; i > 0; i--) {
+          ImmutableMap<String, String> currentWorkdir = processed.get(i).getWorkdir();
+          ImmutableMap<String, String> previousWorkdir = processed.get(i - 1).getWorkdir();
+          if (!Objects.equals(currentWorkdir.get(path), previousWorkdir.get(path))) {
+            return String.valueOf(i);
+          }
+        }
+        return String.valueOf(0);
+      }
+
+      @Override
+      public String getHash(String path) throws RepoException {
+        Optional<ProcessedChange> processedChange = getProcessed();
+        if (processedChange.isEmpty()) {
+          throw new RepoException("attempted to hash empty destination");
+        }
+        String contents = processedChange.get().getWorkdir().get(path);
+        if (contents == null) {
+          throw new RepoException("attempted to hash missing file");
+        }
+        return Hashing.sha256().hashString(contents, UTF_8).toString();
       }
     }
 
@@ -246,13 +337,14 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     public DestinationReader getDestinationReader(
         Console console, @Nullable Baseline<?> baseline, Path workdir)
         throws ValidationException, RepoException {
-      return new DestinationReaderImpl(workdir);
+      String rawBaseline = baseline != null ? baseline.getBaseline() : null;
+        return new DestinationReaderImpl(workdir, rawBaseline);
     }
 
     @Override
     public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
         throws ValidationException, RepoException {
-      return new DestinationReaderImpl(workdir);
+      return new DestinationReaderImpl(workdir, baseline);
     }
 
     @Override

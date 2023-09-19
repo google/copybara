@@ -91,7 +91,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   private final O resolvedRef;
   private final Origin.Reader<O> originReader;
   protected final Destination.Writer<D> writer;
-  @Nullable final String rawSourceRef;
+  @Nullable
+  final String rawSourceRef;
   private final Consumer<ChangeMigrationFinishedEvent> migrationFinishedMonitor;
 
   public WorkflowRunHelper(
@@ -118,7 +119,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   /**
    * origin_files used for this workflow
    */
-  protected Glob getOriginFiles(){
+  protected Glob getOriginFiles() {
     return workflow.getOriginFiles();
   }
 
@@ -254,9 +255,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                                     "Validating last migration: ", workflow.getConsole()),
                                 metadata == null
                                     ? new Metadata(
-                                        change.getMessage(),
-                                        change.getAuthor(),
-                                        ImmutableSetMultimap.of())
+                                    change.getMessage(),
+                                    change.getAuthor(),
+                                    ImmutableSetMultimap.of())
                                     : metadata,
                                 changes,
                                 /*destinationBaseline=*/ null,
@@ -502,7 +503,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     /**
-     *  Finish a migrate by noticing event monitor with the outcome effects
+     * Finish a migrate by noticing event monitor with the outcome effects
+     *
      * @param effects The destination effect of the migration
      */
     final void finishedMigrate(ImmutableList<DestinationEffect> effects) {
@@ -514,39 +516,39 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     private boolean showDiffInOrigin(O rev, @Nullable O lastRev, Console processConsole)
         throws RepoException, ValidationException {
-        if (!workflow.getWorkflowOptions().diffInOrigin
-            || workflow.getMode() == WorkflowMode.CHANGE_REQUEST
-            || workflow.getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
-            || lastRev == null) {
-            return false;
+      if (!workflow.getWorkflowOptions().diffInOrigin
+          || workflow.getMode() == WorkflowMode.CHANGE_REQUEST
+          || workflow.getMode() == WorkflowMode.CHANGE_REQUEST_FROM_SOT
+          || lastRev == null) {
+        return false;
+      }
+      String diff = workflow.getOrigin().showDiff(lastRev, rev);
+      if (diff == null) {
+        throw new ValidationException("diff_in_origin is not supported by origin "
+            + workflow.getOrigin().getType());
+      }
+      if (diff.isEmpty() && !workflow.getGeneralOptions().force) {
+        throw new EmptyChangeException("No difference at diff_in_origin");
+      }
+      StringBuilder sb = new StringBuilder();
+      for (String line : Splitter.on('\n').split(diff)) {
+        sb.append("\n");
+        if (line.startsWith("+")) {
+          sb.append(processConsole.colorize(AnsiColor.GREEN, line));
+        } else if (line.startsWith("-")) {
+          sb.append(processConsole.colorize(AnsiColor.RED, line));
+        } else {
+          sb.append(line);
         }
-        String diff = workflow.getOrigin().showDiff(lastRev, rev);
-        if (diff == null) {
-          throw new ValidationException("diff_in_origin is not supported by origin "
-              + workflow.getOrigin().getType());
-        }
-        if (diff.isEmpty() && !workflow.getGeneralOptions().force) {
-          throw new EmptyChangeException("No difference at diff_in_origin");
-        }
-        StringBuilder sb = new StringBuilder();
-        for (String line : Splitter.on('\n').split(diff)) {
-          sb.append("\n");
-          if (line.startsWith("+")) {
-            sb.append(processConsole.colorize(AnsiColor.GREEN, line));
-          } else if (line.startsWith("-")) {
-            sb.append(processConsole.colorize(AnsiColor.RED, line));
-          } else {
-            sb.append(line);
-          }
-        }
-        processConsole.info(sb.toString());
-        if (!processConsole.promptConfirmation(String.format("Continue to migrate with '%s' to "
-                + "%s?", workflow.getMode(), workflow.getDestination().getType()))){
-          processConsole.warn("Migration aborted by user.");
-          throw new ChangeRejectedException(
-              "User aborted execution: did not confirm diff in origin changes.");
-        }
-        return true;
+      }
+      processConsole.info(sb.toString());
+      if (!processConsole.promptConfirmation(String.format("Continue to migrate with '%s' to "
+          + "%s?", workflow.getMode(), workflow.getDestination().getType()))) {
+        processConsole.warn("Migration aborted by user.");
+        throw new ChangeRejectedException(
+            "User aborted execution: did not confirm diff in origin changes.");
+      }
+      return true;
     }
 
     private ImmutableList<DestinationEffect> doMigrate(
@@ -598,15 +600,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork transformWork =
           new TransformWork(
-                  checkoutDir,
-                  metadata,
-                  changes,
-                  console,
-                  new MigrationInfo(workflow.getRevIdLabel(), writer),
-                  resolvedRef,
-                  originApi,
-                  destinationApi,
-                  destinationReader)
+              checkoutDir,
+              metadata,
+              changes,
+              console,
+              new MigrationInfo(workflow.getRevIdLabel(), writer),
+              resolvedRef,
+              originApi,
+              destinationApi,
+              destinationReader)
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
@@ -648,15 +650,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               getReverseTransformForCheck()
                   .transform(
                       new TransformWork(
-                              reverse,
-                              transformWork.getMetadata(),
-                              changes,
-                              console,
-                              new MigrationInfo(/* originLabel= */ null, null),
-                              resolvedRef,
-                              destinationApi,
-                              originApi,
-                              () -> DestinationReader.NOT_IMPLEMENTED)
+                          reverse,
+                          transformWork.getMetadata(),
+                          changes,
+                          console,
+                          new MigrationInfo(/* originLabel= */ null, null),
+                          resolvedRef,
+                          destinationApi,
+                          originApi,
+                          () -> DestinationReader.NOT_IMPLEMENTED)
                           .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
@@ -692,10 +694,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               + " by running the transformations forward and then reversing them. The result was"
               + " a non-empty diff (If transformations were reversible, the diff should be none):\n"
               + "%s\n"
-                  + "Reversible workflows are recommended so that workflows can run in both"
-                  + " directions. For example for upstreaming internal changes. This feature can"
-                  + " be deactivated by setting core.workflow(..., reversible_check = False)"
-                  + " field.", DiffUtil.colorize(console, diff));
+              + "Reversible workflows are recommended so that workflows can run in both"
+              + " directions. For example for upstreaming internal changes. This feature can"
+              + " be deactivated by setting core.workflow(..., reversible_check = False)"
+              + " field.", DiffUtil.colorize(console, diff));
           throw new ValidationException(
               String.format("Workflow '%s' is not reversible", workflow.getName()));
         }
@@ -709,23 +711,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult =
           new TransformResult(
-                  checkoutDir,
-                  rev,
-                  transformWork.getAuthor(),
-                  transformWork.getMessage(),
-                  resolvedRef,
-                  workflow.getName(),
-                  changes,
-                  rawSourceRef,
-                  workflow.isSetRevId(),
-                  transformWork::getAllLabels,
-                  workflow.getRevIdLabel())
+              checkoutDir,
+              rev,
+              transformWork.getAuthor(),
+              transformWork.getMessage(),
+              resolvedRef,
+              workflow.getName(),
+              changes,
+              rawSourceRef,
+              workflow.isSetRevId(),
+              transformWork::getAllLabels,
+              workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
         runMergeImport(
             console,
-            destinationReader.get(),
+            writer,
+            destinationBaseline,
             checkoutDir,
             lastRev,
             metadata,
@@ -782,7 +785,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     private void runMergeImport(
         Console console,
-        DestinationReader reader,
+        Writer<?> writer,
+        Baseline<?> destinationBaseline,
         Path checkoutDir,
         O lastRev,
         Metadata metadata,
@@ -791,13 +795,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         LazyResourceLoader<Endpoint> destinationApi,
         TransformWork transformWork)
         throws IOException, ValidationException, RepoException {
+      DestinationReader reader = writer.getDestinationReader(console, destinationBaseline,
+          checkoutDir);
       // get a glob excluding any patch files
       Glob patchlessDestinationFiles = patchlessDestinationFiles(workflow);
 
       Path destinationFilesWorkdir = Files.createDirectories(workdir.resolve("destination"));
       reader.copyDestinationFilesToDirectory(
           patchlessDestinationFiles, destinationFilesWorkdir);
-
 
       Path baselineWorkdir = null;
       if (workflow.isUseReversePatchBaseline()) {
@@ -808,8 +813,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         // Otherwise, fall back to baseline import.
         Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
         reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlePatchWorkdir);
-        if (Files.exists(singlePatchWorkdir.resolve(workflow.getSinglePatchPath()))) {
-          baselineWorkdir = checkoutSinglePatchBaseline(reader);
+
+        if (reader.exists(workflow.getSinglePatchPath())) {
+          try {
+            String singlePatchVersion = reader.lastModified(workflow.getSinglePatchPath());
+            DestinationReader singlePatchVersionReader = writer.getDestinationReader(console,
+                singlePatchVersion, checkoutDir);
+            baselineWorkdir = checkoutSinglePatchBaseline(singlePatchVersionReader);
+          } catch (UnsupportedOperationException e) {
+            throw new ValidationException("Destination does not support single patch operations",
+                e);
+          }
         }
       }
 
@@ -863,9 +877,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         try {
           singlePatch = Optional.of(
               SinglePatch.generateSinglePatch(preMergeImportWorkdir, checkoutDir,
-              workflow.getDestination().getHashFunction(),
-              workflow.getGeneralOptions().getEnvironment(),
-              workflow.getDestinationFiles()).toBytes());
+                  workflow.getDestination().getHashFunction(),
+                  workflow.getGeneralOptions().getEnvironment(),
+                  workflow.getDestinationFiles()).toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating single patch", e);
         }
@@ -959,12 +973,13 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
       Path singlePatchPath = singlepatchWorkdir.resolve(workflow.getSinglePatchPath());
 
-      if (Files.exists(singlePatchPath)) {
-        SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
-            workflow.getDestination().getHashFunction());
-        singlePatch.reverseSinglePatch(baselineWorkdir,
-            workflow.getGeneralOptions().getEnvironment());
-      }
+
+      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
+          workflow.getDestination().getHashFunction());
+      singlePatch.validateDirectory(SinglePatch.filesInDir(baselineWorkdir), reader::getHash);
+      singlePatch.reverseSinglePatch(baselineWorkdir,
+          workflow.getGeneralOptions().getEnvironment());
+
 
       return baselineWorkdir;
     }
@@ -986,18 +1001,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork baselineTransformWork =
           new TransformWork(
-                  baselineWorkdir,
-                  // We don't care about the message or author and this guarantees that it will
-                  // work with the transformations
-                  metadata,
-                  // We don't care about the changes that are imported.
-                  Changes.EMPTY,
-                  baselineConsole,
-                  new MigrationInfo(workflow.getRevIdLabel(), writer),
-                  resolvedRef,
-                  originApi,
-                  destinationApi,
-                  destinationReader)
+              baselineWorkdir,
+              // We don't care about the message or author and this guarantees that it will
+              // work with the transformations
+              metadata,
+              // We don't care about the changes that are imported.
+              Changes.EMPTY,
+              baselineConsole,
+              new MigrationInfo(workflow.getRevIdLabel(), writer),
+              resolvedRef,
+              originApi,
+              destinationApi,
+              destinationReader)
               // Again, we don't care about this
               .withLastRev(lastRev)
               .withCurrentRev(baseline)
@@ -1029,7 +1044,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     private void checkout(
         O rev, Console processConsole, Path checkoutDir, String profileDescription)
         throws RepoException, ValidationException, IOException {
-      if (workflow.isCheckout() ) {
+      if (workflow.isCheckout()) {
         try (ProfilerTask ignored = profiler().start(
             profileDescription, profiler().taskType(workflow.getOrigin().getType()))) {
           reader.checkout(rev, checkoutDir);
@@ -1144,7 +1159,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
   /**
    * Resolve a string representation of a revision using the origin
    */
-   O originResolveLastRev(String revStr) throws RepoException, ValidationException {
+  O originResolveLastRev(String revStr) throws RepoException, ValidationException {
     return workflow.getOrigin().resolveLastRev(revStr);
   }
 
