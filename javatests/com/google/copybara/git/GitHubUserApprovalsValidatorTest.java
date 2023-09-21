@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.google.common.collect.ImmutableList;
@@ -25,6 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.approval.ChangeWithApprovals;
 import com.google.copybara.approval.UserPredicate;
 import com.google.copybara.authoring.Author;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.revision.Change;
@@ -89,6 +91,28 @@ public final class GitHubUserApprovalsValidatorTest {
     ImmutableList<ChangeWithApprovals> approvals =
         validator.mapApprovalsForUserPredicates(changes, BRANCH);
     assertThat(approvals).isEmpty();
+  }
+
+  @Test
+  public void testGitHubUserApprovalsValidator_withNullParameter() throws Exception {
+    GitHubUserApprovalsValidator validator = getUnitUnderTest();
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository,
+            PROJECT_ID,
+            ImmutableListMultimap.of(),
+            "3071d674373ab56d8a7f264d308b39b7773b9e44");
+    ;
+    GetCommitHistoryParams params = new GetCommitHistoryParams(5, 5, 5);
+    ValidationException expectedExpectedException =
+        assertThrows(
+            ValidationException.class,
+            () -> validator.mapApprovalsForUserPredicates(changes, null));
+    assertThat(expectedExpectedException)
+        .hasMessageThat()
+        .contains(
+            "Attempted to query for GitHub commit history, but received a empty/null value:"
+                + " org=google, repo=copybara, branch=null");
   }
 
   @Test

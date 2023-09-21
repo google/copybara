@@ -19,6 +19,7 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -100,6 +101,15 @@ public class GitHubGraphQLApi {
   public CommitHistoryResponse getCommitHistory(
       String org, String repo, String branch, GetCommitHistoryParams params)
       throws RepoException, ValidationException {
+    ValidationException.checkCondition(
+        !Strings.isNullOrEmpty(org)
+            && !Strings.isNullOrEmpty(repo)
+            && !Strings.isNullOrEmpty(branch),
+        "Attempted to query for GitHub commit history, but received a empty/null value: org=%s,"
+            + " repo=%s, branch=%s",
+        org,
+        repo,
+        branch);
     // TODO(linjordan): this could look better with a query builder api or load from .graphql file.
     String getCommitHistoryQuery =
                             "query ($repoName: String!, $repoOwner:String!, $branch: String!,"
