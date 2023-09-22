@@ -268,6 +268,7 @@ java_library(
         "//java/com/google/copybara/transform",
         "//java/com/google/copybara/transform/debug",
         "//java/com/google/copybara/transform/patch",
+        "//java/com/google/copybara/tsjs/npm",
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util:consistency",
         "//java/com/google/copybara/util/console",

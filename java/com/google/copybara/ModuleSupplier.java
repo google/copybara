@@ -61,6 +61,7 @@ import com.google.copybara.transform.debug.DebugOptions;
 import com.google.copybara.transform.metadata.MetadataModule;
 import com.google.copybara.transform.patch.PatchModule;
 import com.google.copybara.transform.patch.PatchingOptions;
+import com.google.copybara.tsjs.npm.NpmModule;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.xml.XmlModule;
 import java.nio.file.FileSystem;
@@ -134,6 +135,7 @@ public class ModuleSupplier {
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
         new PythonModule(),
+        new NpmModule(options.get(RemoteFileOptions.class)),
         new CompressionModule(),
         new CredentialModule(console, options.get(CredentialOptions.class)),
         Json.INSTANCE);
