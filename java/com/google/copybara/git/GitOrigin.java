@@ -195,11 +195,15 @@ public class GitOrigin implements Origin<GitRevision> {
       throws RepoException, ValidationException {
     console.progress("Git Origin: Initializing local repo");
     String ref;
+    boolean canUseResolverOnCliRef =
+        this.generalOptions.isVersionSelectorUseCliRef() || this.generalOptions.isForced();
+
     if (gitOriginOptions.useGitVersionSelector() && versionSelector != null) {
-      if (generalOptions.isForced() && !Strings.isNullOrEmpty(reference)) {
+      if (canUseResolverOnCliRef && !Strings.isNullOrEmpty(reference)) {
         console.warnFmt(
-            "Ignoring git.version_selector as %s is being used. Using %s instead.",
-            GeneralOptions.FORCE, reference);
+            "Ignoring git.version_selector as %s or %s is being used. Using cli ref %s"
+                + " instead.",
+            GeneralOptions.FORCE, "--version-selector-use-cli-ref", reference);
         ref = reference;
       } else {
         GitRepository repository = getRepository();

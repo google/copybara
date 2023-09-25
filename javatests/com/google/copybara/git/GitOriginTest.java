@@ -59,6 +59,7 @@ import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.nio.file.Files;
@@ -1127,6 +1128,56 @@ public class GitOriginTest {
     String ref = origin.resolveLastRev("v1.0.0").contextReference();
 
     assertThat(ref).isEqualTo("1.0.0");
+  }
+
+  @Test
+  public void testResolveCliRefUsedByVersionSelector() throws Exception {
+    options.general.setVersionSelectorUseCliRefForTest(true);
+    origin =
+        skylark.eval(
+            "result",
+            String.format(
+                "result = git.origin(\n"
+                    + "    url = '%s',\n"
+                    + "    version_selector = core.latest_version(\n"
+                    + "        format = \"refs/tags/2.0.0\"\n"
+                    + "    ),\n"
+                    + ")",
+                url));
+    repo.tag("1.0.0").run();
+    repo.tag("2.0.0").run();
+
+    // version_selector is not used, so the ref that is passed to cli is fetched (1.0.0)
+    ref = origin.resolve("1.0.0").contextReference();
+    assertThat(ref).isEqualTo("1.0.0");
+    assertThat(console.getMessages())
+        .contains(
+            new Message(
+                MessageType.WARNING,
+                "Ignoring git.version_selector as --force or --version-selector-use-cli-ref is"
+                    + " being used. Using cli ref 1.0.0 instead."));
+  }
+
+  @Test
+  public void testResolveCliRefNotUsedByVersionSelector() throws Exception {
+    options.general.setVersionSelectorUseCliRefForTest(false);
+    origin =
+        skylark.eval(
+            "result",
+            String.format(
+                "result = git.origin(\n"
+                    + "    url = '%s',\n"
+                    + "    version_selector = core.latest_version(\n"
+                    + "        format = \"refs/tags/2.0.0\"\n"
+                    + "    ),\n"
+                    + ")",
+                url));
+    repo.tag("1.0.0").run();
+    repo.tag("2.0.0").run();
+
+    // version_selector is used, so 2.0.0 is used as the ref, even though 1.0.0 is passed to cli
+    ref = origin.resolve("1.0.0").contextReference();
+    assertThat(ref).isEqualTo("2.0.0");
   }
 
   @Test
