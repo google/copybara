@@ -20,7 +20,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.util.Base64;
+import com.google.common.io.BaseEncoding;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.credentials.CredentialOptions;
 import com.google.copybara.exception.ValidationException;
@@ -66,7 +66,7 @@ public class AuthTest {
   private String basicAuth(String username, String password) {
     return String.format(
         "Basic %s",
-        Base64.encodeBase64String(String.format("%s:%s", username, password).getBytes(UTF_8)));
+        BaseEncoding.base64().encode(String.format("%s:%s", username, password).getBytes(UTF_8)));
   }
 
   @Test
