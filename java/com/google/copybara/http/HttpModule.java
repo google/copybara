@@ -22,6 +22,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.EndpointProvider;
+import com.google.copybara.Trigger;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
@@ -74,6 +75,39 @@ public class HttpModule implements StarlarkValue {
   }
 
   @StarlarkMethod(
+      name = "trigger",
+      doc = "Trigger for http endpoint",
+      parameters = {
+        @Param(
+            name = "hosts",
+            doc = "A list of hosts to allow HTTP traffic to.",
+            named = true,
+            allowedTypes = {@ParamType(type = Sequence.class)},
+            defaultValue = "[]",
+            positional = false),
+        @Param(
+            name = "checker",
+            allowedTypes = {
+              @ParamType(type = Checker.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            doc = "A checker that will check calls made by the endpoint",
+            named = true,
+            positional = false),
+      })
+  public Trigger trigger(Sequence<?> hosts, @Nullable Object checkerIn)
+      throws ValidationException, EvalException {
+    HttpEndpoint endpoint =
+        new HttpEndpoint(
+            console,
+            options.getTransport(),
+            buildHostsMapWithAuthInterceptor(hosts).buildKeepingLast(),
+            SkylarkUtil.convertFromNoneable(checkerIn, null));
+    return new HttpTrigger(endpoint);
+  }
+
+  @StarlarkMethod(
       name = "endpoint",
       doc =
           "Endpoint that executes any sort of http request. Currently restricted"
@@ -110,6 +144,17 @@ public class HttpModule implements StarlarkValue {
       @Nullable String host, @Nullable Object checkerIn, Sequence<?> hosts)
       throws ValidationException, EvalException {
     @Nullable Checker checker = SkylarkUtil.convertFromNoneable(checkerIn, null);
+    ImmutableMap.Builder<String, Optional<AuthInterceptor>> h =
+        buildHostsMapWithAuthInterceptor(hosts);
+    if (host != null && !host.isEmpty()) {
+      h.put(host, Optional.empty());
+    }
+    return EndpointProvider.wrap(
+        new HttpEndpoint(console, options.getTransport(), h.buildKeepingLast(), checker));
+  }
+
+  private ImmutableMap.Builder<String, Optional<AuthInterceptor>> buildHostsMapWithAuthInterceptor(
+      Sequence<?> hosts) {
     ImmutableMap.Builder<String, Optional<AuthInterceptor>> h = ImmutableMap.builder();
     for (Object o : hosts) {
       if (o instanceof HostCredential) {
@@ -119,11 +164,7 @@ public class HttpModule implements StarlarkValue {
         h.put((String) o, Optional.empty());
       }
     }
-    if (host != null && !host.isEmpty()) {
-      h.put(host, Optional.empty());
-    }
-    return EndpointProvider.wrap(
-        new HttpEndpoint(console, options.getTransport(), h.buildKeepingLast(), checker));
+    return h;
   }
 
   @StarlarkMethod(

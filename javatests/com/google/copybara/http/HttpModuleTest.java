@@ -58,4 +58,13 @@ public final class HttpModuleTest {
       assertThat(res).isEqualTo(encoded);
     }
   }
+
+  @Test
+  public void testHttpTrigger() throws ValidationException {
+    HttpTrigger trigger =
+        starlark.eval("trigger", "trigger = http.trigger(hosts = ['https://google.com'])");
+    assertThat(trigger).isNotNull();
+    assertThat(trigger.getEndpoint()).isNotNull();
+    assertThat(trigger.describe()).isEqualTo(trigger.getEndpoint().describe());
+  }
 }
