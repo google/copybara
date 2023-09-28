@@ -17,9 +17,11 @@
 package com.google.copybara.transform.patch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.GeneralOptions;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
@@ -28,6 +30,7 @@ import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.CannotResolveLabel;
 import com.google.copybara.exception.ValidationException;
 import java.io.IOException;
+import java.util.Optional;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -48,9 +51,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
 
   private ConfigFile configFile;
   private final PatchingOptions patchingOptions;
+  private final GeneralOptions generalOptions;
 
-  public PatchModule(PatchingOptions patchingOptions) {
+  public PatchModule(PatchingOptions patchingOptions, GeneralOptions generalOptions) {
     this.patchingOptions = checkNotNull(patchingOptions);
+    this.generalOptions = checkNotNull(generalOptions);
   }
 
   @Override
@@ -135,7 +140,15 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     int strip = stripI.toInt("strip");
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
     for (String patch : SkylarkUtil.convertStringList(patches, "patches")) {
-      builder.add(resolve(patch));
+      try {
+        builder.add(resolve(patch));
+      } catch (EvalException e) {
+        if (patchingOptions.validateOnLoad) {
+          throw e;
+        }  else {
+          generalOptions.console().error("Cannot load: " + patch);
+        }
+      }
     }
     String series = SkylarkUtil.convertOptionalString(seriesOrNone);
     if (series != null && !series.trim().isEmpty()) {
@@ -206,9 +219,11 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       StarlarkThread thread)
       throws EvalException, ValidationException {
     ImmutableList.Builder<ConfigFile> builder = ImmutableList.builder();
-    ConfigFile seriesFile = parseSeries(series, builder);
-    ValidationException.checkCondition(!builder.build().isEmpty(),
-          String.format("Quilt patch Series %s is empty.", seriesFile.path()));
+    Optional<ConfigFile> seriesFile = parseSeries(series, builder);
+    if (patchingOptions.validateOnLoad) {
+      checkCondition(!builder.build().isEmpty(),
+            String.format("Quilt patch Series %s is empty.", seriesFile.get().path()));
+    }
     return new QuiltTransformation(
         seriesFile,
         builder.build(),
@@ -225,13 +240,21 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
     }
   }
 
-  private ConfigFile parseSeries(
-      String series, ImmutableList.Builder<ConfigFile> outputBuilder)
-       throws EvalException, ValidationException {
+  private Optional<ConfigFile> parseSeries(
+      String series, ImmutableList.Builder<ConfigFile> outputBuilder) throws EvalException {
     ConfigFile seriesFile;
     try {
       // Don't use this.resolve(), because its error message mentions patch file instead of series.
-      seriesFile = configFile.resolve(series.trim());
+      try {
+        seriesFile = configFile.resolve(series.trim());
+      } catch (CannotResolveLabel e) {
+        if (patchingOptions.validateOnLoad) {
+          throw e;
+        } else {
+          generalOptions.console().warnFmt("Cannot load %s: %s", series.trim(), e);
+          return Optional.empty();
+        }
+      }
       ImmutableList.Builder<ConfigFile> patchesBuilder = ImmutableList.builder();
       for (String line : LINES.split(seriesFile.readContent())) {
         // Comment at the beginning of the line or
@@ -242,7 +265,15 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
             line = line.substring(0, comment - 1).trim();
           }
           if (!line.isEmpty()) {
-            patchesBuilder.add(seriesFile.resolve(line));
+            try {
+              patchesBuilder.add(seriesFile.resolve(line));
+            } catch (CannotResolveLabel e) {
+              if (patchingOptions.validateOnLoad) {
+                throw e;
+              } else {
+                generalOptions.console().warnFmt("Cannot load %s: %s", line, e);
+              }
+            }
           }
         }
       }
@@ -252,6 +283,6 @@ public class PatchModule implements LabelsAwareModule, StarlarkValue {
       throw Starlark.errorf("Error reading patch series file: %s. Caused by: %s",
           series, e.toString());
     }
-    return seriesFile;
+    return Optional.of(seriesFile);
   }
 }

@@ -31,6 +31,7 @@ import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -237,6 +238,32 @@ public class PatchTransformationTest {
     assertThatPath(checkoutDir)
         .containsFile("test.txt", "bar\n")
         .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testParseSkylarkSeriesRelaxedCheck() throws Exception {
+    patchingOptions.validateOnLoad = false;
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    skylark.addConfigFile("series", seriesFile.readContent());
+    PatchTransformation ignore =
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  series = 'series',\n"
+                + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
+  }
+
+  @Test
+  public void testParseSkylarkRelaxedCheck() throws Exception {
+    patchingOptions.validateOnLoad = false;
+    Files.write(checkoutDir.resolve("test.txt"), "foo\n".getBytes(UTF_8));
+    PatchTransformation transformation =
+        skylark.eval("r",
+            "r = patch.apply(\n"
+                + "  patches = ['diff.patch'],\n"
+                + "  excluded_patch_paths = ['excluded/*'],\n"
+                + ")\n");
+    console.assertThat().onceInLog(MessageType.ERROR, "Cannot load.*");
   }
 
   @Test

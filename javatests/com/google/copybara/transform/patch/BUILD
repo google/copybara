@@ -29,6 +29,7 @@ all_tests(
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:shell",
         "//third_party:starlark",

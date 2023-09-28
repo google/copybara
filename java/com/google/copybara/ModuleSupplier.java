@@ -117,7 +117,7 @@ public class ModuleSupplier {
             options.get(WorkflowOptions.class), options.get(BuildifierOptions.class), general),
         new BuildozerModule(
             options.get(WorkflowOptions.class), options.get(BuildozerOptions.class), general),
-        new PatchModule(options.get(PatchingOptions.class)),
+        new PatchModule(options.get(PatchingOptions.class), general),
         new MetadataModule(),
         new Authoring.Module(),
         new RemoteFileModule(options),

@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import net.starlark.java.syntax.Location;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +78,7 @@ public final class QuiltTransformationTest {
 
   @Before
   public void setUp() throws IOException {
-    checkoutDir =  Files.createTempDirectory("workdir");
+    checkoutDir = Files.createTempDirectory("workdir");
     Files.createDirectories(checkoutDir);
     console = new TestingConsole();
     // QuiltTransformation needs to write and read from to real temp directory.
@@ -91,7 +92,7 @@ public final class QuiltTransformationTest {
         ImmutableMap.of(
             "patches/diff.patch", OLDDIFF.getBytes(UTF_8),
             "patches/series", SERIES.getBytes(UTF_8));
-    patchFile = new MapConfigFile(configFiles , "patches/diff.patch");
+    patchFile = new MapConfigFile(configFiles, "patches/diff.patch");
     seriesFile = new MapConfigFile(configFiles, "patches/series");
   }
 
@@ -100,7 +101,7 @@ public final class QuiltTransformationTest {
   private static String setUpQuiltBin(GeneralOptions options) {
     // Try executing "quilt --version" to see if "quilt" command can run.
     Command cmd =
-          new Command(new String[] {"quilt", "--version"}, options.getEnvironment(), null);
+        new Command(new String[]{"quilt", "--version"}, options.getEnvironment(), null);
     boolean success = false;
     try {
       options.newCommandRunner(cmd).execute();
@@ -122,7 +123,8 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
-        new QuiltTransformation(seriesFile, ImmutableList.of(patchFile), patchingOptions,
+        new QuiltTransformation(Optional.of(seriesFile),
+            ImmutableList.of(patchFile), patchingOptions,
             /*reverse=*/ false, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
@@ -155,8 +157,8 @@ public final class QuiltTransformationTest {
     Files.write(checkoutDir.resolve("file1.txt"), "new line\n\nline1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     QuiltTransformation transform =
-        new QuiltTransformation(seriesFile, ImmutableList.of(patchFile), patchingOptions,
-            /*reverse=*/ false, Location.BUILTIN);
+        new QuiltTransformation(Optional.of(seriesFile), ImmutableList.of(patchFile),
+            patchingOptions, /*reverse=*/ false, Location.BUILTIN);
     transform.transform(TransformWorks.of(checkoutDir, "testmsg", console));
     assertThatPath(checkoutDir)
         .containsFile("file1.txt", "new line\n\nline1\nbar\nline3")
@@ -186,12 +188,36 @@ public final class QuiltTransformationTest {
         .containsNoMoreFiles();
   }
 
-    @Test
+  @Test
+  public void parseSkylarkTestNotFoundRelaxedCheck() throws Exception {
+    patchingOptions.validateOnLoad = false;
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    skylark.addConfigFile("patches/series", seriesFile.readContent());
+    QuiltTransformation transformation =
+        skylark.eval("r",
+            "r = patch.quilt_apply(\n"
+                + "  series = 'patches/series',\n"
+                + ")\n");
+  }
+
+  @Test
+  public void parseSkylarkTestNotFoundStrictCheck() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    skylark.addConfigFile("patches/series", seriesFile.readContent());
+
+    skylark.evalFails("patch.quilt_apply(\n"
+        + "  series = 'patches/series',\n"
+        + ")\n", "Cannot resolve 'patches");
+  }
+
+  @Test
   public void parseSkylarkTest_emptySeries() throws Exception {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
     skylark.addConfigFile("patches/series", "");
-    assertThrows(ValidationException.class, 
+    assertThrows(ValidationException.class,
         () -> skylark.eval("r",
             "r = patch.quilt_apply(\n"
                 + "  series = 'patches/series',\n"
@@ -201,8 +227,8 @@ public final class QuiltTransformationTest {
 
   @Test
   public void describeTest() {
-    QuiltTransformation transform = new QuiltTransformation(seriesFile, ImmutableList.of(patchFile),
-        patchingOptions, /*reverse=*/ false, Location.BUILTIN);
+    QuiltTransformation transform = new QuiltTransformation(Optional.of(seriesFile),
+        ImmutableList.of(patchFile), patchingOptions, /*reverse=*/ false, Location.BUILTIN);
     assertThat(transform.describe()).isEqualTo(
         "Patch.quilt_apply: using quilt to apply and update patches: patches/diff.patch");
   }

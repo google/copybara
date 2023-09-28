@@ -63,6 +63,11 @@ public class PatchingOptions implements Option {
   @Parameter(names = PATCH_BIN_FLAG, description = "Path for GNU Patch command")
   String patchBin = "patch";
 
+  @Parameter(names = "--patch-validate-on-load", hidden = true,
+      arity = 1,
+      description = "Path for GNU Patch command")
+  public boolean validateOnLoad = true;
+
   @Parameter(names = SKIP_VERSION_CHECK_FLAG, description =
       "Skip checking the version of patch and assume it is fine")
   public boolean skipVersionCheck = false;

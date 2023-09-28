@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 import net.starlark.java.syntax.Location;
 
 /**
@@ -45,7 +46,7 @@ import net.starlark.java.syntax.Location;
  */
 
 public final class QuiltTransformation implements Transformation {
-  private final ConfigFile series;
+  private final Optional<ConfigFile> series;
   private final ImmutableList<ConfigFile> patchConfigs;
   private final PatchingOptions options;
   // TODO(copybara-team): Add support for reverse=True.
@@ -55,7 +56,7 @@ public final class QuiltTransformation implements Transformation {
   private final Location location;
 
   QuiltTransformation(
-      ConfigFile series, ImmutableList<ConfigFile> patches, PatchingOptions options,
+      Optional<ConfigFile> series, ImmutableList<ConfigFile> patches, PatchingOptions options,
       boolean reverse, Location location) {
     this.series = series;
     this.patchConfigs = patches;
@@ -183,7 +184,9 @@ public final class QuiltTransformation implements Transformation {
   private void restoreSeriesAndCleanup(Path checkoutDir) throws IOException {
     // Restores the original "series" file.
     try {
-      Files.write(checkoutDir.resolve("patches").resolve("series"), series.readContentBytes());
+      Files.write(checkoutDir.resolve("patches").resolve("series"),
+          series.orElseThrow(() -> new CannotResolveLabel("Cannot find series file"))
+              .readContentBytes());
     } catch (CannotResolveLabel e) {
       throw new IOException("Error reading original 'series' file", e);
     }
