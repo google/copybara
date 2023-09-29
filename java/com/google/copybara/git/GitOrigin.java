@@ -402,7 +402,7 @@ public class GitOrigin implements Origin<GitRevision> {
       if (submoduleStrategy == SubmoduleStrategy.NO) {
         return;
       }
-      for (Submodule submodule : repo.listSubmodules(currentRemoteUrl)) {
+      for (Submodule submodule : repo.listSubmodules(currentRemoteUrl, ref)) {
         if (excludedSubmodules.contains(submodule.getName())) {
           generalOptions
               .console()

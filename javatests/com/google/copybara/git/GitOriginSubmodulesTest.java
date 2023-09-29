@@ -210,14 +210,25 @@ public class GitOriginSubmodulesTest {
   }
 
   /**
-   * Test that we can refer to HEAD as '.' in the branch field
+   * Test that we can refer to current branch as '.' in the branch field
    */
   @Test
   public void testDotBranch() throws Exception {
     Path base = Files.createTempDirectory("base");
     GitRepository r1 = createRepoWithFoo(base, "r1");
+    String primaryBranch = r1.getPrimaryBranch();
     GitRepository r2 = createRepoWithFoo(base, "r2");
-    String primary = r1.getPrimaryBranch();
+    r1.branch("import").run();
+    r1.forceCheckout("import");
+    addFile(r1, "bar", "bar");
+    commit(r1, "bar change");
+
+    r1.forceCheckout(primaryBranch);
+
+    r2.branch("import").run();
+    r2.forceCheckout("import");
+    String importBranch = "import";
+
     // Build a relative url submodule
     r2.simpleCommand(
         "-c",
@@ -226,7 +237,7 @@ public class GitOriginSubmodulesTest {
         "add",
         "-f",
         "--branch",
-        primary,
+        "import",
         "--name",
         "r1",
         "file://" + r1.getWorkTree());
@@ -235,17 +246,20 @@ public class GitOriginSubmodulesTest {
     // adding it with the submodule command.
     Files.write(
         moduleCfg,
-        new String(Files.readAllBytes(moduleCfg), UTF_8).replace(primary, ".").getBytes(UTF_8));
+        new String(Files.readAllBytes(moduleCfg), UTF_8).replace(importBranch, ".")
+            .getBytes(UTF_8));
+    r2.add().all().run();
     commit(r2, "adding r1 submodule");
 
-    GitOrigin origin = origin("file://" + r2.getGitDir(), primary);
-    GitRevision main = origin.resolve(primary);
+    GitOrigin origin = origin("file://" + r2.getGitDir(), importBranch);
+    GitRevision main = origin.resolve(importBranch);
     origin.newReader(Glob.ALL_FILES, authoring).checkout(main, checkoutDir);
 
     FileSubjects.assertThatPath(checkoutDir)
         .containsFiles(GITMODULES)
         .containsFile("foo", "1")
         .containsFile("r1/foo", "1")
+        .containsFile("r1/bar", "bar")
         .containsNoMoreFiles();
   }
 

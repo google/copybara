@@ -1350,7 +1350,7 @@ public class GitRepository {
    * @param currentRemoteUrl remote url associated with the repository. It will be used to
    * resolve relative URLs (for example: url = ../foo).
    */
-  Iterable<Submodule> listSubmodules(String currentRemoteUrl) throws RepoException {
+  Iterable<Submodule> listSubmodules(String currentRemoteUrl, GitRevision ref) throws RepoException {
     ImmutableList.Builder<Submodule> result = ImmutableList.builder();
     for (String submoduleName : getSubmoduleNames()) {
       String path = getSubmoduleField(submoduleName, "path");
@@ -1364,7 +1364,7 @@ public class GitRepository {
       }
       String branch = getSubmoduleField(submoduleName, "branch");
       if (branch != null && branch.equals(".")) {
-        branch = "HEAD";
+        branch = ref.contextReference(); // Either "branch/tag" or null to force fetching all refs
       }
       FileUtil.checkNormalizedRelative(path);
       // If the url is relative, construct a url using the parent module remote url.
