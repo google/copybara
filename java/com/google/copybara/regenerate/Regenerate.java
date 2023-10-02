@@ -25,6 +25,7 @@ import com.google.copybara.Destination.PatchRegenerator;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.Origin.Baseline;
 import com.google.copybara.Workflow;
 import com.google.copybara.WorkflowMode;
 import com.google.copybara.WorkflowOptions;
@@ -346,7 +347,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
 
     // copy the baseline to one directory
     DestinationReader previousDestinationReader =
-        destinationWriter.getDestinationReader(console, lastRev.asString(), workdir);
+        destinationWriter.getDestinationReader(console, (Baseline<?>) null, workdir);
     Path importPath =
         runHelper.importAndTransformRevision(
             console, lastRev, current, () -> previousDestinationReader);

@@ -140,7 +140,7 @@ public class RegenerateCmdTest {
           }
         };
     options.testingOptions.destination = destination;
-    
+
     origin = new DummyOrigin();
     origin.addSimpleChange(0);
     options.testingOptions.origin = origin;
@@ -341,6 +341,46 @@ public class RegenerateCmdTest {
         .updateChange(
             any(),
             argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
+            eq(Glob.ALL_FILES),
+            eq("bar"));
+  }
+
+  @Test
+  public void testRegenImportBaseline_initHistory() throws Exception {
+    setupTarget("bar");
+
+    String testfile = "asdf.txt";
+
+    origin.singleFileChange(0, "foo description", testfile, "bar");
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    options.regenerateOptions.setRegenTarget("bar");
+    options.regenerateOptions.setRegenImportBaseline(true);
+    options.workflowOptions.initHistory = true;
+
+    RegenerateCmd cmd = getCmd(getConfigString());
+
+    // should not throw
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(
+                path -> {
+                  try {
+                    return Files.exists(path.resolve(testfile))
+                        && Files.readString(path.resolve(testfile)).equals("bar");
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                }),
             eq(Glob.ALL_FILES),
             eq("bar"));
   }
