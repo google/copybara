@@ -808,21 +808,21 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (workflow.isUseReversePatchBaseline()) {
         baselineWorkdir =
             checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
-      } else if (workflow.useSinglePatch()) {
+      } else if (workflow.getMergeImport().useSinglePatch()) {
         // If there is a single patch file, then use it.
         // Otherwise, fall back to baseline import.
         Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
         reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlePatchWorkdir);
 
-        if (reader.exists(workflow.getSinglePatchPath())) {
+        if (reader.exists(workflow.fullSinglePatchPath())) {
           try {
-            String singlePatchVersion = reader.lastModified(workflow.getSinglePatchPath());
-            DestinationReader singlePatchVersionReader = writer.getDestinationReader(console,
-                singlePatchVersion, checkoutDir);
+            String singlePatchVersion = reader.lastModified(workflow.fullSinglePatchPath());
+            DestinationReader singlePatchVersionReader =
+                writer.getDestinationReader(console, singlePatchVersion, checkoutDir);
             baselineWorkdir = checkoutSinglePatchBaseline(singlePatchVersionReader);
           } catch (UnsupportedOperationException e) {
-            throw new ValidationException("Destination does not support single patch operations",
-                e);
+            throw new ValidationException(
+                "Destination does not support single patch operations", e);
           }
         }
       }
@@ -873,7 +873,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
 
       Optional<byte[]> singlePatch = Optional.empty();
-      if (workflow.useSinglePatch()) {
+      if (workflow.isMergeImport() && workflow.getMergeImport().useSinglePatch()) {
         try {
           singlePatch = Optional.of(
               SinglePatch.generateSinglePatch(preMergeImportWorkdir, checkoutDir,
@@ -908,8 +908,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // Write the SinglePatch file after auto patches are generated so that it does not get
       // included in the auto patches.
       if (singlePatch.isPresent()) {
-        Files.createDirectories(checkoutDir.resolve(workflow.getSinglePatchPath()).getParent());
-        Files.write(checkoutDir.resolve(workflow.getSinglePatchPath()), singlePatch.get());
+        Files.createDirectories(checkoutDir.resolve(workflow.fullSinglePatchPath()).getParent());
+        Files.write(checkoutDir.resolve(workflow.fullSinglePatchPath()), singlePatch.get());
       }
     }
 
@@ -949,15 +949,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         destinationFiles = Glob.difference(destinationFiles, AutoPatchUtil.getAutopatchGlob(
             autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory()));
       }
-      if (workflow.useSinglePatch()) {
-        destinationFiles = Glob.difference(destinationFiles,
-            Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath())));
+      if (workflow.getMergeImport().useSinglePatch()) {
+        destinationFiles =
+            Glob.difference(
+                destinationFiles,
+                Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath())));
       }
       return destinationFiles;
     }
 
     static Glob singlePatchGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
-      return Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath()));
+      return Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
     }
 
     private Path checkoutSinglePatchBaseline(DestinationReader reader)
@@ -971,15 +973,14 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // copy the singlepatch file from the destination to a separate directory
       Path singlepatchWorkdir = Files.createDirectories(workdir.resolve("singlepatch"));
       reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
-      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.getSinglePatchPath());
+      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.fullSinglePatchPath());
 
-
-      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
-          workflow.getDestination().getHashFunction());
+      SinglePatch singlePatch =
+          SinglePatch.fromBytes(
+              Files.readAllBytes(singlePatchPath));
       singlePatch.validateDirectory(SinglePatch.filesInDir(baselineWorkdir), reader::getHash);
-      singlePatch.reverseSinglePatch(baselineWorkdir,
-          workflow.getGeneralOptions().getEnvironment());
-
+      singlePatch.reverseSinglePatch(
+          baselineWorkdir, workflow.getGeneralOptions().getEnvironment());
 
       return baselineWorkdir;
     }

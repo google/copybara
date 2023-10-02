@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load(":docs.bzl", "copybara_reference")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":docs.bzl", "copybara_reference")
 
 licenses(["notice"])
 

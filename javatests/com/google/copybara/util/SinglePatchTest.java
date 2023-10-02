@@ -174,7 +174,7 @@ public final class SinglePatchTest {
     SinglePatch emptyPatch = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
     byte[] emptyPatchBytes = emptyPatch.toBytes();
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(emptyPatchBytes, Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(emptyPatchBytes);
 
     assertThat(deserializedPatch).isEqualTo(emptyPatch);
   }
@@ -187,7 +187,7 @@ public final class SinglePatchTest {
         Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
     byte[] testPatchBytes = testSinglePatch.toBytes();
 
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(testPatchBytes, Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(testPatchBytes);
 
     assertThat(deserializedPatch).isEqualTo(testSinglePatch);
   }
@@ -210,7 +210,7 @@ public final class SinglePatchTest {
         Hashing.sha256(), System.getenv(), destinationFiles);
     byte[] testPatchBytes = testSinglePatch.toBytes();
 
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(testPatchBytes, Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(testPatchBytes);
 
     assertThat(deserializedPatch).isEqualTo(testSinglePatch);
     Glob parsedDestinationFiles = deserializedPatch.getDestinationFiles();
@@ -238,7 +238,7 @@ public final class SinglePatchTest {
         Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
     byte[] differentPatchBytes = differentPatch.toBytes();
 
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(differentPatchBytes, Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(differentPatchBytes);
 
     assertThat(deserializedPatch).isNotEqualTo(singlePatch);
   }
@@ -257,7 +257,7 @@ public final class SinglePatchTest {
         Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
     byte[] differentPatchBytes = differentPatch.toBytes();
 
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(differentPatchBytes, Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(differentPatchBytes);
 
     assertThat(deserializedPatch).isNotEqualTo(singlePatch);
   }
@@ -272,7 +272,7 @@ public final class SinglePatchTest {
     SinglePatch singlePatchWithGlob = SinglePatch.generateSinglePatch(baseline, destination,
         Hashing.sha256(), System.getenv(), Glob.createGlob(ImmutableList.of("foo")));
 
-    SinglePatch deserializedPatch = SinglePatch.fromBytes(singlePatch.toBytes(), Hashing.sha256());
+    SinglePatch deserializedPatch = SinglePatch.fromBytes(singlePatch.toBytes());
     assertThat(deserializedPatch).isNotEqualTo(singlePatchWithGlob);
   }
 
@@ -291,7 +291,7 @@ public final class SinglePatchTest {
     String newSinglePatchContent = singlePatchContent.replace("foo", "fo\0o");
 
     Throwable throwable = assertThrows(ValidationException.class,
-        () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8), Hashing.sha256()));
+        () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8)));
     assertThat(throwable).hasMessageThat().contains("path value is invalid");
   }
 
@@ -310,27 +310,8 @@ public final class SinglePatchTest {
     String newSinglePatchContent = singlePatchContent.replace(helloHash, "gg");
 
     Throwable throwable = assertThrows(ValidationException.class,
-        () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8), Hashing.sha256()));
+        () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8)));
     assertThat(throwable).hasMessageThat().contains("hash value is invalid");
-  }
-
-  @Test
-  public void testFromBytes_invalidHashValueThrows_wrongHashLength() throws Exception {
-    write(baseline, "foo", "hello");
-    write(destination, "foo", "hello");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(baseline, destination,
-        Hashing.sha256(), System.getenv(), Glob.ALL_FILES);
-
-    String singlePatchContent = new String(singlePatch.toBytes(), UTF_8);
-
-    // Manually make an edit to the byte format
-    // There should be an entry for "foo" with a corresponding hash.
-    // Add extra hex chars to make an invalid hash for the given hash function.
-    String newSinglePatchContent = singlePatchContent.replace(helloHash, helloHash + "ff");
-
-    Throwable throwable = assertThrows(ValidationException.class,
-        () -> SinglePatch.fromBytes(newSinglePatchContent.getBytes(UTF_8), Hashing.sha256()));
-    assertThat(throwable).hasMessageThat().contains("hash value has incorrect number of hex chars");
   }
 
   @Test

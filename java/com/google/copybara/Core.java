@@ -416,15 +416,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             positional = false),
         @Param(
-            name = "single_patch_path",
-            named = true,
-            // TODO(b/296915559) remove under development warning
-            doc =
-                "Under development. The path that the single patch file will be read from and "
-                    + "written to when single patch mode is enabled.",
-            defaultValue = "\"zz/copybara-single-patch-do-not-edit\"",
-            positional = false),
-        @Param(
             name = "autopatch_config",
             doc = "Configuration that describes the setting for automatic patch file generation",
             allowedTypes = {
@@ -522,7 +513,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Boolean setRevId,
       Boolean smartPrune,
       Object mergeImportObj,
-      String singlePatchPath,
       Object autoPatchFileConfigurationObj,
       net.starlark.java.eval.Sequence<?> afterMergeTransformations,
       Boolean migrateNoopChanges,
@@ -602,7 +592,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     MergeImportConfiguration mergeImport;
     if (mergeImportObj instanceof Boolean) {
       Boolean objectValue = (Boolean) mergeImportObj;
-      mergeImport = objectValue ? MergeImportConfiguration.create("", Glob.ALL_FILES) : null;
+      mergeImport =
+          objectValue ? MergeImportConfiguration.create("", Glob.ALL_FILES, false) : null;
     } else {
       mergeImport = convertFromNoneable(mergeImportObj, null);
     }
@@ -641,8 +632,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             smartPrune,
             mergeImport,
             workflowOptions.useReversePatchBaseline,
-            workflowOptions.useSinglePatch,
-            singlePatchPath,
             autoPatchfileConfiguration,
             asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
@@ -2301,19 +2290,46 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "package_path",
             doc = "Package location (ex. 'google3/third_party/java/foo').",
-            allowedTypes = {@ParamType(type = String.class)},
             named = true,
             positional = false),
         @Param(
             name = "glob",
             doc = "Glob of paths to apply merge_import mode, relative to package_path",
-            allowedTypes = {@ParamType(type = Glob.class)},
+            allowedTypes = {
+                @ParamType(type = Glob.class),
+                @ParamType(type = NoneType.class)
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false),
+        @Param(
+            name = "use_single_patch",
+            documented = false,
+            doc = "under development",
+            defaultValue = "False",
+            named = true,
+            positional = false),
+        @Param(
+            name = "single_patch_path",
+            documented = false,
+            defaultValue = "None",
+            allowedTypes = {
+                @ParamType(type = String.class),
+                @ParamType(type = NoneType.class)
+            },
+            doc = "under development",
             named = true,
             positional = false)
       })
-  public MergeImportConfiguration mergeImportConfiguration(String packagePath, Object globObj) {
+  public MergeImportConfiguration mergeImportConfiguration(
+      String packagePath,
+      Object globObj,
+      boolean useSinglePatch,
+      Object singlePatchPathObj) {
     Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
-    return MergeImportConfiguration.create(packagePath, glob);
+    String singlePatchPath =
+        convertFromNoneable(singlePatchPathObj, MergeImportConfiguration.DEFAULT_SINGLE_PATCH_PATH);
+    return MergeImportConfiguration.create(packagePath, glob, useSinglePatch, singlePatchPath);
   }
 
   @SuppressWarnings("unused")

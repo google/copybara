@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.hash.Hashing;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.ConfigLoader;
 import com.google.copybara.Destination.PatchRegenerator;
@@ -394,13 +393,12 @@ public class RegenerateCmdTest {
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
-    options.workflowOptions.useSinglePatch = false;
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+    RegenerateCmd cmd = getCmd(getConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -426,7 +424,6 @@ public class RegenerateCmdTest {
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
-    options.workflowOptions.useSinglePatch = true;
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
@@ -458,7 +455,6 @@ public class RegenerateCmdTest {
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
-    options.workflowOptions.useSinglePatch = true;
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
@@ -482,8 +478,7 @@ public class RegenerateCmdTest {
             eq("bar"));
 
     SinglePatch singlePatch = SinglePatch.fromBytes(
-        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath)),
-        Hashing.sha256()
+        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath))
     );
 
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
@@ -500,7 +495,6 @@ public class RegenerateCmdTest {
     // with the generated patch as baseline to regenerate again
     setupBaseline("foo");
     setupTarget("bar");
-    options.workflowOptions.useSinglePatch = true;
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
@@ -554,8 +548,7 @@ public class RegenerateCmdTest {
     assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
 
     SinglePatch singlePatch = SinglePatch.fromBytes(
-        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath)),
-        Hashing.sha256()
+        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath))
     );
     singlePatch.reverseSinglePatch(pathArg.getValue(), System.getenv());
 
@@ -594,6 +587,10 @@ public class RegenerateCmdTest {
         + "    destination = testing.destination(),\n"
         + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    merge_import = core.merge_import_config(\n"
+        + "      package_path = \"\"\n,"
+        + "      use_single_patch = False\n"
+        + "    ),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
         + "      directory_prefix = ''\n,"
@@ -611,13 +608,17 @@ public class RegenerateCmdTest {
         + "    destination = testing.destination(),\n"
         + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    merge_import = core.merge_import_config(\n"
+        + "      package_path = \"\"\n,"
+        + "      use_single_patch = True\n,"
+        + "      single_patch_path = '" + singlePatchFilePath + "'\n"
+        + "    ),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
         + "      directory_prefix = ''\n,"
         + "      directory = 'AUTOPATCH',\n"
         + "      suffix = '.patch'\n"
         + "    ),\n"
-        + "    single_patch_path = '" + singlePatchFilePath + "'\n"
         + ")";
   }
 
@@ -629,6 +630,9 @@ public class RegenerateCmdTest {
         + "    destination = testing.destination(),\n"
         + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    merge_import = core.merge_import_config(\n"
+        + "      package_path = \"\"\n,"
+        + "    ),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
         + "      directory_prefix = ''\n,"
@@ -647,6 +651,10 @@ public class RegenerateCmdTest {
         + "    destination = testing.destination(),\n"
         + "    mode = 'SQUASH',\n"
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+        + "    merge_import = core.merge_import_config(\n"
+        + "      package_path = \"\"\n,"
+        + "      use_single_patch = True\n"
+        + "    ),\n"
         + ")";
   }
 

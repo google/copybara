@@ -2047,9 +2047,12 @@ public class WorkflowTest {
   @Test
   public void mergeImport_singlePatch_generatesSinglePatchFile()
       throws IOException, ValidationException, RepoException {
-    options.workflowOptions.useSinglePatch = true;
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
     skylark = new SkylarkTestExecutor(options);
-    mergeImport = "True";
     Path testDir = Files.createTempDirectory("testDir");
 
     Path base1 = Files.createDirectories(testDir.resolve("base1"));
@@ -2066,7 +2069,7 @@ public class WorkflowTest {
     // run the workflow
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String singlePatchPath = workflow.getSinglePatchPath();
+    String singlePatchPath = workflow.fullSinglePatchPath();
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
@@ -2103,9 +2106,12 @@ public class WorkflowTest {
     // This is to verify that workflow is diffing the correct things, not to
     // test SinglePatch internals.
 
-    options.workflowOptions.useSinglePatch = true;
     skylark = new SkylarkTestExecutor(options);
-    mergeImport = "True";
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
     Path testDir = Files.createTempDirectory("testDir");
 
     Path base1 = Files.createDirectories(testDir.resolve("base1"));
@@ -2121,7 +2127,7 @@ public class WorkflowTest {
 
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String singlePatchPath = workflow.getSinglePatchPath();
+    String singlePatchPath = workflow.fullSinglePatchPath();
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     // add a new origin change to import and a destination-only change to create a SinglePatch diff
@@ -2160,8 +2166,7 @@ public class WorkflowTest {
 
     // reverse apply generated patches
     SinglePatch singlePatch = SinglePatch.fromBytes(
-        latestWorkdir.get(singlePatchPath).getBytes(UTF_8),
-        Hashing.sha256());
+        latestWorkdir.get(singlePatchPath).getBytes(UTF_8));
     singlePatch.reverseSinglePatch(base4, System.getenv());
 
     // verify that directory state now matches origin state (no transformations)
@@ -2182,15 +2187,18 @@ public class WorkflowTest {
   @Test
   public void mergeImport_singlePatch_singlePatchBaseline() throws Exception {
     // options setup
-    options.workflowOptions.useSinglePatch = true;
     skylark = new SkylarkTestExecutor(options);
 
     // config setup
-    mergeImport = "True";
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.getSinglePatchPath();
+    String singlePatchPath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2231,8 +2239,7 @@ public class WorkflowTest {
     // a single patch file should exist transforming the destination repo
     // into the latest origin change
     assertThatPath(out1).containsFiles(singlePatchPath);
-    SinglePatch sp = SinglePatch.fromBytes(Files.readAllBytes(out1.resolve(singlePatchPath)),
-        Hashing.sha256());
+    SinglePatch sp = SinglePatch.fromBytes(Files.readAllBytes(out1.resolve(singlePatchPath)));
     sp.reverseSinglePatch(out1, System.getenv());
     assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out1).containsFile("dir/bar.txt", "Another file");
@@ -2256,7 +2263,7 @@ public class WorkflowTest {
 
     // verify that the patch takes the output state back to the origin state
     assertThatPath(out2).containsFiles(singlePatchPath);
-    sp = SinglePatch.fromBytes(Files.readAllBytes(out2.resolve(singlePatchPath)), Hashing.sha256());
+    sp = SinglePatch.fromBytes(Files.readAllBytes(out2.resolve(singlePatchPath)));
     sp.reverseSinglePatch(out2, System.getenv());
     assertThatPath(out2).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out2).containsNoFiles("dir/bar.txt");
@@ -2265,15 +2272,18 @@ public class WorkflowTest {
   @Test
   public void mergeImport_singlePatch_validatesAgainstVersionOfSinglePatchEdit() throws Exception {
     // options setup
-    options.workflowOptions.useSinglePatch = true;
     skylark = new SkylarkTestExecutor(options);
 
     // config setup
-    mergeImport = "True";
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.getSinglePatchPath();
+    String singlePatchPath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2313,15 +2323,18 @@ public class WorkflowTest {
   @Test
   public void mergeImport_singlePatch_validationFails() throws Exception {
     // options setup
-    options.workflowOptions.useSinglePatch = true;
     skylark = new SkylarkTestExecutor(options);
 
     // config setup
-    mergeImport = "True";
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.getSinglePatchPath();
+    String singlePatchPath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),

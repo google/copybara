@@ -218,8 +218,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
     }
 
     if (singlePatch.isPresent()) {
-      Files.createDirectories(nextPath.resolve(workflow.getSinglePatchPath()).getParent());
-      Files.write(nextPath.resolve(workflow.getSinglePatchPath()), singlePatch.get());
+      Files.createDirectories(nextPath.resolve(workflow.fullSinglePatchPath()).getParent());
+      Files.write(nextPath.resolve(workflow.fullSinglePatchPath()), singlePatch.get());
     }
 
     // push the new set of files
@@ -286,7 +286,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
       patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, autopatchGlob);
     }
 
-    Glob singlePatchGlob = Glob.createGlob(ImmutableList.of(workflow.getSinglePatchPath()));
+    Glob singlePatchGlob = Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
     patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, singlePatchGlob);
 
     // copy the baseline to one directory
@@ -304,10 +304,9 @@ public class Regenerate<O extends Revision, D extends Revision> {
     previousDestinationReader.copyDestinationFilesToDirectory(singlePatchGlob, patchPath);
 
     // reverse patch files on the target directory here to get a pristine import
-    Path singlePatchPath = patchPath.resolve(workflow.getSinglePatchPath());
+    Path singlePatchPath = patchPath.resolve(workflow.fullSinglePatchPath());
     if (Files.exists(singlePatchPath)) {
-      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath),
-          workflow.getDestination().getHashFunction());
+      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath));
       singlePatch.reverseSinglePatch(previousPath, workflow.getGeneralOptions().getEnvironment());
     } else {
       console.warn("SinglePatch enabled but no SinglePatch file encountered");

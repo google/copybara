@@ -18,6 +18,7 @@ package com.google.copybara;
 
 import com.google.auto.value.AutoValue;
 import com.google.copybara.util.Glob;
+import java.nio.file.Path;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -25,16 +26,37 @@ import net.starlark.java.eval.StarlarkValue;
 @AutoValue
 @StarlarkBuiltin(
     name = "core.merge_import_config",
-    doc =
-        "The paths for which to perpetuate destination-only changes in non source"
-            + " of truth repositories.")
+    documented = false)
 public abstract class MergeImportConfiguration implements StarlarkValue {
+  public static final String DEFAULT_SINGLE_PATCH_PATH
+    = "do-not-edit.bara.singlepatch";
 
-  public static MergeImportConfiguration create(String packagePath, Glob glob) {
-    return new AutoValue_MergeImportConfiguration(packagePath, glob);
+  public static MergeImportConfiguration create(
+      String packagePath,
+      Glob glob,
+      boolean useSinglePatch,
+      String singlePatchPath) {
+    return new AutoValue_MergeImportConfiguration(
+        packagePath, glob, useSinglePatch, singlePatchPath);
+  }
+
+  public static MergeImportConfiguration create(
+      String packagePath,
+      Glob glob,
+      boolean useSinglePatch) {
+    return new AutoValue_MergeImportConfiguration(
+        packagePath, glob, useSinglePatch, DEFAULT_SINGLE_PATCH_PATH);
   }
 
   public abstract String packagePath();
 
   public abstract Glob glob();
+
+  public abstract boolean useSinglePatch();
+
+  public abstract String singlePatchPath();
+
+  public String fullSinglePatchPath() {
+    return Path.of(packagePath()).resolve(singlePatchPath()).toString();
+  }
 }

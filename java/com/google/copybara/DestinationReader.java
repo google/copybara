@@ -20,6 +20,7 @@ import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
+import java.io.IOException;
 import java.nio.file.Path;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -159,7 +160,7 @@ public abstract class DestinationReader implements StarlarkValue {
   /**
    * Fetch the destination version at which this file was last modified.
    */
-  public String lastModified(String path) throws RepoException {
+  public String lastModified(String path) throws IOException {
     throw new UnsupportedOperationException(
         "Last modified is not implemented in this destination reader.");
   }
@@ -167,7 +168,7 @@ public abstract class DestinationReader implements StarlarkValue {
   /**
    * Obtain the hash of the destination file at this path.
    */
-  public String getHash(String path) throws RepoException {
+  public String getHash(String path) throws RepoException, IOException {
     throw new UnsupportedOperationException(
         "Get hash is not implemented in this destination reader."
     );

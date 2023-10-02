@@ -93,8 +93,6 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.isSmartPrune(),
         workflow.getMergeImport(),
         workflow.isUseReversePatchBaseline(),
-        workflow.useSinglePatch(),
-        workflow.getSinglePatchPath(),
         workflow.getAutoPatchfileConfiguration(),
         workflow.afterMergeTransformations,
         workflow.isMigrateNoopChanges(),

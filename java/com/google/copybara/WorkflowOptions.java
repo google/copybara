@@ -248,13 +248,6 @@ public class WorkflowOptions implements Option {
           + " config edits as origin changes.")
   public boolean useReversePatchBaseline = false;
 
-  // TODO(b/296915559): When ready, make SinglePatch the default and add a workflow config parameter
-  //  to disable
-  @Parameter(names = "--use-single-patch", description =
-      "Under development. If merge import is enabled, use "
-          + "SinglePatch to capture destination-only changes.")
-  public boolean useSinglePatch = false;
-
   @Parameter(
       names = "--threads-for-merge-import",
       description =
