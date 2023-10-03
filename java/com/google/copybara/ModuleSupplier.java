@@ -129,7 +129,8 @@ public class ModuleSupplier {
         new StructModule(),
         new StarlarkDateTimeModule(),
         new GoModule(options.get(RemoteFileOptions.class)),
-        new RustModule(options.get(RemoteFileOptions.class)),
+        new RustModule(
+            options.get(RemoteFileOptions.class), options.get(GitOptions.class), general),
         new HashingModule(),
         new HttpModule(console, options.get(HttpOptions.class)),
         new PythonModule(),

@@ -16,22 +16,51 @@
 
 package com.google.copybara.rust;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.copybara.GeneralOptions;
+import com.google.copybara.TransformWork;
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitDestinationReader;
+import com.google.copybara.git.GitOptions;
+import com.google.copybara.git.GitRepository;
+import com.google.copybara.git.GitRevision;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.remotefile.RemoteFileOptions;
+import com.google.copybara.toml.TomlContent;
+import com.google.copybara.toml.TomlModule;
+import com.google.copybara.util.Glob;
 import com.google.copybara.version.VersionResolver;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.util.Optional;
+import java.util.stream.Stream;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A module for importing Rust crates from crates.io. */
 @StarlarkBuiltin(name = "rust", doc = "A module for importing Rust crates", documented = false)
-public final class RustModule implements StarlarkValue {
-  private final RemoteFileOptions options;
+public class RustModule implements StarlarkValue {
+  private final RemoteFileOptions remoteFileOptions;
+  private final GitOptions gitOptions;
+  private final GeneralOptions generalOptions;
 
-  public RustModule(RemoteFileOptions options) {
-    this.options = options;
+  public RustModule(
+      RemoteFileOptions remoteFileOptions, GitOptions gitOptions, GeneralOptions generalOptions) {
+    this.remoteFileOptions = remoteFileOptions;
+    this.gitOptions = gitOptions;
+    this.generalOptions = generalOptions;
   }
 
   @StarlarkMethod(
@@ -46,7 +75,7 @@ public final class RustModule implements StarlarkValue {
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(String crateName) {
-    return RustCratesIoVersionList.forCrate(crateName, options);
+    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions);
   }
 
   @StarlarkMethod(
@@ -56,7 +85,7 @@ public final class RustModule implements StarlarkValue {
       parameters = {@Param(name = "crate", named = true, doc = "The name of the rust crate.")})
   @SuppressWarnings("unused")
   public VersionResolver getResolver(String crate) {
-    return new RustCratesIoVersionResolver(crate, options);
+    return new RustCratesIoVersionResolver(crate, remoteFileOptions);
   }
 
   @StarlarkMethod(
@@ -95,5 +124,110 @@ public final class RustModule implements StarlarkValue {
       throws ValidationException {
     // TODO(chriscampos): Remove this in favor of getVersionRequirement
     return RustVersionRequirement.getVersionRequirement(requirement).fulfills(version);
+  }
+
+  @SuppressWarnings("unused")
+  @StarlarkMethod(
+      name = "download_fuzzers",
+      doc =
+          "Downloads the crate fuzzers from the upstream Git"
+              + " source. It does this by using the repository path and SHA1 defined in the"
+              + " manifest files (e.g. Cargo.toml).",
+      documented = false,
+      parameters = {
+        @Param(name = "ctx", doc = "The TransformWork object", named = true),
+        @Param(
+            name = "crate_path",
+            doc = "The path to the crate, relative to the checkout directory.",
+            named = true),
+      })
+  public void downloadRustFuzzers(TransformWork ctx, String crateDir)
+      throws EvalException, RepoException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("rust_download_fuzzers")) {
+      Glob originGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
+      // Read in the repository info from Cargo.toml and .cargo_vcs_info.json
+      Path cratePath = ctx.getCheckoutDir().resolve(crateDir);
+      Path cargoTomlPath = cratePath.resolve("Cargo.toml");
+      Path cargoVcsInfoJsonPath = cratePath.resolve(".cargo_vcs_info.json");
+      Path tmpCheckoutPath = generalOptions.getDirFactory().newTempDir("fuzz_checkout");
+      if (!(Files.exists(cargoTomlPath) && Files.exists(cargoVcsInfoJsonPath))) {
+        ctx.getConsole()
+            .warn(
+                "Not downloading fuzzers. Cargo.toml or .cargo_vcs_info.json doesn't exist in the"
+                    + " crate's source files.");
+        return;
+      }
+
+      String url = getFuzzersDownloadUrl(cargoTomlPath);
+      JsonObject vcsJsonObject =
+          JsonParser.parseString(Files.readString(cargoVcsInfoJsonPath)).getAsJsonObject();
+      if (Strings.isNullOrEmpty(url)
+          || !vcsJsonObject.has("git")
+          || !((JsonObject) vcsJsonObject.get("git")).has("sha1")) {
+        ctx.getConsole().warn("Not downloading fuzzers. URL or sha1 reference are not available.");
+        return;
+      }
+
+      String sha1 = ((JsonObject) vcsJsonObject.get("git")).get("sha1").getAsString();
+      ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url, sha1);
+      GitRepository repo = gitOptions.cachedBareRepoForUrl(url);
+      GitRevision rev = repo.fetchSingleRef(url, sha1, true, Optional.empty());
+      GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
+
+      Optional<Path> maybeFuzzCargoTomlPath =
+          getMaybeFuzzCargoTomlPath(tmpCheckoutPath, destinationReader);
+
+      if (maybeFuzzCargoTomlPath.isEmpty()) {
+        ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
+      } else {
+        destinationReader.copyDestinationFilesToDirectory(
+            Glob.createGlob(
+                ImmutableList.of(String.format("%s/**", maybeFuzzCargoTomlPath.get().getParent()))),
+            cratePath);
+      }
+
+    } catch (IOException e) {
+      throw new ValidationException("Failed to obtain Rust fuzzers from Git.", e);
+    }
+  }
+
+  private Optional<Path> getMaybeFuzzCargoTomlPath(
+      Path tmpCheckoutPath, GitDestinationReader destinationReader)
+      throws RepoException, IOException, ValidationException, EvalException {
+    Glob cargoTomlGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
+    destinationReader.copyDestinationFilesToDirectory(cargoTomlGlob, tmpCheckoutPath);
+    PathMatcher pathMatcher = cargoTomlGlob.relativeTo(tmpCheckoutPath);
+    ImmutableList<Path> cargoTomlFiles;
+    Optional<Path> maybeCargoTomlPath = Optional.empty();
+    try (Stream<Path> stream = Files.walk(tmpCheckoutPath)) {
+      cargoTomlFiles =
+          stream
+              .filter(Files::isRegularFile)
+              .filter(pathMatcher::matches)
+              .collect(toImmutableList());
+    }
+
+    for (Path path : cargoTomlFiles) {
+      if (isCargoTomlCargoFuzz(path)) {
+        maybeCargoTomlPath = Optional.of(tmpCheckoutPath.relativize(path));
+        break;
+      }
+    }
+    return maybeCargoTomlPath;
+  }
+
+  protected String getFuzzersDownloadUrl(Path cargoTomlPath)
+      throws ValidationException, EvalException, IOException {
+    return (String)
+        new TomlModule()
+            .parse(Files.readString(cargoTomlPath))
+            .getOrDefault("package.repository", "");
+  }
+
+  private boolean isCargoTomlCargoFuzz(Path cargoTomlPath)
+      throws IOException, ValidationException, EvalException {
+    TomlContent parsedToml = new TomlModule().parse(Files.readString(cargoTomlPath));
+
+    return (boolean) parsedToml.getOrDefault("package.metadata.cargo-fuzz", false);
   }
 }
