@@ -20,15 +20,8 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth8.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.GeneralOptions;
@@ -36,8 +29,6 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
-import com.google.copybara.git.GitRevision;
-import com.google.copybara.git.Refspec;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
 import com.google.copybara.onboard.core.InputProviderResolver;
@@ -95,6 +86,12 @@ public class ConfigHeuristicsInputProviderTest {
 
   @Test
   public void doubleWildcardOriginGlobTest() throws Exception {
+    Files.writeString(workDir.resolve("foo.txt"), "hi");
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "foo.txt", "-m", "message");
+
+    origin.tag("1.0.0").run();
+
     InputProviderResolver resolver =
         new InputProviderResolver() {
           @Override
@@ -119,28 +116,13 @@ public class ConfigHeuristicsInputProviderTest {
           }
         };
 
-    GitOptions mockGitOptions = mock(GitOptions.class);
-    GitRepository mockGitRepository = mock(GitRepository.class);
     ConfigHeuristicsInputProvider inputProvider =
         new ConfigHeuristicsInputProvider(
-            mockGitOptions, generalOptions, ImmutableSet.of(), 30, console);
-    GitRevision gitRevision =
-        new GitRevision(
-            mockGitRepository, "a".repeat(40), null, null, ImmutableListMultimap.of(), url);
-
-    when(mockGitOptions.cachedBareRepoForUrl(anyString())).thenReturn(mockGitRepository);
-    when(mockGitRepository.withWorkTree(any(Path.class))).thenReturn(mockGitRepository);
-    when(mockGitRepository.createRefSpec(anyString()))
-        .thenReturn(Refspec.create(getEnv(), Files.createTempDirectory("origin"), "refs/tags/*"));
-    when(mockGitRepository.fetchSingleRef(
-            anyString(), anyString(), anyBoolean(), eq(Optional.empty())))
-        .thenReturn(gitRevision);
-
+            gitOptions, generalOptions, ImmutableSet.of(), 30, console);
     Optional<Glob> glob = inputProvider.resolve(Inputs.ORIGIN_GLOB, resolver);
 
-    // If the destination is a directory and no exception is thrown, we know that the heuristics was
-    // computed
-    assertThat(Files.isDirectory(destination)).isTrue();
+    // The result is an empty glob rather than glob(include = ["**"], exclude = ["**"])
+    assertThat(Files.isDirectory(workDir)).isTrue();
     assertThat(glob).isEmpty();
   }
 
