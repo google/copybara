@@ -98,9 +98,7 @@ public class RustCratesIoVersionListTest {
             .collect(Collectors.joining("\n"));
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            content));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
     VersionList versionList =
         skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='example')");
     assertThat(versionList.list())
@@ -118,9 +116,9 @@ public class RustCratesIoVersionListTest {
 
     setUpMockTransportForSkylarkExecutor(
         ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/1/a",
+            "https://index.crates.io/1/a",
             crate1.toString(),
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/3/a/abc",
+            "https://index.crates.io/3/a/abc",
             crate2.toString()));
     VersionList versionListCrate1 =
         skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='a')");
@@ -133,9 +131,7 @@ public class RustCratesIoVersionListTest {
   @Test
   public void testRustCrateIoVersionList_badJson() throws Exception {
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            "foo"));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", "foo"));
     VersionList versionList =
         skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='example')");
     RepoException expected = assertThrows(RepoException.class, versionList::list);
@@ -143,7 +139,7 @@ public class RustCratesIoVersionListTest {
         .hasMessageThat()
         .contains(
             "Failed to query crates.io-index for version list at"
-                + " https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example");
+                + " https://index.crates.io/ex/am/example");
   }
 
   @Test
@@ -158,9 +154,7 @@ public class RustCratesIoVersionListTest {
     crate.add("deps", deps);
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            crate.toString()));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", crate.toString()));
     VersionList versionList =
         skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='example')");
     RustRegistryVersionObject versionObject =
@@ -184,9 +178,7 @@ public class RustCratesIoVersionListTest {
     crate.add("features", features);
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            crate.toString()));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", crate.toString()));
     VersionList versionList =
         skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='example')");
     RustRegistryVersionObject versionObject =
@@ -207,9 +199,7 @@ public class RustCratesIoVersionListTest {
         ImmutableList.of(v1).stream().map(JsonElement::toString).collect(Collectors.joining("\n"));
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            content));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
     // The crate name starts with an uppercase letter, but when we look up in the index, we use the
     // lowercase spelling.
     VersionList versionList =

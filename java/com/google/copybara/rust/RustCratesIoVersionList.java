@@ -36,8 +36,7 @@ import net.starlark.java.eval.StarlarkValue;
 /** Used to fetch a list of versions for a Rust crate at crates.io */
 public final class RustCratesIoVersionList implements VersionList, StarlarkValue {
 
-  private static final String CRATES_IO_INDEX_URL =
-      "https://raw.githubusercontent.com/rust-lang/crates.io-index/master";
+  private static final String CRATES_IO_INDEX_URL = "https://index.crates.io";
 
   private final String crateName;
 

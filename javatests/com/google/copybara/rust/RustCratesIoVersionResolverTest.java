@@ -77,9 +77,7 @@ public class RustCratesIoVersionResolverTest {
         ImmutableList.of(v1).stream().map(JsonElement::toString).collect(Collectors.joining("\n"));
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of(
-            "https://raw.githubusercontent.com/rust-lang/crates.io-index/master/ex/am/example",
-            content));
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
   }
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)
