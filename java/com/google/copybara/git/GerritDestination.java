@@ -292,10 +292,15 @@ public final class GerritDestination implements Destination<GitRevision> {
         // individual Gerrit projects can change their Prolog submittability rules to change this
         // behavior, and even to get rid of the Code-Review label entirely.
         if (!changeInfo.isSubmittable()) {
-          gerritApi.setReview(
-              changeInfo.getChangeId(),
-              changeInfo.getCurrentRevision(),
-              new SetReviewInput("", ImmutableMap.of("Code-Review", 2)));
+          try {
+            gerritApi.setReview(
+                changeInfo.getChangeId(),
+                changeInfo.getCurrentRevision(),
+                new SetReviewInput("", ImmutableMap.of("Code-Review", 2)));
+          } catch (RepoException | ValidationException e) {
+            console.warnFmt("Failed voting Code-Review + 2 to make change submittable:\n%s",
+                e.getMessage());
+          }
         }
         ChangeInfo resultInfo =
             gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));

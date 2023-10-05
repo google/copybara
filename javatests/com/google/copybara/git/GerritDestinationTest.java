@@ -842,17 +842,7 @@ public class GerritDestinationTest {
     gitUtil.mockApi(
         eq("POST"),
         matches(BASE_URL + "/changes/.*/submit"),
-        mockResponseAndValidateRequest(
-            "{"
-                + "  change_id : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  status : \"submitted\""
-                + "}",
-            new MockRequestAssertion("Always true with side-effect",
-                s -> {
-                  submitCalled.set(true);
-                  return true;
-                }))
-    );
+        mockResponseWithStatus("Submit failed", 401));
 
     options.setForce(true);
     DummyRevision originRef = new DummyRevision("origin_ref");
@@ -861,8 +851,8 @@ public class GerritDestinationTest {
     WriterContext writerContext =
         new WriterContext("GerritDestinationTest", "test", false, originRef,
             Glob.ALL_FILES.roots());
-    ValidationException validationException =
-        assertThrows(ValidationException.class,
+    GerritApiException expected =
+        assertThrows(GerritApiException.class,
             () ->  destination
               .newWriter(writerContext)
               .write(
@@ -872,7 +862,7 @@ public class GerritDestinationTest {
                   glob,
                   console));
 
-    assertThat(validationException).hasMessageThat().contains("2 is restricted");
+    assertThat(expected).hasMessageThat().contains("Submit failed");
   }
 
   @Test
@@ -900,11 +890,8 @@ public class GerritDestinationTest {
     gitUtil.mockApi(
         eq("POST"),
         matches(BASE_URL + "/changes/.*/submit"),
-        mockResponseAndValidateRequest(
-            "{"
-                + "  \"change_id\" : \"Iaaaaaaaaaabbbbbbbbbbccccccccccdddddddddd\","
-                + "  \"status\" : \"submitted\""
-                + "}",
+        mockResponseWithStatus(
+            "submit requirement 'Presubmit-Verified' is unsatisfied.", 409,
             new MockRequestAssertion(
                 "Always true with side-effect",
                 s -> {
