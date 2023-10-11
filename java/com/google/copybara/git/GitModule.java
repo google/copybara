@@ -1002,8 +1002,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             positional = false,
             doc =
                 "Required state of the reviews associated with the Pull Request"
-                    + " Possible values: `'HEAD_COMMIT_APPROVED'`, `'ANY_COMMIT_APPROVED'`,"
-                    + " `'HAS_REVIEWERS'` or `'ANY'`. Default `None`. This field is required if"
+                    + " Possible values:\n\n"
+                    + "-  `ANY`: No review or approval required.\n"
+                    + "-  `HAS_REVIEWERS`: A reviewer interacted with the change, e.g. commented.\n"
+                    + "-  `ANY_COMMIT_APPROVED`: At least one commit in the PR was approved.\n"
+                    + "-  `HEAD_COMMIT_APPROVED`: The current head commit was approved.\n\n"
+                    + " Default is `None` which has no requirement.\nThis field is required if"
                     + " the user wants `"
                     + GITHUB_PR_REVIEWER_APPROVER
                     + "` and `"
