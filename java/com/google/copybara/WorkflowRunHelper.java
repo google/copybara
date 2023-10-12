@@ -865,7 +865,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             destinationFilesWorkdir,
             baselineWorkdir,
             Files.createDirectories(workdir.resolve("merge_import")),
-            workflow.getMergeImport().glob(),
+            workflow.getMergeImport().paths(),
             Path.of(workflow.getMergeImport().packagePath()));
       }
       try (ProfilerTask ignore = profiler().start("after_merge_transformations")) {

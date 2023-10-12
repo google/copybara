@@ -2293,12 +2293,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false),
         @Param(
-            name = "glob",
+            name = "paths",
             doc = "Glob of paths to apply merge_import mode, relative to package_path",
-            allowedTypes = {
-                @ParamType(type = Glob.class),
-                @ParamType(type = NoneType.class)
-            },
+            allowedTypes = {@ParamType(type = Glob.class), @ParamType(type = NoneType.class)},
             defaultValue = "None",
             named = true,
             positional = false),
@@ -2313,23 +2310,17 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "single_patch_path",
             documented = false,
             defaultValue = "None",
-            allowedTypes = {
-                @ParamType(type = String.class),
-                @ParamType(type = NoneType.class)
-            },
+            allowedTypes = {@ParamType(type = String.class), @ParamType(type = NoneType.class)},
             doc = "under development",
             named = true,
             positional = false)
       })
   public MergeImportConfiguration mergeImportConfiguration(
-      String packagePath,
-      Object globObj,
-      boolean useSinglePatch,
-      Object singlePatchPathObj) {
-    Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
+      String packagePath, Object pathsObj, boolean useSinglePatch, Object singlePatchPathObj) {
+    Glob paths = convertFromNoneable(pathsObj, Glob.ALL_FILES);
     String singlePatchPath =
         convertFromNoneable(singlePatchPathObj, MergeImportConfiguration.DEFAULT_SINGLE_PATCH_PATH);
-    return MergeImportConfiguration.create(packagePath, glob, useSinglePatch, singlePatchPath);
+    return MergeImportConfiguration.create(packagePath, paths, useSinglePatch, singlePatchPath);
   }
 
   @SuppressWarnings("unused")

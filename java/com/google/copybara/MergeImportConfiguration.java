@@ -33,24 +33,24 @@ public abstract class MergeImportConfiguration implements StarlarkValue {
 
   public static MergeImportConfiguration create(
       String packagePath,
-      Glob glob,
+      Glob paths,
       boolean useSinglePatch,
       String singlePatchPath) {
     return new AutoValue_MergeImportConfiguration(
-        packagePath, glob, useSinglePatch, singlePatchPath);
+        packagePath, paths, useSinglePatch, singlePatchPath);
   }
 
   public static MergeImportConfiguration create(
       String packagePath,
-      Glob glob,
+      Glob paths,
       boolean useSinglePatch) {
     return new AutoValue_MergeImportConfiguration(
-        packagePath, glob, useSinglePatch, DEFAULT_SINGLE_PATCH_PATH);
+        packagePath, paths, useSinglePatch, DEFAULT_SINGLE_PATCH_PATH);
   }
 
   public abstract String packagePath();
 
-  public abstract Glob glob();
+  public abstract Glob paths();
 
   public abstract boolean useSinglePatch();
 

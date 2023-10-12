@@ -2743,7 +2743,7 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "        package_path = \"\",\n"
-            + "        glob = glob(\n"
+            + "        paths = glob(\n"
             + "            include = [\n"
             + "                \"**\",\n"
             + "            ],\n"
@@ -2807,7 +2807,7 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "        package_path = \"\",\n"
-            + "        glob = glob(\n"
+            + "        paths = glob(\n"
             + "            include = [\n"
             + "                \"foo.txt\",\n"
             + "            ],\n"
@@ -2871,7 +2871,7 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "        package_path = \"folder\",\n"
-            + "        glob = glob(\n"
+            + "        paths = glob(\n"
             + "            include = [\n"
             + "                \"**\",\n"
             + "            ],\n"

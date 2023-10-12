@@ -1087,7 +1087,7 @@ core.latest_version(
 
 Describes which paths merge_import mode should be applied
 
-[`core.merge_import_config`](#coremerge_import_config) `core.merge_import_config(package_path, glob=None, use_single_patch=False, single_patch_path=None)`
+[`core.merge_import_config`](#coremerge_import_config) `core.merge_import_config(package_path, paths=None, use_single_patch=False, single_patch_path=None)`
 
 
 #### Parameters:
@@ -1095,7 +1095,7 @@ Describes which paths merge_import mode should be applied
 Parameter | Description
 --------- | -----------
 package_path | `string`<br><p>Package location (ex. 'google3/third_party/java/foo').</p>
-glob | [`glob`](#glob) or `NoneType`<br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
+paths | [`glob`](#glob) or `NoneType`<br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
 use_single_patch | `bool`<br><p>under development</p>
 single_patch_path | `string` or `NoneType`<br><p>under development</p>
 
