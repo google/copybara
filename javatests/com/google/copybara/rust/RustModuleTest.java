@@ -169,6 +169,7 @@ public class RustModuleTest {
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("ignore.rs"))).isFalse();
+    console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzz");
   }
 
   @Test
@@ -180,6 +181,7 @@ public class RustModuleTest {
     assertThat(Files.exists(cratePath.resolve("fuzzbara/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzzbara/bar.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("ignore.rs"))).isFalse();
+    console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzzbara");
   }
 
   private void setUpRepoAndCheckout(Path cratePath, String fuzzersDir)
@@ -222,8 +224,11 @@ public class RustModuleTest {
     starlark
         .<Transformation>eval(
             "t",
-            "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\"))")
+            "def test_download_fuzz(ctx):\n"
+                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path"
+                + " = \"foo_crate_v1\")\n"
+                + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path)\n"
+                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))")
         .transform(
             TransformWorks.of(
                     workdir,

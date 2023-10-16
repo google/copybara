@@ -20,6 +20,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.CheckoutPath;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.doc.annotations.Example;
@@ -43,6 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.Optional;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -140,8 +142,10 @@ public class RustModule implements StarlarkValue {
             name = "crate_path",
             doc = "The path to the crate, relative to the checkout directory.",
             named = true),
-      })
-  public void downloadRustFuzzers(TransformWork ctx, String crateDir)
+      },
+      allowReturnNones = true)
+  @Nullable
+  public CheckoutPath downloadRustFuzzers(TransformWork ctx, String crateDir)
       throws EvalException, RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("rust_download_fuzzers")) {
       Glob originGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
@@ -155,7 +159,7 @@ public class RustModule implements StarlarkValue {
             .warn(
                 "Not downloading fuzzers. Cargo.toml or .cargo_vcs_info.json doesn't exist in the"
                     + " crate's source files.");
-        return;
+        return null;
       }
 
       String url = getFuzzersDownloadUrl(cargoTomlPath);
@@ -165,7 +169,7 @@ public class RustModule implements StarlarkValue {
           || !vcsJsonObject.has("git")
           || !((JsonObject) vcsJsonObject.get("git")).has("sha1")) {
         ctx.getConsole().warn("Not downloading fuzzers. URL or sha1 reference are not available.");
-        return;
+        return null;
       }
 
       String sha1 = ((JsonObject) vcsJsonObject.get("git")).get("sha1").getAsString();
@@ -180,12 +184,14 @@ public class RustModule implements StarlarkValue {
       if (maybeFuzzCargoTomlPath.isEmpty()) {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
       } else {
+        Path fuzzerPath = maybeFuzzCargoTomlPath.get().getParent();
         destinationReader.copyDestinationFilesToDirectory(
-            Glob.createGlob(
-                ImmutableList.of(String.format("%s/**", maybeFuzzCargoTomlPath.get().getParent()))),
-            cratePath);
+            Glob.createGlob(ImmutableList.of(String.format("%s/**", fuzzerPath))), cratePath);
+        return ctx.newPath(
+            ctx.getCheckoutDir().relativize(cratePath.resolve(fuzzerPath.toString())).toString());
       }
 
+      return null;
     } catch (IOException e) {
       throw new ValidationException("Failed to obtain Rust fuzzers from Git.", e);
     }
