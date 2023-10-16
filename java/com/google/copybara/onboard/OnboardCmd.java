@@ -21,11 +21,16 @@ import com.google.copybara.CommandEnv;
 import com.google.copybara.CopybaraCmd;
 import com.google.copybara.util.ExitCode;
 
-/** CopybaraCmd that assists users in creating a config file. Note that this is still experimental
+/**
+ * CopybaraCmd that assists users in creating a config file. Note that this is still experimental
  * and a work in progress. In the near term, users will be able to generate a simple config by
  * running `copybara onboard` and following onscreen prompts. This functionality will be extended
- * over time. */
-@Parameters(separators = "=", commandDescription = "Runs assisted onboarding tool.")
+ * over time.
+ */
+@Parameters(
+    separators = "=",
+    commandDescription =
+        "EXPERIMENTAL - prefer to use generator instead. Runs assisted onboarding tool.")
 public class OnboardCmd implements CopybaraCmd {
 
   public OnboardCmd() {}
