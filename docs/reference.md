@@ -4941,7 +4941,7 @@ Name | Type | Description
 <a id="remotefiles.origin" aria-hidden="true"></a>
 ### remotefiles.origin
 
-Defines a remote file origin. This is a WIP and experimental. Do not use. 
+Defines a remote file origin.
 
 `origin` `remotefiles.origin(author='Copybara <noreply@copybara.io>', message='Placeholder message', unpack_method='AS_IS', archive_source='', version_list=None, origin_version_selector=None, version_resolver=None)`
 

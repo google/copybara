@@ -102,7 +102,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
 
   @StarlarkMethod(
       name = "origin",
-      doc = "Defines a remote file origin. This is a WIP and experimental. Do not use. ",
+      doc = "Defines a remote file origin.",
       parameters = {
         @Param(
             name = "author",
