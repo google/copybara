@@ -184,4 +184,14 @@ public class Re2Test {
         + "m.matches()\n"
         + "x = m.replace_all('HELLO$1')")).isEqualTo("HELLObbHELLObbb");
   }
+
+  @Test
+  public void quoteQuotes() throws ValidationException {
+    assertThat(skylark.<Boolean>eval("x", ""
+        + "re = re2.compile('a%s' % (re2.quote('.*')))\n"
+        + "x = re.matcher('axxxxxb').matches()\n")).isFalse();
+    assertThat(skylark.<Boolean>eval("x", ""
+        + "re = re2.compile('a%s' % (re2.quote('.*')))\n"
+        + "x = re.matcher('a.*').matches()\n")).isTrue();
+  }
 }

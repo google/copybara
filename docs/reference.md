@@ -195,6 +195,7 @@
   - [PathAttributes](#pathattributes)
   - [re2](#re2)
     - [re2.compile](#re2compile)
+    - [re2.quote](#re2quote)
   - [re2_matcher](#re2_matcher)
     - [re2_matcher.end](#re2_matcherend)
     - [re2_matcher.find](#re2_matcherfind)
@@ -4761,6 +4762,20 @@ Patterns need to be compiled before using them:
 re2.compile("a(.*)b").matches('accccb')
 ```
 
+
+<a id="re2.quote" aria-hidden="true"></a>
+### re2.quote
+
+Quote a string to be matched literally if used within a regex pattern
+
+`string` `re2.quote(string)`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+string | `string`<br><p></p>
 
 
 

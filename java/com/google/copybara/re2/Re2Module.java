@@ -38,4 +38,13 @@ public class Re2Module implements StarlarkValue {
   public StarlarkPattern compile(String regex) {
     return new StarlarkPattern(Pattern.compile(regex));
   }
+
+  @StarlarkMethod(
+      name = "quote",
+      doc = "Quote a string to be matched literally if used within a regex pattern",
+      parameters = {
+          @Param(name = "string")})
+  public String quote(String string) {
+    return Pattern.quote(string);
+  }
 }
