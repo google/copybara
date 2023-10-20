@@ -406,7 +406,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param destinationBaseline it not null, use this baseline in the destination
      * @param changeIdentityRevision the revision to be used for computing the change identity
      * @param originBaselineForMergeImport the revision to populate baseline for merge_import
-     *     mode
+     * mode
      */
     @CanIgnoreReturnValue
     public final ImmutableList<DestinationEffect> migrate(
@@ -1038,7 +1038,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           console.colorize(AnsiColor.YELLOW, workflow.getOriginFiles().toString()),
           console.colorize(AnsiColor.YELLOW, workdir.toString()),
           console.colorize(AnsiColor.YELLOW,
-              "core.transform([your_transformation], ignore_noop = True)"),
+              "core.transform([your_transformation], noop_behavior = \"\"IGNORE_NOOP\"\")"),
           console.colorize(AnsiColor.YELLOW, "--read-config-from-change"));
     }
 
