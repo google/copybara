@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
+import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
@@ -46,9 +47,12 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A module for importing Rust crates from crates.io. */
@@ -142,10 +146,20 @@ public class RustModule implements StarlarkValue {
             name = "crate_path",
             doc = "The path to the crate, relative to the checkout directory.",
             named = true),
+        @Param(
+            name = "fuzz_excludes",
+            doc = "A list of glob patterns to exclude from the fuzz directory.",
+            allowedTypes = {
+              @ParamType(type = NoneType.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class)
+            },
+            named = true,
+            defaultValue = "None"),
       },
       allowReturnNones = true)
   @Nullable
-  public CheckoutPath downloadRustFuzzers(TransformWork ctx, String crateDir)
+  public CheckoutPath downloadRustFuzzers(
+      TransformWork ctx, String crateDir, Object maybeFuzzExcludes)
       throws EvalException, RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("rust_download_fuzzers")) {
       Glob originGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
@@ -185,8 +199,15 @@ public class RustModule implements StarlarkValue {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
       } else {
         Path fuzzerPath = maybeFuzzCargoTomlPath.get().getParent();
+        StarlarkList<String> exclude =
+            SkylarkUtil.convertFromNoneable(maybeFuzzExcludes, StarlarkList.empty());
         destinationReader.copyDestinationFilesToDirectory(
-            Glob.createGlob(ImmutableList.of(String.format("%s/**", fuzzerPath))), cratePath);
+            Glob.createGlob(
+                ImmutableList.of(String.format("%s/**", fuzzerPath)),
+                exclude.stream()
+                    .map(e -> String.format("%s/%s", fuzzerPath, e))
+                    .collect(toImmutableList())),
+            cratePath);
         return ctx.newPath(
             ctx.getCheckoutDir().relativize(cratePath.resolve(fuzzerPath.toString())).toString());
       }

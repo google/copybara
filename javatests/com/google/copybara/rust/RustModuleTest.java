@@ -164,7 +164,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz");
+    setUpRepoAndCheckout(cratePath, "fuzz", "None");
 
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
@@ -173,10 +173,23 @@ public class RustModuleTest {
   }
 
   @Test
+  public void testDownloadCrateFuzzers_fuzzExcludes() throws Exception {
+    // Set up remote Git repo with fuzzers
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    setUpRepoAndCheckout(cratePath, "fuzz", "[\"bar.rs\", \"baz/foo.rs\"]");
+
+    assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
+    assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isFalse();
+    assertThat(Files.exists(cratePath.resolve("fuzz/baz/foo.rs"))).isFalse();
+    assertThat(Files.exists(cratePath.resolve("ignore.rs"))).isFalse();
+    console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzz");
+  }
+
+  @Test
   public void testDownloadCrateFuzzers_differentFuzzDir() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzzbara");
+    setUpRepoAndCheckout(cratePath, "fuzzbara", "None");
 
     assertThat(Files.exists(cratePath.resolve("fuzzbara/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzzbara/bar.rs"))).isTrue();
@@ -184,7 +197,7 @@ public class RustModuleTest {
     console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzzbara");
   }
 
-  private void setUpRepoAndCheckout(Path cratePath, String fuzzersDir)
+  private void setUpRepoAndCheckout(Path cratePath, String fuzzersDir, String excludes)
       throws IOException, RepoException, ValidationException {
     Path remote = Files.createTempDirectory("remote");
     String url = "file://" + remote.toFile().getAbsolutePath();
@@ -197,6 +210,7 @@ public class RustModuleTest {
 
     GitTestUtil.writeFile(remote, String.format("%s/foo.rs", fuzzersDir), "test1");
     GitTestUtil.writeFile(remote, String.format("%s/bar.rs", fuzzersDir), "test2");
+    GitTestUtil.writeFile(remote, String.format("%s/baz/foo.rs", fuzzersDir), "test3");
     GitTestUtil.writeFile(
         remote,
         String.format("%s/Cargo.toml", fuzzersDir),
@@ -224,11 +238,13 @@ public class RustModuleTest {
     starlark
         .<Transformation>eval(
             "t",
-            "def test_download_fuzz(ctx):\n"
-                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path"
-                + " = \"foo_crate_v1\")\n"
-                + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path)\n"
-                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))")
+            String.format(
+                "def test_download_fuzz(ctx):\n"
+                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path"
+                    + " = \"foo_crate_v1\", fuzz_excludes = %s)\n"
+                    + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path)\n"
+                    + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+                excludes))
         .transform(
             TransformWorks.of(
                     workdir,

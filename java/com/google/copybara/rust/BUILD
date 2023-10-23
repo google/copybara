@@ -22,6 +22,7 @@ java_library(
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
