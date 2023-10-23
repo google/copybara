@@ -17,13 +17,21 @@
 package com.google.copybara.util.console;
 
 import com.google.common.base.Splitter;
+import com.google.common.flogger.FluentLogger;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import net.starlark.java.eval.EvalException;
 
 /**
  * Utility methods for working with {@link Console}s.
  */
 public class Consoles {
+
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private Consoles() {}
 
@@ -61,5 +69,32 @@ public class Consoles {
       }
       logLevel.accept(prefix + line);
     }
+  }
+
+  public static void printCauseChain(Level level, Console console, String[] args, Throwable e) {
+    StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
+    List<Throwable> suppressed = Arrays.asList(e.getSuppressed());
+    Throwable cause = e.getCause();
+    while (cause != null) {
+      Collections.addAll(suppressed, cause.getSuppressed());
+      error.append("  CAUSED BY: ").append(printException(cause)).append("\n");
+      cause = cause.getCause();
+    }
+    for (Throwable t : suppressed) {
+      printCauseChain(level, console, args, t);
+    }
+    console.error(error.toString());
+    logger.at(level).withCause(e).log("%s", formatLogError(e.getMessage(), args));
+  }
+
+  private static String printException(Throwable t) {
+    if (t instanceof EvalException) {
+      return ((EvalException) t).getMessageWithStack();
+    }
+    return t.getMessage();
+  }
+
+  public static String formatLogError(String message, String[] args) {
+    return String.format("%s (command args: %s)", message, Arrays.toString(args));
   }
 }

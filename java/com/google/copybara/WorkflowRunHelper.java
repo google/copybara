@@ -405,10 +405,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
      * @param changes changes included in this migration
      * @param destinationBaseline it not null, use this baseline in the destination
      * @param changeIdentityRevision the revision to be used for computing the change identity
-     * @param originBaselineForMergeImport the revision to populate baseline for merge_import
-     * mode
+     * @param originBaselineForMergeImport the revision to populate baseline for merge_import mode
      */
     @CanIgnoreReturnValue
+    @SuppressWarnings("Finally")
     public final ImmutableList<DestinationEffect> migrate(
         O rev,
         @Nullable O lastRev,
@@ -420,6 +420,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         @Nullable O originBaselineForMergeImport)
         throws IOException, RepoException, ValidationException {
       ImmutableList<DestinationEffect> effects = ImmutableList.of();
+      Exception lastException = null;
       try {
         workflow.eventMonitors().dispatchEvent(
             m -> m.onChangeMigrationStarted(new ChangeMigrationStartedEvent()));
@@ -450,21 +451,26 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                         e.getMessage()),
                     changes.getCurrent(),
                     new DestinationRef(e.getPendingRevision(), "commit", /*url=*/ null)));
+        lastException = e;
         throw e;
       } catch (EmptyChangeException empty) {
         effects =
             ImmutableList.of(
                 new DestinationEffect(
                     Type.NOOP,
-                    String.format("Cannot migrate revisions [%s]: %s",
+                    String.format(
+                        "Cannot migrate revisions [%s]: %s",
                         changes.getCurrent().isEmpty()
                             ? "Unknown"
-                            : Joiner.on(", ").join(changes.getCurrent().stream()
-                                .map(c -> c.getRevision().asString())
-                                .iterator()),
+                            : Joiner.on(", ")
+                                .join(
+                                    changes.getCurrent().stream()
+                                        .map(c -> c.getRevision().asString())
+                                        .iterator()),
                         empty.getMessage()),
                     changes.getCurrent(),
-                    /*destinationRef=*/ null));
+                    /* destinationRef= */ null));
+        lastException = empty;
         throw empty;
       } catch (ValidationException | IOException | RepoException | RuntimeException e) {
         boolean userError = e instanceof ValidationException;
@@ -476,6 +482,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                     changes.getCurrent(),
                     /*destinationRef=*/ null,
                     ImmutableList.of(e.getMessage() != null ? e.getMessage() : e.toString())));
+        lastException = e;
         throw e;
       } finally {
         try {
@@ -487,6 +494,12 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   // Only do this once for all the actions
                   LazyResourceLoader.memoized(writer::getFeedbackEndPoint),
                   resolvedRef);
+            } catch (ValidationException | RepoException e) {
+              if (lastException != null) {
+                lastException.addSuppressed(e);
+              } else {
+                throw e;
+              }
             }
           } else if (!workflow.getAfterMigrationActions().isEmpty()) {
             workflow.getConsole()

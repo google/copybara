@@ -51,6 +51,7 @@ import com.google.copybara.regenerate.RegenerateCmd;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.AnsiConsole;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Consoles;
 import com.google.copybara.util.console.FileConsole;
 import com.google.copybara.util.console.LogConsole;
 import com.google.copybara.util.console.NoPromptConsole;
@@ -70,7 +71,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import javax.annotation.Nullable;
-import net.starlark.java.eval.EvalException;
 
 /**
  * Main class that invokes Copybara from command-line.
@@ -247,11 +247,11 @@ public class Main {
       return new CommandResult(exitCode, subcommand, commandEnv);
 
     } catch (CommandLineException | ParameterException e) {
-      printCauseChain(Level.WARNING, console, args, e);
+      Consoles.printCauseChain(Level.WARNING, console, args, e);
       console.error("Try 'copybara help'.");
       return new CommandResult(ExitCode.COMMAND_LINE_ERROR, subcommand, commandEnv);
     } catch (RepoException e) {
-      printCauseChain(Level.SEVERE, console, args, e);
+      Consoles.printCauseChain(Level.SEVERE, console, args, e);
       // TODO(malcon): Expose interrupted exception from WorkflowMode to Main so that we don't
       // have to do this hack.
       if (e.getCause() instanceof InterruptedException) {
@@ -264,7 +264,7 @@ public class Main {
       console.warn(e.getMessage());
       return new CommandResult(ExitCode.NO_OP, subcommand, commandEnv);
     } catch (ValidationException e) {
-      printCauseChain(Level.WARNING, console, args, e);
+      Consoles.printCauseChain(Level.WARNING, console, args, e);
       return new CommandResult(ExitCode.CONFIGURATION_ERROR,
           subcommand, commandEnv);
     } catch (IOException e) {
@@ -528,26 +528,8 @@ public class Main {
     }
   }
 
-  private void printCauseChain(Level level, Console console, String[] args, Throwable e) {
-    StringBuilder error = new StringBuilder(e.getMessage()).append("\n");
-    Throwable cause = e.getCause();
-    while (cause != null) {
-      error.append("  CAUSED BY: ").append(printException(cause)).append("\n");
-      cause = cause.getCause();
-    }
-    console.error(error.toString());
-    logger.at(level).withCause(e).log("%s", formatLogError(e.getMessage(), args));
-  }
-
-  private String printException(Throwable t) {
-    if (t instanceof EvalException) {
-      return ((EvalException) t).getMessageWithStack();
-    }
-    return t.getMessage();
-  }
-
   private void handleUnexpectedError(Console console, String msg, String[] args, Throwable e) {
-    logger.atSevere().withCause(e).log("%s", formatLogError(msg, args));
+    logger.atSevere().withCause(e).log("%s", Consoles.formatLogError(msg, args));
     console.error(msg + " (" + e + ")");
   }
 
@@ -560,10 +542,6 @@ public class Main {
         .append("Example:\n")
         .append("  copybara ").append(COPYBARA_SKYLARK_CONFIG_FILENAME).append(" origin/master\n");
     return fullUsage.toString();
-  }
-
-  private static String formatLogError(String message, String[] args) {
-    return String.format("%s (command args: %s)", message, Arrays.toString(args));
   }
 
   /** Prints the Copybara version */

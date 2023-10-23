@@ -4057,6 +4057,30 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testDryRun_false_configError() throws Exception {
+    options.general.dryRunMode = false;
+    ValidationException ignored =
+        assertThrows(ValidationException.class, () -> checkDryRunBadConfig(ImmutableList.of()));
+
+    // even though the hooks migration failed, the original config error is still thrown
+    assertThat(ignored)
+        .hasMessageThat()
+        .containsMatch(
+            "Transformation 'Replace\\{before=fooo, after=bar, regexGroups=\\{\\}, firstOnly=false,"
+                + " multiline=false, path=glob\\(include = \\[\"\\*\\*\"\\]\\),"
+                + " patternsToIgnore=\\[\\], location=copy\\.bara\\.sky:[0-9]+:[0-9]+\\}' was a"
+                + " no-op because it didn't change any of the matching files\\.");
+
+    assertThat(ignored.getSuppressed()[0])
+        .hasMessageThat()
+        .containsMatch(
+            "Error while executing the skylark transformation other: Traceback \\(most"
+                + " recent call last\\):");
+
+    assertThat(ignored.getSuppressed()[0].getCause()).isNull();
+  }
+
+  @Test
   public void testDryRun_no_changes() throws Exception {
     options.general.dryRunMode = true;
     options.setForce(true);
@@ -4085,6 +4109,28 @@ public class WorkflowTest {
     } finally {
       assertThat(destination.processed.get(0).isDryRun()).isEqualTo(options.general.dryRunMode);
     }
+  }
+
+  private void checkDryRunBadConfig(ImmutableList<String> refs)
+      throws IOException, RepoException, ValidationException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "1");
+    String config =
+        ""
+            + "def other(ctx):\n"
+            + "  a = 3 + 'cannot add int to string!'\n"
+            + "\n"
+            + "core.workflow(\n"
+            + "  name = 'default',\n"
+            + "  origin = testing.origin(),\n"
+            + "  destination = testing.destination(),\n"
+            + "  transformations = [core.replace(\"fooo\", \"bar\")],\n"
+            + "  authoring = "
+            + authoring
+            + ",\n"
+            + "  after_migration = [other]"
+            + ")\n";
+
+    loadConfig(config).getMigration("default").run(workdir, refs);
   }
 
   @Test

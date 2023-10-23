@@ -25,5 +25,6 @@ java_library(
         "//third_party:flogger",
         "//third_party:guava",
         "//third_party:jsr305",
+        "//third_party:starlark",
     ],
 )
