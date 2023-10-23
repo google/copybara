@@ -332,8 +332,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         "'smart_prune = True' is only supported for CHANGE_REQUEST mode.");
     if (isSetRevId()) {
       checkCondition(mode != CHANGE_REQUEST || customRevId == null,
-          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
-              + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
+          "custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
+              + " set_rev_id is set to true. custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
       checkCondition(

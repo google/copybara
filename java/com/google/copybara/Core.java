@@ -453,8 +453,23 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = NoneType.class),
             },
             doc =
-                "Use this label name instead of the one provided by the origin. This is subject"
-                    + " to change and there is no guarantee.",
+                "DEPRECATED(Remove by 2024/01/01: Use . Use this label name instead of the one"
+                    + " provided by the origin.",
+            defaultValue = "None",
+            positional = false),
+        @Param(
+            name = "custom_rev_id",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc =
+                "If the destination uses labels to mark the last change migrated, use this label"
+                    + " name instead of the one provided by the origin. This allows to to have"
+                    + " two migrations to the same destination without the other migration changes"
+                    + " interfering this migration. I can also serve to clearly state where the"
+                    + " change is coming from.",
             defaultValue = "None",
             positional = false),
         @Param(
@@ -516,6 +531,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object autoPatchFileConfigurationObj,
       net.starlark.java.eval.Sequence<?> afterMergeTransformations,
       Boolean migrateNoopChanges,
+      Object experimentalCustomRevIdField,
       Object customRevIdField,
       Object description,
       Boolean checkout,
@@ -550,17 +566,24 @@ public class Core implements LabelsAwareModule, StarlarkValue {
 
     ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj);
 
-    String customRevId = convertFromNoneable(customRevIdField, null);
+    if (Starlark.isNullOrNone(experimentalCustomRevIdField)) {
+      generalOptions.console()
+          .warn("experimental_custom_rev_id is deprecated. Use custom_rev_id instead.");
+    }
+
+    String customRevId = convertFromNoneable(customRevIdField,
+        convertFromNoneable(experimentalCustomRevIdField, null));
+
     check(
         customRevId == null || CUSTOM_REVID_FORMAT.matches(customRevId),
-        "Invalid experimental_custom_rev_id format. Format: %s",
+        "Invalid custom_rev_id format. Format: %s",
         CUSTOM_REVID_FORMAT.pattern());
 
     if (setRevId) {
       check(
           mode != WorkflowMode.CHANGE_REQUEST || customRevId == null,
-          "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
-              + " set_rev_id is set to true. experimental_custom_rev_id is used for looking"
+          "custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if"
+              + " set_rev_id is set to true. custom_rev_id is used for looking"
               + " for the baseline in the origin. No revId is stored in the destination.");
     } else {
       check(

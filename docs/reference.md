@@ -1544,7 +1544,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=None, autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=None, autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
 
 
 #### Parameters:
@@ -1572,7 +1572,8 @@ merge_import | `bool` or [`core.merge_import_config`](#coremerge_import_config) 
 autopatch_config | [`core.autopatch_config`](#coreautopatch_config) or `NoneType`<br><p>Configuration that describes the setting for automatic patch file generation</p>
 after_merge_transformations | `sequence`<br><p>Perform these transformations after merge_import, but before Copybara writes to the destination. Ex: any BUILD file generations that rely on the results of merge_import</p>
 migrate_noop_changes | `bool`<br><p>By default, Copybara tries to only migrate changes that affect origin_files or config files. This flag allows to include all the changes. Note that it might generate more empty changes errors. In `ITERATIVE` mode it might fail if some transformation is validating the message (Like has to contain 'PUBLIC' and the change doesn't contain it because it is internal).</p>
-experimental_custom_rev_id | `string` or `NoneType`<br><p>Use this label name instead of the one provided by the origin. This is subject to change and there is no guarantee.</p>
+experimental_custom_rev_id | `string` or `NoneType`<br><p>DEPRECATED(Remove by 2024/01/01: Use . Use this label name instead of the one provided by the origin.</p>
+custom_rev_id | `string` or `NoneType`<br><p>If the destination uses labels to mark the last change migrated, use this label name instead of the one provided by the origin. This allows to to have two migrations to the same destination without the other migration changes interfering this migration. I can also serve to clearly state where the change is coming from.</p>
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 checkout | `bool`<br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
 reversible_check_ignore_files | [`glob`](#glob) or `NoneType`<br><p>Ignore the files matching the glob in the reversible check</p>

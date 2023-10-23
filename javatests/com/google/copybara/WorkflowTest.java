@@ -814,7 +814,7 @@ public class WorkflowTest {
     origin.addSimpleChange(/*timestamp*/ 2);
     origin.addSimpleChange(/*timestamp*/ 3);
 
-    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
 
     Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
 
@@ -1656,7 +1656,7 @@ public class WorkflowTest {
         .addSimpleChange(0, "One Change\n\nCUSTOM_REV_ID=42")
         .addSimpleChange(1, "Second Change");
 
-    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
     setRevId = false;
     Workflow<?, ?> workflow = changeRequestWorkflow(null);
     workflow.run(workdir, ImmutableList.of("1"));
@@ -1671,14 +1671,14 @@ public class WorkflowTest {
 
   @Test
   public void changeRequest_customRevIdLabelWithSetRevId() throws Exception {
-    extraWorkflowFields = ImmutableList.of("experimental_custom_rev_id = \"CUSTOM_REV_ID\"");
+    extraWorkflowFields = ImmutableList.of("custom_rev_id = \"CUSTOM_REV_ID\"");
     setRevId = true;
     ValidationException e =
         assertThrows(ValidationException.class, () -> changeRequestWorkflow(null));
     assertThat(e.getMessage())
         .containsMatch(
-            "experimental_custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
-                + "set_rev_id is set to true. experimental_custom_rev_id is used");
+            "custom_rev_id is not allowed to be used in CHANGE_REQUEST mode if "
+                + "set_rev_id is set to true. custom_rev_id is used");
   }
 
   @Test
