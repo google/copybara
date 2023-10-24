@@ -108,11 +108,12 @@ public class GerritOrigin extends GitOrigin {
         partialFetch,
         patchTransformation,
         describeVersion,
-        /*versionSelector=*/ null,
-        /*configPath=*/ null,
-        /*workflowName=*/ null,
+        /* versionSelector= */ null,
+        /* configPath= */ null,
+        /* workflowName= */ null,
         primaryBranchMigrationMode,
-        approvalsProvider);
+        approvalsProvider,
+        /* enableLfs= */ false);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -203,7 +204,7 @@ public class GerritOrigin extends GitOrigin {
         options.get(GerritOptions.class),
         submoduleStrategy,
         excludedSubmodules,
-        /*includeBranchCommitLogs=*/ false,
+        /* includeBranchCommitLogs= */ false,
         firstParent,
         partialFetch,
         endpointChecker,

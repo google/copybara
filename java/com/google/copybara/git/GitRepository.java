@@ -1496,6 +1496,14 @@ public class GitRepository {
     return this;
   }
 
+  public void setRemoteOriginUrl(String url) {
+    try {
+      this.simpleCommand("config", "remote.origin.url", url);
+    } catch (RepoException e) {
+      logger.atInfo().withCause(e).log("Remote Origin URL %s", e);
+    }
+  }
+
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
     return new GitCredential(gitEnv.resolveGitBinary(), Duration.ofMinutes(1), gitEnv)
         .fill(gitDir, url);

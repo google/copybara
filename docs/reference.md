@@ -2627,7 +2627,7 @@ ref | `string` or `NoneType`<br><p>DEPRECATED. Use git.origin for submitted bran
 submodules | `string`<br><p>Download submodules. Valid values: NO, YES, RECURSIVE.</p>
 excluded_submodules | `sequence of string`<br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 first_parent | `bool`<br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
-partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files..</p>
+partial_fetch | `bool`<br><p>If true, partially fetch git repository by only fetching affected files.</p>
 api_checker | `checker` or `NoneType`<br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 patch | [`transformation`](#transformation) or `NoneType`<br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 branch | `string` or `NoneType`<br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
@@ -2736,7 +2736,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-`origin` `git.github_origin(url, ref=None, submodules='NO', excluded_submodules=[], first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False)`
+`origin` `git.github_origin(url, ref=None, submodules='NO', excluded_submodules=[], first_parent=True, partial_fetch=False, patch=None, describe_version=None, version_selector=None, primary_branch_migration=False, enable_lfs=False)`
 
 
 #### Parameters:
@@ -2753,6 +2753,7 @@ patch | [`transformation`](#transformation) or `NoneType`<br><p>Patch the checko
 describe_version | `bool` or `NoneType`<br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 version_selector | `VersionSelector` or `NoneType`<br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 primary_branch_migration | `bool`<br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+enable_lfs | `bool`<br><p>If true, Large File Storage support is enabled for the origin.</p>
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination

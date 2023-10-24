@@ -335,7 +335,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         workflowName,
         GITHUB_COM.isGitHubUrl(url)
             ? githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref))
-            : approvalsProvider(url));
+            : approvalsProvider(url),
+        /* enableLfs= */ false);
   }
 
   @Nullable
@@ -699,7 +700,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "If true, partially fetch git repository by only fetching affected files.."),
+            doc = "If true, partially fetch git repository by only fetching affected files."),
         @Param(
             name = "api_checker",
             allowedTypes = {
@@ -803,16 +804,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           GitRepoType.GERRIT,
           stringToEnum("submodules", submodules, GitOrigin.SubmoduleStrategy.class),
           excludedSubmoduleList,
-          /*includeBranchCommitLogs=*/ false,
+          /* includeBranchCommitLogs= */ false,
           firstParent,
           partialFetch,
           primaryBranchMigration,
           patchTransformation,
           convertDescribeVersion(describeVersion),
-          /*versionSelector=*/ null,
+          /* versionSelector= */ null,
           mainConfigFile.path(),
           workflowName,
-          approvalsProvider(url));
+          approvalsProvider(url),
+          /* enableLfs= */ false);
     }
     return GerritOrigin.newGerritOrigin(
         options,
@@ -1152,7 +1154,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           mainConfigFile.path(),
           workflowName,
           false,
-          githubPostSubmitApprovalsProvider(fixedUrl, ref));
+          githubPostSubmitApprovalsProvider(fixedUrl, ref),
+          /* enableLfs= */ false);
     }
     return new GitHubPrOrigin(
         fixedUrl,
@@ -1289,6 +1292,12 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " fall back to the 'ref' param.\n"
                     + "This is intended to help migrating to the new standard of using 'main'"
                     + " without breaking users relying on the legacy default."),
+        @Param(
+            name = "enable_lfs",
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            doc = "If true, Large File Storage support is enabled for the origin."),
       },
       useStarlarkThread = true)
   public GitOrigin githubOrigin(
@@ -1302,6 +1311,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object describeVersion,
       Object versionSelector,
       Boolean primaryBranchMigration,
+      Boolean enableLfs,
       StarlarkThread thread)
       throws EvalException {
     check(GITHUB_COM.isGitHubUrl(checkNotEmpty(url, "url")), "Invalid Github URL: %s", url);
@@ -1336,7 +1346,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(versionSelector, null),
         mainConfigFile.path(),
         workflowName,
-        githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref)));
+        githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref)),
+        enableLfs);
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {

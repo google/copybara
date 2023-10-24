@@ -198,6 +198,21 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testEnableLfs() throws Exception {
+    origin =
+        skylark.eval(
+            "result",
+            "result = git.github_origin(\n"
+                + "    url = 'https://github.com/copybara',\n"
+                + "    ref = 'main',\n"
+                + "    enable_lfs = True,\n"
+                + ")");
+    ImmutableMultimap<String, String> actual = origin.describe(Glob.ALL_FILES);
+
+    assertThat(actual.get("enableLfs")).containsExactly("true");
+  }
+
+  @Test
   public void testGitOriginHttp() throws Exception {
     origin = skylark.eval("result",
         "result = git.origin(\n"

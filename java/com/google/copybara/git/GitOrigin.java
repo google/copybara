@@ -112,6 +112,7 @@ public class GitOrigin implements Origin<GitRevision> {
   private final String workflowName;
   protected final boolean primaryBranchMigrationMode;
   private final ApprovalsProvider approvalsProvider;
+  private final boolean enableLfs;
 
   GitOrigin(
       GeneralOptions generalOptions,
@@ -131,7 +132,8 @@ public class GitOrigin implements Origin<GitRevision> {
       @Nullable String configPath,
       @Nullable String workflowName,
       boolean primaryBranchMigrationMode,
-      ApprovalsProvider approvalsProvider) {
+      ApprovalsProvider approvalsProvider,
+      boolean enableLfs) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -154,15 +156,22 @@ public class GitOrigin implements Origin<GitRevision> {
     this.workflowName = workflowName;
     this.primaryBranchMigrationMode = primaryBranchMigrationMode;
     this.approvalsProvider = approvalsProvider;
+    this.enableLfs = enableLfs;
   }
 
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
+    GitRepository repo;
     if (partialFetch) {
       String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, repoUrl);
-      return gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
+      repo = gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
+    } else {
+      repo = gitOptions.cachedBareRepoForUrl(repoUrl);
     }
-    return gitOptions.cachedBareRepoForUrl(repoUrl);
+    if (enableLfs) {
+      repo.setRemoteOriginUrl(repoUrl);
+    }
+    return repo;
   }
 
   @Override
@@ -587,7 +596,8 @@ public class GitOrigin implements Origin<GitRevision> {
       @Nullable VersionSelector versionSelector,
       String configPath,
       String workflowName,
-      ApprovalsProvider approvalsProvider) {
+      ApprovalsProvider approvalsProvider,
+      boolean enableLfs) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url,
@@ -606,7 +616,8 @@ public class GitOrigin implements Origin<GitRevision> {
         configPath,
         workflowName,
         primaryBranchMigrationMode,
-        approvalsProvider);
+        approvalsProvider,
+        enableLfs);
   }
 
   @Override
@@ -634,6 +645,9 @@ public class GitOrigin implements Origin<GitRevision> {
     }
     if (versionSelector != null) {
       builder.putAll("refspec", toRefspec());
+    }
+    if (enableLfs) {
+      builder.put("enableLfs", Boolean.toString(enableLfs));
     }
     return builder.build();
   }
