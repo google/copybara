@@ -178,7 +178,7 @@ public class GitOptions implements Option {
     String storePath = getCredentialHelperStorePath();
     String path = storePath == null ? "" : " --file=" + storePath;
     repo.withCredentialHelper("store" + path);
-    repo.setLocalConfigField("fetch", "prune", "false");
+    repo.replaceLocalConfigField("fetch", "prune", "false");
     return repo;
   }
 

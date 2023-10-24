@@ -1480,9 +1480,10 @@ public class GitRepository {
     return this;
   }
 
-  public void setLocalConfigField(String category, String field, String value)
+  public void replaceLocalConfigField(String category, String field, String value)
       throws RepoException {
-    this.simpleCommand("config", String.format("%s.%s", category, field), value, "--local");
+    this.simpleCommand(
+        "config", "--replace-all", "--local", String.format("%s.%s", category, field), value);
   }
 
   public GitRepository enablePartialFetch() {

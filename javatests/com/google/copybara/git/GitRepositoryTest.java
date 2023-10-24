@@ -671,8 +671,11 @@ public class GitRepositoryTest {
             DEFAULT_TIMEOUT,
             /*noVerify=*/ false);
     local.init();
-    local.setLocalConfigField("fetch","prune", "false");
-    CommandOutput commandOutput = local.simpleCommand("config", "--get", "fetch.prune");
+    local.replaceLocalConfigField("fetch", "prune", "false");
+    local.replaceLocalConfigField("fetch", "prune", "false");
+    CommandOutput commandOutput = local.simpleCommand("config", "--get-all", "fetch.prune");
+    assertThat(commandOutput.getStdout().trim()).hasLength(5);
+
     assertThat(commandOutput.getStdout().contains("false")).isTrue();
   }
 
