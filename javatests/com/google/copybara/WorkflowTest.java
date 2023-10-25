@@ -2803,6 +2803,86 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_transformationNoopOnBaseline_throwsException() throws Exception {
+    // options setup
+    skylark = new SkylarkTestExecutor(options);
+    options.workflowOptions.ignoreNoop = false;
+
+    // config setup
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_single_patch = True,\n"
+            + ")";
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    Path testDir = Files.createTempDirectory("singlePatch");
+
+    // create writer for emulating manual destination changes
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+
+    // populate the baseline, intentionally no-op on foo -> bar transformation
+    FileSystem fileSystem = Jimfs.newFileSystem();
+    Path base1 = Files.createTempDirectory(fileSystem.getPath("/"), "base");
+    writeFile(base1, "folder/foo.txt", "a\nb\nc\n");
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    // create origin change 1
+    Path o1 = Files.createDirectories(testDir.resolve("o1"));
+    writeFile(o1, "dir/foo.txt", "bar");
+    origin.addChange(0, o1, "test change", true);
+
+    // import into the destination
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a destination-only change
+    Path d1 = Files.createDirectories(testDir.resolve("d1"));
+    writeProcessedChange(latestProcessedChange(), d1);
+    writeFile(d1, "dir/foo.txt", "foo\nbar");
+
+    // write the destination change
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // add intentional no-op transformation, reload workflow
+    transformations =
+        ImmutableList.of(
+            ""
+                + "                core.replace("
+                + "                    before = 'foo',"
+                + "                    after = 'bar',"
+                + "                )");
+    workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
+    // create second origin change
+    Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/foo.txt", "foofoo");
+    origin.addChange(1, o2, "change 2", true);
+
+    // import the second origin change, which should use merge import (and fail on baseline no-op)
+    Workflow<?, ?> finalWorkflow = workflow;
+    VoidOperationException voe =
+        assertThrows(
+            VoidOperationException.class,
+            () -> finalWorkflow.run(workdir, ImmutableList.of("HEAD")));
+    assertThat(
+            console().getMessages().stream()
+                .anyMatch(
+                    message ->
+                        message.getText().contains("No-op detected in baseline transformations")))
+        .isTrue();
+  }
+
+  @Test
   public void mergeImportConfiguration_selective_glob() throws Exception {
     mergeImport =
         "core.merge_import_config(\n"

@@ -1019,7 +1019,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               .withCurrentRev(baseline)
               .withDestinationInfo(writer.getDestinationInfo());
       try (ProfilerTask ignored = profiler().start("baseline_transforms")) {
-        getTransformation().transform(baselineTransformWork);
+        TransformationStatus status = getTransformation().transform(baselineTransformWork);
+        if (status.isNoop()
+            // no-op baseline transformations are OK for smart prune - smart prune works by
+            // comparing file contents with DiffUtil, meaning it is OK if the file paths are not
+            // exactly as expected (because a core.move()) transformation didn't run
+            && !workflow.isSmartPrune()) {
+          console.warnFmt("No-op detected in baseline transformations");
+          showInfoAboutNoop(console);
+          status.throwException(console, workflow.getWorkflowOptions().ignoreNoop);
+        }
       }
       return baselineWorkdir;
     }
