@@ -566,7 +566,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
 
     ImmutableList<Token> changeIdentity = getChangeIdentity(changeIdentityObj);
 
-    if (Starlark.isNullOrNone(experimentalCustomRevIdField)) {
+    if (!Starlark.isNullOrNone(experimentalCustomRevIdField)) {
       generalOptions.console()
           .warn("experimental_custom_rev_id is deprecated. Use custom_rev_id instead.");
     }
