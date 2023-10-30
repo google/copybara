@@ -36,7 +36,7 @@ public class FolderDestinationReader extends DestinationReader {
   private final Path folderPath;
   private final Path workDir;
 
-  FolderDestinationReader(Path folderPath, Path workDir) {
+  public FolderDestinationReader(Path folderPath, Path workDir) {
     this.folderPath = folderPath;
     this.workDir = workDir;
   }

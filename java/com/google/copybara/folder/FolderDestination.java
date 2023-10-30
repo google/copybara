@@ -115,41 +115,51 @@ public class FolderDestination implements Destination<Revision> {
         Glob destinationFiles, Console console)
         throws ValidationException, RepoException, IOException {
       Path localFolder = getFolderPath(console);
-      console.progress("FolderDestination: creating " + localFolder);
-      boolean exists = Files.exists(localFolder);
-      try {
-        Files.createDirectories(localFolder);
-      } catch (FileAlreadyExistsException e) {
-        // This exception message is particularly bad and we don't want to treat it as unhandled
-        throw new RepoException("Cannot create '" + localFolder + "' because '" + e.getFile()
-            + "' already exists and is not a directory");
-      } catch (AccessDeniedException e) {
-        throw new ValidationException("Path is not accessible: " + localFolder, e);
-      } catch (FileSystemException e) {
-        if (e.getMessage().contains("Read-only file system")
-            || e.getMessage().contains("Operation not permitted")) {
-          throw new ValidationException("Path is not accessible: " + localFolder, e);
-        }
-        throw e;
-      }
-      console.progress("FolderDestination: Deleting destination files in " + localFolder);
-      int numDeletedFiles = FileUtil.deleteFilesRecursively(localFolder, destinationFiles);
-      console.info(
-          String.format(
-              "FolderDestination: Deleted %d existing destination files in %s",
-              numDeletedFiles, localFolder));
-
-      console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
-      FileUtil.copyFilesRecursively(transformResult.getPath(), localFolder,
-          CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
-      return ImmutableList.of(
-          new DestinationEffect(
-              exists ? DestinationEffect.Type.UPDATED : DestinationEffect.Type.CREATED,
-              String.format("Folder '%s' contains the output files of the migration", localFolder),
-              transformResult.getChanges().getCurrent(),
-              new DestinationEffect.DestinationRef(
-                  localFolder.toString(), "local_folder", localFolder.toString())));
+      return writeToFolder(transformResult, destinationFiles, console, localFolder);
     }
+  }
+
+  public static ImmutableList<DestinationEffect> writeToFolder(
+      TransformResult transformResult, Glob destinationFiles, Console console, Path localFolder)
+      throws IOException, RepoException, ValidationException {
+    console.progress("FolderDestination: creating " + localFolder);
+    boolean exists = Files.exists(localFolder);
+    try {
+      Files.createDirectories(localFolder);
+    } catch (FileAlreadyExistsException e) {
+      // This exception message is particularly bad and we don't want to treat it as unhandled
+      throw new RepoException(
+          "Cannot create '"
+              + localFolder
+              + "' because '"
+              + e.getFile()
+              + "' already exists and is not a directory");
+    } catch (AccessDeniedException e) {
+      throw new ValidationException("Path is not accessible: " + localFolder, e);
+    } catch (FileSystemException e) {
+      if (e.getMessage().contains("Read-only file system")
+          || e.getMessage().contains("Operation not permitted")) {
+        throw new ValidationException("Path is not accessible: " + localFolder, e);
+      }
+      throw e;
+    }
+    console.progress("FolderDestination: Deleting destination files in " + localFolder);
+    int numDeletedFiles = FileUtil.deleteFilesRecursively(localFolder, destinationFiles);
+    console.info(
+        String.format(
+            "FolderDestination: Deleted %d existing destination files in %s",
+            numDeletedFiles, localFolder));
+
+    console.progress("FolderDestination: Copying contents of the workdir to " + localFolder);
+    FileUtil.copyFilesRecursively(
+        transformResult.getPath(), localFolder, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    return ImmutableList.of(
+        new DestinationEffect(
+            exists ? DestinationEffect.Type.UPDATED : DestinationEffect.Type.CREATED,
+            String.format("Folder '%s' contains the output files of the migration", localFolder),
+            transformResult.getChanges().getCurrent(),
+            new DestinationEffect.DestinationRef(
+                localFolder.toString(), "local_folder", localFolder.toString())));
   }
 
   private Path getFolderPath(Console console) throws IOException {
