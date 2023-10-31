@@ -41,6 +41,7 @@ public class ComparisonRustVersionRequirement extends RustVersionRequirement {
   private final SemanticVersion requirementVersion;
 
   private ComparisonRustVersionRequirement(String requirement) throws ValidationException {
+    super(requirement);
     Matcher matcher = VALID_COMPARISON_FORMAT_REGEX.matcher(requirement);
     ValidationException.checkCondition(
         matcher.matches(),

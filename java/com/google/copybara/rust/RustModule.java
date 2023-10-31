@@ -218,6 +218,22 @@ public class RustModule implements StarlarkValue {
     }
   }
 
+  @StarlarkMethod(
+      name = "crates_io_version_selector",
+      doc =
+          "Returns a version selector that selects the latest version of a crate based on a version"
+              + " requirement. e.g. \"1.2\" selects 1.2.3, 1.2.4, but not 1.3.0.",
+      documented = false,
+      parameters = {
+        @Param(name = "requirement", named = true, doc = "The Cargo version requirement"),
+      })
+  @SuppressWarnings("unused")
+  public RustCratesIoVersionSelector getCratesIoVersionSelector(String requirement)
+      throws ValidationException {
+    return new RustCratesIoVersionSelector(
+        RustVersionRequirement.getVersionRequirement(requirement));
+  }
+
   private Optional<Path> getMaybeFuzzCargoTomlPath(
       Path tmpCheckoutPath, GitDestinationReader destinationReader)
       throws RepoException, IOException, ValidationException, EvalException {

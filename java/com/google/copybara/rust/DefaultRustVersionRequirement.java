@@ -24,9 +24,9 @@ import java.util.regex.Pattern;
 public class DefaultRustVersionRequirement extends RustVersionRequirement {
   static final Pattern VALID_DEFAULT_FORMAT_REGEX =
       Pattern.compile("^\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(-(.*))?(-(.*))?$");
-  private final String requirement;
 
   private DefaultRustVersionRequirement(String requirement) throws ValidationException {
+    super(requirement);
     ValidationException.checkCondition(
         VALID_DEFAULT_FORMAT_REGEX.matcher(requirement).matches(),
         String.format(

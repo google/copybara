@@ -28,13 +28,12 @@ import java.util.regex.Pattern;
 public class TildeRustVersionRequirement extends RustVersionRequirement {
   static final Pattern VALID_TILDE_FORMAT_REGEX =
       Pattern.compile("~\\^?[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\+?.*)?$");
-  private final String requirement;
 
   private TildeRustVersionRequirement(String requirement) throws ValidationException {
+    super(requirement);
     ValidationException.checkCondition(
         VALID_TILDE_FORMAT_REGEX.matcher(requirement).matches(),
         String.format("The string %s is not a valid tilde version requirement.", requirement));
-    this.requirement = requirement;
   }
 
   public static TildeRustVersionRequirement create(String requirement) throws ValidationException {

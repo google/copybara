@@ -36,6 +36,12 @@ import net.starlark.java.eval.StarlarkValue;
 /** Represents a Cargo version requirement */
 @StarlarkBuiltin(name = "rust_version_requirement", doc = "Represents a Cargo version requirement.")
 public abstract class RustVersionRequirement implements StarlarkValue {
+  String requirement;
+
+  RustVersionRequirement(String requirement) {
+    this.requirement = requirement;
+  }
+
   public static RustVersionRequirement getVersionRequirement(String requirement)
       throws ValidationException {
     // TODO(chriscampos): Support additional types of version requirements
@@ -67,6 +73,10 @@ public abstract class RustVersionRequirement implements StarlarkValue {
           "Given a semantic version string, returns true if the version fulfills this version"
               + " requirement.")
   public abstract boolean fulfills(String version) throws ValidationException;
+
+  public String getRequirementString() {
+    return this.requirement;
+  }
 
   /**
    * Represents a semantic version for a Rust crate.

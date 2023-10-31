@@ -33,6 +33,7 @@ java_library(
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/toml",
         "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/version",
         "//third_party:autovalue",
         "//third_party:google_http_client",

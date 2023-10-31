@@ -44,6 +44,7 @@ public class MultipleRustVersionRequirement extends RustVersionRequirement {
   }
 
   private MultipleRustVersionRequirement(String requirement) throws ValidationException {
+    super(requirement);
     ImmutableList<String> requirementStrings = splitMultipleRequirements(requirement);
 
     ImmutableList.Builder<RustVersionRequirement> requirementsBuilder = ImmutableList.builder();
