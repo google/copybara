@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BAZEL_VERSION=6.0.0
-FROM gcr.io/bazel-public/bazel:${BAZEL_VERSION} AS build
+ARG BAZEL_VERSION=:6.0.0
+FROM gcr.io/bazel-public/bazel${BAZEL_VERSION} AS build
 COPY . .
 RUN bazel build //java/com/google/copybara:copybara_deploy.jar
 
