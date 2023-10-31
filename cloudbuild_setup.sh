@@ -9,19 +9,20 @@ function log() {
 
 log "Setting up Copybara test env"
 
+chmod -R 777 /builder
+
 log "Fetching dependencies"
 log "Running apt-get update --fix-missing"
 
 apt-get update --fix-missing
-apt-get install -y locales
-apt-get install -y mercurial
-apt-get install -y lsb-release
-apt-get install -y software-properties-common
+apt-get install locales
+apt-get -y install mercurial
+apt-get -y install software-properties-common
 
 add-apt-repository ppa:git-core/ppa -y
 apt install git -y
 
-apt-get install -y quilt
+apt-get -y install quilt
 
 log "Extracting Bazel"
 # Only because first time it extracts the installation

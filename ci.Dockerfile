@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BAZEL_VERSION
 FROM gcr.io/bazel-public/bazel${BAZEL_VERSION} AS build
 COPY . .
 USER root
