@@ -81,6 +81,46 @@ public class TemplateConfigGeneratorTest {
   }
 
   @Test
+  public void testLoadStatements() throws CannotProvideException, InterruptedException {
+    TemplateConfigGenerator generator =
+        new TemplateConfigGenerator("::load_statements::\n") {
+
+          @Override
+          public String name() {
+            return "test";
+          }
+
+          @Override
+          public ImmutableSet<Input<?>> consumes() {
+            return ImmutableSet.of();
+          }
+
+          @Override
+          public boolean isGenerator(InputProviderResolver resolver) {
+            return true;
+          }
+
+          @Override
+          public String generate(InputProviderResolver resolver)
+              throws CannotProvideException, InterruptedException {
+            addLoadStatement("//devtools/foo/bar", "two");
+            addLoadStatement("//devtools/foo/bar", "two");
+            addLoadStatement("//devtools/foo/bar", "one");
+            addLoadStatement("//devtools/bar/baz", "bara");
+            return super.generate(resolver);
+          }
+
+          @Override
+          protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
+            return ImmutableMap.of();
+          }
+        };
+    assertThat(generator.generate(RESOLVER))
+        .isEqualTo(
+            "load('//devtools/bar/baz', 'bara')\n" + "load('//devtools/foo/bar', 'one', 'two')\n");
+  }
+
+  @Test
   public void testKeywordPadding() throws CannotProvideException, InterruptedException {
     TemplateConfigGenerator generator = new TemplateConfigGenerator(""
         + "foo = \"::foo::\",\n"

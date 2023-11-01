@@ -18,6 +18,8 @@ package com.google.copybara.onboard.core.template;
 
 import static java.util.stream.Collectors.joining;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.onboard.core.CannotProvideException;
@@ -30,6 +32,8 @@ import com.google.re2j.Pattern;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * A config generator that users a template for generating the config. Template fields can be in
@@ -40,12 +44,30 @@ import java.util.Set;
  */
 public abstract class TemplateConfigGenerator implements ConfigGenerator {
 
+  private static final Pattern LOAD_STATEMENTS = Pattern.compile("::load_statements::");
   private static final Pattern NAMED_FIELD = Pattern.compile("::[A-Za-z0-9_-]+::");
   private static final Pattern KEYWORD = Pattern.compile("([\t ]*)::keyword_params::");
   private final String template;
+  private final TreeMap<String, TreeSet<String>> libraryToIncludes = new TreeMap<>();
 
   public TemplateConfigGenerator(String template) {
     this.template = template;
+  }
+
+  protected void addLoadStatement(String library, String include) {
+    libraryToIncludes.putIfAbsent(library, new TreeSet<>());
+    libraryToIncludes.get(library).add(String.format("'%s'", include));
+  }
+
+  private String generateLoadStatements() {
+    ImmutableList.Builder<String> allLoadStatements = ImmutableList.builder();
+
+    for (Entry<String, TreeSet<String>> entry : libraryToIncludes.entrySet()) {
+      allLoadStatements.add(
+          String.format("load('%s', %s)", entry.getKey(), Joiner.on(", ").join(entry.getValue())));
+    }
+
+    return Joiner.on("\n").join(allLoadStatements.build());
   }
 
   @Override
@@ -79,6 +101,10 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
               .filter(x -> x.location() == Location.KEYWORD)
               .map(x -> String.format("%s%s = %s,", spaces, x.name(), fields.get(x)))
               .collect(joining("\n")));
+    }
+    Matcher loadMatcher = LOAD_STATEMENTS.matcher(config);
+    if (loadMatcher.find()) {
+      config = loadMatcher.replaceFirst(generateLoadStatements());
     }
     Matcher matcher = NAMED_FIELD.matcher(config);
     Set<String> notReplaced = new HashSet<>();
