@@ -17,6 +17,8 @@
 package com.google.copybara.http.endpoint;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
 import com.google.api.client.http.HttpContent;
@@ -25,14 +27,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.jimfs.Jimfs;
 import com.google.copybara.checks.CheckerException;
+import com.google.copybara.config.Config;
+import com.google.copybara.config.MapConfigFile;
+import com.google.copybara.config.Migration;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.HttpOptions;
 import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.testing.DummyChecker;
+import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import net.starlark.java.eval.Dict;
@@ -45,9 +53,11 @@ import org.junit.runners.JUnit4;
 public class HttpEndpointTest {
   private SkylarkTestExecutor starlark;
   private MockHttpTester http;
+  private Path workdir;
 
   @Before
   public void setUp() {
+    workdir = Jimfs.newFileSystem().getPath("/");
     http = new MockHttpTester();
     OptionsBuilder optionsBuilder = new OptionsBuilder();
     optionsBuilder.http =
@@ -58,6 +68,7 @@ public class HttpEndpointTest {
           }
         };
     optionsBuilder.testingOptions.checker = new DummyChecker(ImmutableSet.of("badword"));
+    optionsBuilder.testingOptions.feedbackTrigger = new DummyTrigger();
     starlark = new SkylarkTestExecutor(optionsBuilder);
   }
 
@@ -224,6 +235,47 @@ public class HttpEndpointTest {
                 + ")\n"
                 + "resp = endpoint.delete(url = \"http://foo.com\")\n");
     assertThat(resp.getStatusCode()).isEqualTo(204);
+  }
+
+  @Test
+  public void testDownload() throws Exception {
+    byte[] testContent = {0x08, 0x77, 0x12, 0x21, 0xc, 0x00, 0xd};
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          resp.setStatusCode(200);
+          resp.setContent(testContent);
+        });
+
+    String config =
+        ""
+            + "def test_action(ctx):\n"
+            + "    resp = ctx.destination.get(url = \"http://foo.com\")\n"
+            + "    p = ctx.fs.new_path('foo')\n"
+            + "    resp.download(p)\n"
+            + "    return ctx.success()\n"
+            + "\n"
+            + "core.action_migration(\n"
+            + "    name = 'default',\n"
+            + "    origin = testing.dummy_trigger(),\n"
+            + "    endpoints = struct(\n"
+            + "        destination = http.endpoint(host = \"foo.com\")\n"
+            + "    ),"
+            + "    filesystem = True,\n"
+            + "    action = test_action,\n"
+            + ")\n"
+            + "\n";
+
+    Migration actionMigration = loadConfig(config).getMigration("default");
+    actionMigration.run(workdir, ImmutableList.of("12345"));
+    assertThatPath(workdir)
+        .containsFile("foo", new String(testContent, UTF_8))
+        .containsNoMoreFiles();
+  }
+
+  private Config loadConfig(String content) throws IOException, ValidationException {
+    return starlark.loadConfig(
+        new MapConfigFile(
+            ImmutableMap.of("copy.bara.sky", content.getBytes(UTF_8)), "copy.bara.sky"));
   }
 
   @Test

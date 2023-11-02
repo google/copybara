@@ -17,7 +17,9 @@
 package com.google.copybara.http.endpoint;
 
 import com.google.api.client.http.HttpResponse;
+import com.google.copybara.CheckoutPath;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -59,5 +61,15 @@ public class HttpEndpointResponse implements StarlarkValue {
       })
   public List<String> responseHeader(String key) {
     return response.getHeaders().getHeaderStringValues(key);
+  }
+
+  @StarlarkMethod(
+      name = "download",
+      doc = "Writes the content of the HTTP response into the given destination path",
+      parameters = {
+        @Param(name = "path", doc = "The destination Path"),
+      })
+  public void download(CheckoutPath path) throws IOException {
+    response.download(Files.newOutputStream(path.fullPath()));
   }
 }
