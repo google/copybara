@@ -1,15 +1,22 @@
 # GCB configuration file
 # To learn more about GCB, go to https://cloud.google.com/container-builder/docs/
 steps:
-steps:
-- name: 'gcr.io/kaniko-project/executor:latest'
+- name: 'gcr.io/cloud-builders/docker:latest'
   args:
-  - "--destination=gcr.io/$PROJECT_ID/ci:${_BAZEL_SHA256}"
-  - "--context=dir:///workspace"
-  - "--dockerfile=ci.Dockerfile"
-  - "--build-arg=BAZEL_VERSION=@sha256:${_BAZEL_SHA256}"
-  - "--cache=true"
-- name: gcr.io/$PROJECT_ID/ci:${_BAZEL_SHA256}
+  - "build"
+  - "-f"
+  - "ci.Dockerfile"
+  - "--build-arg"
+  - "BAZEL_VERSION=@sha256:${_BAZEL_SHA256}"
+  - "-t"
+  - "ci"
+  - "."
+# The /builder folder is mounted across steps but owned by root:root
+# HOME=/builder/home
+# https://github.com/GoogleCloudPlatform/cloud-builders/issues/641
+- name: 'ubuntu'
+  args: ["chmod", "-R", "777", "/builder"]
+- name: 'ci'
   args: ["test",  "--java_language_version=11", "--tool_java_language_version=11", "--java_runtime_version=remotejdk_11", "--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
 options:
   machine_type: N1_HIGHCPU_32

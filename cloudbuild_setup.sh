@@ -9,8 +9,6 @@ function log() {
 
 log "Setting up Copybara test env"
 
-chmod -R 777 /builder
-
 log "Fetching dependencies"
 log "Running apt-get update --fix-missing"
 
