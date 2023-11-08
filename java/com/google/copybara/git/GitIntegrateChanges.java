@@ -356,6 +356,14 @@ public class GitIntegrateChanges implements StarlarkValue {
         strategy == that.strategy;
   }
 
+  public Strategy getStrategy() {
+    return strategy;
+  }
+
+  public String getLabel() {
+    return label;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(label, strategy, ignoreErrors);

@@ -170,6 +170,13 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testDescribeIntegrate() throws Exception {
+    GitDestination d = evalDestination();
+    assertThat(d.describe(Glob.ALL_FILES).get("integrate"))
+        .contains("COPYBARA_INTEGRATE_REVIEW:FAKE_MERGE_AND_INCLUDE_FILES");
+  }
+
+  @Test
   public void testTagNameAndTagMsg() throws Exception {
     GitDestination d = skylark.eval("r", "r = git.destination("
         + "    url = 'http://github.com/foo', \n"

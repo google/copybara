@@ -960,6 +960,11 @@ public class GitDestination implements Destination<GitRevision> {
     if (checker != null) {
       builder.put("checker", checker.getClass().getName());
     }
+    for (GitIntegrateChanges integrate : integrates) {
+      builder.put("integrate",
+          String.format("%s:%s", integrate.getLabel(), integrate.getStrategy()));
+    }
+
     return builder.build();
   }
 
