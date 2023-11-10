@@ -123,8 +123,8 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "rules_java",
-        sha256 = "52423cb07384572ab60ef1132b0c7ded3a25c421036176c0273873ec82f5d2b2",
-        url = "https://github.com/bazelbuild/rules_java/releases/download/0.1.0/rules_java-0.1.0.tar.gz",
+        sha256 = "a37a4e5f63ab82716e5dd6aeef988ed8461c7a00b8e936272262899f587cd4e1",
+        url = "https://github.com/bazelbuild/rules_java/releases/download/7.1.0/rules_java-7.1.0.tar.gz",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
