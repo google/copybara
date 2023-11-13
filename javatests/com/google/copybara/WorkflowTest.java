@@ -2364,8 +2364,8 @@ public class WorkflowTest {
 
     // spoof an invalid SinglePatch state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
-    SinglePatch singlePatch = SinglePatch.generateSinglePatch(o1, d1, Hashing.sha256(),
-        System.getenv(), workflow.getDestinationFiles());
+    SinglePatch singlePatch =
+        SinglePatch.generateSinglePatch(o1, d1, Hashing.sha256(), System.getenv());
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, singlePatchPath, new String(singlePatch.toBytes(), UTF_8));
 

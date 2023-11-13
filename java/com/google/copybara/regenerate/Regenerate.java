@@ -183,11 +183,14 @@ public class Regenerate<O extends Revision, D extends Revision> {
     Optional<byte[]> singlePatch = Optional.empty();
     if (workflow.useSinglePatch()) {
       try {
-        singlePatch = Optional.of(
-            SinglePatch.generateSinglePatch(previousPath, nextPath,
-                workflow.getDestination().getHashFunction(),
-                workflow.getGeneralOptions().getEnvironment(),
-                workflow.getDestinationFiles()).toBytes());
+        singlePatch =
+            Optional.of(
+                SinglePatch.generateSinglePatch(
+                        previousPath,
+                        nextPath,
+                        workflow.getDestination().getHashFunction(),
+                        workflow.getGeneralOptions().getEnvironment())
+                    .toBytes());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating single patch", e);
       }
