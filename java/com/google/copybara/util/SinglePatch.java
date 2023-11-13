@@ -145,7 +145,7 @@ public class SinglePatch {
     }
   }
 
-  ImmutableMap<String, String> getFileHashes() {
+  public ImmutableMap<String, String> getFileHashes() {
     return ImmutableMap.copyOf(fileHashes);
   }
 

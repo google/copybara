@@ -980,20 +980,21 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
     private Path checkoutSinglePatchBaseline(DestinationReader reader)
         throws ValidationException, IOException, RepoException {
+      Path singlepatchWorkdir = Files.createDirectories(workdir.resolve("singlepatch"));
+      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.fullSinglePatchPath());
+
+      // copy the singlepatch file somewhere so we can parse it
+      reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
+      SinglePatch singlePatch =
+          SinglePatch.fromBytes(
+              Files.readAllBytes(singlePatchPath));
+
       // copy the current destination files to the baseline directory
-      Glob baselineFiles = patchlessDestinationFiles(workflow);
+      Glob baselineFiles = Glob.createGlob(singlePatch.getFileHashes().keySet().asList());
 
       Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
       reader.copyDestinationFilesToDirectory(baselineFiles, baselineWorkdir);
 
-      // copy the singlepatch file from the destination to a separate directory
-      Path singlepatchWorkdir = Files.createDirectories(workdir.resolve("singlepatch"));
-      reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
-      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.fullSinglePatchPath());
-
-      SinglePatch singlePatch =
-          SinglePatch.fromBytes(
-              Files.readAllBytes(singlePatchPath));
       singlePatch.validateDirectory(SinglePatch.filesInDir(baselineWorkdir), reader::getHash);
       singlePatch.reverseSinglePatch(
           baselineWorkdir, workflow.getGeneralOptions().getEnvironment());
