@@ -77,14 +77,15 @@ public class GeneratorCmdTest {
     // TODO(malcon): Refactor TestingConsole.respondWithString to have an optional predicate so
     // that we can match the question with the answer and not rely in the order of resolve
     // calls.
-    console.respondWithString(destination.toAbsolutePath().toString());
+    Path generatorFolder = destination.toAbsolutePath();
+    console.respondWithString(generatorFolder.toString());
     console.respondWithString("git_to_git");
     console.respondWithString("https://example.com/origin");
     console.respondWithString("https://example.com/destination");
     console.respondWithString("foo <foo@example.com>");
     console.respondWithString("my_name");
 
-    checkRun();
+    checkRun(generatorFolder);
   }
 
   @Test
@@ -94,22 +95,43 @@ public class GeneratorCmdTest {
     console.respondWithString(destination.toAbsolutePath().toString());
     optionsBuilder.generator.template = "git_to_git";
     // Keep keys as string to force the inputs not been registered in Input.registeredInputs()
-    optionsBuilder.generator.inputs = ImmutableMap.of(
-        "git_origin_url", "https://example.com/origin",
-        "git_destination_url", "https://example.com/destination",
-        "default_author", "foo <foo@example.com>",
-        "migration_name", "my_name",
-        "generator_folder", destination.toAbsolutePath().toString()
-    );
+    Path generatorFolder = destination.toAbsolutePath();
+    optionsBuilder.generator.inputs =
+        ImmutableMap.of(
+            "git_origin_url", "https://example.com/origin",
+            "git_destination_url", "https://example.com/destination",
+            "default_author", "foo <foo@example.com>",
+            "migration_name", "my_name",
+            "generator_folder", generatorFolder.toString());
 
-    checkRun();
+    checkRun(generatorFolder);
   }
 
-  private void checkRun() throws ValidationException, IOException, RepoException {
+  @Test
+  public void testWithFlags_destinationFolderNonExistent() throws Exception {
+    optionsBuilder.generator.askMode = Mode.FAIL;
+    console.respondWithString(destination.toAbsolutePath().toString());
+    optionsBuilder.generator.template = "git_to_git";
+    // Keep keys as string to force the inputs not been registered in Input.registeredInputs()
+    // destination/foo doesn't exist
+    Path generatorFolder = destination.toAbsolutePath().resolve("foo");
+    optionsBuilder.generator.inputs =
+        ImmutableMap.of(
+            "git_origin_url", "https://example.com/origin",
+            "git_destination_url", "https://example.com/destination",
+            "default_author", "foo <foo@example.com>",
+            "migration_name", "my_name",
+            "generator_folder", generatorFolder.toString());
+
+    checkRun(generatorFolder);
+  }
+
+  private void checkRun(Path generatorFolder)
+      throws ValidationException, IOException, RepoException {
     ExitCode exitCode = runCommand();
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
 
-    String config = Files.readString(destination.resolve("copy.bara.sky"));
+    String config = Files.readString(generatorFolder.resolve("copy.bara.sky"));
 
     Config asObject = skylark.loadConfig(config);
     Workflow<?, ?> migration = (Workflow<?, ?>) asObject.getMigration("my_name");

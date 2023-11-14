@@ -102,6 +102,9 @@ public class GeneratorCmd implements CopybaraCmd {
       String config = template.generate(resolver);
 
       Path configDestination = path.get().resolve("copy.bara.sky");
+      if (!Files.exists(configDestination.getParent())) {
+        Files.createDirectories(configDestination.getParent());
+      }
       Files.write(configDestination, config.getBytes(StandardCharsets.UTF_8));
 
       format(commandEnv, configDestination);
