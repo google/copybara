@@ -18,9 +18,11 @@ package com.google.copybara.re2;
 
 import com.google.copybara.doc.annotations.Example;
 import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Regex functions to work with re2 like regexes in Starlark */
@@ -30,13 +32,17 @@ public class Re2Module implements StarlarkValue {
   @StarlarkMethod(
       name = "compile",
       doc = "Create a regex pattern",
-      parameters = {
-          @Param(name = "regex")})
-  @Example(title = "Simple regex",
+      parameters = {@Param(name = "regex")})
+  @Example(
+      title = "Simple regex",
       before = "Patterns need to be compiled before using them:",
       code = "re2.compile(\"a(.*)b\").matches('accccb')")
-  public StarlarkPattern compile(String regex) {
-    return new StarlarkPattern(Pattern.compile(regex));
+  public StarlarkPattern compile(String regex) throws EvalException {
+    try {
+      return new StarlarkPattern(Pattern.compile(regex));
+    } catch (PatternSyntaxException e) {
+      throw new EvalException(String.format("Unable to parse regex '%s'.", regex), e);
+    }
   }
 
   @StarlarkMethod(
