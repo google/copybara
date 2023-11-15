@@ -164,7 +164,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz", "None");
+    setUpRepoAndCheckout(cratePath, "fuzz", "None", true);
 
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
@@ -173,10 +173,24 @@ public class RustModuleTest {
   }
 
   @Test
+  public void testDownloadCrateFuzzers_parentCrateIsNotDep() throws Exception {
+    // Set up remote Git repo with fuzzers
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    setUpRepoAndCheckout(cratePath, "fuzz", "None", false);
+
+    assertThat(Files.exists(cratePath.resolve("fuzz"))).isFalse();
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO, "Not downloading fuzzers. This crate doesn't have any fuzzers.");
+  }
+
+  @Test
   public void testDownloadCrateFuzzers_fuzzExcludes() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz", "[\"bar.rs\", \"baz/foo.rs\"]");
+    setUpRepoAndCheckout(cratePath, "fuzz", "[\"bar.rs\", \"baz/foo.rs\"]", true);
 
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isFalse();
@@ -189,7 +203,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_differentFuzzDir() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzzbara", "None");
+    setUpRepoAndCheckout(cratePath, "fuzzbara", "None", true);
 
     assertThat(Files.exists(cratePath.resolve("fuzzbara/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzzbara/bar.rs"))).isTrue();
@@ -197,7 +211,8 @@ public class RustModuleTest {
     console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzzbara");
   }
 
-  private void setUpRepoAndCheckout(Path cratePath, String fuzzersDir, String excludes)
+  private void setUpRepoAndCheckout(
+      Path cratePath, String fuzzersDir, String excludes, boolean defineParentDep)
       throws IOException, RepoException, ValidationException {
     Path remote = Files.createTempDirectory("remote");
     String url = "file://" + remote.toFile().getAbsolutePath();
@@ -211,10 +226,12 @@ public class RustModuleTest {
     GitTestUtil.writeFile(remote, String.format("%s/foo.rs", fuzzersDir), "test1");
     GitTestUtil.writeFile(remote, String.format("%s/bar.rs", fuzzersDir), "test2");
     GitTestUtil.writeFile(remote, String.format("%s/baz/foo.rs", fuzzersDir), "test3");
-    GitTestUtil.writeFile(
-        remote,
-        String.format("%s/Cargo.toml", fuzzersDir),
-        "[package.metadata]\ncargo-fuzz = true");
+    String fuzzCargoToml = "[package.metadata]\ncargo-fuzz = true\n";
+    if (defineParentDep) {
+      fuzzCargoToml += "[dependencies.foo-crate-v1]\n" + "path = \"..\"\n";
+    }
+    GitTestUtil.writeFile(remote, String.format("%s/Cargo.toml", fuzzersDir), fuzzCargoToml);
+
     GitTestUtil.writeFile(remote, "ignore.rs", "test3");
     repo.add().all().run();
     repo.git(remote, "commit", "-m", "first commit");
@@ -240,9 +257,10 @@ public class RustModuleTest {
             "t",
             String.format(
                 "def test_download_fuzz(ctx):\n"
-                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path"
-                    + " = \"foo_crate_v1\", fuzz_excludes = %s)\n"
-                    + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path)\n"
+                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
+                    + " \"foo_crate_v1\", fuzz_excludes = %s, crate_name = \"foo-crate-v1\")\n"
+                    + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
+                    + " \"None\")\n"
                     + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
                 excludes))
         .transform(

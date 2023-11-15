@@ -155,11 +155,16 @@ public class RustModule implements StarlarkValue {
             },
             named = true,
             defaultValue = "None"),
+        @Param(
+            name = "crate_name",
+            doc = "The name of the crate, used to find the correct fuzzer directory.",
+            named = true,
+            defaultValue = "None"),
       },
       allowReturnNones = true)
   @Nullable
   public CheckoutPath downloadRustFuzzers(
-      TransformWork ctx, String crateDir, Object maybeFuzzExcludes)
+      TransformWork ctx, String crateDir, Object maybeFuzzExcludes, Object crateName)
       throws EvalException, RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("rust_download_fuzzers")) {
       Glob originGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
@@ -193,7 +198,10 @@ public class RustModule implements StarlarkValue {
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       Optional<Path> maybeFuzzCargoTomlPath =
-          getMaybeFuzzCargoTomlPath(tmpCheckoutPath, destinationReader);
+          getMaybeFuzzCargoTomlPath(
+              tmpCheckoutPath,
+              destinationReader,
+              Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName)));
 
       if (maybeFuzzCargoTomlPath.isEmpty()) {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
@@ -235,7 +243,7 @@ public class RustModule implements StarlarkValue {
   }
 
   private Optional<Path> getMaybeFuzzCargoTomlPath(
-      Path tmpCheckoutPath, GitDestinationReader destinationReader)
+      Path tmpCheckoutPath, GitDestinationReader destinationReader, Optional<String> maybeCrateName)
       throws RepoException, IOException, ValidationException, EvalException {
     Glob cargoTomlGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
     destinationReader.copyDestinationFilesToDirectory(cargoTomlGlob, tmpCheckoutPath);
@@ -251,7 +259,7 @@ public class RustModule implements StarlarkValue {
     }
 
     for (Path path : cargoTomlFiles) {
-      if (isCargoTomlCargoFuzz(path)) {
+      if (isCargoTomlCargoFuzz(path, maybeCrateName)) {
         maybeCargoTomlPath = Optional.of(tmpCheckoutPath.relativize(path));
         break;
       }
@@ -267,10 +275,21 @@ public class RustModule implements StarlarkValue {
             .getOrDefault("package.repository", "");
   }
 
-  private boolean isCargoTomlCargoFuzz(Path cargoTomlPath)
+  private boolean isCargoTomlCargoFuzz(Path cargoTomlPath, Optional<String> maybeCrateName)
       throws IOException, ValidationException, EvalException {
     TomlContent parsedToml = new TomlModule().parse(Files.readString(cargoTomlPath));
+    boolean isFuzzerForCrate =
+        (boolean) parsedToml.getOrDefault("package.metadata.cargo-fuzz", false);
 
-    return (boolean) parsedToml.getOrDefault("package.metadata.cargo-fuzz", false);
+    if (maybeCrateName.isPresent()) {
+      String depPath =
+          (String)
+              parsedToml.getOrDefault(
+                  String.format("dependencies.%s.path", maybeCrateName.get()), null);
+
+      isFuzzerForCrate &= (depPath != null && depPath.equals(".."));
+    }
+
+    return isFuzzerForCrate;
   }
 }
