@@ -56,6 +56,7 @@ import com.google.copybara.revision.Changes;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.util.AutoPatchUtil;
 import com.google.copybara.util.CommandLineDiffUtil;
+import com.google.copybara.util.ConsistencyFile;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
@@ -63,7 +64,6 @@ import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.MergeImportTool;
-import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
@@ -825,7 +825,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         // If there is a single patch file, then use it.
         // Otherwise, fall back to baseline import.
         Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
-        reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlePatchWorkdir);
+        reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), singlePatchWorkdir);
 
         if (reader.exists(workflow.fullSinglePatchPath())) {
           try {
@@ -890,7 +890,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         try {
           singlePatch =
               Optional.of(
-                  SinglePatch.generateSinglePatch(
+                  ConsistencyFile.generate(
                           preMergeImportWorkdir,
                           checkoutDir,
                           workflow.getDestination().getHashFunction(),
@@ -974,29 +974,29 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return destinationFiles;
     }
 
-    static Glob singlePatchGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
+    static Glob consistencyFileGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
       return Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
     }
 
     private Path checkoutSinglePatchBaseline(DestinationReader reader)
         throws ValidationException, IOException, RepoException {
-      Path singlepatchWorkdir = Files.createDirectories(workdir.resolve("singlepatch"));
-      Path singlePatchPath = singlepatchWorkdir.resolve(workflow.fullSinglePatchPath());
+      Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
+      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.fullSinglePatchPath());
 
       // copy the singlepatch file somewhere so we can parse it
-      reader.copyDestinationFilesToDirectory(singlePatchGlob(workflow), singlepatchWorkdir);
-      SinglePatch singlePatch =
-          SinglePatch.fromBytes(
-              Files.readAllBytes(singlePatchPath));
+      reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), consistencyFileWorkdir);
+      ConsistencyFile consistencyFile =
+          ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));
 
       // copy the current destination files to the baseline directory
-      Glob baselineFiles = Glob.createGlob(singlePatch.getFileHashes().keySet().asList());
+      Glob baselineFiles = Glob.createGlob(consistencyFile.getFileHashes().keySet().asList());
 
       Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
       reader.copyDestinationFilesToDirectory(baselineFiles, baselineWorkdir);
 
-      singlePatch.validateDirectory(SinglePatch.filesInDir(baselineWorkdir), reader::getHash);
-      singlePatch.reverseSinglePatch(
+      consistencyFile.validateDirectory(
+          ConsistencyFile.filesInDir(baselineWorkdir), reader::getHash);
+      consistencyFile.reversePatches(
           baselineWorkdir, workflow.getGeneralOptions().getEnvironment());
 
       return baselineWorkdir;

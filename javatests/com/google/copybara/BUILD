@@ -22,7 +22,7 @@ LOCAL_TESTS = [
     "MigrateCmdTest.java",
     "util/DiffUtilTest.java",
     "util/AutoPatchUtilTest.java",
-    "util/SinglePatchTest.java",
+    "util/ConsistencyFileTest.java",
     "WorkflowTest.java",
 ]
 
@@ -92,17 +92,17 @@ all_tests(
 )
 
 all_tests(
-    name = "single_patch_tests",
+    name = "consistency_file_tests",
     shard_count = 1,
     tags = ["local"],
     tests = [
-        "util/SinglePatchTest.java",
+        "util/ConsistencyFileTest.java",
     ],
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util:singlepatch",
+        "//java/com/google/copybara/util:consistency",
         "//third_party:truth",
     ],
 )
@@ -126,7 +126,7 @@ all_tests(
         "//java/com/google/copybara/testing",
         "//java/com/google/copybara/testing/git",
         "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util:singlepatch",
+        "//java/com/google/copybara/util:consistency",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
         "//third_party:jimfs",

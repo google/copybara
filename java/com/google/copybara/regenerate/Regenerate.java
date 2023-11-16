@@ -36,9 +36,9 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.util.AutoPatchUtil;
+import com.google.copybara.util.ConsistencyFile;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
-import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -132,8 +132,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
-    // If there are no line numbers in the patches and the workflow is not using SinglePatch,
-    // default to the import baseline (as long as SinglePatch is not being used).
+    // If there are no line numbers in the patches and the workflow is not using ConsistencyFile,
+    // default to the import baseline (as long as ConsistencyFile is not being used).
     boolean noLineNumbers =
         autopatchConfig == null || autopatchConfig.stripFileNamesAndLineNumbers();
     boolean useImportBaseline =
@@ -155,7 +155,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
                       "Regen baseline was neither supplied nor able to be inferred. Supply with"
                           + " --regen-baseline parameter"));
       if (workflow.useSinglePatch()) {
-        prepareDiffWithSinglePatchBaseline(
+        prepareDiffWithConsistencyFileBaseline(
             autopatchConfig,
             workflow,
             destinationWriter,
@@ -163,8 +163,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
             nextPath,
             autopatchPath,
             regenBaseline,
-            regenTarget
-        );
+            regenTarget);
       } else {
         checkCondition(autopatchConfig != null,
             "Autopatch config required to regenerate from patch files");
@@ -180,19 +179,19 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
-    Optional<byte[]> singlePatch = Optional.empty();
+    Optional<byte[]> consistencyFile = Optional.empty();
     if (workflow.useSinglePatch()) {
       try {
-        singlePatch =
+        consistencyFile =
             Optional.of(
-                SinglePatch.generateSinglePatch(
+                ConsistencyFile.generate(
                         previousPath,
                         nextPath,
                         workflow.getDestination().getHashFunction(),
                         workflow.getGeneralOptions().getEnvironment())
                     .toBytes());
       } catch (InsideGitDirException e) {
-        throw new ValidationException("Error generating single patch", e);
+        throw new ValidationException("Error generating consistency file", e);
       }
     }
 
@@ -221,9 +220,9 @@ public class Regenerate<O extends Revision, D extends Revision> {
       }
     }
 
-    if (singlePatch.isPresent()) {
+    if (consistencyFile.isPresent()) {
       Files.createDirectories(nextPath.resolve(workflow.fullSinglePatchPath()).getParent());
-      Files.write(nextPath.resolve(workflow.fullSinglePatchPath()), singlePatch.get());
+      Files.write(nextPath.resolve(workflow.fullSinglePatchPath()), consistencyFile.get());
     }
 
     // push the new set of files
@@ -269,7 +268,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
         workflow.getGeneralOptions().getEnvironment());
   }
 
-  private void prepareDiffWithSinglePatchBaseline(
+  private void prepareDiffWithConsistencyFileBaseline(
       @Nullable AutoPatchfileConfiguration autopatchConfig,
       Workflow<O, D> workflow,
       Writer<D> destinationWriter,
@@ -290,8 +289,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
       patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, autopatchGlob);
     }
 
-    Glob singlePatchGlob = Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
-    patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, singlePatchGlob);
+    Glob consistencyFileGlob = Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
+    patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, consistencyFileGlob);
 
     // copy the baseline to one directory
     DestinationReader previousDestinationReader =
@@ -304,16 +303,17 @@ public class Regenerate<O extends Revision, D extends Revision> {
         destinationWriter.getDestinationReader(console, regenTarget, workdir);
     nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
 
-    // copy singlepatch file to a third directory
-    previousDestinationReader.copyDestinationFilesToDirectory(singlePatchGlob, patchPath);
+    // copy consistency file to a third directory
+    previousDestinationReader.copyDestinationFilesToDirectory(consistencyFileGlob, patchPath);
 
     // reverse patch files on the target directory here to get a pristine import
-    Path singlePatchPath = patchPath.resolve(workflow.fullSinglePatchPath());
-    if (Files.exists(singlePatchPath)) {
-      SinglePatch singlePatch = SinglePatch.fromBytes(Files.readAllBytes(singlePatchPath));
-      singlePatch.reverseSinglePatch(previousPath, workflow.getGeneralOptions().getEnvironment());
+    Path consistencyFilePath = patchPath.resolve(workflow.fullSinglePatchPath());
+    if (Files.exists(consistencyFilePath)) {
+      ConsistencyFile consistencyFile =
+          ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));
+      consistencyFile.reversePatches(previousPath, workflow.getGeneralOptions().getEnvironment());
     } else {
-      console.warn("SinglePatch enabled but no SinglePatch file encountered");
+      console.warn("ConsistencyFile enabled but no ConsistencyFile file encountered");
     }
   }
 

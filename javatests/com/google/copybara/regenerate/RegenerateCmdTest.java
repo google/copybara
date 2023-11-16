@@ -39,11 +39,11 @@ import com.google.copybara.testing.DummyOrigin;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.RecordsProcessCallDestination;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.ConsistencyFile;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -79,7 +79,7 @@ public class RegenerateCmdTest {
   Path regenBaseline;
   Path regenTarget;
 
-  private static final String singlePatchFilePath = "zz/spfoo";
+  private static final String consistencyFilePath = "zz/spfoo";
 
   @Before
   public void setup() throws IOException {
@@ -429,7 +429,7 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testSinglePatch_doesNotGenerate_disabled()
+  public void testConsistencyFile_doesNotGenerate_disabled()
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
@@ -454,13 +454,13 @@ public class RegenerateCmdTest {
             pathArg.capture(),
             eq(Glob.ALL_FILES),
             eq("bar"));
-    assertThatPath(pathArg.getValue()).containsNoFiles(singlePatchFilePath);
+    assertThatPath(pathArg.getValue()).containsNoFiles(consistencyFilePath);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   @Test
-  public void testSinglePatch_generatesFile()
+  public void testConsistencyFile_generatesFile()
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
@@ -469,7 +469,7 @@ public class RegenerateCmdTest {
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -485,13 +485,13 @@ public class RegenerateCmdTest {
             pathArg.capture(),
             eq(Glob.ALL_FILES),
             eq("bar"));
-    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   @Test
-  public void testSinglePatch_capturesDiff()
+  public void testConsistencyFile_capturesDiff()
       throws IOException, ValidationException, RepoException {
     setupBaseline("foo");
     setupTarget("bar");
@@ -500,7 +500,7 @@ public class RegenerateCmdTest {
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -517,21 +517,21 @@ public class RegenerateCmdTest {
             eq(Glob.ALL_FILES),
             eq("bar"));
 
-    SinglePatch singlePatch = SinglePatch.fromBytes(
-        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath))
-    );
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(consistencyFilePath)));
 
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
-    singlePatch.reverseSinglePatch(regenTarget, System.getenv());
+    consistencyFile.reversePatches(regenTarget, System.getenv());
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("foo");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
-  // test existing single patch is used to generate new patch
+  // test existing consistency file is used to generate new patch
   @Test
-  public void testRegenerate_singlePatch_usesSinglePatchBaseline() throws Exception{
-    // generate a SinglePatch, make a new edit, use the directory
+  public void testRegenerate_consistencyFile_usesConsistencyFileBaseline() throws Exception {
+    // generate a ConsistencyFile, make a new edit, use the directory
     // with the generated patch as baseline to regenerate again
     setupBaseline("foo");
     setupTarget("bar");
@@ -540,7 +540,7 @@ public class RegenerateCmdTest {
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
-    RegenerateCmd cmd = getCmd(getSinglePatchConfigString());
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -558,7 +558,7 @@ public class RegenerateCmdTest {
             eq(Glob.ALL_FILES),
             eq("bar"));
     assertThatPath(pathArg.getValue()).containsFile(testfile, "bar");
-    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
 
     // setup second run
     setupBaseline("bar");
@@ -585,12 +585,12 @@ public class RegenerateCmdTest {
             eq("foobar"));
 
     assertThatPath(pathArg.getValue()).containsFile(testfile, "foobar");
-    assertThatPath(pathArg.getValue()).containsFiles(singlePatchFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
 
-    SinglePatch singlePatch = SinglePatch.fromBytes(
-        Files.readAllBytes(pathArg.getValue().resolve(singlePatchFilePath))
-    );
-    singlePatch.reverseSinglePatch(pathArg.getValue(), System.getenv());
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(consistencyFilePath)));
+    consistencyFile.reversePatches(pathArg.getValue(), System.getenv());
 
     // we should capture the diff between the baseline of the previous import, not the current
     // import
@@ -640,7 +640,7 @@ public class RegenerateCmdTest {
         + ")";
   }
 
-  private String getSinglePatchConfigString() {
+  private String getConsistencyFileConfigString() {
     return "core.workflow(\n"
         + "    name = 'default',\n"
         + "    origin = testing.origin(),\n"
@@ -651,7 +651,9 @@ public class RegenerateCmdTest {
         + "    merge_import = core.merge_import_config(\n"
         + "      package_path = \"\"\n,"
         + "      use_single_patch = True\n,"
-        + "      single_patch_path = '" + singlePatchFilePath + "'\n"
+        + "      single_patch_path = '"
+        + consistencyFilePath
+        + "'\n"
         + "    ),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"

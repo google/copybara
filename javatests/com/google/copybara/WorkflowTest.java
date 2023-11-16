@@ -83,11 +83,11 @@ import com.google.copybara.testing.TestingEventMonitor;
 import com.google.copybara.testing.TransformResults;
 import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
+import com.google.copybara.util.ConsistencyFile;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.SinglePatch;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
@@ -2045,7 +2045,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void mergeImport_singlePatch_generatesSinglePatchFile()
+  public void mergeImport_consistencyFile_generatesConsistencyFile()
       throws IOException, ValidationException, RepoException {
     mergeImport =
         "core.merge_import_config(\n"
@@ -2069,7 +2069,7 @@ public class WorkflowTest {
     // run the workflow
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String singlePatchPath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.fullSinglePatchPath();
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
@@ -2091,20 +2091,19 @@ public class WorkflowTest {
         .isEqualTo("a\nb\nc\n");
 
     assertThat(
-        destination
-            .processed
-            .get(destination.processed.size() - 1)
-            .getWorkdir()
-            .get(singlePatchPath))
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get(consistencyFilePath))
         .isNotEmpty();
   }
 
   @Test
-  public void mergeImport_singlePatch_recreatesPostTransformationState()
-      throws Exception {
-    // Check that reverse applying the SinglePatch results in the expected state
+  public void mergeImport_consistencyFile_recreatesPostTransformationState() throws Exception {
+    // Check that reverse applying the ConsistencyFile results in the expected state
     // This is to verify that workflow is diffing the correct things, not to
-    // test SinglePatch internals.
+    // test ConsistencyFile internals.
 
     skylark = new SkylarkTestExecutor(options);
     mergeImport =
@@ -2127,10 +2126,11 @@ public class WorkflowTest {
 
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String singlePatchPath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.fullSinglePatchPath();
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    // add a new origin change to import and a destination-only change to create a SinglePatch diff
+    // add a new origin change to import and a destination-only change to create a ConsistencyFile
+    // diff
     Path base2 = Files.createDirectories(testDir.resolve("base2"));
     FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
     writeFile(base2, "dir/bar.txt", "Another file");
@@ -2165,9 +2165,9 @@ public class WorkflowTest {
     }
 
     // reverse apply generated patches
-    SinglePatch singlePatch = SinglePatch.fromBytes(
-        latestWorkdir.get(singlePatchPath).getBytes(UTF_8));
-    singlePatch.reverseSinglePatch(base4, System.getenv());
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(latestWorkdir.get(consistencyFilePath).getBytes(UTF_8));
+    consistencyFile.reversePatches(base4, System.getenv());
 
     // verify that directory state now matches origin state (no transformations)
     assertThatPath(base4).containsFile("dir/foo.txt", "a\nb\nc\n");
@@ -2185,7 +2185,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void mergeImport_singlePatch_singlePatchBaseline() throws Exception {
+  public void mergeImport_consistencyFile_consistencyFileBaseline() throws Exception {
     // options setup
     skylark = new SkylarkTestExecutor(options);
 
@@ -2198,7 +2198,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2236,16 +2236,17 @@ public class WorkflowTest {
     writeProcessedChange(latestProcessedChange(), out1);
     // the destination change should be persisted
     assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nfoo\nc\n");
-    // a single patch file should exist transforming the destination repo
+    // a consistency file file should exist transforming the destination repo
     // into the latest origin change
-    assertThatPath(out1).containsFiles(singlePatchPath);
-    SinglePatch sp = SinglePatch.fromBytes(Files.readAllBytes(out1.resolve(singlePatchPath)));
-    sp.reverseSinglePatch(out1, System.getenv());
+    assertThatPath(out1).containsFiles(consistencyFilePath);
+    ConsistencyFile sp =
+        ConsistencyFile.fromBytes(Files.readAllBytes(out1.resolve(consistencyFilePath)));
+    sp.reversePatches(out1, System.getenv());
     assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out1).containsFile("dir/bar.txt", "Another file");
 
     // create a config change and run the workflow
-    // this will reveal whether import baseline or single patch baseline is being used
+    // this will reveal whether import baseline or consistency file baseline is being used
     originFiles = "glob(['**'], exclude = ['copy.bara.sky', 'excluded/**', 'dir/bar.txt'])";
     workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
 
@@ -2262,15 +2263,16 @@ public class WorkflowTest {
     assertThatPath(out2).containsNoFiles("dir/bar.txt");
 
     // verify that the patch takes the output state back to the origin state
-    assertThatPath(out2).containsFiles(singlePatchPath);
-    sp = SinglePatch.fromBytes(Files.readAllBytes(out2.resolve(singlePatchPath)));
-    sp.reverseSinglePatch(out2, System.getenv());
+    assertThatPath(out2).containsFiles(consistencyFilePath);
+    sp = ConsistencyFile.fromBytes(Files.readAllBytes(out2.resolve(consistencyFilePath)));
+    sp.reversePatches(out2, System.getenv());
     assertThatPath(out2).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out2).containsNoFiles("dir/bar.txt");
   }
 
   @Test
-  public void mergeImport_singlePatch_validatesAgainstVersionOfSinglePatchEdit() throws Exception {
+  public void mergeImport_consistencyFile_validatesAgainstVersionOfConsistencyFileEdit()
+      throws Exception {
     // options setup
     skylark = new SkylarkTestExecutor(options);
 
@@ -2282,8 +2284,8 @@ public class WorkflowTest {
             + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.fullSinglePatchPath();
+    Path testDir = Files.createTempDirectory("consistencyFile");
+    String consistencyFilePath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2307,11 +2309,12 @@ public class WorkflowTest {
     // create a destination-only change
     Path d1 = Files.createDirectories(testDir.resolve("d1"));
     writeProcessedChange(latestProcessedChange(), d1);
-    assertThatPath(d1).containsFiles(singlePatchPath);
+    assertThatPath(d1).containsFiles(consistencyFilePath);
     wr.write(TransformResults.of(d1, new DummyRevision("1")),
         Glob.createGlob(ImmutableList.of(destinationFiles)), console());
 
-    // create an invalid SinglePatch state by updating a file without updating the SinglePatch
+    // create an invalid ConsistencyFile state by updating a file without updating the
+    // ConsistencyFile
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     wr.write(TransformResults.of(d1, new DummyRevision("1")),
         Glob.createGlob(ImmutableList.of(destinationFiles)), console());
@@ -2321,7 +2324,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void mergeImport_singlePatch_validationFails() throws Exception {
+  public void mergeImport_consistencyFile_validationFails() throws Exception {
     // options setup
     skylark = new SkylarkTestExecutor(options);
 
@@ -2333,8 +2336,8 @@ public class WorkflowTest {
             + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    Path testDir = Files.createTempDirectory("singlePatch");
-    String singlePatchPath = workflow.fullSinglePatchPath();
+    Path testDir = Files.createTempDirectory("consistencyFile");
+    String consistencyFilePath = workflow.fullSinglePatchPath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2355,19 +2358,19 @@ public class WorkflowTest {
     // import into the destination
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
-    // create a destination-only change that also edits the singlepatch
-    // and results in an invalid singlepatch state
+    // create a destination-only change that also edits the consistency file
+    // and results in an invalid state
     Path d1 = Files.createDirectories(testDir.resolve("d1"));
     writeProcessedChange(latestProcessedChange(), d1);
-    assertThatPath(d1).containsFiles(singlePatchPath);
-    Files.delete(d1.resolve(singlePatchPath));
+    assertThatPath(d1).containsFiles(consistencyFilePath);
+    Files.delete(d1.resolve(consistencyFilePath));
 
-    // spoof an invalid SinglePatch state
+    // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
-    SinglePatch singlePatch =
-        SinglePatch.generateSinglePatch(o1, d1, Hashing.sha256(), System.getenv());
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), System.getenv());
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
-    writeFile(d1, singlePatchPath, new String(singlePatch.toBytes(), UTF_8));
+    writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
     wr.write(TransformResults.of(d1, new DummyRevision("1")),
         Glob.createGlob(ImmutableList.of(destinationFiles)), console());
@@ -2375,8 +2378,9 @@ public class WorkflowTest {
     Throwable throwable = assertThrows(ValidationException.class, () -> {
       workflow.run(workdir, ImmutableList.of("HEAD"));
     });
-    assertThat(throwable).hasMessageThat()
-        .containsMatch("has hash value \\w+ in SinglePatch but \\w+ in directory");
+    assertThat(throwable)
+        .hasMessageThat()
+        .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
   }
 
   @Test
@@ -2816,7 +2820,7 @@ public class WorkflowTest {
             + ")";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    Path testDir = Files.createTempDirectory("singlePatch");
+    Path testDir = Files.createTempDirectory("consistency");
 
     // create writer for emulating manual destination changes
     WriterContext ctx =

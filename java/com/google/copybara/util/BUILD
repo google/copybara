@@ -16,20 +16,17 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-SINGLEPATCH_SRCS = ["SinglePatch.java"]
+CONSISTENCYFILE_SRCS = ["ConsistencyFile.java"]
 
 ORIGINUTIL_SRCS = ["OriginUtil.java"]
 
 java_library(
-    name = "singlepatch",
-    srcs = SINGLEPATCH_SRCS,
+    name = "consistency",
+    srcs = CONSISTENCYFILE_SRCS,
     deps = [
         ":util",
-        "//java/com/google/copybara:coreglobal",
         "//java/com/google/copybara/exception",
         "//third_party:guava",
-        "//third_party:re2j",
-        "//third_party:starlark",
     ],
 )
 
@@ -37,7 +34,7 @@ java_library(
     name = "util",
     srcs = glob(
         ["**/*.java"],
-        exclude = SINGLEPATCH_SRCS + ORIGINUTIL_SRCS,
+        exclude = CONSISTENCYFILE_SRCS + ORIGINUTIL_SRCS,
     ),
     javacopts = [
         "-Xlint:unchecked",

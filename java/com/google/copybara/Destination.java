@@ -183,7 +183,7 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
 
   /**
    * A hash function that is preferred by the Destination for uses cases where hashing is involved,
-   * e.g. {@link com.google.copybara.util.SinglePatch}
+   * e.g. {@link com.google.copybara.util.ConsistencyFile}
    */
   default HashFunction getHashFunction() {
     return Hashing.sha256();

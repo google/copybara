@@ -268,7 +268,7 @@ java_library(
         "//java/com/google/copybara/transform/debug",
         "//java/com/google/copybara/transform/patch",
         "//java/com/google/copybara/util",
-        "//java/com/google/copybara/util:singlepatch",
+        "//java/com/google/copybara/util:consistency",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/version",
         "//java/com/google/copybara/xml",
