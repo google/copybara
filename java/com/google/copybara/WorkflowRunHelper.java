@@ -821,18 +821,18 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       if (workflow.isUseReversePatchBaseline()) {
         baselineWorkdir =
             checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
-      } else if (workflow.getMergeImport().useSinglePatch()) {
+      } else if (workflow.getMergeImport().useConsistencyFile()) {
         // If there is a single patch file, then use it.
         // Otherwise, fall back to baseline import.
         Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
         reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), singlePatchWorkdir);
 
-        if (reader.exists(workflow.fullSinglePatchPath())) {
+        if (reader.exists(workflow.consistencyFilePath())) {
           try {
-            String singlePatchVersion = reader.lastModified(workflow.fullSinglePatchPath());
+            String singlePatchVersion = reader.lastModified(workflow.consistencyFilePath());
             DestinationReader singlePatchVersionReader =
                 writer.getDestinationReader(console, singlePatchVersion, checkoutDir);
-            baselineWorkdir = checkoutSinglePatchBaseline(singlePatchVersionReader);
+            baselineWorkdir = checkoutConsistencyFileBaseline(singlePatchVersionReader);
           } catch (UnsupportedOperationException e) {
             throw new ValidationException(
                 "Destination does not support single patch operations", e);
@@ -886,7 +886,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
 
       Optional<byte[]> singlePatch = Optional.empty();
-      if (workflow.isMergeImport() && workflow.getMergeImport().useSinglePatch()) {
+      if (workflow.isMergeImport() && workflow.getMergeImport().useConsistencyFile()) {
         try {
           singlePatch =
               Optional.of(
@@ -924,8 +924,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // Write the SinglePatch file after auto patches are generated so that it does not get
       // included in the auto patches.
       if (singlePatch.isPresent()) {
-        Files.createDirectories(checkoutDir.resolve(workflow.fullSinglePatchPath()).getParent());
-        Files.write(checkoutDir.resolve(workflow.fullSinglePatchPath()), singlePatch.get());
+        Files.createDirectories(checkoutDir.resolve(workflow.consistencyFilePath()).getParent());
+        Files.write(checkoutDir.resolve(workflow.consistencyFilePath()), singlePatch.get());
       }
     }
 
@@ -965,25 +965,25 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         destinationFiles = Glob.difference(destinationFiles, AutoPatchUtil.getAutopatchGlob(
             autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory()));
       }
-      if (workflow.getMergeImport().useSinglePatch()) {
+      if (workflow.getMergeImport().useConsistencyFile()) {
         destinationFiles =
             Glob.difference(
                 destinationFiles,
-                Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath())));
+                Glob.createGlob(ImmutableList.of(workflow.consistencyFilePath())));
       }
       return destinationFiles;
     }
 
     static Glob consistencyFileGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
-      return Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
+      return Glob.createGlob(ImmutableList.of(workflow.consistencyFilePath()));
     }
 
-    private Path checkoutSinglePatchBaseline(DestinationReader reader)
+    private Path checkoutConsistencyFileBaseline(DestinationReader reader)
         throws ValidationException, IOException, RepoException {
       Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
-      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.fullSinglePatchPath());
+      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.consistencyFilePath());
 
-      // copy the singlepatch file somewhere so we can parse it
+      // copy the consistency file somewhere so we can parse it
       reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), consistencyFileWorkdir);
       ConsistencyFile consistencyFile =
           ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));

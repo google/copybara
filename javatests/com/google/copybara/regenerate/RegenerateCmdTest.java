@@ -629,7 +629,6 @@ public class RegenerateCmdTest {
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + "    merge_import = core.merge_import_config(\n"
         + "      package_path = \"\"\n,"
-        + "      use_single_patch = False\n"
         + "    ),\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
@@ -650,11 +649,11 @@ public class RegenerateCmdTest {
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + "    merge_import = core.merge_import_config(\n"
         + "      package_path = \"\"\n,"
-        + "      use_single_patch = True\n,"
-        + "      single_patch_path = '"
-        + consistencyFilePath
-        + "'\n"
+        + "      use_consistency_file = True\n,"
         + "    ),\n"
+        + "    consistency_file_path = \""
+        + consistencyFilePath
+        + "\",\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
         + "      directory_prefix = ''\n,"
@@ -695,8 +694,11 @@ public class RegenerateCmdTest {
         + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
         + "    merge_import = core.merge_import_config(\n"
         + "      package_path = \"\"\n,"
-        + "      use_single_patch = True\n"
+        + "      use_consistency_file = True\n"
         + "    ),\n"
+        + "    consistency_file_path = \""
+        + consistencyFilePath
+        + "\",\n"
         + ")";
   }
 

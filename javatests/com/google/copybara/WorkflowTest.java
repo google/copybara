@@ -149,6 +149,7 @@ public class WorkflowTest {
   private boolean setRevId;
   private boolean smartPrune;
   private String mergeImport;
+  private String consistencyFilePath;
   private String autoGeneratePatchPrefix;
   private String autoPatchFileDirectoryPrefix;
   private String autoPatchfileContentsPrefix;
@@ -194,6 +195,7 @@ public class WorkflowTest {
     setRevId = true;
     smartPrune = false;
     mergeImport = "False";
+    consistencyFilePath = "None";
     autoPatchFileDirectoryPrefix = "";
     autoPatchfileContentsPrefix = "";
     autoPatchfileSuffix = "";
@@ -261,9 +263,12 @@ public class WorkflowTest {
             + "    merge_import = "
             + mergeImport
             + ",\n"
+            + "    consistency_file_path = "
+            + consistencyFilePath
+            + ",\n"
             + (afterMergeTransformations != null
-            ? "after_merge_transformations = " + afterMergeTransformations + ","
-            : "")
+                ? "after_merge_transformations = " + afterMergeTransformations + ","
+                : "")
             + "::autopatch_placeholder::"
             + "    migrate_noop_changes = "
             + (migrateNoopChangesField ? "True" : "False")
@@ -272,8 +277,8 @@ public class WorkflowTest {
             + mode
             + "',\n"
             + (extraWorkflowFields.isEmpty()
-            ? ""
-            : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n")
+                ? ""
+                : "    " + Joiner.on(",\n    ").join(extraWorkflowFields) + ",\n")
             + ")\n";
     if (!Strings.isNullOrEmpty(autoPatchfileContentsPrefix)) {
       config =
@@ -2050,8 +2055,9 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     skylark = new SkylarkTestExecutor(options);
     Path testDir = Files.createTempDirectory("testDir");
 
@@ -2069,7 +2075,7 @@ public class WorkflowTest {
     // run the workflow
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String consistencyFilePath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.consistencyFilePath();
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
@@ -2109,8 +2115,9 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     Path testDir = Files.createTempDirectory("testDir");
 
     Path base1 = Files.createDirectories(testDir.resolve("base1"));
@@ -2126,7 +2133,7 @@ public class WorkflowTest {
 
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String consistencyFilePath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.consistencyFilePath();
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     // add a new origin change to import and a destination-only change to create a ConsistencyFile
@@ -2193,12 +2200,13 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String consistencyFilePath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.consistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2280,12 +2288,13 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistencyFile");
-    String consistencyFilePath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.consistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2332,12 +2341,13 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistencyFile");
-    String consistencyFilePath = workflow.fullSinglePatchPath();
+    String consistencyFilePath = workflow.consistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2816,8 +2826,9 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_single_patch = True,\n"
+            + "  use_consistency_file = True,\n"
             + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistency");

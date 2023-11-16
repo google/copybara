@@ -137,7 +137,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
     boolean noLineNumbers =
         autopatchConfig == null || autopatchConfig.stripFileNamesAndLineNumbers();
     boolean useImportBaseline =
-        regenerateOptions.getRegenImportBaseline() || (!workflow.useSinglePatch() && noLineNumbers);
+        regenerateOptions.getRegenImportBaseline()
+            || (!workflow.consistencyIsEnabled() && noLineNumbers);
 
     if (useImportBaseline) {
       previousPath =
@@ -154,7 +155,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
                   new ValidationException(
                       "Regen baseline was neither supplied nor able to be inferred. Supply with"
                           + " --regen-baseline parameter"));
-      if (workflow.useSinglePatch()) {
+      if (workflow.consistencyIsEnabled()) {
         prepareDiffWithConsistencyFileBaseline(
             autopatchConfig,
             workflow,
@@ -180,7 +181,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
     }
 
     Optional<byte[]> consistencyFile = Optional.empty();
-    if (workflow.useSinglePatch()) {
+    if (workflow.consistencyIsEnabled()) {
       try {
         consistencyFile =
             Optional.of(
@@ -221,8 +222,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
     }
 
     if (consistencyFile.isPresent()) {
-      Files.createDirectories(nextPath.resolve(workflow.fullSinglePatchPath()).getParent());
-      Files.write(nextPath.resolve(workflow.fullSinglePatchPath()), consistencyFile.get());
+      Files.createDirectories(nextPath.resolve(workflow.consistencyFilePath()).getParent());
+      Files.write(nextPath.resolve(workflow.consistencyFilePath()), consistencyFile.get());
     }
 
     // push the new set of files
@@ -289,7 +290,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
       patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, autopatchGlob);
     }
 
-    Glob consistencyFileGlob = Glob.createGlob(ImmutableList.of(workflow.fullSinglePatchPath()));
+    Glob consistencyFileGlob = Glob.createGlob(ImmutableList.of(workflow.consistencyFilePath()));
     patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, consistencyFileGlob);
 
     // copy the baseline to one directory
@@ -307,7 +308,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
     previousDestinationReader.copyDestinationFilesToDirectory(consistencyFileGlob, patchPath);
 
     // reverse patch files on the target directory here to get a pristine import
-    Path consistencyFilePath = patchPath.resolve(workflow.fullSinglePatchPath());
+    Path consistencyFilePath = patchPath.resolve(workflow.consistencyFilePath());
     if (Files.exists(consistencyFilePath)) {
       ConsistencyFile consistencyFile =
           ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));

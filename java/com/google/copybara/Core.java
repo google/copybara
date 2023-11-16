@@ -502,6 +502,16 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             doc = "Ignore the files matching the glob in the reversible check",
             defaultValue = "None",
             positional = false),
+        @Param(
+            name = "consistency_file_path",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+              @ParamType(type = NoneType.class),
+            },
+            doc = "Under development. Must end with .bara.consistency",
+            defaultValue = "None",
+            positional = false),
       },
       useStarlarkThread = true)
   @UsesFlags({WorkflowOptions.class})
@@ -536,6 +546,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       Object description,
       Boolean checkout,
       Object reversibleCheckIgnoreFiles,
+      Object consistencyFilePathObj,
       StarlarkThread thread)
       throws EvalException {
     WorkflowMode mode = stringToEnum("mode", modeStr, WorkflowMode.class);
@@ -621,11 +632,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       mergeImport = convertFromNoneable(mergeImportObj, null);
     }
 
+    @Nullable
     AutoPatchfileConfiguration autoPatchfileConfiguration =
         convertFromNoneable(autoPatchFileConfigurationObj, null);
 
+    @Nullable String consistencyFilePath = convertFromNoneable(consistencyFilePathObj, null);
+
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
+
     Workflow<Revision, ?> workflow =
         new Workflow<>(
             workflowName,
@@ -659,7 +674,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
-            checkout);
+            checkout,
+            consistencyFilePath);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
   }
@@ -2323,27 +2339,17 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             positional = false),
         @Param(
-            name = "use_single_patch",
+            name = "use_consistency_file",
             documented = false,
             doc = "under development",
             defaultValue = "False",
             named = true,
             positional = false),
-        @Param(
-            name = "single_patch_path",
-            documented = false,
-            defaultValue = "None",
-            allowedTypes = {@ParamType(type = String.class), @ParamType(type = NoneType.class)},
-            doc = "under development",
-            named = true,
-            positional = false)
       })
   public MergeImportConfiguration mergeImportConfiguration(
-      String packagePath, Object pathsObj, boolean useSinglePatch, Object singlePatchPathObj) {
+      String packagePath, Object pathsObj, boolean useConsistencyFile) {
     Glob paths = convertFromNoneable(pathsObj, Glob.ALL_FILES);
-    String singlePatchPath =
-        convertFromNoneable(singlePatchPathObj, MergeImportConfiguration.DEFAULT_SINGLE_PATCH_PATH);
-    return MergeImportConfiguration.create(packagePath, paths, useSinglePatch, singlePatchPath);
+    return MergeImportConfiguration.create(packagePath, paths, useConsistencyFile);
   }
 
   @SuppressWarnings("unused")

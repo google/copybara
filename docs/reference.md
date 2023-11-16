@@ -1088,7 +1088,7 @@ core.latest_version(
 
 Describes which paths merge_import mode should be applied
 
-[`core.merge_import_config`](#coremerge_import_config) `core.merge_import_config(package_path, paths=None, use_single_patch=False, single_patch_path=None)`
+[`core.merge_import_config`](#coremerge_import_config) `core.merge_import_config(package_path, paths=None, use_consistency_file=False)`
 
 
 #### Parameters:
@@ -1097,8 +1097,7 @@ Parameter | Description
 --------- | -----------
 package_path | `string`<br><p>Package location (ex. 'google3/third_party/java/foo').</p>
 paths | [`glob`](#glob) or `NoneType`<br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
-use_single_patch | `bool`<br><p>under development</p>
-single_patch_path | `string` or `NoneType`<br><p>under development</p>
+use_consistency_file | `bool`<br><p>under development</p>
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -1544,7 +1543,7 @@ Implicit labels that can be used/exposed:
   - COPYBARA_AUTHOR: The author of the change
 
 
-`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=None, autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None)`
+`core.workflow(name, origin, destination, authoring, transformations=[], origin_files=glob(["**"]), destination_files=glob(["**"]), mode="SQUASH", reversible_check=True for 'CHANGE_REQUEST' mode. False otherwise, check_last_rev_state=False, ask_for_confirmation=False, dry_run=False, after_migration=[], after_workflow=[], change_identity=None, set_rev_id=True, smart_prune=False, merge_import=None, autopatch_config=None, after_merge_transformations=[], migrate_noop_changes=False, experimental_custom_rev_id=None, custom_rev_id=None, description=None, checkout=True, reversible_check_ignore_files=None, consistency_file_path=None)`
 
 
 #### Parameters:
@@ -1577,6 +1576,7 @@ custom_rev_id | `string` or `NoneType`<br><p>If the destination uses labels to m
 description | `string` or `NoneType`<br><p>A description of what this workflow achieves</p>
 checkout | `bool`<br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
 reversible_check_ignore_files | [`glob`](#glob) or `NoneType`<br><p>Ignore the files matching the glob in the reversible check</p>
+consistency_file_path | `string` or `NoneType`<br><p>Under development. Must end with .bara.consistency</p>
 
 
 

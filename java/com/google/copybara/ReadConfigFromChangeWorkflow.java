@@ -97,7 +97,8 @@ public class ReadConfigFromChangeWorkflow<O extends Revision, D extends Revision
         workflow.afterMergeTransformations,
         workflow.isMigrateNoopChanges(),
         workflow.customRevId(),
-        workflow.isCheckout());
+        workflow.isCheckout(),
+        workflow.consistencyFilePath());
     this.configLoader = checkNotNull(configLoader, "configLoaderProvider");
     this.configValidator = checkNotNull(configValidator, "configValidator");
   }

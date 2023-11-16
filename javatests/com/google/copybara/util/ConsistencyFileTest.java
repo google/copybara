@@ -390,7 +390,8 @@ public final class ConsistencyFileTest {
                     ConsistencyFile.filesInDir(destination),
                     ConsistencyFile.simpleHashGetter(destination, Hashing.sha256())));
 
-    assertThat(t).hasMessageThat()
+    assertThat(t)
+        .hasMessageThat()
         .contains("files not found in directory but present in ConsistencyFile");
   }
 
@@ -411,8 +412,8 @@ public final class ConsistencyFileTest {
                     ConsistencyFile.filesInDir(destination),
                     ConsistencyFile.simpleHashGetter(destination, Hashing.sha256())));
 
-    assertThat(t).hasMessageThat()
-        .containsMatch(
-            ".* has hash value [\\d\\w]+ in ConsistencyFile but [\\d\\w]+ in directory");
+    assertThat(t)
+        .hasMessageThat()
+        .containsMatch(".* has hash value [\\d\\w]+ in ConsistencyFile but [\\d\\w]+ in directory");
   }
 }

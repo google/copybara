@@ -123,6 +123,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Nullable private final String customRevId;
   private final boolean checkout;
 
+  @Nullable String consistencyFilePath;
+
   public Workflow(
       String name,
       @Nullable String description,
@@ -155,7 +157,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
       @Nullable String customRevId,
-      boolean checkout) {
+      boolean checkout,
+      @Nullable String consistencyFilePath) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -192,6 +195,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
+    this.consistencyFilePath = consistencyFilePath;
   }
 
   @Override
@@ -698,15 +702,13 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return useReversePatchBaseline;
   }
 
-  public boolean useSinglePatch() {
-    return isMergeImport() && getMergeImport().useSinglePatch();
+  public boolean consistencyIsEnabled() {
+    return consistencyFilePath != null && isMergeImport() && mergeImport.useConsistencyFile();
   }
 
-  /**
-   * Only call this if merge import mode is enabled.
-   */
-  public String fullSinglePatchPath() {
-    return getMergeImport().fullSinglePatchPath();
+  /** Only call this if merge import mode is enabled. */
+  public String consistencyFilePath() {
+    return consistencyFilePath;
   }
 
   @Nullable
