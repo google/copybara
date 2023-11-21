@@ -16,6 +16,7 @@
 
 package com.google.copybara.rust;
 
+import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.base.Strings;
@@ -36,6 +37,8 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.toml.TomlContent;
 import com.google.copybara.toml.TomlModule;
+import com.google.copybara.util.FileUtil;
+import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.version.VersionResolver;
 import com.google.gson.JsonObject;
@@ -44,6 +47,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -173,7 +177,6 @@ public class RustModule implements StarlarkValue {
       Path cratePath = ctx.getCheckoutDir().resolve(crateDir);
       Path cargoTomlPath = cratePath.resolve("Cargo.toml");
       Path cargoVcsInfoJsonPath = cratePath.resolve(".cargo_vcs_info.json");
-      Path tmpCheckoutPath = generalOptions.getDirFactory().newTempDir("fuzz_checkout");
       if (!(Files.exists(cargoTomlPath) && Files.exists(cargoVcsInfoJsonPath))) {
         ctx.getConsole()
             .warn(
@@ -198,33 +201,75 @@ public class RustModule implements StarlarkValue {
       GitRevision rev = repo.fetchSingleRef(url, sha1, true, Optional.empty());
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
-      Optional<Path> maybeFuzzCargoTomlPath =
-          getMaybeFuzzCargoTomlPath(
-              tmpCheckoutPath,
+      String relativePath = getPathInVcs(vcsJsonObject).orElse("");
+      Optional<String> fuzzersDir =
+          getFuzzersDir(
               destinationReader,
-              Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName)));
+              Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName)),
+              relativePath);
 
-      if (maybeFuzzCargoTomlPath.isEmpty()) {
+      if (fuzzersDir.isEmpty()) {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
       } else {
-        Path fuzzerPath = maybeFuzzCargoTomlPath.get().getParent();
-        StarlarkList<String> exclude =
-            SkylarkUtil.convertFromNoneable(maybeFuzzExcludes, StarlarkList.empty());
-        destinationReader.copyDestinationFilesToDirectory(
-            Glob.createGlob(
-                ImmutableList.of(String.format("%s/**", fuzzerPath)),
-                exclude.stream()
-                    .map(e -> String.format("%s/%s", fuzzerPath, e))
-                    .collect(toImmutableList())),
-            cratePath);
-        return ctx.newPath(
-            ctx.getCheckoutDir().relativize(cratePath.resolve(fuzzerPath.toString())).toString());
+        return copyFuzzersToWorkdir(
+            ctx,
+            SkylarkUtil.convertFromNoneable(maybeFuzzExcludes, StarlarkList.empty()),
+            cratePath,
+            destinationReader,
+            relativePath,
+            fuzzersDir.get());
       }
 
       return null;
     } catch (IOException e) {
       throw new ValidationException("Failed to obtain Rust fuzzers from Git.", e);
     }
+  }
+
+  private CheckoutPath copyFuzzersToWorkdir(
+      TransformWork ctx,
+      List<String> exclude,
+      Path checkoutCratePath,
+      GitDestinationReader destinationReader,
+      String relativePath,
+      String fuzzersDir)
+      throws IOException, RepoException, EvalException {
+    Path tmpDir = generalOptions.getDirFactory().newTempDir("fuzz_copy");
+    String fullGitFuzzersDir = Path.of(relativePath, fuzzersDir).toString();
+    destinationReader.copyDestinationFilesToDirectory(
+        Glob.createGlob(
+            ImmutableList.of(String.format("%s/**", fullGitFuzzersDir)),
+            exclude.stream()
+                .map(e -> String.format("%s/%s", fullGitFuzzersDir, e))
+                .collect(toImmutableList())),
+        tmpDir);
+
+    // Copy the fuzzers to the checkout directory.
+    // We resolve the path against the "path_in_vcs" value to get the crate root folder in the
+    // upstream repo.
+    // This is necessary as some repos contain more than one crate, so we need to find the crate
+    // root we are interested in to copy files to the checkout dir.
+    Path gitCratePath = tmpDir.resolve(relativePath);
+    // This gives us the path to the fuzzers relative to the upstream crate root.
+    String fuzzersDirectory = gitCratePath.relativize(tmpDir.resolve(fullGitFuzzersDir)).toString();
+    FileUtil.copyFilesRecursively(
+        gitCratePath, checkoutCratePath, CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS);
+
+    // We return the location of the fuzzers
+    return ctx.newPath(
+        ctx.getCheckoutDir().relativize(checkoutCratePath.resolve(fuzzersDirectory)).toString());
+  }
+
+  /**
+   * Gets the subdirectory that contains the crate in the upstream repo from .cargo_vcs_info.json.
+   */
+  private static Optional<String> getPathInVcs(JsonObject vcsJsonObject) {
+    if (!vcsJsonObject.has("path_in_vcs")) {
+      return Optional.empty();
+    }
+
+    String pathToVcs = vcsJsonObject.get("path_in_vcs").getAsString();
+    return Optional.ofNullable(emptyToNull(pathToVcs));
   }
 
   @StarlarkMethod(
@@ -243,14 +288,19 @@ public class RustModule implements StarlarkValue {
         RustVersionRequirement.getVersionRequirement(requirement));
   }
 
-  private Optional<Path> getMaybeFuzzCargoTomlPath(
-      Path tmpCheckoutPath, GitDestinationReader destinationReader, Optional<String> maybeCrateName)
+  /** Gets the location of the fuzzers in the upstream repo. */
+  private Optional<String> getFuzzersDir(
+      GitDestinationReader destinationReader, Optional<String> crateName, String relativePath)
       throws RepoException, IOException, ValidationException, EvalException {
-    Glob cargoTomlGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
+    // Limit the Cargo.toml files we analyze to the upstream repo directory mentioned in the crate's
+    // manifest.
+    Glob cargoTomlGlob =
+        Glob.createGlob(ImmutableList.of(Path.of(relativePath, "**/Cargo.toml").toString()));
+    Path tmpCheckoutPath = generalOptions.getDirFactory().newTempDir("fuzz_checkout");
     destinationReader.copyDestinationFilesToDirectory(cargoTomlGlob, tmpCheckoutPath);
     PathMatcher pathMatcher = cargoTomlGlob.relativeTo(tmpCheckoutPath);
     ImmutableList<Path> cargoTomlFiles;
-    Optional<Path> maybeCargoTomlPath = Optional.empty();
+    Optional<String> fuzzersDir = Optional.empty();
     try (Stream<Path> stream = Files.walk(tmpCheckoutPath)) {
       cargoTomlFiles =
           stream
@@ -260,12 +310,14 @@ public class RustModule implements StarlarkValue {
     }
 
     for (Path path : cargoTomlFiles) {
-      if (isCargoTomlCargoFuzz(path, maybeCrateName)) {
-        maybeCargoTomlPath = Optional.of(tmpCheckoutPath.relativize(path));
+      if (isCargoTomlCargoFuzz(path, crateName)) {
+        fuzzersDir =
+            Optional.of(
+                tmpCheckoutPath.resolve(relativePath).relativize(path.getParent()).toString());
         break;
       }
     }
-    return maybeCargoTomlPath;
+    return fuzzersDir;
   }
 
   protected String getFuzzersDownloadUrl(Path cargoTomlPath)
@@ -282,17 +334,16 @@ public class RustModule implements StarlarkValue {
     return url;
   }
 
-  private boolean isCargoTomlCargoFuzz(Path cargoTomlPath, Optional<String> maybeCrateName)
+  private boolean isCargoTomlCargoFuzz(Path cargoTomlPath, Optional<String> crateName)
       throws IOException, ValidationException, EvalException {
     TomlContent parsedToml = new TomlModule().parse(Files.readString(cargoTomlPath));
     boolean isFuzzerForCrate =
         (boolean) parsedToml.getOrDefault("package.metadata.cargo-fuzz", false);
 
-    if (maybeCrateName.isPresent()) {
+    if (crateName.isPresent()) {
       String depPath =
           (String)
-              parsedToml.getOrDefault(
-                  String.format("dependencies.%s.path", maybeCrateName.get()), null);
+              parsedToml.getOrDefault(String.format("dependencies.%s.path", crateName.get()), null);
 
       isFuzzerForCrate &= (depPath != null && depPath.equals(".."));
     }

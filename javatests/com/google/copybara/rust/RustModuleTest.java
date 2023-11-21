@@ -164,7 +164,18 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz", "None", true);
+    setUpRepoAndCheckout(cratePath, "fuzz", "None", true, "");
+
+    assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
+    assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
+    assertThat(Files.exists(cratePath.resolve("ignore.rs"))).isFalse();
+    console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzz");
+  }
+
+  @Test
+  public void testDownloadCrateFuzzers_usingCargoVcsInfoPath() throws Exception {
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    setUpRepoAndCheckout(cratePath, "fuzzbara/fuzz", "None", true, "fuzzbara");
 
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
@@ -176,7 +187,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_parentCrateIsNotDep() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz", "None", false);
+    setUpRepoAndCheckout(cratePath, "fuzz", "None", false, "");
 
     assertThat(Files.exists(cratePath.resolve("fuzz"))).isFalse();
 
@@ -190,7 +201,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_fuzzExcludes() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzz", "[\"bar.rs\", \"baz/foo.rs\"]", true);
+    setUpRepoAndCheckout(cratePath, "fuzz", "[\"bar.rs\", \"baz/foo.rs\"]", true, "");
 
     assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isFalse();
@@ -203,7 +214,7 @@ public class RustModuleTest {
   public void testDownloadCrateFuzzers_differentFuzzDir() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
-    setUpRepoAndCheckout(cratePath, "fuzzbara", "None", true);
+    setUpRepoAndCheckout(cratePath, "fuzzbara", "None", true, "");
 
     assertThat(Files.exists(cratePath.resolve("fuzzbara/foo.rs"))).isTrue();
     assertThat(Files.exists(cratePath.resolve("fuzzbara/bar.rs"))).isTrue();
@@ -212,7 +223,7 @@ public class RustModuleTest {
   }
 
   private void setUpRepoAndCheckout(
-      Path cratePath, String fuzzersDir, String excludes, boolean defineParentDep)
+      Path cratePath, String fuzzersDir, String excludes, boolean defineParentDep, String vcsPath)
       throws IOException, RepoException, ValidationException {
     Path remote = Files.createTempDirectory("remote");
     String url = "file://" + remote.toFile().getAbsolutePath();
@@ -245,9 +256,9 @@ public class RustModuleTest {
                 + "  \"git\": {\n"
                 + "    \"sha1\": \"%s\"\n"
                 + "  },\n"
-                + "  \"path_in_vcs\": \"foo\"\n"
+                + "  \"path_in_vcs\": \"%s\"\n"
                 + "}",
-            repo.getHeadRef().getSha1());
+            repo.getHeadRef().getSha1(), vcsPath);
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
