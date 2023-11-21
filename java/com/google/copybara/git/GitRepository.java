@@ -1746,7 +1746,7 @@ public class GitRepository {
     // check that the reference exists.
     if (GitRevision.COMPLETE_SHA1_PATTERN.matcher(reference).matches()) {
       if (checkSha1Exists(reference)) {
-        return new GitRevision(this, reference);
+        return new GitRevision(this, reference, url);
       }
       throw new CannotResolveRevisionException(
           String.format("Cannot find '%s' object in the repository (%s)", reference, url));

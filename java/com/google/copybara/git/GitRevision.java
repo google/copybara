@@ -65,6 +65,17 @@ public final class GitRevision implements Revision {
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
    *
+   * @param repository Git repository that should contain the {@code sha1}
+   * @param sha1 A 40 character SHA-1.
+   * @param url The url of the repository that the revision comes from.
+   */
+  GitRevision(GitRepository repository, String sha1, String url) {
+    this(repository, sha1, null, null, ImmutableListMultimap.of(), url);
+  }
+
+  /**
+   * Create a git revision from a complete (40 characters) git SHA-1 string.
+   *
    * @param repository git repository that should contain the {@code sha1}
    * @param sha1 a 40 characters SHA-1
    * @param reviewReference an arbitrary string that allows to keep track of the revision of the
