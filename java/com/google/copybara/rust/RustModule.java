@@ -31,6 +31,7 @@ import com.google.copybara.git.GitDestinationReader;
 import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRevision;
+import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.toml.TomlContent;
@@ -269,10 +270,16 @@ public class RustModule implements StarlarkValue {
 
   protected String getFuzzersDownloadUrl(Path cargoTomlPath)
       throws ValidationException, EvalException, IOException {
-    return (String)
+    String url = (String)
         new TomlModule()
             .parse(Files.readString(cargoTomlPath))
             .getOrDefault("package.repository", "");
+
+    if (GitHubHost.GITHUB_COM.isGitHubUrl(url)) {
+      url = GitHubHost.GITHUB_COM.normalizeUrl(url);
+    }
+
+    return url;
   }
 
   private boolean isCargoTomlCargoFuzz(Path cargoTomlPath, Optional<String> maybeCrateName)
