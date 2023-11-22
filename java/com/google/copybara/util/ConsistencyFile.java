@@ -80,20 +80,30 @@ public class ConsistencyFile {
   public static ConsistencyFile generate(
       Path baseline, Path destination, HashFunction hashFunction, Map<String, String> environment)
       throws IOException, InsideGitDirException {
-    ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
-    Files.walkFileTree(destination, new SimpleFileVisitor<>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-          throws IOException {
-        HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);
-        hashesBuilder.put(destination.relativize(file).toString(),
-            hashCode.toString());
-        return FileVisitResult.CONTINUE;
-      }
-
-    });
     byte[] diff = DiffUtil.diff(baseline, destination, true, environment);
-    return new ConsistencyFile(hashesBuilder.buildOrThrow(), diff);
+    return new ConsistencyFile(computeFileHashes(destination, hashFunction), diff);
+  }
+
+  public static ConsistencyFile generateNoDiff(Path contents, HashFunction hashFunction)
+      throws IOException {
+    return new ConsistencyFile(computeFileHashes(contents, hashFunction), new byte[0]);
+  }
+
+  private static ImmutableMap<String, String> computeFileHashes(
+      Path directory, HashFunction hashFunction) throws IOException {
+    ImmutableMap.Builder<String, String> hashesBuilder = ImmutableMap.builder();
+    Files.walkFileTree(
+        directory,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+              throws IOException {
+            HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);
+            hashesBuilder.put(directory.relativize(file).toString(), hashCode.toString());
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    return hashesBuilder.buildKeepingLast();
   }
 
   private static String mustReadLine(BufferedReader reader) throws IOException {

@@ -702,12 +702,14 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     return useReversePatchBaseline;
   }
 
-  public boolean consistencyIsEnabled() {
-    return consistencyFilePath != null && isMergeImport() && mergeImport.useConsistencyFile();
+  public boolean isConsistencyFileMergeImport() {
+    return isMergeImport()
+        && getMergeImport().useConsistencyFile()
+        && getConsistencyFilePath() != null;
   }
 
-  /** Only call this if merge import mode is enabled. */
-  public String consistencyFilePath() {
+  @Nullable
+  public String getConsistencyFilePath() {
     return consistencyFilePath;
   }
 

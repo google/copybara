@@ -2050,6 +2050,43 @@ public class WorkflowTest {
   }
 
   @Test
+  public void consistencyFile_isGenerated() throws IOException, ValidationException, RepoException {
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    skylark = new SkylarkTestExecutor(options);
+    Path testDir = Files.createTempDirectory("testDir");
+
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+
+    // populate the baseline
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+
+    origin.addChange(0, base1, "One Change\n", /* matchesGlob= */ true);
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    String consistencyPath = workflow.getConsistencyFilePath();
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get("dir/foo.txt"))
+        .isEqualTo("a\nb\nc\n");
+
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get(consistencyPath))
+        .isNotEmpty();
+  }
+
+  @Test
   public void mergeImport_consistencyFile_generatesConsistencyFile()
       throws IOException, ValidationException, RepoException {
     mergeImport =
@@ -2075,7 +2112,7 @@ public class WorkflowTest {
     // run the workflow
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String consistencyFilePath = workflow.consistencyFilePath();
+    String consistencyFilePath = workflow.getConsistencyFilePath();
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
@@ -2133,7 +2170,7 @@ public class WorkflowTest {
 
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String consistencyFilePath = workflow.consistencyFilePath();
+    String consistencyFilePath = workflow.getConsistencyFilePath();
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
     // add a new origin change to import and a destination-only change to create a ConsistencyFile
@@ -2206,7 +2243,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("singlePatch");
-    String consistencyFilePath = workflow.consistencyFilePath();
+    String consistencyFilePath = workflow.getConsistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2294,7 +2331,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistencyFile");
-    String consistencyFilePath = workflow.consistencyFilePath();
+    String consistencyFilePath = workflow.getConsistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2347,7 +2384,7 @@ public class WorkflowTest {
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistencyFile");
-    String consistencyFilePath = workflow.consistencyFilePath();
+    String consistencyFilePath = workflow.getConsistencyFilePath();
 
     // create writer for emulating manual destination changes
     WriterContext ctx = new WriterContext("", null, false, new DummyRevision("1"),
@@ -2826,9 +2863,7 @@ public class WorkflowTest {
     mergeImport =
         "core.merge_import_config(\n"
             + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
             + ")";
-    consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistency");

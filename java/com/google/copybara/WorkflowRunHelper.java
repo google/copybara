@@ -749,6 +749,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             originApi,
             destinationApi,
             transformWork);
+      } else {
+        if (workflow.getConsistencyFilePath() != null) {
+          byte[] consistencyFileContents =
+              ConsistencyFile.generateNoDiff(
+                      checkoutDir, workflow.getDestination().getHashFunction())
+                  .toBytes();
+          Files.createDirectories(
+              checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
+          Files.write(
+              checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFileContents);
+        }
       }
       if (destinationBaseline != null) {
         transformResult = transformResult.withBaseline(destinationBaseline.getBaseline());
@@ -822,20 +833,21 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         baselineWorkdir =
             checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
       } else if (workflow.getMergeImport().useConsistencyFile()) {
-        // If there is a single patch file, then use it.
+        // If there is a consistency file, then use it.
         // Otherwise, fall back to baseline import.
-        Path singlePatchWorkdir = Files.createDirectories(workdir.resolve("singlePatch"));
-        reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), singlePatchWorkdir);
+        Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
+        reader.copyDestinationFilesToDirectory(
+            consistencyFileGlob(workflow), consistencyFileWorkdir);
 
-        if (reader.exists(workflow.consistencyFilePath())) {
+        if (reader.exists(workflow.getConsistencyFilePath())) {
           try {
-            String singlePatchVersion = reader.lastModified(workflow.consistencyFilePath());
-            DestinationReader singlePatchVersionReader =
-                writer.getDestinationReader(console, singlePatchVersion, checkoutDir);
-            baselineWorkdir = checkoutConsistencyFileBaseline(singlePatchVersionReader);
+            String consistencyFileVersion = reader.lastModified(workflow.getConsistencyFilePath());
+            DestinationReader consistencyFileVersionReader =
+                writer.getDestinationReader(console, consistencyFileVersion, checkoutDir);
+            baselineWorkdir = checkoutConsistencyFileBaseline(consistencyFileVersionReader);
           } catch (UnsupportedOperationException e) {
             throw new ValidationException(
-                "Destination does not support single patch operations", e);
+                "Destination does not support consistency file operations", e);
           }
         }
       }
@@ -885,10 +897,10 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         workflow.afterMergeTransformations.transform(transformWork);
       }
 
-      Optional<byte[]> singlePatch = Optional.empty();
-      if (workflow.isMergeImport() && workflow.getMergeImport().useConsistencyFile()) {
+      Optional<byte[]> consistencyFile = Optional.empty();
+      if (workflow.isConsistencyFileMergeImport()) {
         try {
-          singlePatch =
+          consistencyFile =
               Optional.of(
                   ConsistencyFile.generate(
                           preMergeImportWorkdir,
@@ -897,7 +909,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           workflow.getGeneralOptions().getEnvironment())
                       .toBytes());
         } catch (InsideGitDirException e) {
-          throw new ValidationException("Error generating single patch", e);
+          throw new ValidationException("Error generating consistency file", e);
         }
       }
 
@@ -921,11 +933,11 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           throw new ValidationException("Error automatically generating patch files", e);
         }
       }
-      // Write the SinglePatch file after auto patches are generated so that it does not get
+      // Write the ConsistencyFile after auto patches are generated so that it does not get
       // included in the auto patches.
-      if (singlePatch.isPresent()) {
-        Files.createDirectories(checkoutDir.resolve(workflow.consistencyFilePath()).getParent());
-        Files.write(checkoutDir.resolve(workflow.consistencyFilePath()), singlePatch.get());
+      if (workflow.getConsistencyFilePath() != null && consistencyFile.isPresent()) {
+        Files.createDirectories(checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
+        Files.write(checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFile.get());
       }
     }
 
@@ -969,19 +981,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         destinationFiles =
             Glob.difference(
                 destinationFiles,
-                Glob.createGlob(ImmutableList.of(workflow.consistencyFilePath())));
+                Glob.createGlob(ImmutableList.of(workflow.getConsistencyFilePath())));
       }
       return destinationFiles;
     }
 
     static Glob consistencyFileGlob(Workflow<? extends Revision, ? extends Revision> workflow) {
-      return Glob.createGlob(ImmutableList.of(workflow.consistencyFilePath()));
+      return Glob.createGlob(ImmutableList.of(workflow.getConsistencyFilePath()));
     }
 
     private Path checkoutConsistencyFileBaseline(DestinationReader reader)
         throws ValidationException, IOException, RepoException {
       Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
-      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.consistencyFilePath());
+      Path consistencyFilePath = consistencyFileWorkdir.resolve(workflow.getConsistencyFilePath());
 
       // copy the consistency file somewhere so we can parse it
       reader.copyDestinationFilesToDirectory(consistencyFileGlob(workflow), consistencyFileWorkdir);
