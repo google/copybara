@@ -222,8 +222,17 @@ public class RustModule implements StarlarkValue {
 
       return null;
     } catch (IOException e) {
+      logError(ctx, e);
       throw new ValidationException("Failed to obtain Rust fuzzers from Git.", e);
+    } catch (ValidationException | RepoException e) {
+      logError(ctx, e);
+      throw e;
     }
+  }
+
+  private static void logError(TransformWork ctx, Exception e) {
+    ctx.getConsole()
+        .errorFmt("There was an error downloading Rust fuzzers. Error: %s", e.getMessage());
   }
 
   private CheckoutPath copyFuzzersToWorkdir(
