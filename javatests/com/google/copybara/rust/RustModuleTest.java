@@ -222,6 +222,62 @@ public class RustModuleTest {
     console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzzbara");
   }
 
+  @Test
+  public void testDownloadCrateFuzzers_overrideGitRepo() throws Exception {
+    Path remote = Files.createTempDirectory("remote");
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    String url = "file://" + remote.toFile().getAbsolutePath();
+    GitRepository repo =
+        GitRepository.newRepo(
+                true, remote, new GitEnvironment(optionsBuilder.general.getEnvironment()))
+            .init();
+    repo.simpleCommand("config", "user.name", "Foo");
+    repo.simpleCommand("config", "user.email", "foo@bar.com");
+
+    String fuzzersDir = "fuzz";
+    GitTestUtil.writeFile(remote, String.format("%s/foo.rs", fuzzersDir), "test1");
+    String fuzzCargoToml = "[package.metadata]\ncargo-fuzz = true\n";
+    GitTestUtil.writeFile(remote, String.format("%s/Cargo.toml", fuzzersDir), fuzzCargoToml);
+
+    GitTestUtil.writeFile(remote, "ignore.rs", "test3");
+    repo.add().all().run();
+    repo.git(remote, "commit", "-m", "first commit");
+
+    // Bad URL in the manifest
+    Files.createDirectories(cratePath);
+    String cargoToml = "[package]\n" + "repository = \"https://do/not/use\"";
+    String cargoVcsJson =
+        String.format(
+            "{\n"
+                + "  \"git\": {\n"
+                + "    \"sha1\": \"%s\"\n"
+                + "  },\n"
+                + "  \"path_in_vcs\": \"\"\n"
+                + "}",
+            repo.getHeadRef().getSha1());
+    Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
+    Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
+
+    // We define the correct URL below as a starlark argument.
+    // This should not throw.
+    starlark
+        .<Transformation>eval(
+            "t",
+            String.format(
+                "def test_download_fuzz(ctx):\n"
+                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
+                    + " \"foo_crate_v1\", repo_url = \"%s\", crate_name = \"foo-crate-v1\")\n"
+                    + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+                url))
+        .transform(
+            TransformWorks.of(
+                    workdir,
+                    "test",
+                    optionsBuilder.general.console(),
+                    DestinationReader.NOOP_DESTINATION_READER)
+                .withCurrentRev(new DummyRevision("1.0.0")));
+  }
+
   private void setUpRepoAndCheckout(
       Path cratePath, String fuzzersDir, String excludes, boolean defineParentDep, String vcsPath)
       throws IOException, RepoException, ValidationException {

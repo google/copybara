@@ -165,11 +165,23 @@ public class RustModule implements StarlarkValue {
             doc = "The name of the crate, used to find the correct fuzzer directory.",
             named = true,
             defaultValue = "None"),
+        @Param(
+            name = "repo_url",
+            doc =
+                "The Git repository to fetch the fuzzers from. This is optional. If not defined,"
+                    + " the package.repository value is used instead.",
+            named = true,
+            allowedTypes = {@ParamType(type = NoneType.class), @ParamType(type = String.class)},
+            defaultValue = "None"),
       },
       allowReturnNones = true)
   @Nullable
   public CheckoutPath downloadRustFuzzers(
-      TransformWork ctx, String crateDir, Object maybeFuzzExcludes, Object crateName)
+      TransformWork ctx,
+      String crateDir,
+      Object maybeFuzzExcludes,
+      Object crateName,
+      Object fuzzersRepoUrl)
       throws EvalException, RepoException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("rust_download_fuzzers")) {
       Glob originGlob = Glob.createGlob(ImmutableList.of("**/Cargo.toml"));
@@ -185,7 +197,10 @@ public class RustModule implements StarlarkValue {
         return null;
       }
 
-      String url = getFuzzersDownloadUrl(cargoTomlPath);
+      String url =
+          normalizeUrl(
+              SkylarkUtil.convertFromNoneable(
+                  fuzzersRepoUrl, getFuzzersDownloadUrl(cargoTomlPath)));
       JsonObject vcsJsonObject =
           JsonParser.parseString(Files.readString(cargoVcsInfoJsonPath)).getAsJsonObject();
       if (Strings.isNullOrEmpty(url)
@@ -331,15 +346,16 @@ public class RustModule implements StarlarkValue {
 
   protected String getFuzzersDownloadUrl(Path cargoTomlPath)
       throws ValidationException, EvalException, IOException {
-    String url = (String)
+    return (String)
         new TomlModule()
             .parse(Files.readString(cargoTomlPath))
             .getOrDefault("package.repository", "");
+  }
 
+  private static String normalizeUrl(String url) throws ValidationException {
     if (GitHubHost.GITHUB_COM.isGitHubUrl(url)) {
       url = GitHubHost.GITHUB_COM.normalizeUrl(url);
     }
-
     return url;
   }
 
