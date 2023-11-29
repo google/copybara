@@ -81,6 +81,14 @@ public class GerritOptions implements Option {
   @Parameter(names = "--gerrit-topic", description = "Gerrit topic to use")
   protected String gerritTopic = "";
 
+  @Parameter(
+      names = "--force-gerrit-submit",
+      description =
+          "Override the gerrit submit setting that is set in the config. This also flips the submit"
+              + " bit.",
+      arity = 1)
+  protected Boolean forceGerritSubmit = null;
+
   @Parameter(names = "--nogerrit-rev-id-label", description = "DEPRECATED. Use workflow set_rev_id"
       + " field instead.", hidden = true)
   @Deprecated

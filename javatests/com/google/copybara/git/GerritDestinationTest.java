@@ -565,6 +565,50 @@ public class GerritDestinationTest {
   }
 
   @Test
+  public void testGerritSubmit_overriddenTrue() throws Exception {
+    options.gerrit.forceGerritSubmit = true;
+    fetch = "master";
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    url = "https://localhost:33333/foo/bar";
+
+    GerritDestination destination = destination("submit = False", "gerrit_submit = False");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+
+    assertThat(destination.describe(glob).get("gerritSubmit")).containsExactly("true");
+  }
+
+  @Test
+  public void testGerritSubmit_overriddenFalse() throws Exception {
+    options.gerrit.forceGerritSubmit = false;
+    fetch = "master";
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    url = "https://localhost:33333/foo/bar";
+
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+
+    assertThat(destination.describe(glob).get("gerritSubmit")).containsExactly("false");
+  }
+
+  @Test
+  public void testGerritSubmit_noOverride() throws Exception {
+    fetch = "master";
+    pushToRefsFor = "master";
+    writeFile(workdir, "file", "some content");
+    options.setForce(true);
+    url = "https://localhost:33333/foo/bar";
+
+    GerritDestination destination = destination("submit = True", "gerrit_submit = True");
+    Glob glob = Glob.createGlob(ImmutableList.of("**"), excludedDestinationPaths);
+
+    assertThat(destination.describe(glob).get("gerritSubmit")).containsExactly("true");
+  }
+
+  @Test
   public void testChecker() throws Exception {
     options.gerrit.gerritChangeId = null;
     fetch = "master";

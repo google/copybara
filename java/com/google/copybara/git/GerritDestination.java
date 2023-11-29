@@ -85,12 +85,10 @@ public final class GerritDestination implements Destination<GitRevision> {
 
   private final GitDestination gitDestination;
   private final boolean submit;
-  private final boolean gerritSubmit;
 
-  private GerritDestination(GitDestination gitDestination, boolean submit, boolean gerritSubmit) {
+  private GerritDestination(GitDestination gitDestination, boolean submit) {
     this.gitDestination = Preconditions.checkNotNull(gitDestination);
     this.submit = submit;
-    this.gerritSubmit = gerritSubmit;
   }
 
   @Override
@@ -592,6 +590,9 @@ public final class GerritDestination implements Destination<GitRevision> {
       @Nullable Checker checker) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
+    gerritSubmit =
+        gerritOptions.forceGerritSubmit != null ? gerritOptions.forceGerritSubmit : gerritSubmit;
+    submit = gerritOptions.forceGerritSubmit != null ? gerritOptions.forceGerritSubmit : submit;
     String push = submit && !gerritSubmit
         ? pushToRefsFor : String.format("refs/for/%s", pushToRefsFor);
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -625,8 +626,7 @@ public final class GerritDestination implements Destination<GitRevision> {
                 primaryBranchMigrationMode),
             integrates,
             checker),
-        submit,
-        gerritSubmit);
+        submit);
   }
 
   @Override
@@ -638,11 +638,9 @@ public final class GerritDestination implements Destination<GitRevision> {
   public ImmutableSetMultimap<String, String> describe(@Nullable Glob originFiles) {
     ImmutableSetMultimap.Builder<String, String> builder =
         new ImmutableSetMultimap.Builder<>();
+    builder.put("gerritSubmit", "" + submit);
     if (submit) {
-      return builder
-          .putAll(gitDestination.describe(originFiles))
-          .put("gerritSubmit", "" + gerritSubmit)
-          .build();
+      return builder.putAll(gitDestination.describe(originFiles)).build();
     }
     for (Entry<String, String> entry : gitDestination.describe(originFiles).entries()) {
       if (entry.getKey().equals("type")) {
@@ -650,7 +648,7 @@ public final class GerritDestination implements Destination<GitRevision> {
       }
       builder.put(entry);
     }
-    return builder.put("type", getType()).put("gerritSubmit", "" + gerritSubmit).build();
+    return builder.put("type", getType()).build();
   }
 
   /** What to do in the presence or absent of Change-Id in message. */

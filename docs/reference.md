@@ -2543,6 +2543,7 @@ allow_submit | `bool`<br><p>Enable the submit_change method</p>
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--force-gerrit-submit`</span> | *boolean* | Override the gerrit submit setting that is set in the config. This also flips the submit bit.
 <span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
 <span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
@@ -2658,6 +2659,7 @@ allow_submit | `bool`<br><p>Enable the submit_change method in the endpoint prov
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--force-gerrit-submit`</span> | *boolean* | Override the gerrit submit setting that is set in the config. This also flips the submit bit.
 <span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
 <span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
@@ -3060,6 +3062,7 @@ tag | `string` or `NoneType`<br><p>Tag to be applied to the review, for instance
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--force-gerrit-submit`</span> | *boolean* | Override the gerrit submit setting that is set in the config. This also flips the submit bit.
 <span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
 <span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
 <span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
