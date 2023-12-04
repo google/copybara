@@ -370,7 +370,13 @@ public class RustModule implements StarlarkValue {
           (String)
               parsedToml.getOrDefault(String.format("dependencies.%s.path", crateName.get()), null);
 
-      isFuzzerForCrate &= (depPath != null && depPath.equals(".."));
+      isFuzzerForCrate &=
+          (depPath != null
+              && cargoTomlPath
+                  .getParent()
+                  .resolve(depPath)
+                  .normalize()
+                  .equals(cargoTomlPath.getParent().resolve("..").normalize()));
     }
 
     return isFuzzerForCrate;

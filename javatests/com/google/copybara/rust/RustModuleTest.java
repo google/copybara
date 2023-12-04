@@ -173,6 +173,20 @@ public class RustModuleTest {
   }
 
   @Test
+  public void testDownloadCrateFuzzers_differentRelativePath() throws Exception {
+    // Set up remote Git repo with fuzzers
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    // Relative path with slash at the end. Should have the same behavior as the more common ".."
+    String parentLocation = "../";
+    setUpRepoAndCheckout(cratePath, "fuzz", "None", true, "", parentLocation);
+
+    assertThat(Files.exists(cratePath.resolve("fuzz/foo.rs"))).isTrue();
+    assertThat(Files.exists(cratePath.resolve("fuzz/bar.rs"))).isTrue();
+    assertThat(Files.exists(cratePath.resolve("ignore.rs"))).isFalse();
+    console.assertThat().onceInLog(MessageType.INFO, "fuzz_path: foo_crate_v1/fuzz");
+  }
+
+  @Test
   public void testDownloadCrateFuzzers_usingCargoVcsInfoPath() throws Exception {
     Path cratePath = workdir.resolve("foo_crate_v1");
     setUpRepoAndCheckout(cratePath, "fuzzbara/fuzz", "None", true, "fuzzbara");
@@ -281,6 +295,17 @@ public class RustModuleTest {
   private void setUpRepoAndCheckout(
       Path cratePath, String fuzzersDir, String excludes, boolean defineParentDep, String vcsPath)
       throws IOException, RepoException, ValidationException {
+    setUpRepoAndCheckout(cratePath, fuzzersDir, excludes, defineParentDep, vcsPath, "..");
+  }
+
+  private void setUpRepoAndCheckout(
+      Path cratePath,
+      String fuzzersDir,
+      String excludes,
+      boolean defineParentDep,
+      String vcsPath,
+      String parentLocation)
+      throws IOException, RepoException, ValidationException {
     Path remote = Files.createTempDirectory("remote");
     String url = "file://" + remote.toFile().getAbsolutePath();
     GitRepository repo =
@@ -295,7 +320,8 @@ public class RustModuleTest {
     GitTestUtil.writeFile(remote, String.format("%s/baz/foo.rs", fuzzersDir), "test3");
     String fuzzCargoToml = "[package.metadata]\ncargo-fuzz = true\n";
     if (defineParentDep) {
-      fuzzCargoToml += "[dependencies.foo-crate-v1]\n" + "path = \"..\"\n";
+      fuzzCargoToml +=
+          String.format("[dependencies.foo-crate-v1]\npath = \"%s\"\n", parentLocation);
     }
     GitTestUtil.writeFile(remote, String.format("%s/Cargo.toml", fuzzersDir), fuzzCargoToml);
 
