@@ -2242,7 +2242,7 @@ public class WorkflowTest {
     consistencyFilePath = "\"foo.bara.consistency\"";
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    Path testDir = Files.createTempDirectory("singlePatch");
+    Path testDir = Files.createTempDirectory("consistency");
     String consistencyFilePath = workflow.getConsistencyFilePath();
 
     // create writer for emulating manual destination changes

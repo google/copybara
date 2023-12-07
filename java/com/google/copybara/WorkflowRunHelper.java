@@ -835,7 +835,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       } else if (workflow.getMergeImport().useConsistencyFile()) {
         // If there is a consistency file, then use it.
         // Otherwise, fall back to baseline import.
-        Path consistencyFileWorkdir = Files.createDirectories(workdir.resolve("consistencyFile"));
+        Path consistencyFileWorkdir =
+            Files.createDirectories(workdir.resolve("currentConsistencyFile"));
         reader.copyDestinationFilesToDirectory(
             consistencyFileGlob(workflow), consistencyFileWorkdir);
 
