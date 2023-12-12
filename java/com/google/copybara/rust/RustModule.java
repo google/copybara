@@ -22,6 +22,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.CheckoutPath;
+import com.google.copybara.DestinationInfo;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.config.SkylarkUtil;
@@ -213,7 +214,7 @@ public class RustModule implements StarlarkValue {
       String sha1 = ((JsonObject) vcsJsonObject.get("git")).get("sha1").getAsString();
       ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url, sha1);
       GitRepository repo = gitOptions.cachedBareRepoForUrl(url);
-      GitRevision rev = repo.fetchSingleRef(url, sha1, true, Optional.empty());
+      GitRevision rev = getGitRevision(url, sha1, repo, ctx.getDestinationInfo());
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       String relativePath = getPathInVcs(vcsJsonObject).orElse("");
@@ -243,6 +244,12 @@ public class RustModule implements StarlarkValue {
       logError(ctx, e);
       throw e;
     }
+  }
+
+  protected GitRevision getGitRevision(
+      String url, String sha1, GitRepository repo, DestinationInfo destinationInfo)
+      throws RepoException, ValidationException {
+    return repo.fetchSingleRef(url, sha1, true, Optional.empty());
   }
 
   private static void logError(TransformWork ctx, Exception e) {
