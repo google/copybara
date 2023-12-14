@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.re2j.Pattern;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,14 +41,31 @@ public final class CommandLineDiffUtil {
     this.debugPattern = debugPattern;
   }
 
+  // Remove the workdir path prefix from the diff3 merge marker label
+  private String label(Path file, Path workdir) {
+    return workdir.getParent().relativize(file).toString();
+  }
+
   public CommandOutputWithStatus diff(Path lhs, Path rhs, Path baseline, Path workDir)
-      throws CommandException, IOException {
+      throws CommandException {
     boolean debug = debugPattern != null && debugPattern.matcher(lhs.toString()).matches();
 
     // myfile oldfile yourfile
     String mArg = "-m";
+    String labelFlag = "--label";
     ArrayList<String> argv =
-        Lists.newArrayList(diffBin, lhs.toString(), baseline.toString(), rhs.toString(), mArg);
+        Lists.newArrayList(
+            diffBin,
+            lhs.toString(),
+            labelFlag,
+            label(lhs, workDir),
+            baseline.toString(),
+            labelFlag,
+            label(baseline, workDir),
+            rhs.toString(),
+            labelFlag,
+            label(rhs, workDir),
+            mArg);
     Command cmd =
         new Command(
             argv.toArray(new String[0]), environmentVariables, workDir.toFile());

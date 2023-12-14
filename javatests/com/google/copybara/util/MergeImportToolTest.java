@@ -176,14 +176,13 @@ public final class MergeImportToolTest {
             String.format("Merge error for path %s", originWorkdir.resolve(fileName)));
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
         .isEqualTo(
-            String.format(
                 "<<<<<<<"
-                    + " %s/foo.txt\n"
+                    + " origin/foo.txt\n"
                     + "d\n"
                     + "e\n"
                     + "f\n"
                     + "|||||||"
-                    + " %s/foo.txt\n"
+                    + " baseline/foo.txt\n"
                     + "a\n"
                     + "b\n"
                     + "c\n"
@@ -191,8 +190,7 @@ public final class MergeImportToolTest {
                     + "g\n"
                     + "h\n"
                     + "i>>>>>>>"
-                    + " %s/foo.txt\n",
-                originWorkdir, baselineWorkdir, destinationWorkdir));
+                    + " destination/foo.txt\n");
   }
 
   private Path createDir(Path parent, String name) throws IOException {
