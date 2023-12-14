@@ -23,5 +23,5 @@ load("//:repositories.maven.bzl", "copybara_maven_repositories")
 copybara_maven_repositories()
 
 load("//:repositories.go.bzl", "copybara_go_repositories")
-
+# TEST TEST TEST
 copybara_go_repositories()
