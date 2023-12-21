@@ -773,30 +773,28 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     return provider;
   }
 
-  /**
-   * Only migrate PR in one of the following states:
-   */
-  enum StateFilter {
+  /** Only migrate PR in one of the following states: */
+  public enum StateFilter {
     OPEN {
       @Override
-      boolean accepts(PullRequest pr) {
+      public boolean accepts(PullRequest pr) {
         return "open".equals(pr.getState());
       }
     },
     CLOSED {
       @Override
-      boolean accepts(PullRequest pr) {
+      public boolean accepts(PullRequest pr) {
         return "closed".equals(pr.getState());
       }
     },
     ALL {
       @Override
-      boolean accepts(PullRequest pr) {
+      public boolean accepts(PullRequest pr) {
         return true;
       }
     };
 
-    abstract boolean accepts(PullRequest pr);
+    public abstract boolean accepts(PullRequest pr);
   }
 
   @VisibleForTesting

@@ -38,6 +38,7 @@ import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
@@ -129,6 +130,19 @@ public class GitHubApi {
       return Stream.of(this.repo, this.commit, this.type, this.state)
           .filter(value -> !Strings.isNullOrEmpty(value))
           .collect(joining("+"));
+    }
+
+    @Override
+    public boolean equals(@Nullable Object object) {
+      if (object instanceof IssuesAndPullRequestsSearchRequestParams) {
+        return toParams().equals(((IssuesAndPullRequestsSearchRequestParams) object).toParams());
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(toParams());
     }
   }
 
