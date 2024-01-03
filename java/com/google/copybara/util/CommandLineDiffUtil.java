@@ -16,27 +16,31 @@
 
 package com.google.copybara.util;
 
+
 import com.google.common.collect.Lists;
+import com.google.copybara.util.MergeImportTool.MergeResult;
+import com.google.copybara.util.MergeImportTool.MergeResultCode;
+import com.google.copybara.util.MergeImportTool.MergeRunner;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
 import com.google.re2j.Pattern;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 import javax.annotation.Nullable;
 
 /** Diff utilities that shell out to a diffing commandline tool */
-public final class CommandLineDiffUtil {
+public final class CommandLineDiffUtil implements MergeRunner {
 
-  final String diffBin;
+  final String diff3Bin;
   private final Map<String, String> environmentVariables;
   @Nullable
   private final Pattern debugPattern;
 
-  public CommandLineDiffUtil(String diffBin, Map<String, String> environmentVariables,
-      @Nullable Pattern debugPattern) {
-    this.diffBin = diffBin;
+  public CommandLineDiffUtil(
+      String diff3Bin, Map<String, String> environmentVariables, @Nullable Pattern debugPattern) {
+    this.diff3Bin = diff3Bin;
     this.environmentVariables = environmentVariables;
     this.debugPattern = debugPattern;
   }
@@ -46,8 +50,8 @@ public final class CommandLineDiffUtil {
     return workdir.getParent().relativize(file).toString();
   }
 
-  public CommandOutputWithStatus diff(Path lhs, Path rhs, Path baseline, Path workDir)
-      throws CommandException {
+  @Override
+  public MergeResult merge(Path lhs, Path rhs, Path baseline, Path workDir) throws IOException {
     boolean debug = debugPattern != null && debugPattern.matcher(lhs.toString()).matches();
 
     // myfile oldfile yourfile
@@ -55,7 +59,7 @@ public final class CommandLineDiffUtil {
     String labelFlag = "--label";
     ArrayList<String> argv =
         Lists.newArrayList(
-            diffBin,
+            diff3Bin,
             lhs.toString(),
             labelFlag,
             label(lhs, workDir),
@@ -77,15 +81,17 @@ public final class CommandLineDiffUtil {
         output = new CommandRunner(cmd).withVerbose(false).withMaxStdOutLogLines(0).execute();
       }
     } catch (BadExitStatusWithOutputException e) {
-      if (e.getOutput().getTerminationStatus().getExitCode() == 1
-          || e.getOutput().getTerminationStatus().getExitCode() == 2) {
-        return new CommandOutputWithStatus(
-            e.getOutput().getTerminationStatus(),
-            e.getOutput().getStdout().getBytes(StandardCharsets.UTF_8),
-            e.getOutput().getStderr().getBytes(StandardCharsets.UTF_8));
+      if (e.getOutput().getTerminationStatus().getExitCode() == 1) {
+        return MergeResult.create(e.getOutput().getStdout(), MergeResultCode.MERGE_CONFLICT);
       }
-      throw new CommandException(cmd, e);
+      if (e.getOutput().getTerminationStatus().getExitCode() == 2) {
+        return MergeResult.create(e.getOutput().getStdout(), MergeResultCode.TROUBLE);
+      }
+      throw new IOException("Unexpected exit code from diff3", new CommandException(cmd, e));
+    } catch (CommandException e) {
+      throw new IOException("Error while executing diff3", e);
     }
-    return output;
+
+    return MergeResult.create(output.getStdout(), MergeResultCode.SUCCESS);
   }
 }

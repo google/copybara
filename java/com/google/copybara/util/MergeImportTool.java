@@ -16,16 +16,16 @@
 
 package com.google.copybara.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
-import com.google.copybara.shell.CommandException;
 import com.google.re2j.Pattern;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,17 +48,19 @@ public final class MergeImportTool {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final Console console;
-  private final CommandLineDiffUtil commandLineDiffUtil;
+  private final MergeRunner mergeRunner;
   private final int threadsForMergeImport;
   @Nullable
   private final Pattern debugMergeImport;
   private static final int THREADS_MIN_SIZE = 5;
 
-  // TODO refactor to accept a diffing tool
-  public MergeImportTool(Console console, CommandLineDiffUtil commandLineDiffUtil,
-      int threadsForMergeImport, @Nullable Pattern debugMergeImport) {
+  public MergeImportTool(
+      Console console,
+      MergeRunner mergeRunner,
+      int threadsForMergeImport,
+      @Nullable Pattern debugMergeImport) {
     this.console = console;
-    this.commandLineDiffUtil = commandLineDiffUtil;
+    this.mergeRunner = mergeRunner;
     this.threadsForMergeImport = threadsForMergeImport;
     this.debugMergeImport = debugMergeImport;
   }
@@ -173,26 +175,28 @@ public final class MergeImportTool {
    */
   private void maybeDebugFolder(Path path, String name) throws IOException {
     if (debugMergeImport != null) {
-      SimpleFileVisitor<Path> visitor = new SimpleFileVisitor<>() {
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-          if (!debugMergeImport.matches(file.toString())) {
-            return FileVisitResult.CONTINUE;
-          }
-          if (attrs.isSymbolicLink()) {
-            console.verboseFmt("MERGE_DEBUG %s %s: symlink", name, path.relativize(file));
-            return FileVisitResult.CONTINUE;
-          }
-          try {
-            console.verboseFmt("MERGE_DEBUG %s %s:\n%s", name, path.relativize(file),
-             Files.readString(file, StandardCharsets.UTF_8));
-          } catch (IOException e) {
-            logger.atWarning().withCause(e).log("Cannot hash file %s", file);
-          }
+      SimpleFileVisitor<Path> visitor =
+          new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              if (!debugMergeImport.matches(file.toString())) {
+                return FileVisitResult.CONTINUE;
+              }
+              if (attrs.isSymbolicLink()) {
+                console.verboseFmt("MERGE_DEBUG %s %s: symlink", name, path.relativize(file));
+                return FileVisitResult.CONTINUE;
+              }
+              try {
+                console.verboseFmt(
+                    "MERGE_DEBUG %s %s:\n%s",
+                    name, path.relativize(file), Files.readString(file, UTF_8));
+              } catch (IOException e) {
+                logger.atWarning().withCause(e).log("Cannot hash file %s", file);
+              }
 
-          return FileVisitResult.CONTINUE;
-        }
-      };
+              return FileVisitResult.CONTINUE;
+            }
+          };
       Files.walkFileTree(path, visitor);
     }
   }
@@ -217,24 +221,19 @@ public final class MergeImportTool {
         Path relativeFile = paths.relativeFile();
         Path baselineFile = paths.baselineFile();
         Path destinationFile = paths.destinationFile();
-        CommandOutputWithStatus output;
         if (!Files.exists(destinationFile) || !Files.exists(baselineFile)) {
           continue;
         }
-        try {
-          output = commandLineDiffUtil.diff(file, destinationFile, baselineFile, diffToolWorkdir);
-          visitedSet.add(relativeFile);
-          if (output.getTerminationStatus().getExitCode() == 1) {
-            mergeErrorPaths.add(file);
-          }
-          if (output.getTerminationStatus().getExitCode() == 2) {
-            troublePaths.add(file);
-          }
-        } catch (CommandException e) {
-          throw new IOException(
-              String.format("Could not execute diff tool %s", commandLineDiffUtil.diffBin), e);
+        MergeResult output =
+            mergeRunner.merge(file, destinationFile, baselineFile, diffToolWorkdir);
+        visitedSet.add(relativeFile);
+        if (output.result() == MergeResultCode.MERGE_CONFLICT) {
+          mergeErrorPaths.add(file);
         }
-        Files.write(file, output.getStdoutBytes());
+        if (output.result() == MergeResultCode.TROUBLE) {
+          troublePaths.add(file);
+        }
+        Files.write(file, output.fileContents().getBytes(UTF_8));
       }
 
       return OperationResults.create(
@@ -282,5 +281,26 @@ public final class MergeImportTool {
     abstract ImmutableSet<Path> mergeErrorPaths();
 
     abstract ImmutableSet<Path> troublePaths();
+  }
+
+  enum MergeResultCode {
+    SUCCESS,
+    MERGE_CONFLICT,
+    TROUBLE
+  }
+
+  @AutoValue
+  abstract static class MergeResult {
+    static MergeResult create(String fileContents, MergeResultCode resultCode) {
+      return new AutoValue_MergeImportTool_MergeResult(fileContents, resultCode);
+    }
+
+    abstract String fileContents();
+
+    abstract MergeResultCode result();
+  }
+
+  interface MergeRunner {
+    MergeResult merge(Path lhs, Path rhs, Path baseline, Path workdir) throws IOException;
   }
 }

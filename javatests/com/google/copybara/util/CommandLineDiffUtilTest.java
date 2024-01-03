@@ -18,6 +18,8 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.copybara.util.MergeImportTool.MergeResult;
+import com.google.copybara.util.MergeImportTool.MergeResultCode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,15 +56,15 @@ public final class CommandLineDiffUtilTest {
     writeFile(left, "left.txt", "foo\na\nb\nc");
     writeFile(right, "right.txt", "a\nb\nc\nbar");
 
-    CommandOutputWithStatus output =
-        underTest.diff(
+    MergeResult output =
+        underTest.merge(
             left.resolve("left.txt"),
             right.resolve("right.txt"),
             baseline.resolve("baseline.txt"),
             workdir);
 
     String mergedFile = "foo\na\nb\nc\nbar";
-    assertThat(output.getStdout()).isEqualTo(mergedFile);
+    assertThat(output.fileContents()).isEqualTo(mergedFile);
   }
 
   @Test
@@ -71,14 +73,14 @@ public final class CommandLineDiffUtilTest {
     writeFile(right, "right.txt", "d\ne\nf\n");
     writeFile(baseline, "baseline.txt", "g\nh\ni");
 
-    CommandOutputWithStatus output =
-        underTest.diff(
+    MergeResult output =
+        underTest.merge(
             left.resolve("left.txt"),
             right.resolve("right.txt"),
             baseline.resolve("baseline.txt"),
             workdir);
 
-    assertThat(output.getTerminationStatus().getExitCode()).isEqualTo(1);
+    assertThat(output.result()).isEqualTo(MergeResultCode.MERGE_CONFLICT);
   }
 
   private Path createDir(Path parent, String name) throws IOException {
