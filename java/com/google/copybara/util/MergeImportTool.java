@@ -97,7 +97,7 @@ public final class MergeImportTool {
     maybeDebugFolder(baselineWorkdir, "baseline");
     maybeDebugFolder(destinationWorkdir, "destination");
     SimpleFileVisitor<Path> originWorkdirFileVisitor =
-        new SimpleFileVisitor<Path>() {
+        new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
             if (attrs.isSymbolicLink()) {
@@ -123,7 +123,7 @@ public final class MergeImportTool {
         };
 
     SimpleFileVisitor<Path> destinationWorkdirFileVisitor =
-        new SimpleFileVisitor<Path>() {
+        new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
               throws IOException {
@@ -304,7 +304,8 @@ public final class MergeImportTool {
     abstract MergeResultCode result();
   }
 
-  interface MergeRunner {
+  /** MergeRunner is called by MergeImportTool to merge one file. */
+  public interface MergeRunner {
     MergeResult merge(Path lhs, Path rhs, Path baseline, Path workdir) throws IOException;
   }
 }

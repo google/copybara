@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load(":test.bzl", "all_tests")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])
 
@@ -23,6 +23,7 @@ LOCAL_TESTS = [
     "util/DiffUtilTest.java",
     "util/AutoPatchUtilTest.java",
     "util/ConsistencyFileTest.java",
+    "util/ApplyDestinationPatchTest.java",
     "WorkflowTest.java",
 ]
 
@@ -193,6 +194,33 @@ java_library(
         "//java/com/google/copybara/util",
         "//third_party:guava",
         "//third_party:junit",
+        "//third_party:truth",
+    ],
+)
+
+java_library(
+    name = "apply_destination_patch_tests_lib",
+    testonly = 1,
+    srcs = ["util/ApplyDestinationPatchTest.java"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:guava",
+        "//third_party:junit",
+        "//third_party:truth",
+    ],
+)
+
+all_tests(
+    name = "apply_destination_patch_tests",
+    tags = ["local"],
+    tests = ["util/ApplyDestinationPatchTest.java"],
+    deps = [
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/util/console/testing",
         "//third_party:truth",
     ],
 )

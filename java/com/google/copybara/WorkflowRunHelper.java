@@ -54,6 +54,7 @@ import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
 import com.google.copybara.revision.Revision;
+import com.google.copybara.util.ApplyDestinationPatch;
 import com.google.copybara.util.AutoPatchUtil;
 import com.google.copybara.util.CommandLineDiffUtil;
 import com.google.copybara.util.ConsistencyFile;
@@ -64,6 +65,7 @@ import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.MergeImportTool;
+import com.google.copybara.util.MergeImportTool.MergeRunner;
 import com.google.copybara.util.console.AnsiColor;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.PrefixConsole;
@@ -876,13 +878,23 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           workflow.getWorkflowOptions().debugMergeImport != null
               ? Pattern.compile(workflow.getWorkflowOptions().debugMergeImport)
               : null;
+      MergeRunner mergeRunner =
+          new CommandLineDiffUtil(
+              workflow.getGeneralOptions().getDiffBin(),
+              workflow.getGeneralOptions().getEnvironment(),
+              debugPattern);
+      if (workflow.getGeneralOptions().isTemporaryFeature("use_patch_merge", false)) {
+        mergeRunner =
+            new ApplyDestinationPatch(
+                console,
+                workflow.getGeneralOptions().patchBin,
+                workflow.getGeneralOptions().getEnvironment());
+      }
+
       MergeImportTool mergeImportTool =
           new MergeImportTool(
               console,
-              new CommandLineDiffUtil(
-                  workflow.getGeneralOptions().getDiffBin(),
-                  workflow.getGeneralOptions().getEnvironment(),
-                  debugPattern),
+              mergeRunner,
               workflow.getWorkflowOptions().threadsForMergeImport,
               debugPattern);
       try (ProfilerTask ignored = profiler().start("merge_tool")) {
