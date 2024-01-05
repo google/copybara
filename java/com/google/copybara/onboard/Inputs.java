@@ -129,6 +129,15 @@ public class Inputs {
           String.class,
           (value, resolver) -> value);
 
+  @SuppressWarnings("unused")
+  public static final Input<String> PACKAGE_DESCRIPTION =
+      Input.create(
+          "package_description",
+          "The description of the package to import",
+          null,
+          String.class,
+          (value, resolver) -> value);
+
   private static Input<ConfigGenerator> template;
   public static Input<ConfigGenerator> templateInput() {
     return checkNotNull(template, "Template input has to be set before call");
