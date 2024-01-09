@@ -219,6 +219,13 @@ java_library(
     ],
 )
 
+java_library(
+    name = "protobuf_lite",
+    exports = [
+        "@maven//:com_google_protobuf_protobuf_lite",
+    ],
+)
+
 # Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
 # is fixed
 exports_files(["bazel.patch"])
