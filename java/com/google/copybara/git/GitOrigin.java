@@ -224,7 +224,13 @@ public class GitOrigin implements Origin<GitRevision> {
           }
         }
         Optional<String> res = versionSelector.select(list, reference, console);
-        checkCondition(res.isPresent(), "Cannot find any matching version for latest_version");
+        checkCondition(
+            res.isPresent(),
+            String.format(
+                "Cannot find any matching version for latest_version expression %s.\n\n"
+                    + "Please run 'git ls-remote %s' to obtain a list of references that are"
+                    + " present in the remote repo.\n",
+                versionSelector, repoUrl));
         ref = res.get();
         // It is rare that a branch and a tag has the same name. The reason for this is that
         // destinations expect that the context_reference is a non-full reference. Also it is
