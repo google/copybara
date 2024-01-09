@@ -1077,7 +1077,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           console.colorize(AnsiColor.YELLOW, workflow.getOriginFiles().toString()),
           console.colorize(AnsiColor.YELLOW, workdir.toString()),
           console.colorize(AnsiColor.YELLOW,
-              "core.transform([your_transformation], noop_behavior = \"\"IGNORE_NOOP\"\")"),
+              "core.transform([your_transformation], noop_behavior = \"IGNORE_NOOP\")"),
           console.colorize(AnsiColor.YELLOW, "--read-config-from-change"));
     }
 
