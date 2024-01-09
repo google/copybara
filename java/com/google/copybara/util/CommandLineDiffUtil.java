@@ -23,6 +23,7 @@ import com.google.copybara.util.MergeImportTool.MergeResultCode;
 import com.google.copybara.util.MergeImportTool.MergeRunner;
 import com.google.copybara.shell.Command;
 import com.google.copybara.shell.CommandException;
+import com.google.protobuf.ByteString;
 import com.google.re2j.Pattern;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -82,16 +83,19 @@ public final class CommandLineDiffUtil implements MergeRunner {
       }
     } catch (BadExitStatusWithOutputException e) {
       if (e.getOutput().getTerminationStatus().getExitCode() == 1) {
-        return MergeResult.create(e.getOutput().getStdout(), MergeResultCode.MERGE_CONFLICT);
+        return MergeResult.create(
+            ByteString.copyFrom(e.getOutput().getStdoutBytes()), MergeResultCode.MERGE_CONFLICT);
       }
       if (e.getOutput().getTerminationStatus().getExitCode() == 2) {
-        return MergeResult.create(e.getOutput().getStdout(), MergeResultCode.TROUBLE);
+        return MergeResult.create(
+            ByteString.copyFrom(e.getOutput().getStdoutBytes()), MergeResultCode.TROUBLE);
       }
       throw new IOException("Unexpected exit code from diff3", new CommandException(cmd, e));
     } catch (CommandException e) {
       throw new IOException("Error while executing diff3", e);
     }
 
-    return MergeResult.create(output.getStdout(), MergeResultCode.SUCCESS);
+    return MergeResult.create(
+        ByteString.copyFrom(output.getStdoutBytes()), MergeResultCode.SUCCESS);
   }
 }

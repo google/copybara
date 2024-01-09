@@ -160,6 +160,26 @@ public final class MergeImportToolTest {
   }
 
   @Test
+  public void testNoUtf8Normalization() throws Exception {
+    String fileName = "foo.bin";
+    // hex string that diff
+    byte[] fileContents = {(byte) 0xef, (byte) 0xbf};
+
+    // all files are the same
+    Files.createDirectories(originWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(originWorkdir, fileName, fileContents);
+    Files.createDirectories(baselineWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(baselineWorkdir, fileName, fileContents);
+    Files.createDirectories(destinationWorkdir.resolve(fileName).getParent());
+    writeBinaryFile(destinationWorkdir, fileName, fileContents);
+
+    underTest.mergeImport(
+        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+
+    assertThat(Files.readAllBytes(originWorkdir.resolve(fileName))).isEqualTo(fileContents);
+  }
+
+  @Test
   public void testMergeConflict() throws Exception {
     String fileName = "foo.txt";
     writeFile(baselineWorkdir, fileName, "a\nb\nc\n");

@@ -24,8 +24,10 @@ import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
+import com.google.protobuf.ByteString;
 import com.google.re2j.Pattern;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -233,7 +235,9 @@ public final class MergeImportTool {
         if (output.result() == MergeResultCode.TROUBLE) {
           troublePaths.add(file);
         }
-        Files.write(file, output.fileContents().getBytes(UTF_8));
+
+        OutputStream outputStream = Files.newOutputStream(file);
+        output.fileContents().writeTo(outputStream);
       }
 
       return OperationResults.create(
@@ -291,11 +295,11 @@ public final class MergeImportTool {
 
   @AutoValue
   abstract static class MergeResult {
-    static MergeResult create(String fileContents, MergeResultCode resultCode) {
+    static MergeResult create(ByteString fileContents, MergeResultCode resultCode) {
       return new AutoValue_MergeImportTool_MergeResult(fileContents, resultCode);
     }
 
-    abstract String fileContents();
+    abstract ByteString fileContents();
 
     abstract MergeResultCode result();
   }

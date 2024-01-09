@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.copybara.util.MergeImportTool.MergeResult;
 import com.google.copybara.util.MergeImportTool.MergeResultCode;
@@ -64,7 +65,7 @@ public final class CommandLineDiffUtilTest {
             workdir);
 
     String mergedFile = "foo\na\nb\nc\nbar";
-    assertThat(output.fileContents()).isEqualTo(mergedFile);
+    assertThat(output.fileContents().toString(UTF_8)).isEqualTo(mergedFile);
   }
 
   @Test
