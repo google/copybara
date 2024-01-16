@@ -703,6 +703,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--noprompt`</span> | *boolean* | Don't prompt, this will answer all prompts with 'yes'
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.
 <span style="white-space: nowrap;">`--output-root`</span> | *string* | The root directory where to generate output files. If not set, ~/copybara/out is used by default. Use with care, Copybara might remove files inside this root if necessary.
+<span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
 <span style="white-space: nowrap;">`--repo-timeout`</span> | *duration* | Repository operation timeout duration.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--squash`</span> | *boolean* | Override workflow's mode with 'SQUASH'. This is useful mainly for workflows that use 'ITERATIVE' mode, when we want to run a single export with 'SQUASH', maybe to fix an issue. Always use --dry-run before, to test your changes locally.
 <span style="white-space: nowrap;">`--validate-starlark`</span> | *string* | Starlark should be validated prior to execution, but this might break legacy configs. Options are LOOSE, STRICT
@@ -4571,7 +4572,6 @@ directory | `string`<br><p>Path relative to the working directory from which to 
 
 Name | Type | Description
 ---- | ---- | -----------
-<span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command
@@ -4623,7 +4623,6 @@ In this example, `patch1.patch` is applied to `migrated_file1` and/or `migrated_
 
 Name | Type | Description
 ---- | ---- | -----------
-<span style="white-space: nowrap;">`--patch-bin`</span> | *string* | Path for GNU Patch command
 <span style="white-space: nowrap;">`--patch-skip-version-check`</span> | *boolean* | Skip checking the version of patch and assume it is fine
 <span style="white-space: nowrap;">`--patch-use-git-apply`</span> | *boolean* | Don't use GNU Patch and instead use 'git apply'
 <span style="white-space: nowrap;">`--quilt-bin`</span> | *string* | Path to quilt command

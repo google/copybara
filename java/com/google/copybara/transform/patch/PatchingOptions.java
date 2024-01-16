@@ -29,13 +29,13 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.Option;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitEnvironment;
-import com.google.copybara.shell.Command;
-import com.google.copybara.shell.CommandException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.CommandOutputWithStatus;
 import com.google.copybara.util.CommandRunner;
 import com.google.copybara.util.DiffUtil;
 import com.google.copybara.util.InsideGitDirException;
+import com.google.copybara.shell.Command;
+import com.google.copybara.shell.CommandException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -49,19 +49,14 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public class PatchingOptions implements Option {
 
-  private static final Pattern PATCH_VERSION_FORMAT = Pattern.compile(
-      "[\\w ]+ (?<major>[0-9]+)\\.(?<minor>[0-9]+)(\\.[0-9]+)?.*",
-      Pattern.DOTALL);
-  private static final String PATCH_BIN_FLAG = "--patch-bin";
+  private static final Pattern PATCH_VERSION_FORMAT =
+      Pattern.compile("[\\w ]+ (?<major>[0-9]+)\\.(?<minor>[0-9]+)(\\.[0-9]+)?.*", Pattern.DOTALL);
   public static final String SKIP_VERSION_CHECK_FLAG = "--patch-skip-version-check";
   private final GeneralOptions generalOptions;
 
   public PatchingOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }
-
-  @Parameter(names = PATCH_BIN_FLAG, description = "Path for GNU Patch command")
-  String patchBin = "patch";
 
   @Parameter(names = "--patch-validate-on-load", hidden = true,
       arity = 1,
@@ -149,30 +144,35 @@ public class PatchingOptions implements Option {
     }
 
     try {
-      Version version = getPatchVersion(patchBin);
+      Version version = getPatchVersion(generalOptions.patchBin);
       if (!version.isTooOld()) {
         return true;
       }
 
       if (isMac()) {
-        generalOptions.console()
-            .warnFmt("GNU Patch version is too old (%s) to be used by Copybara. "
-                + "Defaulting to 'git apply'. Use %s if patch is available in a different"
-                + " location", version, PATCH_BIN_FLAG);
+        generalOptions
+            .console()
+            .warnFmt(
+                "GNU Patch version is too old (%s) to be used by Copybara. "
+                    + "Defaulting to 'git apply'. Use %s if patch is available in a different"
+                    + " location",
+                version, GeneralOptions.PATCH_BIN_FLAG);
         return false;
       }
 
-      throw new ValidationException(String.format(
-          "Too old version of GNU Patch (%s). Copybara required at least 2.7 version."
-              + " Path used: %s. Use %s to use a different path",
-          version, patchBin, PATCH_BIN_FLAG));
+      throw new ValidationException(
+          String.format(
+              "Too old version of GNU Patch (%s). Copybara required at least 2.7 version."
+                  + " Path used: %s. Use %s to use a different path",
+              version, generalOptions.patchBin, GeneralOptions.PATCH_BIN_FLAG));
 
     } catch (CommandException e) {
       // While this might be an environment error, normally it is attributable to the user
       // (not having patch available).
       throw new ValidationException(
-          String.format("Error using GNU Patch. Path used: %s. Use %s to use a different path",
-              patchBin, PATCH_BIN_FLAG),
+          String.format(
+              "Error using GNU Patch. Path used: %s. Use %s to use a different path",
+              generalOptions.patchBin, GeneralOptions.PATCH_BIN_FLAG),
           e);
     }
   }
@@ -185,9 +185,11 @@ public class PatchingOptions implements Option {
         .getStdout()
         .trim();
     Matcher matcher = PATCH_VERSION_FORMAT.matcher(out);
-    checkCondition(matcher.matches(),
+    checkCondition(
+        matcher.matches(),
         "Unknown version of GNU Patch. Path used: %s. Use %s to use a different path",
-        this.patchBin, PATCH_BIN_FLAG);
+        patchBin,
+        GeneralOptions.PATCH_BIN_FLAG);
     int major = Integer.parseInt(matcher.group("major"));
     int minor = Integer.parseInt(matcher.group("minor"));
     return new Version(major, minor);
@@ -250,7 +252,7 @@ public class PatchingOptions implements Option {
     // disable creating those as they don't make sense for Copybara and otherwise they would need
     // to be excluded
     // See: http://b/112639930
-    params.add(patchBin, "--no-backup-if-mismatch", "-t", "-p" + stripSlashes);
+    params.add(generalOptions.patchBin, "--no-backup-if-mismatch", "-t", "-p" + stripSlashes);
     if (reverse) {
       params.add("-R");
     }

@@ -60,8 +60,8 @@ public class PatchingOptionsTest {
   public void setUp() throws Exception {
     // Check if default patch in path is >= 2.7 otherwise default to the
     // one in /usr/bin/patch. This is used internally.
-    if (options.patch.getPatchVersion(options.patch.patchBin).isTooOld()) {
-      options.patch.patchBin = "/usr/bin/patch";
+    if (options.patch.getPatchVersion(options.general.patchBin).isTooOld()) {
+      options.general.patchBin = "/usr/bin/patch";
     }
     Path rootPath = tmpFolder.getRoot().toPath();
     left = createDir(rootPath, "left");
@@ -486,7 +486,8 @@ public class PatchingOptionsTest {
    * version is found.
    */
   private void maybeSkipForOSX() throws Exception {
-    Assume.assumeFalse("Mac OS X".equals(StandardSystemProperty.OS_NAME.value())
-        && options.patch.getPatchVersion(options.patch.patchBin).isTooOld());
+    Assume.assumeFalse(
+        "Mac OS X".equals(StandardSystemProperty.OS_NAME.value())
+            && options.patch.getPatchVersion(options.general.patchBin).isTooOld());
   }
 }

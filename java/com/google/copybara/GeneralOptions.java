@@ -451,6 +451,11 @@ public final class GeneralOptions implements Option {
     return diffBin;
   }
 
+  public static final String PATCH_BIN_FLAG = "--patch-bin";
+
+  @Parameter(names = PATCH_BIN_FLAG, description = "Path for GNU Patch command")
+  public String patchBin = "patch";
+
   /**
    * Temporary features is mean to be used by Copybara team for guarding new codepaths. Should
    * never be used for user facing flags or longer term experiments. Any caller of this function
