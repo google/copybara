@@ -104,14 +104,21 @@ public class LatestVersionSelectorTest {
 
   @Test
   public void testInvalidNumber() {
-    assertThat(assertThrows(ValidationException.class, () -> runTest(""
-            + "  format = '${n0}',"
-            + "  regex_groups = {"
-            + "    'n0' : 'v12',"
-            + "  }",
-        ImmutableSet.of("v12"), null, "not used")))
+    assertThat(
+            assertThrows(
+                ValidationException.class,
+                () ->
+                    runTest(
+                        ""
+                            + "  format = '${n0}',"
+                            + "  regex_groups = {"
+                            + "    'n0' : 'v12',"
+                            + "  }",
+                        ImmutableSet.of("v12"),
+                        null,
+                        "not used")))
         .hasMessageThat()
-        .contains("Invalid number");
+        .contains("Invalid value for numeric group n0: 'v12'");
   }
 
   @Test

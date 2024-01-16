@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load(":test.bzl", "all_tests")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":test.bzl", "all_tests")
 
 licenses(["notice"])
 

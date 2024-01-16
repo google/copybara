@@ -66,6 +66,7 @@ public class LatestVersionSelector implements VersionSelector {
     printer.append(toString());
   }
 
+  /** Enum type for different version segments. */
   public enum VersionElementType {
     NUMERIC {
       @Override
@@ -74,8 +75,8 @@ public class LatestVersionSelector implements VersionSelector {
       }
 
       @Override
-      public Comparable<?> convert(String val) throws ValidationException {
-        // Handles case for (.[0-9]+)?
+      public Comparable<?> convert(String val, int idx) throws ValidationException {
+        // Handles case for ".[0-9]+"
         if (val.startsWith(".")) {
           val = val.substring(1);
         }
@@ -86,8 +87,10 @@ public class LatestVersionSelector implements VersionSelector {
           return Integer.parseInt(val);
         } catch (NumberFormatException e) {
           throw new ValidationException(
-              String.format("Invalid number for numeric group: %s. Use sX instead of nX as"
-                  + " group name or extract the prefix part to the format string", val));
+              String.format(
+                  "Invalid value for numeric group %1$s: '%2$s'. Use s%3$d instead of n%3$s as"
+                      + " group name or extract the prefix part to the format string.",
+                  varName(idx), val, idx));
         }
       }
     },
@@ -98,7 +101,7 @@ public class LatestVersionSelector implements VersionSelector {
       }
 
       @Override
-      public Comparable<?> convert(String val) {
+      public Comparable<?> convert(String val, int idx) {
         return val;
       }
     };
@@ -107,7 +110,7 @@ public class LatestVersionSelector implements VersionSelector {
       return (this == NUMERIC ? "n" : "s") + idx;
     }
 
-    public abstract Comparable<?> convert(String val) throws ValidationException;
+    public abstract Comparable<?> convert(String val, int idx) throws ValidationException;
   }
 
   @Override
@@ -134,7 +137,7 @@ public class LatestVersionSelector implements VersionSelector {
           .entrySet()) {
         String var = groups.getValue().varName(groups.getKey());
         String val = matcher.group(Iterables.getLast(groupIndexes.get(var)));
-        objs.add(groups.getValue().convert(val));
+        objs.add(groups.getValue().convert(val, groups.getKey()));
       }
       if (isAfter(latest, objs)) {
         latest = objs;
