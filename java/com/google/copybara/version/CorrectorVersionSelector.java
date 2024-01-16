@@ -84,4 +84,9 @@ public class CorrectorVersionSelector implements VersionSelector {
     }
     return strippedVersion;
   }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName();
+  }
 }

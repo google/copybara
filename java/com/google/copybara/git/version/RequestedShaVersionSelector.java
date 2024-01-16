@@ -37,4 +37,9 @@ public class RequestedShaVersionSelector implements VersionSelector {
     }
     return Optional.empty();
   }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName();
+  }
 }

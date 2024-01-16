@@ -75,4 +75,9 @@ public class OrderedVersionSelector implements VersionSelector {
     }
     return result;
   }
+
+  @Override
+  public String toString() {
+    return String.valueOf(selectors);
+  }
 }

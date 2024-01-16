@@ -33,4 +33,9 @@ public class RequestedVersionSelector implements VersionSelector {
       throws ValidationException, RepoException {
     return Optional.ofNullable(requestedRef);
   }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName();
+  }
 }

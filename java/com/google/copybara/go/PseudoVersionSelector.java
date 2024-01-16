@@ -39,4 +39,9 @@ public class PseudoVersionSelector implements VersionSelector {
     }
     return Optional.empty();
   }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName();
+  }
 }

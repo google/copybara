@@ -124,4 +124,6 @@ public interface VersionSelector extends StarlarkValue {
     printer.append(toString());
   }
 
+  @Override
+  String toString();
 }
