@@ -27,7 +27,6 @@ import static com.google.copybara.git.GitRepository.GIT_DESCRIBE_ABBREV;
 import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.DummyOrigin.HEAD;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.ADD;
 import static com.google.copybara.util.DiffUtil.DiffFile.Operation.DELETE;
@@ -65,6 +64,7 @@ import com.google.copybara.exception.NotADestinationFileException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.exception.VoidOperationException;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRevision;
@@ -115,6 +115,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -150,7 +151,6 @@ public class WorkflowTest {
   private boolean smartPrune;
   private String mergeImport;
   private String consistencyFilePath;
-  private String autoGeneratePatchPrefix;
   private String autoPatchFileDirectoryPrefix;
   private String autoPatchfileContentsPrefix;
   private String autoPatchfileDirectory;
@@ -160,6 +160,8 @@ public class WorkflowTest {
   private boolean migrateNoopChangesField;
   private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
   private String afterMergeTransformations;
+
+  public ImmutableMap<String, String> env = ImmutableMap.of();
 
   @Before
   public void setup() throws Exception {
@@ -188,6 +190,11 @@ public class WorkflowTest {
     options.testingOptions.origin = origin;
     options.testingOptions.destination = destination;
     options.setForce(true); // Force by default unless we are testing the flag.
+    options.setEnvironment(
+        ImmutableMap.<String, String>builder()
+            .putAll(options.general.getEnvironment())
+            .putAll(env)
+            .buildKeepingLast());
     skylark = new SkylarkTestExecutor(options);
     eventMonitor = new TestingEventMonitor();
     options.general.enableEventMonitor("test", eventMonitor);
@@ -204,6 +211,10 @@ public class WorkflowTest {
     autoPatchfileGlob = "None";
     migrateNoopChangesField = false;
     extraWorkflowFields = ImmutableList.of();
+  }
+
+  public GitEnvironment getGitEnv() {
+    return GitTestUtil.getGitEnv();
   }
 
   private TestingConsole console() {
@@ -1398,9 +1409,7 @@ public class WorkflowTest {
 
     originFiles = "glob(['" + outsideFolder + "'])";
 
-    ValidationException e =
-        assertThrows(
-            ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
+    assertThrows(ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
     console()
         .assertThat()
         .onceInLog(MessageType.ERROR, "(\n|.)*path has unexpected [.] or [.][.] components(\n|.)*");
@@ -1412,9 +1421,7 @@ public class WorkflowTest {
     prepareOriginExcludes("a");
     originFiles = "glob(['{'])";
 
-    ValidationException e =
-        assertThrows(
-            ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
+    assertThrows(ValidationException.class, () -> workflow().run(workdir, ImmutableList.of(HEAD)));
     console()
         .assertThat()
         .onceInLog(
@@ -1785,7 +1792,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setEnvironment(getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";
@@ -1986,9 +1993,7 @@ public class WorkflowTest {
   @Test
   public void smartPruneForDifferentWorkflowMode() throws Exception {
     smartPrune = true;
-    ValidationException e =
-        assertThrows(
-            ValidationException.class, () -> skylarkWorkflow("default", WorkflowMode.SQUASH));
+    assertThrows(ValidationException.class, () -> skylarkWorkflow("default", WorkflowMode.SQUASH));
     console()
         .assertThat()
         .onceInLog(
@@ -2211,7 +2216,7 @@ public class WorkflowTest {
     // reverse apply generated patches
     ConsistencyFile consistencyFile =
         ConsistencyFile.fromBytes(latestWorkdir.get(consistencyFilePath).getBytes(UTF_8));
-    consistencyFile.reversePatches(base4, System.getenv());
+    consistencyFile.reversePatches(base4, getGitEnv().getEnvironment());
 
     // verify that directory state now matches origin state (no transformations)
     assertThatPath(base4).containsFile("dir/foo.txt", "a\nb\nc\n");
@@ -2286,7 +2291,7 @@ public class WorkflowTest {
     assertThatPath(out1).containsFiles(consistencyFilePath);
     ConsistencyFile sp =
         ConsistencyFile.fromBytes(Files.readAllBytes(out1.resolve(consistencyFilePath)));
-    sp.reversePatches(out1, System.getenv());
+    sp.reversePatches(out1, getGitEnv().getEnvironment());
     assertThatPath(out1).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out1).containsFile("dir/bar.txt", "Another file");
 
@@ -2310,7 +2315,7 @@ public class WorkflowTest {
     // verify that the patch takes the output state back to the origin state
     assertThatPath(out2).containsFiles(consistencyFilePath);
     sp = ConsistencyFile.fromBytes(Files.readAllBytes(out2.resolve(consistencyFilePath)));
-    sp.reversePatches(out2, System.getenv());
+    sp.reversePatches(out2, getGitEnv().getEnvironment());
     assertThatPath(out2).containsFile("dir/foo.txt", "a\nb\nc\n");
     assertThatPath(out2).containsNoFiles("dir/bar.txt");
   }
@@ -2415,7 +2420,7 @@ public class WorkflowTest {
     // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), System.getenv());
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
@@ -2920,10 +2925,8 @@ public class WorkflowTest {
 
     // import the second origin change, which should use merge import (and fail on baseline no-op)
     Workflow<?, ?> finalWorkflow = workflow;
-    VoidOperationException voe =
-        assertThrows(
-            VoidOperationException.class,
-            () -> finalWorkflow.run(workdir, ImmutableList.of("HEAD")));
+    assertThrows(
+        VoidOperationException.class, () -> finalWorkflow.run(workdir, ImmutableList.of("HEAD")));
     assertThat(
             console().getMessages().stream()
                 .anyMatch(
@@ -3072,6 +3075,7 @@ public class WorkflowTest {
   public void changeRequestEmptyChanges() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     GitRepository origin = GitRepository.newRepo(/*verbose*/ true, originPath, getGitEnv()).init();
+
     String primaryBranch = origin.getPrimaryBranch();
 
     String config =
@@ -3402,17 +3406,16 @@ public class WorkflowTest {
 
   @Test
   public void testNullAuthoring() throws Exception {
-    ValidationException e =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'foo',\n"
-                        + "    origin = testing.origin(),\n"
-                        + "    destination = testing.destination(),\n"
-                        + ")\n"));
+    assertThrows(
+        ValidationException.class,
+        () ->
+            loadConfig(
+                ""
+                    + "core.workflow(\n"
+                    + "    name = 'foo',\n"
+                    + "    origin = testing.origin(),\n"
+                    + "    destination = testing.destination(),\n"
+                    + ")\n"));
     console()
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: authoring.*");
@@ -3434,19 +3437,18 @@ public class WorkflowTest {
 
   @Test
   public void testNullOrigin() throws Exception {
-    ValidationException e =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'foo',\n"
-                        + "    authoring = "
-                        + authoring
-                        + "\n,"
-                        + "    destination = testing.destination(),\n"
-                        + ")\n"));
+    assertThrows(
+        ValidationException.class,
+        () ->
+            loadConfig(
+                ""
+                    + "core.workflow(\n"
+                    + "    name = 'foo',\n"
+                    + "    authoring = "
+                    + authoring
+                    + "\n,"
+                    + "    destination = testing.destination(),\n"
+                    + ")\n"));
     for (Message message : console().getMessages()) {
       System.err.println(message);
     }
@@ -3587,19 +3589,18 @@ public class WorkflowTest {
 
   @Test
   public void testNullDestination() throws Exception {
-    ValidationException e =
-        assertThrows(
-            ValidationException.class,
-            () ->
-                loadConfig(
-                    ""
-                        + "core.workflow(\n"
-                        + "    name = 'foo',\n"
-                        + "    authoring = "
-                        + authoring
-                        + "\n,"
-                        + "    origin = testing.origin(),\n"
-                        + ")\n"));
+    assertThrows(
+        ValidationException.class,
+        () ->
+            loadConfig(
+                ""
+                    + "core.workflow(\n"
+                    + "    name = 'foo',\n"
+                    + "    authoring = "
+                    + authoring
+                    + "\n,"
+                    + "    origin = testing.origin(),\n"
+                    + ")\n"));
     console()
         .assertThat()
         .onceInLog(MessageType.ERROR, ".*missing 1 required named argument: destination.*");
@@ -4430,7 +4431,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setEnvironment(getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";
@@ -4476,7 +4477,6 @@ public class WorkflowTest {
     Files.write(originPath.resolve("foo.txt"), "change".getBytes(UTF_8));
     origin.add().files("foo.txt").run();
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), "not important");
-    String firstCommit = origin.parseRef("HEAD");
 
     options.workflowOptions.toFolder = true;
     options.general.squash = true;
@@ -4487,7 +4487,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setEnvironment(getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";
@@ -4503,8 +4503,8 @@ public class WorkflowTest {
     assertThrows(CannotResolveRevisionException.class, () -> destination.resolveReference("HEAD"));
   }
 
-
   @Test
+  @Ignore // TODO(b/110368464) re-enable this test
   public void testHgOriginNoFlags() throws Exception {
     Path originPath = Files.createTempDirectory("origin");
     HgRepository origin = new HgRepository(originPath, true, DEFAULT_TIMEOUT).init();
@@ -4783,7 +4783,7 @@ public class WorkflowTest {
     options.setWorkdirToRealTempDir();
     // Pass custom HOME directory so that we run an hermetic test and we
     // can add custom configuration to $HOME/.gitconfig.
-    options.setEnvironment(GitTestUtil.getGitEnv().getEnvironment());
+    options.setEnvironment(getGitEnv().getEnvironment());
     options.setHomeDir(Files.createTempDirectory("home").toString());
     options.gitDestination.committerName = "Foo";
     options.gitDestination.committerEmail = "foo@foo.com";

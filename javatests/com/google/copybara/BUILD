@@ -108,6 +108,38 @@ all_tests(
     ],
 )
 
+java_library(
+    name = "workflow_test_lib",
+    testonly = 1,
+    srcs = ["WorkflowTest.java"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/com/google/copybara:base",
+        "//java/com/google/copybara:copybara_lib",
+        "//java/com/google/copybara/authoring",
+        "//java/com/google/copybara/config:base",
+        "//java/com/google/copybara/effect",
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/git",
+        "//java/com/google/copybara/git:core",
+        "//java/com/google/copybara/hg",
+        "//java/com/google/copybara/monitor",
+        "//java/com/google/copybara/revision",
+        "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/testing/git",
+        "//java/com/google/copybara/util",
+        "//java/com/google/copybara/util:consistency",
+        "//java/com/google/copybara/util/console",
+        "//java/com/google/copybara/util/console/testing",
+        "//third_party:guava",
+        "//third_party:jimfs",
+        "//third_party:jsr305",
+        "//third_party:junit",
+        "//third_party:starlark",
+        "//third_party:truth",
+    ],
+)
+
 all_tests(
     name = "workflow_test",
     shard_count = 5,
@@ -121,6 +153,7 @@ all_tests(
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:core",
+        "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/hg",
         "//java/com/google/copybara/monitor",
         "//java/com/google/copybara/revision",
