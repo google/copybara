@@ -19,7 +19,6 @@ package com.google.copybara.rust;
 import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.DestinationInfo;
@@ -50,6 +49,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
@@ -198,23 +198,30 @@ public class RustModule implements StarlarkValue {
         return null;
       }
 
-      String url =
-          normalizeUrl(
-              SkylarkUtil.convertFromNoneable(
-                  fuzzersRepoUrl, getFuzzersDownloadUrl(cargoTomlPath)));
+      Optional<String> url = getUrlFromCargoToml(fuzzersRepoUrl, cargoTomlPath);
       JsonObject vcsJsonObject =
           JsonParser.parseString(Files.readString(cargoVcsInfoJsonPath)).getAsJsonObject();
-      if (Strings.isNullOrEmpty(url)
-          || !vcsJsonObject.has("git")
-          || !((JsonObject) vcsJsonObject.get("git")).has("sha1")) {
-        ctx.getConsole().warn("Not downloading fuzzers. URL or sha1 reference are not available.");
+      Optional<String> sha1 = getSha1FromCargoVcsJson(vcsJsonObject);
+
+      if (url.isEmpty()) {
+        ctx.getConsole()
+            .warn(
+                "Not downloading fuzzers. The URL is missing in Cargo.toml. If you wish to override"
+                    + " this, Pass in a URL manually using the repo_url parameter.");
         return null;
       }
 
-      String sha1 = ((JsonObject) vcsJsonObject.get("git")).get("sha1").getAsString();
+      if (sha1.isEmpty()) {
+        ctx.getConsole()
+            .warn(
+                "Not downloading fuzzers. The SHA1 reference is not available in"
+                    + " .cargo_vcs_info.json.");
+        return null;
+      }
+
       ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url, sha1);
-      GitRepository repo = gitOptions.cachedBareRepoForUrl(url);
-      GitRevision rev = getGitRevision(url, sha1, repo, ctx.getDestinationInfo());
+      GitRepository repo = gitOptions.cachedBareRepoForUrl(url.get());
+      GitRevision rev = getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo());
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       String relativePath = getPathInVcs(vcsJsonObject).orElse("");
@@ -246,13 +253,37 @@ public class RustModule implements StarlarkValue {
     }
   }
 
+  protected Optional<String> getSha1FromCargoVcsJson(JsonObject vcsJsonObject) {
+    if (vcsJsonObject.has("git") && ((JsonObject) vcsJsonObject.get("git")).has("sha1")) {
+      String sha1 = ((JsonObject) vcsJsonObject.get("git")).get("sha1").getAsString();
+      // Filter out empty strings.
+      return Optional.ofNullable(sha1).filter(Predicate.not(String::isEmpty));
+    }
+    return Optional.empty();
+  }
+
+  protected Optional<String> getUrlFromCargoToml(Object fuzzersRepoUrl, Path cargoTomlPath)
+      throws ValidationException, EvalException, IOException {
+    Optional<String> url =
+        Optional.ofNullable(
+                SkylarkUtil.convertFromNoneable(
+                    fuzzersRepoUrl, getFuzzersDownloadUrl(cargoTomlPath)))
+            .filter(Predicate.not(String::isEmpty));
+
+    if (url.isPresent()) {
+      url = Optional.of(normalizeUrl(url.get()));
+    }
+
+    return url;
+  }
+
   protected GitRevision getGitRevision(
       String url, String sha1, GitRepository repo, DestinationInfo destinationInfo)
       throws RepoException, ValidationException {
     return repo.fetchSingleRef(url, sha1, true, Optional.empty());
   }
 
-  private static void logError(TransformWork ctx, Exception e) {
+  protected static void logError(TransformWork ctx, Exception e) {
     ctx.getConsole()
         .errorFmt("There was an error downloading Rust fuzzers. Error: %s", e.getMessage());
   }

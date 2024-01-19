@@ -75,18 +75,9 @@ public class RustModuleTest {
     String cargoToml = "[package]\n" + "repository = \"http://copy/bara\"";
     Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
 
-    starlark
-        .<Transformation>eval(
-            "t",
-            "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\"))")
-        .transform(
-            TransformWorks.of(
-                    workdir,
-                    "test",
-                    optionsBuilder.general.console(),
-                    DestinationReader.NOOP_DESTINATION_READER)
-                .withCurrentRev(new DummyRevision("1.0.0")));
+    runTransformation(
+        "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\"))");
 
     console
         .assertThat()
@@ -111,11 +102,64 @@ public class RustModuleTest {
             + "}";
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
+    runTransformation(
+        "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\"))");
+
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            "Not downloading fuzzers. The URL is missing in Cargo.toml. If you wish to override"
+                + " this, Pass in a URL manually using the repo_url parameter.");
+  }
+
+  @Test
+  public void testDownloadCrateFuzzers_missingGitFieldInVcsJson() throws Exception {
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    Files.createDirectories(cratePath);
+    String cargoToml = "[package]\n" + "repository = \"http://copy/bara\"";
+    Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
+    String cargoVcsJson = "{\n" + "  \"path_in_vcs\": \"foo\"\n" + "}";
+    Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
+
+    runTransformation(
+        "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\"))");
+
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            "Not downloading fuzzers. The SHA1 reference is not available in"
+                + " .cargo_vcs_info.json.");
+  }
+
+  @Test
+  public void testDownloadCrateFuzzers_missingSha1Field() throws Exception {
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    Files.createDirectories(cratePath);
+    String cargoToml = "[package]\nrepository = \"http://foo\"";
+    Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
+    String cargoVcsJson = "{\n" + "  \"git\": {},\n" + "  \"path_in_vcs\": \"foo\"\n" + "}";
+    Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
+
+    runTransformation(
+        "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\"))");
+
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING,
+            "Not downloading fuzzers. The SHA1 reference is not available in"
+                + " .cargo_vcs_info.json.");
+  }
+
+  private void runTransformation(String config)
+      throws IOException, ValidationException, RepoException {
     starlark
-        .<Transformation>eval(
-            "t",
-            "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\"))")
+        .<Transformation>eval("t", config)
         .transform(
             TransformWorks.of(
                     workdir,
@@ -123,12 +167,6 @@ public class RustModuleTest {
                     optionsBuilder.general.console(),
                     DestinationReader.NOOP_DESTINATION_READER)
                 .withCurrentRev(new DummyRevision("1.0.0")));
-
-    console
-        .assertThat()
-        .logContains(
-            MessageType.WARNING,
-            "Not downloading fuzzers. URL or sha1 reference are not available.");
   }
 
   @Test
@@ -140,24 +178,16 @@ public class RustModuleTest {
     String cargoVcsJson = "{}";
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
-    starlark
-        .<Transformation>eval(
-            "t",
-            "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
-                + " \"foo_crate_v1\"))")
-        .transform(
-            TransformWorks.of(
-                    workdir,
-                    "test",
-                    optionsBuilder.general.console(),
-                    DestinationReader.NOOP_DESTINATION_READER)
-                .withCurrentRev(new DummyRevision("1.0.0")));
+    runTransformation(
+        "t = core.dynamic_transform(lambda ctx: rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\"))");
 
     console
         .assertThat()
         .logContains(
             MessageType.WARNING,
-            "Not downloading fuzzers. URL or sha1 reference are not available.");
+            "Not downloading fuzzers. The SHA1 reference is not available in"
+                + " .cargo_vcs_info.json.");
   }
 
   @Test
@@ -274,22 +304,13 @@ public class RustModuleTest {
 
     // We define the correct URL below as a starlark argument.
     // This should not throw.
-    starlark
-        .<Transformation>eval(
-            "t",
-            String.format(
-                "def test_download_fuzz(ctx):\n"
-                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
-                    + " \"foo_crate_v1\", repo_url = \"%s\", crate_name = \"foo-crate-v1\")\n"
-                    + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
-                url))
-        .transform(
-            TransformWorks.of(
-                    workdir,
-                    "test",
-                    optionsBuilder.general.console(),
-                    DestinationReader.NOOP_DESTINATION_READER)
-                .withCurrentRev(new DummyRevision("1.0.0")));
+    runTransformation(
+        String.format(
+            "def test_download_fuzz(ctx):\n"
+                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
+                + " \"foo_crate_v1\", repo_url = \"%s\", crate_name = \"foo-crate-v1\")\n"
+                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+            url));
   }
 
   private void setUpRepoAndCheckout(
@@ -345,23 +366,14 @@ public class RustModuleTest {
     Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
 
     // Run download_fuzzers in a transform
-    starlark
-        .<Transformation>eval(
-            "t",
-            String.format(
-                "def test_download_fuzz(ctx):\n"
-                    + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
-                    + " \"foo_crate_v1\", fuzz_excludes = %s, crate_name = \"foo-crate-v1\")\n"
-                    + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
-                    + " \"None\")\n"
-                    + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
-                excludes))
-        .transform(
-            TransformWorks.of(
-                    workdir,
-                    "test",
-                    optionsBuilder.general.console(),
-                    DestinationReader.NOOP_DESTINATION_READER)
-                .withCurrentRev(new DummyRevision("1.0.0")));
+    runTransformation(
+        String.format(
+            "def test_download_fuzz(ctx):\n"
+                + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
+                + " \"foo_crate_v1\", fuzz_excludes = %s, crate_name = \"foo-crate-v1\")\n"
+                + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
+                + " \"None\")\n"
+                + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))",
+            excludes));
   }
 }
