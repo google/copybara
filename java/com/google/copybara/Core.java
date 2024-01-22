@@ -637,6 +637,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(autoPatchFileConfigurationObj, null);
 
     @Nullable String consistencyFilePath = convertFromNoneable(consistencyFilePathObj, null);
+    check(
+        mergeImport == null || !mergeImport.useConsistencyFile() || (consistencyFilePath != null),
+        "error: use_consistency_file set but consistency_file_path is null");
 
     WorkflowMode effectiveMode =
         generalOptions.squash || workflowOptions.importSameVersion ? WorkflowMode.SQUASH : mode;
