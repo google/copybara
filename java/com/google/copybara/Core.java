@@ -672,7 +672,6 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             setRevId,
             smartPrune,
             mergeImport,
-            workflowOptions.useReversePatchBaseline,
             autoPatchfileConfiguration,
             asSingleTransform(afterMergeTransformations),
             workflowOptions.migrateNoopChanges || migrateNoopChanges,

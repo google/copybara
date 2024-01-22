@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.google.copybara.regenerate;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hashing;
 import com.google.copybara.CommandEnv;
 import com.google.copybara.ConfigLoader;
 import com.google.copybara.Destination.PatchRegenerator;
@@ -44,10 +46,12 @@ import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import org.junit.Before;
@@ -77,10 +81,13 @@ public class RegenerateCmdTest {
   Path testRoot;
   Path workdir;
   Path destinationRoot;
+  Path pristineBaseline;
   Path regenBaseline;
   Path regenTarget;
 
-  private static final String consistencyFilePath = "zz/spfoo";
+  public Map<String, String> env = System.getenv();
+
+  private static final String CONSISTENCY_FILE_PATH = "test/test.bara.consistency";
 
   @Before
   public void setup() throws IOException {
@@ -90,6 +97,10 @@ public class RegenerateCmdTest {
     testRoot = tempFolder.getRoot().toPath();
     workdir = testRoot.resolve("workdir");
     destinationRoot = testRoot.resolve("destination");
+
+    pristineBaseline = null;
+    regenBaseline = null;
+    regenTarget = null;
 
     destination =
         new RecordsProcessCallDestination() {
@@ -133,7 +144,7 @@ public class RegenerateCmdTest {
 
                   @Override
                   public boolean exists(String path) {
-                    return false;
+                    return Files.exists(destinationRoot.resolve(baseline).resolve(path));
                   }
                 };
               }
@@ -146,13 +157,46 @@ public class RegenerateCmdTest {
     origin.addSimpleChange(0);
     options.testingOptions.origin = origin;
 
+    options.setEnvironment(env);
+
     skylark = new SkylarkTestExecutor(options);
+  }
+
+  // spoof a pristine baseline for generating baseline consistency files
+  private void setupPristineBaseline(String name) throws IOException {
+    Files.createDirectories(destinationRoot.resolve(name));
+    pristineBaseline = destinationRoot.resolve(name);
+  }
+
+  private void setupBaselineConsistencyFile() throws IOException, InsideGitDirException {
+    ConsistencyFile consistencyFile;
+
+    if (regenBaseline == null) {
+      throw new RuntimeException("set up regen baseline before calling");
+    }
+
+    if (pristineBaseline != null) {
+      consistencyFile =
+          ConsistencyFile.generate(pristineBaseline, regenBaseline, Hashing.sha256(), env);
+    } else {
+      consistencyFile =
+          ConsistencyFile.generate(regenBaseline, regenBaseline, Hashing.sha256(), env);
+    }
+
+    Files.createDirectories(regenBaseline.resolve(CONSISTENCY_FILE_PATH).getParent());
+    Files.write(regenBaseline.resolve(CONSISTENCY_FILE_PATH), consistencyFile.toBytes());
   }
 
   private void setupBaseline(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
     regenBaseline = destinationRoot.resolve(name);
     options.regenerateOptions.setRegenBaseline(name);
+  }
+
+  // need something in the origin when using an import baseline
+  private void setupFooOriginImport() throws IOException {
+    origin.singleFileChange(0, "foo description", "foo.txt", "foo");
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
   }
 
   private void setupTarget(String name) throws IOException {
@@ -163,7 +207,7 @@ public class RegenerateCmdTest {
 
   @Test
   public void testCallsUpdateChange() throws Exception {
-    setupBaseline("foo");
+    setupFooOriginImport();
     setupTarget("bar");
 
     RegenerateCmd cmd = getCmd(getConfigString());
@@ -187,12 +231,12 @@ public class RegenerateCmdTest {
 
   @Test
   public void testPatchFileIsGenerated() throws Exception {
-    setupBaseline("foo");
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
+    Files.write(regenTarget.resolve(testfile), "bar".getBytes(UTF_8));
 
     RegenerateCmd cmd = getCmd(getConfigString());
 
@@ -214,14 +258,14 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testPatchFileNotGenerated() throws Exception {
-    setupBaseline("foo");
+  public void testAutoPatchFileNotGenerated_whenNoDiff() throws Exception {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
     // file contents are the same
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
-    Files.write(regenTarget.resolve(testfile), "foo".getBytes());
+    origin.singleFileChange(0, "foo description", testfile, "foo");
+    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
+    Files.write(regenTarget.resolve(testfile), "foo".getBytes(UTF_8));
 
     RegenerateCmd cmd = getCmd(getConfigString());
 
@@ -244,7 +288,7 @@ public class RegenerateCmdTest {
 
   @Test
   public void testInferredBaselineused() throws Exception {
-    setupBaseline("foo");
+    setupFooOriginImport();
     setupTarget("bar");
 
     options.regenerateOptions.setRegenBaseline(null);
@@ -265,7 +309,7 @@ public class RegenerateCmdTest {
 
   @Test
   public void testInferredTargetused() throws Exception {
-    setupBaseline("foo");
+    setupFooOriginImport();
     setupTarget("bar");
 
     options.regenerateOptions.setRegenTarget(null);
@@ -431,12 +475,11 @@ public class RegenerateCmdTest {
 
   @Test
   public void testConsistencyFile_doesNotGenerate_disabled()
-      throws IOException, ValidationException, RepoException {
-    setupBaseline("foo");
+      throws IOException, ValidationException, RepoException, InsideGitDirException {
+    setupFooOriginImport();
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
     RegenerateCmd cmd = getCmd(getConfigString());
@@ -455,14 +498,14 @@ public class RegenerateCmdTest {
             pathArg.capture(),
             eq(Glob.ALL_FILES),
             eq("bar"));
-    assertThatPath(pathArg.getValue()).containsNoFiles(consistencyFilePath);
+    assertThatPath(pathArg.getValue()).containsNoFiles(CONSISTENCY_FILE_PATH);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   @Test
   public void testConsistencyFile_generatesFile()
-      throws IOException, ValidationException, RepoException {
+      throws IOException, ValidationException, RepoException, InsideGitDirException {
     setupBaseline("foo");
     setupTarget("bar");
 
@@ -470,6 +513,7 @@ public class RegenerateCmdTest {
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
 
+    setupBaselineConsistencyFile();
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
     ExitCode exitCode =
@@ -486,20 +530,22 @@ public class RegenerateCmdTest {
             pathArg.capture(),
             eq(Glob.ALL_FILES),
             eq("bar"));
-    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   @Test
   public void testConsistencyFile_capturesDiff()
-      throws IOException, ValidationException, RepoException {
+      throws IOException, ValidationException, RepoException, InsideGitDirException {
     setupBaseline("foo");
     setupTarget("bar");
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    setupBaselineConsistencyFile();
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
@@ -520,10 +566,10 @@ public class RegenerateCmdTest {
 
     ConsistencyFile consistencyFile =
         ConsistencyFile.fromBytes(
-            Files.readAllBytes(pathArg.getValue().resolve(consistencyFilePath)));
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
 
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
-    consistencyFile.reversePatches(regenTarget, System.getenv());
+    consistencyFile.reversePatches(regenTarget, env);
     assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("foo");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
@@ -534,12 +580,16 @@ public class RegenerateCmdTest {
   public void testRegenerate_consistencyFile_usesConsistencyFileBaseline() throws Exception {
     // generate a ConsistencyFile, make a new edit, use the directory
     // with the generated patch as baseline to regenerate again
+    setupPristineBaseline("foofoo");
     setupBaseline("foo");
     setupTarget("bar");
 
     String testfile = "asdf.txt";
     Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
+    Files.write(pristineBaseline.resolve(testfile), "foofoo".getBytes(UTF_8));
     Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+
+    setupBaselineConsistencyFile();
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
@@ -559,7 +609,7 @@ public class RegenerateCmdTest {
             eq(Glob.ALL_FILES),
             eq("bar"));
     assertThatPath(pathArg.getValue()).containsFile(testfile, "bar");
-    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
 
     // setup second run
     setupBaseline("bar");
@@ -586,16 +636,15 @@ public class RegenerateCmdTest {
             eq("foobar"));
 
     assertThatPath(pathArg.getValue()).containsFile(testfile, "foobar");
-    assertThatPath(pathArg.getValue()).containsFiles(consistencyFilePath);
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
 
     ConsistencyFile consistencyFile =
         ConsistencyFile.fromBytes(
-            Files.readAllBytes(pathArg.getValue().resolve(consistencyFilePath)));
-    consistencyFile.reversePatches(pathArg.getValue(), System.getenv());
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
+    consistencyFile.reversePatches(pathArg.getValue(), env);
 
-    // we should capture the diff between the baseline of the previous import, not the current
-    // import
-    assertThatPath(pathArg.getValue()).containsFile(testfile, "foo");
+    // reversing the diff should result in the pristine import
+    assertThatPath(pathArg.getValue()).containsFile(testfile, "foofoo");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
@@ -653,7 +702,7 @@ public class RegenerateCmdTest {
         + "      use_consistency_file = True\n,"
         + "    ),\n"
         + "    consistency_file_path = \""
-        + consistencyFilePath
+        + CONSISTENCY_FILE_PATH
         + "\",\n"
         + "    autopatch_config = core.autopatch_config(\n"
         + "      header = '# header',\n"
@@ -698,7 +747,7 @@ public class RegenerateCmdTest {
         + "      use_consistency_file = True\n"
         + "    ),\n"
         + "    consistency_file_path = \""
-        + consistencyFilePath
+        + CONSISTENCY_FILE_PATH
         + "\",\n"
         + ")";
   }

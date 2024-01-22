@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public class RegenerateOptions implements Option {
     return Optional.ofNullable(regenBaseline);
   }
 
-  public boolean getRegenImportBaseline() {
+  public boolean getUseImportBaseline() {
     return regenImportBaseline;
   }
 

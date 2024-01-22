@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 
 package com.google.copybara.regenerate;
-
-import static com.google.copybara.exception.ValidationException.checkCondition;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -120,42 +118,36 @@ public class Regenerate<O extends Revision, D extends Revision> {
     Files.createDirectories(nextPath);
     Files.createDirectories(autopatchPath);
 
-    Optional<String> optRegenTarget = regenerateOptions.getRegenTarget();
-    if (optRegenTarget.isEmpty()) {
-      optRegenTarget = patchRegenerator.inferRegenTarget();
+    Optional<String> getRegenTargetResult = regenerateOptions.getRegenTarget();
+    if (getRegenTargetResult.isEmpty()) {
+      getRegenTargetResult = patchRegenerator.inferRegenTarget();
     }
     String regenTarget =
-        optRegenTarget.orElseThrow(
+        getRegenTargetResult.orElseThrow(
             () ->
                 new ValidationException(
                     "Regen target was neither supplied nor able to be inferred. Supply with"
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
-    // If there are no line numbers in the patches and the workflow is not using ConsistencyFile,
-    // default to the import baseline (as long as ConsistencyFile is not being used).
-    boolean noLineNumbers =
-        autopatchConfig == null || autopatchConfig.stripFileNamesAndLineNumbers();
-    boolean useImportBaseline =
-        regenerateOptions.getRegenImportBaseline()
-            || (!workflow.isConsistencyFileMergeImport() && noLineNumbers);
-
-    if (useImportBaseline) {
-      previousPath =
-          prepareDiffWithImportBaseline(
-              autopatchConfig, workflow, workdir, nextPath, regenTarget, destinationWriter);
-    } else {
-      Optional<String> optRegenBaseline = regenerateOptions.getRegenBaseline();
-      if (optRegenBaseline.isEmpty()) {
-        optRegenBaseline = patchRegenerator.inferRegenBaseline();
+    Optional<String> getRegenBaselineResult;
+    String regenBaseline = null;
+    if (workflow.isConsistencyFileMergeImport()) {
+      getRegenBaselineResult = regenerateOptions.getRegenBaseline();
+      if (getRegenBaselineResult.isEmpty()) {
+        getRegenBaselineResult = patchRegenerator.inferRegenBaseline();
       }
-      String regenBaseline =
-          optRegenBaseline.orElseThrow(
+      regenBaseline =
+          getRegenBaselineResult.orElseThrow(
               () ->
                   new ValidationException(
                       "Regen baseline was neither supplied nor able to be inferred. Supply with"
                           + " --regen-baseline parameter"));
-      if (workflow.isConsistencyFileMergeImport()) {
+    }
+
+    if (workflow.isConsistencyFileMergeImport()
+        && consistencyFileExists(
+            destinationWriter, regenBaseline, workflow.getConsistencyFilePath())) {
         prepareDiffWithConsistencyFileBaseline(
             autopatchConfig,
             workflow,
@@ -165,19 +157,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
             autopatchPath,
             regenBaseline,
             regenTarget);
-      } else {
-        checkCondition(autopatchConfig != null,
-            "Autopatch config required to regenerate from patch files");
-        prepareDiffWithReversePatchBaseline(
-            autopatchConfig,
-            workflow,
-            destinationWriter,
-            previousPath,
-            nextPath,
-            autopatchPath,
-            regenBaseline,
-            regenTarget);
-      }
+    } else {
+      // todo: maybe don't fall back to import baseline for regenerate, only for workflow
+      previousPath =
+          prepareDiffWithImportBaseline(
+              autopatchConfig, workflow, workdir, nextPath, regenTarget, destinationWriter);
     }
 
     Optional<byte[]> consistencyFile = Optional.empty();
@@ -231,42 +215,12 @@ public class Regenerate<O extends Revision, D extends Revision> {
         workflow.getName(), nextPath, workflow.getDestinationFiles(), regenTarget);
   }
 
-  private void prepareDiffWithReversePatchBaseline(
-      AutoPatchfileConfiguration autopatchConfig,
-      Workflow<O, D> workflow,
-      Writer<D> destinationWriter,
-      Path previousPath,
-      Path nextPath,
-      Path autopatchPath,
-      String regenBaseline,
-      String regenTarget)
-      throws ValidationException, RepoException, IOException {
-    // download all files except for patch files
-    Glob autopatchGlob =
-        AutoPatchUtil.getAutopatchGlob(
-            autopatchConfig.directoryPrefix(), autopatchConfig.directory());
-    Glob patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
-
-    // copy the baseline to one directory
+  private boolean consistencyFileExists(
+      Writer<D> destinationWriter, String regenBaseline, String consistencyFilePath)
+      throws ValidationException, RepoException {
     DestinationReader previousDestinationReader =
         destinationWriter.getDestinationReader(console, regenBaseline, workdir);
-    previousDestinationReader.copyDestinationFilesToDirectory(
-        patchlessDestinationFiles, previousPath);
-
-    // copy the target to another directory
-    DestinationReader nextDestinationReader =
-        destinationWriter.getDestinationReader(console, regenTarget, workdir);
-    nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
-
-    // copy existing autopatch files to a third directory
-    previousDestinationReader.copyDestinationFilesToDirectory(autopatchGlob, autopatchPath);
-
-    // reverse autopatch files on the target directory here to get a pristine import
-    AutoPatchUtil.reversePatchFiles(
-        previousPath,
-        autopatchPath,
-        autopatchConfig.suffix(),
-        workflow.getGeneralOptions().getEnvironment());
+    return previousDestinationReader.exists(consistencyFilePath);
   }
 
   private void prepareDiffWithConsistencyFileBaseline(

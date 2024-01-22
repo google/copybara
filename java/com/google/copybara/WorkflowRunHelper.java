@@ -831,10 +831,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           patchlessDestinationFiles, destinationFilesWorkdir);
 
       Path baselineWorkdir = null;
-      if (workflow.isUseReversePatchBaseline()) {
-        baselineWorkdir =
-            checkoutReversePatchBaseline(reader, workflow.getAutoPatchfileConfiguration());
-      } else if (workflow.getMergeImport().useConsistencyFile()) {
+      if (workflow.getMergeImport().useConsistencyFile()) {
         // If there is a consistency file, then use it.
         // Otherwise, fall back to baseline import.
         Path consistencyFileWorkdir =
@@ -952,33 +949,6 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Files.createDirectories(checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
         Files.write(checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFile.get());
       }
-    }
-
-    private Path checkoutReversePatchBaseline(
-        DestinationReader reader, @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration)
-        throws ValidationException, IOException, RepoException {
-      checkCondition(
-          autoPatchfileConfiguration != null,
-          "auto patch configuration is required for reversing patch files");
-      // copy the current destination files to the baseline directory
-      Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
-      reader.copyDestinationFilesToDirectory(workflow.getDestinationFiles(), baselineWorkdir);
-
-      // copy the autopatch files from the destination to a separate directory
-      Path autopatchWorkdir = Files.createDirectories(workdir.resolve("autopatch"));
-      Glob autopatchGlob =
-          AutoPatchUtil.getAutopatchGlob(
-              autoPatchfileConfiguration.directoryPrefix(), autoPatchfileConfiguration.directory());
-      reader.copyDestinationFilesToDirectory(autopatchGlob, autopatchWorkdir);
-
-      // reverse apply the patchfiles to the baseline directory
-      AutoPatchUtil.reversePatchFiles(
-          baselineWorkdir,
-          autopatchWorkdir,
-          autoPatchfileConfiguration.suffix(),
-          workflow.getGeneralOptions().getEnvironment());
-
-      return baselineWorkdir;
     }
 
     static Glob patchlessDestinationFiles(

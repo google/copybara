@@ -114,7 +114,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean setRevId;
   private final boolean smartPrune;
   private final MergeImportConfiguration mergeImport;
-  private final boolean useReversePatchBaseline;
   private final AutoPatchfileConfiguration autoPatchfileConfiguration;
   final Transformation afterMergeTransformations;
   private final boolean migrateNoopChanges;
@@ -152,7 +151,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean setRevId,
       boolean smartPrune,
       @Nullable MergeImportConfiguration mergeImport,
-      boolean useReversePatchBaseline,
       @Nullable AutoPatchfileConfiguration autoPatchfileConfiguration,
       Transformation afterMergeTransformations,
       boolean migrateNoopChanges,
@@ -191,7 +189,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.setRevId = setRevId;
     this.smartPrune = smartPrune;
     this.mergeImport = mergeImport;
-    this.useReversePatchBaseline = useReversePatchBaseline;
     this.autoPatchfileConfiguration = autoPatchfileConfiguration;
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
@@ -696,10 +693,6 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   MergeImportConfiguration getMergeImport() {
     return mergeImport;
-  }
-
-  boolean isUseReversePatchBaseline() {
-    return useReversePatchBaseline;
   }
 
   public boolean isConsistencyFileMergeImport() {
