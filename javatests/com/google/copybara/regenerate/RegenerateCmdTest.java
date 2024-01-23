@@ -49,6 +49,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,7 +104,7 @@ public class RegenerateCmdTest {
 
               @Override
               public DestinationReader getDestinationReader(
-                  Console console, String baseline, Path workdir) {
+                  Console console, @Nullable String baseline, Path workdir) {
                 return new DestinationReader() {
                   @Override
                   public String readFile(String path) throws RepoException {

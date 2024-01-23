@@ -103,7 +103,8 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
       return DestinationReader.NOT_IMPLEMENTED;
     }
 
-    default DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+    default DestinationReader getDestinationReader(
+        Console console, @Nullable String baseline, Path workdir)
         throws ValidationException, RepoException {
       return DestinationReader.NOT_IMPLEMENTED;
     }

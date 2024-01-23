@@ -342,7 +342,8 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
     }
 
     @Override
-    public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+    public DestinationReader getDestinationReader(
+        Console console, @Nullable String baseline, Path workdir)
         throws ValidationException, RepoException {
       return new DestinationReaderImpl(workdir, baseline);
     }

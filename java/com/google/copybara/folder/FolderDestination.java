@@ -96,8 +96,8 @@ public class FolderDestination implements Destination<Revision> {
     }
 
     @Override
-    public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
-        throws RepoException {
+    public DestinationReader getDestinationReader(
+        Console console, @Nullable String baseline, Path workdir) throws RepoException {
       try {
         return new FolderDestinationReader(getFolderPath(console), workdir);
       } catch (IOException e) {
