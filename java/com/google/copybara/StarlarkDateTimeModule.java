@@ -39,7 +39,7 @@ import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.TokenKind;
 
 /** Starlark wrapper for java's Zoned Datetime */
-@StarlarkBuiltin(name = "datetime", doc = "Module for datetime manipulation.", documented = false)
+@StarlarkBuiltin(name = "datetime", doc = "Module for datetime manipulation.")
 public class StarlarkDateTimeModule implements StarlarkValue {
 
   @StarlarkMethod(

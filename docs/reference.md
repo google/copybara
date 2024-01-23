@@ -51,6 +51,9 @@
     - [core.verify_match](#coreverify_match)
     - [core.workflow](#coreworkflow)
   - [core.autopatch_config](#coreautopatch_config)
+  - [datetime](#datetime)
+    - [datetime.fromtimestamp](#datetimefromtimestamp)
+    - [datetime.now](#datetimenow)
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_readercopy_destination_files)
@@ -1618,6 +1621,41 @@ Name | Type | Description
 ## core.autopatch_config
 
 The configuration that describes automatic patch file generation
+
+
+
+## datetime
+
+Module for datetime manipulation.
+
+<a id="datetime.fromtimestamp" aria-hidden="true"></a>
+### datetime.fromtimestamp
+
+Returns a starlark_datetime object representation of the epoch time. The object is timezone aware.
+
+`StarlarkDateTime` `datetime.fromtimestamp(timestamp=0, tz='America/Los_Angeles')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+timestamp | `int`<br><p>Epoch time in seconds.</p>
+tz | `string`<br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome, etc.</p>
+
+<a id="datetime.now" aria-hidden="true"></a>
+### datetime.now
+
+Returns a starlark_datetime object. The object is timezone aware.
+
+`StarlarkDateTime` `datetime.now(tz='America/Los_Angeles')`
+
+
+#### Parameters:
+
+Parameter | Description
+--------- | -----------
+tz | `string`<br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome</p>
 
 
 

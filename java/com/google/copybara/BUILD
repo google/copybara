@@ -211,6 +211,7 @@ java_library(
     srcs = ["StarlarkDateTimeModule.java"],
     javacopts = JAVACOPTS,
     deps = [
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
         "//third_party:guava",
         "//third_party:starlark",
