@@ -40,7 +40,8 @@ public final class Generator {
 
     List<String> jarNames = Splitter.on(",").omitEmptyStrings().splitToList(args[0]);
     List<DocModule> modules = new ModuleLoader().load(jarNames);
-    CharSequence markdown = new MarkdownRenderer().render(modules);
+    CharSequence markdown =
+        new MarkdownRenderer().render(modules, /* includeFlagAggregate= */ true);
 
     String outputFile = args[1];
 

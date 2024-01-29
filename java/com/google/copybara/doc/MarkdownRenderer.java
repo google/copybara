@@ -23,6 +23,7 @@ import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.copybara.doc.DocBase.DocExample;
 import com.google.copybara.doc.DocBase.DocField;
@@ -34,6 +35,7 @@ import com.google.copybara.doc.annotations.Example;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 final class MarkdownRenderer {
 
@@ -41,15 +43,31 @@ final class MarkdownRenderer {
 
   private final Set<String> headings = new HashSet<>();
 
-  public CharSequence render(Iterable<DocModule> modules) {
-    StringBuilder sb = new StringBuilder();
-    sb.append(tableOfContents(modules));
+  public CharSequence render(Iterable<DocModule> modules, boolean includeFlagAggregate) {
+    ImmutableList<DocModule> modulesToRender =
+        new ImmutableList.Builder<DocModule>()
+            .addAll(modules)
+            .addAll(
+                includeFlagAggregate ? ImmutableList.of(renderFlags(modules)) : ImmutableList.of())
+            .build();
 
-    for (DocModule module : modules) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(tableOfContents(modulesToRender));
+
+    for (DocModule module : modulesToRender) {
       sb.append("\n");
       sb.append(module(module, MODULE_HEADING_LEVEL));
     }
     return sb;
+  }
+
+  private DocModule renderFlags(Iterable<DocModule> modules) {
+    TreeSet<DocFlag> flagSet = new TreeSet<>();
+    modules.forEach(module -> flagSet.addAll(module.flags));
+    DocModule flagModule =
+        new DocModule("copybara_flags", "All flag options available to the Copybara CLI.");
+    flagModule.flags.addAll(flagSet);
+    return flagModule;
   }
 
   private CharSequence tableOfContents(Iterable<DocModule> modules) {
