@@ -17,10 +17,10 @@
 package com.google.copybara;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.truth.Truth8;
 import com.google.copybara.ChangeVisitable.VisitResult;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.revision.Change;
@@ -88,7 +88,8 @@ public class BaselinesWithoutLabelVisitorTest {
     visit(visitor, "two", ImmutableSet.of("excluded/aaa"));
     visit(visitor, "three", ImmutableSet.of("foo/bar"));
 
-    assertThat(visitor.getResult().stream().map(DummyRevision::asString)).containsExactly("three");
+    Truth8.assertThat(visitor.getResult().stream().map(DummyRevision::asString))
+        .containsExactly("three");
   }
 
   @Test

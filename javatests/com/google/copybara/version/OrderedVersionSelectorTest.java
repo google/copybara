@@ -17,10 +17,10 @@
 package com.google.copybara.version;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.truth.Truth8;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.templatetoken.Token;
@@ -41,7 +41,7 @@ public class OrderedVersionSelectorTest {
   @Test
   public void testEmpty() throws ValidationException, RepoException {
     OrderedVersionSelector selector = new OrderedVersionSelector(ImmutableList.of());
-    assertThat(selector.select(LIST, "one", new TestingConsole())).isEmpty();
+    Truth8.assertThat(selector.select(LIST, "one", new TestingConsole())).isEmpty();
     assertThat(selector.searchPatterns()).isEmpty();
   }
 
@@ -51,7 +51,7 @@ public class OrderedVersionSelectorTest {
         (versionList, requestedRef, console) -> Optional.of("three"),
         (versionList, requestedRef, console) -> Optional.of("forth")
     ));
-    assertThat(selector.select(LIST, "one", new TestingConsole())).hasValue("three");
+    Truth8.assertThat(selector.select(LIST, "one", new TestingConsole())).hasValue("three");
   }
 
   @Test
@@ -60,7 +60,7 @@ public class OrderedVersionSelectorTest {
         (versionList, requestedRef, console) -> Optional.empty(),
         (versionList, requestedRef, console) -> Optional.of("forth")
     ));
-    assertThat(selector.select(LIST, "one", new TestingConsole())).hasValue("forth");
+    Truth8.assertThat(selector.select(LIST, "one", new TestingConsole())).hasValue("forth");
   }
 
   @Test

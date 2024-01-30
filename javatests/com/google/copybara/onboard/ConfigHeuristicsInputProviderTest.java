@@ -17,13 +17,13 @@
 package com.google.copybara.onboard;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth8.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.truth.Truth8;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitEnvironment;
@@ -123,7 +123,7 @@ public class ConfigHeuristicsInputProviderTest {
 
     // The result is an empty glob rather than glob(include = ["**"], exclude = ["**"])
     assertThat(Files.isDirectory(workDir)).isTrue();
-    assertThat(glob).isEmpty();
+    Truth8.assertThat(glob).isEmpty();
   }
 
   @Test
@@ -170,7 +170,7 @@ public class ConfigHeuristicsInputProviderTest {
 
     // The glob was computed and the version was matched with the git tag
     assertThat(Files.isDirectory(workDir)).isTrue();
-    assertThat(glob).hasValue(expectedGlob);
+    Truth8.assertThat(glob).hasValue(expectedGlob);
     assertThat(console.getMessages())
         .contains(
             new Message(MessageType.INFO, "Assuming version 1.0.0 references v1.0.0 (1.0.0)"));
