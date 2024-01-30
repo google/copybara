@@ -16,7 +16,7 @@
 
 package com.google.copybara.go;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import org.junit.Test;
