@@ -1287,7 +1287,7 @@ paths | [`glob`](#glob) or `NoneType`<br><p>A glob expression relative to the wo
 first_only | `bool`<br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 multiline | `bool`<br><p>Whether to replace text that spans more than one line.</p>
 repeated_groups | `bool`<br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Note that `ignore` is matched to the whole file, not just the parts that match `before` comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may be used to determine whether or not to apply a transformation.</p>
+ignore | `sequence`<br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Furthermore, it is not possible to ignore a selected text, and replace another, if they exist on the same line. The entire line will be ignored. Note that `ignore` is matched to the whole file, not just the parts that match `before` comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may be used to determine whether or not to apply a transformation.</p>
 
 
 #### Examples:
@@ -1400,6 +1400,42 @@ more public code
 ```
 
 
+##### Replace with ignore:
+
+This example replaces go links that shouldn't be in a public repository with `(broken link)`, but ignores any lines that contain `bazelbuild/rules_go/`, to avoid replacing file paths present in the text.
+
+```python
+core.replace(
+        before = "${x}",
+        after = "(broken link)",
+        regex_groups = {
+            "x": "(go|goto)/[-/_#a-zA-Z0-9?]*(.md|)",
+        },
+        ignore = [".*bazelbuild/rules_go/.*"],
+    )
+```
+
+This replace would transform a text file like:
+
+```
+public code
+go/copybara ... public code
+public code ... go/copybara
+go/copybara ... foo/bazelbuild/rules_go/bar
+foo/bazelbuild/rules_go/baz ... go/copybara
+```
+
+Into:
+
+```
+public code
+(broken link) ... public code
+public code ... (broken link)
+go/copybara ... foo/bazelbuild/rules_go/bar
+foo/bazelbuild/rules_go/baz ... go/copybara
+```
+
+Note that the `go/copybara` links on lines that matched the ignore regex were not replaced. The transformation ignored these lines entirely.
 
 
 <a id="core.replace_mapper" aria-hidden="true"></a>

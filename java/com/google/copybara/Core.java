@@ -1158,8 +1158,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             doc =
                 "A set of regexes. Any line that matches any expression in this set, which might"
-                    + " otherwise be transformed, will be ignored. Note that `ignore` is matched to"
-                    + " the whole file, not just the parts that match `before` comparing the"
+                    + " otherwise be transformed, will be ignored. Furthermore, it is not possible"
+                    + " to ignore a selected text, and replace another, if they exist on the same"
+                    + " line. The entire line will be ignored. Note that `ignore` is matched to the"
+                    + " whole file, not just the parts that match `before` comparing the"
                     + " to-be-transformed string to the ignore regexes, meaning text outside the"
                     + " transform may be used to determine whether or not to apply a"
                     + " transformation.",
@@ -1256,7 +1258,41 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "This is\n"
               + "public\n"
               + "more public code\n"
-              + "```\n\n")
+              + "```")
+  @Example(
+      title = "Replace with ignore",
+      before =
+          "This example replaces go links that shouldn't be in a public repository with `(broken"
+              + " link)`, but ignores any lines that contain `bazelbuild/rules_go/`, to avoid"
+              + " replacing file paths present in the text.",
+      code =
+          "core.replace(\n"
+              + "        before = \"${x}\",\n"
+              + "        after = \"(broken link)\",\n"
+              + "        regex_groups = {\n"
+              + "            \"x\": \"(go|goto)/[-/_#a-zA-Z0-9?]*(.md|)\",\n"
+              + "        },\n"
+              + "        ignore = [\".*bazelbuild/rules_go/.*\"],\n"
+              + "    )",
+      after =
+          "This replace would transform a text file like:\n\n"
+              + "```\n"
+              + "public code\n"
+              + "go/copybara ... public code\n"
+              + "public code ... go/copybara\n"
+              + "go/copybara ... foo/bazelbuild/rules_go/bar\n"
+              + "foo/bazelbuild/rules_go/baz ... go/copybara\n"
+              + "```\n\n"
+              + "Into:\n\n"
+              + "```\n"
+              + "public code\n"
+              + "(broken link) ... public code\n"
+              + "public code ... (broken link)\n"
+              + "go/copybara ... foo/bazelbuild/rules_go/bar\n"
+              + "foo/bazelbuild/rules_go/baz ... go/copybara\n"
+              + "```\n\n"
+              + "Note that the `go/copybara` links on lines that matched the ignore regex were not"
+              + " replaced. The transformation ignored these lines entirely.")
   public Replace replace(
       String before,
       String after,
