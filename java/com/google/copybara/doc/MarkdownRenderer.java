@@ -95,7 +95,7 @@ final class MarkdownRenderer {
     sb.append(module.description).append("\n\n");
 
     if (!module.fields.isEmpty()) {
-      sb.append(title(level + 2, "Fields:"));
+      sb.append(htmlTitle(level + 2, "Fields:", "fields." + module.name));
       sb.append(tableHeader("Name", "Description"));
       for (DocField field : module.fields) {
         sb.append(
@@ -116,21 +116,26 @@ final class MarkdownRenderer {
       if (func.returnType != null) {
         sb.append(typeName(func.returnType)).append(" ");
       }
-      sb.append("`").append(func.name).append("(");
+      sb.append("<code>").append(func.name).append("(");
       Joiner.on(", ")
           .appendTo(
               sb,
               Lists.transform(
-                  func.params, p -> p.name + (p.defaultValue == null ? "" : "=" + p.defaultValue)));
-      sb.append(")`\n\n");
+                  func.params,
+                  p ->
+                      String.format("<a href=#%s.%s>%s</a>", func.name, p.name, p.name)
+                          + (p.defaultValue == null ? "" : "=" + p.defaultValue)));
+      sb.append(")</code>\n\n");
 
       if (!func.params.isEmpty()) {
-        sb.append(title(level + 2, "Parameters:"));
+        sb.append(htmlTitle(level + 2, "Parameters:", String.format("parameters.%s", func.name)));
         sb.append(tableHeader("Parameter", "Description"));
         for (DocParam param : func.params) {
           sb.append(
               tableRow(
-                  param.name,
+                  String.format(
+                      "<span id=%s.%s href=#%s.%s>%s</span>",
+                      func.name, param.name, func.name, param.name, param.name),
                   String.format(
                       "%s<br><p>%s</p>",
                       param.allowedTypes.stream().map(this::typeName).collect(joining(" or ")),
@@ -139,7 +144,11 @@ final class MarkdownRenderer {
         sb.append("\n");
       }
       if (!func.examples.isEmpty()) {
-        sb.append(title(level + 2, func.examples.size() == 1 ? "Example:" : "Examples:"));
+        sb.append(
+            htmlTitle(
+                level + 2,
+                func.examples.size() == 1 ? "Example:" : "Examples:",
+                "example." + func.name));
         for (DocExample example : func.examples) {
           sb.append(example(level + 3, example.example));
         }
@@ -152,6 +161,11 @@ final class MarkdownRenderer {
 
   private String title(int level, String name) {
     return "\n" + Strings.repeat("#", level) + ' ' + name + "\n\n";
+  }
+
+  private String htmlTitle(int level, String name, String id) {
+    String tag = String.format("h%d", level);
+    return String.format("\n<%s id=\"%s\">%s</%s>\n\n", tag, id, name, tag);
   }
 
   private boolean shouldLinkify(String type) {
