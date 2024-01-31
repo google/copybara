@@ -21,9 +21,9 @@ import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.copybara.doc.DocBase.DocExample;
 import com.google.copybara.doc.DocBase.DocField;
@@ -33,7 +33,9 @@ import com.google.copybara.doc.DocBase.DocModule;
 import com.google.copybara.doc.DocBase.DocParam;
 import com.google.copybara.doc.annotations.Example;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -43,6 +45,19 @@ final class MarkdownRenderer {
 
   private final Set<String> headings = new HashSet<>();
 
+  private final Map<String, ImmutableSet<String>> returnedBy =
+      new HashMap<String, ImmutableSet<String>>();
+
+  private void addToMapValueSet(Map<String, ImmutableSet<String>> map, String key, String value) {
+    ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+    builder.addAll(map.getOrDefault(key, ImmutableSet.of()));
+    builder.add(value);
+    map.put(key, builder.build());
+  }
+
+  private final Map<String, ImmutableSet<String>> consumedBy =
+      new HashMap<String, ImmutableSet<String>>();
+
   public CharSequence render(Iterable<DocModule> modules, boolean includeFlagAggregate) {
     ImmutableList<DocModule> modulesToRender =
         new ImmutableList.Builder<DocModule>()
@@ -50,6 +65,8 @@ final class MarkdownRenderer {
             .addAll(
                 includeFlagAggregate ? ImmutableList.of(renderFlags(modules)) : ImmutableList.of())
             .build();
+
+    populateUsageMaps(modulesToRender);
 
     StringBuilder sb = new StringBuilder();
     sb.append(tableOfContents(modulesToRender));
@@ -59,6 +76,42 @@ final class MarkdownRenderer {
       sb.append(module(module, MODULE_HEADING_LEVEL));
     }
     return sb;
+  }
+
+  private void populateUsageMaps(Iterable<DocModule> modules) {
+    for (DocModule module : modules) {
+      for (DocFunction f : module.functions) {
+        if (f.returnType != null) {
+          // add f to the set of functions that return f.returnType
+          addToMapValueSet(returnedBy, f.returnType, f.name);
+
+          // capture types within container types as well
+          if (f.returnType.startsWith("sequence of ")) {
+            addToMapValueSet(returnedBy, getSequenceElementType(f.returnType), f.name);
+          }
+          if (f.returnType.startsWith("dict[")) {
+            addToMapValueSet(returnedBy, getDictKeyType(f.returnType), f.name);
+            addToMapValueSet(returnedBy, getDictValueType(f.returnType), f.name);
+          }
+        }
+
+        for (DocParam param : f.params) {
+          // for each param, for each type accepted by that param,
+          // add f to the set of functions that consume the type of that param
+          for (String type : param.allowedTypes) {
+            addToMapValueSet(consumedBy, type, f.name);
+
+            if (type.startsWith("sequence of ")) {
+              addToMapValueSet(consumedBy, getSequenceElementType(type), f.name);
+            }
+            if (type.startsWith("dict[")) {
+              addToMapValueSet(consumedBy, getDictKeyType(type), f.name);
+              addToMapValueSet(consumedBy, getDictValueType(type), f.name);
+            }
+          }
+        }
+      }
+    }
   }
 
   private DocModule renderFlags(Iterable<DocModule> modules) {
@@ -107,6 +160,29 @@ final class MarkdownRenderer {
     }
 
     sb.append(flags(module.flags));
+
+    ImmutableSet<String> moduleReturnedBy = returnedBy.getOrDefault(module.name, ImmutableSet.of());
+    if (!moduleReturnedBy.isEmpty()) {
+      sb.append(htmlTitle(level + 2, "Returned By:", "returned_by." + module.name));
+      sb.append("<ul>");
+      for (String funcName : moduleReturnedBy) {
+        sb.append(String.format("<li><a href=\"#%s\">%s</a></li>", funcName, funcName));
+      }
+      sb.append("</ul>");
+    }
+    ImmutableSet<String> moduleConsumedBy = consumedBy.getOrDefault(module.name, ImmutableSet.of());
+    if (!moduleConsumedBy.isEmpty()) {
+      sb.append(htmlTitle(level + 2, "Consumed By:", "consumed_by." + module.name));
+      sb.append("<ul>");
+      for (String funcName : moduleConsumedBy) {
+        sb.append(String.format("<li><a href=\"#%s\">%s</a></li>", funcName, funcName));
+      }
+      sb.append("</ul>");
+    }
+
+    if (!moduleReturnedBy.isEmpty() || !moduleConsumedBy.isEmpty()) {
+      sb.append("\n\n");
+    }
 
     for (DocFunction func : module.functions) {
       sb.append("<a id=\"").append(func.name).append("\" aria-hidden=\"true\"></a>");
@@ -173,27 +249,53 @@ final class MarkdownRenderer {
   }
 
   private String typeName(String type) {
+    return htmlCodify(typeNameHelper(type));
+  }
+
+  private String getSequenceElementType(String sequenceType) {
+    return sequenceType.substring("sequence of ".length());
+  }
+
+  private String getDictKeyType(String dictType) {
+    return dictType.substring("dict[".length(), dictType.indexOf(", "));
+  }
+
+  private String getDictValueType(String dictType) {
+    return dictType.substring(dictType.indexOf(", ") + 2, dictType.indexOf("]"));
+  }
+
+  // type name without 'code' formatting applied
+  private String typeNameHelper(String type) {
     if (type.startsWith("sequence of ")) {
-      String paramType = type.substring("sequence of ".length());
-      if (shouldLinkify(paramType)) {
-        return "`sequence of `" + typeName(paramType);
-      }
+      return "sequence of " + typeNameHelper(getSequenceElementType(type));
     }
+
+    if (type.startsWith("dict[")) {
+      return "dict["
+          + typeNameHelper(getDictKeyType(type))
+          + ", "
+          + typeNameHelper(getDictValueType(type))
+          + "]";
+    }
+
     if (shouldLinkify(type)) {
-      return linkify(codify(type));
+      // use html tags, not markdown links, for correct nesting behavior
+      return htmlLinkify(type);
     }
-    return codify(type);
+    return type;
   }
 
   private String linkify(String name) {
     return "[" + name + "](#" + Ascii.toLowerCase(name).replace(".", "").replace("`", "") + ")";
   }
 
-  private static String codify(String snippet) {
-    Preconditions.checkArgument(
-        !snippet.contains("`"), "String '%s' already contains backticks.", snippet);
+  private String htmlLinkify(String name) {
+    String href = "#" + Ascii.toLowerCase(name).replace(".", "").replace("`", "");
+    return String.format("<a href=\"%s\">%s</a>", href, name);
+  }
 
-    return "`" + snippet + "`";
+  private String htmlCodify(String snippet) {
+    return String.format("<code>%s</code>", snippet);
   }
 
   private String example(int level, Example example) {
