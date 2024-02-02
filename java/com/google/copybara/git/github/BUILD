@@ -41,6 +41,7 @@ java_library(
     javacopts = JAVACOPTS,
     deps = [
         "//java/com/google/copybara/checks",
+        "//java/com/google/copybara/doc:annotations",  # unuseddeps:keep
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/json",

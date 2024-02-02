@@ -83,6 +83,7 @@ public class StarlarkDateTimeModule implements StarlarkValue {
 
   /** The StarLark facing wrapper for ZonedDateTime */
   @SuppressWarnings("ZonedDateTimeNowWithZone")
+  @StarlarkBuiltin(name = "StarlarkDateTime", doc = "Starlark datetime object")
   public static class StarlarkDateTime implements StarlarkValue, HasBinary {
 
     private final ZonedDateTime zonedDateTime;

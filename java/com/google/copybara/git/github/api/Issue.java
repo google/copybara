@@ -19,12 +19,11 @@ package com.google.copybara.git.github.api;
 import com.google.api.client.util.Key;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
-/**
- * Represents an issue returned by https://api.github.com/repos/REPO_ID/issues/NUMBER
- */
-
+/** Represents an issue returned by https://api.github.com/repos/REPO_ID/issues/NUMBER */
+@StarlarkBuiltin(name = "Issue", doc = "Github issue object")
 public class Issue extends PullRequestOrIssue implements StarlarkValue {
 
   @Key private List<Label> labels;

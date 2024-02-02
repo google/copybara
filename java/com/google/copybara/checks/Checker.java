@@ -24,10 +24,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A generic interface for performing checks on string contents and files. */
-@StarlarkBuiltin(
-    name = "checker",
-    doc = "A checker to be run on arbitrary data and files",
-    documented = false)
+@StarlarkBuiltin(name = "checker", doc = "A checker to be run on arbitrary data and files")
 public interface Checker extends StarlarkValue {
 
   /**

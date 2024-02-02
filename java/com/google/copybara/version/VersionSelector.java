@@ -27,13 +27,15 @@ import com.google.copybara.util.console.Console;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
- * Select a version from a list of versions, using custom logic (For example,
- * semantic versioning, etc.).
+ * Select a version from a list of versions, using custom logic (For example, semantic versioning,
+ * etc.).
  */
+@StarlarkBuiltin(name = "VersionSelector", doc = "Select a version from a list of versions")
 public interface VersionSelector extends StarlarkValue {
 
   Optional<String> select(VersionList versionList, @Nullable String requestedRef,

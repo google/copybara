@@ -20,6 +20,8 @@
   - [ChangeMessage](#changemessage)
     - [message.label_values](#messagelabel_values)
   - [Changes](#changes)
+  - [checker](#checker)
+  - [Command](#command)
   - [Console](#console)
     - [console.error](#consoleerror)
     - [console.info](#consoleinfo)
@@ -54,6 +56,8 @@
   - [datetime](#datetime)
     - [datetime.fromtimestamp](#datetimefromtimestamp)
     - [datetime.now](#datetimenow)
+  - [description_checker](#description_checker)
+  - [destination](#destination)
   - [destination_effect](#destination_effect)
   - [destination_reader](#destination_reader)
     - [destination_reader.copy_destination_files](#destination_readercopy_destination_files)
@@ -135,6 +139,11 @@
     - [git.mirrorContext.references](#gitmirrorcontextreferences)
     - [git.mirrorContext.success](#gitmirrorcontextsuccess)
   - [git_merge_result](#git_merge_result)
+  - [github_api_combined_status_obj](#github_api_combined_status_obj)
+  - [github_api_commit_author_obj](#github_api_commit_author_obj)
+  - [github_api_commit_obj](#github_api_commit_obj)
+  - [github_api_github_commit_obj](#github_api_github_commit_obj)
+  - [github_api_issue_comment_obj](#github_api_issue_comment_obj)
   - [github_api_obj](#github_api_obj)
     - [github_api_obj.add_label](#github_api_objadd_label)
     - [github_api_obj.create_issue](#github_api_objcreate_issue)
@@ -157,6 +166,26 @@
     - [github_api_obj.post_issue_comment](#github_api_objpost_issue_comment)
     - [github_api_obj.update_pull_request](#github_api_objupdate_pull_request)
     - [github_api_obj.update_reference](#github_api_objupdate_reference)
+  - [github_api_pull_request_comment_obj](#github_api_pull_request_comment_obj)
+  - [github_api_pull_request_obj](#github_api_pull_request_obj)
+  - [github_api_ref_obj](#github_api_ref_obj)
+  - [github_api_revision_obj](#github_api_revision_obj)
+  - [github_api_status_obj](#github_api_status_obj)
+  - [github_api_user_obj](#github_api_user_obj)
+  - [github_app_obj](#github_app_obj)
+  - [github_check_run_obj](#github_check_run_obj)
+  - [github_check_runs_obj](#github_check_runs_obj)
+  - [github_check_suite_obj](#github_check_suite_obj)
+  - [github_check_suites_response_obj](#github_check_suites_response_obj)
+  - [github_create_release_obj](#github_create_release_obj)
+    - [github_create_release_obj.set_draft](#github_create_release_objset_draft)
+    - [github_create_release_obj.set_generate_release_notes](#github_create_release_objset_generate_release_notes)
+    - [github_create_release_obj.set_latest](#github_create_release_objset_latest)
+    - [github_create_release_obj.set_prerelease](#github_create_release_objset_prerelease)
+    - [github_create_release_obj.with_body](#github_create_release_objwith_body)
+    - [github_create_release_obj.with_commitish](#github_create_release_objwith_commitish)
+    - [github_create_release_obj.with_name](#github_create_release_objwith_name)
+  - [github_release_obj](#github_release_obj)
   - [glob](#glob)
   - [Globals](#globals)
     - [glob](#glob)
@@ -169,6 +198,7 @@
     - [hg.origin](#hgorigin)
   - [html](#html)
     - [html.xpath](#htmlxpath)
+  - [Issue](#issue)
   - [mapping_function](#mapping_function)
   - [metadata](#metadata)
     - [metadata.add_header](#metadataadd_header)
@@ -183,7 +213,9 @@
     - [metadata.squash_notes](#metadatasquash_notes)
     - [metadata.use_last_change](#metadatause_last_change)
     - [metadata.verify_match](#metadataverify_match)
+  - [origin](#origin)
   - [origin_ref](#origin_ref)
+  - [output_obj](#output_obj)
   - [patch](#patch)
     - [patch.apply](#patchapply)
     - [patch.quilt_apply](#patchquilt_apply)
@@ -217,6 +249,9 @@
   - [rust_version_requirement](#rust_version_requirement)
     - [rust_version_requirement.fulfills](#rust_version_requirementfulfills)
   - [SetReviewInput](#setreviewinput)
+  - [StarlarkDateTime](#starlarkdatetime)
+    - [StarlarkDateTime.in_epoch_seconds](#starlarkdatetimein_epoch_seconds)
+    - [StarlarkDateTime.strftime](#starlarkdatetimestrftime)
   - [struct](#struct)
     - [struct](#struct)
   - [toml](#toml)
@@ -251,6 +286,7 @@
     - [ctx.set_message](#ctxset_message)
     - [ctx.success](#ctxsuccess)
     - [ctx.write_path](#ctxwrite_path)
+  - [VersionSelector](#versionselector)
   - [xml](#xml)
     - [xml.xpath](#xmlxpath)
   - [copybara_flags](#copybara_flags)
@@ -436,7 +472,7 @@ Module for Buildozer-related functionality such as creating and modifying BUILD 
 
 Creates a Buildozer command. You can specify the reversal with the 'reverse' argument.
 
-<code>Command</code> <code>buildozer.cmd(<a href=#buildozer.cmd.forward>forward</a>, <a href=#buildozer.cmd.reverse>reverse</a>=None)</code>
+<code><a href="#command">Command</a></code> <code>buildozer.cmd(<a href=#buildozer.cmd.forward>forward</a>, <a href=#buildozer.cmd.reverse>reverse</a>=None)</code>
 
 
 <h4 id="parameters.buildozer.cmd">Parameters:</h4>
@@ -460,7 +496,7 @@ Parameter | Description
 --------- | -----------
 <span id=buildozer.create.target href=#buildozer.create.target>target</span> | <code>string</code><br><p>Target to create, including the package, e.g. 'foo:bar'. The package can be '.' for the root BUILD file.</p>
 <span id=buildozer.create.rule_type href=#buildozer.create.rule_type>rule_type</span> | <code>string</code><br><p>Type of this rule, for instance, java_library.</p>
-<span id=buildozer.create.commands href=#buildozer.create.commands>commands</span> | <code>sequence of string</code> or <code>sequence of Command</code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.create.commands href=#buildozer.create.commands>commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 <span id=buildozer.create.before href=#buildozer.create.before>before</span> | <code>string</code><br><p>When supplied, causes this target to be created *before* the target named by 'before'</p>
 <span id=buildozer.create.after href=#buildozer.create.after>after</span> | <code>string</code><br><p>When supplied, causes this target to be created *after* the target named by 'after'</p>
 
@@ -478,7 +514,7 @@ Parameter | Description
 --------- | -----------
 <span id=buildozer.delete.target href=#buildozer.delete.target>target</span> | <code>string</code><br><p>Target to delete, including the package, e.g. 'foo:bar'</p>
 <span id=buildozer.delete.rule_type href=#buildozer.delete.rule_type>rule_type</span> | <code>string</code><br><p>Type of this rule, for instance, java_library. Supplying this will cause this transformation to be reversible.</p>
-<span id=buildozer.delete.recreate_commands href=#buildozer.delete.recreate_commands>recreate_commands</span> | <code>sequence of string</code> or <code>sequence of Command</code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.delete.recreate_commands href=#buildozer.delete.recreate_commands>recreate_commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to populate attributes of the target after creating it. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 <span id=buildozer.delete.before href=#buildozer.delete.before>before</span> | <code>string</code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *before* the target named by 'before'</p>
 <span id=buildozer.delete.after href=#buildozer.delete.after>after</span> | <code>string</code><br><p>When supplied with rule_type and the transformation is reversed, causes this target to be created *after* the target named by 'after'</p>
 
@@ -495,7 +531,7 @@ A transformation which runs one or more Buildozer commands against a single targ
 Parameter | Description
 --------- | -----------
 <span id=buildozer.modify.target href=#buildozer.modify.target>target</span> | <code>string</code> or <code>sequence of string</code><br><p>Specifies the target(s) against which to apply the commands. Can be a list.</p>
-<span id=buildozer.modify.commands href=#buildozer.modify.commands>commands</span> | <code>sequence of string</code> or <code>sequence of Command</code><br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
+<span id=buildozer.modify.commands href=#buildozer.modify.commands>commands</span> | <code>sequence of string</code> or <code>sequence of <a href="#command">Command</a></code><br><p>Commands to apply to the target(s) specified. Elements can be strings such as 'add deps :foo' or objects returned by buildozer.cmd.</p>
 
 
 <h4 id="example.buildozer.modify">Examples:</h4>
@@ -612,6 +648,31 @@ Name | Description
 ---- | -----------
 current | <code>sequence of <a href="#change">change</a></code><br><p>List of changes that will be migrated</p>
 migrated | <code>sequence of <a href="#change">change</a></code><br><p>List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.</p>
+
+
+
+## checker
+
+A checker to be run on arbitrary data and files
+
+
+<h4 id="consumed_by.checker">Consumed By:</h4>
+
+<ul><li><a href="#git.destination">git.destination</a></li><li><a href="#git.gerrit_api">git.gerrit_api</a></li><li><a href="#git.gerrit_destination">git.gerrit_destination</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.gerrit_trigger">git.gerrit_trigger</a></li><li><a href="#git.github_api">git.github_api</a></li><li><a href="#git.github_destination">git.github_destination</a></li><li><a href="#git.github_pr_destination">git.github_pr_destination</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.github_trigger">git.github_trigger</a></li><li><a href="#git.mirror">git.mirror</a></li></ul>
+
+
+
+## Command
+
+Buildozer command type
+
+
+<h4 id="returned_by.Command">Returned By:</h4>
+
+<ul><li><a href="#buildozer.cmd">buildozer.cmd</a></li></ul>
+<h4 id="consumed_by.Command">Consumed By:</h4>
+
+<ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li></ul>
 
 
 
@@ -1073,7 +1134,7 @@ Parameter | Description
 
 Selects the latest version that matches the format.  Using --force in the CLI will force to use the reference passed as argument instead.
 
-<code>VersionSelector</code> <code>core.latest_version(<a href=#core.latest_version.format>format</a>, <a href=#core.latest_version.regex_groups>regex_groups</a>={})</code>
+<code><a href="#versionselector">VersionSelector</a></code> <code>core.latest_version(<a href=#core.latest_version.format>format</a>, <a href=#core.latest_version.regex_groups>regex_groups</a>={})</code>
 
 
 <h4 id="parameters.core.latest_version">Parameters:</h4>
@@ -1613,8 +1674,8 @@ Implicit labels that can be used/exposed:
 Parameter | Description
 --------- | -----------
 <span id=core.workflow.name href=#core.workflow.name>name</span> | <code>string</code><br><p>The name of the workflow.</p>
-<span id=core.workflow.origin href=#core.workflow.origin>origin</span> | <code>origin</code><br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
-<span id=core.workflow.destination href=#core.workflow.destination>destination</span> | <code>destination</code><br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
+<span id=core.workflow.origin href=#core.workflow.origin>origin</span> | <code><a href="#origin">origin</a></code><br><p>Where to read from the code to be migrated, before applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
+<span id=core.workflow.destination href=#core.workflow.destination>destination</span> | <code><a href="#destination">destination</a></code><br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 <span id=core.workflow.authoring href=#core.workflow.authoring>authoring</span> | <code><a href="#authoring_class">authoring_class</a></code><br><p>The author mapping configuration from origin to destination.</p>
 <span id=core.workflow.transformations href=#core.workflow.transformations>transformations</span> | <code>sequence</code><br><p>The transformations to be run for this workflow. They will run in sequence.</p>
 <span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
@@ -1698,7 +1759,7 @@ Module for datetime manipulation.
 
 Returns a starlark_datetime object representation of the epoch time. The object is timezone aware.
 
-<code>StarlarkDateTime</code> <code>datetime.fromtimestamp(<a href=#datetime.fromtimestamp.timestamp>timestamp</a>=0, <a href=#datetime.fromtimestamp.tz>tz</a>='America/Los_Angeles')</code>
+<code><a href="#starlarkdatetime">StarlarkDateTime</a></code> <code>datetime.fromtimestamp(<a href=#datetime.fromtimestamp.timestamp>timestamp</a>=0, <a href=#datetime.fromtimestamp.tz>tz</a>='America/Los_Angeles')</code>
 
 
 <h4 id="parameters.datetime.fromtimestamp">Parameters:</h4>
@@ -1713,7 +1774,7 @@ Parameter | Description
 
 Returns a starlark_datetime object. The object is timezone aware.
 
-<code>StarlarkDateTime</code> <code>datetime.now(<a href=#datetime.now.tz>tz</a>='America/Los_Angeles')</code>
+<code><a href="#starlarkdatetime">StarlarkDateTime</a></code> <code>datetime.now(<a href=#datetime.now.tz>tz</a>='America/Los_Angeles')</code>
 
 
 <h4 id="parameters.datetime.now">Parameters:</h4>
@@ -1721,6 +1782,26 @@ Returns a starlark_datetime object. The object is timezone aware.
 Parameter | Description
 --------- | -----------
 <span id=datetime.now.tz href=#datetime.now.tz>tz</span> | <code>string</code><br><p>The timezone. E.g. America/New_York, Asia/Tokyo, Europe/Rome</p>
+
+
+
+## description_checker
+
+A checker to be run on change descriptions
+
+
+
+## destination
+
+A repository which a source of truth can be copied to
+
+
+<h4 id="returned_by.destination">Returned By:</h4>
+
+<ul><li><a href="#folder.destination">folder.destination</a></li><li><a href="#git.destination">git.destination</a></li><li><a href="#git.gerrit_destination">git.gerrit_destination</a></li><li><a href="#git.github_destination">git.github_destination</a></li><li><a href="#git.github_pr_destination">git.github_pr_destination</a></li></ul>
+<h4 id="consumed_by.destination">Consumed By:</h4>
+
+<ul><li><a href="#core.workflow">core.workflow</a></li></ul>
 
 
 
@@ -2116,7 +2197,7 @@ Module for dealing with local filesystem folders
 
 A folder destination is a destination that puts the output in a folder. It can be used both for testing or real production migrations.Given that folder destination does not support a lot of the features of real VCS, there are some limitations on how to use it:<ul><li>It requires passing a ref as an argument, as there is no way of calculating previous migrated changes. Alternatively, --last-rev can be used, which could migrate N changes.<li>Most likely, the workflow should use 'SQUASH' mode, as history is not supported.<li>If 'ITERATIVE' mode is used, a new temp directory will be created for each change migrated.</ul>
 
-<code>destination</code> <code>folder.destination()</code>
+<code><a href="#destination">destination</a></code> <code>folder.destination()</code>
 
 
 
@@ -2131,7 +2212,7 @@ Name | Type | Description
 
 A folder origin is a origin that uses a folder as input. The folder is specified via the source_ref argument.
 
-<code>origin</code> <code>folder.origin(<a href=#folder.origin.materialize_outside_symlinks>materialize_outside_symlinks</a>=False)</code>
+<code><a href="#origin">origin</a></code> <code>folder.origin(<a href=#folder.origin.materialize_outside_symlinks>materialize_outside_symlinks</a>=False)</code>
 
 
 <h4 id="parameters.folder.origin">Parameters:</h4>
@@ -2628,7 +2709,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-<code>destination</code> <code>git.destination(<a href=#git.destination.url>url</a>, <a href=#git.destination.push>push</a>='master', <a href=#git.destination.tag_name>tag_name</a>=None, <a href=#git.destination.tag_msg>tag_msg</a>=None, <a href=#git.destination.fetch>fetch</a>=None, <a href=#git.destination.partial_fetch>partial_fetch</a>=False, <a href=#git.destination.integrates>integrates</a>=None, <a href=#git.destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.destination(<a href=#git.destination.url>url</a>, <a href=#git.destination.push>push</a>='master', <a href=#git.destination.tag_name>tag_name</a>=None, <a href=#git.destination.tag_msg>tag_msg</a>=None, <a href=#git.destination.fetch>fetch</a>=None, <a href=#git.destination.partial_fetch>partial_fetch</a>=False, <a href=#git.destination.integrates>integrates</a>=None, <a href=#git.destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.destination.checker>checker</a>=None)</code>
 
 
 <h4 id="parameters.git.destination">Parameters:</h4>
@@ -2643,7 +2724,7 @@ Parameter | Description
 <span id=git.destination.partial_fetch href=#git.destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
 <span id=git.destination.integrates href=#git.destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 <span id=git.destination.primary_branch_migration href=#git.destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
-<span id=git.destination.checker href=#git.destination.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker that can check leaks or other checks in the commit created. </p>
+<span id=git.destination.checker href=#git.destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that can check leaks or other checks in the commit created. </p>
 
 
 
@@ -2677,7 +2758,7 @@ Defines a feedback API endpoint for Gerrit, that exposes relevant Gerrit API ope
 Parameter | Description
 --------- | -----------
 <span id=git.gerrit_api.url href=#git.gerrit_api.url>url</span> | <code>string</code><br><p>Indicates the Gerrit repo URL.</p>
-<span id=git.gerrit_api.checker href=#git.gerrit_api.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport.</p>
+<span id=git.gerrit_api.checker href=#git.gerrit_api.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport.</p>
 <span id=git.gerrit_api.allow_submit href=#git.gerrit_api.allow_submit>allow_submit</span> | <code>bool</code><br><p>Enable the submit_change method</p>
 
 
@@ -2696,7 +2777,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-<code>destination</code> <code>git.gerrit_destination(<a href=#git.gerrit_destination.url>url</a>, <a href=#git.gerrit_destination.fetch>fetch</a>, <a href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</a>=fetch value, <a href=#git.gerrit_destination.submit>submit</a>=False, <a href=#git.gerrit_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_destination.notify>notify</a>=None, <a href=#git.gerrit_destination.change_id_policy>change_id_policy</a>='FAIL_IF_PRESENT', <a href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</a>=True, <a href=#git.gerrit_destination.reviewers>reviewers</a>=[], <a href=#git.gerrit_destination.cc>cc</a>=[], <a href=#git.gerrit_destination.labels>labels</a>=[], <a href=#git.gerrit_destination.api_checker>api_checker</a>=None, <a href=#git.gerrit_destination.integrates>integrates</a>=None, <a href=#git.gerrit_destination.topic>topic</a>=None, <a href=#git.gerrit_destination.gerrit_submit>gerrit_submit</a>=False, <a href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.gerrit_destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.gerrit_destination(<a href=#git.gerrit_destination.url>url</a>, <a href=#git.gerrit_destination.fetch>fetch</a>, <a href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</a>=fetch value, <a href=#git.gerrit_destination.submit>submit</a>=False, <a href=#git.gerrit_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_destination.notify>notify</a>=None, <a href=#git.gerrit_destination.change_id_policy>change_id_policy</a>='FAIL_IF_PRESENT', <a href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</a>=True, <a href=#git.gerrit_destination.reviewers>reviewers</a>=[], <a href=#git.gerrit_destination.cc>cc</a>=[], <a href=#git.gerrit_destination.labels>labels</a>=[], <a href=#git.gerrit_destination.api_checker>api_checker</a>=None, <a href=#git.gerrit_destination.integrates>integrates</a>=None, <a href=#git.gerrit_destination.topic>topic</a>=None, <a href=#git.gerrit_destination.gerrit_submit>gerrit_submit</a>=False, <a href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.gerrit_destination.checker>checker</a>=None)</code>
 
 
 <h4 id="parameters.git.gerrit_destination">Parameters:</h4>
@@ -2714,12 +2795,12 @@ Parameter | Description
 <span id=git.gerrit_destination.reviewers href=#git.gerrit_destination.reviewers>reviewers</span> | <code>sequence</code><br><p>The list of the reviewers will be added to gerrit change reviewer listThe element in the list is: an email, for example: "foo@example.com" or label for example: ${SOME_GERRIT_REVIEWER}. These are under the condition of assuming that users have registered to gerrit repos</p>
 <span id=git.gerrit_destination.cc href=#git.gerrit_destination.cc>cc</span> | <code>sequence</code><br><p>The list of the email addresses or users that will be CCed in the review. Can use labels as the `reviewers` field.</p>
 <span id=git.gerrit_destination.labels href=#git.gerrit_destination.labels>labels</span> | <code>sequence</code><br><p>The list of labels to be pushed with the change. The format is the label along with the associated value. For example: Run-Presubmit+1</p>
-<span id=git.gerrit_destination.api_checker href=#git.gerrit_destination.api_checker>api_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+<span id=git.gerrit_destination.api_checker href=#git.gerrit_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.gerrit_destination.integrates href=#git.gerrit_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 <span id=git.gerrit_destination.topic href=#git.gerrit_destination.topic>topic</span> | <code>string</code> or <code>NoneType</code><br><p>Sets the topic of the Gerrit change created.<br><br>By default it sets no topic. This field accepts a template with labels. For example: `"topic_${CONTEXT_REFERENCE}"`</p>
 <span id=git.gerrit_destination.gerrit_submit href=#git.gerrit_destination.gerrit_submit>gerrit_submit</span> | <code>bool</code><br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
 <span id=git.gerrit_destination.primary_branch_migration href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
-<span id=git.gerrit_destination.checker href=#git.gerrit_destination.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+<span id=git.gerrit_destination.checker href=#git.gerrit_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 
 
 
@@ -2759,7 +2840,7 @@ Implicit labels that can be used/exposed:
   - GERRIT_CC_EMAIL: Multiple value field with the email of the people/groups in cc
 
 
-<code>origin</code> <code>git.gerrit_origin(<a href=#git.gerrit_origin.url>url</a>, <a href=#git.gerrit_origin.ref>ref</a>=None, <a href=#git.gerrit_origin.submodules>submodules</a>='NO', <a href=#git.gerrit_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.gerrit_origin.first_parent>first_parent</a>=True, <a href=#git.gerrit_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_origin.api_checker>api_checker</a>=None, <a href=#git.gerrit_origin.patch>patch</a>=None, <a href=#git.gerrit_origin.branch>branch</a>=None, <a href=#git.gerrit_origin.describe_version>describe_version</a>=None, <a href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</a>=False, <a href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</a>=False)</code>
+<code><a href="#origin">origin</a></code> <code>git.gerrit_origin(<a href=#git.gerrit_origin.url>url</a>, <a href=#git.gerrit_origin.ref>ref</a>=None, <a href=#git.gerrit_origin.submodules>submodules</a>='NO', <a href=#git.gerrit_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.gerrit_origin.first_parent>first_parent</a>=True, <a href=#git.gerrit_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_origin.api_checker>api_checker</a>=None, <a href=#git.gerrit_origin.patch>patch</a>=None, <a href=#git.gerrit_origin.branch>branch</a>=None, <a href=#git.gerrit_origin.describe_version>describe_version</a>=None, <a href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</a>=False, <a href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</a>=False)</code>
 
 
 <h4 id="parameters.git.gerrit_origin">Parameters:</h4>
@@ -2772,7 +2853,7 @@ Parameter | Description
 <span id=git.gerrit_origin.excluded_submodules href=#git.gerrit_origin.excluded_submodules>excluded_submodules</span> | <code>sequence of string</code><br><p>A list of names (not paths, e.g. "foo" is the submodule name if [submodule "foo"] appears in the .gitmodules file) of submodules that will not be download even if 'submodules' is set to YES or RECURSIVE. </p>
 <span id=git.gerrit_origin.first_parent href=#git.gerrit_origin.first_parent>first_parent</span> | <code>bool</code><br><p>If true, it only uses the first parent when looking for changes. Note that when disabled in ITERATIVE mode, it will try to do a migration for each change of the merged branch.</p>
 <span id=git.gerrit_origin.partial_fetch href=#git.gerrit_origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
-<span id=git.gerrit_origin.api_checker href=#git.gerrit_origin.api_checker>api_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+<span id=git.gerrit_origin.api_checker href=#git.gerrit_origin.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.gerrit_origin.patch href=#git.gerrit_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 <span id=git.gerrit_origin.branch href=#git.gerrit_origin.branch>branch</span> | <code>string</code> or <code>NoneType</code><br><p>Limit the import to changes that are for this branch. By default imports everything.</p>
 <span id=git.gerrit_origin.describe_version href=#git.gerrit_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
@@ -2792,7 +2873,7 @@ Defines a feedback trigger based on updates on a Gerrit change.
 Parameter | Description
 --------- | -----------
 <span id=git.gerrit_trigger.url href=#git.gerrit_trigger.url>url</span> | <code>string</code><br><p>Indicates the Gerrit repo URL.</p>
-<span id=git.gerrit_trigger.checker href=#git.gerrit_trigger.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport provided by this trigger.</p>
+<span id=git.gerrit_trigger.checker href=#git.gerrit_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API transport provided by this trigger.</p>
 <span id=git.gerrit_trigger.events href=#git.gerrit_trigger.events>events</span> | <code>sequence of string</code> or <code>dict of sequence</code> or <code>NoneType</code><br><p>Types of events to monitor. Optional. Can either be a list of event types or a dict of event types to particular events of that type, e.g. `['LABELS']` or `{'LABELS': 'my_label_name'}`.<br>Valid values for event types are: `'LABELS'`, `'SUBMIT_REQUIREMENTS'`</p>
 <span id=git.gerrit_trigger.allow_submit href=#git.gerrit_trigger.allow_submit>allow_submit</span> | <code>bool</code><br><p>Enable the submit_change method in the endpoint provided</p>
 
@@ -2820,7 +2901,7 @@ Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API ope
 Parameter | Description
 --------- | -----------
 <span id=git.github_api.url href=#git.github_api.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
-<span id=git.github_api.checker href=#git.github_api.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the GitHub API transport.</p>
+<span id=git.github_api.checker href=#git.github_api.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport.</p>
 
 
 
@@ -2837,7 +2918,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-<code>destination</code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None)</code>
 
 
 <h4 id="parameters.git.github_destination">Parameters:</h4>
@@ -2851,11 +2932,11 @@ Parameter | Description
 <span id=git.github_destination.partial_fetch href=#git.github_destination.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
 <span id=git.github_destination.delete_pr_branch href=#git.github_destination.delete_pr_branch>delete_pr_branch</span> | <code>bool</code> or <code>NoneType</code><br><p>When `pr_branch_to_update` is enabled, it will delete the branch reference after the push to the branch and main branch (i.e master) happens. This allows to cleanup temporary branches created for testing.</p>
 <span id=git.github_destination.integrates href=#git.github_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-<span id=git.github_destination.api_checker href=#git.github_destination.api_checker>api_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+<span id=git.github_destination.api_checker href=#git.github_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the Gerrit API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.github_destination.primary_branch_migration href=#git.github_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.github_destination.tag_name href=#git.github_destination.tag_name>tag_name</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that specifies to a tag name. If the tag already exists, copybara will only overwrite it if the --git-tag-overwrite flag is set.<br>Note that tag creation is best-effort and the migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 <span id=git.github_destination.tag_msg href=#git.github_destination.tag_msg>tag_msg</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
-<span id=git.github_destination.checker href=#git.github_destination.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+<span id=git.github_destination.checker href=#git.github_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 
 
 
@@ -2881,7 +2962,7 @@ Name | Type | Description
 
 Defines a Git origin for a Github repository. This origin should be used for public branches. Use github_pr_origin for importing Pull Requests.
 
-<code>origin</code> <code>git.github_origin(<a href=#git.github_origin.url>url</a>, <a href=#git.github_origin.ref>ref</a>=None, <a href=#git.github_origin.submodules>submodules</a>='NO', <a href=#git.github_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_origin.first_parent>first_parent</a>=True, <a href=#git.github_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_origin.patch>patch</a>=None, <a href=#git.github_origin.describe_version>describe_version</a>=None, <a href=#git.github_origin.version_selector>version_selector</a>=None, <a href=#git.github_origin.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_origin.enable_lfs>enable_lfs</a>=False)</code>
+<code><a href="#origin">origin</a></code> <code>git.github_origin(<a href=#git.github_origin.url>url</a>, <a href=#git.github_origin.ref>ref</a>=None, <a href=#git.github_origin.submodules>submodules</a>='NO', <a href=#git.github_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_origin.first_parent>first_parent</a>=True, <a href=#git.github_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_origin.patch>patch</a>=None, <a href=#git.github_origin.describe_version>describe_version</a>=None, <a href=#git.github_origin.version_selector>version_selector</a>=None, <a href=#git.github_origin.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_origin.enable_lfs>enable_lfs</a>=False)</code>
 
 
 <h4 id="parameters.git.github_origin">Parameters:</h4>
@@ -2896,7 +2977,7 @@ Parameter | Description
 <span id=git.github_origin.partial_fetch href=#git.github_origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
 <span id=git.github_origin.patch href=#git.github_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 <span id=git.github_origin.describe_version href=#git.github_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
-<span id=git.github_origin.version_selector href=#git.github_origin.version_selector>version_selector</span> | <code>VersionSelector</code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
+<span id=git.github_origin.version_selector href=#git.github_origin.version_selector>version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 <span id=git.github_origin.primary_branch_migration href=#git.github_origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.github_origin.enable_lfs href=#git.github_origin.enable_lfs>enable_lfs</span> | <code>bool</code><br><p>If true, Large File Storage support is enabled for the origin.</p>
 
@@ -2905,7 +2986,7 @@ Parameter | Description
 
 Creates changes in a new pull request in the destination.
 
-<code>destination</code> <code>git.github_pr_destination(<a href=#git.github_pr_destination.url>url</a>, <a href=#git.github_pr_destination.destination_ref>destination_ref</a>='master', <a href=#git.github_pr_destination.pr_branch>pr_branch</a>=None, <a href=#git.github_pr_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</a>=True, <a href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</a>=[], <a href=#git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion>allow_empty_diff_check_suites_to_conclusion</a>={}, <a href=#git.github_pr_destination.title>title</a>=None, <a href=#git.github_pr_destination.body>body</a>=None, <a href=#git.github_pr_destination.assignees>assignees</a>=[], <a href=#git.github_pr_destination.integrates>integrates</a>=None, <a href=#git.github_pr_destination.api_checker>api_checker</a>=None, <a href=#git.github_pr_destination.update_description>update_description</a>=False, <a href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_pr_destination.checker>checker</a>=None, <a href=#git.github_pr_destination.draft>draft</a>=False)</code>
+<code><a href="#destination">destination</a></code> <code>git.github_pr_destination(<a href=#git.github_pr_destination.url>url</a>, <a href=#git.github_pr_destination.destination_ref>destination_ref</a>='master', <a href=#git.github_pr_destination.pr_branch>pr_branch</a>=None, <a href=#git.github_pr_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</a>=True, <a href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</a>=[], <a href=#git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion>allow_empty_diff_check_suites_to_conclusion</a>={}, <a href=#git.github_pr_destination.title>title</a>=None, <a href=#git.github_pr_destination.body>body</a>=None, <a href=#git.github_pr_destination.assignees>assignees</a>=[], <a href=#git.github_pr_destination.integrates>integrates</a>=None, <a href=#git.github_pr_destination.api_checker>api_checker</a>=None, <a href=#git.github_pr_destination.update_description>update_description</a>=False, <a href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_pr_destination.checker>checker</a>=None, <a href=#git.github_pr_destination.draft>draft</a>=False)</code>
 
 
 <h4 id="parameters.git.github_pr_destination">Parameters:</h4>
@@ -2923,10 +3004,10 @@ Parameter | Description
 <span id=git.github_pr_destination.body href=#git.github_pr_destination.body>body</span> | <code>string</code> or <code>NoneType</code><br><p>When creating (or updating if `update_description` is set) a pull request, use this body. By default it uses the change summary. This field accepts a template with labels. For example: `"Change ${CONTEXT_REFERENCE}"`</p>
 <span id=git.github_pr_destination.assignees href=#git.github_pr_destination.assignees>assignees</span> | <code>sequence of string</code><br><p>The assignees to set when creating a new pull request. The maximum number of assignees is 10 and the assignees must be GitHub usernames or a label that can be resolved to a GitHub username. For example: `assignees = ["github-repo-owner1", "${YOUR_LABEL}"]`</p>
 <span id=git.github_pr_destination.integrates href=#git.github_pr_destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
-<span id=git.github_pr_destination.api_checker href=#git.github_pr_destination.api_checker>api_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+<span id=git.github_pr_destination.api_checker href=#git.github_pr_destination.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.github_pr_destination.update_description href=#git.github_pr_destination.update_description>update_description</span> | <code>bool</code><br><p>By default, Copybara only set the title and body of the PR when creating the PR. If this field is set to true, it will update those fields for every update.</p>
 <span id=git.github_pr_destination.primary_branch_migration href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
-<span id=git.github_pr_destination.checker href=#git.github_pr_destination.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+<span id=git.github_pr_destination.checker href=#git.github_pr_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.github_pr_destination.draft href=#git.github_pr_destination.draft>draft</span> | <code>bool</code><br><p>Flag create pull request as draft or not.</p>
 
 
@@ -3014,7 +3095,7 @@ Implicit labels that can be used/exposed:
   - GITHUB_PR_REVIEWER_OTHER: A repeated label with the login of users that have participated in the review but cannot approve the import. Only populated if `review_state` field is set.
 
 
-<code>origin</code> <code>git.github_pr_origin(<a href=#git.github_pr_origin.url>url</a>, <a href=#git.github_pr_origin.use_merge>use_merge</a>=False, <a href=#git.github_pr_origin.required_labels>required_labels</a>=[], <a href=#git.github_pr_origin.required_status_context_names>required_status_context_names</a>=[], <a href=#git.github_pr_origin.required_check_runs>required_check_runs</a>=[], <a href=#git.github_pr_origin.retryable_labels>retryable_labels</a>=[], <a href=#git.github_pr_origin.submodules>submodules</a>='NO', <a href=#git.github_pr_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_pr_origin.baseline_from_branch>baseline_from_branch</a>=False, <a href=#git.github_pr_origin.first_parent>first_parent</a>=True, <a href=#git.github_pr_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_origin.state>state</a>='OPEN', <a href=#git.github_pr_origin.review_state>review_state</a>=None, <a href=#git.github_pr_origin.review_approvers>review_approvers</a>=["COLLABORATOR", "MEMBER", "OWNER"], <a href=#git.github_pr_origin.api_checker>api_checker</a>=None, <a href=#git.github_pr_origin.patch>patch</a>=None, <a href=#git.github_pr_origin.branch>branch</a>=None, <a href=#git.github_pr_origin.describe_version>describe_version</a>=None)</code>
+<code><a href="#origin">origin</a></code> <code>git.github_pr_origin(<a href=#git.github_pr_origin.url>url</a>, <a href=#git.github_pr_origin.use_merge>use_merge</a>=False, <a href=#git.github_pr_origin.required_labels>required_labels</a>=[], <a href=#git.github_pr_origin.required_status_context_names>required_status_context_names</a>=[], <a href=#git.github_pr_origin.required_check_runs>required_check_runs</a>=[], <a href=#git.github_pr_origin.retryable_labels>retryable_labels</a>=[], <a href=#git.github_pr_origin.submodules>submodules</a>='NO', <a href=#git.github_pr_origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.github_pr_origin.baseline_from_branch>baseline_from_branch</a>=False, <a href=#git.github_pr_origin.first_parent>first_parent</a>=True, <a href=#git.github_pr_origin.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_origin.state>state</a>='OPEN', <a href=#git.github_pr_origin.review_state>review_state</a>=None, <a href=#git.github_pr_origin.review_approvers>review_approvers</a>=["COLLABORATOR", "MEMBER", "OWNER"], <a href=#git.github_pr_origin.api_checker>api_checker</a>=None, <a href=#git.github_pr_origin.patch>patch</a>=None, <a href=#git.github_pr_origin.branch>branch</a>=None, <a href=#git.github_pr_origin.describe_version>describe_version</a>=None)</code>
 
 
 <h4 id="parameters.git.github_pr_origin">Parameters:</h4>
@@ -3035,7 +3116,7 @@ Parameter | Description
 <span id=git.github_pr_origin.state href=#git.github_pr_origin.state>state</span> | <code>string</code><br><p>Only migrate Pull Request with that state. Possible values: `'OPEN'`, `'CLOSED'` or `'ALL'`. Default 'OPEN'</p>
 <span id=git.github_pr_origin.review_state href=#git.github_pr_origin.review_state>review_state</span> | <code>string</code> or <code>NoneType</code><br><p>Required state of the reviews associated with the Pull Request Possible values:<br><br>-  `ANY`: No review or approval required.<br>-  `HAS_REVIEWERS`: A reviewer interacted with the change, e.g. commented.<br>-  `ANY_COMMIT_APPROVED`: At least one commit in the PR was approved.<br>-  `HEAD_COMMIT_APPROVED`: The current head commit was approved.<br><br> Default is `None` which has no requirement.<br>This field is required if the user wants `GITHUB_PR_REVIEWER_APPROVER` and `GITHUB_PR_REVIEWER_OTHER` labels populated</p>
 <span id=git.github_pr_origin.review_approvers href=#git.github_pr_origin.review_approvers>review_approvers</span> | <code>sequence of string</code> or <code>NoneType</code><br><p>The set of reviewer types that are considered for approvals. In order to have any effect, `review_state` needs to be set. GITHUB_PR_REVIEWER_APPROVER` will be populated for these types. See the valid types here: https://developer.github.com/v4/enum/commentauthorassociation/</p>
-<span id=git.github_pr_origin.api_checker href=#git.github_pr_origin.api_checker>api_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
+<span id=git.github_pr_origin.api_checker href=#git.github_pr_origin.api_checker>api_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API endpoint provided for after_migration hooks. This field is not required if the workflow hooks don't use the origin/destination endpoints.</p>
 <span id=git.github_pr_origin.patch href=#git.github_pr_origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 <span id=git.github_pr_origin.branch href=#git.github_pr_origin.branch>branch</span> | <code>string</code> or <code>NoneType</code><br><p>If set, it will only migrate pull requests for this base branch</p>
 <span id=git.github_pr_origin.describe_version href=#git.github_pr_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
@@ -3070,7 +3151,7 @@ Defines a feedback trigger based on updates on a GitHub PR.
 Parameter | Description
 --------- | -----------
 <span id=git.github_trigger.url href=#git.github_trigger.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
-<span id=git.github_trigger.checker href=#git.github_trigger.checker>checker</span> | <code>checker</code> or <code>NoneType</code><br><p>A checker for the GitHub API transport provided by this trigger.</p>
+<span id=git.github_trigger.checker href=#git.github_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport provided by this trigger.</p>
 <span id=git.github_trigger.events href=#git.github_trigger.events>events</span> | <code>sequence of string</code> or <code>dict of sequence</code><br><p>Types of events to subscribe. Can  either be a list of event types or a dict of event types to particular events of that type, e.g. `['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.<br>Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
 
 
@@ -3125,7 +3206,7 @@ DEPRECATED: Use core.latest_version.
 
 Customize what version of the available branches and tags to pick. By default it ignores the reference passed as parameter. Using --force in the CLI will force to use the reference passed as argument instead.
 
-<code>VersionSelector</code> <code>git.latest_version(<a href=#git.latest_version.refspec_format>refspec_format</a>="refs/tags/${n0}.${n1}.${n2}", <a href=#git.latest_version.refspec_groups>refspec_groups</a>={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})</code>
+<code><a href="#versionselector">VersionSelector</a></code> <code>git.latest_version(<a href=#git.latest_version.refspec_format>refspec_format</a>="refs/tags/${n0}.${n1}.${n2}", <a href=#git.latest_version.refspec_groups>refspec_groups</a>={'n0' : '[0-9]+', 'n1' : '[0-9]+', 'n2' : '[0-9]+'})</code>
 
 
 <h4 id="parameters.git.latest_version">Parameters:</h4>
@@ -3156,15 +3237,15 @@ Parameter | Description
 <span id=git.mirror.description href=#git.mirror.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this migration achieves</p>
 <span id=git.mirror.actions href=#git.mirror.actions>actions</span> | <code>sequence</code><br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
 <span id=git.mirror.action href=#git.mirror.action>action</span> | <code>unknown</code><br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
-<span id=git.mirror.origin_checker href=#git.mirror.origin_checker>origin_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
-<span id=git.mirror.destination_checker href=#git.mirror.destination_checker>destination_checker</span> | <code>checker</code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
+<span id=git.mirror.origin_checker href=#git.mirror.origin_checker>origin_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
+<span id=git.mirror.destination_checker href=#git.mirror.destination_checker>destination_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
 
 <a id="git.origin" aria-hidden="true"></a>
 ### git.origin
 
 Defines a standard Git origin. For Git specific origins use: `github_origin` or `gerrit_origin`.<br><br>All the origins in this module accept several string formats as reference (When copybara is called in the form of `copybara config workflow reference`):<br><ul><li>**Branch name:** For example `master`</li><li>**An arbitrary reference:** `refs/changes/20/50820/1`</li><li>**A SHA-1:** Note that it has to be reachable from the default refspec</li><li>**A Git repository URL and reference:** `http://github.com/foo master`</li><li>**A GitHub pull request URL:** `https://github.com/some_project/pull/1784`</li></ul><br>So for example, Copybara can be invoked for a `git.origin` in the CLI as:<br>`copybara copy.bara.sky my_workflow https://github.com/some_project/pull/1784`<br>This will use the pull request as the origin URL and reference.
 
-<code>origin</code> <code>git.origin(<a href=#git.origin.url>url</a>, <a href=#git.origin.ref>ref</a>=None, <a href=#git.origin.submodules>submodules</a>='NO', <a href=#git.origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.origin.include_branch_commit_logs>include_branch_commit_logs</a>=False, <a href=#git.origin.first_parent>first_parent</a>=True, <a href=#git.origin.partial_fetch>partial_fetch</a>=False, <a href=#git.origin.patch>patch</a>=None, <a href=#git.origin.describe_version>describe_version</a>=None, <a href=#git.origin.version_selector>version_selector</a>=None, <a href=#git.origin.primary_branch_migration>primary_branch_migration</a>=False)</code>
+<code><a href="#origin">origin</a></code> <code>git.origin(<a href=#git.origin.url>url</a>, <a href=#git.origin.ref>ref</a>=None, <a href=#git.origin.submodules>submodules</a>='NO', <a href=#git.origin.excluded_submodules>excluded_submodules</a>=[], <a href=#git.origin.include_branch_commit_logs>include_branch_commit_logs</a>=False, <a href=#git.origin.first_parent>first_parent</a>=True, <a href=#git.origin.partial_fetch>partial_fetch</a>=False, <a href=#git.origin.patch>patch</a>=None, <a href=#git.origin.describe_version>describe_version</a>=None, <a href=#git.origin.version_selector>version_selector</a>=None, <a href=#git.origin.primary_branch_migration>primary_branch_migration</a>=False)</code>
 
 
 <h4 id="parameters.git.origin">Parameters:</h4>
@@ -3180,7 +3261,7 @@ Parameter | Description
 <span id=git.origin.partial_fetch href=#git.origin.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>If true, partially fetch git repository by only fetching affected files.</p>
 <span id=git.origin.patch href=#git.origin.patch>patch</span> | <code><a href="#transformation">transformation</a></code> or <code>NoneType</code><br><p>Patch the checkout dir. The difference with `patch.apply` transformation is that here we can apply it using three-way</p>
 <span id=git.origin.describe_version href=#git.origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
-<span id=git.origin.version_selector href=#git.origin.version_selector>version_selector</span> | <code>VersionSelector</code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
+<span id=git.origin.version_selector href=#git.origin.version_selector>version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 <span id=git.origin.primary_branch_migration href=#git.origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 
 <a id="git.review_input" aria-hidden="true"></a>
@@ -3435,6 +3516,99 @@ error_msg | <code>string</code><br><p>Error message from git if the merge result
 
 
 
+## github_api_combined_status_obj
+
+Combined Information about a commit status as defined in https://developer.github.com/v3/repos/statuses. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_combined_status_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+sha | <code>string</code><br><p>The SHA-1 of the commit</p>
+state | <code>string</code><br><p>The overall state of all statuses for a commit: success, failure, pending or error</p>
+statuses | <code>sequence of <a href="#github_api_status_obj">github_api_status_obj</a></code><br><p>List of statuses for the commit</p>
+total_count | <code>int</code><br><p>Total number of statuses</p>
+
+
+<h4 id="returned_by.github_api_combined_status_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_combined_status">github_api_obj.get_combined_status</a></li></ul>
+
+
+
+## github_api_commit_author_obj
+
+Author/Committer for commit field for GitHub commit information https://developer.github.com/v3/git/commits/#get-a-commit. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_commit_author_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+date | <code>string</code><br><p>Date of the commit</p>
+email | <code>string</code><br><p>Email of the author/committer</p>
+name | <code>string</code><br><p>Name of the author/committer</p>
+
+
+
+## github_api_commit_obj
+
+Commit field for GitHub commit information https://developer.github.com/v3/git/commits/#get-a-commit. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_commit_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+author | <code><a href="#github_api_commit_author_obj">github_api_commit_author_obj</a></code><br><p>Author of the commit</p>
+committer | <code><a href="#github_api_commit_author_obj">github_api_commit_author_obj</a></code><br><p>Committer of the commit</p>
+message | <code>string</code><br><p>Message of the commit</p>
+
+
+
+## github_api_github_commit_obj
+
+Information about a commit as defined in https://developer.github.com/v3/git/commits/#get-a-commit. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_github_commit_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+author | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>GitHub information about the author of the change</p>
+commit | <code><a href="#github_api_commit_obj">github_api_commit_obj</a></code><br><p>Information about the commit, like the message or git commit author/committer</p>
+committer | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>GitHub information about the committer of the change</p>
+html_url | <code>string</code><br><p>GitHub url for the commit</p>
+sha | <code>string</code><br><p>SHA of the commit</p>
+
+
+<h4 id="returned_by.github_api_github_commit_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_commit">github_api_obj.get_commit</a></li></ul>
+
+
+
+## github_api_issue_comment_obj
+
+Information about an issue comment as defined in https://docs.github.com/en/rest/issues/comments. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_issue_comment_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+body | <code>string</code><br><p>Body of the comment</p>
+id | <code>long</code><br><p>Comment identifier</p>
+user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Comment user</p>
+
+
+<h4 id="returned_by.github_api_issue_comment_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.list_issue_comments">github_api_obj.list_issue_comments</a></li></ul>
+
+
+
 ## github_api_obj
 
 GitHub API endpoint implementation for feedback migrations and after migration hooks.
@@ -3466,7 +3640,7 @@ Parameter | Description
 
 Create a new issue.
 
-<code>Issue</code> <code>github_api_obj.create_issue(<a href=#github_api_obj.create_issue.title>title</a>, <a href=#github_api_obj.create_issue.body>body</a>, <a href=#github_api_obj.create_issue.assignees>assignees</a>)</code>
+<code><a href="#issue">Issue</a></code> <code>github_api_obj.create_issue(<a href=#github_api_obj.create_issue.title>title</a>, <a href=#github_api_obj.create_issue.body>body</a>, <a href=#github_api_obj.create_issue.assignees>assignees</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.create_issue">Parameters:</h4>
@@ -3482,21 +3656,21 @@ Parameter | Description
 
 Create a new GitHub release.
 
-<code>github_release_obj</code> <code>github_api_obj.create_release(<a href=#github_api_obj.create_release.request>request</a>)</code>
+<code><a href="#github_release_obj">github_release_obj</a></code> <code>github_api_obj.create_release(<a href=#github_api_obj.create_release.request>request</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.create_release">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=github_api_obj.create_release.request href=#github_api_obj.create_release.request>request</span> | <code>github_create_release_obj</code><br><p>The populated release object. See new_release_request.</p>
+<span id=github_api_obj.create_release.request href=#github_api_obj.create_release.request>request</span> | <code><a href="#github_create_release_obj">github_create_release_obj</a></code><br><p>The populated release object. See new_release_request.</p>
 
 <a id="github_api_obj.create_status" aria-hidden="true"></a>
 ### github_api_obj.create_status
 
 Create or update a status for a commit. Returns the status created.
 
-<code>github_api_status_obj</code> <code>github_api_obj.create_status(<a href=#github_api_obj.create_status.sha>sha</a>, <a href=#github_api_obj.create_status.state>state</a>, <a href=#github_api_obj.create_status.context>context</a>, <a href=#github_api_obj.create_status.description>description</a>, <a href=#github_api_obj.create_status.target_url>target_url</a>=None)</code>
+<code><a href="#github_api_status_obj">github_api_status_obj</a></code> <code>github_api_obj.create_status(<a href=#github_api_obj.create_status.sha>sha</a>, <a href=#github_api_obj.create_status.state>state</a>, <a href=#github_api_obj.create_status.context>context</a>, <a href=#github_api_obj.create_status.description>description</a>, <a href=#github_api_obj.create_status.target_url>target_url</a>=None)</code>
 
 
 <h4 id="parameters.github_api_obj.create_status">Parameters:</h4>
@@ -3528,14 +3702,14 @@ Parameter | Description
 
 Get autenticated user info, return null if not found
 
-<code>github_api_user_obj</code> <code>github_api_obj.get_authenticated_user()</code>
+<code><a href="#github_api_user_obj">github_api_user_obj</a></code> <code>github_api_obj.get_authenticated_user()</code>
 
 <a id="github_api_obj.get_check_runs" aria-hidden="true"></a>
 ### github_api_obj.get_check_runs
 
 Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
 
-<code>sequence of github_check_run_obj</code> <code>github_api_obj.get_check_runs(<a href=#github_api_obj.get_check_runs.sha>sha</a>)</code>
+<code>sequence of <a href="#github_check_run_obj">github_check_run_obj</a></code> <code>github_api_obj.get_check_runs(<a href=#github_api_obj.get_check_runs.sha>sha</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_check_runs">Parameters:</h4>
@@ -3549,7 +3723,7 @@ Parameter | Description
 
 Get the combined status for a commit. Returns None if not found.
 
-<code>github_api_combined_status_obj</code> <code>github_api_obj.get_combined_status(<a href=#github_api_obj.get_combined_status.ref>ref</a>)</code>
+<code><a href="#github_api_combined_status_obj">github_api_combined_status_obj</a></code> <code>github_api_obj.get_combined_status(<a href=#github_api_obj.get_combined_status.ref>ref</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_combined_status">Parameters:</h4>
@@ -3563,7 +3737,7 @@ Parameter | Description
 
 Get information for a commit in GitHub. Returns None if not found.
 
-<code>github_api_github_commit_obj</code> <code>github_api_obj.get_commit(<a href=#github_api_obj.get_commit.ref>ref</a>)</code>
+<code><a href="#github_api_github_commit_obj">github_api_github_commit_obj</a></code> <code>github_api_obj.get_commit(<a href=#github_api_obj.get_commit.ref>ref</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_commit">Parameters:</h4>
@@ -3577,7 +3751,7 @@ Parameter | Description
 
 Get a pull request comment
 
-<code>github_api_pull_request_comment_obj</code> <code>github_api_obj.get_pull_request_comment(<a href=#github_api_obj.get_pull_request_comment.comment_id>comment_id</a>)</code>
+<code><a href="#github_api_pull_request_comment_obj">github_api_pull_request_comment_obj</a></code> <code>github_api_obj.get_pull_request_comment(<a href=#github_api_obj.get_pull_request_comment.comment_id>comment_id</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_pull_request_comment">Parameters:</h4>
@@ -3591,7 +3765,7 @@ Parameter | Description
 
 Get all pull request comments
 
-<code>sequence of github_api_pull_request_comment_obj</code> <code>github_api_obj.get_pull_request_comments(<a href=#github_api_obj.get_pull_request_comments.number>number</a>)</code>
+<code>sequence of <a href="#github_api_pull_request_comment_obj">github_api_pull_request_comment_obj</a></code> <code>github_api_obj.get_pull_request_comments(<a href=#github_api_obj.get_pull_request_comments.number>number</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_pull_request_comments">Parameters:</h4>
@@ -3605,7 +3779,7 @@ Parameter | Description
 
 Get Pull Requests for a repo
 
-<code>sequence of github_api_pull_request_obj</code> <code>github_api_obj.get_pull_requests(<a href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.state>state</a>="OPEN", <a href=#github_api_obj.get_pull_requests.sort>sort</a>="CREATED", <a href=#github_api_obj.get_pull_requests.direction>direction</a>="ASC")</code>
+<code>sequence of <a href="#github_api_pull_request_obj">github_api_pull_request_obj</a></code> <code>github_api_obj.get_pull_requests(<a href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.state>state</a>="OPEN", <a href=#github_api_obj.get_pull_requests.sort>sort</a>="CREATED", <a href=#github_api_obj.get_pull_requests.direction>direction</a>="ASC")</code>
 
 
 <h4 id="parameters.github_api_obj.get_pull_requests">Parameters:</h4>
@@ -3623,7 +3797,7 @@ Parameter | Description
 
 Get a reference SHA-1 from GitHub. Returns None if not found.
 
-<code>github_api_ref_obj</code> <code>github_api_obj.get_reference(<a href=#github_api_obj.get_reference.ref>ref</a>)</code>
+<code><a href="#github_api_ref_obj">github_api_ref_obj</a></code> <code>github_api_obj.get_reference(<a href=#github_api_obj.get_reference.ref>ref</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_reference">Parameters:</h4>
@@ -3637,14 +3811,14 @@ Parameter | Description
 
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
-<code>sequence of github_api_ref_obj</code> <code>github_api_obj.get_references()</code>
+<code>sequence of <a href="#github_api_ref_obj">github_api_ref_obj</a></code> <code>github_api_obj.get_references()</code>
 
 <a id="github_api_obj.list_issue_comments" aria-hidden="true"></a>
 ### github_api_obj.list_issue_comments
 
 Lists comments for an issue
 
-<code>sequence of github_api_issue_comment_obj</code> <code>github_api_obj.list_issue_comments(<a href=#github_api_obj.list_issue_comments.number>number</a>)</code>
+<code>sequence of <a href="#github_api_issue_comment_obj">github_api_issue_comment_obj</a></code> <code>github_api_obj.list_issue_comments(<a href=#github_api_obj.list_issue_comments.number>number</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.list_issue_comments">Parameters:</h4>
@@ -3688,7 +3862,7 @@ Parameter | Description
 
 Create a handle for creating a new release.
 
-<code>github_create_release_obj</code> <code>github_api_obj.new_release_request(<a href=#github_api_obj.new_release_request.tag_name>tag_name</a>)</code>
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_api_obj.new_release_request(<a href=#github_api_obj.new_release_request.tag_name>tag_name</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.new_release_request">Parameters:</h4>
@@ -3730,7 +3904,7 @@ Parameter | Description
 
 Update Pull Requests for a repo. Returns None if not found
 
-<code>github_api_pull_request_obj</code> <code>github_api_obj.update_pull_request(<a href=#github_api_obj.update_pull_request.number>number</a>, <a href=#github_api_obj.update_pull_request.title>title</a>=None, <a href=#github_api_obj.update_pull_request.body>body</a>=None, <a href=#github_api_obj.update_pull_request.state>state</a>=None)</code>
+<code><a href="#github_api_pull_request_obj">github_api_pull_request_obj</a></code> <code>github_api_obj.update_pull_request(<a href=#github_api_obj.update_pull_request.number>number</a>, <a href=#github_api_obj.update_pull_request.title>title</a>=None, <a href=#github_api_obj.update_pull_request.body>body</a>=None, <a href=#github_api_obj.update_pull_request.state>state</a>=None)</code>
 
 
 <h4 id="parameters.github_api_obj.update_pull_request">Parameters:</h4>
@@ -3747,7 +3921,7 @@ Parameter | Description
 
 Update a reference to point to a new commit. Returns the info of the reference.
 
-<code>github_api_ref_obj</code> <code>github_api_obj.update_reference(<a href=#github_api_obj.update_reference.ref>ref</a>, <a href=#github_api_obj.update_reference.sha>sha</a>, <a href=#github_api_obj.update_reference.force>force</a>)</code>
+<code><a href="#github_api_ref_obj">github_api_ref_obj</a></code> <code>github_api_obj.update_reference(<a href=#github_api_obj.update_reference.ref>ref</a>, <a href=#github_api_obj.update_reference.sha>sha</a>, <a href=#github_api_obj.update_reference.force>force</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.update_reference">Parameters:</h4>
@@ -3757,6 +3931,341 @@ Parameter | Description
 <span id=github_api_obj.update_reference.ref href=#github_api_obj.update_reference.ref>ref</span> | <code>string</code><br><p>The name of the reference.</p>
 <span id=github_api_obj.update_reference.sha href=#github_api_obj.update_reference.sha>sha</span> | <code>string</code><br><p>The id for the commit status.</p>
 <span id=github_api_obj.update_reference.force href=#github_api_obj.update_reference.force>force</span> | <code>bool</code><br><p>Indicates whether to force the update or to make sure the update is a fast-forward update. Leaving this out or setting it to false will make sure you're not overwriting work. Default: false</p>
+
+
+
+## github_api_pull_request_comment_obj
+
+Information about a pull request comment as defined in https://developer.github.com/v3/pulls/comments/. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_pull_request_comment_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+body | <code>string</code><br><p>Body of the comment</p>
+diff_hunk | <code>string</code><br><p>The diff hunk where the comment was posted</p>
+id | <code>string</code><br><p>Comment identifier</p>
+original_position | <code>int</code><br><p>Original position of the comment</p>
+path | <code>string</code><br><p>The file path</p>
+position | <code>int</code><br><p>Position of the comment</p>
+user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>The user who posted the comment</p>
+
+
+<h4 id="returned_by.github_api_pull_request_comment_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_pull_request_comment">github_api_obj.get_pull_request_comment</a></li><li><a href="#github_api_obj.get_pull_request_comments">github_api_obj.get_pull_request_comments</a></li></ul>
+
+
+
+## github_api_pull_request_obj
+
+Information about a pull request as defined in https://docs.github.com/en/rest/reference/pulls. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_pull_request_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+assignee | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request assignee</p>
+base | <code><a href="#github_api_revision_obj">github_api_revision_obj</a></code><br><p>Information about base</p>
+body | <code>string</code><br><p>Pull Request body</p>
+commits | <code>int</code><br><p>Number of commits in the PR</p>
+draft | <code>bool</code><br><p>Whether pull request is a draft</p>
+head | <code><a href="#github_api_revision_obj">github_api_revision_obj</a></code><br><p>Information about head</p>
+merged | <code>bool</code><br><p>Whether pull request has been merged</p>
+number | <code>int</code><br><p>Pull Request number</p>
+state | <code>string</code><br><p>Pull Request state</p>
+title | <code>string</code><br><p>Pull Request title</p>
+user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request owner</p>
+
+
+<h4 id="returned_by.github_api_pull_request_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_pull_requests">github_api_obj.get_pull_requests</a></li><li><a href="#github_api_obj.update_pull_request">github_api_obj.update_pull_request</a></li></ul>
+
+
+
+## github_api_ref_obj
+
+Information about a commit status as defined in https://developer.github.com/v3/repos/statuses. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_ref_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+ref | <code>string</code><br><p>The name of the reference</p>
+sha | <code>string</code><br><p>The sha of the reference</p>
+url | <code>string</code><br><p>The url of the reference</p>
+
+
+<h4 id="returned_by.github_api_ref_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_reference">github_api_obj.get_reference</a></li><li><a href="#github_api_obj.get_references">github_api_obj.get_references</a></li><li><a href="#github_api_obj.update_reference">github_api_obj.update_reference</a></li></ul>
+
+
+
+## github_api_revision_obj
+
+Information about a GitHub revision (Used in Pull Request and other entities)
+
+
+<h4 id="fields.github_api_revision_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+label | <code>string</code><br><p>Label for the revision</p>
+ref | <code>string</code><br><p>Reference</p>
+sha | <code>string</code><br><p>SHA of the reference</p>
+
+
+
+## github_api_status_obj
+
+Information about a commit status as defined in https://developer.github.com/v3/repos/statuses. This is a subset of the available fields in GitHub
+
+
+<h4 id="fields.github_api_status_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+context | <code>string</code><br><p>Context of the commit status. This is a relatively stable id</p>
+description | <code>string</code><br><p>Description of the commit status. Can be None.</p>
+state | <code>string</code><br><p>The state of the commit status: success, failure, pending or error</p>
+target_url | <code>string</code><br><p>Get the target url of the commit status. Can be None.</p>
+
+
+<h4 id="returned_by.github_api_status_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.create_status">github_api_obj.create_status</a></li></ul>
+
+
+
+## github_api_user_obj
+
+An object representing a GitHub user
+
+
+<h4 id="fields.github_api_user_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+login | <code>string</code><br><p>Login of the user</p>
+
+
+<h4 id="returned_by.github_api_user_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_authenticated_user">github_api_obj.get_authenticated_user</a></li></ul>
+
+
+
+## github_app_obj
+
+Detail about a GitHub App.
+
+
+<h4 id="fields.github_app_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+id | <code>int</code><br><p>The GitHub App's Id</p>
+name | <code>string</code><br><p>The GitHub App's name</p>
+slug | <code>string</code><br><p>The url-friendly name of the GitHub App.</p>
+
+
+
+## github_check_run_obj
+
+Detail about a check run as defined in https://developer.github.com/v3/checks/runs/#create-a-check-run
+
+
+<h4 id="fields.github_check_run_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+app | <code><a href="#github_app_obj">github_app_obj</a></code><br><p>The detail of a GitHub App, such as id, slug, and name</p>
+conclusion | <code>string</code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
+detail_url | <code>string</code><br><p>The URL of the integrator's site that has the full details of the check.</p>
+name | <code>string</code><br><p>The name of the check</p>
+output | <code><a href="#output_obj">output_obj</a></code><br><p>The description of a GitHub App's run, including title, summary, text.</p>
+pulls | <code>sequence of PullRequest</code><br><p>Pull requests associated with this check_run ('number' only)</p>
+sha | <code>string</code><br><p>The SHA-1 the check run is based on</p>
+status | <code>string</code><br><p>The current status of the check run. Can be one of queued, in_progress, or completed.</p>
+
+
+<h4 id="returned_by.github_check_run_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.get_check_runs">github_api_obj.get_check_runs</a></li></ul>
+
+
+
+## github_check_runs_obj
+
+List check runs for a specific ref https://developer.github.com/v3/checks/runs/#list-check-runs-for-a-specific-ref
+
+
+<h4 id="fields.github_check_runs_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+check_runs | <code>sequence of <a href="#github_check_run_obj">github_check_run_obj</a></code><br><p>The list of the detail for each check run.</p>
+total_count | <code>int</code><br><p>The total count of check runs.</p>
+
+
+
+## github_check_suite_obj
+
+Detail about a check run as defined in https://developer.github.com/v3/checks/runs/#create-a-check-run
+
+
+<h4 id="fields.github_check_suite_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+app | <code><a href="#github_app_obj">github_app_obj</a></code><br><p>The detail of a GitHub App, such as id, slug, and name</p>
+conclusion | <code>string</code><br><p>The final conclusion of the check. Can be one of success, failure, neutral, cancelled, timed_out, or action_required.</p>
+id | <code>int</code><br><p>Check suite identifier</p>
+sha | <code>string</code><br><p>The SHA-1 the check run is based on</p>
+status | <code>string</code><br><p>The current status of the check run. Can be one of queued, in_progress, pending, or completed.</p>
+
+
+
+## github_check_suites_response_obj
+
+Detail about a check run as defined in https://docs.github.com/en/rest/checks/suites?apiVersion=2022-11-28#list-check-suites-for-a-git-reference
+
+
+
+## github_create_release_obj
+
+GitHub API value type for release params. See https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
+
+
+<h4 id="returned_by.github_create_release_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.new_release_request">github_api_obj.new_release_request</a></li><li><a href="#github_create_release_obj.set_draft">github_create_release_obj.set_draft</a></li><li><a href="#github_create_release_obj.set_generate_release_notes">github_create_release_obj.set_generate_release_notes</a></li><li><a href="#github_create_release_obj.set_latest">github_create_release_obj.set_latest</a></li><li><a href="#github_create_release_obj.set_prerelease">github_create_release_obj.set_prerelease</a></li><li><a href="#github_create_release_obj.with_body">github_create_release_obj.with_body</a></li><li><a href="#github_create_release_obj.with_commitish">github_create_release_obj.with_commitish</a></li><li><a href="#github_create_release_obj.with_name">github_create_release_obj.with_name</a></li></ul>
+<h4 id="consumed_by.github_create_release_obj">Consumed By:</h4>
+
+<ul><li><a href="#github_api_obj.create_release">github_api_obj.create_release</a></li></ul>
+
+<a id="github_create_release_obj.set_draft" aria-hidden="true"></a>
+### github_create_release_obj.set_draft
+
+Is this a draft release?
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.set_draft(<a href=#github_create_release_obj.set_draft.draft>draft</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.set_draft">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.set_draft.draft href=#github_create_release_obj.set_draft.draft>draft</span> | <code>bool</code><br><p>Mark release as draft?</p>
+
+<a id="github_create_release_obj.set_generate_release_notes" aria-hidden="true"></a>
+### github_create_release_obj.set_generate_release_notes
+
+Generate release notes?
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.set_generate_release_notes(<a href=#github_create_release_obj.set_generate_release_notes.generate_notes>generate_notes</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.set_generate_release_notes">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.set_generate_release_notes.generate_notes href=#github_create_release_obj.set_generate_release_notes.generate_notes>generate_notes</span> | <code>bool</code><br><p>Generate notes?</p>
+
+<a id="github_create_release_obj.set_latest" aria-hidden="true"></a>
+### github_create_release_obj.set_latest
+
+Is this the latest release?
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.set_latest(<a href=#github_create_release_obj.set_latest.make_latest>make_latest</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.set_latest">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.set_latest.make_latest href=#github_create_release_obj.set_latest.make_latest>make_latest</span> | <code>bool</code><br><p>Mark release as latest?</p>
+
+<a id="github_create_release_obj.set_prerelease" aria-hidden="true"></a>
+### github_create_release_obj.set_prerelease
+
+Is this a prerelease?
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.set_prerelease(<a href=#github_create_release_obj.set_prerelease.prerelease>prerelease</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.set_prerelease">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.set_prerelease.prerelease href=#github_create_release_obj.set_prerelease.prerelease>prerelease</span> | <code>bool</code><br><p>Mark release as prerelease?</p>
+
+<a id="github_create_release_obj.with_body" aria-hidden="true"></a>
+### github_create_release_obj.with_body
+
+Set the body for the release.
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.with_body(<a href=#github_create_release_obj.with_body.body>body</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.with_body">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.with_body.body href=#github_create_release_obj.with_body.body>body</span> | <code>string</code><br><p>Body for the release</p>
+
+<a id="github_create_release_obj.with_commitish" aria-hidden="true"></a>
+### github_create_release_obj.with_commitish
+
+Set the commitish to be used for the release. Defaults to HEAD
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.with_commitish(<a href=#github_create_release_obj.with_commitish.commitish>commitish</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.with_commitish">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.with_commitish.commitish href=#github_create_release_obj.with_commitish.commitish>commitish</span> | <code>string</code><br><p>Commitish for the release</p>
+
+<a id="github_create_release_obj.with_name" aria-hidden="true"></a>
+### github_create_release_obj.with_name
+
+Set the name for the release.
+
+<code><a href="#github_create_release_obj">github_create_release_obj</a></code> <code>github_create_release_obj.with_name(<a href=#github_create_release_obj.with_name.name>name</a>)</code>
+
+
+<h4 id="parameters.github_create_release_obj.with_name">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=github_create_release_obj.with_name.name href=#github_create_release_obj.with_name.name>name</span> | <code>string</code><br><p>Name for the release</p>
+
+
+
+## github_release_obj
+
+GitHub API value type for a release. See https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#create-a-release
+
+
+<h4 id="fields.github_release_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+id | <code>int</code><br><p>Release id</p>
+tarball | <code>string</code><br><p>Tarball Url</p>
+zip | <code>string</code><br><p>Zip Url</p>
+
+
+<h4 id="returned_by.github_release_obj">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.create_release">github_api_obj.create_release</a></li></ul>
 
 
 
@@ -3974,7 +4483,7 @@ Set of functions to define Mercurial (Hg) origins and destinations.
 
 <b>EXPERIMENTAL:</b> Defines a standard Mercurial (Hg) origin.
 
-<code>origin</code> <code>hg.origin(<a href=#hg.origin.url>url</a>, <a href=#hg.origin.ref>ref</a>="default")</code>
+<code><a href="#origin">origin</a></code> <code>hg.origin(<a href=#hg.origin.url>url</a>, <a href=#hg.origin.ref>ref</a>="default")</code>
 
 
 <h4 id="parameters.hg.origin">Parameters:</h4>
@@ -4004,6 +4513,29 @@ Parameter | Description
 --------- | -----------
 <span id=html.xpath.content href=#html.xpath.content>content</span> | <code>string</code><br><p>The HTML content</p>
 <span id=html.xpath.expression href=#html.xpath.expression>expression</span> | <code>string</code><br><p>XPath expression to select elements</p>
+
+
+
+## Issue
+
+Github issue object
+
+
+<h4 id="fields.Issue">Fields:</h4>
+
+Name | Description
+---- | -----------
+assignee | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request assignee</p>
+body | <code>string</code><br><p>Pull Request body</p>
+number | <code>int</code><br><p>Pull Request number</p>
+state | <code>string</code><br><p>Pull Request state</p>
+title | <code>string</code><br><p>Pull Request title</p>
+user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Pull Request owner</p>
+
+
+<h4 id="returned_by.Issue">Returned By:</h4>
+
+<ul><li><a href="#github_api_obj.create_issue">github_api_obj.create_issue</a></li></ul>
 
 
 
@@ -4691,6 +5223,20 @@ metadata.verify_match("<public>(.|\n)*</public>")
 
 
 
+## origin
+
+A Origin represents a source control repository from which source is copied.
+
+
+<h4 id="returned_by.origin">Returned By:</h4>
+
+<ul><li><a href="#folder.origin">folder.origin</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#hg.origin">hg.origin</a></li><li><a href="#remotefiles.origin">remotefiles.origin</a></li></ul>
+<h4 id="consumed_by.origin">Consumed By:</h4>
+
+<ul><li><a href="#core.workflow">core.workflow</a></li></ul>
+
+
+
 ## origin_ref
 
 Reference to the change/review in the origin.
@@ -4709,6 +5255,21 @@ ref | <code>string</code><br><p>Origin reference ref</p>
 <h4 id="consumed_by.origin_ref">Consumed By:</h4>
 
 <ul><li><a href="#feedback.context.record_effect">feedback.context.record_effect</a></li><li><a href="#feedback.finish_hook_context.record_effect">feedback.finish_hook_context.record_effect</a></li><li><a href="#git.mirrorContext.record_effect">git.mirrorContext.record_effect</a></li></ul>
+
+
+
+## output_obj
+
+Descriptive details about the run.
+
+
+<h4 id="fields.output_obj">Fields:</h4>
+
+Name | Description
+---- | -----------
+summary | <code>string</code><br><p>The summary of the check run.</p>
+text | <code>string</code><br><p>The details of the check run.</p>
+title | <code>string</code><br><p>The title of the check run.</p>
 
 
 
@@ -5148,7 +5709,7 @@ Name | Type | Description
 
 Defines a remote file origin.
 
-<code>origin</code> <code>remotefiles.origin(<a href=#remotefiles.origin.author>author</a>='Copybara <noreply@copybara.io>', <a href=#remotefiles.origin.message>message</a>='Placeholder message', <a href=#remotefiles.origin.unpack_method>unpack_method</a>='AS_IS', <a href=#remotefiles.origin.archive_source>archive_source</a>='', <a href=#remotefiles.origin.version_list>version_list</a>=None, <a href=#remotefiles.origin.origin_version_selector>origin_version_selector</a>=None, <a href=#remotefiles.origin.version_resolver>version_resolver</a>=None)</code>
+<code><a href="#origin">origin</a></code> <code>remotefiles.origin(<a href=#remotefiles.origin.author>author</a>='Copybara <noreply@copybara.io>', <a href=#remotefiles.origin.message>message</a>='Placeholder message', <a href=#remotefiles.origin.unpack_method>unpack_method</a>='AS_IS', <a href=#remotefiles.origin.archive_source>archive_source</a>='', <a href=#remotefiles.origin.version_list>version_list</a>=None, <a href=#remotefiles.origin.origin_version_selector>origin_version_selector</a>=None, <a href=#remotefiles.origin.version_resolver>version_resolver</a>=None)</code>
 
 
 <h4 id="parameters.remotefiles.origin">Parameters:</h4>
@@ -5160,7 +5721,7 @@ Parameter | Description
 <span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code>string</code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and 'AS_IS' are supported.</p>
 <span id=remotefiles.origin.archive_source href=#remotefiles.origin.archive_source>archive_source</span> | <code>string</code><br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
-<span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code>VersionSelector</code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
+<span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.version_resolver href=#remotefiles.origin.version_resolver>version_resolver</span> | <code>VersionResolver</code> or <code>NoneType</code><br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
 
 
@@ -5204,6 +5765,38 @@ Input for posting a review to Gerrit. See https://gerrit-review.googlesource.com
 <h4 id="consumed_by.SetReviewInput">Consumed By:</h4>
 
 <ul><li><a href="#gerrit_api_obj.post_review">gerrit_api_obj.post_review</a></li></ul>
+
+
+
+## StarlarkDateTime
+
+Starlark datetime object
+
+
+<h4 id="returned_by.StarlarkDateTime">Returned By:</h4>
+
+<ul><li><a href="#datetime.fromtimestamp">datetime.fromtimestamp</a></li><li><a href="#datetime.now">datetime.now</a></li></ul>
+
+<a id="StarlarkDateTime.in_epoch_seconds" aria-hidden="true"></a>
+### StarlarkDateTime.in_epoch_seconds
+
+Returns the time in epoch seconds for the starlark_datetime instance
+
+<code>long</code> <code>StarlarkDateTime.in_epoch_seconds()</code>
+
+<a id="StarlarkDateTime.strftime" aria-hidden="true"></a>
+### StarlarkDateTime.strftime
+
+Returns a string representation of the StarlarkDateTime object with your chosen formatting
+
+<code>string</code> <code>StarlarkDateTime.strftime(<a href=#StarlarkDateTime.strftime.format>format</a>)</code>
+
+
+<h4 id="parameters.StarlarkDateTime.strftime">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=StarlarkDateTime.strftime.format href=#StarlarkDateTime.strftime.format>format</span> | <code>string</code><br><p>Format string used to present StarlarkDateTime object. See https://docs.oracle.com/javase/8/docs/api/java/time/format/DateTimeFormatter.html for patterns.</p>
 
 
 
@@ -5746,6 +6339,20 @@ Parameter | Description
 --------- | -----------
 <span id=ctx.write_path.path href=#ctx.write_path.path>path</span> | <code><a href="#path">Path</a></code><br><p>The Path to write to</p>
 <span id=ctx.write_path.content href=#ctx.write_path.content>content</span> | <code>string</code><br><p>The content of the file</p>
+
+
+
+## VersionSelector
+
+Select a version from a list of versions
+
+
+<h4 id="returned_by.VersionSelector">Returned By:</h4>
+
+<ul><li><a href="#core.latest_version">core.latest_version</a></li><li><a href="#git.latest_version">git.latest_version</a></li></ul>
+<h4 id="consumed_by.VersionSelector">Consumed By:</h4>
+
+<ul><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#remotefiles.origin">remotefiles.origin</a></li></ul>
 
 
 

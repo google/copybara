@@ -23,6 +23,7 @@ java_library(
         "-Xlint:unchecked",
     ],
     deps = [
+        "//java/com/google/copybara/doc:annotations",  #unuseddeps: keep
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/util/console",
         "//third_party:error_prone",

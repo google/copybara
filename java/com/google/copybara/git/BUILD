@@ -38,6 +38,9 @@ java_library(
         exclude = CORE,
     ),
     javacopts = JAVACOPTS,
+    runtime_deps = [
+        "//java/com/google/copybara/doc:annotations",
+    ],
     deps = [
         ":core",
         "//java/com/google/copybara:base",

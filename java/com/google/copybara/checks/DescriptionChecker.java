@@ -26,7 +26,7 @@ import net.starlark.java.eval.StarlarkValue;
 @StarlarkBuiltin(
     name = "description_checker",
     doc = "A checker to be run on change descriptions",
-    documented = false)
+    documented = true)
 public interface DescriptionChecker extends StarlarkValue {
 
   /**

@@ -26,12 +26,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Represents a possibly-reversible Buildozer command. */
+@StarlarkBuiltin(name = "Command", doc = "Buildozer command type")
 public final class Command implements StarlarkValue {
 
   private final String command;
