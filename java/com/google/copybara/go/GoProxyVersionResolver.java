@@ -18,6 +18,7 @@ package com.google.copybara.go;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
 import com.google.copybara.remotefile.RemoteArchiveVersion;
@@ -49,7 +50,7 @@ public class GoProxyVersionResolver implements VersionResolver {
       ImmutableSet<String> version =
           GoProxyVersionList.forVersion(this.module, this.remoteFileOptions).list();
       if (!version.contains(ref)) {
-        throw new ValidationException(
+        throw new CannotResolveRevisionException(
             String.format("Could not locate version with ref '%s' as a version.", ref));
       }
       return ref;

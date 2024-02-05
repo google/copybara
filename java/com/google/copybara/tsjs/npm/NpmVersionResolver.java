@@ -16,6 +16,7 @@
 
 package com.google.copybara.tsjs.npm;
 
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
@@ -43,9 +44,10 @@ public class NpmVersionResolver implements VersionResolver {
     NpmVersionListResponseObject allVersions =
         NpmVersionList.forPackage(this.packageName, this.remoteFileOptions).listVersions();
     if (ref != null) {
-      ValidationException.checkCondition(
-          allVersions.getAllVersions().contains(ref),
-          String.format("Could not locate version with ref '%s' as a version.", ref));
+      if (!allVersions.getAllVersions().contains(ref)) {
+        throw new CannotResolveRevisionException(
+            String.format("Could not locate version with ref '%s' as a version.", ref));
+      }
       return allVersions.getVersionInfo(ref);
     }
     // No ref should return latest version available?

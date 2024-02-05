@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.copybara.exception.ValidationException;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.remotefile.HttpStreamFactory;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.revision.Revision;
@@ -130,9 +130,9 @@ public class NpmVersionResolverTest {
             "version_resolver",
             "version_resolver = npm.npm_resolver(package_name = '@scope/package')");
 
-    ValidationException exception =
+    CannotResolveRevisionException exception =
         assertThrows(
-            ValidationException.class,
+            CannotResolveRevisionException.class,
             () -> versionResolver.resolve("0.2.0", (version) -> Optional.empty()));
     assertThat(exception.getMessage())
         .contains("Could not locate version with ref '0.2.0' as a version.");

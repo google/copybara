@@ -17,6 +17,7 @@
 package com.google.copybara.rust;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
@@ -41,9 +42,10 @@ public class RustCratesIoVersionResolver implements VersionResolver {
     ImmutableSet<String> versionList = ImmutableSet.of();
     try {
       versionList = RustCratesIoVersionList.forCrate(this.crate, this.remoteFileOptions).list();
-      ValidationException.checkCondition(
-          versionList.contains(ref),
-          String.format("Could not locate version with ref '%s' as a version.", ref));
+      if (!versionList.contains(ref)) {
+        throw new CannotResolveRevisionException(
+            String.format("Could not locate version with ref '%s' as a version.", ref));
+      }
     } catch (RepoException e) {
       throw new ValidationException(
           String.format(
