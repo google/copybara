@@ -50,7 +50,7 @@ COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("net.bytebuddy", "byte-buddy", "1.14.5", testonly = True),
     maven.artifact("org.mockito", "mockito-core", "4.5.1", testonly = True),
     maven.artifact("org.objenesis", "objenesis", "1.0", testonly = True),
-    maven.artifact("org.apache.commons", "commons-compress", "1.23.0"),
+    maven.artifact("org.apache.commons", "commons-compress", "1.25.0"),
     maven.artifact("org.apache.tomcat", "tomcat-annotations-api", "8.0.5"),
     maven.artifact("org.apache.velocity", "velocity", "1.7"),
     maven.artifact("org.jsoup", "jsoup", "1.16.1"),

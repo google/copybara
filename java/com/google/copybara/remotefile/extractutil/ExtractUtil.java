@@ -37,11 +37,12 @@ public final class ExtractUtil {
 
   private ExtractUtil() {}
 
+  /** Helper to read an archive from a stream */
   public static void extractArchive(
       InputStream contents, Path targetPath, ExtractType type, @Nullable Glob fileFilter)
       throws IOException, ValidationException {
     ArchiveEntry archiveEntry;
-    try (ArchiveInputStream inputStream = createArchiveInputStream(contents, type)) {
+    try (ArchiveInputStream<?> inputStream = createArchiveInputStream(contents, type)) {
       while (((archiveEntry = inputStream.getNextEntry()) != null)) {
         if ((fileFilter != null
                 && !fileFilter
@@ -56,7 +57,7 @@ public final class ExtractUtil {
     }
   }
 
-  public static ArchiveInputStream createArchiveInputStream(
+  private static ArchiveInputStream<?> createArchiveInputStream(
       InputStream inputStream, ExtractType fileType) throws ValidationException, IOException {
     switch (fileType) {
       case JAR:
