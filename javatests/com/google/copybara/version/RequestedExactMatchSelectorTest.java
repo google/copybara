@@ -16,8 +16,9 @@
 
 package com.google.copybara.version;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.collect.ImmutableSet;
-import com.google.common.truth.Truth8;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.util.Optional;
 import org.junit.Test;
@@ -29,16 +30,14 @@ public class RequestedExactMatchSelectorTest {
   @Test
   public void testFound() throws Exception {
     RequestedExactMatchSelector selector = new RequestedExactMatchSelector();
-    Truth8.assertThat(
-            selector.select(() -> ImmutableSet.of("one", "two"), "one", new TestingConsole()))
+    assertThat(selector.select(() -> ImmutableSet.of("one", "two"), "one", new TestingConsole()))
         .isEqualTo(Optional.of("one"));
   }
 
   @Test
   public void testNotFound() throws Exception {
     RequestedExactMatchSelector selector = new RequestedExactMatchSelector();
-    Truth8.assertThat(
-            selector.select(() -> ImmutableSet.of("one", "two"), "three", new TestingConsole()))
+    assertThat(selector.select(() -> ImmutableSet.of("one", "two"), "three", new TestingConsole()))
         .isEmpty();
   }
 }

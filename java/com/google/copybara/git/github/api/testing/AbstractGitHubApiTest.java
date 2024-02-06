@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.truth.Truth8;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.AddAssignees;
@@ -769,7 +768,7 @@ public abstract class AbstractGitHubApiTest {
         createValidator(AddAssignees.class, request -> request.getAssignees().equals(assignees)),
         getResource("add_assignees_issue_response_testdata.json"));
     Issue issue = api.addAssignees("example/project", 12345, new AddAssignees(assignees));
-    Truth8.assertThat(issue.getAssignees().stream().map(assignee -> assignee.getLogin()))
+    assertThat(issue.getAssignees().stream().map(assignee -> assignee.getLogin()))
         .containsExactlyElementsIn(assignees);
   }
 

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.truth.Truth8;
 import com.google.copybara.onboard.StarlarkConverter;
 import com.google.copybara.onboard.core.AskInputProvider.Mode;
 import com.google.copybara.testing.OptionsBuilder;
@@ -107,7 +106,7 @@ public class InputProviderResolverImplTest {
             starlarkConverter,
             Mode.FAIL,
             console);
-    Truth8.assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
+    assertThat(resolver.resolveOptional(ONE)).isEqualTo(Optional.empty());
   }
 
   @Test
@@ -132,7 +131,7 @@ public class InputProviderResolverImplTest {
             console);
     assertThat(assertThrows(CannotProvideException.class, () -> resolver.resolve(INFER)))
         .hasMessageThat().contains("Cannot find a value");
-    Truth8.assertThat(resolver.resolveOptional(INFER)).isEmpty();
+    assertThat(resolver.resolveOptional(INFER)).isEmpty();
   }
 
   @Test
