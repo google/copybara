@@ -359,9 +359,8 @@ public final class GeneralOptions implements Option {
       description = "Don't prompt, this will answer all prompts with 'yes'", arity = 1)
   boolean noPrompt = false;
 
-
   @Parameter(
-      names = FORCE,
+      names = {FORCE, "--force-update"},
       description =
           "Force the migration even if Copybara cannot find in the destination a change that is an"
               + " ancestor of the one(s) being migrated. This should be used with care, as it"
