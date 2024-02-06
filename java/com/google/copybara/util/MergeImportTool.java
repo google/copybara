@@ -26,6 +26,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
 import com.google.protobuf.ByteString;
 import com.google.re2j.Pattern;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.FileVisitResult;
@@ -112,7 +114,19 @@ public final class MergeImportTool {
                     .relativeTo(Paths.get(""))
                     .matches(Path.of("/".concat(relativizedFile.toString())));
 
+            // All 3 files must be present to merge
             if (!Files.exists(destinationFile) || !Files.exists(baselineFile) || !match) {
+              return FileVisitResult.CONTINUE;
+            }
+            // No internal-only modifications, no need to merge
+            try {
+              if (compareFileContents(destinationFile, baselineFile)) {
+                return FileVisitResult.CONTINUE;
+              }
+            } catch (IOException e) {
+              logger.atWarning().withCause(e).log(
+                  "Cannot read one of (%s, %s) - will not attempt to merge",
+                  baselineFile, destinationFile);
               return FileVisitResult.CONTINUE;
             }
             filesToProcess.add(
@@ -307,5 +321,25 @@ public final class MergeImportTool {
   /** MergeRunner is called by MergeImportTool to merge one file. */
   public interface MergeRunner {
     MergeResult merge(Path lhs, Path rhs, Path baseline, Path workdir) throws IOException;
+  }
+
+  private static boolean compareFileContents(Path file1, Path file2) throws IOException {
+    try (BufferedInputStream inputStream =
+            new BufferedInputStream(new FileInputStream(file1.toFile()));
+        BufferedInputStream inputStream2 =
+            new BufferedInputStream(new FileInputStream(file2.toFile()))) {
+
+      int ptr;
+      while ((ptr = inputStream.read()) != -1) {
+        if (ptr != inputStream2.read()) {
+          return false;
+        }
+      }
+      // file2 has contents remaining
+      if (inputStream2.read() != 1) {
+        return false;
+      }
+    }
+    return true;
   }
 }

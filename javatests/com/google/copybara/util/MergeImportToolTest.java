@@ -18,8 +18,12 @@ package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
+import com.google.copybara.util.MergeImportTool.MergeRunner;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.re2j.Pattern;
@@ -32,6 +36,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public final class MergeImportToolTest {
@@ -45,7 +50,7 @@ public final class MergeImportToolTest {
   private Path destinationWorkdir;
   private Path baselineWorkdir;
   private Path diffToolWorkdir;
-  private CommandLineDiffUtil commandLineDiffUtil;
+  private MergeRunner commandLineDiffUtil;
   private MergeImportTool underTest;
   private TestingConsole console;
 
@@ -211,6 +216,22 @@ public final class MergeImportToolTest {
                     + "h\n"
                     + "i>>>>>>>"
                     + " destination/foo.txt\n");
+  }
+
+  @Test
+  public void testNoDestinationEdits_noMergeImport() throws Exception {
+    commandLineDiffUtil = Mockito.mock(MergeRunner.class);
+    String fileName = "foo.txt";
+    String commonFileContents = "a\nb\nc\n";
+    writeFile(baselineWorkdir, fileName, commonFileContents);
+    writeFile(originWorkdir, fileName, "foo\n".concat(commonFileContents));
+    writeFile(destinationWorkdir, fileName, commonFileContents);
+
+    underTest.mergeImport(
+        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+
+    verify(commandLineDiffUtil, times(0))
+        .merge(any(Path.class), any(Path.class), any(Path.class), any(Path.class));
   }
 
   private Path createDir(Path parent, String name) throws IOException {
