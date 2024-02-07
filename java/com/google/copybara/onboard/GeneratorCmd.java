@@ -31,6 +31,7 @@ import com.google.copybara.onboard.core.ConstantProvider;
 import com.google.copybara.onboard.core.InputProvider;
 import com.google.copybara.onboard.core.InputProviderResolver;
 import com.google.copybara.onboard.core.MapBasedInputProvider;
+import com.google.copybara.onboard.core.template.ConfigGenerator;
 import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
@@ -58,6 +59,13 @@ public class GeneratorCmd implements OnboardingCmd {
   public ExitCode run(CommandEnv commandEnv)
       throws ValidationException, IOException, RepoException {
     Console console = commandEnv.getOptions().get(GeneralOptions.class).console();
+
+    ImmutableList<ConfigGenerator> generators = getGeneratorCmdImpl().generators();
+    Inputs.maybeSetTemplates(generators);
+    for (ConfigGenerator generator : generators) {
+      // force the generator to initialize its Inputs so that they are declared in the registry
+      var unused = generator.consumes();
+    }
 
     try {
       InputProviderResolver resolver = createInputProviderResolver(commandEnv);
