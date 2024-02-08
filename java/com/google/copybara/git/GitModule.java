@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -475,27 +475,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "A description of what this migration achieves",
             defaultValue = "None"),
         @Param(
-            name = "actions",
-            doc =
-                "DEPRECATED: **DO NOT USE**"
-                    + "A list of mirror actions to perform, with the following semantics:\n"
-                    + "  - There is no guarantee of the order of execution.\n"
-                    + "  - Actions need to be independent from each other.\n"
-                    + "  - Failure in one action might prevent other actions from executing."
-                    + " --force can be used to continue for 'user' errors like non-fast-forward"
-                    + " errors.\n"
-                    + "\n"
-                    + "Actions will be in charge of doing the fetch, push, rebases, merges,etc."
-                    + "Only fetches/pushes for the declared refspec are allowed",
-            defaultValue = "[]",
-            positional = false,
-            named = true),
-        @Param(
             name = "action",
             doc =
                 "An action to execute when the migration is triggered. Actions can fetch,"
                     + " push, rebase, merge, etc. Only fetches/pushes for the declared refspec"
-                    + " are allowed",
+                    + " are allowed.",
             defaultValue = "None",
             positional = false,
             named = true),
@@ -536,8 +520,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean prune,
       Boolean partialFetch,
       Object description,
-      net.starlark.java.eval.Sequence<?> actionList,
-      Object action,
+      Object rawAction,
       Object rawOriginChecker,
       Object rawDestinationChecker,
       StarlarkThread thread)
@@ -561,7 +544,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     String fixedDestinationHttp = fixHttp(destination, thread.getCallerLocation());
     Checker originChecker = convertFromNoneable(rawOriginChecker, null);
     Checker destinationChecker = convertFromNoneable(rawDestinationChecker, null);
-    ImmutableList<Action> actions = convertActions(actionList, action, printHandler);
+    Action action = rawAction != Starlark.NONE ? maybeWrapAction(printHandler, rawAction) : null;
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     GlobalMigrations.getGlobalMigrations(module)
         .addMigration(
@@ -578,35 +561,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 partialFetch,
                 mainConfigFile,
                 convertFromNoneable(description, null),
-                actions,
+                action,
                 getEndpointProvider(fixedOriginHttp, originChecker, false, thread),
                 getEndpointProvider(fixedDestinationHttp, destinationChecker, false, thread)));
     return Starlark.NONE;
-  }
-
-  private static ImmutableList<Action> convertActions(
-      Sequence<?> actionList, Object action,
-      PrintHandler printHandler)
-      throws EvalException {
-    // TODO(b/269526710): Remove 'actions'
-    if (actionList.isEmpty() && action == Starlark.NONE) {
-      return ImmutableList.of();
-    }
-    if ((!actionList.isEmpty()) && action != Starlark.NONE) {
-      throw new EvalException("Cannot use both 'action' and 'actions' field. 'actions' is"
-          + " deprecated, so use 'action'");
-    }
-    if (action != Starlark.NONE) {
-      // Not warn since we are going to migrate our internal users and we don't know of any
-      // external user using this.
-      return ImmutableList.of(maybeWrapAction(printHandler, action));
-    }  else {
-      ImmutableList.Builder<Action> result = ImmutableList.builder();
-      for (Object a : actionList) {
-        result.add(maybeWrapAction(printHandler, a));
-      }
-      return result.build();
-    }
   }
 
   private static Action maybeWrapAction(PrintHandler printHandler, Object action)

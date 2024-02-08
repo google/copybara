@@ -3220,7 +3220,7 @@ Parameter | Description
 
 Mirror git references between repositories
 
-<code>git.mirror(<a href=#git.mirror.name>name</a>, <a href=#git.mirror.origin>origin</a>, <a href=#git.mirror.destination>destination</a>, <a href=#git.mirror.refspecs>refspecs</a>=['refs/heads/*'], <a href=#git.mirror.prune>prune</a>=False, <a href=#git.mirror.partial_fetch>partial_fetch</a>=False, <a href=#git.mirror.description>description</a>=None, <a href=#git.mirror.actions>actions</a>=[], <a href=#git.mirror.action>action</a>=None, <a href=#git.mirror.origin_checker>origin_checker</a>=None, <a href=#git.mirror.destination_checker>destination_checker</a>=None)</code>
+<code>git.mirror(<a href=#git.mirror.name>name</a>, <a href=#git.mirror.origin>origin</a>, <a href=#git.mirror.destination>destination</a>, <a href=#git.mirror.refspecs>refspecs</a>=['refs/heads/*'], <a href=#git.mirror.prune>prune</a>=False, <a href=#git.mirror.partial_fetch>partial_fetch</a>=False, <a href=#git.mirror.description>description</a>=None, <a href=#git.mirror.action>action</a>=None, <a href=#git.mirror.origin_checker>origin_checker</a>=None, <a href=#git.mirror.destination_checker>destination_checker</a>=None)</code>
 
 
 <h4 id="parameters.git.mirror">Parameters:</h4>
@@ -3234,8 +3234,7 @@ Parameter | Description
 <span id=git.mirror.prune href=#git.mirror.prune>prune</span> | <code>bool</code><br><p>Remove remote refs that don't have a origin counterpart. Prune is ignored if actions are used (Action is in charge of doing the pruning)</p>
 <span id=git.mirror.partial_fetch href=#git.mirror.partial_fetch>partial_fetch</span> | <code>bool</code><br><p>This is an experimental feature that only works for certain origin globs.</p>
 <span id=git.mirror.description href=#git.mirror.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this migration achieves</p>
-<span id=git.mirror.actions href=#git.mirror.actions>actions</span> | <code>sequence</code><br><p>DEPRECATED: **DO NOT USE**A list of mirror actions to perform, with the following semantics:<br>  - There is no guarantee of the order of execution.<br>  - Actions need to be independent from each other.<br>  - Failure in one action might prevent other actions from executing. --force can be used to continue for 'user' errors like non-fast-forward errors.<br><br>Actions will be in charge of doing the fetch, push, rebases, merges,etc.Only fetches/pushes for the declared refspec are allowed</p>
-<span id=git.mirror.action href=#git.mirror.action>action</span> | <code>unknown</code><br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed</p>
+<span id=git.mirror.action href=#git.mirror.action>action</span> | <code>unknown</code><br><p>An action to execute when the migration is triggered. Actions can fetch, push, rebase, merge, etc. Only fetches/pushes for the declared refspec are allowed.</p>
 <span id=git.mirror.origin_checker href=#git.mirror.origin_checker>origin_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the origin url. You can omit this if there no intention to use aforementioned APIs.</p>
 <span id=git.mirror.destination_checker href=#git.mirror.destination_checker>destination_checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>Checker for applicable gerrit or github apis that can be inferred from the destination url. You can omit this if there no intention to use aforementioned APIs.</p>
 

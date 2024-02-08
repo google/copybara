@@ -368,33 +368,7 @@ public class GitMirrorTest {
   }
 
   @Test
-  public void testActionsCode() throws Exception {
-    String cfg = ""
-        + "def a1(ctx):\n"
-        + "   ctx.console.info('Hello, this is action1 ' + str(ctx.refs))\n"
-        + "   return ctx.success()\n"
-        + "\n"
-        + "def a2(ctx):\n"
-        + "   ctx.console.info('Hello, this is action2')\n"
-        + "   return ctx.success()\n"
-        + "\n"
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    actions = [a1, a2]"
-        + ")\n"
-        + "";
-
-    Migration migration = loadMigration(cfg, "default");
-    migration.run(workdir, ImmutableList.of("my_ref"));
-    console.assertThat().onceInLog(MessageType.INFO,
-        "Hello, this is action1 \\[\"my_ref\"\\]");
-    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action2");
-  }
-
-  @Test
-  public void testSingleAction() throws Exception {
+  public void testAction() throws Exception {
     String cfg = ""
         + "def a1(ctx):\n"
         + "   ctx.console.info('Hello, this is action1 ' + str(ctx.refs))\n"
@@ -416,50 +390,28 @@ public class GitMirrorTest {
 
   @Test
   public void testActionFailure() throws Exception {
-    ValidationException ve = checkActionFailure();
-    assertThat(ve).hasMessageThat().contains("Something bad happened");
-    assertThat(ve).hasMessageThat().doesNotContain("Another thing bad happened");
-    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action1");
-    console.assertThat().timesInLog(0, MessageType.INFO, "Hello, this is action2");
-    console.assertThat().timesInLog(0, MessageType.INFO, "Hello, this is action3");
-  }
-
-  @Test
-  public void testActionFailureWithForce() throws Exception {
-    options.setForce(true);
-    ValidationException ve = checkActionFailure();
-    assertThat(ve).hasMessageThat().contains("Something bad happened");
-    assertThat(ve).hasMessageThat().contains("Another thing bad happened");
-    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action1");
-    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action2");
-    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action3");
-  }
-
-  private ValidationException checkActionFailure() throws IOException, ValidationException {
-    String cfg = ""
-        + "def a1(ctx):\n"
-        + "   ctx.console.info('Hello, this is action1')\n"
-        + "   return ctx.error('Something bad happened')\n"
-        + "\n"
-        + "def a2(ctx):\n"
-        + "   ctx.console.info('Hello, this is action2')\n"
-        + "   return ctx.error('Another thing bad happened')\n"
-        + "\n"
-        + "def a3(ctx):\n"
-        + "   ctx.console.info('Hello, this is action3')\n"
-        + "   return ctx.success()\n"
-        + "\n"
-        + "git.mirror("
-        + "    name = 'default',"
-        + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
-        + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-        + "    actions = [a1, a2, a3]"
-        + ")\n"
-        + "";
-
+    String cfg =
+        ""
+            + "def fail_action(ctx):\n"
+            + "   ctx.console.info('Hello, this is action1')\n"
+            + "   return ctx.error('Something bad happened')\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://"
+            + originRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    destination = 'file://"
+            + destRepo.getGitDir().toAbsolutePath()
+            + "',"
+            + "    action = fail_action,"
+            + ")\n"
+            + "";
     Migration migration = loadMigration(cfg, "default");
-    return assertThrows(ValidationException.class,
-        () -> migration.run(workdir, ImmutableList.of()));
+    ValidationException ve =
+        assertThrows(ValidationException.class, () -> migration.run(workdir, ImmutableList.of()));
+    assertThat(ve).hasMessageThat().contains("Something bad happened");
+    console.assertThat().onceInLog(MessageType.INFO, "Hello, this is action1");
   }
 
   /** Starlark version of our native git.mirror implementation */
@@ -474,9 +426,9 @@ public class GitMirrorTest {
         + "    refspecs = ["
         + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
         + "    ],"
-        + "    actions = [native_mirror(refspec = {"
+        + "    action = native_mirror(refspec = {"
         + String.format("       'refs/heads/%s':'refs/heads/origin_primary'", primaryBranch)
-        + "})],"
+        + "}),"
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
@@ -498,9 +450,9 @@ public class GitMirrorTest {
         + "    refspecs = ["
         + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
         + "    ],"
-        + "    actions = [native_mirror(refspec = {"
+        + "    action = native_mirror(refspec = {"
         + "       'refs/heads/INVALID':'refs/heads/origin_primary'"
-        + "})],"
+        + "}),"
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     ValidationException ve = assertThrows(ValidationException.class,
@@ -520,9 +472,9 @@ public class GitMirrorTest {
         + "    refspecs = ["
         + String.format("       'refs/heads/%s:refs/heads/origin_primary'", primaryBranch)
         + "    ],"
-        + "    actions = [native_mirror(refspec = {"
+        + "    action = native_mirror(refspec = {"
         + String.format("       'refs/heads/%s':'refs/heads/INVALID'", primaryBranch)
-        + "})],"
+        + "}),"
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     ValidationException ve = assertThrows(ValidationException.class,
@@ -645,7 +597,7 @@ public class GitMirrorTest {
             + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
             + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
             + "    refspecs = ['refs/heads/*:refs/heads/*'],"
-            + "    actions = [_rebase],"
+            + "    action = _rebase,"
             + ")";
     Migration mirror1 = loadMigration(cfg, "default");
     mirror1.run(workdir, ImmutableList.of());
@@ -677,7 +629,7 @@ public class GitMirrorTest {
             + "    name = 'default',"
             + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
             + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    actions = [test],"
+            + "    action = test,"
             + ")";
     Migration mirror1 = loadMigration(cfg, "default");
     originRepo.branch("foo1").run();
@@ -715,7 +667,7 @@ public class GitMirrorTest {
             + "    name = 'default',"
             + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
             + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    actions = [test],"
+            + "    action = test,"
             + ")";
     Migration mirror1 = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
@@ -758,7 +710,7 @@ public class GitMirrorTest {
             + "    destination = 'file://"
             + destRepo.getGitDir().toAbsolutePath()
             + "',"
-            + "    actions = [test],"
+            + "    action = test,"
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "one", "new change");
@@ -789,7 +741,7 @@ public class GitMirrorTest {
             + "    name = 'default',\n"
             + "    origin = 'https://copybara.googlesource.com/copybara/',\n"
             + "    destination = 'https://github.com/google/copybara',\n"
-            + "    actions = [test],\n"
+            + "    action = test,\n"
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
@@ -810,7 +762,7 @@ public class GitMirrorTest {
             + "    name = 'default',\n"
             + "    origin = 'not.github.or.gerrit.com',\n"
             + "    destination = 'foo.bar.baz.com',\n"
-            + "    actions = [test],\n"
+            + "    action = test,\n"
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
@@ -832,7 +784,7 @@ public class GitMirrorTest {
             + "    name = 'default',"
             + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
             + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
-            + "    actions = [test],"
+            + "    action = test,"
             + ")";
     Migration mirror1 = loadMigration(cfg, "default");
     GitLogEntry one = repoChange(originRepo, "some_other_file", "1", "one");
@@ -932,9 +884,9 @@ public class GitMirrorTest {
                     + "       'refs/heads/%s:refs/heads/oss'",
                 primaryBranch, primaryBranch, primaryBranch)
             + "    ],"
-            + "    actions = [merger("
+            + "    action = merger("
             + String.format("'refs/heads/%s'", primaryBranch)
-            + ", oss_branch = 'refs/heads/oss')],"
+            + ", oss_branch = 'refs/heads/oss'),"
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());

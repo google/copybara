@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.EndpointProvider;
 import com.google.copybara.GeneralOptions;
@@ -50,9 +49,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 
-/**
- * Mirror one or more refspects between git repositories.
- */
+/** Mirror one or more refspec between git repositories. */
 public class Mirror implements Migration {
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
@@ -70,7 +67,7 @@ public class Mirror implements Migration {
   private final boolean partialFetch;
   private final ConfigFile mainConfigFile;
   @Nullable private final String description;
-  private final Iterable<Action> actions;
+  @Nullable private final Action action;
   private final LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider;
   private final LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider;
 
@@ -86,7 +83,7 @@ public class Mirror implements Migration {
       boolean partialFetch,
       ConfigFile mainConfigFile,
       @Nullable String description,
-      ImmutableList<Action> actions,
+      @Nullable Action action,
       @Nullable LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider,
       @Nullable LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
@@ -100,7 +97,7 @@ public class Mirror implements Migration {
     this.partialFetch = partialFetch;
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.description = description;
-    this.actions = Preconditions.checkNotNull(actions);
+    this.action = action;
     this.originApiEndpointProvider = originApiEndpointProvider;
     this.destinationApiEndpointProvider = destinationApiEndpointProvider;
   }
@@ -108,82 +105,13 @@ public class Mirror implements Migration {
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
-
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
-
       GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
-
-      if (!Strings.isNullOrEmpty(gitDestinationOptions.committerName)) {
-        repo.simpleCommand("config", "user.name", gitDestinationOptions.committerName);
-      }
-      if (!Strings.isNullOrEmpty(gitDestinationOptions.committerEmail)) {
-        repo.simpleCommand("config", "user.email", gitDestinationOptions.committerEmail);
-      }
-
-      if (Iterables.isEmpty(actions)) {
+      maybeConfigureGitNameAndEmail(repo);
+      if (action == null) {
         defaultMirror(repo);
       } else {
-        ImmutableList.Builder<ActionResult> allResultsBuilder = ImmutableList.builder();
-        for (Action action : actions) {
-          GitMirrorContext context =
-              new GitMirrorContext(
-                  action,
-                  new SkylarkConsole(generalOptions.console()),
-                  generalOptions.profiler(),
-                  sourceRefs,
-                  refspec,
-                  origin,
-                  destination,
-                  generalOptions.isForced(),
-                  repo,
-                  generalOptions.getDirFactory(),
-                  Dict.empty(),
-                  gitOptions,
-                  originApiEndpointProvider,
-                  destinationApiEndpointProvider);
-          try {
-            action.run(context);
-            ActionResult actionResult = context.getActionResult();
-            allResultsBuilder.add(actionResult);
-            // First error aborts the execution of the other actions unless --force is used
-            ValidationException.checkCondition(generalOptions.isForced()
-                    || actionResult.getResult() != Result.ERROR,
-                "Feedback migration '%s' action '%s' returned error: %s. Aborting execution.",
-                name, action.getName(), actionResult.getMsg());
-
-          } catch (NonFastForwardRepositoryException e) {
-            allResultsBuilder.add(ActionResult.error(action.getName() + ": " + e.getMessage()));
-            if (!generalOptions.isForced()) {
-              throw e;
-            }
-            logger.atWarning().withCause(e).log();
-          } finally {
-            generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(
-                new ChangeMigrationFinishedEvent(
-                    ImmutableList.copyOf(context.getNewDestinationEffects()),
-                    getOriginDescription(), getDestinationDescription())));
-          }
-        }
-        ImmutableList<ActionResult> allResults = allResultsBuilder.build();
-        if (allResults.stream().anyMatch(a -> a.getResult() == Result.ERROR)) {
-          String errors = allResults.stream()
-              .filter(a -> a.getResult() == Result.ERROR)
-              .map(ActionResult::getMsg)
-              .collect(Collectors.joining("\n - "));
-          throw new ValidationException("One or more errors happened during the migration:\n"
-              + " - " + errors);
-        }
-
-        // This check also returns true if there are no actions
-        if (allResults.stream().allMatch(a -> a.getResult() == Result.NO_OP)) {
-          String detailedMessage = allResults.isEmpty()
-              ? "actions field is empty"
-              : allResults.stream().map(ActionResult::getMsg)
-                  .collect(ImmutableList.toImmutableList()).toString();
-          throw new EmptyChangeException(
-              String.format("git.mirror migration '%s' was noop. Detailed messages: %s",
-                  name, detailedMessage));
-        }
+        customMirror(repo, sourceRefs);
       }
     }
 
@@ -201,9 +129,64 @@ public class Mirror implements Migration {
                     // TODO(danielromero): Populate OriginRef here
                     ImmutableList.of(),
                     new DestinationRef(
-                        getOriginDestinationRef(destination), "mirror", /*url=*/ null))),
-            getOriginDescription(), getDestinationDescription());
+                        getOriginDestinationRef(destination), "mirror", /* url= */ null))),
+            getOriginDescription(),
+            getDestinationDescription());
+    dispatchMigrationFinishedEvent(event);
+  }
+
+  private void dispatchMigrationFinishedEvent(ChangeMigrationFinishedEvent event) {
     generalOptions.eventMonitors().dispatchEvent(m -> m.onChangeMigrationFinished(event));
+  }
+
+  private void customMirror(GitRepository repo, ImmutableList<String> sourceRefs)
+      throws ValidationException, RepoException {
+    ActionResult actionResult = null;
+
+    GitMirrorContext context =
+        new GitMirrorContext(
+            action,
+            new SkylarkConsole(generalOptions.console()),
+            generalOptions.profiler(),
+            sourceRefs,
+            refspec,
+            origin,
+            destination,
+            generalOptions.isForced(),
+            repo,
+            generalOptions.getDirFactory(),
+            Dict.empty(),
+            gitOptions,
+            originApiEndpointProvider,
+            destinationApiEndpointProvider);
+    try {
+      action.run(context);
+      actionResult = context.getActionResult();
+
+      ValidationException.checkCondition(
+          actionResult.getResult() != Result.ERROR,
+          "An error occurred during the git.mirror migration '%s' on action `%s`. Detailed message:"
+              + " %s",
+          name,
+          action.getName(),
+          actionResult.getMsg());
+    } catch (NonFastForwardRepositoryException e) {
+      actionResult = ActionResult.error(action.getName() + ": " + e.getMessage());
+      logger.atWarning().withCause(e).log();
+    } finally {
+      dispatchMigrationFinishedEvent(
+          new ChangeMigrationFinishedEvent(
+              context.getNewDestinationEffects(),
+              getOriginDescription(),
+              getDestinationDescription()));
+    }
+
+    if (actionResult.getResult() == Result.NO_OP) {
+      throw new EmptyChangeException(
+          String.format(
+              "git.mirror migration '%s' was noop. Detailed message: %s",
+              name, actionResult.getMsg()));
+    }
   }
 
   private void defaultMirror(GitRepository repo) throws RepoException, ValidationException {
@@ -245,6 +228,15 @@ public class Mirror implements Migration {
         throw new ValidationException(
             "Error pushing some refs because origin is behind:" + e.getMessage(), e);
       }
+    }
+  }
+
+  private void maybeConfigureGitNameAndEmail(GitRepository repo) throws RepoException {
+    if (!Strings.isNullOrEmpty(gitDestinationOptions.committerName)) {
+      repo.simpleCommand("config", "user.name", gitDestinationOptions.committerName);
+    }
+    if (!Strings.isNullOrEmpty(gitDestinationOptions.committerEmail)) {
+      repo.simpleCommand("config", "user.email", gitDestinationOptions.committerEmail);
     }
   }
 
