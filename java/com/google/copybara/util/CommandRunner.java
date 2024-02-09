@@ -54,9 +54,11 @@ public final class CommandRunner {
    * No input for the command.
    */
   public static final byte[] NO_INPUT = new byte[]{};
-  // By default we kill the command after 15 minutes.
+  // By default, we kill the command after 15 minutes.
   public static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(15);
   public static final int MAX_COMMAND_LENGTH = 40000;
+  public static final byte[] AFTER_LIMIT_SUFFIX =
+      "... (Rest of the output skipped)\n".getBytes(UTF_8);
 
   private final Command cmd;
   private final boolean verbose;
@@ -205,8 +207,10 @@ public final class CommandRunner {
     } catch (IOException e) {
       logger.atSevere().withCause(e).log("Error writing output.");
     }
-    OutputStream stdoutStream = commandOutputStream(asyncStdoutStream.orElse(stdoutCollector));
-    OutputStream stderrStream = commandOutputStream(asyncErrStream.orElse(stderrCollector));
+    OutputStream stdoutStream = commandOutputStream(
+        asyncStdoutStream.orElse(stdoutCollector), maxOutLogLines);
+    OutputStream stderrStream = commandOutputStream(
+        asyncErrStream.orElse(stderrCollector), maxOutLogLines);
 
     try {
       CommandExecutor runner = executor.orElse(new DefaultExecutor());
@@ -271,16 +275,16 @@ public final class CommandRunner {
     return LocalTime.MIDNIGHT.plus(duration).format(DateTimeFormatter.ofPattern("mm:ss.SSS"));
   }
 
-private static class DefaultExecutor implements CommandExecutor {
+  private static class DefaultExecutor implements CommandExecutor {
 
-  @Override
-  public TerminationStatus getCommandOutputWithStatus(Command cmd, byte[] input,
-      KillableObserver cmdMonitor, OutputStream stdoutStream, OutputStream stderrStream)
-      throws CommandException {
-    return cmd.execute(input, cmdMonitor, stdoutStream, stderrStream, true)
-        .getTerminationStatus();
+    @Override
+    public TerminationStatus getCommandOutputWithStatus(Command cmd, byte[] input,
+        KillableObserver cmdMonitor, OutputStream stdoutStream, OutputStream stderrStream)
+        throws CommandException {
+      return cmd.execute(input, cmdMonitor, stdoutStream, stderrStream, true)
+          .getTerminationStatus();
+    }
   }
-}
 
   private void maybeTreatTimeout(ByteArrayOutputStream stdoutCollector,
       ByteArrayOutputStream stderrCollector, CombinedKillableObserver cmdMonitor,
@@ -305,9 +309,13 @@ private static class DefaultExecutor implements CommandExecutor {
   /**
    * Creates the necessary OutputStream to be passed to the {@link Command#execute()}.
    */
-  private OutputStream commandOutputStream(OutputStream outputStream) {
+  private OutputStream commandOutputStream(OutputStream outputStream, int maxOutLogLines) {
     // If verbose we stream to the user console too
-    return verbose ? new MultiplexOutputStream(System.err, outputStream) : outputStream;
+    return verbose ? new MultiplexOutputStream(
+        new LimitFilterOutputStream(System.err,
+            // Assume a line has ~200 characters. If no limit, ~10k lines.
+            maxOutLogLines > 0 ? maxOutLogLines * 200 : 10000 * 200, AFTER_LIMIT_SUFFIX),
+        outputStream) : outputStream;
   }
 
   /**

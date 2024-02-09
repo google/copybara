@@ -87,6 +87,18 @@ public class CommandRunnerTest {
   }
 
   @Test
+  public void testCommandLogLimit() throws Exception {
+    StringBuilder sb = new StringBuilder();
+    sb.append("hello world\n".repeat(1000));
+    Command command = new Command(new String[]{"echo", sb.toString()});
+    CommandOutputWithStatus result = runCommand(
+        new CommandRunner(command).withMaxStdOutLogLines(1).withVerbose(true));
+    assertThat(result.getTerminationStatus().success()).isTrue();
+    assertThat(result.getStdout().trim()).isEqualTo(sb.toString().trim());
+    assertThat(errContent.toString(UTF_8)).contains("hello wo... (Rest of the output skipped)");
+  }
+
+  @Test
   public void testTimeout() throws Exception {
     Command command = bashCommand(""
         + "echo stdout msg\n"

@@ -46,7 +46,7 @@ public class LimitFilterOutputStreamTest {
   }
 
   @Test
-  public void suffixAtMostOnce() throws IOException {
+  public void suffixAtmostOnce() throws IOException {
     ByteArrayOutputStream delegate = new ByteArrayOutputStream();
     LimitFilterOutputStream stream = new LimitFilterOutputStream(delegate, 10, SUFFIX);
 
