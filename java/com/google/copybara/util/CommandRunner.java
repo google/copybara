@@ -331,7 +331,7 @@ private static class DefaultExecutor implements CommandExecutor {
   }
 
   private static String asString(ByteArrayOutputStream outputBytes) {
-    return new String(outputBytes.toByteArray(), UTF_8);
+    return outputBytes.toString(UTF_8);
   }
 
   /**
