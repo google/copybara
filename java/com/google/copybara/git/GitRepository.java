@@ -1036,7 +1036,8 @@ public class GitRepository {
     }
     ImmutableList.Builder<String> params = ImmutableList.builder();
     params.add("config", "-f", ".gitmodules", "-l", "--name-only");
-    CommandOutputWithStatus out = gitAllowNonZeroExit(NO_INPUT, params.build(), DEFAULT_TIMEOUT);
+    CommandOutputWithStatus out =
+        gitAllowNonZeroExit(NO_INPUT, addGitDirAndWorkTreeParams(params.build()), DEFAULT_TIMEOUT);
     if (out.getTerminationStatus().success()) {
       Set<String> modules = new LinkedHashSet<>();
       for (String line : Splitter.on('\n').omitEmptyStrings().trimResults().split(
