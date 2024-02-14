@@ -89,7 +89,7 @@ public class RegenerateCmdTest {
   private static final String CONSISTENCY_FILE_PATH = "test/test.bara.consistency";
 
   @Before
-  public void setup() throws IOException, Exception {
+  public void setup() throws Exception {
     options = new OptionsBuilder();
     options.regenerateOptions = new RegenerateOptions();
 
