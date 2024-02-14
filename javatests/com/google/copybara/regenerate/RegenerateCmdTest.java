@@ -17,7 +17,6 @@ package com.google.copybara.regenerate;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -48,11 +47,14 @@ import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message.MessageType;
+import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
@@ -81,26 +83,19 @@ public class RegenerateCmdTest {
   Path testRoot;
   Path workdir;
   Path destinationRoot;
-  Path pristineBaseline;
-  Path regenBaseline;
-  Path regenTarget;
 
   public Map<String, String> env = System.getenv();
 
   private static final String CONSISTENCY_FILE_PATH = "test/test.bara.consistency";
 
   @Before
-  public void setup() throws IOException {
+  public void setup() throws IOException, Exception {
     options = new OptionsBuilder();
     options.regenerateOptions = new RegenerateOptions();
 
     testRoot = tempFolder.getRoot().toPath();
     workdir = testRoot.resolve("workdir");
     destinationRoot = testRoot.resolve("destination");
-
-    pristineBaseline = null;
-    regenBaseline = null;
-    regenTarget = null;
 
     destination =
         new RecordsProcessCallDestination() {
@@ -165,52 +160,51 @@ public class RegenerateCmdTest {
   // spoof a pristine baseline for generating baseline consistency files
   private void setupPristineBaseline(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
-    pristineBaseline = destinationRoot.resolve(name);
   }
 
-  private void setupBaselineConsistencyFile() throws IOException, InsideGitDirException {
+  // generate and write the consistency file from the regen baseline and pristine baseline directory
+  // contents
+  private void setupBaselineConsistencyFile(String pristine, String baseline)
+      throws IOException, InsideGitDirException {
     ConsistencyFile consistencyFile;
 
-    if (regenBaseline == null) {
+    if (!Files.exists(destinationRoot.resolve(baseline))) {
       throw new RuntimeException("set up regen baseline before calling");
     }
 
-    if (pristineBaseline != null) {
-      consistencyFile =
-          ConsistencyFile.generate(pristineBaseline, regenBaseline, Hashing.sha256(), env);
-    } else {
-      consistencyFile =
-          ConsistencyFile.generate(regenBaseline, regenBaseline, Hashing.sha256(), env);
-    }
+    consistencyFile =
+        ConsistencyFile.generate(
+            destinationRoot.resolve(pristine),
+            destinationRoot.resolve(baseline),
+            Hashing.sha256(),
+            env);
 
-    Files.createDirectories(regenBaseline.resolve(CONSISTENCY_FILE_PATH).getParent());
-    Files.write(regenBaseline.resolve(CONSISTENCY_FILE_PATH), consistencyFile.toBytes());
+    writeDestination(baseline, CONSISTENCY_FILE_PATH, consistencyFile.toBytes());
   }
 
   private void setupBaseline(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
-    regenBaseline = destinationRoot.resolve(name);
     options.regenerateOptions.setRegenBaseline(name);
   }
 
   // need something in the origin when using an import baseline
   private void setupFooOriginImport() throws IOException {
     origin.singleFileChange(0, "foo description", "foo.txt", "foo");
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
   }
 
   private void setupTarget(String name) throws IOException {
     Files.createDirectories(destinationRoot.resolve(name));
-    regenTarget = destinationRoot.resolve(name);
     options.regenerateOptions.setRegenTarget(name);
   }
 
   @Test
   public void testCallsUpdateChange() throws Exception {
     setupFooOriginImport();
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
     setupTarget("bar");
 
-    RegenerateCmd cmd = getCmd(getConfigString());
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -230,15 +224,16 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testPatchFileIsGenerated() throws Exception {
+  public void testGeneratesPatches() throws Exception {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
     origin.singleFileChange(0, "foo description", testfile, "foo");
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes(UTF_8));
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+    writeDestination("bar", testfile, "bar");
 
-    RegenerateCmd cmd = getCmd(getConfigString());
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -258,154 +253,21 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testAutoPatchFileNotGenerated_whenNoDiff() throws Exception {
+  public void testImportBaseline_noSourceRef_inferredBaseline_usesInferredBaseline()
+      throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+
+    // infer the first change as the baseline
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    origin.singleFileChange(1, "bar description", "test.txt", "bar");
+
     setupTarget("bar");
+    writeDestination("bar", "test.txt", "destinationbar");
 
-    String testfile = "asdf.txt";
-    // file contents are the same
-    origin.singleFileChange(0, "foo description", testfile, "foo");
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
-    Files.write(regenTarget.resolve(testfile), "foo".getBytes(UTF_8));
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
-
-    verify(patchRegenerator)
-        .updateChange(
-            any(),
-            argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
-            eq(Glob.ALL_FILES),
-            eq("bar"));
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-  }
-
-  @Test
-  public void testInferredBaselineused() throws Exception {
-    setupFooOriginImport();
-    setupTarget("bar");
-
-    options.regenerateOptions.setRegenBaseline(null);
-    when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.of("foo"));
-
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    // should not throw
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-  }
-
-  @Test
-  public void testInferredTargetused() throws Exception {
-    setupFooOriginImport();
-    setupTarget("bar");
-
-    options.regenerateOptions.setRegenTarget(null);
-    when(patchRegenerator.inferRegenTarget()).thenReturn(Optional.of("bar"));
-
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    // should not throw
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-  }
-
-  @Test
-  public void testRegenImportBaseline_generatesPatch() throws Exception {
-    setupTarget("bar");
-
-    String testfile = "asdf.txt";
-    // different contents should generate diff
-    origin.singleFileChange(0, "foo description", testfile, "foo");
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
-
-    options.regenerateOptions.setRegenImportBaseline(true);
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
-
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-
-    verify(patchRegenerator)
-        .updateChange(
-            any(),
-            argThat(path -> Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
-            eq(Glob.ALL_FILES),
-            eq("bar"));
-  }
-
-  @Test
-  public void testRegenImportBaseline_noDiff() throws Exception {
-    setupTarget("bar");
-
-    String testfile = "asdf.txt";
-    // same contents should generate no diff
-    origin.singleFileChange(0, "foo description", testfile, "bar");
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
-
-    options.regenerateOptions.setRegenImportBaseline(true);
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
-
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    ExitCode exitCode =
-        cmd.run(
-            new CommandEnv(
-                workdir,
-                options.build(),
-                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
-
-    verify(patchRegenerator)
-        .updateChange(
-            any(),
-            argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
-            eq(Glob.ALL_FILES),
-            eq("bar"));
-  }
-
-  @Test
-  public void testRegenImportBaseline_initHistory() throws Exception {
-    setupTarget("bar");
-
-    String testfile = "asdf.txt";
-
-    origin.singleFileChange(0, "foo description", testfile, "bar");
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
-
-    options.regenerateOptions.setRegenTarget("bar");
-    options.regenerateOptions.setRegenImportBaseline(true);
-    options.workflowOptions.initHistory = true;
-
-    RegenerateCmd cmd = getCmd(getConfigString());
-
-    // should not throw
     ExitCode exitCode =
         cmd.run(
             new CommandEnv(
@@ -420,26 +282,223 @@ public class RegenerateCmdTest {
             argThat(
                 path -> {
                   try {
-                    return Files.exists(path.resolve(testfile))
-                        && Files.readString(path.resolve(testfile)).equals("bar");
+                    // patch is against the inferred reference
+                    assertThatPath(path)
+                        .containsFileMatching(
+                            "AUTOPATCH/test.txt.patch",
+                            Pattern.compile(".*-foo\n.*", Pattern.DOTALL));
                   } catch (IOException e) {
                     throw new RuntimeException(e);
                   }
+                  return true;
                 }),
-            eq(Glob.ALL_FILES),
+            any(),
             eq("bar"));
   }
 
   @Test
-  public void testNoLineNumbers_usesImportBaseline() throws Exception {
-    RegenerateCmd cmd = getCmd(getConfigStringWithStripLineNumbers());
+  public void testImportBaseline_noSourceRef_noInferredBaseline_usesHead() throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+    origin.singleFileChange(1, "bar description", "test.txt", "bar");
+
+    when(patchRegenerator.inferImportBaseline()).thenReturn(Optional.empty());
+
+    setupTarget("bar");
+    writeDestination("bar", "test.txt", "destinationbar");
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(
+                path -> {
+                  try {
+                    // patch is against the latest reference
+                    assertThatPath(path)
+                        .containsFileMatching(
+                            "AUTOPATCH/test.txt.patch",
+                            Pattern.compile(".*-bar\n.*", Pattern.DOTALL));
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                  return true;
+                }),
+            any(),
+            eq("bar"));
+  }
+
+  @Test
+  public void testImportBaseline_noSourceRef_noInferredBaseline_emitsWarning() throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+
+    when(patchRegenerator.inferImportBaseline()).thenReturn(Optional.empty());
+
+    setupTarget("bar");
+    writeDestination("bar", "test.txt", "destinationbar");
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ((TestingConsole) options.general.console())
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "Regenerate was unable to detect the import baseline reference nor was a reference"
+                + " passed in.*");
+  }
+
+  @Test
+  public void testImportBaseline_sourceRef_inferredBaseline_usesSourceRef() throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+    String firstChangeRef = origin.getLatestChange().asString();
+
+    origin.singleFileChange(1, "bar description", "test.txt", "bar");
+    // infer the second change as the baseline
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("bar");
+    writeDestination("bar", "test.txt", "destinationbar");
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                // pass in the first change as the source ref
+                ImmutableList.of(
+                    testRoot.resolve("copy.bara.sky").toString(), "default", firstChangeRef)));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator)
+        .updateChange(
+            any(),
+            argThat(
+                path -> {
+                  try {
+                    // patch is against the source reference
+                    assertThatPath(path)
+                        .containsFileMatching(
+                            "AUTOPATCH/test.txt.patch",
+                            Pattern.compile(".*-foo\n.*", Pattern.DOTALL));
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                  return true;
+                }),
+            any(),
+            eq("bar"));
+  }
+
+  @Test
+  public void testRegenerate_noOptionTarget_inferredTarget_usesInferredTarget() throws Exception {
+    origin.singleFileChange(1, "foo change", "test.txt", "foo");
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
     setupTarget("bar");
 
-    // set an origin file that contains a diff
+    // clear target from options, only pass it in through infer
+    options.regenerateOptions.setRegenTarget(null);
+    when(patchRegenerator.inferRegenTarget()).thenReturn(Optional.of("bar"));
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    // should not throw
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    verify(patchRegenerator).updateChange(any(), any(), any(), eq("bar"));
+  }
+
+  @Test
+  public void testRegenerate_optionTarget_inferredTarget_usesOptionTarget() throws Exception {
+    origin.singleFileChange(1, "foo change", "test.txt", "foo");
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("bar");
+
+    when(patchRegenerator.inferRegenTarget()).thenReturn(Optional.of("infertarget"));
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    // should not throw
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+    // target from options, not from infer
+    verify(patchRegenerator).updateChange(any(), any(), any(), eq("bar"));
+  }
+
+  @Test
+  public void testRegenerate_noOptionTarget_noInferredTarget_throws() throws Exception {
+    origin.singleFileChange(1, "foo change", "test.txt", "foo");
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("bar");
+    options.regenerateOptions.setRegenTarget(null);
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
+
+    Throwable t =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                cmd.run(
+                    new CommandEnv(
+                        workdir,
+                        options.build(),
+                        ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
+    assertThat(t)
+        .hasMessageThat()
+        .contains("Regen target was neither supplied nor able to be inferred.");
+  }
+
+  @Test
+  public void testRegenerate_generatesPatch() throws Exception {
+    setupTarget("bar");
+
     String testfile = "asdf.txt";
+    // different contents should generate diff
     origin.singleFileChange(0, "foo description", testfile, "foo");
-    options.workflowOptions.lastRevision = origin.getLatestChange().asString();
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    writeDestination("bar", testfile, "bar");
+
+    options.regenerateOptions.setRegenImportBaseline(true);
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -459,30 +518,19 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testMissingAutopatchConfig_throws() {
-    options.regenerateOptions.setRegenImportBaseline(true);
-    RegenerateCmd cmd = getCmd(getConfigStringWithMissingAutopatchConfig());
-
-    assertThrows(
-        ValidationException.class,
-        () ->
-            cmd.run(
-                new CommandEnv(
-                    workdir,
-                    options.build(),
-                    ImmutableList.of(testRoot.resolve("copy.bara.sky").toString()))));
-  }
-
-  @Test
-  public void testConsistencyFile_doesNotGenerate_disabled()
-      throws IOException, ValidationException, RepoException, InsideGitDirException {
-    setupFooOriginImport();
+  public void testNoDiff_generatesNoPatches() throws Exception {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    // same contents should generate no diff
+    origin.singleFileChange(0, "foo description", testfile, "bar");
+    writeDestination("bar", testfile, "bar");
 
-    RegenerateCmd cmd = getCmd(getConfigString());
+    options.regenerateOptions.setRegenImportBaseline(true);
+    when(patchRegenerator.inferImportBaseline())
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
 
     ExitCode exitCode =
         cmd.run(
@@ -491,16 +539,15 @@ public class RegenerateCmdTest {
                 options.build(),
                 ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
 
-    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    // check that no patches were generated
     verify(patchRegenerator)
         .updateChange(
             any(),
-            pathArg.capture(),
+            argThat(path -> !Files.exists(path.resolve("AUTOPATCH").resolve(testfile + ".patch"))),
             eq(Glob.ALL_FILES),
             eq("bar"));
-    assertThatPath(pathArg.getValue()).containsNoFiles(CONSISTENCY_FILE_PATH);
-
-    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   @Test
@@ -510,10 +557,10 @@ public class RegenerateCmdTest {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    writeDestination("foo", testfile, "foo");
+    writeDestination("bar", testfile, "bar");
 
-    setupBaselineConsistencyFile();
+    setupBaselineConsistencyFile("foo", "foo");
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
     ExitCode exitCode =
@@ -542,10 +589,10 @@ public class RegenerateCmdTest {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    writeDestination("foo", testfile, "foo");
+    writeDestination("bar", testfile, "bar");
 
-    setupBaselineConsistencyFile();
+    setupBaselineConsistencyFile("foo", "foo");
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
@@ -568,16 +615,16 @@ public class RegenerateCmdTest {
         ConsistencyFile.fromBytes(
             Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
 
-    assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("bar");
-    consistencyFile.reversePatches(regenTarget, env);
-    assertThat(Files.readString(regenTarget.resolve(testfile))).isEqualTo("foo");
+    assertThat(Files.readString(destinationPath("bar").resolve(testfile))).isEqualTo("bar");
+    consistencyFile.reversePatches(destinationPath("bar"), env);
+    assertThat(Files.readString(destinationPath("bar").resolve(testfile))).isEqualTo("foo");
 
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
   // test existing consistency file is used to generate new patch
   @Test
-  public void testRegenerate_consistencyFile_usesConsistencyFileBaseline() throws Exception {
+  public void testConsistencyFile_usesConsistencyFileBaseline() throws Exception {
     // generate a ConsistencyFile, make a new edit, use the directory
     // with the generated patch as baseline to regenerate again
     setupPristineBaseline("foofoo");
@@ -585,11 +632,11 @@ public class RegenerateCmdTest {
     setupTarget("bar");
 
     String testfile = "asdf.txt";
-    Files.write(regenBaseline.resolve(testfile), "foo".getBytes());
-    Files.write(pristineBaseline.resolve(testfile), "foofoo".getBytes(UTF_8));
-    Files.write(regenTarget.resolve(testfile), "bar".getBytes());
+    writeDestination("foo", testfile, "foo");
+    writeDestination("foofoo", testfile, "foofoo");
+    writeDestination("bar", testfile, "bar");
 
-    setupBaselineConsistencyFile();
+    setupBaselineConsistencyFile("foofoo", "foo");
 
     RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
 
@@ -616,10 +663,10 @@ public class RegenerateCmdTest {
     setupTarget("foobar");
 
     // the directory uploaded from the previous run is the new baseline state
-    clearDir(regenBaseline);
-    FileUtil.copyFilesRecursively(pathArg.getValue(), regenBaseline,
-        CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
-    Files.write(regenTarget.resolve(testfile), "foobar".getBytes());
+    clearDir(destinationPath("bar"));
+    FileUtil.copyFilesRecursively(
+        pathArg.getValue(), destinationPath("bar"), CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeDestination("foobar", testfile, "foobar");
 
     clearDir(workdir);
     exitCode =
@@ -649,6 +696,99 @@ public class RegenerateCmdTest {
     assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
   }
 
+  @Test
+  public void testConsistencyFile_optionBaseline_inferredBaseline_usesOptionBaseline()
+      throws Exception {
+    setupPristineBaseline("pristine");
+    setupBaseline("foo");
+    setupBaseline("baseline");
+    setupTarget("target");
+
+    when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.of("foo"));
+
+    writeDestination("pristine", "test.txt", "original");
+    writeDestination("baseline", "test.txt", "oldpatch");
+    writeDestination("foo", "test.txt", "badpatch");
+    writeDestination("target", "test.txt", "newpatch");
+
+    // after we run, we will check that the restored baseline is from the pristine directory
+    // and not foo
+    setupBaselineConsistencyFile("pristine", "baseline");
+    setupBaselineConsistencyFile("foo", "foo");
+
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("target"));
+
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "newpatch");
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
+    consistencyFile.reversePatches(pathArg.getValue(), env);
+
+    // reversing the diff should result in the pristine baseline, not the foo one
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "original");
+  }
+
+  @Test
+  public void testConsistencyFile_noOptionBaseline_inferredBaseline_usesInferredBaseline()
+      throws Exception {
+    setupPristineBaseline("pristine");
+    setupBaseline("foo");
+    setupBaseline("baseline");
+    options.regenerateOptions.setRegenBaseline(null);
+    setupTarget("target");
+
+    when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.of("baseline"));
+
+    writeDestination("pristine", "test.txt", "original");
+    writeDestination("baseline", "test.txt", "oldpatch");
+    writeDestination("foo", "test.txt", "badpatch");
+    writeDestination("target", "test.txt", "newpatch");
+
+    // after we run, we will check that the restored baseline is from the pristine directory
+    // and not foo
+    setupBaselineConsistencyFile("pristine", "baseline");
+    setupBaselineConsistencyFile("foo", "foo");
+
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("target"));
+
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "newpatch");
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
+    consistencyFile.reversePatches(pathArg.getValue(), env);
+
+    // reversing the diff should result in the pristine baseline, not the foo one
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "original");
+  }
+
   private RegenerateCmd getCmd(String configString) {
     ModuleSet moduleSet = skylark.createModuleSet();
     return new RegenerateCmd(
@@ -669,7 +809,7 @@ public class RegenerateCmdTest {
             }));
   }
 
-  private String getConfigString() {
+  private String getImportAutopatchesConfigString() {
     return "core.workflow(\n"
         + "    name = 'default',\n"
         + "    origin = testing.origin(),\n"
@@ -713,47 +853,24 @@ public class RegenerateCmdTest {
         + ")";
   }
 
-  private String getConfigStringWithStripLineNumbers() {
-    return "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    origin_files = glob(['**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'SQUASH',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + "    merge_import = core.merge_import_config(\n"
-        + "      package_path = \"\"\n,"
-        + "    ),\n"
-        + "    autopatch_config = core.autopatch_config(\n"
-        + "      header = '# header',\n"
-        + "      directory_prefix = ''\n,"
-        + "      directory = 'AUTOPATCH',\n"
-        + "      suffix = '.patch',\n"
-        + "      strip_file_names_and_line_numbers = True,\n"
-        + "    ),\n"
-        + ")";
-  }
-
-  private String getConfigStringWithMissingAutopatchConfig() {
-    return "core.workflow(\n"
-        + "    name = 'default',\n"
-        + "    origin = testing.origin(),\n"
-        + "    origin_files = glob(['**']),\n"
-        + "    destination = testing.destination(),\n"
-        + "    mode = 'SQUASH',\n"
-        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
-        + "    merge_import = core.merge_import_config(\n"
-        + "      package_path = \"\"\n,"
-        + "      use_consistency_file = True\n"
-        + "    ),\n"
-        + "    consistency_file_path = \""
-        + CONSISTENCY_FILE_PATH
-        + "\",\n"
-        + ")";
-  }
-
   private void clearDir(Path dir) throws IOException {
     FileUtil.deleteRecursively(dir);
     Files.createDirectories(dir);
+  }
+
+  private void writeDestination(String name, String filepath, String contents) throws IOException {
+    Path writePath = destinationRoot.resolve(name).resolve(filepath);
+    Files.createDirectories(writePath.getParent());
+    Files.writeString(writePath, contents);
+  }
+
+  private void writeDestination(String name, String filepath, byte[] bytes) throws IOException {
+    Path writePath = destinationRoot.resolve(name).resolve(filepath);
+    Files.createDirectories(writePath.getParent());
+    Files.write(writePath, bytes);
+  }
+
+  private Path destinationPath(String name) {
+    return destinationRoot.resolve(name);
   }
 }

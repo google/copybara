@@ -142,7 +142,8 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
 
     /**
      * Detect regen baseline when not supplied by CLI. The regen baseline is a string referencing a
-     * previous patch-consistent state, e.g. a change created by running a workflow.
+     * previous patch-consistent state, e.g. a change created by running a workflow. Should be
+     * called for migrations that are using the consistency file.
      */
     default Optional<String> inferRegenBaseline() throws ValidationException {
       return Optional.empty();
@@ -154,6 +155,15 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
      * i.e. a pending change with edits to patch-modified files.
      */
     default Optional<String> inferRegenTarget() throws ValidationException, RepoException {
+      return Optional.empty();
+    }
+
+    /**
+     * Detect import baseline when not supplied by CLI. The import baseline is the origin version
+     * that is being imported. Should be called for migrations that are using an import baseline for
+     * merge import.
+     */
+    default Optional<String> inferImportBaseline() {
       return Optional.empty();
     }
   }

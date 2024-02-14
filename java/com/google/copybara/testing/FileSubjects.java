@@ -25,6 +25,7 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.Subject;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -34,6 +35,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -135,7 +137,16 @@ public class FileSubjects {
     public PathSubject containsFileMatching(String filename, String contentMatcher)
         throws IOException {
       Path filePath = checkFile(filename);
-      String realContents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+      String realContents = Files.readString(filePath);
+      check("contentsOf(%s)", filename).that(realContents).matches(contentMatcher);
+      return this;
+    }
+
+    @CanIgnoreReturnValue
+    public PathSubject containsFileMatching(String filename, Pattern contentMatcher)
+        throws IOException {
+      Path filePath = checkFile(filename);
+      String realContents = Files.readString(filePath);
       check("contentsOf(%s)", filename).that(realContents).matches(contentMatcher);
       return this;
     }

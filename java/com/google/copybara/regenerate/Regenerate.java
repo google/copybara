@@ -16,6 +16,8 @@
 
 package com.google.copybara.regenerate;
 
+import static com.google.copybara.exception.ValidationException.checkCondition;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.AutoPatchfileConfiguration;
@@ -130,24 +132,24 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
-    Optional<String> getRegenBaselineResult;
-    String regenBaseline = null;
     if (workflow.isConsistencyFileMergeImport()) {
-      getRegenBaselineResult = regenerateOptions.getRegenBaseline();
+      Optional<String> getRegenBaselineResult = regenerateOptions.getRegenBaseline();
       if (getRegenBaselineResult.isEmpty()) {
         getRegenBaselineResult = patchRegenerator.inferRegenBaseline();
       }
-      regenBaseline =
+
+      String regenBaseline =
           getRegenBaselineResult.orElseThrow(
               () ->
                   new ValidationException(
                       "Regen baseline was neither supplied nor able to be inferred. Supply with"
                           + " --regen-baseline parameter"));
-    }
 
-    if (workflow.isConsistencyFileMergeImport()
-        && consistencyFileExists(
-            destinationWriter, regenBaseline, workflow.getConsistencyFilePath())) {
+      checkCondition(
+          consistencyFileExists(
+              destinationWriter, regenBaseline, workflow.getConsistencyFilePath()),
+          "Regenerating a consistency file merge import change but no consistency file found.");
+
         prepareDiffWithConsistencyFileBaseline(
             autopatchConfig,
             workflow,
@@ -158,10 +160,15 @@ public class Regenerate<O extends Revision, D extends Revision> {
             regenBaseline,
             regenTarget);
     } else {
-      // todo: maybe don't fall back to import baseline for regenerate, only for workflow
       previousPath =
           prepareDiffWithImportBaseline(
-              autopatchConfig, workflow, workdir, nextPath, regenTarget, destinationWriter);
+              patchRegenerator,
+              autopatchConfig,
+              workflow,
+              workdir,
+              nextPath,
+              regenTarget,
+              destinationWriter);
     }
 
     Optional<byte[]> consistencyFile = Optional.empty();
@@ -273,6 +280,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
   }
 
   private Path prepareDiffWithImportBaseline(
+      PatchRegenerator patchRegenerator,
       @Nullable AutoPatchfileConfiguration autopatchConfig,
       Workflow<O, D> workflow,
       Path workdir,
@@ -280,6 +288,46 @@ public class Regenerate<O extends Revision, D extends Revision> {
       String regenTarget,
       Writer<D> destinationWriter)
       throws ValidationException, RepoException, IOException {
+
+    WorkflowRunHelper<O, D> runHelper;
+    O importRevision;
+
+    if (sourceRef == null) {
+      // no source ref specified, attempt to infer
+      Optional<String> inferImportBaselineResult = patchRegenerator.inferImportBaseline();
+      if (inferImportBaselineResult.isPresent()) {
+        importRevision = workflow.getOrigin().resolve(inferImportBaselineResult.get());
+        runHelper =
+            createRunHelper(workflow, workdir, importRevision, inferImportBaselineResult.get());
+      } else {
+        // no source ref, no inferred baseline
+        console.warn(
+            "Regenerate was unable to detect the import baseline reference nor was a reference"
+                + " passed in.\n"
+                + "Ideally, the reference imported by the workflow migration is the one used for"
+                + " the import baseline.\n"
+                + "Regenerate will use the latest reference or follow `--same-version`, but this"
+                + " may not match the one used for the initial import\n"
+                + "To pass in a reference, add it to the copybara command, e.g. `copybara"
+                + " regenerate [config path] [migration name] [reference]`\n");
+        // use workflow logic to determine reference
+        importRevision = workflow.getOrigin().resolve(sourceRef);
+        runHelper = createRunHelper(workflow, workdir, importRevision, sourceRef);
+
+        if (WorkflowMode.isHistorySupported(runHelper)) {
+          if (workflowOptions.importSameVersion) {
+            importRevision = WorkflowMode.maybeGetLastRev(runHelper);
+          }
+        }
+
+        console.infoFmt(
+            "Regenerating with import baseline from origin revision %s", importRevision.asString());
+      }
+    } else {
+      importRevision = workflow.getOrigin().resolve(sourceRef);
+      runHelper = createRunHelper(workflow, workdir, importRevision, sourceRef);
+    }
+
     Glob patchlessDestinationFiles = workflow.getDestinationFiles();
     if (autopatchConfig != null) {
       Glob autopatchGlob =
@@ -288,27 +336,12 @@ public class Regenerate<O extends Revision, D extends Revision> {
       patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
     }
 
-    O resolvedRef = workflow.getOrigin().resolve(sourceRef);
-    WorkflowRunHelper<O, D> runHelper =
-        workflow.newRunHelper(
-            workdir, resolvedRef, sourceRef, (ChangeMigrationFinishedEvent e) -> {});
-
-    O current = resolvedRef;
-    O lastRev = null;
-
-    if (WorkflowMode.isHistorySupported(runHelper)) {
-      lastRev = WorkflowMode.maybeGetLastRev(runHelper);
-      if (workflowOptions.importSameVersion) {
-        current = lastRev;
-      }
-    }
-
     // copy the baseline to one directory
     DestinationReader previousDestinationReader =
         destinationWriter.getDestinationReader(console, (Baseline<?>) null, workdir);
     Path importPath =
         runHelper.importAndTransformRevision(
-            console, lastRev, current, () -> previousDestinationReader);
+            console, null, importRevision, () -> previousDestinationReader);
 
     // copy the target to another directory
     DestinationReader nextDestinationReader =
@@ -316,5 +349,12 @@ public class Regenerate<O extends Revision, D extends Revision> {
     nextDestinationReader.copyDestinationFilesToDirectory(patchlessDestinationFiles, nextPath);
 
     return importPath;
+  }
+
+  private WorkflowRunHelper<O, D> createRunHelper(
+      Workflow<O, D> workflow, Path workdir, O resolvedRef, String sourceRef)
+      throws ValidationException {
+    return workflow.newRunHelper(
+        workdir, resolvedRef, sourceRef, (ChangeMigrationFinishedEvent e) -> {});
   }
 }
