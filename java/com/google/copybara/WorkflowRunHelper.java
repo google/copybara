@@ -849,6 +849,24 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             throw new ValidationException(
                 "Destination does not support consistency file operations", e);
           }
+        } else {
+          // onboarding case, using import baseline
+          console.info("No consistency file found. Generating new consistency file.");
+          console.warn(
+              "When enabling the consistency file along with Merge Import for a project that\n"
+                  + "does not have one, it is recommended to:\n"
+                  + "\n"
+                  + "-   Not make any configuration changes apart from enabling the consistency"
+                  + " file\n"
+                  + "\n"
+                  + "-   Import the same version as is already in the destination (through\n"
+                  + "    `--same-version` or passing in the reference)\n"
+                  + "\n"
+                  + "Using Copybara in this way should generate the consistency file without\n"
+                  + "introducing other changes. This should minimize the amount of review"
+                  + " required\n"
+                  + "for the resulting destination change. Autopatch generation is especially\n"
+                  + "recommended for reviewing the destination-specific patches.");
         }
       }
 

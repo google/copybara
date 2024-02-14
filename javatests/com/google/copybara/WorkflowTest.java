@@ -2094,12 +2094,6 @@ public class WorkflowTest {
   @Test
   public void mergeImport_consistencyFile_generatesConsistencyFile()
       throws IOException, ValidationException, RepoException {
-    mergeImport =
-        "core.merge_import_config(\n"
-            + "  package_path = \"\",\n"
-            + "  use_consistency_file = True,\n"
-            + ")";
-    consistencyFilePath = "\"foo.bara.consistency\"";
     skylark = new SkylarkTestExecutor(options);
     Path testDir = Files.createTempDirectory("testDir");
 
@@ -2117,9 +2111,15 @@ public class WorkflowTest {
     // run the workflow
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
-    String consistencyFilePath = workflow.getConsistencyFilePath();
 
     workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
 
     // merge import will not run if there is no lastRev, so create and import
     // a second change that isn't baseline
@@ -2128,8 +2128,11 @@ public class WorkflowTest {
     writeFile(base2, "dir/bar.txt", "Another file");
     origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
 
+    workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     workflow.run(workdir, ImmutableList.of("HEAD"));
+    console().assertThat().onceInLog(MessageType.INFO, "Generating new consistency file");
 
+    String consistencyFilePath = workflow.getConsistencyFilePath();
     assertThat(
         destination
             .processed
