@@ -17,7 +17,7 @@ apt-get install -y locales
 apt-get install -y mercurial
 apt-get install -y lsb-release
 apt-get install -y software-properties-common
-
+apt install -y openjdk-17-jdk openjdk-17-jre
 add-apt-repository ppa:git-core/ppa -y
 apt install git -y
 
@@ -26,6 +26,7 @@ apt-get install -y quilt
 log "Extracting Bazel"
 # Only because first time it extracts the installation
 bazel version
+
 
 echo "-----------------------------------"
 echo "Versions:"

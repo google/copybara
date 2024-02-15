@@ -16,10 +16,13 @@ steps:
 # https://github.com/GoogleCloudPlatform/cloud-builders/issues/641
 - name: 'ubuntu'
   args: ["chmod", "-R", "777", "/builder"]
+# Bazel 7.2 symlinks the workspace in a way that causes nested gits in some of our tests
+- name: 'ubuntu'
+  args: ["rm", "-rf", "/workspace/.git"]
 - name: 'ci'
-  args: ["test",  "--java_language_version=11", "--tool_java_language_version=11", "--java_runtime_version=remotejdk_11", "--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
+  args: ["test", "--enable_bzlmod=false", "--java_language_version=11", "--tool_java_language_version=11", "--java_runtime_version=remotejdk_11", "--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
 options:
   machine_type: N1_HIGHCPU_32
 substitutions:
-  _BAZEL_SHA256: 0a9fb6c7bb0db386888a26940e87829ffad4d2a6bc12bcc32523670ef9ea6505
+  _BAZEL_SHA256: ad5916a7e27eeddbddb003d7671d5a8202c7346e3c682c059b27467b47c0f6d4
 timeout: 30m

@@ -19,7 +19,7 @@ load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_vers
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
-    RULES_JVM_EXTERNAL_TAG = "5.2"
+    RULES_JVM_EXTERNAL_TAG = "6.0"
 
     RULES_JVM_EXTERNAL_SHA = "f86fd42a809e1871ca0aabe89db0d440451219c3ce46c58da240c7dcdc00125f"
 
@@ -27,10 +27,10 @@ def copybara_repositories():
         http_archive,
         name = "platforms",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
-            "https://github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
+            "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.8/platforms-0.0.8.tar.gz",
+            "https://github.com/bazelbuild/platforms/releases/download/0.0.8/platforms-0.0.8.tar.gz",
         ],
-        sha256 = "5308fc1d8865406a49427ba24a9ab53087f17f5266a7aabbfc28823f3916e1ca",
+        sha256 = "8150406605389ececb6da07cbcb509d5637a3ab9a24bc69b1101531367d89d74",
     )
 
     maybe(
@@ -39,7 +39,7 @@ def copybara_repositories():
         # sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
-        patches = ["@io_bazel//third_party:rules_jvm_external_5.2.patch"],
+        patches = ["@io_bazel//third_party:rules_jvm_external_6.0.patch"],
         patch_args = ["-p1"],
     )
 
@@ -104,10 +104,10 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "io_bazel_rules_go",
-        sha256 = "dd926a88a564a9246713a9c00b35315f54cbd46b31a26d5d8fb264c07045f05d",
+        sha256 = "80a98277ad1311dacd837f9b16db62887702e9f1d1c4c9f796d0121a46c8e184",
         urls = [
-            "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.38.1/rules_go-v0.38.1.zip",
-            "https://github.com/bazelbuild/rules_go/releases/download/v0.38.1/rules_go-v0.38.1.zip",
+            "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.46.0/rules_go-v0.46.0.zip",
+            "https://github.com/bazelbuild/rules_go/releases/download/v0.46.0/rules_go-v0.46.0.zip",
         ],
     )
 
