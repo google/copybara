@@ -81,6 +81,37 @@ public class TemplateConfigGeneratorTest {
   }
 
   @Test
+  public void testOnlyMatchNamedFieldsFromTemplate()
+      throws CannotProvideException, InterruptedException {
+    TemplateConfigGenerator generator =
+        new TemplateConfigGenerator("" + "foo = \"::foo::\",\n" + "bar = ::bar::,\n" + "") {
+
+          @Override
+          public String name() {
+            return "test";
+          }
+
+          @Override
+          public ImmutableSet<Input<?>> consumes() {
+            return ImmutableSet.of();
+          }
+
+          @Override
+          public boolean isGenerator(InputProviderResolver resolver) {
+            return true;
+          }
+
+          @Override
+          protected ImmutableMap<Field, Object> resolve(InputProviderResolver resolver) {
+            return ImmutableMap.of(
+                Field.required("foo"), "::i_am_a_provided_value::", Field.required("bar"), "hello");
+          }
+        };
+    assertThat(generator.generate(RESOLVER))
+        .isEqualTo("" + "foo = \"::i_am_a_provided_value::\",\n" + "bar = hello,\n");
+  }
+
+  @Test
   public void testLoadStatements() throws CannotProvideException, InterruptedException {
     TemplateConfigGenerator generator =
         new TemplateConfigGenerator("::load_statements::\n") {

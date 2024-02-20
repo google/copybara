@@ -16,6 +16,7 @@
 
 package com.google.copybara.onboard.core.template;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
@@ -88,6 +89,8 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
       }
     });
     String config = template;
+    // TODO - b/326285980: Handle field values when they are the same format as the named field
+    // templates, e.g. ::foo::.
     for (Entry<Field, Object> e : fields.entrySet()) {
       if (e.getKey().location() == Location.NAMED) {
         config = setNamedParam(config, e.getKey(), e.getValue());
@@ -109,7 +112,14 @@ public abstract class TemplateConfigGenerator implements ConfigGenerator {
     Matcher matcher = NAMED_FIELD.matcher(config);
     Set<String> notReplaced = new HashSet<>();
     while (matcher.find()) {
-      notReplaced.add(matcher.group());
+      String field = matcher.group();
+      // We only want to include named field matches that were present in the original template.
+      if (fields.keySet().stream()
+          .map(f -> String.format("::%s::", f.name()))
+          .collect(toImmutableSet())
+          .contains(field)) {
+        notReplaced.add(field);
+      }
     }
     if (!notReplaced.isEmpty()) {
       throw new IllegalStateException(
