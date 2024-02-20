@@ -50,12 +50,10 @@ public final class GitCredential {
 
   private static final java.util.regex.Pattern NEW_LINE = compile("\\r\\n|\\n|\\r");
 
-  private final String gitBinary;
   private final Duration timeout;
   private final GitEnvironment gitEnv;
 
-  GitCredential(String gitBinary, Duration timeout, GitEnvironment gitEnv) {
-    this.gitBinary = Preconditions.checkNotNull(gitBinary);
+  GitCredential(Duration timeout, GitEnvironment gitEnv) {
     this.timeout = Preconditions.checkNotNull(timeout);
     this.gitEnv = Preconditions.checkNotNull(gitEnv);
   }
@@ -63,19 +61,17 @@ public final class GitCredential {
   /**
    * Execute 'git credential fill' for a url
    *
-   * @param cwd the directory to execute the command. This is important if credential configuration
-   * is set in the local git config.
+   * @param gitDir the directory to execute the command. This is important if credential
+   *     configuration is set in the local git config.
    * @param url url to get the credentials from
    * @return a username and password
-   * @throws RepoException If the url doesn't have protocol (For example https://), the url is
-   * not valid or username/password couldn't be found
+   * @throws RepoException If the url doesn't have protocol (For example https://), the url is not
+   *     valid or username/password couldn't be found
    */
-  public UserPassword fill(Path cwd, String url)
-      throws RepoException, ValidationException {
+  public UserPassword fill(Path gitDir, String url) throws RepoException, ValidationException {
     Map<String, String> env = gitEnv.withNoGitPrompt().getEnvironment();
 
     URI uri;
-
     try {
       uri = URI.create(url);
     } catch (IllegalArgumentException e) {
@@ -84,8 +80,11 @@ public final class GitCredential {
     String protocol = uri.getScheme();
     checkCondition(!Strings.isNullOrEmpty(protocol), "Cannot find the protocol for %s", url);
     String host = uri.getHost();
-    Command cmd = new Command(new String[]{gitBinary, "credential", "fill"}, env,
-        cwd.toFile());
+    Command cmd =
+        new Command(
+            new String[] {gitEnv.resolveGitBinary(), "--git-dir=" + gitDir, "credential", "fill"},
+            env,
+            gitDir.toFile());
     String request = format("protocol=%s\nhost=%s\n", protocol, host);
     if (!Strings.isNullOrEmpty(uri.getPath())) {
       request += format("path=%s\n", CharMatcher.is('/').trimLeadingFrom(uri.getPath()));

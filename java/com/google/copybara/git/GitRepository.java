@@ -1504,7 +1504,7 @@ public class GitRepository {
   }
 
   public UserPassword credentialFill(String url) throws RepoException, ValidationException {
-    return new GitCredential(gitEnv.resolveGitBinary(), Duration.ofMinutes(1), gitEnv)
+    return new GitCredential(Duration.ofMinutes(1), gitEnv)
         .fill(gitDir, url);
   }
 

@@ -55,7 +55,7 @@ public class GitCredentialTest {
         .init()
         .withCredentialHelper("store --file=" + credentialsFile);
 
-    credential = new GitCredential("git", Duration.ofSeconds(5), GitTestUtil.getGitEnv());
+    credential = new GitCredential(Duration.ofSeconds(5), GitTestUtil.getGitEnv());
   }
 
   @Test
