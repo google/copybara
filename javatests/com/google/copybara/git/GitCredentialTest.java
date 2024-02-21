@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ public class GitCredentialTest {
   public void testSeveralPathsSuccess() throws Exception {
     Files.write(credentialsFile, ("https://user:SECRET@somehost.com/path1\n"
         + "https://user:TOPSECRET@somehost.com/path2").getBytes(UTF_8));
-    repo.git(repo.getGitDir(), "config", "--local", "credential.useHttpPath", "true");
+    repo.simpleCommand("config", "--local", "credential.useHttpPath", "true");
 
     assertThat(credential.fill(repoGitDir, "https://somehost.com/path1")
         .getPassword_BeCareful()).isEqualTo("SECRET");

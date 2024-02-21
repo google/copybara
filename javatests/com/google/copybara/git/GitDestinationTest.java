@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1439,7 +1439,7 @@ public class GitDestinationTest {
         .withTimestamp(zonedDateTime);
     process(firstCommitWriter(), firstCommit);
 
-    String authorDate = git("log", "-1", "--pretty=%aI");
+    String authorDate = repo().simpleCommand("log", "-1", "--pretty=%aI").getStdout();
 
     assertThat(authorDate).isEqualTo("2017-06-01T12:19:00-04:00\n");
   }

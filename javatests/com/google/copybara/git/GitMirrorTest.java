@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,8 +111,8 @@ public class GitMirrorTest {
 
     Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());
-    String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
-    String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    String orig = originRepo.simpleCommand("show-ref").getStdout();
+    String dest = destRepo.simpleCommand("show-ref").getStdout();
     assertThat(dest).isEqualTo(orig);
 
     recordingCallback
@@ -129,23 +129,23 @@ public class GitMirrorTest {
   public void testMirrorDryRun() throws Exception {
     Migration mirror = createMirrorObj();
     mirror.run(workdir, ImmutableList.of());
-    String orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
-    String dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    String orig = originRepo.simpleCommand("show-ref").getStdout();
+    String dest = destRepo.simpleCommand("show-ref").getStdout();
     assertThat(dest).isEqualTo(orig);
 
     options.general.dryRunMode = true;
 
     mirror = createMirrorObj();
 
-    String destOld = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    String destOld = destRepo.simpleCommand("show-ref").getStdout();
 
     Files.write(originRepo.getWorkTree().resolve("test.txt"), "updated content".getBytes(UTF_8));
     originRepo.add().files("test.txt").run();
     originRepo.simpleCommand("commit", "-m", "first file");
 
     mirror.run(workdir, ImmutableList.of());
-    orig = originRepo.git(originRepo.getGitDir(), "show-ref").getStdout();
-    dest = destRepo.git(destRepo.getGitDir(), "show-ref").getStdout();
+    orig = originRepo.simpleCommand("show-ref").getStdout();
+    dest = destRepo.simpleCommand("show-ref").getStdout();
     assertThat(dest).isNotEqualTo(orig);
     assertThat(dest).isEqualTo(destOld);
   }
@@ -226,13 +226,12 @@ public class GitMirrorTest {
         + ")\n"
         + "";
 
-    String other = originRepo.git(originRepo.getGitDir(), "show-ref", "refs/heads/other",
-        "-s").getStdout();
+    String other = originRepo.simpleCommand("show-ref", "refs/heads/other", "-s").getStdout();
     Migration migration = loadMigration(cfg, "default");
     migration.run(workdir, ImmutableList.of());
     originRepo.simpleCommand("branch", "-D", "other");
     migration.run(workdir, ImmutableList.of());
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "refs/heads/other", "-s").getStdout())
+    assertThat(destRepo.simpleCommand("show-ref", "refs/heads/other", "-s").getStdout())
         .isEqualTo(other);
   }
 
@@ -277,10 +276,8 @@ public class GitMirrorTest {
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
-    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
-        .getStdout();
-    String dest = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_primary", "-s")
-        .getStdout();
+    String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();
+    String dest = destRepo.simpleCommand("show-ref", "origin_primary", "-s").getStdout();
     assertThat(dest).isEqualTo(origPrimary);
     checkRefDoesntExist("refs/heads/" + primaryBranch);
     checkRefDoesntExist("refs/heads/other");
@@ -303,15 +300,14 @@ public class GitMirrorTest {
     GitRepository repository = ((Mirror) loadMigration(cfg, "default")).getLocalRepo();
 
     UserPassword result = repository
-        .credentialFill("https://somehost.com/foo/bar");
+        .credentialFill("https://somehost.com");
 
     assertThat(result.getUsername()).isEqualTo("user");
     assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
   }
 
   private void checkRefDoesntExist(String ref) throws RepoException {
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref").getStdout())
-        .doesNotContain(" " + ref + "\n");
+    assertThat(destRepo.simpleCommand("show-ref").getStdout()).doesNotContain(" " + ref + "\n");
   }
 
   @Test
@@ -484,10 +480,8 @@ public class GitMirrorTest {
         + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
-    String origPrimary = originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s")
-        .getStdout();
-    String dest = destRepo.git(destRepo.getGitDir(), "show-ref", "origin_primary", "-s")
-        .getStdout();
+    String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();
+    String dest = destRepo.simpleCommand("show-ref", "origin_primary", "-s").getStdout();
     assertThat(dest).isEqualTo(origPrimary);
     checkRefDoesntExist("refs/heads/" + primaryBranch);
     checkRefDoesntExist("refs/heads/other");
@@ -944,12 +938,11 @@ public class GitMirrorTest {
             + ")";
     Migration mirror = loadMigration(cfg, "default");
     mirror.run(workdir, ImmutableList.of());
-    String origPrimary =
-        originRepo.git(originRepo.getGitDir(), "show-ref", primaryBranch, "-s").getStdout();
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", primaryBranch, "-s").getStdout())
+    String origPrimary = originRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout();
+
+    assertThat(destRepo.simpleCommand("show-ref", primaryBranch, "-s").getStdout())
         .isEqualTo(origPrimary);
-    assertThat(destRepo.git(destRepo.getGitDir(), "show-ref", "oss", "-s").getStdout())
-        .isEqualTo(origPrimary);
+    assertThat(destRepo.simpleCommand("show-ref", "oss", "-s").getStdout()).isEqualTo(origPrimary);
     return mirror;
   }
 
