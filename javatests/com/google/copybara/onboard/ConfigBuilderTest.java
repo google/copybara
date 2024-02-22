@@ -39,10 +39,10 @@ public final class ConfigBuilderTest {
           + "core.workflow(\n"
           + "    name = 'default',\n"
           + "    origin = git.origin(\n"
-          + "    url = 'github.com/origin'), \n"
+          + "    url = \"github.com/origin\"), \n"
           + "    destination = git.destination(\n"
-          + "    url = 'github.com/destination'),\n"
-          + "    authoring = authoring.pass_thru('Name <foo@bar.com>'),\n"
+          + "    url = \"github.com/destination\"),\n"
+          + "    authoring = authoring.pass_thru(\"Name <foo@bar.com>\"),\n"
           + "    mode='SQUASH',\n"
           + "    transformations = transformations,\n"
           + ")";

@@ -48,7 +48,7 @@ public class ConfigBuilder {
               name));
     }
     configInProgress =
-        configInProgress.replace(String.format("::%s::", name), String.format("'%s'", value));
+        configInProgress.replace(String.format("::%s::", name), String.format("\"%s\"", value));
   }
 
   public void setNamedStarlarkParameter(String name, String starlark) {
