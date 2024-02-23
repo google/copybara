@@ -79,7 +79,7 @@ import javax.annotation.Nullable;
  * invoke Copybara.
  */
 public class Main {
-
+  // TEST TEST TEST
   private static final String COPYBARA_NAMESPACE = "com.google.copybara";
 
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
