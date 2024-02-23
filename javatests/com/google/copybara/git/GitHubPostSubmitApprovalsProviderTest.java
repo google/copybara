@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,7 +120,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
   public void testGitHubPostSubmitApprovalsProvider_withEmptyChangeList() throws Exception {
     ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github);
     ImmutableList<ChangeWithApprovals> changes = ImmutableList.of();
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
     assertThat(approvalsResult.getChanges()).isEmpty();
   }
 
@@ -187,7 +187,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             gitRepository, "google/copybara", "3368ee55bcad7df67a18b588144e0888d6fa93ac");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
     assertThat(approvalsResult.getChanges()).isNotEmpty();
     assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
         .containsExactly(
@@ -278,7 +278,12 @@ public final class GitHubPostSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             gitRepository, "google/copybara", "3368ee55bcad7df67a18b588144e0888d6fa93ac");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            null,
+            console);
     assertThat(approvalsResult.getChanges()).isNotEmpty();
     assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
         .containsExactly(
@@ -363,7 +368,7 @@ public final class GitHubPostSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
             gitRepository, "google/copybara", "3368ee55bcad7df67a18b588144e0888d6fa93ac");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
     assertThat(approvalsResult.getChanges().size()).isEqualTo(changes.size());
     assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
         .containsExactly(

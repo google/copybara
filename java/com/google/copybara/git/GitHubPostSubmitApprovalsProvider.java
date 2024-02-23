@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.util.console.Console;
+import java.util.Collection;
+import java.util.function.Function;
 
 /** Fills out change predicates for post submit GitHub origin changes. */
 public class GitHubPostSubmitApprovalsProvider implements ApprovalsProvider {
@@ -77,7 +79,9 @@ public class GitHubPostSubmitApprovalsProvider implements ApprovalsProvider {
    */
   @Override
   public ApprovalsResult computeApprovals(
-      ImmutableList<ChangeWithApprovals> changes, Console console)
+      ImmutableList<ChangeWithApprovals> changes,
+      Function<String, Collection<String>> labelFinder,
+      Console console)
       throws RepoException, ValidationException {
     if (changes.isEmpty()) {
       return new ApprovalsResult(ImmutableList.of());

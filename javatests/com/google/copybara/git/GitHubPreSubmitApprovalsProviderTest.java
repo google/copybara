@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,8 +128,143 @@ public final class GitHubPreSubmitApprovalsProviderTest {
     ApprovalsProvider underTest =
         getApprovalProviderUnderTest(builder.github);
     ImmutableList<ChangeWithApprovals> changes = ImmutableList.of();
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            null, console);
     assertThat(approvalsResult.getChanges()).isEmpty();
+  }
+
+  @Test
+  public void testGitHubApprovalsProvider_withFullyCompliantChangeListButWithLabelFinder()
+      throws Exception {
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
+        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google"),
+        GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":true}"));
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/copybara/pulls/1/reviews?per_page=100"),
+        GitTestUtil.mockResponse(
+            "["
+          +    "{"
+          +     "\"user\": {"
+          +       "\"login\": \"copybarareviewer\""
+          +     "},"
+          +     "\"commit_id\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\""
+          +    "}"
+          + "]"
+        )
+    );
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        GitTestUtil.mockResponse(
+           "{"
+          + "\"data\": {"
+          +   "\"repository\": {"
+          +     "\"ref\": {"
+          +       "\"target\": {"
+          +        "\"id\": \"C_notreadatall\","
+          +         "\"history\": {"
+          +           "\"nodes\": ["
+          +             "{"
+          +               "\"id\": \"C_notreadatall\","
+          +                "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
+          +                "\"associatedPullRequests\": {"
+          +                  "\"edges\": ["
+          +                     "{"
+          +                       "\"node\": {"
+          +                         "\"headRefOid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
+          +                         "\"title\": \"title place holder\","
+          +                           "\"author\": {"
+          +                             "\"login\": \"copybaraauthor\""
+          +                           "},"
+          +                           "\"reviewDecision\": \"APPROVED\","
+          +                           "\"latestOpinionatedReviews\": {"
+          +                              "\"edges\": ["
+          +                                "{"
+          +                                 "\"node\": {"
+          +                                   "\"author\": {"
+          +                                     "\"login\": \"copybarareviewer\""
+          +                                   "},"
+          +                                   "\"state\": \"APPROVED\","
+          +                                   "\"commit\": {"
+          +                                     "\"oid\":"
+          +                                       "\"3368ee55bcad7df67a18b588144e0888d6fa93ac\""
+          +                                   "}"
+          +                                 "}"
+          +                                "}"
+          +                              "]"
+          +                            "}"
+          +                           "}"
+          +                         "}"
+          +                       "]"
+          +                     "}"
+          +                   "}"
+          +                 "]"
+          +               "}"
+          +             "}"
+          +           "}"
+          +         "}"
+          +       "}"
+          +     "}"
+        ));
+    ApprovalsProvider underTest =
+        getApprovalProviderUnderTest(builder.github);
+    ImmutableListMultimap<String, String> labels =
+        ImmutableListMultimap.of(
+            GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1,
+            "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+            GitHubPrOrigin.GITHUB_BASE_BRANCH,
+            "main",
+            GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL,
+            "1",
+            GitHubPrOrigin.GITHUB_PR_HEAD_SHA,
+            "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+            GitHubPrOrigin.GITHUB_PR_USER,
+            "copybaraauthor");
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            "google/copybara",
+            ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", ImmutableListMultimap.of()),
+            "3368ee55bcad7df67a18b588144e0888d6fa93ac");
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            (label) -> labels.get(label),
+            console);
+    assertThat(approvalsResult.getChanges()).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
+        .containsExactly(
+            new StatementPredicate(
+                GitHubSecuritySettingsValidator.TWO_FACTOR_PREDICATE_TYPE,
+                "Whether the organization that the change originated from has two factor"
+                    + " authentication requirement enabled.",
+                Iterables.getLast(changes).getChange().getRevision().getUrl()),
+            new StatementPredicate(
+                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
+                "Whether the organization that the change originated from has allstar"
+                    + " installed",
+                Iterables.getLast(changes).getChange().getRevision().getUrl()),
+            new UserPredicate(
+                "copybaraauthor",
+                UserPredicate.UserPredicateType.OWNER,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."),
+            new UserPredicate(
+                "copybarareviewer",
+                UserPredicate.UserPredicateType.LGTM,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybarareviewer' approved change with sha"
+                    + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."));
   }
 
   @Test
@@ -229,7 +364,11 @@ public final class GitHubPreSubmitApprovalsProviderTest {
             "google/copybara",
             ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
             "3368ee55bcad7df67a18b588144e0888d6fa93ac");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            null, console);
     assertThat(approvalsResult.getChanges()).isNotEmpty();
     assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
         .containsExactly(
@@ -352,7 +491,11 @@ public final class GitHubPreSubmitApprovalsProviderTest {
             ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
             "3368ee55bcad7df67a18b588144e0888d6fa93ac",
             "5a4c8dae133a7e12407449296b06a9a4f09443d3");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            null, console);
     assertThat(approvalsResult.getChanges().size()).isEqualTo(changes.size());
     assertThat(Iterables.getFirst(approvalsResult.getChanges(), null).getPredicates())
         .containsExactly(
@@ -491,7 +634,11 @@ public final class GitHubPreSubmitApprovalsProviderTest {
             "google/copybara",
             ImmutableMap.of("3368ee55bcad7df67a18b588144e0888d6fa93ac", labels),
             "3368ee55bcad7df67a18b588144e0888d6fa93ac");
-    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, console);
+    ApprovalsResult approvalsResult =
+        underTest.computeApprovals(
+            changes,
+            /** labelFinder= */
+            null, console);
     assertThat(approvalsResult.getChanges().size()).isEqualTo(changes.size());
     assertThat(Iterables.getLast(approvalsResult.getChanges()).getPredicates())
         .containsExactly(

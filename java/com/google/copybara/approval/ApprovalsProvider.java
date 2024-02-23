@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Google Inc.
+ * Copyright (C) 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.console.Console;
+import java.util.Collection;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 
 /** An approvals validator that is provided by the origin */
 public interface ApprovalsProvider {
@@ -28,13 +31,18 @@ public interface ApprovalsProvider {
    * Given a list of changes, return a list of changes that have approvals
    *
    * @param changes changes to be verified with the existing approvals.
+   * @param labelFinder describes how to find label inputs in case the labels can't be found among
+   *     {@code changes}
    * @param console console, in case some message need to be printed
    * @throws RepoException if access to the origin system fails because of being unavailable, server
    *     error, etc.
    * @throws ValidationException if failure is attributable to the user setup (e.g. permission
    *     errors, etc.)
    */
-  ApprovalsResult computeApprovals(ImmutableList<ChangeWithApprovals> changes, Console console)
+  ApprovalsResult computeApprovals(
+      ImmutableList<ChangeWithApprovals> changes,
+      @Nullable Function<String, Collection<String>> labelFinder,
+      Console console)
       throws RepoException, ValidationException;
 
   /**

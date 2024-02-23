@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Google Inc.
+ * Copyright (C) 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,17 @@ package com.google.copybara.approval;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.util.console.Console;
+import java.util.Collection;
+import java.util.function.Function;
 
 /** An approval provider that return all the changes as not approved */
 public class NoneApprovedProvider implements ApprovalsProvider {
 
   @Override
   public ApprovalsResult computeApprovals(
-      ImmutableList<ChangeWithApprovals> changes, Console console) {
+      ImmutableList<ChangeWithApprovals> changes,
+      Function<String, Collection<String>> labelFinder,
+      Console console) {
     return new ApprovalsResult(changes);
   }
 }

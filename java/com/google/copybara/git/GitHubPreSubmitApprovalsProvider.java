@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
+import java.util.Collection;
+import java.util.function.Function;
 
 /** Fills out change predicates for post submit GitHub origin changes. */
 public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
@@ -63,7 +65,9 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
    */
   @Override
   public ApprovalsResult computeApprovals(
-      ImmutableList<ChangeWithApprovals> changes, Console console)
+      ImmutableList<ChangeWithApprovals> changes,
+      Function<String, Collection<String>> labelFinder,
+      Console console)
       throws RepoException, ValidationException {
     if (changes.isEmpty()) {
       return new ApprovalsResult(ImmutableList.of());
@@ -101,17 +105,20 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
     // find the branch the pull request is being made against. Need this to find validate postsubmit
     // commits.
     String baseBranch =
-        Iterables.getOnlyElement(extractLabelValues(changes, GitHubPrOrigin.GITHUB_BASE_BRANCH));
+        Iterables.getOnlyElement(
+            extractLabelValues(changes, labelFinder, GitHubPrOrigin.GITHUB_BASE_BRANCH));
     String prNumber =
         Iterables.getOnlyElement(
-            extractLabelValues(changes, GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL));
+            extractLabelValues(changes, labelFinder, GitHubPrOrigin.GITHUB_PR_NUMBER_LABEL));
     String prHeadSha =
-        Iterables.getOnlyElement(extractLabelValues(changes, GitHubPrOrigin.GITHUB_PR_HEAD_SHA));
+        Iterables.getOnlyElement(
+            extractLabelValues(changes, labelFinder, GitHubPrOrigin.GITHUB_PR_HEAD_SHA));
     String prAuthor =
-        Iterables.getOnlyElement(extractLabelValues(changes, GitHubPrOrigin.GITHUB_PR_USER));
+        Iterables.getOnlyElement(
+            extractLabelValues(changes, labelFinder, GitHubPrOrigin.GITHUB_PR_USER));
     String baselineSha =
         Iterables.getOnlyElement(
-            extractLabelValues(changes, GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1));
+            extractLabelValues(changes, labelFinder, GitHubPrOrigin.GITHUB_BASE_BRANCH_SHA1));
 
     // A bit counterintuitive, but it is actually backwards, [latest_change...earliest_change].
     // This finds the partition point where inclusively at the baseline index and to the right is a
@@ -238,13 +245,21 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
   }
 
   private ImmutableList<String> extractLabelValues(
-      ImmutableList<ChangeWithApprovals> changes, String key) throws RepoException {
+      ImmutableList<ChangeWithApprovals> changes,
+      Function<String, Collection<String>> labelFinder,
+      String key)
+      throws RepoException {
     // not all revisions share labels so find the first one that has what we are looking for
     for (ChangeWithApprovals change : changes) {
       ImmutableList<String> values = change.getChange().getRevision().associatedLabel(key);
       if (!values.isEmpty()) {
         return values;
       }
+    }
+
+    // look among the public and hidden transform labels
+    if (labelFinder != null && !labelFinder.apply(key).isEmpty()) {
+      return ImmutableList.copyOf(labelFinder.apply(key));
     }
     throw new RepoException(String.format("Could not find the value for label '%s'", key));
   }
