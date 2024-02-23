@@ -47,4 +47,32 @@ public class GitHubPrIntegrateLabelTest {
             + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ", repo, options))
         .isNotNull();
   }
+
+  @Test
+  public void testParseLabel_containsDot() {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    assertThat(
+            GitHubPrIntegrateLabel.parse(
+                "https://github.com/foo.cpp/bar/pull/18"
+                    + " from copybarrista:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+                repo,
+                options))
+        .isNotNull();
+  }
+
+  @Test
+  public void testParseLabel_hyphenatedUser() {
+    GeneralOptions options =
+        new GeneralOptions(ImmutableMap.of(), FileSystems.getDefault(), console);
+
+    assertThat(
+            GitHubPrIntegrateLabel.parse(
+                "https://github.com/foo/bar/pull/18"
+                    + " from hyphenated-user:main dbb8386719596088dbf7513fad87559b2ff796cc   ",
+                repo,
+                options))
+        .isNotNull();
+  }
 }
