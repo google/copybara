@@ -226,6 +226,7 @@ public final class MergeImportToolTest {
     writeFile(baselineWorkdir, fileName, commonFileContents);
     writeFile(originWorkdir, fileName, "foo\n".concat(commonFileContents));
     writeFile(destinationWorkdir, fileName, commonFileContents);
+    underTest = new MergeImportTool(console, commandLineDiffUtil, 10, null);
 
     underTest.mergeImport(
         originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);

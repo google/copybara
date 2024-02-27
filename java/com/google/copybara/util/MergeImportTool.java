@@ -336,7 +336,7 @@ public final class MergeImportTool {
         }
       }
       // file2 has contents remaining
-      if (inputStream2.read() != 1) {
+      if (inputStream2.read() != -1) {
         return false;
       }
     }
