@@ -44,9 +44,9 @@ public class GeneratorOptions implements Option {
 
   @Parameter(
       names = {"--inputs"},
-      description = "Inputs for code generation", converter = MapConverter.class)
-  @VisibleForTesting
-  ImmutableMap<String, String> inputs = ImmutableMap.of();
+      description = "Inputs for code generation",
+      converter = MapConverter.class)
+  public ImmutableMap<String, String> inputs = ImmutableMap.of();
 
   @Parameter(
       names = "--new-package",
