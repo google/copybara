@@ -294,8 +294,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
 
     if (sourceRef == null) {
       // no source ref specified, attempt to infer
-      Optional<String> inferImportBaselineResult = patchRegenerator.inferImportBaseline();
+      Optional<String> inferImportBaselineResult =
+          patchRegenerator.inferImportBaseline(regenTarget, workdir);
       if (inferImportBaselineResult.isPresent()) {
+        console.infoFmt(
+            "Inferred import baseline %s from METADATA", inferImportBaselineResult.get());
         importRevision = workflow.getOrigin().resolve(inferImportBaselineResult.get());
         runHelper =
             createRunHelper(workflow, workdir, importRevision, inferImportBaselineResult.get());
@@ -324,6 +327,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
             "Regenerating with import baseline from origin revision %s", importRevision.asString());
       }
     } else {
+      console.infoFmt("Regenerating with import baseline from source ref %s", sourceRef);
       importRevision = workflow.getOrigin().resolve(sourceRef);
       runHelper = createRunHelper(workflow, workdir, importRevision, sourceRef);
     }

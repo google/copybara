@@ -163,7 +163,8 @@ public interface Destination<R extends Revision> extends ConfigItemDescription, 
      * that is being imported. Should be called for migrations that are using an import baseline for
      * merge import.
      */
-    default Optional<String> inferImportBaseline() {
+    default Optional<String> inferImportBaseline(String regenTarget, Path workdir)
+        throws RepoException, ValidationException {
       return Optional.empty();
     }
   }

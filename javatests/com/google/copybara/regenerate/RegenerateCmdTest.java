@@ -200,7 +200,7 @@ public class RegenerateCmdTest {
   @Test
   public void testCallsUpdateChange() throws Exception {
     setupFooOriginImport();
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
     setupTarget("bar");
 
@@ -229,7 +229,7 @@ public class RegenerateCmdTest {
 
     String testfile = "asdf.txt";
     origin.singleFileChange(0, "foo description", testfile, "foo");
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
     writeDestination("bar", testfile, "bar");
 
@@ -258,7 +258,7 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", "test.txt", "foo");
 
     // infer the first change as the baseline
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     origin.singleFileChange(1, "bar description", "test.txt", "bar");
@@ -301,7 +301,7 @@ public class RegenerateCmdTest {
     origin.singleFileChange(0, "foo description", "test.txt", "foo");
     origin.singleFileChange(1, "bar description", "test.txt", "bar");
 
-    when(patchRegenerator.inferImportBaseline()).thenReturn(Optional.empty());
+    when(patchRegenerator.inferImportBaseline(any(), any())).thenReturn(Optional.empty());
 
     setupTarget("bar");
     writeDestination("bar", "test.txt", "destinationbar");
@@ -340,7 +340,7 @@ public class RegenerateCmdTest {
   public void testImportBaseline_noSourceRef_noInferredBaseline_emitsWarning() throws Exception {
     origin.singleFileChange(0, "foo description", "test.txt", "foo");
 
-    when(patchRegenerator.inferImportBaseline()).thenReturn(Optional.empty());
+    when(patchRegenerator.inferImportBaseline(any(), any())).thenReturn(Optional.empty());
 
     setupTarget("bar");
     writeDestination("bar", "test.txt", "destinationbar");
@@ -371,7 +371,7 @@ public class RegenerateCmdTest {
 
     origin.singleFileChange(1, "bar description", "test.txt", "bar");
     // infer the second change as the baseline
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     setupTarget("bar");
@@ -412,7 +412,7 @@ public class RegenerateCmdTest {
   @Test
   public void testRegenerate_noOptionTarget_inferredTarget_usesInferredTarget() throws Exception {
     origin.singleFileChange(1, "foo change", "test.txt", "foo");
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     setupTarget("bar");
@@ -438,7 +438,7 @@ public class RegenerateCmdTest {
   @Test
   public void testRegenerate_optionTarget_inferredTarget_usesOptionTarget() throws Exception {
     origin.singleFileChange(1, "foo change", "test.txt", "foo");
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     setupTarget("bar");
@@ -463,7 +463,7 @@ public class RegenerateCmdTest {
   @Test
   public void testRegenerate_noOptionTarget_noInferredTarget_throws() throws Exception {
     origin.singleFileChange(1, "foo change", "test.txt", "foo");
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     setupTarget("bar");
@@ -495,7 +495,7 @@ public class RegenerateCmdTest {
     writeDestination("bar", testfile, "bar");
 
     options.regenerateOptions.setRegenImportBaseline(true);
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
@@ -527,7 +527,7 @@ public class RegenerateCmdTest {
     writeDestination("bar", testfile, "bar");
 
     options.regenerateOptions.setRegenImportBaseline(true);
-    when(patchRegenerator.inferImportBaseline())
+    when(patchRegenerator.inferImportBaseline(any(), any()))
         .thenReturn(Optional.of(origin.getLatestChange().asString()));
 
     RegenerateCmd cmd = getCmd(getImportAutopatchesConfigString());
