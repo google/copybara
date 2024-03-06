@@ -134,15 +134,15 @@ public class WorkflowTest {
   private static final Author FORCED_AUTHOR =
       new Author("Forced Author", "<forcedauthor@google.com>");
 
-  private DummyOrigin origin;
+  protected DummyOrigin origin;
   private RecordsProcessCallDestination destination;
-  private OptionsBuilder options;
+  protected OptionsBuilder options;
   private String authoring;
 
   private SkylarkTestExecutor skylark;
 
-  private ImmutableList<String> transformations;
-  private Path workdir;
+  protected ImmutableList<String> transformations;
+  protected Path workdir;
   private boolean includeReleaseNotes;
   private String originFiles;
   private String destinationFiles;
@@ -218,11 +218,11 @@ public class WorkflowTest {
     return GitTestUtil.getGitEnv();
   }
 
-  private TestingConsole console() {
+  protected TestingConsole console() {
     return (TestingConsole) options.general.console();
   }
 
-  private Workflow<?, ?> workflow() throws ValidationException, IOException {
+  protected Workflow<?, ?> workflow() throws ValidationException, IOException {
     origin.addSimpleChange(/*timestamp*/ 42);
     return skylarkWorkflow("default", SQUASH);
   }
