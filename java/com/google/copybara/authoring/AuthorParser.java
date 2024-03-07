@@ -16,8 +16,10 @@
 
 package com.google.copybara.authoring;
 
+import static com.google.common.base.Throwables.throwIfInstanceOf;
+import static com.google.common.base.Throwables.throwIfUnchecked;
+
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -59,7 +61,8 @@ public class AuthorParser {
       // define authors have a penalty because of the regex check/group.
       return CACHE.get(author);
     } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), InvalidAuthorException.class);
+      throwIfInstanceOf(e.getCause(), InvalidAuthorException.class);
+      throwIfUnchecked(e.getCause());
       throw new IllegalStateException(e);
     }
   }

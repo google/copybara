@@ -16,8 +16,10 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Throwables.throwIfInstanceOf;
+import static com.google.common.base.Throwables.throwIfUnchecked;
+
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -71,9 +73,10 @@ public class LocalParallelizer {
       //TODO We cannot do much here. We might expose InterruptedException all the way up to Main...
       throw new RuntimeException("Interrupted", e);
     } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), IOException.class, ValidationException.class);
+      throwIfInstanceOf(e.getCause(), IOException.class);
+      throwIfInstanceOf(e.getCause(), ValidationException.class);
+      throwIfUnchecked(e.getCause());
       throw new RuntimeException("Unhandled error", e.getCause());
-
     }
   }
 
