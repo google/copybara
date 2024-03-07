@@ -16,6 +16,8 @@
 
 package com.google.copybara;
 
+import static com.google.common.base.Throwables.throwIfInstanceOf;
+import static com.google.common.base.Throwables.throwIfUnchecked;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.TransformWork.COPYBARA_CONFIG_PATH_LABEL;
 import static com.google.copybara.TransformWork.COPYBARA_CONTEXT_REFERENCE_LABEL;
@@ -38,7 +40,6 @@ import static org.junit.Assert.fail;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -737,8 +738,9 @@ public class WorkflowTest {
                   TransformResult transformResult, Glob destinationFiles, Console console)
                   throws ValidationException, RepoException {
                 assertThat(exception).isNotNull();
-                Throwables.propagateIfPossible(
-                    exception, ValidationException.class, RepoException.class);
+                throwIfInstanceOf(exception, ValidationException.class);
+                throwIfInstanceOf(exception, RepoException.class);
+                throwIfUnchecked(exception);
                 throw new RuntimeException(exception);
               }
             };
