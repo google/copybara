@@ -242,6 +242,60 @@ public class RustModuleTest {
   }
 
   @Test
+  public void testDownloadCrateFuzzers_sha1ReferenceNotFound() throws Exception {
+    Path cratePath = workdir.resolve("foo_crate_v1");
+    Path remote = Files.createTempDirectory("remote");
+    String url = "file://" + remote.toFile().getAbsolutePath();
+    GitRepository repo = getRepo(remote);
+    repo.simpleCommand("config", "user.name", "Foo");
+    repo.simpleCommand("config", "user.email", "foo@bar.com");
+
+    GitTestUtil.writeFile(remote, "fuzz/foo.rs", "test1");
+    String fuzzCargoToml = "[package.metadata]\ncargo-fuzz = true\n";
+    GitTestUtil.writeFile(remote, "fuzz/Cargo.toml", fuzzCargoToml);
+
+    GitTestUtil.writeFile(remote, "ignore.rs", "test3");
+    repo.add().all().run();
+    repo.git(remote, "commit", "-m", "first commit");
+
+    // Set up cargo.toml with Git repo info
+    Files.createDirectories(cratePath);
+    String cargoToml = String.format("[package]\n" + "repository = \"%s\"", url);
+    String cargoVcsJson =
+        String.format(
+            "{\n"
+                + "  \"git\": {\n"
+                + "    \"sha1\": \"%s\"\n"
+                + "  },\n"
+                + "  \"path_in_vcs\": \"%s\"\n"
+                + "}",
+            "should_not_exist", "");
+    Files.writeString(cratePath.resolve("Cargo.toml"), cargoToml);
+    Files.writeString(cratePath.resolve(".cargo_vcs_info.json"), cargoVcsJson);
+
+    // Run download_fuzzers in a transform
+    runTransformation(
+        "def test_download_fuzz(ctx):\n"
+            + "   fuzz_path = rust.download_fuzzers(ctx = ctx, crate_path ="
+            + " \"foo_crate_v1\", fuzz_excludes = None, crate_name = \"foo-crate-v1\")\n"
+            + "   ctx.console.info(\"fuzz_path: \" + fuzz_path.path if fuzz_path else"
+            + " \"None\")\n"
+            + "t = core.dynamic_transform(lambda ctx: test_download_fuzz(ctx))");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "Unable to download fuzzers. Failed to resolve the SHA1 reference in the upstream"
+                + " repo.");
+  }
+
+  private GitRepository getRepo(Path remote) throws RepoException {
+    return GitRepository.newRepo(
+            true, remote, new GitEnvironment(optionsBuilder.general.getEnvironment()))
+        .init();
+  }
+
+  @Test
   public void testDownloadCrateFuzzers_fuzzExcludes() throws Exception {
     // Set up remote Git repo with fuzzers
     Path cratePath = workdir.resolve("foo_crate_v1");
@@ -271,10 +325,7 @@ public class RustModuleTest {
     Path remote = Files.createTempDirectory("remote");
     Path cratePath = workdir.resolve("foo_crate_v1");
     String url = "file://" + remote.toFile().getAbsolutePath();
-    GitRepository repo =
-        GitRepository.newRepo(
-                true, remote, new GitEnvironment(optionsBuilder.general.getEnvironment()))
-            .init();
+    GitRepository repo = getRepo(remote);
     repo.simpleCommand("config", "user.name", "Foo");
     repo.simpleCommand("config", "user.email", "foo@bar.com");
 
@@ -329,10 +380,7 @@ public class RustModuleTest {
       throws IOException, RepoException, ValidationException {
     Path remote = Files.createTempDirectory("remote");
     String url = "file://" + remote.toFile().getAbsolutePath();
-    GitRepository repo =
-        GitRepository.newRepo(
-                true, remote, new GitEnvironment(optionsBuilder.general.getEnvironment()))
-            .init();
+    GitRepository repo = getRepo(remote);
     repo.simpleCommand("config", "user.name", "Foo");
     repo.simpleCommand("config", "user.email", "foo@bar.com");
 

@@ -26,6 +26,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.TransformWork;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.GitDestinationReader;
@@ -242,8 +243,12 @@ public class RustModule implements StarlarkValue {
             relativePath,
             fuzzersDir.get());
       }
-
-      return null;
+    } catch (CannotResolveRevisionException e) {
+      ctx.getConsole()
+          .warnFmt(
+              "Unable to download fuzzers. Failed to resolve the SHA1 reference in the upstream"
+                  + " repo. Cause: %s",
+              e);
     } catch (IOException e) {
       logError(ctx, e);
       throw new ValidationException("Failed to obtain Rust fuzzers from Git.", e);
@@ -251,6 +256,8 @@ public class RustModule implements StarlarkValue {
       logError(ctx, e);
       throw e;
     }
+
+    return null;
   }
 
   protected Optional<String> getSha1FromCargoVcsJson(JsonObject vcsJsonObject) {
