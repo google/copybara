@@ -220,7 +220,7 @@ public class RustModule implements StarlarkValue {
         return null;
       }
 
-      ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url, sha1);
+      ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url.get(), sha1.get());
       GitRepository repo = gitOptions.cachedBareRepoForUrl(url.get());
       GitRevision rev = getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo());
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
