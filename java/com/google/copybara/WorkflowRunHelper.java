@@ -926,7 +926,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
 
       Optional<byte[]> consistencyFile = Optional.empty();
-      if (workflow.isConsistencyFileMergeImport()) {
+      if (workflow.isConsistencyFileMergeImport() && !workflow.disableConsistencyMergeImport()) {
         try {
           consistencyFile =
               Optional.of(

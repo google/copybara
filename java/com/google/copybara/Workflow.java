@@ -701,6 +701,11 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
         && getConsistencyFilePath() != null;
   }
 
+  // return whether the consistency file merge behavior has been toggled off
+  public boolean disableConsistencyMergeImport() {
+    return workflowOptions.disableConsistencyMergeImport;
+  }
+
   @Nullable
   public String getConsistencyFilePath() {
     return consistencyFilePath;

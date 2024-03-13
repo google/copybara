@@ -248,12 +248,21 @@ public class WorkflowOptions implements Option {
 
   @Parameter(
       names = "--debug-merge-import",
-      description = "Debug merge import for files matching the regex. You can use something like"
-          + " \".*/myfile.cc\" and it will show debugging information for files that matches that"
-          + " regex (e.g. foo/myfile.cc)",
+      description =
+          "Debug merge import for files matching the regex. You can use something like"
+              + " \".*/myfile.cc\" and it will show debugging information for files that matches"
+              + " that regex (e.g. foo/myfile.cc)",
       hidden = true,
       arity = 1)
   String debugMergeImport = null;
+
+  @Parameter(
+      names = "--disable-consistency-merge-import",
+      description =
+          "If merge import is set to use consistency in the config, disable it for this run. This"
+              + " uses an import baseline instead.",
+      arity = 1)
+  public boolean disableConsistencyMergeImport = false;
 
   @Nullable
   public Author getDefaultAuthorFlag() throws EvalException {

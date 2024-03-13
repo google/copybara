@@ -2429,15 +2429,74 @@ public class WorkflowTest {
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
-    wr.write(TransformResults.of(d1, new DummyRevision("1")),
-        Glob.createGlob(ImmutableList.of(destinationFiles)), console());
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
 
-    Throwable throwable = assertThrows(ValidationException.class, () -> {
-      workflow.run(workdir, ImmutableList.of("HEAD"));
-    });
+    Throwable throwable =
+        assertThrows(
+            ValidationException.class,
+            () -> {
+              workflow.run(workdir, ImmutableList.of("HEAD"));
+            });
     assertThat(throwable)
         .hasMessageThat()
         .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
+  }
+
+  @Test
+  public void mergeImport_consistencyFile_isOverridden() throws Exception {
+    options.workflowOptions.disableConsistencyMergeImport = true;
+    // options setup
+    skylark = new SkylarkTestExecutor(options);
+
+    // config setup
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    Path testDir = Files.createTempDirectory("consistencyFile");
+    String consistencyFilePath = workflow.getConsistencyFilePath();
+
+    // create writer for emulating manual destination changes
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+
+    // create the baseline origin change
+    Path o1 = Files.createDirectories(testDir.resolve("o1"));
+    writeFile(o1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(0, o1, "test change", true);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a destination-only change that also edits the consistency file
+    // and results in an invalid state
+    Path d1 = Files.createDirectories(testDir.resolve("d1"));
+    // include the existing state
+    writeProcessedChange(latestProcessedChange(), d1);
+    assertThatPath(d1).containsFiles(consistencyFilePath);
+
+    // spoof an invalid ConsistencyFile state
+    Files.delete(d1.resolve(consistencyFilePath));
+    writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
+    writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
+    writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
+
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // should not throw
+    workflow.run(workdir, ImmutableList.of("HEAD"));
   }
 
   @Test
