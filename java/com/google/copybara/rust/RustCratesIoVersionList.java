@@ -41,22 +41,48 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
   private final String crateName;
 
   private final RemoteFileOptions remoteFileOptions;
+  private final boolean matchPreReleaseVersions;
 
   public static RustCratesIoVersionList forCrate(
-      String crate, RemoteFileOptions remoteFileOptions) {
-    return new RustCratesIoVersionList(crate, remoteFileOptions);
+      String crate, RemoteFileOptions remoteFileOptions, boolean ignorePreReleaseVersions) {
+    return new RustCratesIoVersionList(crate, remoteFileOptions, ignorePreReleaseVersions);
   }
 
-  private RustCratesIoVersionList(String crateName, RemoteFileOptions remoteFileOptions) {
+  private RustCratesIoVersionList(
+      String crateName, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
     this.crateName = crateName;
     this.remoteFileOptions = remoteFileOptions;
+    this.matchPreReleaseVersions = matchPreReleaseVersions;
   }
 
   @Override
-  public ImmutableSet<String> list() throws RepoException {
-    return getVersionList().stream()
-        .map(RustRegistryVersionObject::getVers)
-        .collect(toImmutableSet());
+  public ImmutableSet<String> list() throws RepoException, ValidationException {
+    try {
+      return getVersionList().stream()
+          .map(RustRegistryVersionObject::getVers)
+          .filter(this::filterPreReleaseVersions)
+          .collect(toImmutableSet());
+    } catch (IllegalArgumentException e) {
+      if (e.getCause() instanceof ValidationException) {
+        throw (ValidationException) e.getCause();
+      }
+
+      throw e;
+    }
+  }
+
+  private boolean filterPreReleaseVersions(String version) {
+    if (!matchPreReleaseVersions) {
+      try {
+        return RustVersionRequirement.SemanticVersion.createFromVersionString(version)
+            .preReleaseIdentifier()
+            .isEmpty();
+      } catch (ValidationException e) {
+        throw new IllegalArgumentException(e);
+      }
+    } else {
+      return true;
+    }
   }
 
   ImmutableSet<RustRegistryVersionObject> getVersionList() throws RepoException {

@@ -106,6 +106,66 @@ public class RustCratesIoVersionListTest {
   }
 
   @Test
+  public void testRustCrateIoVersionList_ignorePreReleaseVersions() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("example"));
+    v1.add("vers", new JsonPrimitive("0.1.0"));
+    JsonObject v2 = new JsonObject();
+    v2.add("name", new JsonPrimitive("example"));
+    v2.add("vers", new JsonPrimitive("0.1.1-alpha"));
+    JsonObject v3 = new JsonObject();
+    v3.add("name", new JsonPrimitive("example"));
+    v3.add("vers", new JsonPrimitive("0.1.1-beta.1"));
+    JsonObject v4 = new JsonObject();
+    v4.add("name", new JsonPrimitive("example"));
+    v4.add("vers", new JsonPrimitive("0.1.2"));
+    String content =
+        ImmutableList.of(v1, v2, v3, v4).stream()
+            .map(JsonElement::toString)
+            .collect(Collectors.joining("\n"));
+
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
+    VersionList versionList =
+        skylark.eval(
+            "version_list",
+            "version_list = rust.crates_io_version_list(crate='example',"
+                + " match_pre_release_versions = False)");
+    assertThat(versionList.list()).containsExactlyElementsIn(ImmutableList.of("0.1.0", "0.1.2"));
+  }
+
+  @Test
+  public void testRustCrateIoVersionList_allowPreReleaseVersions() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("example"));
+    v1.add("vers", new JsonPrimitive("0.1.0"));
+    JsonObject v2 = new JsonObject();
+    v2.add("name", new JsonPrimitive("example"));
+    v2.add("vers", new JsonPrimitive("0.1.1-alpha"));
+    JsonObject v3 = new JsonObject();
+    v3.add("name", new JsonPrimitive("example"));
+    v3.add("vers", new JsonPrimitive("0.1.1-beta.1"));
+    JsonObject v4 = new JsonObject();
+    v4.add("name", new JsonPrimitive("example"));
+    v4.add("vers", new JsonPrimitive("0.1.2"));
+    String content =
+        ImmutableList.of(v1, v2, v3, v4).stream()
+            .map(JsonElement::toString)
+            .collect(Collectors.joining("\n"));
+
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
+    VersionList versionList =
+        skylark.eval(
+            "version_list",
+            "version_list = rust.crates_io_version_list(crate='example',"
+                + " match_pre_release_versions = True)");
+    assertThat(versionList.list())
+        .containsExactlyElementsIn(
+            ImmutableList.of("0.1.0", "0.1.1-alpha", "0.1.1-beta.1", "0.1.2"));
+  }
+
+  @Test
   public void testRustCrateIoVersionList_shortCrateName() throws Exception {
     JsonObject crate1 = new JsonObject();
     crate1.add("name", new JsonPrimitive("a"));

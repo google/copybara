@@ -32,16 +32,22 @@ import java.util.function.Function;
 public class RustCratesIoVersionResolver implements VersionResolver {
   private final String crate;
   private final RemoteFileOptions remoteFileOptions;
+  private final boolean matchPreReleaseVersions;
 
-  public RustCratesIoVersionResolver(String crate, RemoteFileOptions remoteFileOptions) {
+  public RustCratesIoVersionResolver(
+      String crate, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
     this.crate = crate;
     this.remoteFileOptions = remoteFileOptions;
+    this.matchPreReleaseVersions = matchPreReleaseVersions;
   }
 
   private String resolve(String ref) throws ValidationException {
     ImmutableSet<String> versionList = ImmutableSet.of();
     try {
-      versionList = RustCratesIoVersionList.forCrate(this.crate, this.remoteFileOptions).list();
+      versionList =
+          RustCratesIoVersionList.forCrate(
+                  this.crate, this.remoteFileOptions, matchPreReleaseVersions)
+              .list();
       if (!versionList.contains(ref)) {
         throw new CannotResolveRevisionException(
             String.format("Could not locate version with ref '%s' as a version.", ref));

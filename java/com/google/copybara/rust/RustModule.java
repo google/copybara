@@ -81,24 +81,41 @@ public class RustModule implements StarlarkValue {
       doc = "Returns a crates.io version_list object",
       documented = false,
       parameters = {
-        @Param(name = "crate", named = true, doc = "The name of the crate, e.g. \"libc\"")
+        @Param(name = "crate", named = true, doc = "The name of the crate, e.g. \"libc\""),
+        @Param(
+            name = "match_pre_release_versions",
+            named = true,
+            doc =
+                "Whether we should match pre-release versions of a crate when finding the latest"
+                    + " version.",
+            defaultValue = "False")
       })
   @Example(
       title = "Create a version list for a given rust crate",
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
-  public RustCratesIoVersionList getRustCratesIoVersionList(String crateName) {
-    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions);
+  public RustCratesIoVersionList getRustCratesIoVersionList(
+      String crateName, boolean ignorePreReleaseVersions) {
+    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, ignorePreReleaseVersions);
   }
 
   @StarlarkMethod(
       name = "crates_io_version_resolver",
       doc = "A version resolver for Rust crates from crates.io",
       documented = false,
-      parameters = {@Param(name = "crate", named = true, doc = "The name of the rust crate.")})
+      parameters = {
+        @Param(name = "crate", named = true, doc = "The name of the rust crate."),
+        @Param(
+            name = "match_pre_release_versions",
+            named = true,
+            doc =
+                "Whether we should match pre-release versions of a crate when finding the latest"
+                    + " version.",
+            defaultValue = "False")
+      })
   @SuppressWarnings("unused")
-  public VersionResolver getResolver(String crate) {
-    return new RustCratesIoVersionResolver(crate, remoteFileOptions);
+  public VersionResolver getResolver(String crate, boolean ignorePreReleaseVersions) {
+    return new RustCratesIoVersionResolver(crate, remoteFileOptions, ignorePreReleaseVersions);
   }
 
   @StarlarkMethod(
