@@ -149,8 +149,9 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
     } catch (LabelNotFoundException | IllegalArgumentException | ValidationException e) {
       throw new ValidationException(
           String.format(
-              "Could not resolve archive URL template %s with error '%s'",
-              archiveSourceUrl, e.getMessage()));
+              "Could not resolve archive URL template %s with error '%s' and the cause (if any) was"
+                  + " '%s'",
+              archiveSourceUrl, e.getMessage(), e.getCause()));
     }
   }
 
