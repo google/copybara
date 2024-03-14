@@ -19,6 +19,7 @@ package com.google.copybara;
 import com.google.common.base.Preconditions;
 import com.google.copybara.exception.VoidOperationException;
 import com.google.copybara.util.console.Console;
+import java.util.Objects;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -81,5 +82,27 @@ public final class TransformationStatus implements StarlarkValue {
     }
     throw new VoidOperationException(
         String.format("%s. Use --ignore-noop if you want to ignore this error", this.message));
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    TransformationStatus that = (TransformationStatus) o;
+    return Objects.equals(message, that.message) && isSuccess == that.isSuccess;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(isSuccess, message);
+  }
+
+  @Override
+  public String toString() {
+    return String.format("%s(isSuccess=%s, message=%s)", STARLARK_TYPE_NAME, isSuccess, message);
   }
 }
