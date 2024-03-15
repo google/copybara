@@ -298,7 +298,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
           patchRegenerator.inferImportBaseline(regenTarget, workdir);
       if (inferImportBaselineResult.isPresent()) {
         console.infoFmt(
-            "Inferred import baseline %s from METADATA", inferImportBaselineResult.get());
+            "Inferred import baseline %s from destination", inferImportBaselineResult.get());
         importRevision = workflow.getOrigin().resolve(inferImportBaselineResult.get());
         runHelper =
             createRunHelper(workflow, workdir, importRevision, inferImportBaselineResult.get());
