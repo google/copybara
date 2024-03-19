@@ -260,7 +260,7 @@ public class WorkflowOptions implements Option {
       names = "--disable-consistency-merge-import",
       description =
           "If merge import is set to use consistency in the config, disable it for this run. This"
-              + " uses an import baseline instead.",
+              + " uses an import baseline instead. A new consistency file will still be generated.",
       arity = 1)
   public boolean disableConsistencyMergeImport = false;
 

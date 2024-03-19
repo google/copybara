@@ -831,7 +831,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           patchlessDestinationFiles, destinationFilesWorkdir);
 
       Path baselineWorkdir = null;
-      if (workflow.getMergeImport().useConsistencyFile()) {
+      if (workflow.getMergeImport().useConsistencyFile()
+          && !workflow.disableConsistencyMergeImport()) {
         // If there is a consistency file, then use it.
         // Otherwise, fall back to baseline import.
         Path consistencyFileWorkdir =
@@ -926,7 +927,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
 
       Optional<byte[]> consistencyFile = Optional.empty();
-      if (workflow.isConsistencyFileMergeImport() && !workflow.disableConsistencyMergeImport()) {
+      if (workflow.isConsistencyFileMergeImport()) {
         try {
           consistencyFile =
               Optional.of(

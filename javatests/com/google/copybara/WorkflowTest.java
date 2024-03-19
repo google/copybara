@@ -2447,7 +2447,6 @@ public class WorkflowTest {
 
   @Test
   public void mergeImport_consistencyFile_isOverridden() throws Exception {
-    options.workflowOptions.disableConsistencyMergeImport = true;
     // options setup
     skylark = new SkylarkTestExecutor(options);
 
@@ -2475,15 +2474,22 @@ public class WorkflowTest {
     origin.addChange(0, o1, "test change", true);
     workflow.run(workdir, ImmutableList.of("HEAD"));
 
+    // create a change to import on top of the baseline
+    Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/bar.txt", "bar\n");
+    origin.addChange(0, o2, "test change", true);
+
+    // import into the destination
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
     // create a destination-only change that also edits the consistency file
     // and results in an invalid state
     Path d1 = Files.createDirectories(testDir.resolve("d1"));
-    // include the existing state
     writeProcessedChange(latestProcessedChange(), d1);
     assertThatPath(d1).containsFiles(consistencyFilePath);
+    Files.delete(d1.resolve(consistencyFilePath));
 
     // spoof an invalid ConsistencyFile state
-    Files.delete(d1.resolve(consistencyFilePath));
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
         ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
@@ -2495,8 +2501,28 @@ public class WorkflowTest {
         Glob.createGlob(ImmutableList.of(destinationFiles)),
         console());
 
+    Throwable throwable =
+        assertThrows(
+            ValidationException.class,
+            () -> {
+              workflow.run(workdir, ImmutableList.of("HEAD"));
+            });
+    assertThat(throwable)
+        .hasMessageThat()
+        .containsMatch("has hash value \\w+ in ConsistencyFile but \\w+ in directory");
+
+    // disable the usage of the consistency file
+    options.workflowOptions.disableConsistencyMergeImport = true;
+    skylark = new SkylarkTestExecutor(options);
+    Workflow<?, ?> overrideWorkflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+
     // should not throw
-    workflow.run(workdir, ImmutableList.of("HEAD"));
+    overrideWorkflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // the consistency file should exist
+    Path out1 = Files.createDirectories(testDir.resolve("out1"));
+    writeProcessedChange(latestProcessedChange(), out1);
+    assertThatPath(out1).containsFiles(consistencyFilePath);
   }
 
   @Test
