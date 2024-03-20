@@ -16,6 +16,7 @@
 package com.google.copybara.git;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -130,6 +131,14 @@ public class GitHubWriteHook extends DefaultWriteHook {
     String projectId = ghHost.getProjectNameFromUrl(repoUrl);
     GitHubApi api = gitHubOptions.newGitHubRestApi(projectId);
 
+    if (!originChanges.isEmpty()) {
+      if (gitHubOptions.githubPrBranchDeletionDelay != null) {
+        try {
+          SECONDS.sleep(gitHubOptions.githubPrBranchDeletionDelay.getSeconds());
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+      }
     for (Change<?> change : originChanges) {
       Dict<String, String> labelDict = change.getLabelsForSkylark();
       String updatedPrBranchName = getUpdatedPrBranch(labelDict);
@@ -152,6 +161,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
           continue;
         }
         throw e;
+        }
       }
     }
     return baseEffects.build();

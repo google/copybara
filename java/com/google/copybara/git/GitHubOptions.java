@@ -36,9 +36,11 @@ import com.google.copybara.git.github.api.GitHubApiTransportImpl;
 import com.google.copybara.git.github.api.GitHubApiTransportWithChecker;
 import com.google.copybara.git.github.api.GitHubGraphQLApi;
 import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
 import com.google.copybara.util.console.Console;
+import java.time.Duration;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -68,6 +70,13 @@ public class GitHubOptions implements Option {
       splitter = SemicolonSeparatedListSplitter.class,
       validateWith = GreaterThanZeroListValidator.class)
   public List<Integer> allStarAppIds = ImmutableList.of(119816);
+
+  @Parameter(
+      names = "--github-pr-branch-deletion-delay",
+      description = "Length of time, in seconds, to wait before deleting the GitHub PR branch",
+      converter = DurationConverter.class,
+      hidden = true)
+  public Duration githubPrBranchDeletionDelay = null;
 
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
