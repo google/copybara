@@ -395,6 +395,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       return workflow.profiler();
     }
 
+    // provide the correct context reference when the --same-version flag is used
+    private O getResolvedRefForTransform(O rev) {
+      if (workflow.getMode() == WorkflowMode.SQUASH
+          && workflow.getWorkflowOptions().importSameVersion) {
+        return rev;
+      }
+      return resolvedRef;
+    }
+
     /**
      * Performs a full migration, including checking out files from the origin, deleting excluded
      * files, transforming the code, and writing to the destination. This writes to the destination
@@ -615,15 +624,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
 
       TransformWork transformWork =
           new TransformWork(
-              checkoutDir,
-              metadata,
-              changes,
-              console,
-              new MigrationInfo(workflow.getRevIdLabel(), writer),
-              resolvedRef,
-              originApi,
-              destinationApi,
-              destinationReader)
+                  checkoutDir,
+                  metadata,
+                  changes,
+                  console,
+                  new MigrationInfo(workflow.getRevIdLabel(), writer),
+                  getResolvedRefForTransform(rev),
+                  originApi,
+                  destinationApi,
+                  destinationReader)
               .withLastRev(lastRev)
               .withCurrentRev(rev)
               .withDestinationInfo(writer.getDestinationInfo());
@@ -665,15 +674,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               getReverseTransformForCheck()
                   .transform(
                       new TransformWork(
-                          reverse,
-                          transformWork.getMetadata(),
-                          changes,
-                          console,
-                          new MigrationInfo(/* originLabel= */ null, null),
-                          resolvedRef,
-                          destinationApi,
-                          originApi,
-                          () -> DestinationReader.NOT_IMPLEMENTED)
+                              reverse,
+                              transformWork.getMetadata(),
+                              changes,
+                              console,
+                              new MigrationInfo(/* originLabel= */ null, null),
+                              getResolvedRefForTransform(rev),
+                              destinationApi,
+                              originApi,
+                              () -> DestinationReader.NOT_IMPLEMENTED)
                           .withDestinationInfo(writer.getDestinationInfo()));
           if (status.isNoop()) {
             console.warnFmt("No-op detected running the transformations in reverse. The most"
