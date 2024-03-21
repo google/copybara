@@ -165,7 +165,9 @@ public class CheckRun implements StarlarkValue {
     @Value("timed_out") TIMEDOUT("timed_out"),
     @Value("cancelled") CANCELLED("cancelled"),
     @Value("action_required") ACTIONREQUIRED("action_required"),
-    @Value("skipped") SKIPPED("skipped");
+    @Value("skipped") SKIPPED("skipped"),
+    @Value("stale") STALE("stale"),
+    @Value("startup_failure") STARTUPFAILURE("startup_failure");
 
     private final String apiVal;
 
