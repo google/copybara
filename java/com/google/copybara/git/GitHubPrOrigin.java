@@ -18,7 +18,6 @@ package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
-import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.github.util.GitHubUtil.asHeadRef;
 import static com.google.copybara.git.github.util.GitHubUtil.asMergeRef;
@@ -499,11 +498,14 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         .start("github_api_get_combined_status")) {
       CombinedStatus combinedStatus = api.getCombinedStatus(project, prData.getHead().getSha());
       Set<String> requiredButNotPresent = Sets.newHashSet(requiredStatusContextNames);
-      List<Status> successStatuses =
-          combinedStatus.getStatuses().stream()
-              .filter(e -> e.getState() == State.SUCCESS)
-              .collect(Collectors.toList());
-      requiredButNotPresent.removeAll(Collections2.transform(successStatuses, Status::getContext));
+      ImmutableList.Builder<Status> successStatuses = ImmutableList.builder();
+      for (Status status : combinedStatus.getStatuses()) {
+        if (status.getState() == State.SUCCESS) {
+          successStatuses.add(status);
+        }
+      }
+      requiredButNotPresent.removeAll(
+          Collections2.transform(successStatuses.build(), Status::getContext));
       if (!requiredButNotPresent.isEmpty()) {
         throw new EmptyChangeException(
             String.format(
@@ -839,17 +841,22 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
     };
 
-    ApproverState shouldMigrate(ImmutableList<Review> reviews,
-        ImmutableSet<AuthorAssociation> approvers, String sha) {
-      return ApproverState.create(shouldMigrate(
-          reviews.stream()
-              // Only take into account reviews by valid approverTypes
-              .filter(e -> approvers.contains(e.getAuthorAssociation()))
-              .collect(toImmutableList()),
-          sha),
-          reviews.stream()
-              .filter(e -> !approvers.contains(e.getAuthorAssociation()))
-              .collect(toImmutableList()));
+    ApproverState shouldMigrate(
+        ImmutableList<Review> reviews, ImmutableSet<AuthorAssociation> approvers, String sha)
+        throws RepoException {
+      ImmutableList.Builder<Review> authorReviews = ImmutableList.builder();
+      ImmutableList.Builder<Review> rejectedReviews = ImmutableList.builder();
+
+      for (Review review : reviews) {
+        // Only take into account reviews by valid approverTypes
+        if (approvers.contains(review.getAuthorAssociation())) {
+          authorReviews.add(review);
+        } else {
+          rejectedReviews.add(review);
+        }
+      }
+      return ApproverState.create(
+          shouldMigrate(authorReviews.build(), sha), rejectedReviews.build());
     }
 
     abstract boolean shouldMigrate(ImmutableList<Review> reviews, String sha);
@@ -860,14 +867,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     public abstract boolean shouldMigrate();
     public abstract ImmutableListMultimap<String, String> rejectedReviews();
 
-    public static ApproverState create(
-        boolean shouldMigrate, ImmutableList<Review> rejectedReviews) {
-      return new AutoValue_GitHubPrOrigin_ApproverState(
-          shouldMigrate,
-          rejectedReviews.stream()
-              .collect(
-                  toImmutableListMultimap(
-                      r -> r.getUser().getLogin(), r -> r.getAuthorAssociation().toString())));
+    public static ApproverState create(boolean shouldMigrate, ImmutableList<Review> rejectedReviews)
+        throws RepoException {
+      ImmutableListMultimap.Builder<String, String> rejected = ImmutableListMultimap.builder();
+      for (Review review : rejectedReviews) {
+        rejected.put(review.getUser().getLogin(), review.getAuthorAssociation().toString());
+      }
+      return new AutoValue_GitHubPrOrigin_ApproverState(shouldMigrate, rejected.build());
     }
   }
 }

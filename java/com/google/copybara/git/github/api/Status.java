@@ -20,7 +20,10 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Value;
+import com.google.common.base.Ascii;
+import com.google.common.base.Enums;
 import com.google.common.collect.ImmutableSet;
+import com.google.copybara.exception.RepoException;
 import java.time.ZonedDateTime;
 import java.util.EnumSet;
 import javax.annotation.Nullable;
@@ -50,7 +53,9 @@ public class Status implements StarlarkValue {
   private String description;
 
   @Key("context") private String context;
-  @Key private State state;
+
+  @Key private String state;
+
   @Key("created_at") private String createdAt;
   @Key("updated_at") private String updatedAt;
   @Nullable @Key private User creator;
@@ -63,8 +68,15 @@ public class Status implements StarlarkValue {
     return ZonedDateTime.parse(updatedAt);
   }
 
-  public State getState() {
-    return state;
+  public State getState() throws RepoException {
+    return Enums.getIfPresent(State.class, Ascii.toUpperCase(state))
+        .toJavaUtil()
+        .orElseThrow(
+            () ->
+                new RepoException(
+                    String.format(
+                        "Unable to parse Status notification, got unexpected state value %s",
+                        state)));
   }
 
   @StarlarkMethod(

@@ -17,7 +17,9 @@
 package com.google.copybara.git.github.api;
 
 import com.google.api.client.util.Key;
+import com.google.common.base.Enums;
 import com.google.common.base.MoreObjects;
+import com.google.copybara.exception.RepoException;
 
 /**
  * Represents a pull request review element returned by
@@ -67,10 +69,18 @@ public class Review {
     return "APPROVED".equals(getState());
   }
 
-  public AuthorAssociation getAuthorAssociation() {
-    return authorAssociation == null
-        ? AuthorAssociation.NONE
-        : AuthorAssociation.valueOf(authorAssociation);
+  public AuthorAssociation getAuthorAssociation() throws RepoException {
+    if (authorAssociation == null) {
+      return AuthorAssociation.NONE;
+    }
+    return Enums.getIfPresent(AuthorAssociation.class, authorAssociation)
+        .toJavaUtil()
+        .orElseThrow(
+            () ->
+                new RepoException(
+                    String.format(
+                        "Unable to parse Review notification, got unexpected state value %s",
+                        authorAssociation)));
   }
 
   @Override
