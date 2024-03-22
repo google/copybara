@@ -19,6 +19,7 @@ package com.google.copybara;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
@@ -101,5 +102,26 @@ public class ChangeMessageTest {
         assertThrows(ValidationException.class, () -> msg.withRemovedLabelByName("(Invalid)"));
 
     assertThat(e).hasMessageThat().isEqualTo("Label '(Invalid)' is not a valid label");
+  }
+
+  @Test
+  public void testWithLabelsFilteredBy() throws Exception {
+    ChangeMessage msg =
+        ChangeMessage.parseMessage(
+            ""
+                + "KEEP_THIS_LINE"
+                + "\n\n"
+                + "SKIP_THIS_LINE_1\n"
+                + "KEEP_THIS_LABEL_1: 12345\n"
+                + "DONT_KEEP_THIS_LABEL_2: AAA");
+
+    Predicate<LabelFinder> predicate =
+        label ->
+            label.isLabel()
+                ? label.getName().contains("KEEP_THIS_LABEL")
+                : label.getLine().contains("KEEP_THIS_LINE");
+
+    ChangeMessage changeMessage = msg.withLabelsFilteredBy(predicate);
+    assertThat(changeMessage.getLabels().stream().allMatch(predicate)).isTrue();
   }
 }

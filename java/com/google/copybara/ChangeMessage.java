@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,11 @@
 
 package com.google.copybara;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -195,15 +198,26 @@ public final class ChangeMessage implements StarlarkValue {
     return newChangeMessage;
   }
 
+  /**
+   * Filters out all labels that not match {@code predicate}
+   *
+   * @param predicate the conditions in which a given label must match in order to be kept in
+   * @return {@code ChangeDescription} where all labels that remain match {@code predicate}
+   */
+  @CheckReturnValue
+  public ChangeMessage withLabelsFilteredBy(Predicate<LabelFinder> predicate) {
+    ImmutableList<LabelFinder> filteredLabels =
+        labels.stream().filter(predicate).collect(toImmutableList());
+
+    return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
+  }
+
   /** Remove a label by name if it exist. */
   @CheckReturnValue
   public ChangeMessage withRemovedLabelByName(String name) throws ValidationException {
     validateLabelName(name);
     ImmutableList<LabelFinder> filteredLabels =
-        labels
-            .stream()
-            .filter(label -> !label.isLabel(name))
-            .collect(ImmutableList.toImmutableList());
+        labels.stream().filter(label -> !label.isLabel(name)).collect(toImmutableList());
     return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
@@ -213,10 +227,9 @@ public final class ChangeMessage implements StarlarkValue {
       throws ValidationException {
     validateLabelName(name);
     ImmutableList<LabelFinder> filteredLabels =
-        labels
-            .stream()
+        labels.stream()
             .filter(label -> !label.isLabel(name) || !label.getValue().equals(value))
-            .collect(ImmutableList.toImmutableList());
+            .collect(toImmutableList());
     return new ChangeMessage(this.text, this.groupSeparator, filteredLabels);
   }
 
