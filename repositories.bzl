@@ -21,7 +21,7 @@ load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 def copybara_repositories():
     RULES_JVM_EXTERNAL_TAG = "6.0"
 
-    RULES_JVM_EXTERNAL_SHA = "f86fd42a809e1871ca0aabe89db0d440451219c3ce46c58da240c7dcdc00125f"
+    RULES_JVM_EXTERNAL_SHA = "c44568854d8bb92fe0f7dd6b1e8957ae65e45e32a058727fcf62aaafbd36f17b"
 
     maybe(
         http_archive,
@@ -36,7 +36,7 @@ def copybara_repositories():
     maybe(
         http_archive,
         name = "rules_jvm_external",
-        # sha256 = RULES_JVM_EXTERNAL_SHA,
+        sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
         patches = ["@io_bazel//third_party:rules_jvm_external_6.0.patch"],
