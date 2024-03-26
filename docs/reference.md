@@ -5717,7 +5717,7 @@ Parameter | Description
 --------- | -----------
 <span id=remotefiles.origin.author href=#remotefiles.origin.author>author</span> | <code>string</code><br><p>Author to attribute the change to</p>
 <span id=remotefiles.origin.message href=#remotefiles.origin.message>message</span> | <code>string</code><br><p>Message to attach to the change</p>
-<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code>string</code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', and 'AS_IS' are supported.</p>
+<span id=remotefiles.origin.unpack_method href=#remotefiles.origin.unpack_method>unpack_method</span> | <code>string</code><br><p>The method by which to unpack the remote file. Currently 'ZIP', 'TAR', 'TAR_GZ', and 'AS_IS' are supported.</p>
 <span id=remotefiles.origin.archive_source href=#remotefiles.origin.archive_source>archive_source</span> | <code>string</code><br><p>Template or literal URL to download archive from. Optionally you can use ${VERSION} in your URL string as placeholder for later resolved versions during origin checkout. E.g. 'https://proxy.golang.org/mymodule/@v/${VERSION}.zip'</p>
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
