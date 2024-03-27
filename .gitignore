@@ -4,3 +4,4 @@ bazel-*
 *.pyc
 .ijwb
 /.bazelrc.user
+MODULE.bazel.lock
