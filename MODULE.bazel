@@ -71,13 +71,12 @@ maven.install(
         "org.tomlj:tomlj:1.1.1",
     ],
     fail_if_repin_required = True,
-    lock_file = "//:copybara_maven_install.json",
     repositories = [
         "https://repo1.maven.org/maven2",
         "https://maven.google.com",
     ],
 )
-use_repo(maven, "copybara_maven", "unpinned_copybara_maven")
+use_repo(maven, "copybara_maven")
 
 # Copied from bazelbuild/bazel/MODULE.bazel, has to be kept in sync
 maven.install(
@@ -193,12 +192,9 @@ maven.install(
         "com.google.protobuf:protobuf-java",
         "com.google.protobuf:protobuf-javalite",
     ],
-    # Don't forget to change this to back to True before submitting your change.
-    fail_if_repin_required = True,
-    lock_file = "//:bazel_maven_install.json",
     repositories = [
         "https://repo1.maven.org/maven2",
     ],
     strict_visibility = True,
 )
-use_repo(maven, "maven", "unpinned_maven")
+use_repo(maven, "maven")
