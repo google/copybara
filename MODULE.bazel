@@ -4,23 +4,23 @@ module(
     compatibility_level = 0,
 )
 
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
 bazel_dep(name = "platforms", version = "0.0.8")
 bazel_dep(name = "rules_java", version = "7.5.0")
-bazel_dep(name = "bazel_skylib", version = "1.5.0")
 bazel_dep(name = "rules_jvm_external", version = "6.0")
 bazel_dep(name = "rules_license", version = "0.0.8")
-bazel_dep(name = "rules_python", version = "0.31.0")
 bazel_dep(name = "rules_pkg", version = "0.10.1")
+bazel_dep(name = "rules_python", version = "0.31.0")
 
-non_module_deps = use_extension("//third_party/bazel:extension.bzl", "non_module_deps")
+non_module_deps = use_extension("//:repositories.bzl", "non_module_deps")
 use_repo(non_module_deps, "JCommander", "io_bazel")
 
 single_version_override(
     module_name = "rules_jvm_external",
     patch_strip = 1,
-    # Copied from bazelbuild/bazel/third_party:rules_jvm_external_5.2.patch, has to be kept in sync
-    patches = ["//third_party/bazel:rules_jvm_external_5.2.patch"],
-    version = "5.2",
+    # Copied from bazelbuild/bazel/third_party has to be kept in sync
+    patches = ["//third_party/bazel:rules_jvm_external_6.0.patch"],
+    version = "6.0",
 )
 
 bazel_dep(name = "buildozer", version = "6.4.0.2")
