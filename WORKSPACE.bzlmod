@@ -1,0 +1,1 @@
+# When bzlmod is enabled this makes sure nothing from the legacy WORKSPACE is loaded
