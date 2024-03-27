@@ -45,7 +45,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -131,7 +130,7 @@ public final class TransformWork extends CheckoutFileSystem
         migrationInfo,
         resolvedReference,
         new TreeState(checkoutDir),
-        /*insideExplicitTransform*/ false,
+        /* insideExplicitTransform= */ false,
         /* lastRev= */ null,
         /* currentRev= */ null,
         Dict.empty(),
@@ -395,7 +394,7 @@ public final class TransformWork extends CheckoutFileSystem
     return DateTimeFormatter.ofPattern(format).format(ZonedDateTime.now(ZoneId.of(zone)));
   }
 
-  private ChangeMessage parseMessage(Boolean wholeMessage) {
+  private ChangeMessage parseMessage(boolean wholeMessage) {
     return wholeMessage
         ? ChangeMessage.parseAllAsLabels(getMessage())
         : ChangeMessage.parseMessage(getMessage());
@@ -416,7 +415,7 @@ public final class TransformWork extends CheckoutFileSystem
       allowReturnNones = true)
   @Nullable
   public String getLabel(String label) {
-    Collection<String> labelValues = findLabelValues(label, /*all=*/false);
+    Sequence<String> labelValues = findLabelValues(label, /* all= */ false);
     return labelValues.isEmpty() ? null : Iterables.getLast(labelValues);
   }
 
@@ -720,7 +719,7 @@ public final class TransformWork extends CheckoutFileSystem
         destinationInfo);
   }
 
-  public <O extends Revision> TransformWork withCurrentRev(Revision currentRev) {
+  public TransformWork withCurrentRev(Revision currentRev) {
     Preconditions.checkNotNull(currentRev);
     return new TransformWork(
         getCheckoutDir(),
