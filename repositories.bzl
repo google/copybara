@@ -183,3 +183,14 @@ def copybara_repositories():
         ],
         build_file = Label("//external/third_party:jcommander.BUILD"),
     )
+
+    # LICENSE: MIT
+    maybe(
+        http_archive,
+        name = "buildifier_prebuilt",
+        sha256 = "8ada9d88e51ebf5a1fdff37d75ed41d51f5e677cdbeafb0a22dda54747d6e07e",
+        strip_prefix = "buildifier-prebuilt-6.4.0",
+        urls = [
+            "http://github.com/keith/buildifier-prebuilt/archive/6.4.0.tar.gz",
+        ],
+    )
