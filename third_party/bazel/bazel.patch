@@ -1,27 +1,9 @@
 diff --git a/third_party/BUILD b/third_party/BUILD
-index 262577182a..1bf4666b53 100644
+index 262577182a..6300c8f25a 100644
 --- a/third_party/BUILD
 +++ b/third_party/BUILD
-@@ -252,4 +252,4 @@ distrib_jar_filegroup(
-     srcs = [
--        "@maven//:com_google_auto_value_auto_value_annotations_file",
--        "@maven//:com_google_auto_value_auto_value_file",
-+        "@maven//:com_google_auto_value_auto_value",
-+        "@maven//:com_google_auto_value_auto_value_annotations",
-     ],
-@@ -307,4 +307,4 @@ distrib_jar_filegroup(
-     srcs = [
--        "@maven//:com_google_errorprone_error_prone_annotations_file",
--        "@maven//:org_threeten_threeten_extra_file",
-+        "@maven//:com_google_errorprone_error_prone_annotations",
-+        "@maven//:org_threeten_threeten_extra",
-     ],
-@@ -331,3 +331,3 @@ distrib_jar_filegroup(
-     srcs = [
--        "@maven//:com_github_stephenc_jcip_jcip_annotations_file",
-+        "@maven//:com_github_stephenc_jcip_jcip_annotations",
-     ],
-@@ -354,9 +354,5 @@ filegroup(
+@@ -353,15 +353,13 @@ filegroup(
+ # TODO(https://github.com/bazelbuild/bazel/issues/18214): After fixing Guava leak
  # in test-runner, the guava target can be reverted back to java_library
 -java_import(
 +java_library(
@@ -32,111 +14,10 @@ index 262577182a..1bf4666b53 100644
 -        "@maven//:com_google_guava_failureaccess_file",
 -    ],
      exports = [
-@@ -365,2 +361,4 @@ java_import(
+         ":error_prone_annotations",
+         ":jcip_annotations",
          ":jsr305",
 +        "@maven//:com_google_guava_failureaccess",
 +        "@maven//:com_google_guava_guava",
      ],
-@@ -398,5 +396,5 @@ distrib_jar_filegroup(
-     srcs = [
--        "@maven//:com_google_flogger_flogger_file",
--        "@maven//:com_google_flogger_flogger_system_backend_file",
--        "@maven//:com_google_flogger_google_extensions_file",
-+        "@maven//:com_google_flogger_flogger",
-+        "@maven//:com_google_flogger_flogger_system_backend",
-+        "@maven//:com_google_flogger_google_extensions",
-     ],
-@@ -408,3 +406,3 @@ distrib_jar_filegroup(
-     name = "guava-jars",
--    srcs = ["@maven//:com_google_guava_guava_file"],
-+    srcs = ["@maven//:com_google_guava_guava"],
-     enable_distributions = ["debian"],
-@@ -415,3 +413,3 @@ distrib_jar_filegroup(
-     name = "guava-failureaccess-jar",
--    srcs = ["@maven//:com_google_guava_failureaccess_file"],
-+    srcs = ["@maven//:com_google_guava_failureaccess"],
-     enable_distributions = ["debian"],
-@@ -445,3 +443,3 @@ distrib_jar_filegroup(
-     name = "jsr305-jars",
--    srcs = ["@maven//:com_google_code_findbugs_jsr305_file"],
-+    srcs = ["@maven//:com_google_code_findbugs_jsr305"],
-     enable_distributions = ["debian"],
-@@ -477,7 +475,7 @@ genrule(
-     srcs = select({
--        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_aarch_64_file"],
--        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_x86_64_file"],
--        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_aarch_64_file"],
--        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_x86_64_file"],
--        "//src/conditions:windows": ["@maven//:io_netty_netty_tcnative_boringssl_static_windows_x86_64_file"],
-+        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_aarch_64"],
-+        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_x86_64"],
-+        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_aarch_64"],
-+        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_x86_64"],
-+        "//src/conditions:windows": ["@maven//:io_netty_netty_tcnative_boringssl_static_windows_x86_64"],
-         "//conditions:default": [],
-@@ -495,27 +493,27 @@ distrib_java_import(
-     jars = [
--        "@maven//:io_netty_netty_buffer_file",
--        "@maven//:io_netty_netty_codec_file",
--        "@maven//:io_netty_netty_codec_http2_file",
--        "@maven//:io_netty_netty_codec_http_file",
--        "@maven//:io_netty_netty_common_file",
--        "@maven//:io_netty_netty_handler_file",
--        "@maven//:io_netty_netty_handler_proxy_file",
--        "@maven//:io_netty_netty_resolver_file",
--        "@maven//:io_netty_netty_resolver_dns_file",
--        "@maven//:io_netty_netty_transport_file",
--        "@maven//:io_netty_netty_transport_classes_epoll_file",
--        "@maven//:io_netty_netty_transport_classes_kqueue_file",
-+        "@maven//:io_netty_netty_buffer",
-+        "@maven//:io_netty_netty_codec",
-+        "@maven//:io_netty_netty_codec_http2",
-+        "@maven//:io_netty_netty_codec_http",
-+        "@maven//:io_netty_netty_common",
-+        "@maven//:io_netty_netty_handler",
-+        "@maven//:io_netty_netty_handler_proxy",
-+        "@maven//:io_netty_netty_resolver",
-+        "@maven//:io_netty_netty_resolver_dns",
-+        "@maven//:io_netty_netty_transport",
-+        "@maven//:io_netty_netty_transport_classes_epoll",
-+        "@maven//:io_netty_netty_transport_classes_kqueue",
-     ] + select({
--        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_aarch_64_file"],
--        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_x86_64_file"],
--        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_aarch_64_file"],
--        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_x86_64_file"],
--        "//conditions:default": ["@maven//:io_netty_netty_transport_native_unix_common_file"],
-+        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_aarch_64"],
-+        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_x86_64"],
-+        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_aarch_64"],
-+        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_x86_64"],
-+        "//conditions:default": ["@maven//:io_netty_netty_transport_native_unix_common"],
-     }) + select({
--        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_aarch_64_file"],
--        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_x86_64_file"],
-+        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_aarch_64"],
-+        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_x86_64"],
-         "//conditions:default": [],
-     }) + select({
--        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_epoll_linux_aarch_64_file"],
--        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_epoll_linux_x86_64_file"],
-+        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_epoll_linux_aarch_64"],
-+        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_epoll_linux_x86_64"],
-         "//conditions:default": [],
-@@ -528,3 +526,3 @@ distrib_java_import(
-     jars = [
--        "@maven//:io_netty_netty_tcnative_classes_file",
-+        "@maven//:io_netty_netty_tcnative_classes",
-     ] + select({
-@@ -547,3 +545,3 @@ distrib_jar_filegroup(
-     name = "tomcat_annotations_api-jars",
--    srcs = ["@maven//:org_apache_tomcat_tomcat_annotations_api_file"],
-+    srcs = ["@maven//:org_apache_tomcat_tomcat_annotations_api"],
-     enable_distributions = ["debian"],
-@@ -620,4 +618,4 @@ filegroup(
-     srcs = [
--        "@maven//:junit_junit_file",
--        "@maven//:org_hamcrest_hamcrest_core_file",
-+        "@maven//:junit_junit",
-+        "@maven//:org_hamcrest_hamcrest_core",
-     ],
+ )
