@@ -48,7 +48,6 @@ doc_generator = rule(
         "out": attr.output(mandatory = True),
     },
     implementation = _doc_generator_impl,
-    output_to_genfiles = True,
 )
 
 def copybara_reference(name, *, out, libraries, template_file = None):
