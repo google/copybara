@@ -38,8 +38,6 @@ def copybara_repositories():
         sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
-        patches = ["@io_bazel//third_party:rules_jvm_external_6.0.patch"],
-        patch_args = ["-p1"],
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -174,6 +172,10 @@ def _non_module_deps(_):
         sha256 = bazel_sha256,
         strip_prefix = "bazel-" + bazel_version,
         url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+        patch_args = ["-p1"],
+        patches = [
+            "//third_party/bazel:bazel.patch",
+        ],
     )
 
     # LICENSE: The Apache Software License, Version 2.0

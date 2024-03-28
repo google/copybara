@@ -1,0 +1,194 @@
+diff --git a/third_party/BUILD b/third_party/BUILD
+index 262577182a..1bf4666b53 100644
+--- a/third_party/BUILD
++++ b/third_party/BUILD
+@@ -250,8 +250,8 @@ java_library(
+ distrib_jar_filegroup(
+     name = "auto_value-jars",
+     srcs = [
+-        "@maven//:com_google_auto_value_auto_value_annotations_file",
+-        "@maven//:com_google_auto_value_auto_value_file",
++        "@maven//:com_google_auto_value_auto_value",
++        "@maven//:com_google_auto_value_auto_value_annotations",
+     ],
+     enable_distributions = ["debian"],
+ )
+@@ -305,8 +305,8 @@ java_library(
+ distrib_jar_filegroup(
+     name = "error_prone_annotations-jar",
+     srcs = [
+-        "@maven//:com_google_errorprone_error_prone_annotations_file",
+-        "@maven//:org_threeten_threeten_extra_file",
++        "@maven//:com_google_errorprone_error_prone_annotations",
++        "@maven//:org_threeten_threeten_extra",
+     ],
+     enable_distributions = ["debian"],
+ )
+@@ -329,7 +329,7 @@ alias(
+ distrib_jar_filegroup(
+     name = "jcip_annotations-jars",
+     srcs = [
+-        "@maven//:com_github_stephenc_jcip_jcip_annotations_file",
++        "@maven//:com_github_stephenc_jcip_jcip_annotations",
+     ],
+     enable_distributions = ["debian"],
+ )
+@@ -352,17 +352,15 @@ filegroup(
+ 
+ # TODO(https://github.com/bazelbuild/bazel/issues/18214): After fixing Guava leak
+ # in test-runner, the guava target can be reverted back to java_library
+-java_import(
++java_library(
+     name = "guava",
+     applicable_licenses = [":guava_license"],
+-    jars = [
+-        "@maven//:com_google_guava_guava_file",
+-        "@maven//:com_google_guava_failureaccess_file",
+-    ],
+     exports = [
+         ":error_prone_annotations",
+         ":jcip_annotations",
+         ":jsr305",
++        "@maven//:com_google_guava_failureaccess",
++        "@maven//:com_google_guava_guava",
+     ],
+ )
+ 
+@@ -396,9 +394,9 @@ license(
+ distrib_jar_filegroup(
+     name = "flogger-jars",
+     srcs = [
+-        "@maven//:com_google_flogger_flogger_file",
+-        "@maven//:com_google_flogger_flogger_system_backend_file",
+-        "@maven//:com_google_flogger_google_extensions_file",
++        "@maven//:com_google_flogger_flogger",
++        "@maven//:com_google_flogger_flogger_system_backend",
++        "@maven//:com_google_flogger_google_extensions",
+     ],
+     enable_distributions = ["debian"],
+ )
+@@ -406,14 +404,14 @@ distrib_jar_filegroup(
+ # For bootstrapping JavaBuilder
+ distrib_jar_filegroup(
+     name = "guava-jars",
+-    srcs = ["@maven//:com_google_guava_guava_file"],
++    srcs = ["@maven//:com_google_guava_guava"],
+     enable_distributions = ["debian"],
+ )
+ 
+ # For desugaring the Guava jar.
+ distrib_jar_filegroup(
+     name = "guava-failureaccess-jar",
+-    srcs = ["@maven//:com_google_guava_failureaccess_file"],
++    srcs = ["@maven//:com_google_guava_failureaccess"],
+     enable_distributions = ["debian"],
+ )
+ 
+@@ -443,7 +441,7 @@ alias(
+ # For bootstrapping JavaBuilder
+ distrib_jar_filegroup(
+     name = "jsr305-jars",
+-    srcs = ["@maven//:com_google_code_findbugs_jsr305_file"],
++    srcs = ["@maven//:com_google_code_findbugs_jsr305"],
+     enable_distributions = ["debian"],
+ )
+ 
+@@ -475,11 +473,11 @@ UNNECESSARY_DYNAMIC_LIBRARIES = select({
+ genrule(
+     name = "filter_netty_dynamic_libs",
+     srcs = select({
+-        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_aarch_64_file"],
+-        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_x86_64_file"],
+-        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_aarch_64_file"],
+-        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_x86_64_file"],
+-        "//src/conditions:windows": ["@maven//:io_netty_netty_tcnative_boringssl_static_windows_x86_64_file"],
++        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_aarch_64"],
++        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_osx_x86_64"],
++        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_aarch_64"],
++        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_tcnative_boringssl_static_linux_x86_64"],
++        "//src/conditions:windows": ["@maven//:io_netty_netty_tcnative_boringssl_static_windows_x86_64"],
+         "//conditions:default": [],
+     }),
+     outs = ["netty_tcnative/netty-tcnative-filtered.jar"],
+@@ -493,31 +491,31 @@ distrib_java_import(
+     name = "netty",
+     enable_distributions = ["debian"],
+     jars = [
+-        "@maven//:io_netty_netty_buffer_file",
+-        "@maven//:io_netty_netty_codec_file",
+-        "@maven//:io_netty_netty_codec_http2_file",
+-        "@maven//:io_netty_netty_codec_http_file",
+-        "@maven//:io_netty_netty_common_file",
+-        "@maven//:io_netty_netty_handler_file",
+-        "@maven//:io_netty_netty_handler_proxy_file",
+-        "@maven//:io_netty_netty_resolver_file",
+-        "@maven//:io_netty_netty_resolver_dns_file",
+-        "@maven//:io_netty_netty_transport_file",
+-        "@maven//:io_netty_netty_transport_classes_epoll_file",
+-        "@maven//:io_netty_netty_transport_classes_kqueue_file",
++        "@maven//:io_netty_netty_buffer",
++        "@maven//:io_netty_netty_codec",
++        "@maven//:io_netty_netty_codec_http2",
++        "@maven//:io_netty_netty_codec_http",
++        "@maven//:io_netty_netty_common",
++        "@maven//:io_netty_netty_handler",
++        "@maven//:io_netty_netty_handler_proxy",
++        "@maven//:io_netty_netty_resolver",
++        "@maven//:io_netty_netty_resolver_dns",
++        "@maven//:io_netty_netty_transport",
++        "@maven//:io_netty_netty_transport_classes_epoll",
++        "@maven//:io_netty_netty_transport_classes_kqueue",
+     ] + select({
+-        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_aarch_64_file"],
+-        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_x86_64_file"],
+-        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_aarch_64_file"],
+-        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_x86_64_file"],
+-        "//conditions:default": ["@maven//:io_netty_netty_transport_native_unix_common_file"],
++        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_aarch_64"],
++        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_osx_x86_64"],
++        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_aarch_64"],
++        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_unix_common_linux_x86_64"],
++        "//conditions:default": ["@maven//:io_netty_netty_transport_native_unix_common"],
+     }) + select({
+-        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_aarch_64_file"],
+-        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_x86_64_file"],
++        "//src/conditions:darwin_arm64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_aarch_64"],
++        "//src/conditions:darwin_x86_64": ["@maven//:io_netty_netty_transport_native_kqueue_osx_x86_64"],
+         "//conditions:default": [],
+     }) + select({
+-        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_epoll_linux_aarch_64_file"],
+-        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_epoll_linux_x86_64_file"],
++        "//src/conditions:linux_aarch64": ["@maven//:io_netty_netty_transport_native_epoll_linux_aarch_64"],
++        "//src/conditions:linux_x86_64": ["@maven//:io_netty_netty_transport_native_epoll_linux_x86_64"],
+         "//conditions:default": [],
+     }),
+ )
+@@ -526,7 +524,7 @@ distrib_java_import(
+     name = "netty_tcnative",
+     enable_distributions = ["debian"],
+     jars = [
+-        "@maven//:io_netty_netty_tcnative_classes_file",
++        "@maven//:io_netty_netty_tcnative_classes",
+     ] + select({
+         "//src/conditions:darwin_arm64": [":netty_tcnative/netty-tcnative-filtered.jar"],
+         "//src/conditions:darwin_x86_64": [":netty_tcnative/netty-tcnative-filtered.jar"],
+@@ -545,7 +543,7 @@ alias(
+ # For bootstrapping JavaBuilder
+ distrib_jar_filegroup(
+     name = "tomcat_annotations_api-jars",
+-    srcs = ["@maven//:org_apache_tomcat_tomcat_annotations_api_file"],
++    srcs = ["@maven//:org_apache_tomcat_tomcat_annotations_api"],
+     enable_distributions = ["debian"],
+ )
+ 
+@@ -618,8 +616,8 @@ alias(
+ filegroup(
+     name = "junit4-jars",
+     srcs = [
+-        "@maven//:junit_junit_file",
+-        "@maven//:org_hamcrest_hamcrest_core_file",
++        "@maven//:junit_junit",
++        "@maven//:org_hamcrest_hamcrest_core",
+     ],
+ )
+ 
