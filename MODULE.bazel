@@ -5,6 +5,7 @@ module(
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "buildifier_prebuilt", version = "6.4.0")
 bazel_dep(name = "platforms", version = "0.0.8")
 bazel_dep(name = "rules_java", version = "7.5.0")
 bazel_dep(name = "rules_jvm_external", version = "6.0")
@@ -14,9 +15,6 @@ bazel_dep(name = "rules_python", version = "0.31.0")
 
 non_module_deps = use_extension("//:repositories.bzl", "non_module_deps")
 use_repo(non_module_deps, "JCommander", "io_bazel")
-
-bazel_dep(name = "buildozer", version = "6.4.0.2")
-bazel_dep(name = "buildifier_prebuilt", version = "6.4.0")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
