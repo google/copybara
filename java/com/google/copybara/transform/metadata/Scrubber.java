@@ -39,13 +39,13 @@ public class Scrubber implements Transformation {
   private final Location location;
   @Nullable
   private final String defaultPublicMsg;
-  private final boolean failIfNotMacth;
+  private final boolean failIfNoMatch;
 
-  Scrubber(Pattern pattern, @Nullable String defaultPublicMsg, boolean failIfNotMacth,
+  Scrubber(Pattern pattern, @Nullable String defaultPublicMsg, boolean failIfNoMatch,
       String replacement, Location location) {
     this.pattern = Preconditions.checkNotNull(pattern);
     this.defaultPublicMsg = defaultPublicMsg;
-    this.failIfNotMacth = failIfNotMacth;
+    this.failIfNoMatch = failIfNoMatch;
     this.replacement = Preconditions.checkNotNull(replacement);
     this.location = Preconditions.checkNotNull(location);
   }
@@ -63,7 +63,7 @@ public class Scrubber implements Transformation {
         return TransformationStatus.success();
       }
       ValidationException.checkCondition(
-          !failIfNotMacth,
+          !failIfNoMatch,
           "Scrubber regex: '%s' didn't match for description: '%s'",
           pattern.pattern(),
           work.getMessage());
