@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 This file contains macros used in the copybara project.
 """
+
+load("@rules_java//java:defs.bzl", "java_test")
 
 def all_tests(tests, deps, name, tags = [], shard_count = 1, data = [], env = {}):
     """
@@ -47,8 +48,7 @@ def all_tests(tests, deps, name, tags = [], shard_count = 1, data = [], env = {}
         for x in default_deps:
             test_tags.append("req_dep=%s" % x)
         test_deps = [dep for dep in deps if dep not in default_deps] + default_deps
-
-        native.java_test(
+        java_test(
             name = file[:-5] + "_" + name,
             srcs = tests,
             javacopts = [

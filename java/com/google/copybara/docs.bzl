@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Bazel rule to generate copybara reference docs."""
+
+load("@rules_java//java:defs.bzl", "java_binary")
 
 def _doc_generator_impl(ctx):
     jars = []
@@ -58,7 +59,7 @@ def copybara_reference(name, *, out, libraries, template_file = None):
     libraries: List of libraries for which to generate reference documentation.
     template_file: Optional template file in which to insert the generated reference.
     """
-    native.java_binary(
+    java_binary(
         name = "generator",
         main_class = "com.google.copybara.doc.Generator",
         runtime_deps = ["//java/com/google/copybara/doc:generator-lib"] + libraries,

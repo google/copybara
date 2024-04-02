@@ -216,6 +216,7 @@ bzl_library(
     name = "test_bzl",
     srcs = ["test.bzl"],
     visibility = ["//visibility:private"],
+    deps = ["@rules_java//java:rules"],
 )
 
 java_library(

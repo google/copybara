@@ -289,4 +289,5 @@ bzl_library(
     name = "docs_bzl",
     srcs = ["docs.bzl"],
     visibility = ["//visibility:private"],
+    deps = ["@rules_java//java:rules"],
 )
