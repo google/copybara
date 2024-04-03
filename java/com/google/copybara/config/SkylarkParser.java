@@ -248,7 +248,7 @@ public class SkylarkParser {
       updateEnvironmentForConfigFile(
           this::starlarkPrint, content, mainConfigFile, environment, moduleSet);
       try (Mutability mu = Mutability.create("CopybaraModules")) {
-        StarlarkThread thread = new StarlarkThread(mu, semantics);
+        StarlarkThread thread = StarlarkThread.createTransient(mu, semantics);
         thread.setLoader(loadedModules::get);
         thread.setPrintHandler(this::starlarkPrint);
         Starlark.execFileProgram(prog, module, thread);

@@ -66,7 +66,7 @@ public class SkylarkTransformation implements Transformation {
         .withParams(params);
     TransformationStatus status = TransformationStatus.success();
     try (Mutability mu = Mutability.create("dynamic_transform")) {
-      StarlarkThread thread = new StarlarkThread(mu, StarlarkSemantics.DEFAULT);
+      StarlarkThread thread = StarlarkThread.createTransient(mu, StarlarkSemantics.DEFAULT);
       thread.setPrintHandler(printHandler);
       Object result =
           Starlark.call(

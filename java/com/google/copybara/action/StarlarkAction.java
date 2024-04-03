@@ -57,7 +57,7 @@ public class StarlarkAction implements Action {
       throws ValidationException, RepoException {
     SkylarkContext<T> actionContext = context.withParams(params);
     try (Mutability mu = Mutability.create("dynamic_action")) {
-      StarlarkThread thread = new StarlarkThread(mu, StarlarkSemantics.DEFAULT);
+      StarlarkThread thread = StarlarkThread.createTransient(mu, StarlarkSemantics.DEFAULT);
       thread.setPrintHandler(printHandler);
       Object result =
           Starlark.call(
