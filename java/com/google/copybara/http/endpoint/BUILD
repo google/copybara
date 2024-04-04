@@ -17,6 +17,7 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "endpoint",
     srcs = glob(["**/*.java"]),
+    plugins = ["//java/com/google/copybara/doc:document"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/checks",

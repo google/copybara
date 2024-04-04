@@ -19,6 +19,7 @@ licenses(["notice"])
 java_library(
     name = "credentials",
     srcs = glob(["*.java"]),
+    plugins = ["//java/com/google/copybara/doc:document"],
     deps = [
         "//java/com/google/copybara:options",
         "//java/com/google/copybara/exception",

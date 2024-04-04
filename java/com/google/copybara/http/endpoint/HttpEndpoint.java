@@ -36,6 +36,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.Dict;
 import net.starlark.java.eval.EvalException;
@@ -46,6 +47,7 @@ import net.starlark.java.eval.NoneType;
  *
  * <p>This endpoint is currently bound to a specific host, as a security restriction.
  */
+@StarlarkBuiltin(name = "http_endpoint", doc = "Calls via HTTP.")
 public class HttpEndpoint implements Endpoint {
   private final ImmutableMap<String, Optional<AuthInterceptor>> hosts;
   HttpTransport transport;

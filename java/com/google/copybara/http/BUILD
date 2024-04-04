@@ -17,6 +17,7 @@ package(default_visibility = ["//visibility:public"])
 java_library(
     name = "http",
     srcs = glob(["**/*.java"]),
+    plugins = ["//java/com/google/copybara/doc:document"],
     runtime_deps = [
         "//java/com/google/copybara/doc:annotations",
     ],

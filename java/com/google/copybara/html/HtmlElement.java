@@ -17,11 +17,13 @@
 package com.google.copybara.html;
 
 import net.starlark.java.annot.Param;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 import org.jsoup.nodes.Element;
 
 /** Object to hold an HTML element */
+@StarlarkBuiltin(name = "html_element", doc = "A HTML element.")
 public class HtmlElement implements StarlarkValue {
 
   private final Element element;

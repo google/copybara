@@ -36,11 +36,13 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Used to fetch versions available for a given module at go proxy */
+@StarlarkBuiltin(name = "goproxy_version_list", doc = "Fetch versions from goproxy")
 public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwareModule {
   private static final Pattern UPPERCASE = Pattern.compile("[A-Z]");
   private final Optional<String> listVersionsURL;

@@ -22,6 +22,8 @@
   - [Changes](#changes)
   - [checker](#checker)
   - [Command](#command)
+  - [compression](#compression)
+    - [compression.unzip_path](#compressionunzip_path)
   - [Console](#console)
     - [console.error](#consoleerror)
     - [console.info](#consoleinfo)
@@ -53,6 +55,11 @@
     - [core.verify_match](#coreverify_match)
     - [core.workflow](#coreworkflow)
   - [core.autopatch_config](#coreautopatch_config)
+  - [credentials](#credentials)
+    - [credentials.static_secret](#credentialsstatic_secret)
+    - [credentials.static_value](#credentialsstatic_value)
+    - [credentials.toml_key_source](#credentialstoml_key_source)
+    - [credentials.username_password](#credentialsusername_password)
   - [datetime](#datetime)
     - [datetime.fromtimestamp](#datetimefromtimestamp)
     - [datetime.now](#datetimenow)
@@ -64,6 +71,7 @@
     - [destination_reader.file_exists](#destination_readerfile_exists)
     - [destination_reader.read_file](#destination_readerread_file)
   - [destination_ref](#destination_ref)
+  - [dynamic.action_result](#dynamicaction_result)
   - [endpoint](#endpoint)
     - [endpoint.new_destination_ref](#endpointnew_destination_ref)
     - [endpoint.new_origin_ref](#endpointnew_origin_ref)
@@ -194,10 +202,42 @@
   - [go](#go)
     - [go.go_proxy_resolver](#gogo_proxy_resolver)
     - [go.go_proxy_version_list](#gogo_proxy_version_list)
+  - [goproxy_version_list](#goproxy_version_list)
+    - [goproxy_version_list.get_info](#goproxy_version_listget_info)
+  - [hashing](#hashing)
+    - [hashing.path_md5_sum](#hashingpath_md5_sum)
+    - [hashing.path_sha256_sum](#hashingpath_sha256_sum)
+    - [hashing.str_sha256_sum](#hashingstr_sha256_sum)
   - [hg](#hg)
     - [hg.origin](#hgorigin)
   - [html](#html)
     - [html.xpath](#htmlxpath)
+  - [html_element](#html_element)
+    - [html_element.attr](#html_elementattr)
+  - [http](#http)
+    - [http.endpoint](#httpendpoint)
+    - [http.host](#httphost)
+    - [http.json](#httpjson)
+    - [http.multipart_form](#httpmultipart_form)
+    - [http.multipart_form_file](#httpmultipart_form_file)
+    - [http.multipart_form_text](#httpmultipart_form_text)
+    - [http.trigger](#httptrigger)
+    - [http.url_encode](#httpurl_encode)
+    - [http.urlencoded_form](#httpurlencoded_form)
+    - [http.username_password_auth](#httpusername_password_auth)
+  - [http_endpoint](#http_endpoint)
+    - [http_endpoint.delete](#http_endpointdelete)
+    - [http_endpoint.followRedirects](#http_endpointfollowredirects)
+    - [http_endpoint.get](#http_endpointget)
+    - [http_endpoint.new_destination_ref](#http_endpointnew_destination_ref)
+    - [http_endpoint.new_origin_ref](#http_endpointnew_origin_ref)
+    - [http_endpoint.post](#http_endpointpost)
+  - [http_response](#http_response)
+    - [http_response.code](#http_responsecode)
+    - [http_response.contents_string](#http_responsecontents_string)
+    - [http_response.download](#http_responsedownload)
+    - [http_response.header](#http_responseheader)
+    - [http_response.status](#http_responsestatus)
   - [Issue](#issue)
   - [mapping_function](#mapping_function)
   - [metadata](#metadata)
@@ -228,6 +268,8 @@
     - [path.resolve_sibling](#pathresolve_sibling)
     - [path.rmdir](#pathrmdir)
   - [PathAttributes](#pathattributes)
+  - [python](#python)
+    - [python.parse_metadata](#pythonparse_metadata)
   - [re2](#re2)
     - [re2.compile](#re2compile)
     - [re2.quote](#re2quote)
@@ -254,6 +296,8 @@
     - [StarlarkDateTime.strftime](#starlarkdatetimestrftime)
   - [struct](#struct)
     - [struct](#struct)
+  - [time_delta](#time_delta)
+    - [time_delta.total_seconds](#time_deltatotal_seconds)
   - [toml](#toml)
     - [toml.parse](#tomlparse)
   - [TomlContent](#tomlcontent)
@@ -658,7 +702,7 @@ A checker to be run on arbitrary data and files
 
 <h4 id="consumed_by.checker">Consumed By:</h4>
 
-<ul><li><a href="#git.destination">git.destination</a></li><li><a href="#git.gerrit_api">git.gerrit_api</a></li><li><a href="#git.gerrit_destination">git.gerrit_destination</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.gerrit_trigger">git.gerrit_trigger</a></li><li><a href="#git.github_api">git.github_api</a></li><li><a href="#git.github_destination">git.github_destination</a></li><li><a href="#git.github_pr_destination">git.github_pr_destination</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.github_trigger">git.github_trigger</a></li><li><a href="#git.mirror">git.mirror</a></li></ul>
+<ul><li><a href="#git.destination">git.destination</a></li><li><a href="#git.gerrit_api">git.gerrit_api</a></li><li><a href="#git.gerrit_destination">git.gerrit_destination</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.gerrit_trigger">git.gerrit_trigger</a></li><li><a href="#git.github_api">git.github_api</a></li><li><a href="#git.github_destination">git.github_destination</a></li><li><a href="#git.github_pr_destination">git.github_pr_destination</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.github_trigger">git.github_trigger</a></li><li><a href="#git.mirror">git.mirror</a></li><li><a href="#http.endpoint">http.endpoint</a></li><li><a href="#http.trigger">http.trigger</a></li></ul>
 
 
 
@@ -673,6 +717,28 @@ Buildozer command type
 <h4 id="consumed_by.Command">Consumed By:</h4>
 
 <ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li></ul>
+
+
+
+## compression
+
+Module for compression related starlark utilities
+
+<a id="compression.unzip_path" aria-hidden="true"></a>
+### compression.unzip_path
+
+Unzip the zipped source CheckoutPath and unzip it to the destination CheckoutPath
+
+<code>compression.unzip_path(<a href=#compression.unzip_path.source_path>source_path</a>, <a href=#compression.unzip_path.destination_path>destination_path</a>, <a href=#compression.unzip_path.filter>filter</a>=None)</code>
+
+
+<h4 id="parameters.compression.unzip_path">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=compression.unzip_path.source_path href=#compression.unzip_path.source_path>source_path</span> | <code><a href="#path">Path</a></code><br><p>the zipped file source</p>
+<span id=compression.unzip_path.destination_path href=#compression.unzip_path.destination_path>destination_path</span> | <code><a href="#path">Path</a></code><br><p>the path to unzip to</p>
+<span id=compression.unzip_path.filter href=#compression.unzip_path.filter>filter</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob relative to the archive root that will restrict what files <br>from the archive should be extracted.</p>
 
 
 
@@ -1750,6 +1816,70 @@ The configuration that describes automatic patch file generation
 
 
 
+## credentials
+
+Module for working with credentials.
+
+<a id="credentials.static_secret" aria-hidden="true"></a>
+### credentials.static_secret
+
+Holder for secrets that can be in plaintext within the config.
+
+<code>CredentialIssuer</code> <code>credentials.static_secret(<a href=#credentials.static_secret.name>name</a>, <a href=#credentials.static_secret.secret>secret</a>)</code>
+
+
+<h4 id="parameters.credentials.static_secret">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=credentials.static_secret.name href=#credentials.static_secret.name>name</span> | <code>string</code><br><p>A name for this secret.</p>
+<span id=credentials.static_secret.secret href=#credentials.static_secret.secret>secret</span> | <code>string</code><br><p>The secret value.</p>
+
+<a id="credentials.static_value" aria-hidden="true"></a>
+### credentials.static_value
+
+Holder for credentials that are safe to read/log (e.g. 'x-access-token') .
+
+<code>CredentialIssuer</code> <code>credentials.static_value(<a href=#credentials.static_value.value>value</a>)</code>
+
+
+<h4 id="parameters.credentials.static_value">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=credentials.static_value.value href=#credentials.static_value.value>value</span> | <code>string</code><br><p>The open value.</p>
+
+<a id="credentials.toml_key_source" aria-hidden="true"></a>
+### credentials.toml_key_source
+
+Supply an authentication credential from the file pointed to by the --http-credential-file flag.
+
+<code>CredentialIssuer</code> <code>credentials.toml_key_source(<a href=#credentials.toml_key_source.dot_path>dot_path</a>)</code>
+
+
+<h4 id="parameters.credentials.toml_key_source">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=credentials.toml_key_source.dot_path href=#credentials.toml_key_source.dot_path>dot_path</span> | <code>string</code><br><p>Dot path to the data field containing the credential.</p>
+
+<a id="credentials.username_password" aria-hidden="true"></a>
+### credentials.username_password
+
+A pair of username and password credential issuers.
+
+<code>UsernamePasswordIssuer</code> <code>credentials.username_password(<a href=#credentials.username_password.username>username</a>, <a href=#credentials.username_password.password>password</a>)</code>
+
+
+<h4 id="parameters.credentials.username_password">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=credentials.username_password.username href=#credentials.username_password.username>username</span> | <code>CredentialIssuer</code><br><p>Username credential.</p>
+<span id=credentials.username_password.password href=#credentials.username_password.password>password</span> | <code>CredentialIssuer</code><br><p>Password credential.</p>
+
+
+
 ## datetime
 
 Module for datetime manipulation.
@@ -1931,10 +2061,29 @@ url | <code>string</code><br><p>Url, if any, of the destination change</p>
 
 <h4 id="returned_by.destination_ref">Returned By:</h4>
 
-<ul><li><a href="#endpoint.new_destination_ref">endpoint.new_destination_ref</a></li><li><a href="#gerrit_api_obj.new_destination_ref">gerrit_api_obj.new_destination_ref</a></li><li><a href="#github_api_obj.new_destination_ref">github_api_obj.new_destination_ref</a></li></ul>
+<ul><li><a href="#endpoint.new_destination_ref">endpoint.new_destination_ref</a></li><li><a href="#gerrit_api_obj.new_destination_ref">gerrit_api_obj.new_destination_ref</a></li><li><a href="#github_api_obj.new_destination_ref">github_api_obj.new_destination_ref</a></li><li><a href="#http_endpoint.new_destination_ref">http_endpoint.new_destination_ref</a></li></ul>
 <h4 id="consumed_by.destination_ref">Consumed By:</h4>
 
 <ul><li><a href="#feedback.context.record_effect">feedback.context.record_effect</a></li><li><a href="#feedback.finish_hook_context.record_effect">feedback.finish_hook_context.record_effect</a></li><li><a href="#git.mirrorContext.record_effect">git.mirrorContext.record_effect</a></li></ul>
+
+
+
+## dynamic.action_result
+
+Result objects created by actions to tell Copybara what happened.
+
+
+<h4 id="fields.dynamic.action_result">Fields:</h4>
+
+Name | Description
+---- | -----------
+msg | <code>string</code><br><p>The message associated with the result</p>
+result | <code>string</code><br><p>The result of this action</p>
+
+
+<h4 id="returned_by.dynamic.action_result">Returned By:</h4>
+
+<ul><li><a href="#feedback.context.error">feedback.context.error</a></li><li><a href="#feedback.context.noop">feedback.context.noop</a></li><li><a href="#feedback.context.success">feedback.context.success</a></li><li><a href="#feedback.finish_hook_context.error">feedback.finish_hook_context.error</a></li><li><a href="#feedback.finish_hook_context.noop">feedback.finish_hook_context.noop</a></li><li><a href="#feedback.finish_hook_context.success">feedback.finish_hook_context.success</a></li><li><a href="#git.mirrorContext.error">git.mirrorContext.error</a></li><li><a href="#git.mirrorContext.noop">git.mirrorContext.noop</a></li><li><a href="#git.mirrorContext.success">git.mirrorContext.success</a></li></ul>
 
 
 
@@ -2012,7 +2161,7 @@ refs | <code>sequence of string</code><br><p>A list containing string representa
 
 Returns an error action result.
 
-<code>dynamic.action_result</code> <code>feedback.context.error(<a href=#feedback.context.error.msg>msg</a>)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.context.error(<a href=#feedback.context.error.msg>msg</a>)</code>
 
 
 <h4 id="parameters.feedback.context.error">Parameters:</h4>
@@ -2026,7 +2175,7 @@ Parameter | Description
 
 Returns a no op action result with an optional message.
 
-<code>dynamic.action_result</code> <code>feedback.context.noop(<a href=#feedback.context.noop.msg>msg</a>=None)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.context.noop(<a href=#feedback.context.noop.msg>msg</a>=None)</code>
 
 
 <h4 id="parameters.feedback.context.noop">Parameters:</h4>
@@ -2058,7 +2207,7 @@ Parameter | Description
 
 Returns a successful action result.
 
-<code>dynamic.action_result</code> <code>feedback.context.success()</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.context.success()</code>
 
 
 
@@ -2085,7 +2234,7 @@ revision | <code><a href="#feedbackrevision_context">feedback.revision_context</
 
 Returns an error action result.
 
-<code>dynamic.action_result</code> <code>feedback.finish_hook_context.error(<a href=#feedback.finish_hook_context.error.msg>msg</a>)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.finish_hook_context.error(<a href=#feedback.finish_hook_context.error.msg>msg</a>)</code>
 
 
 <h4 id="parameters.feedback.finish_hook_context.error">Parameters:</h4>
@@ -2099,7 +2248,7 @@ Parameter | Description
 
 Returns a no op action result with an optional message.
 
-<code>dynamic.action_result</code> <code>feedback.finish_hook_context.noop(<a href=#feedback.finish_hook_context.noop.msg>msg</a>=None)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.finish_hook_context.noop(<a href=#feedback.finish_hook_context.noop.msg>msg</a>=None)</code>
 
 
 <h4 id="parameters.feedback.finish_hook_context.noop">Parameters:</h4>
@@ -2131,7 +2280,7 @@ Parameter | Description
 
 Returns a successful action result.
 
-<code>dynamic.action_result</code> <code>feedback.finish_hook_context.success()</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>feedback.finish_hook_context.success()</code>
 
 
 
@@ -3381,7 +3530,7 @@ Parameter | Description
 
 Returns an error action result.
 
-<code>dynamic.action_result</code> <code>git.mirrorContext.error(<a href=#git.mirrorContext.error.msg>msg</a>)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>git.mirrorContext.error(<a href=#git.mirrorContext.error.msg>msg</a>)</code>
 
 
 <h4 id="parameters.git.mirrorContext.error">Parameters:</h4>
@@ -3412,7 +3561,7 @@ Parameter | Description
 
 Returns a no op action result with an optional message.
 
-<code>dynamic.action_result</code> <code>git.mirrorContext.noop(<a href=#git.mirrorContext.noop.msg>msg</a>=None)</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>git.mirrorContext.noop(<a href=#git.mirrorContext.noop.msg>msg</a>=None)</code>
 
 
 <h4 id="parameters.git.mirrorContext.noop">Parameters:</h4>
@@ -3492,7 +3641,7 @@ Parameter | Description
 
 Returns a successful action result.
 
-<code>dynamic.action_result</code> <code>git.mirrorContext.success()</code>
+<code><a href="#dynamicaction_result">dynamic.action_result</a></code> <code>git.mirrorContext.success()</code>
 
 
 
@@ -4278,7 +4427,7 @@ A glob represents a set of relative filepaths in the Copybara workdir.
 <ul><li><a href="#glob">glob</a></li></ul>
 <h4 id="consumed_by.glob">Consumed By:</h4>
 
-<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
+<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#core.autopatch_config">core.autopatch_config</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.filter_replace">core.filter_replace</a></li><li><a href="#core.merge_import_config">core.merge_import_config</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#core.workflow">core.workflow</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
 
 
 
@@ -4446,7 +4595,7 @@ Parameter | Description
 
 Returns go proxy version list object
 
-<code>GoProxyVersionList</code> <code>go.go_proxy_version_list(<a href=#go.go_proxy_version_list.module>module</a>, <a href=#go.go_proxy_version_list.ref>ref</a>=None)</code>
+<code><a href="#goproxy_version_list">goproxy_version_list</a></code> <code>go.go_proxy_version_list(<a href=#go.go_proxy_version_list.module>module</a>, <a href=#go.go_proxy_version_list.ref>ref</a>=None)</code>
 
 
 <h4 id="parameters.go.go_proxy_version_list">Parameters:</h4>
@@ -4470,6 +4619,80 @@ go.go_proxy_version_list(
 )
 ```
 
+
+
+
+## goproxy_version_list
+
+Fetch versions from goproxy
+
+
+<h4 id="returned_by.goproxy_version_list">Returned By:</h4>
+
+<ul><li><a href="#go.go_proxy_version_list">go.go_proxy_version_list</a></li></ul>
+
+<a id="goproxy_version_list.get_info" aria-hidden="true"></a>
+### goproxy_version_list.get_info
+
+Return the results of an info query. An object is only returned if a ref was specified.
+
+<code>GoVersionObject</code> <code>goproxy_version_list.get_info(<a href=#goproxy_version_list.get_info.ref>ref</a>=None)</code>
+
+
+<h4 id="parameters.goproxy_version_list.get_info">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=goproxy_version_list.get_info.ref href=#goproxy_version_list.get_info.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>The reference to query for. This is optional, and the default will be the latest version, or the ref if passed into this object during creation.</p>
+
+
+
+## hashing
+
+utilities for hashing
+
+<a id="hashing.path_md5_sum" aria-hidden="true"></a>
+### hashing.path_md5_sum
+
+Return the md5 hash of a file at a checkout path. Do not use unless working with legacy systems that require MD5.
+WARNING: do not use unless working with legacy systems that require MD5
+
+<code>string</code> <code>hashing.path_md5_sum(<a href=#hashing.path_md5_sum.path>path</a>)</code>
+
+
+<h4 id="parameters.hashing.path_md5_sum">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=hashing.path_md5_sum.path href=#hashing.path_md5_sum.path>path</span> | <code><a href="#path">Path</a></code><br><p>checkout path pointing to a file to be hashed</p>
+
+<a id="hashing.path_sha256_sum" aria-hidden="true"></a>
+### hashing.path_sha256_sum
+
+Return the sha256 hash of a file at a checkout path
+
+<code>string</code> <code>hashing.path_sha256_sum(<a href=#hashing.path_sha256_sum.path>path</a>)</code>
+
+
+<h4 id="parameters.hashing.path_sha256_sum">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=hashing.path_sha256_sum.path href=#hashing.path_sha256_sum.path>path</span> | <code><a href="#path">Path</a></code><br><p>checkout path pointing to a file to be hashed</p>
+
+<a id="hashing.str_sha256_sum" aria-hidden="true"></a>
+### hashing.str_sha256_sum
+
+Return the hash of a list of objects based on the algorithm specified
+
+<code>string</code> <code>hashing.str_sha256_sum(<a href=#hashing.str_sha256_sum.input>input</a>)</code>
+
+
+<h4 id="parameters.hashing.str_sha256_sum">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=hashing.str_sha256_sum.input href=#hashing.str_sha256_sum.input>input</span> | <code>sequence of string</code> or <code>string</code><br><p>One or more string inputs to hash.</p>
 
 
 
@@ -4503,7 +4726,7 @@ Set of functions to work with HTML in copybara
 
 Run an xpath expression on HTML content to select elements. This only supports a subset of xpath expressions.
 
-<code>sequence of HtmlElement</code> <code>html.xpath(<a href=#html.xpath.content>content</a>, <a href=#html.xpath.expression>expression</a>)</code>
+<code>sequence of <a href="#html_element">html_element</a></code> <code>html.xpath(<a href=#html.xpath.content>content</a>, <a href=#html.xpath.expression>expression</a>)</code>
 
 
 <h4 id="parameters.html.xpath">Parameters:</h4>
@@ -4512,6 +4735,351 @@ Parameter | Description
 --------- | -----------
 <span id=html.xpath.content href=#html.xpath.content>content</span> | <code>string</code><br><p>The HTML content</p>
 <span id=html.xpath.expression href=#html.xpath.expression>expression</span> | <code>string</code><br><p>XPath expression to select elements</p>
+
+
+
+## html_element
+
+A HTML element.
+
+
+<h4 id="returned_by.html_element">Returned By:</h4>
+
+<ul><li><a href="#html.xpath">html.xpath</a></li></ul>
+
+<a id="html_element.attr" aria-hidden="true"></a>
+### html_element.attr
+
+Get an attribute value by key
+
+<code>string</code> <code>html_element.attr(<a href=#html_element.attr.key>key</a>)</code>
+
+
+<h4 id="parameters.html_element.attr">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=html_element.attr.key href=#html_element.attr.key>key</span> | <code>string</code><br><p>the (case-sensitive) attribute key</p>
+
+
+
+## http
+
+Module for working with http endpoints.
+
+<a id="http.endpoint" aria-hidden="true"></a>
+### http.endpoint
+
+Endpoint that executes any sort of http request. Currently restrictedto requests to specific hosts.
+
+<code>endpoint_provider</code> <code>http.endpoint(<a href=#http.endpoint.host>host</a>='', <a href=#http.endpoint.checker>checker</a>=None, <a href=#http.endpoint.hosts>hosts</a>=[])</code>
+
+
+<h4 id="parameters.http.endpoint">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code>string</code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
+<span id=http.endpoint.checker href=#http.endpoint.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
+<span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+
+<a id="http.host" aria-hidden="true"></a>
+### http.host
+
+Wraps a host and potentially credentials for http auth.
+
+<code>HostCredential</code> <code>http.host(<a href=#http.host.host>host</a>, <a href=#http.host.auth>auth</a>=None)</code>
+
+
+<h4 id="parameters.http.host">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.host.host href=#http.host.host>host</span> | <code>string</code><br><p>The host to be contacted.</p>
+<span id=http.host.auth href=#http.host.auth>auth</span> | <code>AuthInterceptor</code> or <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials. Also accepts a username_password.</p>
+
+<a id="http.json" aria-hidden="true"></a>
+### http.json
+
+Creates a JSON HTTP body.
+
+<code>HttpEndpointJsonContent</code> <code>http.json(<a href=#http.json.body>body</a>={})</code>
+
+
+<h4 id="parameters.http.json">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.json.body href=#http.json.body>body</span> | <code>unknown</code><br><p>HTTP body object, property name will be used as key and value as value.</p>
+
+<a id="http.multipart_form" aria-hidden="true"></a>
+### http.multipart_form
+
+Creates a multipart form http body.
+
+<code>HttpEndpointMultipartFormContent</code> <code>http.multipart_form(<a href=#http.multipart_form.parts>parts</a>=[])</code>
+
+
+<h4 id="parameters.http.multipart_form">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.multipart_form.parts href=#http.multipart_form.parts>parts</span> | <code>sequence</code><br><p>A list of form parts</p>
+
+<a id="http.multipart_form_file" aria-hidden="true"></a>
+### http.multipart_form_file
+
+Create a file part for a multipart form payload.
+
+<code>HttpEndpointFormPart</code> <code>http.multipart_form_file(<a href=#http.multipart_form_file.name>name</a>, <a href=#http.multipart_form_file.path>path</a>, <a href=#http.multipart_form_file.content_type>content_type</a>="application/octet-stream", <a href=#http.multipart_form_file.filename>filename</a>=None)</code>
+
+
+<h4 id="parameters.http.multipart_form_file">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.multipart_form_file.name href=#http.multipart_form_file.name>name</span> | <code>string</code><br><p>The name of the form field.</p>
+<span id=http.multipart_form_file.path href=#http.multipart_form_file.path>path</span> | <code><a href="#path">Path</a></code><br><p>The checkout path pointing to the file to use as the field value.</p>
+<span id=http.multipart_form_file.content_type href=#http.multipart_form_file.content_type>content_type</span> | <code>string</code><br><p>Content type header value for the form part. Defaults to application/octet-stream. <br>https://www.w3.org/Protocols/rfc1341/4_Content-Type.html</p>
+<span id=http.multipart_form_file.filename href=#http.multipart_form_file.filename>filename</span> | <code>string</code> or <code>NoneType</code><br><p>The filename that will be sent along with the data. Defaults to the filename of the path parameter. Sets the filename parameter in the content disposition header. <br>https://www.w3.org/Protocols/HTTP/Issues/content-disposition.txt</p>
+
+<a id="http.multipart_form_text" aria-hidden="true"></a>
+### http.multipart_form_text
+
+Create a text/plain part for a multipart form payload
+
+<code>HttpEndpointFormPart</code> <code>http.multipart_form_text(<a href=#http.multipart_form_text.name>name</a>, <a href=#http.multipart_form_text.text>text</a>)</code>
+
+
+<h4 id="parameters.http.multipart_form_text">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.multipart_form_text.name href=#http.multipart_form_text.name>name</span> | <code>string</code><br><p>The name of the form field.</p>
+<span id=http.multipart_form_text.text href=#http.multipart_form_text.text>text</span> | <code>string</code><br><p>The form value of the field</p>
+
+<a id="http.trigger" aria-hidden="true"></a>
+### http.trigger
+
+Trigger for http endpoint
+
+<code>trigger</code> <code>http.trigger(<a href=#http.trigger.hosts>hosts</a>=[], <a href=#http.trigger.checker>checker</a>=None)</code>
+
+
+<h4 id="parameters.http.trigger">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+<span id=http.trigger.checker href=#http.trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
+
+<a id="http.url_encode" aria-hidden="true"></a>
+### http.url_encode
+
+URL-encode the input string
+
+<code>string</code> <code>http.url_encode(<a href=#http.url_encode.input>input</a>)</code>
+
+
+<h4 id="parameters.http.url_encode">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.url_encode.input href=#http.url_encode.input>input</span> | <code>string</code><br><p>The string to be encoded.</p>
+
+<a id="http.urlencoded_form" aria-hidden="true"></a>
+### http.urlencoded_form
+
+Creates a url-encoded form HTTP body.
+
+<code>HttpEndpointUrlEncodedFormContent</code> <code>http.urlencoded_form(<a href=#http.urlencoded_form.body>body</a>={})</code>
+
+
+<h4 id="parameters.http.urlencoded_form">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.urlencoded_form.body href=#http.urlencoded_form.body>body</span> | <code>dict</code><br><p>HTTP body object, property name will be used as key and value as value.</p>
+
+<a id="http.username_password_auth" aria-hidden="true"></a>
+### http.username_password_auth
+
+Authentication via username and password.
+
+<code>UsernamePasswordInterceptor</code> <code>http.username_password_auth(<a href=#http.username_password_auth.></a>)</code>
+
+
+<h4 id="parameters.http.username_password_auth">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.username_password_auth. href=#http.username_password_auth.></span> | <code>UsernamePasswordIssuer</code><br><p>The host to be contacted.</p>
+
+
+
+## http_endpoint
+
+Calls via HTTP.
+
+
+<h4 id="fields.http_endpoint">Fields:</h4>
+
+Name | Description
+---- | -----------
+url | <code>string</code><br><p>Return the URL of this endpoint.</p>
+
+<a id="http_endpoint.delete" aria-hidden="true"></a>
+### http_endpoint.delete
+
+Execute a delete request
+
+<code><a href="#http_response">http_response</a></code> <code>http_endpoint.delete(<a href=#http_endpoint.delete.url>url</a>, <a href=#http_endpoint.delete.headers>headers</a>={}, <a href=#http_endpoint.delete.auth>auth</a>=False)</code>
+
+
+<h4 id="parameters.http_endpoint.delete">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.delete.url href=#http_endpoint.delete.url>url</span> | <code>string</code><br><p></p>
+<span id=http_endpoint.delete.headers href=#http_endpoint.delete.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.delete.auth href=#http_endpoint.delete.auth>auth</span> | <code>bool</code><br><p></p>
+
+<a id="http_endpoint.followRedirects" aria-hidden="true"></a>
+### http_endpoint.followRedirects
+
+Sets whether to follow redirects automatically
+
+<code>http_endpoint.followRedirects(<a href=#http_endpoint.followRedirects.followRedirects>followRedirects</a>)</code>
+
+
+<h4 id="parameters.http_endpoint.followRedirects">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.followRedirects.followRedirects href=#http_endpoint.followRedirects.followRedirects>followRedirects</span> | <code>bool</code><br><p>Whether to follow redirects automatically</p>
+
+<a id="http_endpoint.get" aria-hidden="true"></a>
+### http_endpoint.get
+
+Execute a get request
+
+<code><a href="#http_response">http_response</a></code> <code>http_endpoint.get(<a href=#http_endpoint.get.url>url</a>, <a href=#http_endpoint.get.headers>headers</a>={}, <a href=#http_endpoint.get.auth>auth</a>=False)</code>
+
+
+<h4 id="parameters.http_endpoint.get">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.get.url href=#http_endpoint.get.url>url</span> | <code>string</code><br><p></p>
+<span id=http_endpoint.get.headers href=#http_endpoint.get.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.get.auth href=#http_endpoint.get.auth>auth</span> | <code>bool</code><br><p></p>
+
+<a id="http_endpoint.new_destination_ref" aria-hidden="true"></a>
+### http_endpoint.new_destination_ref
+
+Creates a new destination reference out of this endpoint.
+
+<code><a href="#destination_ref">destination_ref</a></code> <code>http_endpoint.new_destination_ref(<a href=#http_endpoint.new_destination_ref.ref>ref</a>, <a href=#http_endpoint.new_destination_ref.type>type</a>, <a href=#http_endpoint.new_destination_ref.url>url</a>=None)</code>
+
+
+<h4 id="parameters.http_endpoint.new_destination_ref">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.new_destination_ref.ref href=#http_endpoint.new_destination_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+<span id=http_endpoint.new_destination_ref.type href=#http_endpoint.new_destination_ref.type>type</span> | <code>string</code><br><p>The type of this reference.</p>
+<span id=http_endpoint.new_destination_ref.url href=#http_endpoint.new_destination_ref.url>url</span> | <code>string</code> or <code>NoneType</code><br><p>The url associated with this reference, if any.</p>
+
+<a id="http_endpoint.new_origin_ref" aria-hidden="true"></a>
+### http_endpoint.new_origin_ref
+
+Creates a new origin reference out of this endpoint.
+
+<code><a href="#origin_ref">origin_ref</a></code> <code>http_endpoint.new_origin_ref(<a href=#http_endpoint.new_origin_ref.ref>ref</a>)</code>
+
+
+<h4 id="parameters.http_endpoint.new_origin_ref">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.new_origin_ref.ref href=#http_endpoint.new_origin_ref.ref>ref</span> | <code>string</code><br><p>The reference.</p>
+
+<a id="http_endpoint.post" aria-hidden="true"></a>
+### http_endpoint.post
+
+Execute a post request
+
+<code><a href="#http_response">http_response</a></code> <code>http_endpoint.post(<a href=#http_endpoint.post.url>url</a>, <a href=#http_endpoint.post.headers>headers</a>={}, <a href=#http_endpoint.post.content>content</a>=None, <a href=#http_endpoint.post.auth>auth</a>=False)</code>
+
+
+<h4 id="parameters.http_endpoint.post">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_endpoint.post.url href=#http_endpoint.post.url>url</span> | <code>string</code><br><p></p>
+<span id=http_endpoint.post.headers href=#http_endpoint.post.headers>headers</span> | <code>dict</code><br><p>dict of http headers for the request</p>
+<span id=http_endpoint.post.content href=#http_endpoint.post.content>content</span> | <code>HttpEndpointBody</code> or <code>NoneType</code><br><p></p>
+<span id=http_endpoint.post.auth href=#http_endpoint.post.auth>auth</span> | <code>bool</code><br><p></p>
+
+
+
+## http_response
+
+A http response.
+
+
+<h4 id="returned_by.http_response">Returned By:</h4>
+
+<ul><li><a href="#http_endpoint.delete">http_endpoint.delete</a></li><li><a href="#http_endpoint.get">http_endpoint.get</a></li><li><a href="#http_endpoint.post">http_endpoint.post</a></li></ul>
+
+<a id="http_response.code" aria-hidden="true"></a>
+### http_response.code
+
+http status code
+
+<code>int</code> <code>http_response.code()</code>
+
+<a id="http_response.contents_string" aria-hidden="true"></a>
+### http_response.contents_string
+
+response contents as string
+
+<code>string</code> <code>http_response.contents_string()</code>
+
+<a id="http_response.download" aria-hidden="true"></a>
+### http_response.download
+
+Writes the content of the HTTP response into the given destination path
+
+<code>http_response.download(<a href=#http_response.download.path>path</a>)</code>
+
+
+<h4 id="parameters.http_response.download">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_response.download.path href=#http_response.download.path>path</span> | <code><a href="#path">Path</a></code><br><p>The destination Path</p>
+
+<a id="http_response.header" aria-hidden="true"></a>
+### http_response.header
+
+Returns the value of the response header specified by the field name
+
+<code>sequence of string</code> <code>http_response.header(<a href=#http_response.header.key>key</a>)</code>
+
+
+<h4 id="parameters.http_response.header">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http_response.header.key href=#http_response.header.key>key</span> | <code>string</code><br><p></p>
+
+<a id="http_response.status" aria-hidden="true"></a>
+### http_response.status
+
+http status message
+
+<code>string</code> <code>http_response.status()</code>
 
 
 
@@ -5250,7 +5818,7 @@ ref | <code>string</code><br><p>Origin reference ref</p>
 
 <h4 id="returned_by.origin_ref">Returned By:</h4>
 
-<ul><li><a href="#endpoint.new_origin_ref">endpoint.new_origin_ref</a></li><li><a href="#gerrit_api_obj.new_origin_ref">gerrit_api_obj.new_origin_ref</a></li><li><a href="#github_api_obj.new_origin_ref">github_api_obj.new_origin_ref</a></li></ul>
+<ul><li><a href="#endpoint.new_origin_ref">endpoint.new_origin_ref</a></li><li><a href="#gerrit_api_obj.new_origin_ref">gerrit_api_obj.new_origin_ref</a></li><li><a href="#github_api_obj.new_origin_ref">github_api_obj.new_origin_ref</a></li><li><a href="#http_endpoint.new_origin_ref">http_endpoint.new_origin_ref</a></li></ul>
 <h4 id="consumed_by.origin_ref">Consumed By:</h4>
 
 <ul><li><a href="#feedback.context.record_effect">feedback.context.record_effect</a></li><li><a href="#feedback.finish_hook_context.record_effect">feedback.finish_hook_context.record_effect</a></li><li><a href="#git.mirrorContext.record_effect">git.mirrorContext.record_effect</a></li></ul>
@@ -5377,7 +5945,7 @@ path | <code>string</code><br><p>Full path relative to the checkout directory</p
 <ul><li><a href="#path.read_symlink">path.read_symlink</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li></ul>
 <h4 id="consumed_by.Path">Consumed By:</h4>
 
-<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
+<ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
 
 <a id="path.exists" aria-hidden="true"></a>
 ### path.exists
@@ -5469,6 +6037,26 @@ Name | Description
 ---- | -----------
 size | <code>int</code><br><p>The size of the file. Throws an error if file size > 2GB.</p>
 symlink | <code>bool</code><br><p>Returns true if it is a symlink</p>
+
+
+
+## python
+
+utilities for interacting with the pypi package manager
+
+<a id="python.parse_metadata" aria-hidden="true"></a>
+### python.parse_metadata
+
+Extract the metadata from a python METADATA file into a dictionary. Returns a list of key value tuples.
+
+<code>sequence of tuple</code> <code>python.parse_metadata(<a href=#python.parse_metadata.path>path</a>)</code>
+
+
+<h4 id="parameters.python.parse_metadata">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=python.parse_metadata.path href=#python.parse_metadata.path>path</span> | <code><a href="#path">Path</a></code><br><p>path relative to workdir root of the .whl file</p>
 
 
 
@@ -5823,6 +6411,19 @@ my_struct = struct(foo='bar')
 x = my_struct.foo
 ```
 
+
+
+
+## time_delta
+
+A time delta.
+
+<a id="time_delta.total_seconds" aria-hidden="true"></a>
+### time_delta.total_seconds
+
+Total number of seconds in a timedelta object.
+
+<code>long</code> <code>time_delta.total_seconds()</code>
 
 
 

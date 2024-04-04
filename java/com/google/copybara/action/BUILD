@@ -29,6 +29,7 @@ java_library(
         "StarlarkAction.java",
     ],
     javacopts = JAVACOPTS,
+    plugins = ["//java/com/google/copybara/doc:document"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/config:base",

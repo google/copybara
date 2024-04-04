@@ -30,7 +30,10 @@ import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A dummy endpoint for feedback mechanism */
-@StarlarkBuiltin(name = "dummy_endpoint", doc = "A dummy endpoint for feedback mechanism")
+@StarlarkBuiltin(
+    name = "dummy_endpoint",
+    doc = "A dummy endpoint for feedback mechanism",
+    documented = false)
 public class DummyEndpoint implements Endpoint, StarlarkValue {
 
   public final List<String> messages = new ArrayList<>();
@@ -45,6 +48,7 @@ public class DummyEndpoint implements Endpoint, StarlarkValue {
   @StarlarkMethod(
       name = "message",
       doc = "Add a new message",
+      documented = false,
       parameters = {@Param(name = "message")})
   public void add(String msg) {
     messages.add(msg);

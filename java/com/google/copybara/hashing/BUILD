@@ -21,6 +21,7 @@ java_library(
     srcs = [
         "HashingModule.java",
     ],
+    plugins = ["//java/com/google/copybara/doc:document"],
     deps = [
         "//java/com/google/copybara:base",
         "//java/com/google/copybara/config:base",

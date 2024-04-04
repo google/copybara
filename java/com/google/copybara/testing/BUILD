@@ -23,6 +23,7 @@ java_library(
     javacopts = [
         "-Xlint:unchecked",
     ],
+    plugins = ["//java/com/google/copybara/doc:document"],
     visibility = [
         "//visibility:public",
     ],
@@ -37,6 +38,7 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:parser",
         "//java/com/google/copybara/credentials",
+        "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/format:buildifier_options",
@@ -52,6 +54,7 @@ java_library(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:autovalue",
         "//third_party:error_prone",
         "//third_party:google_http_client",
         "//third_party:guava",

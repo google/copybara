@@ -38,7 +38,7 @@ import net.starlark.java.annot.StarlarkBuiltin;
  *
  * <p>TODO(danielromero): Promote to a real transform that uses regex
  */
-@StarlarkBuiltin(name = "dummy_checker", doc = "A dummy checker for tests")
+@StarlarkBuiltin(name = "dummy_checker", doc = "A dummy checker for tests", documented = false)
 public class DummyChecker implements Checker, DescriptionChecker {
 
   private final ImmutableSet<String> badWords;

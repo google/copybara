@@ -188,6 +188,7 @@ public class StarlarkDateTimeModule implements StarlarkValue {
   }
 
   /** Time delta, used to do binary operations with Starlark Datetime */
+  @StarlarkBuiltin(name = "time_delta", doc = "A time delta.")
   public static class StarlarkTimeDelta implements StarlarkValue {
     private final Duration duration;
 

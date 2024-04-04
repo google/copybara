@@ -23,10 +23,12 @@ import java.nio.file.Files;
 import java.util.List;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
+import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Simple object to read an http response. */
+@StarlarkBuiltin(name = "http_response", doc = "A http response.")
 public class HttpEndpointResponse implements StarlarkValue {
 
   HttpResponse response;

@@ -171,6 +171,10 @@ all_tests(
 
 all_tests(
     name = "all_tests",
+    data = [
+        "//java/com/google/copybara:reference.md",
+    ],
+    env = {"REFERENCE_DIR": "$(rlocationpath //java/com/google/copybara:reference.md)"},
     tests = glob(
         ["**/*Test.java"],
         exclude = LOCAL_TESTS,

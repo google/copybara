@@ -31,7 +31,10 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkValue;
 
 /** A Skylark module used by tests */
-@StarlarkBuiltin(name = "testing", doc = "Module to use mock endpoints in tests.")
+@StarlarkBuiltin(
+    name = "testing",
+    doc = "Module to use mock endpoints in tests.",
+    documented = false)
 public class TestingModule implements StarlarkValue {
 
   private final TestingOptions testingOptions;

@@ -25,7 +25,10 @@ import net.starlark.java.annot.StarlarkBuiltin;
  *
  * <p>Extends {@link DummyEndpoint} just for convenience for the tests.
  */
-@StarlarkBuiltin(name = "dummy_trigger", doc = "A dummy trigger for feedback mechanism")
+@StarlarkBuiltin(
+    name = "dummy_trigger",
+    doc = "A dummy trigger for feedback mechanism",
+    documented = false)
 public class DummyTrigger extends DummyEndpoint implements Trigger {
 
   @Override
