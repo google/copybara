@@ -51,7 +51,7 @@ public class ReferenceTest {
                         "Class '%s' sets StarlarkBuiltin but is not present in the reference. If"
                             + " this is intentional, set documented to false. Otherwise, make sure"
                             + " the defining BUILD rule has the"
-                            + " '//third_party/java_src/copybara/java/com/google/copybara/doc"
+                            + " '//java/com/google/copybara/doc"
                             + ":document' plugin.",
                         c.getCanonicalName()))
             .collect(joining("\n\n"));
