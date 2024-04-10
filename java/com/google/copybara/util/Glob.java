@@ -16,6 +16,7 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 
@@ -311,7 +312,9 @@ public class Glob implements StarlarkValue, HasBinary {
       }
     }
 
-    return ImmutableSet.copyOf(roots);
+    return roots.stream()
+        .map(s -> s.replaceAll("//+", "/").replaceAll("/$", ""))
+        .collect(toImmutableSet());
   }
 
   private static ImmutableSet<String> computeTipsFromIncludes(Iterable<GlobAtom> includes) {

@@ -282,6 +282,9 @@ public class GlobTest {
         .containsExactly("");
     assertThat(createGlob(ImmutableList.of("foo/**")).roots())
         .containsExactly("foo");
+    assertThat(createGlob(ImmutableList.of("foo//**")).roots()).containsExactly("foo");
+    assertThat(createGlob(ImmutableList.of("foo///**")).roots()).containsExactly("foo");
+    assertThat(createGlob(ImmutableList.of("foo//bar/**")).roots()).containsExactly("foo/bar");
     assertThat(createGlob(ImmutableList.of("foo/**", "**")).roots())
         .containsExactly("");
     assertThat(createGlob(ImmutableList.of("foo/*.java")).roots())
