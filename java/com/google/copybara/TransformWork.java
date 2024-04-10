@@ -583,6 +583,10 @@ public final class TransformWork extends CheckoutFileSystem
     return resolvedReference;
   }
 
+  public Revision getCurrentRev() {
+    return currentRev;
+  }
+
   public boolean isInsideExplicitTransform() {
     return insideExplicitTransform;
   }
