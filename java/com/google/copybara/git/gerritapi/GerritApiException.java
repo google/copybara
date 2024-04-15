@@ -20,29 +20,32 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.copybara.exception.RepoException;
 import java.util.EnumSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Exception that maps to Gerrit Http error codes
  */
 public class GerritApiException extends RepoException {
 
+  public static final Pattern ERROR_PATTERN = Pattern.compile(".*<pre>(.*)</pre>.*",
+      Pattern.DOTALL | Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
   private static final ImmutableMap<Integer, ResponseCode> CODE_MAP =
       ImmutableMap.copyOf(
           Maps.uniqueIndex(EnumSet.allOf(ResponseCode.class), ResponseCode::getCode));
 
   private final ResponseCode responseCode;
   private final String gerritResponseMsg;
+  private final String gerritRequestMsg;
   private final int exitCode;
 
-  public GerritApiException(int exitCode, String message, String gerritResponseMsg) {
+  public GerritApiException(
+      int exitCode, String message, String gerritResponseMsg, String gerritRequest) {
     super(message);
     this.exitCode = exitCode;
     this.responseCode = parseResponseCode(exitCode);
     this.gerritResponseMsg = gerritResponseMsg;
-  }
-
-  public GerritApiException(int exitCode, String message) {
-    this(exitCode, message, message);
+    this.gerritRequestMsg = gerritRequest;
   }
 
   public ResponseCode getResponseCode() {
@@ -57,6 +60,23 @@ public class GerritApiException extends RepoException {
     ResponseCode responseCode = CODE_MAP.get(code);
     return responseCode == null ? ResponseCode.UNKNOWN : responseCode;
   }
+
+  @Override
+  public String getMessage() {
+    return String.format(
+        "%s: Received error with code %d from Gerrit: %s\n\nThe request was:\n\n%s\n\n"
+            + "The full response was:\n\n%s",
+        super.getMessage(), exitCode, extractError(), gerritRequestMsg, gerritResponseMsg);
+  }
+
+  private String extractError() {
+    Matcher matcher = ERROR_PATTERN.matcher(gerritResponseMsg);
+    if (matcher.find()) {
+      return matcher.group(1);
+    }
+    return gerritResponseMsg;
+  }
+
 
   public String getGerritResponseMsg() {
     return gerritResponseMsg;

@@ -109,7 +109,9 @@ public class GerritApiTransportImpl implements GerritApiTransport {
     try {
       response = httpRequest.execute();
     } catch (HttpResponseException e) {
-      throw new GerritApiException(e.getStatusCode(), e.getContent(), e.getContent());
+      throw new GerritApiException(
+          e.getStatusCode(), "Error calling gerrit", e.getContent(),
+          httpRequest.getUrl().toString());
     }
     try {
       return (T) GsonParserUtil.parseHttpResponse(response, responseType, true);
