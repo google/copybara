@@ -362,7 +362,7 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
         checkCondition(SAFE_BRANCH_NAME_PREFIX.matches(basePrefix),
             "'%s' is not a valid base_prefix (%s is used for validation)",
             basePrefix, SAFE_BRANCH_NAME_PREFIX.pattern());
-        request = request.withHead(basePrefix);
+        request = request.withBase(basePrefix);
       }
 
       return apiSupplier

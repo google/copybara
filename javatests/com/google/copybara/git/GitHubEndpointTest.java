@@ -564,26 +564,67 @@ public class GitHubEndpointTest {
    */
   @Test
   public void testPullRequests() throws Exception {
-    gitUtil.mockApi(anyString(), contains(
-        "repos/google/example/pulls?per_page=100&state=open&sort=created&direction=asc"),
-        mockResponse(toJson(
-            ImmutableList.of(
-                ImmutableMap.of(
-                    "number", 12345,
-                    "state", "open",
-                    "head", ImmutableMap.of(
-                        "label", "someuser:somebranch",
-                        "sha", Strings.repeat("a", 40),
-                        "ref", "somebranch"
-                    ))))));
-    runFeedback(ImmutableList.<String>builder()
-        .add("res = ctx.destination.get_pull_requests(state='OPEN')")
-        .addAll(checkFieldStarLark("res[0]", "number", "12345"))
-        .addAll(checkFieldStarLark("res[0]", "state", "'OPEN'"))
-        .addAll(checkFieldStarLark("res[0]", "head.label", "'someuser:somebranch'"))
-        .addAll(checkFieldStarLark("res[0]", "head.sha", "'" + Strings.repeat("a", 40) + "'"))
-        .addAll(checkFieldStarLark("res[0]", "head.ref", "'somebranch'"))
-        .build());
+    gitUtil.mockApi(
+        anyString(),
+        contains(
+            "repos/google/example/pulls?per_page=100&state=open&head=head_&sort=created"
+                + "&direction=asc"),
+        mockResponse(
+            toJson(
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        "number",
+                        12345,
+                        "state",
+                        "open",
+                        "head",
+                        ImmutableMap.of(
+                            "label", "someuser:somebranch",
+                            "sha", Strings.repeat("a", 40),
+                            "ref", "somebranch"))))));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add("res = ctx.destination.get_pull_requests(state='OPEN', head_prefix='head_')")
+            .addAll(checkFieldStarLark("res[0]", "number", "12345"))
+            .addAll(checkFieldStarLark("res[0]", "state", "'OPEN'"))
+            .addAll(checkFieldStarLark("res[0]", "head.label", "'someuser:somebranch'"))
+            .addAll(checkFieldStarLark("res[0]", "head.sha", "'" + Strings.repeat("a", 40) + "'"))
+            .addAll(checkFieldStarLark("res[0]", "head.ref", "'somebranch'"))
+            .build());
+  }
+
+  /** A test that uses get_pull_requests. */
+  @Test
+  public void testPullRequests_withBase() throws Exception {
+    gitUtil.mockApi(
+        anyString(),
+        contains(
+            "repos/google/example/pulls?per_page=100&state=open&head=head_&base=base_&sort=created"
+                + "&direction=asc"),
+        mockResponse(
+            toJson(
+                ImmutableList.of(
+                    ImmutableMap.of(
+                        "number",
+                        12345,
+                        "state",
+                        "open",
+                        "head",
+                        ImmutableMap.of(
+                            "label", "someuser:somebranch",
+                            "sha", Strings.repeat("a", 40),
+                            "ref", "somebranch"))))));
+    runFeedback(
+        ImmutableList.<String>builder()
+            .add(
+                "res = ctx.destination.get_pull_requests(state='OPEN', head_prefix='head_',"
+                    + " base_prefix='base_')")
+            .addAll(checkFieldStarLark("res[0]", "number", "12345"))
+            .addAll(checkFieldStarLark("res[0]", "state", "'OPEN'"))
+            .addAll(checkFieldStarLark("res[0]", "head.label", "'someuser:somebranch'"))
+            .addAll(checkFieldStarLark("res[0]", "head.sha", "'" + Strings.repeat("a", 40) + "'"))
+            .addAll(checkFieldStarLark("res[0]", "head.ref", "'somebranch'"))
+            .build());
   }
 
   @Test
