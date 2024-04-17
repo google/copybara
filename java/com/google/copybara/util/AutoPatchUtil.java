@@ -73,6 +73,7 @@ public final class AutoPatchUtil {
       String patchFileNameSuffix,
       Path rootDirectory,
       boolean stripFileNames,
+      boolean stripLineNumbers,
       Glob fileMatcher)
       throws IOException, InsideGitDirException {
     if (patchFilePrefix == null) {
@@ -108,8 +109,8 @@ public final class AutoPatchUtil {
         // diff was carriage return at end of line
         continue;
       }
-      if (stripFileNames) {
-        diffString = stripFileNamesAndLineNumbers(diffString);
+      if (stripFileNames || stripLineNumbers) {
+        diffString = stripFileNamesAndLineNumbers(diffString, stripFileNames, stripLineNumbers);
       }
       Path patchFilePath =
           derivePatchFileName(
@@ -228,9 +229,12 @@ public final class AutoPatchUtil {
   }
 
   // Reimplementation of golang packaging code
-  private static String stripFileNamesAndLineNumbers(String diffString) {
+  private static String stripFileNamesAndLineNumbers(
+      String diffString, boolean stripFileNames, boolean stripLineNumbers) {
+    String diffChunk = diffString;
+    if (stripFileNames) {
     String parsedDiffString = diffString.substring(diffString.indexOf("\n@@") + "\n".length());
-    String diffChunk = "";
+      diffChunk = "";
     int i = 0;
     while (parsedDiffString.length() > 0) {
       i = parsedDiffString.indexOf("\n@@") + "\n".length();
@@ -241,8 +245,11 @@ public final class AutoPatchUtil {
       diffChunk = diffChunk.concat(parsedDiffString.substring(0, i));
       parsedDiffString = parsedDiffString.substring(i);
     }
+    }
+    if (stripLineNumbers) {
     // strip line numbers - of format @@ -1,1 +1,1 @@, sometimes of form @@ -1 +1 @@
     diffChunk = diffChunk.replaceAll("@@ -(\\d+)(,\\d+)? \\+(\\d+)(,\\d+)? @@", "@@");
+    }
     return diffChunk;
   }
 }

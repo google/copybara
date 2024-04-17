@@ -200,7 +200,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
             autopatchConfig.header(),
             autopatchConfig.suffix(),
             nextPath,
-            autopatchConfig.stripFileNamesAndLineNumbers(),
+            autopatchConfig.stripFilenames(),
+            autopatchConfig.stripLineNumbers(),
             autopatchConfig.glob());
       } catch (InsideGitDirException e) {
         throw new ValidationException(

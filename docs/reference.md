@@ -908,7 +908,7 @@ Parameter | Description
 
 Describes in the configuration for automatic patch file generation
 
-<code><a href="#coreautopatch_config">core.autopatch_config</a></code> <code>core.autopatch_config(<a href=#core.autopatch_config.header>header</a>=None, <a href=#core.autopatch_config.suffix>suffix</a>='.patch', <a href=#core.autopatch_config.directory_prefix>directory_prefix</a>='None', <a href=#core.autopatch_config.directory>directory</a>='AUTOPATCHES', <a href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</a>=False, <a href=#core.autopatch_config.paths>paths</a>=None)</code>
+<code><a href="#coreautopatch_config">core.autopatch_config</a></code> <code>core.autopatch_config(<a href=#core.autopatch_config.header>header</a>=None, <a href=#core.autopatch_config.suffix>suffix</a>='.patch', <a href=#core.autopatch_config.directory_prefix>directory_prefix</a>='None', <a href=#core.autopatch_config.directory>directory</a>='AUTOPATCHES', <a href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</a>=False, <a href=#core.autopatch_config.strip_file_names>strip_file_names</a>=False, <a href=#core.autopatch_config.strip_line_numbers>strip_line_numbers</a>=False, <a href=#core.autopatch_config.paths>paths</a>=None)</code>
 
 
 <h4 id="parameters.core.autopatch_config">Parameters:</h4>
@@ -920,6 +920,8 @@ Parameter | Description
 <span id=core.autopatch_config.directory_prefix href=#core.autopatch_config.directory_prefix>directory_prefix</span> | <code>string</code> or <code>NoneType</code><br><p>Directory prefix used to relativize filenames when writing patch files. E.g. if filename is third_party/foo/bar/bar.go and we want to write third_party/foo/PATCHES/bar/bar.go, the value for this field would be 'third_party/foo'</p>
 <span id=core.autopatch_config.directory href=#core.autopatch_config.directory>directory</span> | <code>string</code> or <code>NoneType</code><br><p>Directory in which to save the patch files.</p>
 <span id=core.autopatch_config.strip_file_names_and_line_numbers href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</span> | <code>bool</code><br><p>When true, strip filenames and line numbers from patch files</p>
+<span id=core.autopatch_config.strip_file_names href=#core.autopatch_config.strip_file_names>strip_file_names</span> | <code>bool</code><br><p>When true, strip filenames from patch files</p>
+<span id=core.autopatch_config.strip_line_numbers href=#core.autopatch_config.strip_line_numbers>strip_line_numbers</span> | <code>bool</code><br><p>When true, strip line numbers from patch files</p>
 <span id=core.autopatch_config.paths href=#core.autopatch_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>Only create patch files that match glob. Default is to match all files</p>
 
 <a id="core.convert_encoding" aria-hidden="true"></a>

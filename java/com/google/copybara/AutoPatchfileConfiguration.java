@@ -34,10 +34,11 @@ public abstract class AutoPatchfileConfiguration implements StarlarkValue {
       String suffix,
       String directoryPrefix,
       String directory,
-      boolean stripFileNamesAndLineNumbers,
+      boolean stripFilenames,
+      boolean stripLineNumbers,
       Glob glob) {
     return new AutoValue_AutoPatchfileConfiguration(
-        header, suffix, directoryPrefix, directory, stripFileNamesAndLineNumbers, glob);
+        header, suffix, directoryPrefix, directory, stripFilenames, stripLineNumbers, glob);
   }
 
   @Nullable
@@ -50,7 +51,9 @@ public abstract class AutoPatchfileConfiguration implements StarlarkValue {
   @Nullable
   public abstract String directory();
 
-  public abstract boolean stripFileNamesAndLineNumbers();
+  public abstract boolean stripFilenames();
+
+  public abstract boolean stripLineNumbers();
 
   public abstract Glob glob();
 }

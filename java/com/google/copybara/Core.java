@@ -2443,6 +2443,18 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false,
             defaultValue = "False"),
         @Param(
+            name = "strip_file_names",
+            doc = "When true, strip filenames from patch files",
+            named = true,
+            positional = false,
+            defaultValue = "False"),
+        @Param(
+            name = "strip_line_numbers",
+            doc = "When true, strip line numbers from patch files",
+            named = true,
+            positional = false,
+            defaultValue = "False"),
+        @Param(
             name = "paths",
             named = true,
             allowedTypes = {
@@ -2458,15 +2470,31 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       String suffix,
       Object directoryPrefix,
       Object directory,
+      boolean stripFileNamesAndLineNumbers,
       boolean stripFileNames,
-      Object globObj) {
+      boolean stripLineNumbers,
+      Object globObj)
+      throws EvalException {
     Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
+
+    if (stripFileNamesAndLineNumbers && (stripFileNames || stripLineNumbers)) {
+      throw Starlark.errorf(
+          "Cannot set both strip_file_names_and_line_numbers and strip_file_names /"
+              + " strip_line_numbers");
+    }
+
+    if (stripFileNamesAndLineNumbers) {
+      stripFileNames = true;
+      stripLineNumbers = true;
+    }
+
     return AutoPatchfileConfiguration.create(
         convertFromNoneable(fileContentsPrefix, null),
         suffix,
         convertFromNoneable(directoryPrefix, null),
         convertFromNoneable(directory, null),
         stripFileNames,
+        stripLineNumbers,
         glob);
   }
 

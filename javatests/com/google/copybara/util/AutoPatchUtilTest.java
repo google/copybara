@@ -95,6 +95,7 @@ public class AutoPatchUtilTest {
         PATCH_FILE_NAME_SUFFIX,
         root,
         false,
+        false,
         Glob.ALL_FILES);
     assertThat(Files.readString(destination.resolve(SOME_DIR.concat("file1.txt"))))
         .isEqualTo("foo-destination");
@@ -141,6 +142,7 @@ public class AutoPatchUtilTest {
         PATCH_FILE_PREFIX,
         PATCH_FILE_NAME_SUFFIX,
         root,
+        true,
         true,
         Glob.ALL_FILES);
 
@@ -207,6 +209,7 @@ public class AutoPatchUtilTest {
         PATCH_FILE_NAME_SUFFIX,
         root,
         true,
+        true,
         Glob.ALL_FILES);
 
     assertThat(
@@ -239,6 +242,7 @@ public class AutoPatchUtilTest {
         PATCH_FILE_NAME_SUFFIX,
         root,
         true,
+        true,
         Glob.ALL_FILES);
 
     assertThat(
@@ -268,6 +272,7 @@ public class AutoPatchUtilTest {
         null,
         PATCH_FILE_NAME_SUFFIX,
         root,
+        true,
         true,
         Glob.ALL_FILES);
 
@@ -308,6 +313,7 @@ public class AutoPatchUtilTest {
         null,
         PATCH_FILE_NAME_SUFFIX,
         root,
+        true,
         true,
         Glob.ALL_FILES);
 
@@ -352,6 +358,7 @@ public class AutoPatchUtilTest {
         PATCH_FILE_NAME_SUFFIX,
         root,
         true,
+        true,
         Glob.ALL_FILES);
 
     assertThat(
@@ -375,12 +382,79 @@ public class AutoPatchUtilTest {
         PATCH_FILE_NAME_SUFFIX,
         root,
         true,
+        true,
         Glob.ALL_FILES);
 
     assertThat(
             Files.exists(
                 root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
         .isFalse();
+  }
+
+  @Test
+  public void stripFileNamesButNotLineNumbers() throws Exception {
+    writeFile(origin, SOME_DIR.concat("file1.txt"), "foo-origin");
+    writeFile(destination, SOME_DIR.concat("file1.txt"), "foo-destination");
+
+    AutoPatchUtil.generatePatchFiles(
+        origin,
+        destination,
+        Path.of(SOME_DIR),
+        null,
+        VERBOSE,
+        testEnv,
+        PATCH_FILE_PREFIX,
+        PATCH_FILE_NAME_SUFFIX,
+        root,
+        true,
+        false,
+        Glob.ALL_FILES);
+
+    assertThat(
+            Files.readString(
+                root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isEqualTo(
+            PATCH_FILE_PREFIX.concat(
+                "@@ -1 +1 @@\n"
+                    + "-foo-origin\n"
+                    + "\\ No newline at end of file\n"
+                    + "+foo-destination\n"
+                    + "\\ No newline at end of file\n"));
+  }
+
+  @Test
+  public void stripLineNumbersButNotFileNames() throws Exception {
+    writeFile(origin, SOME_DIR.concat("file1.txt"), "foo-origin");
+    writeFile(destination, SOME_DIR.concat("file1.txt"), "foo-destination");
+
+    AutoPatchUtil.generatePatchFiles(
+        origin,
+        destination,
+        Path.of(SOME_DIR),
+        null,
+        VERBOSE,
+        testEnv,
+        PATCH_FILE_PREFIX,
+        PATCH_FILE_NAME_SUFFIX,
+        root,
+        false,
+        true,
+        Glob.ALL_FILES);
+
+    assertThat(
+            Files.readString(
+                root.resolve(SOME_DIR).resolve("file1.txt".concat(PATCH_FILE_NAME_SUFFIX))))
+        .isEqualTo(
+            PATCH_FILE_PREFIX.concat(
+                "diff --git a/origin/some/dir/file1.txt b/destination/some/dir/file1.txt\n"
+                    + "index 8d53fda..64ace07 100644\n"
+                    + "--- a/origin/some/dir/file1.txt\n"
+                    + "+++ b/destination/some/dir/file1.txt\n"
+                    + "@@\n"
+                    + "-foo-origin\n"
+                    + "\\ No newline at end of file\n"
+                    + "+foo-destination\n"
+                    + "\\ No newline at end of file\n"));
   }
 
   private Path createDir(Path parent, String name) throws IOException {

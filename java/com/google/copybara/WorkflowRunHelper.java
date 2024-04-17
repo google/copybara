@@ -963,7 +963,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               workflow.getAutoPatchfileConfiguration().header(),
               workflow.getAutoPatchfileConfiguration().suffix(),
               checkoutDir,
-              workflow.getAutoPatchfileConfiguration().stripFileNamesAndLineNumbers(),
+              workflow.getAutoPatchfileConfiguration().stripFilenames(),
+              workflow.getAutoPatchfileConfiguration().stripLineNumbers(),
               workflow.getAutoPatchfileConfiguration().glob());
         } catch (InsideGitDirException e) {
           console.errorFmt(
