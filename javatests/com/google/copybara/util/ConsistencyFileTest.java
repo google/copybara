@@ -20,6 +20,7 @@ import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.hash.Hashing;
 import com.google.copybara.exception.ValidationException;
@@ -415,5 +416,31 @@ public final class ConsistencyFileTest {
     assertThat(t)
         .hasMessageThat()
         .containsMatch(".* has hash value [\\d\\w]+ in ConsistencyFile but [\\d\\w]+ in directory");
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_sortedOutput() throws IOException, InsideGitDirException {
+    ImmutableList<String> dirs = ImmutableList.of("a", "b", "c", "d", "e", "f", "g");
+
+    String testPath = "test/foo";
+    for (String dir : dirs) {
+      write(destination, testPath + "/" + dir, "foo");
+    }
+    write(baseline, testPath, "foo");
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv());
+
+    // maybe worth noting that even if sorting behavior broke, it is technically
+    // possible that these end up sorted by coincidence
+    assertThat(new String(consistencyFile.toBytes()))
+        .matches(
+            "(?s).*test/foo/a.*\n"
+                + "test/foo/b.*\n"
+                + "test/foo/c.*\n"
+                + "test/foo/d.*\n"
+                + "test/foo/e.*\n"
+                + "test/foo/f.*\n"
+                + "test/foo/g.*");
   }
 }

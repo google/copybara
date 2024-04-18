@@ -21,6 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Ordering;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
@@ -38,6 +39,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -123,10 +125,8 @@ public class ConsistencyFile {
   }
 
   public static ConsistencyFile fromBytes(byte[] bytes) throws IOException, ValidationException {
-    try (
-        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-        BufferedReader br = new BufferedReader(new InputStreamReader(in))
-    ) {
+    try (ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, UTF_8))) {
       ImmutableMap.Builder<String, String> fileHashesBuilder = new ImmutableMap.Builder<>();
 
       String line = mustReadUncommentedLine(br);
@@ -145,7 +145,7 @@ public class ConsistencyFile {
 
       line = br.readLine(); // can be null if there is no diff output
       ByteArrayOutputStream diffContentOut = new ByteArrayOutputStream();
-      try (OutputStreamWriter diffContentWriter = new OutputStreamWriter(diffContentOut)) {
+      try (OutputStreamWriter diffContentWriter = new OutputStreamWriter(diffContentOut, UTF_8)) {
         while (line != null) {
           diffContentWriter.write(line + "\n");
           line = br.readLine();
@@ -171,7 +171,14 @@ public class ConsistencyFile {
     try (OutputStreamWriter outWriter = new OutputStreamWriter(out)) {
       outWriter.write(HEADER);
 
-      for (Entry<String, String> entry : fileHashes.entrySet()) {
+      ArrayList<Entry<String, String>> fileHashesList =
+          new ArrayList<>(fileHashes.entrySet().asList());
+      fileHashesList.sort(
+          Ordering.natural()
+              .<Entry<String, String>>onResultOf(Entry::getKey)
+              .compound(Ordering.natural().onResultOf(Entry::getValue)));
+
+      for (Entry<String, String> entry : fileHashesList) {
         outWriter.write(String.format("%s: %s\n",
             entry.getKey(),
             entry.getValue()));

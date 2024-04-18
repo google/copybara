@@ -789,6 +789,102 @@ public class RegenerateCmdTest {
     assertThatPath(pathArg.getValue()).containsFile("test.txt", "original");
   }
 
+  @Test
+  public void testConsistencyFile_noOptionBaseline_noInferredBaseline_usesImportBaseline()
+      throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+
+    // no option baseline
+    options.regenerateOptions.setRegenBaseline(null);
+    // no inferred baseline
+    when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.empty());
+    // setup origin change as inferred import baseline
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("target");
+
+    // current destination contents are altered from the import
+    writeDestination("target", "test.txt", "newpatch");
+
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("target"));
+
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "newpatch");
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
+    consistencyFile.reversePatches(pathArg.getValue(), env);
+
+    // reversing the diff should result in the origin import (no transformations)
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "foo");
+  }
+
+  /*
+   * when import baseline is used on consistency file projects, don't generate patches against the
+   * consistency file
+   */
+  @Test
+  public void
+      testConsistencyFile_noOptionBaseline_noInferredBaseline_usesImportBaseline_excludesConsistencyFile()
+          throws Exception {
+    origin.singleFileChange(0, "foo description", "test.txt", "foo");
+
+    // no option baseline
+    options.regenerateOptions.setRegenBaseline(null);
+    // no inferred baseline
+    when(patchRegenerator.inferRegenBaseline()).thenReturn(Optional.empty());
+    // setup origin change as inferred import baseline
+    when(patchRegenerator.inferImportBaseline(any(), any()))
+        .thenReturn(Optional.of(origin.getLatestChange().asString()));
+
+    setupTarget("target");
+
+    // set up a destination that has a consistency file
+    writeDestination("target-pristine", "test.txt", "newContents");
+    writeDestination("target", "test.txt", "newContents-patched");
+    setupBaselineConsistencyFile("target-pristine", "target");
+
+    RegenerateCmd cmd = getCmd(getConsistencyFileConfigString());
+
+    ExitCode exitCode =
+        cmd.run(
+            new CommandEnv(
+                workdir,
+                options.build(),
+                ImmutableList.of(testRoot.resolve("copy.bara.sky").toString())));
+    assertThat(exitCode).isEqualTo(ExitCode.SUCCESS);
+
+    ArgumentCaptor<Path> pathArg = ArgumentCaptor.forClass(Path.class);
+    verify(patchRegenerator)
+        .updateChange(any(), pathArg.capture(), eq(Glob.ALL_FILES), eq("target"));
+
+    assertThatPath(pathArg.getValue()).containsFile("test.txt", "newContents-patched");
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.fromBytes(
+            Files.readAllBytes(pathArg.getValue().resolve(CONSISTENCY_FILE_PATH)));
+    consistencyFile.reversePatches(pathArg.getValue(), env);
+
+    // reversing the diff should leave the consistency file as-is
+    // (the diff should not include a patch that generates the consistency file)
+    assertThatPath(pathArg.getValue()).containsFiles(CONSISTENCY_FILE_PATH);
+  }
+
   private RegenerateCmd getCmd(String configString) {
     ModuleSet moduleSet = skylark.createModuleSet();
     return new RegenerateCmd(

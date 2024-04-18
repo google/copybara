@@ -132,33 +132,31 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         + " --regen-target parameter"));
     AutoPatchfileConfiguration autopatchConfig = workflow.getAutoPatchfileConfiguration();
 
+    Optional<String> regenBaseline = Optional.empty();
     if (workflow.isConsistencyFileMergeImport()) {
-      Optional<String> getRegenBaselineResult = regenerateOptions.getRegenBaseline();
-      if (getRegenBaselineResult.isEmpty()) {
-        getRegenBaselineResult = patchRegenerator.inferRegenBaseline();
+      regenBaseline = regenerateOptions.getRegenBaseline();
+      if (regenBaseline.isEmpty()) {
+        regenBaseline = patchRegenerator.inferRegenBaseline();
       }
+      if (regenBaseline.isEmpty()) {
+        console.verbose("Regen baseline could not be inferred. Falling back to import baseline");
+      }
+    }
 
-      String regenBaseline =
-          getRegenBaselineResult.orElseThrow(
-              () ->
-                  new ValidationException(
-                      "Regen baseline was neither supplied nor able to be inferred. Supply with"
-                          + " --regen-baseline parameter"));
-
+    if (regenBaseline.isPresent()) {
       checkCondition(
           consistencyFileExists(
-              destinationWriter, regenBaseline, workflow.getConsistencyFilePath()),
+              destinationWriter, regenBaseline.get(), workflow.getConsistencyFilePath()),
           "Regenerating a consistency file merge import change but no consistency file found.");
-
-        prepareDiffWithConsistencyFileBaseline(
-            autopatchConfig,
-            workflow,
-            destinationWriter,
-            previousPath,
-            nextPath,
-            autopatchPath,
-            regenBaseline,
-            regenTarget);
+      prepareDiffWithConsistencyFileBaseline(
+          autopatchConfig,
+          workflow,
+          destinationWriter,
+          previousPath,
+          nextPath,
+          autopatchPath,
+          regenBaseline.get(),
+          regenTarget);
     } else {
       previousPath =
           prepareDiffWithImportBaseline(
@@ -339,6 +337,11 @@ public class Regenerate<O extends Revision, D extends Revision> {
           AutoPatchUtil.getAutopatchGlob(
               autopatchConfig.directoryPrefix(), autopatchConfig.directory());
       patchlessDestinationFiles = Glob.difference(workflow.getDestinationFiles(), autopatchGlob);
+    }
+    if (workflow.getConsistencyFilePath() != null) {
+      Glob consistencyFileGlob =
+          Glob.createGlob(ImmutableList.of(workflow.getConsistencyFilePath()));
+      patchlessDestinationFiles = Glob.difference(patchlessDestinationFiles, consistencyFileGlob);
     }
 
     // copy the baseline to one directory
