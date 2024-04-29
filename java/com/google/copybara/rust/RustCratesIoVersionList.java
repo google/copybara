@@ -59,6 +59,7 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
   public ImmutableSet<String> list() throws RepoException, ValidationException {
     try {
       return getVersionList().stream()
+          .filter((v) -> !v.isYanked())
           .map(RustRegistryVersionObject::getVers)
           .filter(this::filterPreReleaseVersions)
           .collect(toImmutableSet());

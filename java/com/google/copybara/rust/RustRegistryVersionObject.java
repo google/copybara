@@ -53,6 +53,10 @@ public class RustRegistryVersionObject {
     return features;
   }
 
+  public boolean isYanked() {
+    return yanked;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)

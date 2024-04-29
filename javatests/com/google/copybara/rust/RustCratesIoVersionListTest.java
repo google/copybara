@@ -106,6 +106,26 @@ public class RustCratesIoVersionListTest {
   }
 
   @Test
+  public void testRustCrateIoVersionList_ignoreYanked() throws Exception {
+    JsonObject v1 = new JsonObject();
+    v1.add("name", new JsonPrimitive("example"));
+    v1.add("vers", new JsonPrimitive("0.1.0"));
+    v1.add("yanked", new JsonPrimitive("true"));
+    JsonObject v2 = new JsonObject();
+    v2.add("name", new JsonPrimitive("example"));
+    v2.add("vers", new JsonPrimitive("0.1.2"));
+    String content =
+        ImmutableList.of(v1, v2).stream()
+            .map(JsonElement::toString)
+            .collect(Collectors.joining("\n"));
+    setUpMockTransportForSkylarkExecutor(
+        ImmutableMap.of("https://index.crates.io/ex/am/example", content));
+    VersionList versionList =
+        skylark.eval("version_list", "version_list = rust.crates_io_version_list(crate='example')");
+    assertThat(versionList.list()).containsExactlyElementsIn(ImmutableList.of("0.1.2"));
+  }
+
+  @Test
   public void testRustCrateIoVersionList_ignorePreReleaseVersions() throws Exception {
     JsonObject v1 = new JsonObject();
     v1.add("name", new JsonPrimitive("example"));
