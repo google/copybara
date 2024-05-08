@@ -1598,6 +1598,27 @@ public class GitOriginTest {
     assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
   }
 
+  @Test
+  public void testCredentialsFromConfig() throws Exception {
+    options.git.useConfigCredentials = true;
+    origin =
+        skylark.eval(
+            "result",
+            "result = git.origin(\n"
+                + "    url = 'https://my-server.org/copybara',\n"
+                + "    ref = 'main',\n"
+                + "    credentials = credentials.username_password(\n"
+                + "      credentials.static_value('test@example.com'),\n"
+                + "      credentials.static_secret('password', 'top_secret'))\n"
+                + "    )");
+    assertThat(origin.describeCredentials()).isNotEmpty();
+    GitRepository repository = origin.getRepository();
+    UserPassword result = repository
+        .credentialFill("https://my-server.org/copybara");
+    assertThat(result.getUsername()).isEqualTo("test@example.com");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("top_secret");
+  }
+
   private GitRevision getLastCommitRef() throws RepoException, ValidationException {
     String head = repo.parseRef("HEAD");
     String lastCommit = head.substring(0, head.length() - 1);

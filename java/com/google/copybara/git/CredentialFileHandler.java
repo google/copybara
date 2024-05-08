@@ -52,12 +52,21 @@ public class CredentialFileHandler {
   private volatile Credential currentPassword;
   private volatile Credential currentUsername;
 
+  private final boolean disabled;
+
   public CredentialFileHandler(
-      String host, String path, CredentialIssuer username, CredentialIssuer password) {
+      String host, String path, CredentialIssuer username, CredentialIssuer password,
+      boolean disabled) {
     this.host = checkNotNull(host);
     this.path = checkNotNull(path);
     this.username = checkNotNull(username);
     this.password = checkNotNull(password);
+    this.disabled = disabled;
+  }
+
+  public CredentialFileHandler(
+      String host, String path, CredentialIssuer username, CredentialIssuer password) {
+    this(host, path, username, password, false);
   }
 
   /** Obtain a token for the username field from the username Issuer. */
@@ -89,6 +98,10 @@ public class CredentialFileHandler {
   }
 
   public void install(GitRepository repo, Path credentialHelper) throws RepoException {
+    if (disabled) {
+      return;
+    }
+    repo.replaceLocalConfigField("credential", "useHttpPath", "true");
     writeTokenToCredFile(credentialHelper);
     repo.withCredentialHelper("store --file=" + credentialHelper);
   }

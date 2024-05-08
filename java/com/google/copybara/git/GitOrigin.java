@@ -113,6 +113,7 @@ public class GitOrigin implements Origin<GitRevision> {
   protected final boolean primaryBranchMigrationMode;
   private final ApprovalsProvider approvalsProvider;
   private final boolean enableLfs;
+  @Nullable private final CredentialFileHandler credentials;
 
   GitOrigin(
       GeneralOptions generalOptions,
@@ -133,7 +134,8 @@ public class GitOrigin implements Origin<GitRevision> {
       @Nullable String workflowName,
       boolean primaryBranchMigrationMode,
       ApprovalsProvider approvalsProvider,
-      boolean enableLfs) {
+      boolean enableLfs,
+      @Nullable CredentialFileHandler credentials) {
     this.generalOptions = generalOptions;
     this.console = generalOptions.console();
     // Remove a possible trailing '/' so that the url is normalized.
@@ -157,6 +159,7 @@ public class GitOrigin implements Origin<GitRevision> {
     this.primaryBranchMigrationMode = primaryBranchMigrationMode;
     this.approvalsProvider = approvalsProvider;
     this.enableLfs = enableLfs;
+    this.credentials = credentials;
   }
 
   @VisibleForTesting
@@ -170,6 +173,13 @@ public class GitOrigin implements Origin<GitRevision> {
     }
     if (enableLfs) {
       repo.setRemoteOriginUrl(repoUrl);
+    }
+    if (credentials != null) {
+      try {
+        credentials.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to store credentials", e);
+      }
     }
     return repo;
   }
@@ -196,7 +206,8 @@ public class GitOrigin implements Origin<GitRevision> {
         patchTransformation,
         describeVersion,
         configPath,
-        workflowName);
+        workflowName,
+        credentials);
   }
 
   @Override
@@ -305,6 +316,7 @@ public class GitOrigin implements Origin<GitRevision> {
     private final boolean describeVersion;
     private final String configPath;
     private final String workflowName;
+    @Nullable private final CredentialFileHandler credentials;
 
     ReaderImpl(
         String repoUrl,
@@ -321,7 +333,8 @@ public class GitOrigin implements Origin<GitRevision> {
         @Nullable PatchTransformation patchTransformation,
         boolean describeVersion,
         String configPath,
-        String workflowName) {
+        String workflowName,
+        @Nullable CredentialFileHandler credentials) {
       this.repoUrl = checkNotNull(repoUrl);
       this.originFiles = checkNotNull(originFiles, "originFiles");
       this.authoring = checkNotNull(authoring, "authoring");
@@ -337,6 +350,7 @@ public class GitOrigin implements Origin<GitRevision> {
       this.describeVersion = describeVersion;
       this.configPath = configPath;
       this.workflowName = workflowName;
+      this.credentials = credentials;
     }
 
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
@@ -348,11 +362,22 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     protected GitRepository getRepository() throws RepoException {
+      GitRepository repo;
       if (partialFetch) {
         String prefixedRepoUrl = String.format("%s:%s%s", configPath, workflowName, repoUrl);
-        return gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
+        repo = gitOptions.cachedBareRepoForUrl(prefixedRepoUrl).enablePartialFetch();
+      } else {
+        repo = gitOptions.cachedBareRepoForUrl(repoUrl);
       }
-      return gitOptions.cachedBareRepoForUrl(repoUrl);
+      if (credentials != null) {
+        try {
+          Path credentialHelper = gitOptions.getConfigCredsFile(generalOptions);
+          credentials.install(repo, credentialHelper);
+        } catch (IOException e) {
+          throw new RepoException("Unable to store credentials", e);
+        }
+      }
+      return repo;
     }
 
     /**
@@ -603,7 +628,8 @@ public class GitOrigin implements Origin<GitRevision> {
       String configPath,
       String workflowName,
       ApprovalsProvider approvalsProvider,
-      boolean enableLfs) {
+      boolean enableLfs,
+      @Nullable CredentialFileHandler credentials) {
     return new GitOrigin(
         options.get(GeneralOptions.class),
         url,
@@ -623,7 +649,8 @@ public class GitOrigin implements Origin<GitRevision> {
         workflowName,
         primaryBranchMigrationMode,
         approvalsProvider,
-        enableLfs);
+        enableLfs,
+        credentials);
   }
 
   @Override
@@ -700,5 +727,13 @@ public class GitOrigin implements Origin<GitRevision> {
       resolvedRef = configRef;
     }
     return resolvedRef;
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
   }
 }

@@ -118,6 +118,25 @@ public class GitOptions implements Option {
       "Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.")
   public boolean gitNoVerify = false;
 
+  @Parameter(names = "--use-credentials-from-config", description = ""
+      + "If the config includes credentials, use these.", hidden = true, arity = 1)
+  public boolean useConfigCredentials = false;
+
+  @Parameter(names = "--workflow-credential-helper-path", description = ""
+      + "Path to store the credential helper created from supplied credentials."
+      + "Should be within the files that are deleted during cleanup.", hidden = true)
+  public Path workflowCredentialHelperPath = null;
+
+  /**
+   * Credential helper file path for config-based creds.
+   */
+  public Path getConfigCredsFile(GeneralOptions generalOpts) throws IOException {
+    if (workflowCredentialHelperPath == null) {
+      workflowCredentialHelperPath = generalOpts.getDirFactory().newTempDir("creds");
+    }
+    return workflowCredentialHelperPath.resolve(".cred_helper");
+  }
+
   public GitOptions(GeneralOptions generalOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
   }

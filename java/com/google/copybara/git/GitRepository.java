@@ -1474,8 +1474,7 @@ public class GitRepository {
 
   @CanIgnoreReturnValue
   public GitRepository withCredentialHelper(String credentialHelper) throws RepoException {
-    simpleCommand(ImmutableList.of("config", "--local", "credential.helper",
-        checkNotNull(credentialHelper)));
+    replaceLocalConfigField("credential", "helper", checkNotNull(credentialHelper));
     return this;
   }
 

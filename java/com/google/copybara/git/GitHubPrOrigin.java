@@ -72,6 +72,7 @@ import com.google.copybara.revision.Change;
 import com.google.copybara.transform.patch.PatchTransformation;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Console;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
@@ -135,6 +136,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
   private final GitHubHost ghHost;
   private final GitHubPrOriginOptions gitHubPrOriginOptions;
   private final ApprovalsProvider provider;
+  @Nullable private final CredentialFileHandler credentials;
 
   GitHubPrOrigin(
       String url,
@@ -161,7 +163,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       @Nullable String branch,
       boolean describeVersion,
       GitHubHost ghHost,
-      ApprovalsProvider provider) {
+      ApprovalsProvider provider,
+      @Nullable CredentialFileHandler credentials) {
     this.url = checkNotNull(url);
     this.useMerge = useMerge;
     this.generalOptions = checkNotNull(generalOptions);
@@ -188,6 +191,7 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
     this.describeVersion = describeVersion;
     this.ghHost = ghHost;
     this.provider = checkNotNull(provider);
+    this.credentials = credentials;
   }
 
   @Override
@@ -595,7 +599,15 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
 
   @VisibleForTesting
   public GitRepository getRepository() throws RepoException {
-    return gitOptions.cachedBareRepoForUrl(url);
+    GitRepository repo = gitOptions.cachedBareRepoForUrl(url);
+    if (credentials != null) {
+      try {
+        credentials.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to store credentials", e);
+      }
+    }
+    return repo;
   }
 
   @Override
@@ -616,7 +628,8 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
         patchTransformation,
         describeVersion,
         /* configPath= */ null,
-        /* workflowName= */ null) {
+        /* workflowName= */ null,
+        credentials) {
 
       /** Disable rebase since this is controlled by useMerge field. */
       @Override
@@ -875,5 +888,13 @@ public class GitHubPrOrigin implements Origin<GitRevision> {
       }
       return new AutoValue_GitHubPrOrigin_ApproverState(shouldMigrate, rejected.build());
     }
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
   }
 }

@@ -62,6 +62,7 @@ import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitCredential.UserPassword;
 import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.revision.Change;
 import com.google.copybara.testing.FileSubjects;
@@ -1459,6 +1460,27 @@ public class GitHubPrOriginTest {
                 + ")");
     assertThat(prOrigin.getApprovalsProvider())
         .isInstanceOf(GitHubPreSubmitApprovalsProvider.class);
+  }
+
+  @Test
+  public void testCredentialsFromConfig() throws Exception {
+    options.git.useConfigCredentials = true;
+
+    GitHubPrOrigin origin =
+        skylark.eval(
+            "result",
+            "result = git.github_pr_origin(\n"
+                + "    url = 'https://github.com/foo/bar',\n"
+                + "    credentials = credentials.username_password(\n"
+                + "      credentials.static_value('test@example.com'),\n"
+                + "      credentials.static_secret('password', 'top_secret'))\n"
+                + "    )");
+    assertThat(origin.describeCredentials()).isNotEmpty();
+    GitRepository repository = origin.getRepository();
+    UserPassword result = repository
+        .credentialFill("https://github.com/foo/bar");
+    assertThat(result.getUsername()).isEqualTo("test@example.com");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("top_secret");
   }
 
   private void checkResolve(GitHubPrOrigin origin, String reference, int prNumber)

@@ -128,7 +128,6 @@ public class CredentialFileHandlerTest {
             .init();
     underTest1.install(repo, file);
     underTest2.install(repo, file);
-    repo.simpleCommand("config", "--local", "credential.useHttpPath", "true");
     assertThat(repo.credentialFill("https://github.com/google/copybara").getUsername())
         .isEqualTo("x-access-token");
     assertThat(repo.credentialFill("https://github.com/copybara/google").getUsername())

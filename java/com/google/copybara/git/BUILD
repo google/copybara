@@ -47,6 +47,7 @@ java_library(
     ],
     deps = [
         ":core",
+        ":creds",
         "//java/com/google/copybara:base",
         "//java/com/google/copybara:general_options",
         "//java/com/google/copybara:labels",
@@ -56,6 +57,7 @@ java_library(
         "//java/com/google/copybara/checks",
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/config:global_migrations",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/effect",
         "//java/com/google/copybara/exception",

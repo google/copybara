@@ -113,7 +113,8 @@ public class GerritOrigin extends GitOrigin {
         /* workflowName= */ null,
         primaryBranchMigrationMode,
         approvalsProvider,
-        /* enableLfs= */ false);
+        /* enableLfs= */ false,
+        /* credentials= */ null);
     this.generalOptions = checkNotNull(generalOptions);
     this.gitOptions = checkNotNull(gitOptions);
     this.gitOriginOptions = checkNotNull(gitOriginOptions);
@@ -233,7 +234,8 @@ public class GerritOrigin extends GitOrigin {
         patchTransformation,
         describeVersion,
         /* configPath= */ null,
-        /* workflowName= */ null) {
+        /* workflowName= */ null,
+        /* credentials= */ null) {
 
       @Override
       public ImmutableList<GitRevision> findBaselinesWithoutLabel(
