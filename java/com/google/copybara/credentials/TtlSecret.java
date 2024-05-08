@@ -17,6 +17,7 @@ package com.google.copybara.credentials;
 
 import com.google.common.base.Preconditions;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -39,9 +40,12 @@ public class TtlSecret extends StaticSecret {
 
   @Override
   public String provideSecret() throws CredentialRetrievalException {
-    if (ttl.isBefore(clock.instant())) {
+    Instant now = clock.instant();
+    if (ttl.isBefore(now)) {
       throw new CredentialRetrievalException(
-          String.format("Credential %s is expired.", printableValue()));
+          String.format(
+              "Credential %s expired %d seconds ago.",
+              printableValue(), Duration.between(ttl, now).getSeconds()));
     }
     return super.provideSecret();
   }

@@ -21,7 +21,7 @@ public interface Credential {
   /** A safe value that describes the credential */
   String printableValue();
 
-  /** Whether the creential is still believed to be valid */
+  /** Whether the credential is still believed to be valid */
   boolean valid();
 
   /** The raw secret, this should not be used outside of framework code. */

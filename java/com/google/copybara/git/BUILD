@@ -31,11 +31,15 @@ CORE = [
     "Refspec.java",
 ]
 
+CREDS = [
+    "CredentialFileHandler.java",
+]
+
 java_library(
     name = "git",
     srcs = glob(
         ["**/*.java"],
-        exclude = CORE,
+        exclude = CORE + CREDS,
     ),
     javacopts = JAVACOPTS,
     runtime_deps = [
@@ -101,6 +105,20 @@ java_library(
         "//third_party:jsr305",
         "//third_party:re2j",
         "//third_party:shell",
+    ],
+)
+
+java_library(
+    name = "creds",
+    srcs = CREDS,
+    javacopts = JAVACOPTS,
+    deps = [
+        ":core",
+        "//java/com/google/copybara/credentials",
+        "//java/com/google/copybara/exception",
+        "//third_party:flogger",
+        "//third_party:guava",
+        "//third_party:re2j",
     ],
 )
 
