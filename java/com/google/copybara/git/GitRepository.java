@@ -2358,7 +2358,7 @@ public class GitRepository {
      * Run 'git log' and returns zero or more {@link GitLogEntry}.
      */
     public ImmutableList<GitLogEntry> run() throws RepoException {
-      List<String> cmd = Lists.newArrayList("log", "--no-color", createFormat(includeBody));
+      List<String> cmd = Lists.newArrayList("-c", "log.showSignature=false", "log", "--no-color", createFormat(includeBody));
 
       if (limit > 0) {
         cmd.add("-" + limit);
