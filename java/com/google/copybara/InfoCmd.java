@@ -164,7 +164,7 @@ public class InfoCmd implements CopybaraCmd {
             Iterables.limit(availableToMigrate, outputLimit)) {
           outputSize++;
           table.addRow(
-              change.getDateTime().format(DATE_FORMATTER),
+              change.getDateTime() != null ? change.getDateTime().format(DATE_FORMATTER) : "N/A",
               Ascii.truncate(change.getRevision().asString(), REVISION_MAX_LENGTH, ""),
               Ascii.truncate(change.firstLineMessage(), DESCRIPTION_MAX_LENGTH, "..."),
               Ascii.truncate(change.getAuthor().toString(), AUTHOR_MAX_LENGTH, "..."));

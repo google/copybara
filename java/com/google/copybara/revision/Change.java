@@ -152,6 +152,7 @@ public final class Change<R extends Revision> extends OriginRef implements Starl
     return changeFiles;
   }
 
+  @Nullable
   public ZonedDateTime getDateTime() {
     return dateTime;
   }

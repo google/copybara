@@ -206,8 +206,7 @@ public class InfoTest {
             newChange(
                 "1111",
                 "Baseline change",
-                ZonedDateTime.ofInstant(
-                    Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00"))),
+                ZonedDateTime.ofInstant(Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00"))),
             ImmutableList.of(
                 newChange(
                     "2222",
@@ -218,7 +217,8 @@ public class InfoTest {
                     "3333",
                     "Second change",
                     ZonedDateTime.ofInstant(
-                        Instant.ofEpochSecond(1541639979), ZoneId.of("-08:00")))));
+                        Instant.ofEpochSecond(1541639979), ZoneId.of("-08:00"))),
+                newChange("4444", "Third change", null)));
     Info<?> mockedInfo = Info.create(
         dummyOriginDescription,
         dummyDestinationDescription,
@@ -236,10 +236,10 @@ public class InfoTest {
     assertThat(eventMonitor.infoFinishedEvent.getInfo()).isEqualTo(mockedInfo);
     console
         .assertThat()
-        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 3333.*")
+        .onceInLog(MessageType.INFO, ".*last_migrated 1111 - last_available 4444.*")
         .onceInLog(MessageType.INFO, ".*Date.*Revision.*Description.*Author.*")
         .onceInLog(MessageType.INFO, ".*2018-11-07 15:06:19.*2222.*First change.*Foo <Bar>.*")
-        .onceInLog(MessageType.INFO, ".*2018-11-07 17:19:39.*3333.*Second change.*Foo <Bar>.*");
+        .onceInLog(MessageType.INFO, ".*N/A.*Third change.*Foo <Bar>.*");
   }
 
   private Change<DummyRevision> newChange(
