@@ -1664,6 +1664,17 @@ public class GitRepository {
   protected CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params,
       Duration defaultTimeout)
       throws RepoException {
+      return gitAllowNonZeroExit(stdin, params, defaultTimeout, -1);
+  }
+
+  /**
+   * Execute git allowing non-zero exit codes. This will only allow program non-zero exit codes
+   * (0-10. The upper bound is arbitrary). And will still fail for exit codes like 127 (Command not
+   * found).
+   */
+  protected CommandOutputWithStatus gitAllowNonZeroExit(byte[] stdin, Iterable<String> params,
+      Duration defaultTimeout, int maxLogLines)
+      throws RepoException {
     try {
       List<String> allParams = new ArrayList<>();
       allParams.add(gitEnv.resolveGitBinary());
@@ -1673,10 +1684,13 @@ public class GitRepository {
               Iterables.toArray(allParams, String.class),
               gitEnv.getEnvironment(),
               getCwd().toFile());
-      return new CommandRunner(cmd, defaultTimeout)
+      CommandRunner runner =  new CommandRunner(cmd, defaultTimeout)
           .withVerbose(verbose)
-          .withInput(stdin)
-          .execute();
+          .withInput(stdin);
+      if (maxLogLines != -1) {
+        runner = runner.withMaxStdOutLogLines(maxLogLines);
+      }
+      return runner.execute();
     } catch (BadExitStatusWithOutputException e) {
       CommandOutputWithStatus output = e.getOutput();
       int exitCode = e.getOutput().getTerminationStatus().getExitCode();
@@ -1790,12 +1804,12 @@ public class GitRepository {
   }
 
   /**
-   * Resolves a git reference to the SHA-1 reference
+   * Reads a file at the given revision
    */
   public String readFile(String revision, String path) throws RepoException {
     CommandOutputWithStatus result = gitAllowNonZeroExit(NO_INPUT,
         ImmutableList.of("--no-pager", "show", String.format("%s:%s", revision, path)),
-        DEFAULT_TIMEOUT);
+        DEFAULT_TIMEOUT, 0);
     if (!result.getTerminationStatus().success()) {
       throw new RepoException(String.format("Cannot read file '%s' in '%s'", path, revision));
     }
