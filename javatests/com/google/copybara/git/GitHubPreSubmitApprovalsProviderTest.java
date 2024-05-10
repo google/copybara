@@ -84,14 +84,15 @@ public final class GitHubPreSubmitApprovalsProviderTest {
         gitHubOptions,
         gitHubHost,
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, gitHubHost),
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, gitHubHost),
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
-            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, gitHubHost),
+            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, gitHubHost),
             console,
             gitHubHost,
-            params));
+            params),
+        null);
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(

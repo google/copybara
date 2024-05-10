@@ -576,7 +576,8 @@ public final class GerritDestination implements Destination<GitRevision> {
       @Nullable String topicTemplate,
       boolean gerritSubmit,
       boolean primaryBranchMigrationMode,
-      @Nullable Checker checker) {
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GerritOptions gerritOptions = options.get(GerritOptions.class);
     gerritSubmit =
@@ -614,7 +615,8 @@ public final class GerritDestination implements Destination<GitRevision> {
                 gerritSubmit,
                 primaryBranchMigrationMode),
             integrates,
-            checker),
+            checker,
+            credentials),
         submit);
   }
 
@@ -638,6 +640,11 @@ public final class GerritDestination implements Destination<GitRevision> {
       builder.put(entry);
     }
     return builder.put("type", getType()).build();
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    return gitDestination.describeCredentials();
   }
 
   /** What to do in the presence or absent of Change-Id in message. */

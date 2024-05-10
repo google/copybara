@@ -73,7 +73,7 @@ public final class GitHubSecuritySettingsValidatorTest {
 
   private GitHubSecuritySettingsValidator getUnitUnderTest(GitHubOptions options) {
     return new GitHubSecuritySettingsValidator(
-        options.newGitHubApiSupplier(PROJECT_URL, null, GitHubHost.GITHUB_COM),
+        options.newGitHubApiSupplier(PROJECT_URL, null, null, GitHubHost.GITHUB_COM),
         ImmutableList.copyOf(options.allStarAppIds),
         console);
   }

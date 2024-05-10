@@ -2860,7 +2860,7 @@ Name | Type | Description
 
 Creates a commit in a git repository using the transformed worktree.<br><br>For GitHub use git.github_destination. For creating Pull Requests in GitHub, use git.github_pr_destination. For creating a Gerrit change use git.gerrit_destination.<br><br>Given that Copybara doesn't ask for user/password in the console when doing the push to remote repos, you have to use ssh protocol, have the credentials cached or use a credential manager.
 
-<code><a href="#destination">destination</a></code> <code>git.destination(<a href=#git.destination.url>url</a>, <a href=#git.destination.push>push</a>='master', <a href=#git.destination.tag_name>tag_name</a>=None, <a href=#git.destination.tag_msg>tag_msg</a>=None, <a href=#git.destination.fetch>fetch</a>=None, <a href=#git.destination.partial_fetch>partial_fetch</a>=False, <a href=#git.destination.integrates>integrates</a>=None, <a href=#git.destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.destination(<a href=#git.destination.url>url</a>, <a href=#git.destination.push>push</a>='master', <a href=#git.destination.tag_name>tag_name</a>=None, <a href=#git.destination.tag_msg>tag_msg</a>=None, <a href=#git.destination.fetch>fetch</a>=None, <a href=#git.destination.partial_fetch>partial_fetch</a>=False, <a href=#git.destination.integrates>integrates</a>=None, <a href=#git.destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.destination.checker>checker</a>=None, <a href=#git.destination.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.destination">Parameters:</h4>
@@ -2876,6 +2876,7 @@ Parameter | Description
 <span id=git.destination.integrates href=#git.destination.integrates>integrates</span> | <code>sequence of git_integrate</code> or <code>NoneType</code><br><p>Integrate changes from a url present in the migrated change label. Defaults to a semi-fake merge if COPYBARA_INTEGRATE_REVIEW label is present in the message</p>
 <span id=git.destination.primary_branch_migration href=#git.destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.destination.checker href=#git.destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that can check leaks or other checks in the commit created. </p>
+<span id=git.destination.credentials href=#git.destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 
@@ -2928,7 +2929,7 @@ Name | Type | Description
 
 Creates a change in Gerrit using the transformed worktree. If this is used in iterative mode, then each commit pushed in a single Copybara invocation will have the correct commit parent. The reviews generated can then be easily done in the correct order without rebasing.
 
-<code><a href="#destination">destination</a></code> <code>git.gerrit_destination(<a href=#git.gerrit_destination.url>url</a>, <a href=#git.gerrit_destination.fetch>fetch</a>, <a href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</a>=fetch value, <a href=#git.gerrit_destination.submit>submit</a>=False, <a href=#git.gerrit_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_destination.notify>notify</a>=None, <a href=#git.gerrit_destination.change_id_policy>change_id_policy</a>='FAIL_IF_PRESENT', <a href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</a>=True, <a href=#git.gerrit_destination.reviewers>reviewers</a>=[], <a href=#git.gerrit_destination.cc>cc</a>=[], <a href=#git.gerrit_destination.labels>labels</a>=[], <a href=#git.gerrit_destination.api_checker>api_checker</a>=None, <a href=#git.gerrit_destination.integrates>integrates</a>=None, <a href=#git.gerrit_destination.topic>topic</a>=None, <a href=#git.gerrit_destination.gerrit_submit>gerrit_submit</a>=False, <a href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.gerrit_destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.gerrit_destination(<a href=#git.gerrit_destination.url>url</a>, <a href=#git.gerrit_destination.fetch>fetch</a>, <a href=#git.gerrit_destination.push_to_refs_for>push_to_refs_for</a>=fetch value, <a href=#git.gerrit_destination.submit>submit</a>=False, <a href=#git.gerrit_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.gerrit_destination.notify>notify</a>=None, <a href=#git.gerrit_destination.change_id_policy>change_id_policy</a>='FAIL_IF_PRESENT', <a href=#git.gerrit_destination.allow_empty_diff_patchset>allow_empty_diff_patchset</a>=True, <a href=#git.gerrit_destination.reviewers>reviewers</a>=[], <a href=#git.gerrit_destination.cc>cc</a>=[], <a href=#git.gerrit_destination.labels>labels</a>=[], <a href=#git.gerrit_destination.api_checker>api_checker</a>=None, <a href=#git.gerrit_destination.integrates>integrates</a>=None, <a href=#git.gerrit_destination.topic>topic</a>=None, <a href=#git.gerrit_destination.gerrit_submit>gerrit_submit</a>=False, <a href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.gerrit_destination.checker>checker</a>=None, <a href=#git.gerrit_destination.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.gerrit_destination">Parameters:</h4>
@@ -2952,6 +2953,7 @@ Parameter | Description
 <span id=git.gerrit_destination.gerrit_submit href=#git.gerrit_destination.gerrit_submit>gerrit_submit</span> | <code>bool</code><br><p>By default, Copybara uses git commit/push to the main branch when submit = True.  If this flag is enabled, it will update the Gerrit change with the latest commit and submit using Gerrit.</p>
 <span id=git.gerrit_destination.primary_branch_migration href=#git.gerrit_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'push_to_refs_for' and 'fetch' params if either is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.gerrit_destination.checker href=#git.gerrit_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+<span id=git.gerrit_destination.credentials href=#git.gerrit_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 
@@ -3044,7 +3046,7 @@ Name | Type | Description
 
 Defines a feedback API endpoint for GitHub, that exposes relevant GitHub API operations.
 
-<code>endpoint_provider</code> <code>git.github_api(<a href=#git.github_api.url>url</a>, <a href=#git.github_api.checker>checker</a>=None)</code>
+<code>endpoint_provider</code> <code>git.github_api(<a href=#git.github_api.url>url</a>, <a href=#git.github_api.checker>checker</a>=None, <a href=#git.github_api.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.github_api">Parameters:</h4>
@@ -3053,6 +3055,7 @@ Parameter | Description
 --------- | -----------
 <span id=git.github_api.url href=#git.github_api.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
 <span id=git.github_api.checker href=#git.github_api.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport.</p>
+<span id=git.github_api.credentials href=#git.github_api.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 
@@ -3069,7 +3072,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-<code><a href="#destination">destination</a></code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None, <a href=#git.github_destination.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.github_destination">Parameters:</h4>
@@ -3088,6 +3091,7 @@ Parameter | Description
 <span id=git.github_destination.tag_name href=#git.github_destination.tag_name>tag_name</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that specifies to a tag name. If the tag already exists, copybara will only overwrite it if the --git-tag-overwrite flag is set.<br>Note that tag creation is best-effort and the migration will succeed even if the tag cannot be created. Usage: Users can use a string or a string with a label. For instance ${label}_tag_name. And the value of label must be in changes' label list. Otherwise, tag won't be created.</p>
 <span id=git.github_destination.tag_msg href=#git.github_destination.tag_msg>tag_msg</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
 <span id=git.github_destination.checker href=#git.github_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
+<span id=git.github_destination.credentials href=#git.github_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 
@@ -3138,7 +3142,7 @@ Parameter | Description
 
 Creates changes in a new pull request in the destination.
 
-<code><a href="#destination">destination</a></code> <code>git.github_pr_destination(<a href=#git.github_pr_destination.url>url</a>, <a href=#git.github_pr_destination.destination_ref>destination_ref</a>='master', <a href=#git.github_pr_destination.pr_branch>pr_branch</a>=None, <a href=#git.github_pr_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</a>=True, <a href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</a>=[], <a href=#git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion>allow_empty_diff_check_suites_to_conclusion</a>={}, <a href=#git.github_pr_destination.title>title</a>=None, <a href=#git.github_pr_destination.body>body</a>=None, <a href=#git.github_pr_destination.assignees>assignees</a>=[], <a href=#git.github_pr_destination.integrates>integrates</a>=None, <a href=#git.github_pr_destination.api_checker>api_checker</a>=None, <a href=#git.github_pr_destination.update_description>update_description</a>=False, <a href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_pr_destination.checker>checker</a>=None, <a href=#git.github_pr_destination.draft>draft</a>=False)</code>
+<code><a href="#destination">destination</a></code> <code>git.github_pr_destination(<a href=#git.github_pr_destination.url>url</a>, <a href=#git.github_pr_destination.destination_ref>destination_ref</a>='master', <a href=#git.github_pr_destination.pr_branch>pr_branch</a>=None, <a href=#git.github_pr_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_pr_destination.allow_empty_diff>allow_empty_diff</a>=True, <a href=#git.github_pr_destination.allow_empty_diff_merge_statuses>allow_empty_diff_merge_statuses</a>=[], <a href=#git.github_pr_destination.allow_empty_diff_check_suites_to_conclusion>allow_empty_diff_check_suites_to_conclusion</a>={}, <a href=#git.github_pr_destination.title>title</a>=None, <a href=#git.github_pr_destination.body>body</a>=None, <a href=#git.github_pr_destination.assignees>assignees</a>=[], <a href=#git.github_pr_destination.integrates>integrates</a>=None, <a href=#git.github_pr_destination.api_checker>api_checker</a>=None, <a href=#git.github_pr_destination.update_description>update_description</a>=False, <a href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_pr_destination.checker>checker</a>=None, <a href=#git.github_pr_destination.draft>draft</a>=False, <a href=#git.github_pr_destination.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.github_pr_destination">Parameters:</h4>
@@ -3161,6 +3165,7 @@ Parameter | Description
 <span id=git.github_pr_destination.primary_branch_migration href=#git.github_pr_destination.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'desination_ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the param's declared value.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.github_pr_destination.checker href=#git.github_pr_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.github_pr_destination.draft href=#git.github_pr_destination.draft>draft</span> | <code>bool</code><br><p>Flag create pull request as draft or not.</p>
+<span id=git.github_pr_destination.credentials href=#git.github_pr_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 <h4 id="example.git.github_pr_destination">Examples:</h4>
@@ -3296,7 +3301,7 @@ Name | Type | Description
 
 Defines a feedback trigger based on updates on a GitHub PR.
 
-<code>trigger</code> <code>git.github_trigger(<a href=#git.github_trigger.url>url</a>, <a href=#git.github_trigger.checker>checker</a>=None, <a href=#git.github_trigger.events>events</a>=[])</code>
+<code>trigger</code> <code>git.github_trigger(<a href=#git.github_trigger.url>url</a>, <a href=#git.github_trigger.checker>checker</a>=None, <a href=#git.github_trigger.events>events</a>=[], <a href=#git.github_trigger.credentials>credentials</a>=None)</code>
 
 
 <h4 id="parameters.git.github_trigger">Parameters:</h4>
@@ -3306,6 +3311,7 @@ Parameter | Description
 <span id=git.github_trigger.url href=#git.github_trigger.url>url</span> | <code>string</code><br><p>Indicates the GitHub repo URL.</p>
 <span id=git.github_trigger.checker href=#git.github_trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker for the GitHub API transport provided by this trigger.</p>
 <span id=git.github_trigger.events href=#git.github_trigger.events>events</span> | <code>sequence of string</code> or <code>dict of sequence</code><br><p>Types of events to subscribe. Can  either be a list of event types or a dict of event types to particular events of that type, e.g. `['CHECK_RUNS']` or `{'CHECK_RUNS': 'my_check_run_name'}`.<br>Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`, `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`, `'STATUS'`, `'CHECK_RUNS'`</p>
+<span id=git.github_trigger.credentials href=#git.github_trigger.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo.</p>
 
 
 

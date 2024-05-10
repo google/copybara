@@ -90,6 +90,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
   @Nullable private final Checker endpointChecker;
 
   @Nullable private String resolvedDestinationRef;
+  @Nullable CredentialFileHandler credentials;
 
   GitHubPrDestination(
       String url,
@@ -112,7 +113,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       boolean updateDescription,
       GitHubHost ghHost,
       boolean primaryBranchMigrationMode,
-      @Nullable Checker checker) {
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials) {
     this.url = Preconditions.checkNotNull(url);
     this.destinationRef = Preconditions.checkNotNull(destinationRef);
     this.prBranch = prBranch;
@@ -131,10 +133,11 @@ public class GitHubPrDestination implements Destination<GitRevision> {
     this.updateDescription = updateDescription;
     this.ghHost = Preconditions.checkNotNull(ghHost);
     this.checker = checker;
-    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url));
+    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(url, credentials));
     this.mainConfigFile = Preconditions.checkNotNull(mainConfigFile);
     this.endpointChecker = endpointChecker;
     this.primaryBranchMigrationMode = primaryBranchMigrationMode;
+    this.credentials = credentials;
   }
 
   @Override
@@ -158,6 +161,14 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       builder.putAll("root", destinationFiles.roots());
     }
     return builder.build();
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
   }
 
   @Override
@@ -201,7 +212,8 @@ public class GitHubPrDestination implements Destination<GitRevision> {
         gitOptions.visitChangePageSize,
         gitOptions.gitTagOverwrite,
         checker,
-        destinationOptions) {
+        destinationOptions,
+        credentials) {
       @Override
       public ImmutableList<DestinationEffect> write(
           TransformResult transformResult, Glob destinationFiles, Console console)
@@ -222,7 +234,7 @@ public class GitHubPrDestination implements Destination<GitRevision> {
           return result.build();
         }
 
-        GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName());
+        GitHubApi api = gitHubOptions.newGitHubRestApi(getProjectName(), credentials);
 
         ImmutableList<PullRequest> pullRequests =
             api.getPullRequests(
@@ -326,7 +338,9 @@ public class GitHubPrDestination implements Destination<GitRevision> {
       public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
         gitHubOptions.validateEndpointChecker(endpointChecker);
         return new GitHubEndPoint(
-            gitHubOptions.newGitHubApiSupplier(url, endpointChecker, ghHost), url, console, ghHost);
+            gitHubOptions.newGitHubApiSupplier(
+                url, endpointChecker, credentials, ghHost), url, console,
+            ghHost, credentials);
       }
     };
   }

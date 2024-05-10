@@ -2211,6 +2211,26 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testCredentialsFromConfig() throws Exception {
+    options.git.useConfigCredentials = true;
+    GitDestination destination =
+        skylark.eval(
+            "result",
+            "result = git.destination(\n"
+                + "    url = 'https://my-server.org/copybara',\n"
+                + "    credentials = credentials.username_password(\n"
+                + "      credentials.static_value('test@example.com'),\n"
+                + "      credentials.static_secret('password', 'top_secret'))\n"
+                + "    )");
+    assertThat(destination.describeCredentials()).isNotEmpty();
+    GitRepository repository = destination.getLocalRepo().load(console);
+    UserPassword result = repository
+        .credentialFill("https://my-server.org/copybara");
+    assertThat(result.getUsername()).isEqualTo("test@example.com");
+    assertThat(result.getPassword_BeCareful()).isEqualTo("top_secret");
+  }
+
+  @Test
   public void testCredentials() throws Exception {
     checkCredentials();
   }

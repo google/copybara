@@ -41,6 +41,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.CredentialFileHandler;
 import com.google.copybara.git.FetchResult;
 import com.google.copybara.git.GerritOptions;
 import com.google.copybara.git.GitEnvironment;
@@ -222,8 +223,8 @@ public class GitTestUtil {
       }
 
       @Override
-      protected GitRepository getCredentialsRepo() throws RepoException {
-        return credentialsRepo != null ? credentialsRepo : super.getCredentialsRepo();
+      protected GitRepository getCredentialsRepo(CredentialFileHandler creds) throws RepoException {
+        return credentialsRepo != null ? credentialsRepo : super.getCredentialsRepo(creds);
       }
     };
   }

@@ -111,6 +111,7 @@ public class GitDestination implements Destination<GitRevision> {
   private final WriteHook writerHook;
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
+  @Nullable private final CredentialFileHandler credentials;
 
   GitDestination(
       String repoUrl,
@@ -125,7 +126,8 @@ public class GitDestination implements Destination<GitRevision> {
       GeneralOptions generalOptions,
       WriteHook writerHook,
       Iterable<GitIntegrateChanges> integrates,
-      @Nullable Checker checker) {
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials) {
     this.repoUrl = checkNotNull(repoUrl);
     this.fetch = checkNotNull(fetch);
     this.push = checkNotNull(push);
@@ -139,7 +141,8 @@ public class GitDestination implements Destination<GitRevision> {
     this.integrates = checkNotNull(integrates);
     this.writerHook = checkNotNull(writerHook);
     this.checker = checker;
-    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl));
+    this.localRepo = memoized(ignored -> destinationOptions.localGitRepo(repoUrl, credentials));
+    this.credentials = credentials;
   }
 
   /**
@@ -192,7 +195,8 @@ public class GitDestination implements Destination<GitRevision> {
         gitOptions.visitChangePageSize,
         gitOptions.gitTagOverwrite,
         checker,
-        destinationOptions);
+        destinationOptions,
+        credentials);
   }
 
   /**
@@ -270,7 +274,8 @@ public class GitDestination implements Destination<GitRevision> {
         int visitChangePageSize,
         boolean gitTagOverwrite,
         Checker checker,
-        GitDestinationOptions destinationOptions) {
+        GitDestinationOptions destinationOptions,
+        @Nullable CredentialFileHandler credentials) {
       this.skipPush = skipPush;
       this.repoUrl = checkNotNull(repoUrl);
       this.remoteFetch = checkNotNull(remoteFetch);
@@ -968,4 +973,13 @@ public class GitDestination implements Destination<GitRevision> {
     return builder.build();
   }
 
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
+  }
+
 }
+

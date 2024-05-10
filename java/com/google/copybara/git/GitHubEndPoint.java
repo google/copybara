@@ -86,16 +86,20 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
   private final String url;
   private final Console console;
   private GitHubHost ghHost;
+  @Nullable private final CredentialFileHandler credentials;
+
   // This might not be complete but it is only used for filtering get_pull_requests. We can
   // add more chars on demand.
   private static final Pattern SAFE_BRANCH_NAME_PREFIX = Pattern.compile("[\\w_.-][\\w/_.-]*");
 
   GitHubEndPoint(
-      LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console, GitHubHost ghHost) {
+      LazyResourceLoader<GitHubApi> apiSupplier, String url, Console console, GitHubHost ghHost,
+      @Nullable CredentialFileHandler credentials) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.console = Preconditions.checkNotNull(console);
     this.ghHost = ghHost;
+    this.credentials = credentials;
   }
 
   @StarlarkMethod(
@@ -654,12 +658,20 @@ public class GitHubEndPoint implements Endpoint, StarlarkValue {
 
   @Override
   public GitHubEndPoint withConsole(Console console) {
-    return new GitHubEndPoint(this.apiSupplier, this.url, console, ghHost);
+    return new GitHubEndPoint(this.apiSupplier, this.url, console, ghHost, credentials);
   }
 
   @Override
   public ImmutableSetMultimap<String, String> describe() {
     return ImmutableSetMultimap.of("type", "github_api", "url", url);
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
   }
 
   @Override

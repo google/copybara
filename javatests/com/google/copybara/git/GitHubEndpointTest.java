@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.ActionMigration;
+import com.google.copybara.EndpointProvider;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
@@ -765,6 +766,19 @@ public class GitHubEndpointTest {
             .build());
     verify(gitUtil.httpTransport())
         .buildRequest(eq("POST"), contains("google/example/releases"));
+  }
+
+  @Test
+  public void testConfigCredentials() throws Exception {
+
+    EndpointProvider<GitHubEndPoint> endpoint = skylark.eval("e",
+    "e = git.github_api(url = 'https://github.com/google/example',"
+        + "    credentials = credentials.username_password(\n"
+        + "      credentials.static_value('test@example.com'),\n"
+        + "      credentials.static_secret('password', 'top_secret'))\n"
+        + ")");
+    assertThat(endpoint.getEndpoint().describeCredentials()).isNotEmpty();
+
   }
 
   private String toJson(Object obj) throws IOException {

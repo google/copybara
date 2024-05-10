@@ -81,11 +81,11 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         githubHost,
         /* branch= */ "main",
         new GitHubSecuritySettingsValidator(
-            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, githubHost),
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
-            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, githubHost),
+            gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, githubHost),
             console,
             githubHost,
             params));

@@ -40,6 +40,7 @@ import com.google.copybara.jcommander.DurationConverter;
 import com.google.copybara.jcommander.GreaterThanZeroListValidator;
 import com.google.copybara.jcommander.SemicolonSeparatedListSplitter;
 import com.google.copybara.util.console.Console;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -85,23 +86,25 @@ public class GitHubOptions implements Option {
 
   /** Returns a lazy supplier of {@link GitHubApi}. */
   public LazyResourceLoader<GitHubApi> newGitHubApiSupplier(
-      String url, @Nullable Checker checker, GitHubHost ghHost) {
+      String url,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      GitHubHost ghHost) {
     return (console) -> {
       String project = ghHost.getProjectNameFromUrl(url);
-      return checker == null
-          ? newGitHubRestApi(project)
-          : newGitHubRestApi(project, checker, console);
+      return newGitHubRestApi(project, checker, credentials, console);
     };
   }
 
   /** Returns a lazy supplier of {@link GitHubGraphQLApi}. */
   public LazyResourceLoader<GitHubGraphQLApi> newGitHubGraphQLApiSupplier(
-      String url, @Nullable Checker checker, GitHubHost ghHost) {
+      String url,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      GitHubHost ghHost) {
     return (console) -> {
       String project = ghHost.getProjectNameFromUrl(url);
-      return checker == null
-          ? newGitHubGraphQLApi(project)
-          : newGitHubGraphQLApi(project, checker, console);
+      return newGitHubGraphQLApi(project, checker, credentials, console);
     };
   }
 
@@ -110,8 +113,10 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GitHubApi newGitHubRestApi(String gitHubProject) throws RepoException {
-    return newGitHubRestApi(gitHubProject, /* checker= */ null, generalOptions.console());
+  public GitHubApi newGitHubRestApi(
+      String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
+    return newGitHubRestApi(
+        gitHubProject, /* checker= */ null, credentials, generalOptions.console());
   }
 
   /**
@@ -121,9 +126,12 @@ public class GitHubOptions implements Option {
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubApi newGitHubRestApi(
-      String gitHubProject, @Nullable Checker checker, Console console)
+      String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console)
       throws RepoException {
-    GitRepository repo = getCredentialsRepo();
+    GitRepository repo = getCredentialsRepo(credentials);
     String storePath = gitOptions.getCredentialHelperStorePath();
     if (storePath == null) {
       storePath = "~/.git-credentials";
@@ -140,21 +148,25 @@ public class GitHubOptions implements Option {
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
-  public GitHubGraphQLApi newGitHubGraphQLApi(String gitHubProject) throws RepoException {
+  public GitHubGraphQLApi newGitHubGraphQLApi(
+      String gitHubProject, @Nullable CredentialFileHandler credentials) throws RepoException {
     return newGitHubGraphQLApi(
-        gitHubProject, /* checker= */ null, generalOptions.console());
+        gitHubProject, /* checker= */ null, credentials, generalOptions.console());
   }
 
-    /**
+  /**
    * Returns a new {@link GitHubApi} instance for the given project enforcing the given {@link
    * Checker}.
    *
    * <p>The project for 'https://github.com/foo/bar' is 'foo/bar'.
    */
   public GitHubGraphQLApi newGitHubGraphQLApi(
-      String gitHubProject, @Nullable Checker checker, Console console)
+      String gitHubProject,
+      @Nullable Checker checker,
+      @Nullable CredentialFileHandler credentials,
+      Console console)
       throws RepoException {
-    GitRepository repo = getCredentialsRepo();
+    GitRepository repo = getCredentialsRepo(credentials);
 
     String storePath = gitOptions.getCredentialHelperStorePath();
     if (storePath == null) {
@@ -172,8 +184,17 @@ public class GitHubOptions implements Option {
   Boolean gitHubDeletePrBranch = null;
 
   @VisibleForTesting
-  protected GitRepository getCredentialsRepo() throws RepoException {
-    return gitOptions.cachedBareRepoForUrl("just_for_github_api");
+  protected GitRepository getCredentialsRepo(@Nullable CredentialFileHandler creds)
+      throws RepoException {
+    GitRepository repo = gitOptions.cachedBareRepoForUrl("just_for_github_api");
+    if (creds != null) {
+      try {
+        creds.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to create creds file.", e);
+      }
+    }
+    return repo;
   }
 
   /** Validate if a {@link Checker} is valid to use with GitHub endpoints. */

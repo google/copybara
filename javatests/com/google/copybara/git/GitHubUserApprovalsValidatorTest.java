@@ -77,7 +77,7 @@ public final class GitHubUserApprovalsValidatorTest {
 
   private GitHubUserApprovalsValidator getUnitUnderTest() throws Exception {
     return new GitHubUserApprovalsValidator(
-        builder.github.newGitHubGraphQLApiSupplier(PROJECT_URL, null, githubHost),
+        builder.github.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, githubHost),
         console,
         githubHost,
         params);

@@ -16,6 +16,7 @@
 
 package com.google.copybara;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.Printer;
@@ -36,4 +37,10 @@ public interface Trigger extends StarlarkValue {
   }
 
   ImmutableSetMultimap<String, String> describe();
+
+
+  /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
+  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    return ImmutableList.of();
+  }
 }

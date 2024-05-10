@@ -135,7 +135,20 @@ public final class GitDestinationOptions implements Option {
    * <p> The git database (git-dir) might be potentially shared between multiple workflows. This
    * means that the users should force fetch and probably create its own local unique references.
    */
-  GitRepository localGitRepo(String url) throws RepoException {
+  GitRepository localGitRepo(String url, @Nullable CredentialFileHandler creds)
+      throws RepoException {
+    GitRepository repo = getLocalGitRepository(url);
+    if (creds != null) {
+      try {
+        creds.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to store git credentials", e);
+      }
+    }
+    return repo;
+  }
+
+  private GitRepository getLocalGitRepository(String url) throws RepoException {
     try {
       if (Strings.isNullOrEmpty(localRepoPath)) {
         return gitOptions.cachedBareRepoForUrl(url)

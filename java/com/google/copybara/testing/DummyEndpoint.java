@@ -16,6 +16,7 @@
 
 package com.google.copybara.testing;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import java.util.ArrayList;
@@ -66,5 +67,11 @@ public class DummyEndpoint implements Endpoint, StarlarkValue {
   @StarlarkMethod(name = "get_messages", doc = "Get the messages", structField = true)
   public Sequence<String> getMessages() {
     return StarlarkList.immutableCopyOf(messages);
+  }
+
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    return ImmutableList.of();
   }
 }

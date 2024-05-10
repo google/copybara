@@ -331,6 +331,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Sequence.cast(excludedSubmodules, String.class, "excluded_submodules");
     checkSubmoduleConfig(submodules, excludedSubmoduleList);
     String fixedUrl = fixHttp(url, thread.getCallerLocation());
+    CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
     return GitOrigin.newGitOrigin(
         options,
         fixedUrl,
@@ -348,11 +349,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         mainConfigFile.path(),
         workflowName,
         GITHUB_COM.isGitHubUrl(url)
-            ? githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref))
+            ? githubPostSubmitApprovalsProvider(
+                fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler)
             : approvalsProvider(url),
         /* enableLfs= */ false,
-        getCredentialHandler(
-            URI.create(fixedUrl).getHost(), URI.create(fixedUrl).getPath(), credentials)
+        credentialHandler
     );
   }
 
@@ -579,8 +580,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 mainConfigFile,
                 convertFromNoneable(description, null),
                 action,
-                getEndpointProvider(fixedOriginHttp, originChecker, false, thread),
-                getEndpointProvider(fixedDestinationHttp, destinationChecker, false, thread)));
+                getEndpointProvider(fixedOriginHttp, originChecker, null, false, thread),
+                getEndpointProvider(fixedDestinationHttp, destinationChecker, null, false, thread))
+            );
     return Starlark.NONE;
   }
 
@@ -1119,8 +1121,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
     String fixedUrl = fixHttp(url, thread.getCallerLocation());
     GitHubPrOriginOptions prOpts = options.get(GitHubPrOriginOptions.class);
-    CredentialFileHandler credHandler =  getCredentialHandler(
-        URI.create(fixedUrl).getHost(), URI.create(fixedUrl).getPath(), credentials);
+    CredentialFileHandler credHandler = getCredentialHandler(fixedUrl, credentials);
     if (prOpts.repo != null) {
       Iterator<String> split = Splitter.on(" ").split(prOpts.repo).iterator();
       String repo = split.next();
@@ -1143,7 +1144,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
           mainConfigFile.path(),
           workflowName,
           false,
-          githubPostSubmitApprovalsProvider(fixedUrl, ref),
+          githubPostSubmitApprovalsProvider(fixedUrl, ref, credHandler),
           /* enableLfs= */ false,
           credHandler
       );
@@ -1180,7 +1181,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(branch, null),
         convertDescribeVersion(describeVersion),
         GITHUB_COM,
-        githubPreSubmitApprovalsProvider(fixedUrl),
+        githubPreSubmitApprovalsProvider(fixedUrl, credHandler),
         credHandler);
   }
 
@@ -1332,6 +1333,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     String fixedUrl = fixHttp(url, thread.getCallerLocation());
     PatchTransformation patchTransformation = maybeGetPatchTransformation(patch);
 
+    CredentialFileHandler credentialHandler = getCredentialHandler(fixedUrl, credentials);
     // TODO(copybara-team): See if we want to support includeBranchCommitLogs for GitHub repos.
     return GitOrigin.newGitOrigin(
         options,
@@ -1349,10 +1351,10 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         convertFromNoneable(versionSelector, null),
         mainConfigFile.path(),
         workflowName,
-        githubPostSubmitApprovalsProvider(fixedUrl, SkylarkUtil.convertOptionalString(ref)),
+        githubPostSubmitApprovalsProvider(
+            fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler),
         enableLfs,
-        getCredentialHandler(
-            URI.create(fixedUrl).getHost(), URI.create(fixedUrl).getPath(), credentials));
+        credentialHandler);
   }
 
   private boolean convertDescribeVersion(Object describeVersion) {
@@ -1465,6 +1467,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = "A checker that can check leaks or other checks in the commit created. ",
             named = true,
             positional = false),
+          @Param(
+              name = "credentials",
+              allowedTypes = {
+                  @ParamType(type = UsernamePasswordIssuer.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1478,6 +1490,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object integrates,
       Boolean primaryBranchMigration,
       Object checker,
+      @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1491,6 +1504,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               "Skipping git checker for git.destination. Note that this could"
                   + " cause leaks or other problems");
     }
+    CredentialFileHandler credentialHandler = getCredentialHandler(url, credentials);
     return new GitDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -1510,7 +1524,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        maybeChecker);
+        maybeChecker,
+        credentialHandler);
   }
 
   @SuppressWarnings("unused")
@@ -1662,6 +1677,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "is used, that checker will only apply to API calls.",
             named = true,
             positional = false),
+          @Param(
+              name = "credentials",
+              allowedTypes = {
+                  @ParamType(type = UsernamePasswordIssuer.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -1680,6 +1705,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object tagName,
       Object tagMsg,
       Object checker,
+      @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1713,6 +1739,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
     Checker checkerObj = convertFromNoneable(checker, null);
+    CredentialFileHandler credentialHandler;
+    try {
+      credentialHandler = getCredentialHandler(
+          GITHUB_COM.getHost(), GITHUB_COM.getProjectNameFromUrl(url), credentials);
+    } catch (ValidationException e) {
+      throw new EvalException("Cannot parse url", e);
+    }
     return new GitDestination(
         repoUrl,
         checkNotEmpty(
@@ -1734,11 +1767,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             effectiveDeletePrBranch,
             getGeneralConsole(),
             apiCheckerObj != null ? apiCheckerObj : checkerObj,
-            GITHUB_COM),
+            GITHUB_COM,
+            credentialHandler),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
-        checkerObj);
+        checkerObj,
+        credentialHandler);
   }
 
   @SuppressWarnings("unused")
@@ -1923,7 +1958,17 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false,
-            doc = "Flag create pull request as draft or not.")
+            doc = "Flag create pull request as draft or not."),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
@@ -1970,6 +2015,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean primaryBranchMigrationMode,
       Object checker,
       boolean isDraft,
+      @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -1981,6 +2027,13 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     String destinationPrBranch = convertFromNoneable(prBranch, null);
     Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
     Checker checkerObj = convertFromNoneable(checker, null);
+    CredentialFileHandler credentialHandler;
+    try {
+      credentialHandler = getCredentialHandler(
+          GITHUB_COM.getHost(), GITHUB_COM.getProjectNameFromUrl(url), credentials);
+    } catch (ValidationException e) {
+      throw new EvalException("Cannot parse url", e);
+    }
     return new GitHubPrDestination(
         fixHttp(
             checkNotEmpty(firstNotNull(destinationOptions.url, url), "url"),
@@ -2006,7 +2059,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     "empty_diff_merge_statuses")),
             convertSlugToConclusion(allowEmptyDiffCheckSuitesToConclusion),
             getGeneralConsole(),
-            GITHUB_COM),
+            GITHUB_COM,
+            credentialHandler),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),
@@ -2018,7 +2072,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         updateDescription,
         GITHUB_COM,
         primaryBranchMigrationMode,
-        checkerObj);
+        checkerObj,
+        credentialHandler);
   }
 
   private ImmutableSetMultimap<String, Conclusion> convertSlugToConclusion(
@@ -2230,6 +2285,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "is used, that checker will only apply to API calls.",
             named = true,
             positional = false),
+          @Param(
+              name = "credentials",
+              allowedTypes = {
+                  @ParamType(type = UsernamePasswordIssuer.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitDestinationOptions.class)
@@ -2252,6 +2317,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Boolean gerritSubmit,
       Boolean primaryBranchMigrationMode,
       Object checker,
+      @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -2279,7 +2345,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
     Checker apiCheckerObj = convertFromNoneable(apiChecker, null);
     Checker checkerObj = convertFromNoneable(checker, null);
-
+    CredentialFileHandler credentialHandler = getCredentialHandler(url, credentials);
     return GerritDestination.newGerritDestination(
         options,
         fixHttp(url, thread.getCallerLocation()),
@@ -2305,7 +2371,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
         topicStr,
         gerritSubmit,
         primaryBranchMigrationMode,
-        checkerObj);
+        checkerObj,
+        credentialHandler);
   }
 
   @SuppressWarnings("unused")
@@ -2325,22 +2392,34 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             doc = "A checker for the GitHub API transport.",
             named = true),
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+                @ParamType(type = UsernamePasswordIssuer.class),
+                @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubOptions.class)
   public EndpointProvider<GitHubEndPoint> githubApi(
-      String url, Object checkerObj, StarlarkThread thread) throws EvalException {
+      String url, Object checkerObj, @Nullable Object credentials,
+      StarlarkThread thread) throws EvalException {
     checkNotEmpty(url, "url");
     String cleanedUrl = fixHttp(url, thread.getCallerLocation());
     Checker checker = convertFromNoneable(checkerObj, null);
     validateEndpointChecker(checker, GITHUB_API);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    CredentialFileHandler credentialHandler = getCredentialHandler(url, credentials);
     return EndpointProvider.wrap(
         new GitHubEndPoint(
-            gitHubOptions.newGitHubApiSupplier(cleanedUrl, checker, GITHUB_COM),
+            gitHubOptions.newGitHubApiSupplier(cleanedUrl, checker, credentialHandler, GITHUB_COM),
             cleanedUrl,
             getGeneralConsole(),
-            GITHUB_COM));
+            GITHUB_COM, credentialHandler));
   }
 
   @SuppressWarnings("unused")
@@ -2502,6 +2581,16 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "Valid values for event types are: `'ISSUES'`, `'ISSUE_COMMENT'`,"
                     + " `'PULL_REQUEST'`,  `'PULL_REQUEST_REVIEW_COMMENT'`, `'PUSH'`,"
                     + " `'STATUS'`, `'CHECK_RUNS'`"),
+          @Param(
+              name = "credentials",
+              allowedTypes = {
+                  @ParamType(type = UsernamePasswordIssuer.class),
+                  @ParamType(type = NoneType.class),
+              },
+              defaultValue = "None",
+              named = true,
+              positional = false,
+              doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitHubOptions.class)
@@ -2509,6 +2598,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       String url,
       Object checkerObj,
       Object events,
+      @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
     checkNotEmpty(url, "url");
@@ -2519,12 +2609,20 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     ImmutableSet<EventTrigger> parsedEvents = handleEventTypes(events, eventBuilder, types);
     validateEndpointChecker(checker, GITHUB_TRIGGER);
     GitHubOptions gitHubOptions = options.get(GitHubOptions.class);
+    CredentialFileHandler credentialHandler;
+    try {
+      credentialHandler = getCredentialHandler(
+          GITHUB_COM.getHost(), GITHUB_COM.getProjectNameFromUrl(url), credentials);
+    } catch (ValidationException e) {
+      throw new EvalException("Cannot parse url", e);
+    }
     return new GitHubTrigger(
-        gitHubOptions.newGitHubApiSupplier(url, checker, GITHUB_COM),
+        gitHubOptions.newGitHubApiSupplier(url, checker, credentialHandler, GITHUB_COM),
         url,
         parsedEvents,
         getGeneralConsole(),
-        GITHUB_COM);
+        GITHUB_COM,
+        credentialHandler);
   }
 
   private ImmutableSet<EventTrigger> handleEventTypes(
@@ -2732,38 +2830,41 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     return options.get(GitOriginOptions.class).approvalsProvider;
   }
 
-  protected ApprovalsProvider githubPreSubmitApprovalsProvider(String url) {
+  protected ApprovalsProvider githubPreSubmitApprovalsProvider(
+      String url, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
     return new GitHubPreSubmitApprovalsProvider(
         githubOptions,
         GITHUB_COM,
         new GitHubSecuritySettingsValidator(
-            githubOptions.newGitHubApiSupplier(url, null, GITHUB_COM),
+            githubOptions.newGitHubApiSupplier(url, null, creds, GITHUB_COM),
             ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
-            githubOptions.newGitHubGraphQLApiSupplier(url, null, GITHUB_COM),
+            githubOptions.newGitHubGraphQLApiSupplier(url, null, creds, GITHUB_COM),
             generalOptions.console(),
             GITHUB_COM,
             new GetCommitHistoryParams(
                 /* commits= */ githubOptions.gqlOverride.get(0),
                 /* pullRequests= */ githubOptions.gqlOverride.get(1),
-                /* reviews= */ githubOptions.gqlOverride.get(2))));
+                /* reviews= */ githubOptions.gqlOverride.get(2))),
+        creds);
   }
 
-  protected ApprovalsProvider githubPostSubmitApprovalsProvider(String url, String branch) {
+  protected ApprovalsProvider githubPostSubmitApprovalsProvider(
+      String url, String branch, CredentialFileHandler creds) {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     GitHubOptions githubOptions = options.get(GitHubOptions.class);
     return new GitHubPostSubmitApprovalsProvider(
         GITHUB_COM,
         branch,
         new GitHubSecuritySettingsValidator(
-            githubOptions.newGitHubApiSupplier(url, null, GITHUB_COM),
+            githubOptions.newGitHubApiSupplier(url, null, creds, GITHUB_COM),
             ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
-            githubOptions.newGitHubGraphQLApiSupplier(url, null, GITHUB_COM),
+            githubOptions.newGitHubGraphQLApiSupplier(url, null, creds, GITHUB_COM),
             generalOptions.console(),
             GITHUB_COM,
             new GetCommitHistoryParams(
@@ -2792,7 +2893,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable
   protected LazyResourceLoader<EndpointProvider<?>> getEndpointProvider(
-      String url, @Nullable Checker checker, boolean allowSubmit, StarlarkThread thread) {
+      String url, @Nullable Checker checker, @Nullable CredentialFileHandler creds,
+      boolean allowSubmit, StarlarkThread thread) {
     if (url == null) {
       return null;
     }
@@ -2803,7 +2905,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
 
     LazyResourceLoader<EndpointProvider<?>> githubApiLoader =
-        maybeGetGitHubApi(url, checker, thread);
+        maybeGetGitHubApi(url, checker, creds, thread);
     if (githubApiLoader != null) {
       return githubApiLoader;
     }
@@ -2834,13 +2936,14 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable
   protected LazyResourceLoader<EndpointProvider<?>> maybeGetGitHubApi(
-      String url, @Nullable Checker checker, StarlarkThread thread) {
+      String url, @Nullable Checker checker, @Nullable CredentialFileHandler creds,
+      StarlarkThread thread) {
     if (!GITHUB_COM.isGitHubUrl(url)) {
       return null;
     }
     return (console) -> {
       try {
-        return githubApi(url, checker, thread);
+        return githubApi(url, checker, creds, thread);
       } catch (EvalException e) {
         throw new ValidationException(
             String.format(
@@ -2860,5 +2963,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
     return new CredentialFileHandler(host, path.replaceAll("^/+", ""),
         issuer.username(), issuer.password(), !options.get(GitOptions.class).useConfigCredentials);
+  }
+
+  @Nullable protected CredentialFileHandler getCredentialHandler(
+      String url, @Nullable Object starlarkValue) {
+    URI uri = URI.create(url);
+    return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
   }
 }

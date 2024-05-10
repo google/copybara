@@ -19,6 +19,7 @@ package com.google.copybara.git;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
@@ -28,6 +29,7 @@ import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * A feedback trigger based on updates on a GitHub PR.
@@ -39,24 +41,28 @@ public class GitHubTrigger implements Trigger {
   private GitHubHost ghHost;
   private final ImmutableSet<EventTrigger> events;
   private final Console console;
+  @Nullable private final CredentialFileHandler credentials;
 
   GitHubTrigger(
       LazyResourceLoader<GitHubApi> apiSupplier,
       String url,
       ImmutableSet<EventTrigger> events,
       Console console,
-      GitHubHost ghHost) {
+      GitHubHost ghHost,
+      @Nullable CredentialFileHandler credentials
+      ) {
     this.apiSupplier = Preconditions.checkNotNull(apiSupplier);
     this.url = Preconditions.checkNotNull(url);
     this.ghHost = Preconditions.checkNotNull(ghHost);
     Preconditions.checkArgument(!events.isEmpty());
     this.events = events;
     this.console = Preconditions.checkNotNull(console);
+    this.credentials = credentials;
   }
 
   @Override
   public Endpoint getEndpoint() {
-    return new GitHubEndPoint(apiSupplier, url, console, ghHost);
+    return new GitHubEndPoint(apiSupplier, url, console, ghHost, credentials);
   }
 
   @Override
@@ -85,4 +91,11 @@ public class GitHubTrigger implements Trigger {
         .toString();
   }
 
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (credentials == null) {
+      return ImmutableList.of();
+    }
+    return credentials.describeCredentials();
+  }
 }

@@ -32,6 +32,7 @@ import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.util.console.Console;
 import java.util.Collection;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 
 /** Fills out change predicates for post submit GitHub origin changes. */
 public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
@@ -40,16 +41,19 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
   GitHubHost githubHost;
   GitHubSecuritySettingsValidator securitySettingsValidator;
   GitHubUserApprovalsValidator userApprovalsValidator;
+  @Nullable private final CredentialFileHandler creds;
 
   public GitHubPreSubmitApprovalsProvider(
       GitHubOptions githubOptions,
       GitHubHost githubHost,
       GitHubSecuritySettingsValidator securitySettingsValidator,
-      GitHubUserApprovalsValidator userApprovalsValidator) {
+      GitHubUserApprovalsValidator userApprovalsValidator,
+      @Nullable CredentialFileHandler creds) {
     this.githubOptions = githubOptions;
     this.securitySettingsValidator = securitySettingsValidator;
     this.userApprovalsValidator = userApprovalsValidator;
     this.githubHost = githubHost;
+    this.creds = creds;
   }
 
   /**
@@ -198,7 +202,8 @@ public class GitHubPreSubmitApprovalsProvider implements ApprovalsProvider {
         ImmutableList.builder();
     ImmutableList<Review> reviews = null;
     try {
-      reviews = this.githubOptions.newGitHubRestApi(projectId).getReviews(projectId, prNumber);
+      reviews = this.githubOptions.newGitHubRestApi(projectId, creds)
+          .getReviews(projectId, prNumber);
     } catch (RepoException | ValidationException e) {
       console.warnFmt(
           "Could not do presubmit changes validation with"

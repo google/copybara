@@ -98,6 +98,10 @@ public class GitHubHost {
     return "https://" + host + "/" + project;
   }
 
+  public String getHost() {
+    return host;
+  }
+
   public String normalizeUrl(String url) throws ValidationException {
     return projectAsUrl(getProjectNameFromUrl(url));
   }

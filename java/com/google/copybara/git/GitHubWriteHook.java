@@ -47,6 +47,8 @@ import javax.annotation.Nullable;
 import net.starlark.java.eval.Dict;
 
 public class GitHubWriteHook extends DefaultWriteHook {
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+
   private final String repoUrl;
   private final GeneralOptions generalOptions;
   private final GitHubOptions gitHubOptions;
@@ -55,7 +57,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
   @Nullable private final Checker endpointChecker;
   private final GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
+  @Nullable private final CredentialFileHandler creds;
 
   GitHubWriteHook(
       GeneralOptions generalOptions,
@@ -65,7 +67,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
       boolean deletePrBranch,
       Console console,
       @Nullable Checker endpointChecker,
-      GitHubHost ghHost) {
+      GitHubHost ghHost,
+      @Nullable CredentialFileHandler creds) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
@@ -74,6 +77,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
     this.console = console;
     this.endpointChecker = endpointChecker;
     this.ghHost = ghHost;
+    this.creds = creds;
   }
 
   @Override
@@ -87,7 +91,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       return;
     }
     String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName, creds);
 
     for (Change<?> change : originChanges) {
       Dict<String, String> labelDict = change.getLabelsForSkylark();
@@ -129,7 +133,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
       return baseEffects.build();
     }
     String projectId = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(projectId, creds);
 
     if (!originChanges.isEmpty()) {
       if (gitHubOptions.githubPrBranchDeletionDelay != null) {
@@ -171,10 +175,11 @@ public class GitHubWriteHook extends DefaultWriteHook {
   public Endpoint getFeedbackEndPoint(Console console) throws ValidationException {
     gitHubOptions.validateEndpointChecker(endpointChecker);
     return new GitHubEndPoint(
-        gitHubOptions.newGitHubApiSupplier(repoUrl, endpointChecker, ghHost),
+        gitHubOptions.newGitHubApiSupplier(repoUrl, endpointChecker, creds, ghHost),
         repoUrl,
         console,
-        ghHost);
+        ghHost,
+        creds);
   }
 
   @Override

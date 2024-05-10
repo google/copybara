@@ -53,7 +53,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
   private final Console console;
   private GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
-  private  final boolean allowEmptyDiff;
+  private final boolean allowEmptyDiff;
+  @Nullable private final CredentialFileHandler creds;
 
   GitHubPrWriteHook(
       GeneralOptions generalOptions,
@@ -65,7 +66,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       ImmutableSet<String> allowEmptyDiffMergeStatuses,
       ImmutableSetMultimap<String, Conclusion> allowEmptyDiffCheckSuitesConclusion,
       Console console,
-      GitHubHost ghHost) {
+      GitHubHost ghHost,
+      @Nullable CredentialFileHandler creds) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
@@ -76,6 +78,8 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     this.allowEmptyDiffCheckSuitesConclusion = allowEmptyDiffCheckSuitesConclusion;
     this.console = Preconditions.checkNotNull(console);
     this.ghHost = Preconditions.checkNotNull(ghHost);
+    this.creds = creds;
+
   }
 
   @Override
@@ -90,7 +94,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
     }
     for (Change<?> originalChange : originChanges) {
       String projectName = ghHost.getProjectNameFromUrl(repoUrl);
-      GitHubApi api = gitHubOptions.newGitHubRestApi(projectName);
+      GitHubApi api = gitHubOptions.newGitHubRestApi(projectName, creds);
 
       try {
         ImmutableList<PullRequest> pullRequests =
@@ -224,6 +228,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
         this.allowEmptyDiffMergeStatuses,
         this.allowEmptyDiffCheckSuitesConclusion,
         this.console,
-        this.ghHost);
+        this.ghHost,
+        this.creds);
   }
 }
