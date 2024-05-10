@@ -111,7 +111,7 @@ public class GitHubApiTest extends AbstractGitHubApiTest {
           }
         };
     return new GitHubApiTransportImpl(
-        repo, httpTransport, "some_storage_file", new TestingConsole());
+        repo, httpTransport, "some_storage_file", false, new TestingConsole());
   }
 
   @Override

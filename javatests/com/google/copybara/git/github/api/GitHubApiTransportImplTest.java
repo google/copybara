@@ -104,16 +104,41 @@ public class GitHubApiTransportImplTest {
         };
       }
     };
-    transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());
+    transport = new GitHubApiTransportImpl(
+        repo, httpTransport, "store", false, new TestingConsole());
     String unused = transport.get(String.class, "foo/bar");
     assertThat(headers).containsEntry("authorization", ImmutableList.of("Basic dXNlcjpTRUNSRVQ="));
+  }
+
+  @Test
+  public void testPasswordHeaderSet_bearer() throws Exception {
+    Map<String, List<String>> headers = new HashMap<>();
+    httpTransport = new MockHttpTransport() {
+      @Override
+      public LowLevelHttpRequest buildRequest(String method, String url) {
+        return new MockLowLevelHttpRequest() {
+          @Override
+          public LowLevelHttpResponse execute() throws IOException {
+            headers.putAll(this.getHeaders());
+            MockLowLevelHttpResponse response = new MockLowLevelHttpResponse();
+            response.setContent("\"foo\"");
+            return response;
+          }
+        };
+      }
+    };
+    transport = new GitHubApiTransportImpl(
+        repo, httpTransport, "store", true, new TestingConsole());
+    String unused = transport.get(String.class, "foo/bar");
+    assertThat(headers).containsEntry("authorization", ImmutableList.of("Bearer SECRET"));
   }
 
   private void runTestThrowsHttpResponseException(Callable<?> c) throws Exception {
     HttpResponseException ex =
         new HttpResponseException.Builder(STATUS_CODE, ERROR_MESSAGE, new HttpHeaders()).build();
     httpTransport = createMockHttpTransport(ex);
-    transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());
+    transport = new GitHubApiTransportImpl(
+        repo, httpTransport, "store", false, new TestingConsole());
     try {
       c.call();
       fail();
@@ -126,7 +151,8 @@ public class GitHubApiTransportImplTest {
   private void runTestThrowsIOException(Callable<?> c) throws Exception {
     IOException ioException = new IOException();
     httpTransport = createMockHttpTransport(ioException);
-    transport = new GitHubApiTransportImpl(repo, httpTransport, "store", new TestingConsole());
+    transport = new GitHubApiTransportImpl(
+        repo, httpTransport, "store", false,  new TestingConsole());
     try {
       c.call();
       fail();

@@ -79,6 +79,13 @@ public class GitHubOptions implements Option {
       hidden = true)
   public Duration githubPrBranchDeletionDelay = null;
 
+  @Parameter(
+      names = "--github-api-bearer-auth",
+      description = "If using a token for GitHub access, bearer auth might be required",
+      arity = 1)
+  public boolean gitHubApiBearerAuth = false;
+
+
   public GitHubOptions(GeneralOptions generalOptions, GitOptions gitOptions) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
@@ -204,7 +211,8 @@ public class GitHubOptions implements Option {
 
   private GitHubApiTransport newTransport(
       GitRepository repo, String storePath, Console console) {
-    return new GitHubApiTransportImpl(repo, newHttpTransport(), storePath, console);
+    return new GitHubApiTransportImpl(
+        repo, newHttpTransport(), storePath, gitHubApiBearerAuth, console);
   }
 
   protected HttpTransport newHttpTransport() {

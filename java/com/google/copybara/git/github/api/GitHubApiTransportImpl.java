@@ -62,13 +62,15 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
   private final HttpTransport httpTransport;
   private final String storePath;
   private final Console console;
+  private final boolean bearerAuth;
 
   public GitHubApiTransportImpl(GitRepository repo, HttpTransport httpTransport,
-      String storePath, Console console) {
+      String storePath, boolean bearerAuth, Console console) {
     this.repo = Preconditions.checkNotNull(repo);
     this.httpTransport = Preconditions.checkNotNull(httpTransport);
     this.storePath = storePath;
     this.console = Preconditions.checkNotNull(console);
+    this.bearerAuth = bearerAuth;
   }
 
   @SuppressWarnings("unchecked")
@@ -202,8 +204,12 @@ public class GitHubApiTransportImpl implements GitHubApiTransport {
           request.setReadTimeout((int) Duration.ofMinutes(1).toMillis());
           HttpHeaders httpHeaders = new HttpHeaders();
           if (userPassword != null) {
-            httpHeaders.setBasicAuthentication(userPassword.getUsername(),
-                userPassword.getPassword_BeCareful());
+            if (bearerAuth) {
+              httpHeaders.setAuthorization("Bearer " + userPassword.getPassword_BeCareful());
+            } else {
+              httpHeaders.setBasicAuthentication(
+                  userPassword.getUsername(), userPassword.getPassword_BeCareful());
+            }
           }
           for (Map.Entry<String, Collection<String>> header : headers.asMap().entrySet()) {
             httpHeaders.put(header.getKey(), header.getValue());
