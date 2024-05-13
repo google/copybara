@@ -1355,6 +1355,16 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testLogWithTag() throws Exception {
+    simpleChange(repository, "foo.txt", "1", "message_a");
+    repository.tag("1.2.3").withAnnotatedTag("message_1").run();
+
+    ImmutableList<GitLogEntry> result = repository.log("--tags").includeTags(true).run();
+
+    assertThat(result.get(0).getTag().contextReference()).isEqualTo("1.2.3");
+  }
+
+  @Test
   public void testReadFile() throws Exception {
     Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
     singleFileCommit("test", "foo.txt", "Hello");

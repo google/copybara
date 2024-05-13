@@ -2245,6 +2245,7 @@ public class GitRepository {
     private static final String AUTHOR_DATE_FIELD = "author_date";
     private static final String COMMITTER_FIELD = "committer";
     private static final String COMMITTER_DATE = "committer_date";
+    private static final String TAG_FIELD = "tag";
     private static final String BEGIN_BODY = "begin_body";
     private static final String END_BODY = "end_body";
     private static final String COMMIT_SEPARATOR = "\u0001copybara\u0001";
@@ -2259,16 +2260,25 @@ public class GitRepository {
     private final boolean includeMergeDiff;
     private final boolean firstParent;
     private final int skip;
-
+    private final boolean includeTags;
     private final GitRepository repo;
 
     @Nullable
     private final String grepString;
 
     @CheckReturnValue
-    LogCmd(GitRepository repo, String refExpr, int limit, ImmutableCollection<String> paths,
-        boolean firstParent, boolean includeStat, boolean includeBody,
-        @Nullable String grepString, boolean includeMergeDiff, int skip) {
+    LogCmd(
+        GitRepository repo,
+        String refExpr,
+        int limit,
+        ImmutableCollection<String> paths,
+        boolean firstParent,
+        boolean includeStat,
+        boolean includeBody,
+        @Nullable String grepString,
+        boolean includeMergeDiff,
+        int skip,
+        boolean includeTags) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -2279,6 +2289,7 @@ public class GitRepository {
       this.repo = repo;
       this.grepString = grepString;
       this.skip = skip;
+      this.includeTags = includeTags;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
@@ -2289,9 +2300,11 @@ public class GitRepository {
           ImmutableList.of(), /*firstParent*/
           true,
           /* includeStat= */ false,
-          /*includeBody=*/ true,
-          /*grepString=*/ null,
-          /*includeMergeDiff=*/ false, /*skip=*/0);
+          /* includeBody= */ true,
+          /* grepString= */ null,
+          /* includeMergeDiff= */ false,
+          /* skip= */ 0,
+          /* includeTags= */ false);
     }
 
     /**
@@ -2300,8 +2313,18 @@ public class GitRepository {
     @CheckReturnValue
     public LogCmd withLimit(int limit) {
       Preconditions.checkArgument(limit > 0);
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2310,8 +2333,18 @@ public class GitRepository {
     @CheckReturnValue
     LogCmd withSkip(int skip) {
       Preconditions.checkArgument(skip >= 0);
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2320,8 +2353,18 @@ public class GitRepository {
     @CheckReturnValue
     LogCmd withPaths(ImmutableCollection<String> paths) {
       Preconditions.checkArgument(paths.stream().noneMatch(s -> s.trim().equals("")));
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2329,15 +2372,35 @@ public class GitRepository {
      */
     @CheckReturnValue
     LogCmd firstParent(boolean firstParent) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /** If files affected by the commit should be included in the response. */
     @CheckReturnValue
     public LogCmd includeFiles(boolean includeStat) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2345,8 +2408,18 @@ public class GitRepository {
      */
     @CheckReturnValue
     LogCmd includeMergeDiff(boolean includeMergeDiff) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2354,8 +2427,18 @@ public class GitRepository {
      */
     @CheckReturnValue
     LogCmd includeBody(boolean includeBody) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
@@ -2363,15 +2446,43 @@ public class GitRepository {
      */
     @CheckReturnValue
     public LogCmd grep(@Nullable String grepString) {
-      return new LogCmd(repo, refExpr, limit, paths, firstParent, includeStat, includeBody,
-          grepString, includeMergeDiff, skip);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
+    }
+
+    /** Include tags in the response. */
+    @CanIgnoreReturnValue
+    public LogCmd includeTags(boolean includeTags) {
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags);
     }
 
     /**
      * Run 'git log' and returns zero or more {@link GitLogEntry}.
      */
     public ImmutableList<GitLogEntry> run() throws RepoException {
-      List<String> cmd = Lists.newArrayList("log", "--no-color", createFormat(includeBody));
+      List<String> cmd =
+          Lists.newArrayList("log", "--no-color", createFormat(includeBody, includeTags));
 
       if (limit > 0) {
         cmd.add("-" + limit);
@@ -2464,15 +2575,26 @@ public class GitRepository {
 
         String tree = getField(fields, TREE_FIELD);
         String commit = getField(fields, COMMIT_FIELD);
+
+        String tagString = includeTags ? getField(fields, TAG_FIELD) : null;
+        GitRevision tag =
+            tagString != null
+                ? repo.createReferenceFromCompleteSha1(commit).withTagReference(tagString)
+                : null;
+
         try {
-          commits.add(new GitLogEntry(
-              repo.createReferenceFromCompleteSha1(commit), parents.build(),
-              tree,
-              AuthorParser.parse(getField(fields, AUTHOR_FIELD)),
-              AuthorParser.parse(getField(fields, COMMITTER_FIELD)),
-              tryParseDate(fields, AUTHOR_DATE_FIELD, commit),
-              tryParseDate(fields, COMMITTER_DATE, commit),
-              body, files));
+          commits.add(
+              new GitLogEntry(
+                  repo.createReferenceFromCompleteSha1(commit),
+                  parents.build(),
+                  tree,
+                  AuthorParser.parse(getField(fields, AUTHOR_FIELD)),
+                  AuthorParser.parse(getField(fields, COMMITTER_FIELD)),
+                  tryParseDate(fields, AUTHOR_DATE_FIELD, commit),
+                  tryParseDate(fields, COMMITTER_DATE, commit),
+                  body,
+                  files,
+                  tag));
         } catch (InvalidAuthorException e) {
           throw new RepoException("Error in commit '" + commit + "'. Invalid author.", e);
         }
@@ -2499,25 +2621,37 @@ public class GitRepository {
     }
 
     /**
-     * We use a custom format that allows us easy parsing and be tolerant to random text in the
-     * body (That is the reason why we indent the body).
+     * We use a custom format that allows us easy parsing and be tolerant to random text in the body
+     * (That is the reason why we indent the body).
      *
      * <p>We also use \u0001 as commit separator to prevent a file being confused as the separator.
      */
-    private String createFormat(boolean includeBody) {
-      return ("--format=" + COMMIT_SEPARATOR
-          + COMMIT_FIELD + "=%H\n"
-          + PARENTS_FIELD + "=%P\n"
-          + TREE_FIELD + "=%T\n"
-          + AUTHOR_FIELD + "=%an <%ae>\n"
-          + AUTHOR_DATE_FIELD + "=%aI\n"
-          + COMMITTER_FIELD + "=%cn <%ce>\n"
-          + COMMITTER_DATE + "=%cI\n"
-          + GROUP
-          // Body is padded by 4 spaces.
-          + (includeBody ? BEGIN_BODY + "\n" + "%w(0,4,4)%B%w(0,0,0)\n" + END_BODY + "\n" : "\n")
-          + GROUP)
-          .replace("\n", "%n").replace("\u0001", "%x01");
+    private String createFormat(boolean includeBody, boolean includeTags) {
+      return ("--format="
+              + COMMIT_SEPARATOR
+              + COMMIT_FIELD
+              + "=%H\n"
+              + PARENTS_FIELD
+              + "=%P\n"
+              + TREE_FIELD
+              + "=%T\n"
+              + AUTHOR_FIELD
+              + "=%an <%ae>\n"
+              + AUTHOR_DATE_FIELD
+              + "=%aI\n"
+              + COMMITTER_FIELD
+              + "=%cn <%ce>\n"
+              + COMMITTER_DATE
+              + "=%cI"
+              + (includeTags ? "\n" + TAG_FIELD + "=%S\n" : "\n")
+              + GROUP
+              // Body is padded by 4 spaces.
+              + (includeBody
+                  ? BEGIN_BODY + "\n" + "%w(0,4,4)%B%w(0,0,0)\n" + END_BODY + "\n"
+                  : "\n")
+              + GROUP)
+          .replace("\n", "%n")
+          .replace("\u0001", "%x01");
     }
   }
 
@@ -2537,11 +2671,19 @@ public class GitRepository {
     private final String body;
     @Nullable
     private final ImmutableSet<String> files;
+    @Nullable private final GitRevision tag;
 
-    GitLogEntry(GitRevision commit, ImmutableList<GitRevision> parents,
-        String tree, Author author, Author committer, ZonedDateTime authorDate,
+    GitLogEntry(
+        GitRevision commit,
+        ImmutableList<GitRevision> parents,
+        String tree,
+        Author author,
+        Author committer,
+        ZonedDateTime authorDate,
         ZonedDateTime commitDate,
-        @Nullable String body, @Nullable ImmutableSet<String> files) {
+        @Nullable String body,
+        @Nullable ImmutableSet<String> files,
+        @Nullable GitRevision tag) {
       this.commit = commit;
       this.parents = parents;
       this.tree = tree;
@@ -2551,6 +2693,7 @@ public class GitRepository {
       this.commitDate = commitDate;
       this.body = body;
       this.files = files;
+      this.tag = tag;
     }
 
     public GitRevision getCommit() {
@@ -2591,6 +2734,11 @@ public class GitRepository {
       return files;
     }
 
+    @Nullable
+    public GitRevision getTag() {
+      return tag;
+    }
+
     @Override
     public String toString() {
       return MoreObjects.toStringHelper(this)
@@ -2600,6 +2748,7 @@ public class GitRepository {
           .add("committer", committer)
           .add("authorDate", authorDate)
           .add("commitDate", commitDate)
+          .add("tag", tag)
           .add("body", body)
           .toString();
     }
