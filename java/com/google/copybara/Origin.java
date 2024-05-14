@@ -113,6 +113,13 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
     void checkout(R ref, Path checkoutDir) throws RepoException, ValidationException;
 
     /**
+     * Returns the list of versions from the origin repository. By default it returns an empty list.
+     */
+    default ImmutableList<R> getVersions() throws RepoException, ValidationException {
+      return ImmutableList.of();
+    }
+
+    /**
      * Returns the changes that happen in the interval (fromRef, toRef].
      *
      * <p>If {@code fromRef} is null, returns all the changes from the first commit of the parent

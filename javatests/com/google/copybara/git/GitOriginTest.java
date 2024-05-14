@@ -823,6 +823,29 @@ public class GitOriginTest {
   }
 
   @Test
+  public void testListTags() throws Exception {
+    git("tag", "-m", "This is a tag", "1.0.1");
+
+    Files.write(remote.resolve("foo.txt"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "first");
+    git("tag", "-m", "This is a tag", "1.0.2");
+
+    Files.write(remote.resolve("bar.txt"), "".getBytes(UTF_8));
+    repo.add().all().run();
+    repo.simpleCommand("commit", "-m", "branch change");
+    git("tag", "-m", "This is a tag", "1.0.3");
+
+    GitRevision unused = getLastCommitRef();
+
+    ImmutableList<GitRevision> tags = newReader().getVersions();
+    ImmutableList<String> tagNames =
+        tags.stream().map(GitRevision::contextReference).collect(ImmutableList.toImmutableList());
+
+    assertThat(tagNames).containsExactly("1.0.1", "1.0.2", "1.0.3");
+  }
+
+  @Test
   public void testVisit() throws Exception {
     String author = "John Name <john@name.com>";
     singleFileCommit(author, "one", "test.txt", "some content1");

@@ -41,6 +41,7 @@ import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRepository.Submodule;
 import com.google.copybara.git.GitRepository.TreeElement;
 import com.google.copybara.git.version.RefspecVersionList;
@@ -592,6 +593,19 @@ public class GitOrigin implements Origin<GitRevision> {
               ? visitor.visit(input)
               : VisitResult.CONTINUE,
           queryChanges, generalOptions, "origin", gitOptions.visitChangePageSize);
+    }
+
+    @Override
+    public ImmutableList<GitRevision> getVersions() throws RepoException, ValidationException {
+      ImmutableList.Builder<GitRevision> result = ImmutableList.builder();
+
+      ImmutableList<GitLogEntry> output = getRepository().log("--tags").includeTags(true).run();
+
+      for (GitLogEntry entry : output) {
+        result.add(entry.getTag());
+      }
+
+      return result.build();
     }
   }
 
