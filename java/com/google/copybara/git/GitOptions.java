@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 @Parameters(separators = "=")
 public class GitOptions implements Option {
 
+  public static final String USE_CREDENTIALS_FROM_CONFIG = "--use-credentials-from-config";
   private final GeneralOptions generalOptions;
   private String partialCacheFilePrefix;
 
@@ -119,8 +120,9 @@ public class GitOptions implements Option {
   public boolean gitNoVerify = false;
 
   @Parameter(
-      names = "--use-credentials-from-config",
-      description = "" + "If the config includes credentials, use these.",
+      names = USE_CREDENTIALS_FROM_CONFIG,
+      description = "" + "If the config includes credentials, use these.  This is intended for "
+          + "workflow engines injecting secrets into the config and not for CLI use.",
       hidden = true,
       arity = 1)
   public boolean useConfigCredentials = false;

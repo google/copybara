@@ -306,6 +306,39 @@ public class GitMirrorTest {
     assertThat(result.getPassword_BeCareful()).isEqualTo("SECRET");
   }
 
+  @Test
+  public void testMirrorCredentials_config() throws Exception {
+    options.git.useConfigCredentials = true;
+    Path credentialsFile = Files.createTempFile("credentials", "test");
+    Files.write(credentialsFile, "https://user:SECRET@somehost.com".getBytes(UTF_8));
+    options.git.credentialHelperStorePath = credentialsFile.toString();
+
+    String cfg =
+        ""
+            + "git.mirror("
+            + "    name = 'default',\n"
+            + "    origin = 'https://origin.com/foo',\n"
+            + "    destination = 'https://destination.com/bar',\n"
+            + "    origin_credentials = credentials.username_password(\n"
+            + "      credentials.static_value('origin@example.com'),\n"
+            + "      credentials.static_secret('origin_password', 'top_secret')),\n"
+            + "    destination_credentials = credentials.username_password(\n"
+            + "      credentials.static_value('destination@example.com'),\n"
+            + "      credentials.static_secret('destination_password', 'confidential'))\n"
+            + ")\n";
+
+    Mirror mirror = (Mirror) loadMigration(cfg, "default");
+    GitRepository repository = mirror.getLocalRepo();
+
+    UserPassword originResult = repository.credentialFill("https://origin.com/foo");
+    assertThat(originResult.getUsername()).isEqualTo("origin@example.com");
+    assertThat(originResult.getPassword_BeCareful()).isEqualTo("top_secret");
+    UserPassword destResult = repository.credentialFill("https://destination.com/bar");
+    assertThat(destResult.getUsername()).isEqualTo("destination@example.com");
+    assertThat(destResult.getPassword_BeCareful()).isEqualTo("confidential");
+    assertThat(mirror.getCredentialDescription()).isNotEmpty();
+  }
+
   private void checkRefDoesntExist(String ref) throws RepoException {
     assertThat(destRepo.simpleCommand("show-ref").getStdout()).doesNotContain(" " + ref + "\n");
   }

@@ -70,6 +70,9 @@ public class Mirror implements Migration {
   @Nullable private final Action action;
   private final LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider;
   private final LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider;
+  private final ImmutableList<CredentialFileHandler> credentials;
+
+
 
   Mirror(
       GeneralOptions generalOptions,
@@ -85,7 +88,8 @@ public class Mirror implements Migration {
       @Nullable String description,
       @Nullable Action action,
       @Nullable LazyResourceLoader<EndpointProvider<?>> originApiEndpointProvider,
-      @Nullable LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider) {
+      @Nullable LazyResourceLoader<EndpointProvider<?>> destinationApiEndpointProvider,
+      ImmutableList<CredentialFileHandler> credentials) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.gitOptions = Preconditions.checkNotNull(gitOptions);
     this.name = Preconditions.checkNotNull(name);
@@ -100,13 +104,14 @@ public class Mirror implements Migration {
     this.action = action;
     this.originApiEndpointProvider = originApiEndpointProvider;
     this.destinationApiEndpointProvider = destinationApiEndpointProvider;
+    this.credentials = Preconditions.checkNotNull(credentials);
   }
 
   @Override
   public void run(Path workdir, ImmutableList<String> sourceRefs)
       throws RepoException, IOException, ValidationException {
     try (ProfilerTask ignore = generalOptions.profiler().start("run/" + name)) {
-      GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+      GitRepository repo = getLocalRepo();
       maybeConfigureGitNameAndEmail(repo);
       if (action == null) {
         defaultMirror(repo);
@@ -248,7 +253,15 @@ public class Mirror implements Migration {
 
   @VisibleForTesting
   GitRepository getLocalRepo() throws RepoException {
-    return gitOptions.cachedBareRepoForUrl(origin);
+    GitRepository repo = gitOptions.cachedBareRepoForUrl(origin);
+    for (CredentialFileHandler cred : credentials) {
+      try {
+        cred.install(repo, gitOptions.getConfigCredsFile(generalOptions));
+      } catch (IOException e) {
+        throw new RepoException("Unable to store credentials", e);
+      }
+    }
+    return repo;
   }
 
   @Override
@@ -271,7 +284,11 @@ public class Mirror implements Migration {
 
   @Override
   public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription() {
-    return ImmutableList.of();
+    ImmutableList.Builder<ImmutableSetMultimap<String, String>> desc = ImmutableList.builder();
+    for (CredentialFileHandler cred : credentials) {
+      desc.addAll(cred.describeCredentials());
+    }
+    return desc.build();
   }
 
   @Override

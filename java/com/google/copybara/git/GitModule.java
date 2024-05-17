@@ -32,10 +32,12 @@ import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_TITLE;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_URL;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USER;
 import static com.google.copybara.git.GitHubPrOrigin.GITHUB_PR_USE_MERGE;
+import static com.google.copybara.git.GitOptions.USE_CREDENTIALS_FROM_CONFIG;
 import static com.google.copybara.git.github.api.GitHubEventType.WATCHABLE_EVENTS;
 import static com.google.copybara.git.github.util.GitHubHost.GITHUB_COM;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
+import static java.util.Arrays.stream;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -94,7 +96,6 @@ import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -129,7 +130,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
   public static final String CREDENTIAL_DOC =
-      "EXPERIMENTAL: Read credentials from config file to access the Git Repo.";
+      "EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a"
+          + " 'credentials.username_password' specifying the username to use for the remote git"
+          + " host and a password or token. This is gated by the '"
+          + USE_CREDENTIALS_FROM_CONFIG
+          + "' flag";
   private final Sequence<GitIntegrateChanges> defaultGitIntegrate;
   private static final String GERRIT_TRIGGER = "gerrit_trigger";
   private static final String GERRIT_API = "gerrit_api";
@@ -527,6 +532,26 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             },
             positional = false,
             named = true),
+        @Param(
+            name = "origin_credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC),
+        @Param(
+            name = "destination_credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
   @UsesFlags(GitMirrorOptions.class)
@@ -541,6 +566,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object rawAction,
       Object rawOriginChecker,
       Object rawDestinationChecker,
+      @Nullable Object originCreds,
+      @Nullable Object destinationCreds,
       StarlarkThread thread)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
@@ -560,6 +587,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
     }
     String fixedOriginHttp = fixHttp(origin, thread.getCallerLocation());
     String fixedDestinationHttp = fixHttp(destination, thread.getCallerLocation());
+
+    CredentialFileHandler originCredential = getCredentialHandler(fixedOriginHttp, originCreds);
+    CredentialFileHandler destinationCredential =
+        getCredentialHandler(fixedDestinationHttp, destinationCreds);
+
+    ImmutableList<CredentialFileHandler> creds =
+        stream(new CredentialFileHandler[] {originCredential, destinationCredential})
+            .filter(c -> c != null)
+            .collect(toImmutableList());
     Checker originChecker = convertFromNoneable(rawOriginChecker, null);
     Checker destinationChecker = convertFromNoneable(rawDestinationChecker, null);
     Action action = rawAction != Starlark.NONE ? maybeWrapAction(printHandler, rawAction) : null;
@@ -580,9 +616,11 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                 mainConfigFile,
                 convertFromNoneable(description, null),
                 action,
-                getEndpointProvider(fixedOriginHttp, originChecker, null, false, thread),
-                getEndpointProvider(fixedDestinationHttp, destinationChecker, null, false, thread))
-            );
+                getEndpointProvider(
+                    fixedOriginHttp, originChecker, originCredential, false, thread),
+                getEndpointProvider(
+                    fixedDestinationHttp, destinationChecker, destinationCredential, false, thread),
+                creds));
     return Starlark.NONE;
   }
 
@@ -2091,9 +2129,9 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       for (String c : conclusionStr) {
         Optional<Conclusion> conclusion = Conclusion.fromValue(c);
         if (conclusion.isEmpty()) {
-          throw Starlark.errorf("Invalid conclusion value %s. Valid values: %s", c,
-              Arrays.stream(Conclusion.values()).map(Conclusion::getApiVal)
-                  .collect(toImmutableList()));
+          throw Starlark.errorf(
+              "Invalid conclusion value %s. Valid values: %s",
+              c, stream(Conclusion.values()).map(Conclusion::getApiVal).collect(toImmutableList()));
         }
         skipSuiteToConclusion.put(k.toString(), conclusion.get());
       }
