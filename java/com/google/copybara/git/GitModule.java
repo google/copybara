@@ -2967,7 +2967,15 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   @Nullable protected CredentialFileHandler getCredentialHandler(
       String url, @Nullable Object starlarkValue) {
-    URI uri = URI.create(url);
-    return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
+    try {
+      if (GITHUB_COM.isGitHubUrl(url)) {
+        url = GITHUB_COM.normalizeUrl(url);
+      }
+      URI uri = URI.create(url);
+      return getCredentialHandler(uri.getHost(), uri.getPath(), starlarkValue);
+    } catch (ValidationException | IllegalArgumentException parseEx) {
+      options.get(GeneralOptions.class).console().verboseFmt("Unable to parse %s as URI", url);
+    }
+    return null;
   }
 }

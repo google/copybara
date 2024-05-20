@@ -183,7 +183,7 @@ EOF
   check_copybara_rev_id "$destination" "$second_commit"
 
   ( cd $destination || return
-    run_git show $primary > $TEST_log
+    run_git --git-dir="$destination" show $primary > $TEST_log
   )
 
   expect_log "-first version for drink"
@@ -228,7 +228,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_three"
 
   ( cd $destination || return
-    run_git log "${primary}~1..${primary}" > $TEST_log
+    run_git --git-dir="$destination" log "${primary}~1..${primary}" > $TEST_log
   )
   expect_not_log "commit two"
   expect_log "commit three"
@@ -238,12 +238,12 @@ EOF
   check_copybara_rev_id "$destination" "$commit_five"
 
   ( cd $destination || return
-    run_git log "${primary}~2..${primary}~1" > $TEST_log
+    run_git --git-dir="$destination" log "${primary}~2..${primary}~1" > $TEST_log
   )
   expect_log "commit four"
 
   ( cd $destination || return
-    run_git log "${primary}~1..${primary}" > $TEST_log
+    run_git --git-dir="$destination" log "${primary}~1..${primary}" > $TEST_log
   )
   expect_log "commit five"
 
@@ -381,7 +381,7 @@ EOF
   expect_log ".*${commit_five:0:10}.*commit five.*Bara Kopi <bara@kopi.com>.*"
 
   ( cd $destination || return
-    run_git "log" "${primary}~1..${primary}" > $TEST_log
+    run_git --git-dir="$destination" "log" "${primary}~1..${primary}" > $TEST_log
   )
   # By default we include the whole history if last_rev cannot be found. --squash-without-history
   # can be used for disabling this.
@@ -397,7 +397,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_four"
 
   ( cd $destination || return
-    run_git log "${primary}~1..${primary}" > $TEST_log
+    run_git --git-dir="$destination" log "${primary}~1..${primary}" > $TEST_log
   )
   # "commit one" should not be included because it was migrated before
   expect_not_log "commit one"
@@ -411,7 +411,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_five"
 
   ( cd $destination || return
-    run_git log "${primary}~1..${primary}" > $TEST_log
+    run_git --git-dir="$destination" log "${primary}~1..${primary}" > $TEST_log
   )
   # We are forcing to use commit_three as the last migration. This has
   # no effect in squash workflow but it changes the release notes.
@@ -460,7 +460,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_three"
 
   ( cd $destination || return
-    run_git log > $TEST_log
+    run_git --git-dir="$destination" log > $TEST_log
   )
   expect_log "commit one"
   expect_not_log "commit two"
@@ -471,8 +471,7 @@ function empty_git_bare_repo() {
   repo=$(temp_dir repo)
   cd $repo || return
   run_git init . --bare > $TEST_log 2>&1 || fail "Cannot create repo"
-  run_git --work-tree="$(mktemp -d)" commit --allow-empty -m "Empty repo" \
-    > $TEST_log 2>&1 || fail "Cannot commit to empty repo"
+  run_git --git-dir="$repo" --work-tree="$(mktemp -d)" commit --allow-empty -m "Empty repo" 
   echo $repo
 }
 
@@ -923,7 +922,6 @@ function test_command_copybara_filename_no_correct_name() {
 function setup_reversible_check_workflow() {
   remote=$(temp_dir remote)
   destination=$(empty_git_bare_repo)
-
   pushd $remote || return
   run_git init .
   echo "Is the reverse of the reverse forward?" > test.txt
@@ -1334,7 +1332,7 @@ EOF
   check_copybara_rev_id "$destination" "$commit_one"
 
   ( cd $destination || return
-    run_git log > $TEST_log
+    run_git --git-dir="$destination" log > $TEST_log
   )
   expect_log "c1 foooo destination/[a-f0-9]\{1,\} bar"
 }
