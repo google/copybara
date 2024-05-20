@@ -52,7 +52,7 @@ public class TtlSecret extends StaticSecret {
 
   @Override
   public boolean valid() {
-    return ttl.isBefore(clock.instant().minusSeconds(/* 10s grace */ 10));
+    return ttl.isAfter(clock.instant().plusSeconds(/* 10s grace */ 10));
   }
 
   @Override
