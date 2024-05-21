@@ -165,6 +165,7 @@ public class GitRepository {
   public static final String GIT_SEQUENTIAL_REVISION_NUMBER = "GIT_SEQUENTIAL_REVISION_NUMBER";
   // Closest tag, if any
   public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
+  public static final String GIT_TAG_POINTS_AT = "GIT_TAG_POINTS_TO";
   public static final String HTTP_PERMISSION_DENIED = "The requested URL returned error: 403";
 
   /**
@@ -463,6 +464,11 @@ public class GitRepository {
 
   public String describeAbbrev(GitRevision rev) throws RepoException {
     return describe(rev, false, "--tag", "--abbrev=0");
+  }
+
+  public ImmutableList<String> tagPointsAt(GitRevision rev) throws RepoException {
+    return ImmutableList.copyOf(
+        simpleCommand("tag", "--points-at", rev.getSha1()).getStdout().trim().split("\n"));
   }
 
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {

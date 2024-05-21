@@ -1536,6 +1536,26 @@ public class GitRepositoryTest {
 }
 
   @Test
+  public void testTagPointsAt() throws Exception {
+    Files.writeString(workdir.resolve("foo.txt"), "");
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    repository.tag("tag_1.0").run();
+    repository.tag("tag_1.1").run();
+    repository.tag("tag_1.2").run();
+    Files.writeString(workdir.resolve("foo.txt"), "modified");
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    repository.tag("tag_2.0").run();
+    repository.tag("tag_2.1").run();
+    repository.tag("tag_2.2").run();
+    GitRevision head = repository.resolveReference("HEAD");
+    GitRevision prev = repository.resolveReference("HEAD~1");
+    assertThat(repository.tagPointsAt(prev)).containsExactly("tag_1.0", "tag_1.1", "tag_1.2");
+    assertThat(repository.tagPointsAt(head)).containsExactly("tag_2.0", "tag_2.1", "tag_2.2");
+  }
+
+  @Test
   public void testFindRemotePrimaryBranch() throws Exception {
     Files.write(workdir.resolve("foo.txt"), new byte[]{});
     repository.add().files("foo.txt").run();
