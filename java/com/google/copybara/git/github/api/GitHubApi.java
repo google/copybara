@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -472,6 +472,12 @@ public class GitHubApi {
     try (ProfilerTask ignore = profiler.start("github_api_get_reference")) {
       checkCondition(ref.startsWith("refs/"), "Ref must start with \"refs/\"");
       return transport.get(Ref.class, "repos/%s/git/%s", projectId, ref);
+    }
+  }
+
+  public Repository getRepository(String projectId) throws RepoException, ValidationException {
+    try (ProfilerTask ignore = profiler.start("github_api_get_repository")) {
+      return transport.get(Repository.class, "repos/%s", projectId);
     }
   }
 

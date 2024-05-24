@@ -51,7 +51,6 @@ public final class GitHubPostSubmitApprovalsProviderTest {
   private GitRepository gitRepository;
   private GitHubHost githubHost;
   private GetCommitHistoryParams params;
-  private static final String TRUSTED_TEST_PROJECT = "google/copybara";
   private static final String PROJECT_URL = "https://github.com/google/copybara";
 
   @Before
@@ -75,20 +74,26 @@ public final class GitHubPostSubmitApprovalsProviderTest {
     gitTestUtil.mockRemoteGitRepos();
   }
 
-  public ApprovalsProvider getApprovalProviderUnderTest(GitHubOptions gitHubOptions)
+  private ApprovalsProvider getApprovalProviderUnderTest(GitHubOptions gitHubOptions, String branch)
       throws Exception {
     return new GitHubPostSubmitApprovalsProvider(
         githubHost,
-        /* branch= */ "main",
+        branch,
         new GitHubSecuritySettingsValidator(
             gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
             gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, githubHost),
             console,
             githubHost,
             params));
+  }
+
+  private ApprovalsProvider getApprovalProviderUnderTest(GitHubOptions gitHubOptions)
+      throws Exception {
+    return getApprovalProviderUnderTest(gitHubOptions, "main");
   }
 
   private ImmutableList<ChangeWithApprovals> generateChangeList(
@@ -122,6 +127,102 @@ public final class GitHubPostSubmitApprovalsProviderTest {
     ImmutableList<ChangeWithApprovals> changes = ImmutableList.of();
     ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
     assertThat(approvalsResult.getChanges()).isEmpty();
+  }
+
+  @Test
+  public void
+      testGitHubPostSubmitApprovalsProvider_fullyCompliantChangeListWithNullSetBranch_infersDefaultBranch()
+          throws Exception {
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/copybara"),
+        GitTestUtil.mockResponse("{" + "\"default_branch\": \"main\"" + "}"));
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google/installations?per_page=100"),
+        GitTestUtil.mockResponse("{\"installations\":[{\"app_id\": 119816}]}"));
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/orgs/google"),
+        GitTestUtil.mockResponse("{\"two_factor_requirement_enabled\":true}"));
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        GitTestUtil.mockResponse(
+            "{"
+                + "\"data\": {"
+                + "\"repository\": {"
+                + "\"ref\": {"
+                + "\"target\": {"
+                + "\"id\": \"C_notreadatall\","
+                + "\"history\": {"
+                + "\"nodes\": ["
+                + "{"
+                + "\"id\": \"C_notreadatall\","
+                + "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
+                + "\"associatedPullRequests\": {"
+                + "\"edges\": ["
+                + "{"
+                + "\"node\": {"
+                + "\"title\": \"title place holder\","
+                + "\"author\": {"
+                + "\"login\": \"copybaraauthor\""
+                + "},"
+                + "\"reviewDecision\": \"APPROVED\","
+                + "\"latestOpinionatedReviews\": {"
+                + "\"edges\": ["
+                + "{"
+                + "\"node\": {"
+                + "\"author\": {"
+                + "\"login\": \"copybarareviewer\""
+                + "},"
+                + "\"state\": \"APPROVED\""
+                + "}"
+                + "}"
+                + "]"
+                + "}"
+                + "}"
+                + "}"
+                + "]"
+                + "}"
+                + "}"
+                + "]"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"
+                + "}"));
+    ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github, null);
+    ImmutableList<ChangeWithApprovals> changes =
+        generateChangeList(
+            gitRepository, "google/copybara", "3368ee55bcad7df67a18b588144e0888d6fa93ac");
+    ApprovalsResult approvalsResult = underTest.computeApprovals(changes, null, console);
+    assertThat(approvalsResult.getChanges()).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(approvalsResult.getChanges()).getPredicates())
+        .containsExactly(
+            new StatementPredicate(
+                GitHubSecuritySettingsValidator.TWO_FACTOR_PREDICATE_TYPE,
+                "Whether the organization that the change originated from has two factor"
+                    + " authentication requirement enabled.",
+                Iterables.getLast(changes).getChange().getRevision().getUrl()),
+            new StatementPredicate(
+                GitHubSecuritySettingsValidator.ALL_STAR_PREDICATE_TYPE,
+                "Whether the organization that the change originated from has allstar"
+                    + " installed",
+                Iterables.getLast(changes).getChange().getRevision().getUrl()),
+            new UserPredicate(
+                "copybaraauthor",
+                UserPredicate.UserPredicateType.OWNER,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."),
+            new UserPredicate(
+                "copybarareviewer",
+                UserPredicate.UserPredicateType.LGTM,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybarareviewer' approved change with sha"
+                    + " '3368ee55bcad7df67a18b588144e0888d6fa93ac'."));
   }
 
   @Test

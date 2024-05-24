@@ -88,6 +88,7 @@ public final class GitHubPreSubmitApprovalsProviderTest {
             ImmutableList.copyOf(gitHubOptions.allStarAppIds),
             console),
         new GitHubUserApprovalsValidator(
+            gitHubOptions.newGitHubApiSupplier(PROJECT_URL, null, null, gitHubHost),
             gitHubOptions.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, gitHubHost),
             console,
             gitHubHost,

@@ -2880,6 +2880,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
+            githubOptions.newGitHubApiSupplier(url, null, creds, GITHUB_COM),
             githubOptions.newGitHubGraphQLApiSupplier(url, null, creds, GITHUB_COM),
             generalOptions.console(),
             GITHUB_COM,
@@ -2902,6 +2903,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ImmutableList.copyOf(githubOptions.allStarAppIds),
             generalOptions.console()),
         new GitHubUserApprovalsValidator(
+            githubOptions.newGitHubApiSupplier(url, null, creds, GITHUB_COM),
             githubOptions.newGitHubGraphQLApiSupplier(url, null, creds, GITHUB_COM),
             generalOptions.console(),
             GITHUB_COM,

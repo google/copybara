@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,7 @@ import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.api.PullRequestComment;
 import com.google.copybara.git.github.api.Ref;
 import com.google.copybara.git.github.api.Release;
+import com.google.copybara.git.github.api.Repository;
 import com.google.copybara.git.github.api.Review;
 import com.google.copybara.git.github.api.Status;
 import com.google.copybara.git.github.api.Status.State;
@@ -280,6 +281,13 @@ public abstract class AbstractGitHubApiTest {
       assertThat(review.getCommitId())
           .isEqualTo("ecdd80bb57125d7ba9641ffaa4d7d2c19d3f3091");
     }
+  }
+
+  @Test
+  public void testGetRepository() throws Exception {
+    trainMockGet("/repos/copybara-test/copybara", getResource("get_repository_testdata.json"));
+    Repository repository = api.getRepository("copybara-test/copybara");
+    assertThat(repository.getDefaultBranch()).isEqualTo("test_default_branch");
   }
 
   @Test

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.google.copybara.git;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.copybara.LazyResourceLoader;
@@ -29,6 +30,7 @@ import com.google.copybara.git.github.api.CommitHistoryResponse;
 import com.google.copybara.git.github.api.CommitHistoryResponse.AssociatedPullRequestNode;
 import com.google.copybara.git.github.api.CommitHistoryResponse.AssociatedPullRequests;
 import com.google.copybara.git.github.api.CommitHistoryResponse.HistoryNode;
+import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubGraphQLApi;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubHost;
@@ -37,7 +39,8 @@ import javax.annotation.Nullable;
 
 /** Utility class for performing validation for GitHub pull request approvals. */
 public class GitHubUserApprovalsValidator {
-  private final LazyResourceLoader<GitHubGraphQLApi> apiLoader;
+  private final LazyResourceLoader<GitHubApi> restApiLoader;
+  private final LazyResourceLoader<GitHubGraphQLApi> graphQlApiLoader;
   private final Console console;
   private final GitHubHost githubHost;
   private final GetCommitHistoryParams params;
@@ -53,11 +56,13 @@ public class GitHubUserApprovalsValidator {
    * @param params used to describe scope of commit history to review.
    */
   public GitHubUserApprovalsValidator(
-      LazyResourceLoader<GitHubGraphQLApi> apiLoader,
+      LazyResourceLoader<GitHubApi> restApiLoader,
+      LazyResourceLoader<GitHubGraphQLApi> graphQlApiLoader,
       Console console,
       GitHubHost githubHost,
       GetCommitHistoryParams params) {
-    this.apiLoader = apiLoader;
+    this.restApiLoader = restApiLoader;
+    this.graphQlApiLoader = graphQlApiLoader;
     this.console = console;
     this.githubHost = githubHost;
     this.params = params;
@@ -71,10 +76,11 @@ public class GitHubUserApprovalsValidator {
    * change.
    *
    * @param changes the changes to validate and provision {@code UserPredicates} on.
-   * @param branch the branch to look for {@code changes}.
+   * @param branch the branch to look for {@code changes}. If null or empty, the default branch will
+   *     be inferred.
    */
   public ImmutableList<ChangeWithApprovals> mapApprovalsForUserPredicates(
-      ImmutableList<ChangeWithApprovals> changes, String branch)
+      ImmutableList<ChangeWithApprovals> changes, @Nullable String branch)
       throws ValidationException, RepoException {
     if (changes.isEmpty()) {
       return ImmutableList.of();
@@ -87,7 +93,13 @@ public class GitHubUserApprovalsValidator {
     ImmutableList.Builder<ChangeWithApprovals> builder = ImmutableList.builder();
 
     CommitHistoryResponse response =
-        apiLoader.load(console).getCommitHistory(organization, repository, branch, params);
+        graphQlApiLoader
+            .load(console)
+            .getCommitHistory(
+                organization,
+                repository,
+                !Strings.isNullOrEmpty(branch) ? branch : getDefaultBranch(projectName),
+                params);
     for (ChangeWithApprovals change : changes) {
       String sha = ((GitRevision) change.getChange().getRevision()).getSha1();
 
@@ -161,5 +173,18 @@ public class GitHubUserApprovalsValidator {
         .filter(review -> review.getNode().getState().equals("APPROVED"))
         .map(reviewer -> reviewer.getNode().getAuthor().getLogin())
         .collect(toImmutableList());
+  }
+
+  @Nullable
+  private String getDefaultBranch(String projectId) {
+    try {
+      String branch = restApiLoader.load(console).getRepository(projectId).getDefaultBranch();
+      console.infoFmt("Inferred primary branch as '%s'", branch);
+      return branch;
+    } catch (ValidationException | RepoException e) {
+      console.warnFmt(
+          "Failed to get branch for project %s with error '%s'", projectId, e.getMessage());
+      return null;
+    }
   }
 }

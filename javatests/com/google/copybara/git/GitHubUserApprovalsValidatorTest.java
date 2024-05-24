@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Google Inc.
+ * Copyright (C) 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.google.copybara.git;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 
 import com.google.common.collect.ImmutableList;
@@ -26,7 +25,6 @@ import com.google.common.collect.Iterables;
 import com.google.copybara.approval.ChangeWithApprovals;
 import com.google.copybara.approval.UserPredicate;
 import com.google.copybara.authoring.Author;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubGraphQLApi.GetCommitHistoryParams;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.revision.Change;
@@ -77,6 +75,7 @@ public final class GitHubUserApprovalsValidatorTest {
 
   private GitHubUserApprovalsValidator getUnitUnderTest() throws Exception {
     return new GitHubUserApprovalsValidator(
+        builder.github.newGitHubApiSupplier(PROJECT_URL, null, null, githubHost),
         builder.github.newGitHubGraphQLApiSupplier(PROJECT_URL, null, null, githubHost),
         console,
         githubHost,
@@ -102,17 +101,73 @@ public final class GitHubUserApprovalsValidatorTest {
             PROJECT_ID,
             ImmutableListMultimap.of(),
             "3071d674373ab56d8a7f264d308b39b7773b9e44");
-    ;
-    GetCommitHistoryParams params = new GetCommitHistoryParams(5, 5, 5);
-    ValidationException expectedExpectedException =
-        assertThrows(
-            ValidationException.class,
-            () -> validator.mapApprovalsForUserPredicates(changes, null));
-    assertThat(expectedExpectedException)
-        .hasMessageThat()
-        .contains(
-            "Attempted to query for GitHub commit history, but received a empty/null value:"
-                + " org=google, repo=copybara, branch=null");
+
+    gitTestUtil.mockApi(
+        eq("GET"),
+        eq("https://api.github.com/repos/google/copybara"),
+        GitTestUtil.mockResponse("{" + "\"default_branch\": \"main\"" + "}"));
+    gitTestUtil.mockApi(
+        eq("POST"),
+        eq("https://api.github.com/graphql"),
+        GitTestUtil.mockResponse(
+           "{"
+          + "\"data\": {"
+          +   "\"repository\": {"
+          +     "\"ref\": {"
+          +       "\"target\": {"
+          +        "\"id\": \"C_notreadatall\","
+          +         "\"history\": {"
+          +           "\"nodes\": ["
+          +             "{"
+          +               "\"id\": \"C_notreadatall\","
+          +                "\"oid\": \"3071d674373ab56d8a7f264d308b39b7773b9e44\","
+          +                "\"associatedPullRequests\": {"
+          +                  "\"edges\": ["
+          +                     "{"
+          +                       "\"node\": {"
+          +                         "\"title\": \"title place holder\","
+          +                           "\"author\": {"
+          +                             "\"login\": \"copybaraauthor\""
+          +                           "},"
+          +                           "\"reviewDecision\": \"CHANGES_REQUESTED\","
+          +                           "\"latestOpinionatedReviews\": {"
+          +                              "\"edges\": ["
+          +                                "{"
+          +                                 "\"node\": {"
+          +                                   "\"author\": {"
+          +                                     "\"login\": \"copybarareviewer\""
+          +                                   "},"
+          +                                   "\"state\": \"CHANGES_REQUESTED\""
+          +                                 "}"
+          +                                "}"
+          +                              "]"
+          +                            "}"
+          +                           "}"
+          +                         "}"
+          +                       "]"
+          +                     "}"
+          +                   "}"
+          +                 "]"
+          +               "}"
+          +             "}"
+          +           "}"
+          +         "}"
+          +       "}"
+          +     "}"
+    ));
+
+    ImmutableList<ChangeWithApprovals> approvals =
+        validator.mapApprovalsForUserPredicates(changes, /* branch= */ null);
+    assertThat(approvals).hasSize(changes.size());
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates()).containsNoDuplicates();
+    assertThat(Iterables.getOnlyElement(approvals).getPredicates())
+        .containsExactly(
+            new UserPredicate(
+                "copybaraauthor",
+                UserPredicate.UserPredicateType.OWNER,
+                Iterables.getLast(changes).getChange().getRevision().getUrl(),
+                "GitHub user 'copybaraauthor' authored change with sha"
+                    + " '3071d674373ab56d8a7f264d308b39b7773b9e44'."));
   }
 
   @Test
