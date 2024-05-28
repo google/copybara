@@ -1203,7 +1203,15 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         // Expected to not find a revision if --init-history is provided
         return null;
       }
-      throw e;
+      throw new CannotResolveRevisionException(
+          String.format(
+              "Latest destination change has value '%s' for label '%s', but this does not resolve"
+                  + " in the origin. This commonly happens if changes were merged outside the"
+                  + " Source of Truth, several copybara workflows use the same label or if the"
+                  + " origin history was re-written. Manually set the '--last-rev' flag to the"
+                  + " export baseline to export a valid state to the destination.",
+              (status == null) ? null : status.getBaseline(), getOriginLabelName()),
+          e);
     }
   }
 
