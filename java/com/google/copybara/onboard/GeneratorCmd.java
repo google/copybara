@@ -46,7 +46,7 @@ import java.io.IOException;
     commandDescription = "Generates a config file by asking/inferring field information")
 public class GeneratorCmd implements OnboardingCmd {
 
-  protected static final int PERCENTAGE_SIMILAR = 30;
+  public static final int PERCENTAGE_SIMILAR = 30;
 
   private final ModuleSet moduleSet;
   private final GeneratorCmdImpl generatorCmd = new GeneratorCmdImpl();
