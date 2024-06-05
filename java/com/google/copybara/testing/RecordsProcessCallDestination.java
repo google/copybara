@@ -65,7 +65,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -305,18 +304,6 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
         }
         Optional<ProcessedChange> processedChange = getProcessed();
         return processedChange.map(change -> change.getWorkdir().containsKey(path)).orElse(false);
-      }
-
-      @Override
-      public String lastModified(String path) {
-        for (int i = processed.size() - 1; i > 0; i--) {
-          ImmutableMap<String, String> currentWorkdir = processed.get(i).getWorkdir();
-          ImmutableMap<String, String> previousWorkdir = processed.get(i - 1).getWorkdir();
-          if (!Objects.equals(currentWorkdir.get(path), previousWorkdir.get(path))) {
-            return String.valueOf(i);
-          }
-        }
-        return String.valueOf(0);
       }
 
       @Override

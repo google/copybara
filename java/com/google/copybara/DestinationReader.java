@@ -157,12 +157,6 @@ public abstract class DestinationReader implements StarlarkValue {
   @SuppressWarnings("unused")
   public abstract boolean exists(String path);
 
-  /** Fetch the destination version at which this file was last modified. */
-  public String lastModified(String path) throws IOException, RepoException {
-    throw new UnsupportedOperationException(
-        "Last modified is not implemented in this destination reader.");
-  }
-
   /**
    * Obtain the hash of the destination file at this path.
    */
