@@ -324,21 +324,22 @@ public class GitRepository {
    * Note that the default is to return false and let Git decide if it is valid. IOW, returning
    * false here is always safe (But less optimal).
    */
-  private static boolean quickRefspecValidation(String refspec) throws InvalidRefspecException {
+  private static boolean quickRefspecValidation(String refspec) {
     if (!refspec.startsWith("refs/")
         || refspec.endsWith(".")
         || refspec.contains("..")
         || refspec.endsWith(".lock")) {
       return false;
     }
-    boolean asterisk = false;
+    boolean wildcard = false;
     for (String component : Splitter.on('/').split(refspec)) {
       if (component.equals("*")) {
         // Only one asterisk is allowed
-        if (asterisk) {
+        if (wildcard) {
           return false;
         }
-        asterisk = true;
+        wildcard = true;
+        continue;
       }
       if (!BASIC_REFSPEC_COMPONENT.matcher(component).matches()) {
         return false;

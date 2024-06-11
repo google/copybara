@@ -19,6 +19,8 @@ package com.google.copybara.git;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Maps;
 import java.nio.file.FileSystems;
@@ -52,18 +54,22 @@ public class RefspecTest {
   }
 
   @Test
-  public void testRefspecGoodNames() throws Exception {
-    checkGoodNames("refs/heads/foo-bar/baz");
-    checkGoodNames("refs/releases/foo/bar_baz100/*");
-    checkGoodNames("refs/releases/foo--bar/*");
-    checkGoodNames("refs/releases/*/foo--bar");
-    checkGoodNames("refs/releases/bar/5.1");
-    checkGoodNames("refs/heads/main-v1.1.0");
+  public void testJavaRefspecs() throws Exception {
+    checkJavaRefspecs("refs/heads/foo-bar/baz");
+    checkJavaRefspecs("refs/releases/foo/bar_baz100/*");
+    checkJavaRefspecs("refs/releases/foo--bar/*");
+    checkJavaRefspecs("refs/releases/*/foo--bar");
+    checkJavaRefspecs("refs/releases/bar/5.1");
+    checkJavaRefspecs("refs/heads/main-v1.1.0");
   }
 
-  private void checkGoodNames(String name) throws InvalidRefspecException {
-    assertRefspec(refspec(name + ":" + name),
-        name, name, /*expectForce=*/false);
+  private void checkJavaRefspecs(String name) throws InvalidRefspecException {
+    GitEnvironment mock = mock(GitEnvironment.class);
+    // Prevent access to the environment, a hard requirement for executing Git. This way it will
+    // fail if we call Git.
+    when(mock.getEnvironment())
+        .thenThrow(new AssertionError("Git Shouldn't be call here"));
+    assertRefspec(refspec(name + ":" + name, mock), name, name, /*expectForce=*/false);
   }
 
   @Test
@@ -178,7 +184,10 @@ public class RefspecTest {
   }
 
   private Refspec refspec(String str) throws InvalidRefspecException {
-    return Refspec.create(getGitEnv(), FileSystems.getDefault().getPath("/"), str
+    return refspec(str, getGitEnv());
+  }
+  private Refspec refspec(String str, GitEnvironment env) throws InvalidRefspecException {
+    return Refspec.create(env, FileSystems.getDefault().getPath("/"), str
         /*location=*/);
   }
 }
