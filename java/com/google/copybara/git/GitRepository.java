@@ -287,8 +287,6 @@ public class GitRepository {
     }
   }
 
-  private static final Pattern BASIC_REFSPEC =
-      Pattern.compile("refs/(heads|tags)/(\\*|[A-Za-z][A-Za-z0-9_]*)");
   /**
    * Validate that a refspec is valid.
    *
@@ -296,16 +294,16 @@ public class GitRepository {
    */
   static void validateRefSpec(GitEnvironment gitEnv, Path cwd, String refspec)
       throws InvalidRefspecException {
+
+    if (quickRefspecValidation(refspec)) {
+      return;
+    }
     try {
-      // Skip calling CLI for common refspecs that we know are safe. CLI can take 50-100ms.
-      if (BASIC_REFSPEC.matcher(refspec).matches()) {
-        return;
-      }
       executeGit(
           cwd,
           ImmutableList.of("check-ref-format", "--allow-onelevel", "--refspec-pattern", refspec),
           gitEnv,
-          /*verbose=*/ false, 
+          /*verbose=*/ false,
           /*timeout=*/Optional.empty());
     } catch (CommandException e) {
       Optional<String> version = version(gitEnv);
@@ -316,6 +314,37 @@ public class GitRepository {
                   () ->
                       String.format("Cannot find git binary at '%s'", gitEnv.resolveGitBinary())));
     }
+  }
+
+  private static final Pattern BASIC_REFSPEC_COMPONENT =
+      Pattern.compile("[A-Za-z0-9_-][A-Za-z0-9_.-]*");
+
+  /**
+   * Skip calling CLI for common refspecs that we know are safe. CLI can take 50-100ms.
+   * Note that the default is to return false and let Git decide if it is valid. IOW, returning
+   * false here is always safe (But less optimal).
+   */
+  private static boolean quickRefspecValidation(String refspec) throws InvalidRefspecException {
+    if (!refspec.startsWith("refs/")
+        || refspec.endsWith(".")
+        || refspec.contains("..")
+        || refspec.endsWith(".lock")) {
+      return false;
+    }
+    boolean asterisk = false;
+    for (String component : Splitter.on('/').split(refspec)) {
+      if (component.equals("*")) {
+        // Only one asterisk is allowed
+        if (asterisk) {
+          return false;
+        }
+        asterisk = true;
+      }
+      if (!BASIC_REFSPEC_COMPONENT.matcher(component).matches()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -1254,7 +1283,7 @@ public class GitRepository {
 
   // TODO(malcon): Create a CommitCmd object builder
   public void commit(@Nullable String author, boolean amend, @Nullable ZonedDateTime timestamp,
-      String message) 
+      String message)
       throws RepoException, ValidationException {
     if (isEmptyStaging() && !amend) {
       String baseline = "unknown";

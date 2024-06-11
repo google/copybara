@@ -42,6 +42,31 @@ public class RefspecTest {
   }
 
   @Test
+  public void testRefspecwithBadNames() {
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/foo."));
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/foo.lock"));
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/foo//bar"));
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/foo..bar"));
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/./a"));
+    assertThrows(InvalidRefspecException.class, () -> refspec("refs/foo:refs/heads/*/*"));
+  }
+
+  @Test
+  public void testRefspecGoodNames() throws Exception {
+    checkGoodNames("refs/heads/foo-bar/baz");
+    checkGoodNames("refs/releases/foo/bar_baz100/*");
+    checkGoodNames("refs/releases/foo--bar/*");
+    checkGoodNames("refs/releases/*/foo--bar");
+    checkGoodNames("refs/releases/bar/5.1");
+    checkGoodNames("refs/heads/main-v1.1.0");
+  }
+
+  private void checkGoodNames(String name) throws InvalidRefspecException {
+    assertRefspec(refspec(name + ":" + name),
+        name, name, /*expectForce=*/false);
+  }
+
+  @Test
   public void testRefspecWithSemicolonForce() throws Exception {
     assertRefspec(refspec("+refs/heads/master:refs/heads/foo"),
         "refs/heads/master", "refs/heads/foo", /*expectForce=*/true);
