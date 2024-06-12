@@ -32,15 +32,31 @@ import javax.annotation.Nullable;
 @AutoValue
 public abstract class Info<O extends Revision> {
 
-  public static final Info<? extends Revision> EMPTY = create(ImmutableMultimap.of(),
-      ImmutableMultimap.of(), ImmutableList.of());
+  public static final Info<? extends Revision> EMPTY =
+      create(
+          ImmutableMultimap.of(), ImmutableMultimap.of(), ImmutableList.of(), ImmutableList.of());
 
   public static <O extends Revision> Info<O> create(
       ImmutableMultimap<String, String> originDescription,
       ImmutableMultimap<String, String> destinationDescription,
       Iterable<MigrationReference<O>> migrationReferences) {
-    return new AutoValue_Info<>(originDescription, destinationDescription,
-        ImmutableList.copyOf(migrationReferences));
+    return new AutoValue_Info<>(
+        originDescription,
+        destinationDescription,
+        ImmutableList.copyOf(migrationReferences),
+        ImmutableList.of());
+  }
+
+  public static <O extends Revision> Info<O> create(
+      ImmutableMultimap<String, String> originDescription,
+      ImmutableMultimap<String, String> destinationDescription,
+      Iterable<MigrationReference<O>> migrationReferences,
+      ImmutableList<Change<O>> versions) {
+    return new AutoValue_Info<>(
+        originDescription,
+        destinationDescription,
+        ImmutableList.copyOf(migrationReferences),
+        versions);
   }
 
   /**
@@ -59,6 +75,9 @@ public abstract class Info<O extends Revision> {
    * <p>Public so that it can be used programmatically.
    */
   public abstract Iterable<MigrationReference<O>> migrationReferences();
+
+  /** Returns a list of the upstream versions for an origin. */
+  public abstract ImmutableList<Change<O>> versions();
 
   @AutoValue
   public abstract static class MigrationReference<O extends Revision> {

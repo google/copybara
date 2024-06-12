@@ -169,10 +169,17 @@ public class InfoTest {
         }, getFakeContextProvider());
     MigrationReference<DummyRevision> workflow =
         MigrationReference.create("workflow", new DummyRevision("1111"), null, ImmutableList.of());
-    Info<?> mockedInfo = Info.create(
-        dummyOriginDescription,
-        dummyDestinationDescription,
-        ImmutableList.of(workflow));
+    Change<DummyRevision> testVersion =
+        newChange(
+            "2222",
+            "test tag",
+            ZonedDateTime.ofInstant(Instant.ofEpochSecond(1541631979), ZoneId.of("-08:00")));
+    Info<?> mockedInfo =
+        Info.create(
+            dummyOriginDescription,
+            dummyDestinationDescription,
+            ImmutableList.of(workflow),
+            ImmutableList.of(testVersion));
     Mockito.<Info<? extends Revision>>when(migration.getInfo()).thenReturn(mockedInfo);
     info.run(new CommandEnv(temp,
         optionsBuilder.build(),
