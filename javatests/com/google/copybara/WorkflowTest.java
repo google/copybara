@@ -1368,6 +1368,65 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testWorkflowWithTagsInOrigin() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("gitdir"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(workdir);
+    remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
+
+    Files.writeString(workdir.resolve("foo.txt"), "content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    remote.tag("tag_a").run();
+
+    Files.writeString(workdir.resolve("foo.txt"), "new content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_b");
+    remote.tag("tag_b").run();
+
+    Files.writeString(workdir.resolve("bar.txt"), "new file");
+    remote.add().files("bar.txt").run();
+    remote.simpleCommand("commit", "bar.txt", "-m", "message_c");
+    remote.tag("tag_c").run();
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
+
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.general.force = false;
+    options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + String.format(
+                            "    origin = git.origin(url='%s', ref='%s'),\n",
+                            remote.getGitDir(), primaryBranch)
+                        + "    destination = folder.destination(),\n"
+                        + "    mode = 'ITERATIVE',\n"
+                        + "    authoring = "
+                        + authoring
+                        + ",\n"
+                        + "    transformations = [metadata.replace_message(''),],\n"
+                        + ")\n")
+                .getMigration("foo");
+
+    ImmutableList<String> tags =
+        workflow.getInfo().versions().stream()
+            .map(t -> t.getRevision().contextReference())
+            .collect(ImmutableList.toImmutableList());
+
+    assertThat(tags).containsExactly("tag_a", "tag_b", "tag_c");
+  }
+
+  @Test
   public void testShowDiffInOriginFail() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     origin.addSimpleChange(/*timestamp*/ 2);

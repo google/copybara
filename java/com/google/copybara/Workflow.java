@@ -427,6 +427,21 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                 }
                 affectedChanges.add(change);
               }
+
+              ImmutableList<Change<O>> originVersions =
+                  generalOptions.repoTask(
+                      "origin.versions",
+                      () -> {
+                        ImmutableList<O> versions = oReader.getVersions();
+                        ImmutableList.Builder<Change<O>> versionsBuilder = ImmutableList.builder();
+
+                        for (O version : versions) {
+                          Change<O> change = oReader.change(version);
+                          versionsBuilder.add(change);
+                        }
+                        return versionsBuilder.build();
+                      });
+
               MigrationReference<O> migrationRef =
                   MigrationReference.create(
                       String.format("workflow_%s", name),
@@ -437,7 +452,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
               return Info.create(
                   getOriginDescription(),
                   getDestinationDescription(),
-                  ImmutableList.of(migrationRef));
+                  ImmutableList.of(migrationRef),
+                  originVersions);
             });
   }
 
