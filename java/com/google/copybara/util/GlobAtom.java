@@ -62,6 +62,10 @@ public final class GlobAtom {
     return type.root(pattern, allowFiles);
   }
 
+  public String pattern() {
+    return pattern;
+  }
+
   @Override
   public String toString() {
     return pattern;
@@ -123,6 +127,18 @@ public final class GlobAtom {
         }
         return new Root(isRecursive, root);
       }
+    },
+
+    SINGLE_FILE {
+      @Override
+      PathMatcher matcher(Path root, String pattern) {
+        return path -> root.resolve(pattern).equals(path);
+      }
+
+      @Override
+      Root root(String pattern, boolean allowFiles) {
+        return new Root(false, pattern.substring(0, pattern.lastIndexOf('/')));
+      }
     };
 
     private static final Pattern UNESCAPE = Pattern.compile("\\\\(.)");
@@ -131,7 +147,7 @@ public final class GlobAtom {
       return UNESCAPE.matcher(pathComponent).replaceAll("$1");
     }
 
-    private static boolean isMeta(String pathComponent) {
+    static boolean isMeta(String pathComponent) {
       int c = 0;
       while (c < pathComponent.length()) {
         switch (pathComponent.charAt(c)) {

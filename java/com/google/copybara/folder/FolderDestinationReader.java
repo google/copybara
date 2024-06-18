@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.stream.Stream;
+import net.starlark.java.eval.EvalException;
 
 /** A {@link DestinationReader} for reading files from a {@link FolderDestination}. */
 public class FolderDestinationReader extends DestinationReader {
@@ -51,9 +52,10 @@ public class FolderDestinationReader extends DestinationReader {
   }
 
   @Override
-  public void copyDestinationFiles(Glob glob, Object path)
-      throws RepoException, ValidationException {
+  public void copyDestinationFiles(Object globObj, Object path)
+      throws RepoException, ValidationException, EvalException {
     CheckoutPath checkoutPath = SkylarkUtil.convertFromNoneable(path, null);
+    Glob glob = Glob.wrapGlob(globObj, null);
     if (checkoutPath == null) {
       copyDestinationFilesToDirectory(glob, workDir);
     } else {

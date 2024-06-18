@@ -26,7 +26,9 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /**
@@ -46,7 +48,7 @@ public abstract class DestinationReader implements StarlarkValue {
         }
 
         @Override
-        public void copyDestinationFiles(Glob glob, Object path) throws RepoException {
+        public void copyDestinationFiles(Object glob, Object path) throws RepoException {
           throw new RepoException("Reading files is not implemented by this destination");
         }
 
@@ -70,7 +72,7 @@ public abstract class DestinationReader implements StarlarkValue {
         }
 
         @Override
-        public void copyDestinationFiles(Glob glob, Object path) {
+        public void copyDestinationFiles(Object glob, Object path) {
         }
 
         @Override
@@ -110,6 +112,11 @@ public abstract class DestinationReader implements StarlarkValue {
           @Param(
               name = "glob",
               named = true,
+              allowedTypes = {
+                  @ParamType(type = Glob.class),
+                  @ParamType(type = StarlarkList.class, generic1 = String.class),
+                  @ParamType(type = NoneType.class),
+              },
               doc =
                   "Files to copy to the "
                       + "workdir, potentially overwriting files checked out from the origin."),
@@ -138,8 +145,8 @@ public abstract class DestinationReader implements StarlarkValue {
               + "deleted.")
   @SuppressWarnings("unused")
   // TODO(joshgoldman): refactor this out in favor of directory-specific version
-  public abstract void copyDestinationFiles(Glob glob, Object path)
-      throws RepoException, ValidationException;
+  public abstract void copyDestinationFiles(Object glob, Object path)
+      throws RepoException, ValidationException, EvalException;
 
   /**
    * Similar to {@code copyDestinationFiles()} but specifies a destination directory (instead of

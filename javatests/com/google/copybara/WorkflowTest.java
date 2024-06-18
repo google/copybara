@@ -1461,6 +1461,15 @@ public class WorkflowTest {
   }
 
   @Test
+  public void runsTransformations_sequenceGlob() throws Exception {
+    originFiles = "['file.txt']";
+    workflow().run(workdir, ImmutableList.of(HEAD));
+    assertThat(destination.processed).hasSize(1);
+    assertThat(destination.processed.get(0).numFiles()).isEqualTo(1);
+    assertThat(destination.processed.get(0).getContent("file.txt")).isEqualTo(PREFIX + "0");
+  }
+
+  @Test
   public void invalidExcludedOriginPath() throws Exception {
     prepareOriginExcludes("a");
     String outsideFolder = "../../file";

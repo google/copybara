@@ -108,6 +108,21 @@ public class GitDestinationReaderTest {
         "ctx.destination_reader().copy_destination_files(glob = glob(include = ['foo/**']))"));
     FileSubjects.assertThatPath(workDir).containsFile("checkout/foo/destination.txt", "foo");
   }
+  @Test
+  public void testGlobFileFromDestination_Sequence() throws Exception {
+    Files.createDirectories(gitDir.resolve("foo"));
+    Files.write(gitDir.resolve("foo/destination.txt"), "foo".getBytes(UTF_8));
+    repo.add().files("foo/destination.txt").run();
+    ZonedDateTime date = ZonedDateTime.now(ZoneId.of("-07:00"))
+        .truncatedTo(ChronoUnit.SECONDS);
+    repo.commit("= Foo = <bar@bara.com>", date,
+        String.format("adding foo  \n\n%s: %s", DummyOrigin.LABEL_NAME, "0"));
+    FileSubjects.assertThatPath(workDir).containsNoMoreFiles();
+    runWorkflow(ImmutableList.of(
+        "ctx.destination_reader().copy_destination_files(glob = ['foo/destination.txt'])"));
+    FileSubjects.assertThatPath(workDir).containsFile("checkout/foo/destination.txt", "foo");
+  }
+
 
   @Test
   public void testGlobFileFromDestination_otherRoot() throws Exception {

@@ -118,7 +118,7 @@ public class RegenerateCmdTest {
                   }
 
                   @Override
-                  public void copyDestinationFiles(Glob glob, Object path)
+                  public void copyDestinationFiles(Object glob, Object path)
                       throws RepoException, ValidationException {
                     throw new RepoException("not implemented");
                   }

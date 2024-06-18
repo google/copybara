@@ -738,7 +738,7 @@ Parameter | Description
 --------- | -----------
 <span id=compression.unzip_path.source_path href=#compression.unzip_path.source_path>source_path</span> | <code><a href="#path">Path</a></code><br><p>the zipped file source</p>
 <span id=compression.unzip_path.destination_path href=#compression.unzip_path.destination_path>destination_path</span> | <code><a href="#path">Path</a></code><br><p>the path to unzip to</p>
-<span id=compression.unzip_path.filter href=#compression.unzip_path.filter>filter</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob relative to the archive root that will restrict what files <br>from the archive should be extracted.</p>
+<span id=compression.unzip_path.filter href=#compression.unzip_path.filter>filter</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob relative to the archive root that will restrict what files <br>from the archive should be extracted.</p>
 
 
 
@@ -922,7 +922,7 @@ Parameter | Description
 <span id=core.autopatch_config.strip_file_names_and_line_numbers href=#core.autopatch_config.strip_file_names_and_line_numbers>strip_file_names_and_line_numbers</span> | <code>bool</code><br><p>When true, strip filenames and line numbers from patch files</p>
 <span id=core.autopatch_config.strip_file_names href=#core.autopatch_config.strip_file_names>strip_file_names</span> | <code>bool</code><br><p>When true, strip filenames from patch files</p>
 <span id=core.autopatch_config.strip_line_numbers href=#core.autopatch_config.strip_line_numbers>strip_line_numbers</span> | <code>bool</code><br><p>When true, strip line numbers from patch files</p>
-<span id=core.autopatch_config.paths href=#core.autopatch_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>Only create patch files that match glob. Default is to match all files</p>
+<span id=core.autopatch_config.paths href=#core.autopatch_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Only create patch files that match glob. Default is to match all files</p>
 
 <a id="core.convert_encoding" aria-hidden="true"></a>
 ### core.convert_encoding
@@ -973,7 +973,7 @@ Parameter | Description
 --------- | -----------
 <span id=core.copy.before href=#core.copy.before>before</span> | <code>string</code><br><p>The name of the file or directory to copy. If this is the empty string and 'after' is a directory, then all files in the workdir will be copied to the sub directory specified by 'after', maintaining the directory tree.</p>
 <span id=core.copy.after href=#core.copy.after>after</span> | <code>string</code><br><p>The name of the file or directory destination. If this is the empty string and 'before' is a directory, then all files in 'before' will be copied to the repo root, maintaining the directory tree inside 'before'.</p>
-<span id=core.copy.paths href=#core.copy.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+<span id=core.copy.paths href=#core.copy.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be copied. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
 <span id=core.copy.overwrite href=#core.copy.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 <span id=core.copy.regex_groups href=#core.copy.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
@@ -1134,7 +1134,7 @@ Parameter | Description
 <span id=core.filter_replace.regex href=#core.filter_replace.regex>regex</span> | <code>string</code><br><p>A re2 regex to match a substring of the file</p>
 <span id=core.filter_replace.mapping href=#core.filter_replace.mapping>mapping</span> | <code>unknown</code><br><p>A mapping function like core.replace_mapper or a dict with mapping values.</p>
 <span id=core.filter_replace.group href=#core.filter_replace.group>group</span> | <code>int</code> or <code>NoneType</code><br><p>Extract a regex group from the matching text and pass this as parameter to the mapping instead of the whole matching text.</p>
-<span id=core.filter_replace.paths href=#core.filter_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+<span id=core.filter_replace.paths href=#core.filter_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 <span id=core.filter_replace.reverse href=#core.filter_replace.reverse>reverse</span> | <code>string</code> or <code>NoneType</code><br><p>A re2 regex used as reverse transformation</p>
 
 
@@ -1251,7 +1251,7 @@ Describes which paths merge_import mode should be applied
 Parameter | Description
 --------- | -----------
 <span id=core.merge_import_config.package_path href=#core.merge_import_config.package_path>package_path</span> | <code>string</code><br><p>Package location (ex. 'google3/third_party/java/foo').</p>
-<span id=core.merge_import_config.paths href=#core.merge_import_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
+<span id=core.merge_import_config.paths href=#core.merge_import_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
 <span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code>bool</code><br><p>under development</p>
 
 <a id="core.move" aria-hidden="true"></a>
@@ -1268,7 +1268,7 @@ Parameter | Description
 --------- | -----------
 <span id=core.move.before href=#core.move.before>before</span> | <code>string</code><br><p>The name of the file or directory before moving. If this is the empty string and 'after' is a directory, then all files in the workdir will be moved to the sub directory specified by 'after', maintaining the directory tree.</p>
 <span id=core.move.after href=#core.move.after>after</span> | <code>string</code><br><p>The name of the file or directory after moving. If this is the empty string and 'before' is a directory, then all files in 'before' will be moved to the repo root, maintaining the directory tree inside 'before'.</p>
-<span id=core.move.paths href=#core.move.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
+<span id=core.move.paths href=#core.move.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be moved. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively.</p>
 <span id=core.move.overwrite href=#core.move.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 <span id=core.move.regex_groups href=#core.move.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the file name. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
 
@@ -1377,7 +1377,7 @@ Parameter | Description
 --------- | -----------
 <span id=core.rename.before href=#core.rename.before>before</span> | <code>string</code><br><p>The filepath or suffix to change</p>
 <span id=core.rename.after href=#core.rename.after>after</span> | <code>string</code><br><p>A filepath or suffix to use as replacement</p>
-<span id=core.rename.paths href=#core.rename.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be renamed. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively. Note that if reversible transformation is needed, the glob should match the filenames too in that case (or alternatively use an explicit reversal by using `core.transformation()`.</p>
+<span id=core.rename.paths href=#core.rename.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to 'before' if it represents a directory. Only files matching the expression will be renamed. For example, glob(["**.java"]), matches all java files recursively inside 'before' folder. Defaults to match all the files recursively. Note that if reversible transformation is needed, the glob should match the filenames too in that case (or alternatively use an explicit reversal by using `core.transformation()`.</p>
 <span id=core.rename.overwrite href=#core.rename.overwrite>overwrite</span> | <code>bool</code><br><p>Overwrite destination files if they already exist. Note that this makes the transformation non-reversible, since there is no way to know if the file was overwritten or not in the reverse workflow.</p>
 <span id=core.rename.suffix href=#core.rename.suffix>suffix</span> | <code>bool</code><br><p>By default before/after match whole path segments. e.g. before = "FOO" wouldn't match `example/barFOO`. Sometimes only part of the path name needs to be replaced, e.g. renaming extensions. When `suffix` is set to true, it will match partial parts of the path string.</p>
 
@@ -1433,7 +1433,7 @@ Parameter | Description
 <span id=core.replace.before href=#core.replace.before>before</span> | <code>string</code><br><p>The text before the transformation. Can contain references to regex groups. For example "foo${x}text".<p>`before` can only contain 1 reference to each unique `regex_group`. If you require multiple references to the same `regex_group`, add `repeated_groups: True`.<p>If '$' literal character needs to be matched, '`$$`' should be used. For example '`$$FOO`' would match the literal '$FOO'. [Note this argument is a string. If you want to match a regular expression it must be encoded as a regex_group.]</p>
 <span id=core.replace.after href=#core.replace.after>after</span> | <code>string</code><br><p>The text after the transformation. It can also contain references to regex groups, like 'before' field.</p>
 <span id=core.replace.regex_groups href=#core.replace.regex_groups>regex_groups</span> | <code>dict</code><br><p>A set of named regexes that can be used to match part of the replaced text.Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax. For example {"x": "[A-Za-z]+"}</p>
-<span id=core.replace.paths href=#core.replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+<span id=core.replace.paths href=#core.replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 <span id=core.replace.first_only href=#core.replace.first_only>first_only</span> | <code>bool</code><br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 <span id=core.replace.multiline href=#core.replace.multiline>multiline</span> | <code>bool</code><br><p>Whether to replace text that spans more than one line.</p>
 <span id=core.replace.repeated_groups href=#core.replace.repeated_groups>repeated_groups</span> | <code>bool</code><br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
@@ -1452,6 +1452,19 @@ core.replace(
     before = "internal",
     after = "external",
     paths = glob(["**.java"]),
+)
+```
+
+
+##### Simple replacement in a specific file:
+
+Replaces the text "internal" with "external" in all java files
+
+```python
+core.replace(
+    before = "internal",
+    after = "external",
+    paths = ['foo/bar.txt'],
 )
 ```
 
@@ -1632,7 +1645,7 @@ Parameter | Description
 <span id=core.todo_replace.tags href=#core.todo_replace.tags>tags</span> | <code>sequence of string</code><br><p>Prefix tag to look for</p>
 <span id=core.todo_replace.mapping href=#core.todo_replace.mapping>mapping</span> | <code>dict</code><br><p>Mapping of users/strings</p>
 <span id=core.todo_replace.mode href=#core.todo_replace.mode>mode</span> | <code>string</code><br><p>Mode for the replace:<ul><li>'MAP_OR_FAIL': Try to use the mapping and if not found fail.</li><li>'MAP_OR_IGNORE': Try to use the mapping but ignore if no mapping found.</li><li>'MAP_OR_DEFAULT': Try to use the mapping and use the default if not found.</li><li>'SCRUB_NAMES': Scrub all names from TODOs. Transforms 'TODO(foo)' to 'TODO'</li><li>'USE_DEFAULT': Replace any TODO(foo, bar) with TODO(default_string)</li></ul></p>
-<span id=core.todo_replace.paths href=#core.todo_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+<span id=core.todo_replace.paths href=#core.todo_replace.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 <span id=core.todo_replace.default href=#core.todo_replace.default>default</span> | <code>string</code> or <code>NoneType</code><br><p>Default value if mapping not found. Only valid for 'MAP_OR_DEFAULT' or 'USE_DEFAULT' modes</p>
 <span id=core.todo_replace.ignore href=#core.todo_replace.ignore>ignore</span> | <code>string</code> or <code>NoneType</code><br><p>If set, elements within TODO (with usernames) that match the regex will be ignored. For example ignore = "foo" would ignore "foo" in "TODO(foo,bar)" but not "bar".</p>
 
@@ -1713,7 +1726,7 @@ Verifies that a RegEx matches (or not matches) the specified files. Does not tra
 Parameter | Description
 --------- | -----------
 <span id=core.verify_match.regex href=#core.verify_match.regex>regex</span> | <code>string</code><br><p>The regex pattern to verify. To satisfy the validation, there has to be atleast one (or no matches if verify_no_match) match in each of the files included in paths. The re2j pattern will be applied in multiline mode, i.e. '^' refers to the beginning of a file and '$' to its end. Copybara uses [re2](https://github.com/google/re2/wiki/Syntax) syntax.</p>
-<span id=core.verify_match.paths href=#core.verify_match.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
+<span id=core.verify_match.paths href=#core.verify_match.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob expression relative to the workdir representing the files to apply the transformation. For example, glob(["**.java"]), matches all java files recursively. Defaults to match all the files recursively.</p>
 <span id=core.verify_match.verify_no_match href=#core.verify_match.verify_no_match>verify_no_match</span> | <code>bool</code><br><p>If true, the transformation will verify that the RegEx does not match.</p>
 <span id=core.verify_match.also_on_reversal href=#core.verify_match.also_on_reversal>also_on_reversal</span> | <code>bool</code><br><p>If true, the check will also apply on the reversal. The default behavior is to not verify the pattern on reversal.</p>
 <span id=core.verify_match.failure_message href=#core.verify_match.failure_message>failure_message</span> | <code>unknown</code><br><p>Optional string that will be included in the failure message.</p>
@@ -1746,8 +1759,8 @@ Parameter | Description
 <span id=core.workflow.destination href=#core.workflow.destination>destination</span> | <code><a href="#destination">destination</a></code><br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 <span id=core.workflow.authoring href=#core.workflow.authoring>authoring</span> | <code><a href="#authoring_class">authoring_class</a></code><br><p>The author mapping configuration from origin to destination.</p>
 <span id=core.workflow.transformations href=#core.workflow.transformations>transformations</span> | <code>sequence</code><br><p>The transformations to be run for this workflow. They will run in sequence.</p>
-<span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types.</p>
-<span id=core.workflow.destination_files href=#core.workflow.destination_files>destination_files</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
+<span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob or list of filesrelative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types, or ['foo.java'] for a specific file.</p>
+<span id=core.workflow.destination_files href=#core.workflow.destination_files>destination_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 <span id=core.workflow.mode href=#core.workflow.mode>mode</span> | <code>string</code><br><p>Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change in the SoT (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
 <span id=core.workflow.reversible_check href=#core.workflow.reversible_check>reversible_check</span> | <code>bool</code> or <code>NoneType</code><br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
 <span id=core.workflow.check_last_rev_state href=#core.workflow.check_last_rev_state>check_last_rev_state</span> | <code>bool</code><br><p>If set to true, Copybara will validate that the destination didn't change since last-rev import for destination_files. Note that this flag doesn't work for CHANGE_REQUEST mode.</p>
@@ -1766,7 +1779,7 @@ Parameter | Description
 <span id=core.workflow.custom_rev_id href=#core.workflow.custom_rev_id>custom_rev_id</span> | <code>string</code> or <code>NoneType</code><br><p>If the destination uses labels to mark the last change migrated, use this label name instead of the one provided by the origin. This allows to to have two migrations to the same destination without the other migration changes interfering this migration. I can also serve to clearly state where the change is coming from.</p>
 <span id=core.workflow.description href=#core.workflow.description>description</span> | <code>string</code> or <code>NoneType</code><br><p>A description of what this workflow achieves</p>
 <span id=core.workflow.checkout href=#core.workflow.checkout>checkout</span> | <code>bool</code><br><p>Allows disabling the checkout. The usage of this feature is rare. This could be used to update a file of your own repo when a dependant repo version changes and you are not interested on the files of the dependant repo, just the new version.</p>
-<span id=core.workflow.reversible_check_ignore_files href=#core.workflow.reversible_check_ignore_files>reversible_check_ignore_files</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>Ignore the files matching the glob in the reversible check</p>
+<span id=core.workflow.reversible_check_ignore_files href=#core.workflow.reversible_check_ignore_files>reversible_check_ignore_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Ignore the files matching the glob in the reversible check</p>
 <span id=core.workflow.consistency_file_path href=#core.workflow.consistency_file_path>consistency_file_path</span> | <code>string</code> or <code>NoneType</code><br><p>Under development. Must end with .bara.consistency</p>
 
 
@@ -1975,7 +1988,7 @@ Copy files from the destination into the workdir.
 
 Parameter | Description
 --------- | -----------
-<span id=destination_reader.copy_destination_files.glob href=#destination_reader.copy_destination_files.glob>glob</span> | <code><a href="#glob">glob</a></code><br><p>Files to copy to the workdir, potentially overwriting files checked out from the origin.</p>
+<span id=destination_reader.copy_destination_files.glob href=#destination_reader.copy_destination_files.glob>glob</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Files to copy to the workdir, potentially overwriting files checked out from the origin.</p>
 <span id=destination_reader.copy_destination_files.path href=#destination_reader.copy_destination_files.path>path</span> | <code><a href="#path">Path</a></code> or <code>NoneType</code><br><p>Optional path to copy the files to</p>
 
 
@@ -2400,7 +2413,7 @@ Formats the BUILD files using buildifier.
 
 Parameter | Description
 --------- | -----------
-<span id=format.buildifier.paths href=#format.buildifier.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>NoneType</code><br><p>Paths of the files to format relative to the workdir.</p>
+<span id=format.buildifier.paths href=#format.buildifier.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Paths of the files to format relative to the workdir.</p>
 <span id=format.buildifier.type href=#format.buildifier.type>type</span> | <code>string</code> or <code>NoneType</code><br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
 <span id=format.buildifier.lint href=#format.buildifier.lint>lint</span> | <code>string</code> or <code>NoneType</code><br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
 <span id=format.buildifier.lint_warnings href=#format.buildifier.lint_warnings>lint_warnings</span> | <code>sequence of string</code><br><p>Warnings used in the lint mode. Default is buildifier default`</p>
@@ -4434,7 +4447,7 @@ zip | <code>string</code><br><p>Zip Url</p>
 
 ## glob
 
-A glob represents a set of relative filepaths in the Copybara workdir.
+A glob represents a set of relative filepaths in the Copybara workdir. Most consumers will also accept a list of fully qualified (no wildcards) file names instead.
 
 
 <h4 id="returned_by.glob">Returned By:</h4>

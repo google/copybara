@@ -17,7 +17,6 @@
 package com.google.copybara.compression;
 
 import com.google.copybara.CheckoutPath;
-import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.extractutil.ExtractType;
 import com.google.copybara.remotefile.extractutil.ExtractUtil;
@@ -29,7 +28,9 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
+import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Starlark utilities for working with compressed formats such as zip files. */
@@ -53,6 +54,7 @@ public class CompressionModule implements StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -62,8 +64,8 @@ public class CompressionModule implements StarlarkValue {
             positional = false),
       })
   public void unzipPath(CheckoutPath source, CheckoutPath destination, Object filter)
-      throws IOException, ValidationException {
-    Glob filterGlob = SkylarkUtil.convertFromNoneable(filter, null);
+      throws IOException, ValidationException, EvalException {
+    Glob filterGlob = Glob.wrapGlob(filter, null);
     InputStream contents = Files.newInputStream(source.fullPath());
     ExtractUtil.extractArchive(contents, destination.fullPath(), ExtractType.ZIP, filterGlob);
   }

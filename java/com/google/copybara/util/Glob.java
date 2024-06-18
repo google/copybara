@@ -39,6 +39,7 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.HasBinary;
 import net.starlark.java.eval.Printer;
 import net.starlark.java.eval.Starlark;
+import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 import net.starlark.java.syntax.TokenKind;
 
@@ -50,12 +51,13 @@ import net.starlark.java.syntax.TokenKind;
  */
 @StarlarkBuiltin(
     name = "glob",
-    doc = "A glob represents a set of relative filepaths in the Copybara workdir.")
+    doc = "A glob represents a set of relative filepaths in the Copybara workdir. Most consumers "
+        + "will also accept a list of fully qualified (no wildcards) file names instead.")
 public class Glob implements StarlarkValue, HasBinary {
 
   public static final Glob ALL_FILES = createGlob(ImmutableList.of("**"));
 
-  private final ImmutableList<GlobAtom> include;
+  protected final ImmutableList<GlobAtom> include;
   private final ImmutableList<Glob> globInclude;
   @Nullable private final Glob exclude;
 
@@ -71,6 +73,10 @@ public class Glob implements StarlarkValue, HasBinary {
       case PLUS:
         if (that instanceof Glob) {
           return union(this, (Glob) that);
+        } else if (that instanceof StarlarkList) {
+          return new Glob(ImmutableList.of(),
+              ImmutableList.of(this, SequenceGlob.ofStarlarkList((StarlarkList<?>) that)),
+              null);
         } else {
           throw Starlark.errorf(
               "Cannot concatenate %s with %s. Only a glob can be concatenated to a glob",
@@ -79,6 +85,9 @@ public class Glob implements StarlarkValue, HasBinary {
       case MINUS:
         if (that instanceof Glob) {
           return difference(this, (Glob) that);
+        } else if (that instanceof StarlarkList) {
+          Glob list = SequenceGlob.ofStarlarkList((StarlarkList) that);
+          return new Glob(include, globInclude, exclude != null ? Glob.union(exclude, list) : list);
         } else {
           throw Starlark.errorf(
               "Cannot subtract %s from %s. Only a glob can be subtracted from a glob", that, this);
@@ -205,6 +214,24 @@ public class Glob implements StarlarkValue, HasBinary {
         ImmutableList.copyOf(GlobAtom.ofIterable(include, GlobAtom.AtomType.JAVA_GLOB)),
         ImmutableList.of(),
         Iterables.isEmpty(exclude) ? null : createGlob(exclude));
+  }
+  
+   /**
+   * Handles a Glob/Squence Parameter passed to a Glob consuming function.
+   *
+   */
+  @Nullable
+  public static Glob wrapGlob(Object globOrList, @Nullable Glob defaultValue) throws EvalException {
+    if (Starlark.isNullOrNone(globOrList)) {
+      return defaultValue;
+    }
+    if (globOrList instanceof Glob) {
+      return (Glob) globOrList;
+    }
+    if (globOrList instanceof StarlarkList) {
+      return SequenceGlob.ofStarlarkList((StarlarkList<?>) globOrList);
+    }
+    throw new EvalException("Glob can only be created from a Glob or a list of strings");
   }
 
   /**
@@ -385,12 +412,13 @@ public class Glob implements StarlarkValue, HasBinary {
     return toStringWithParentheses(true);
   }
 
-  private String toStringWithParentheses(boolean isRootGlob) {
+  String toStringWithParentheses(boolean isRootGlob) {
     StringBuilder builder = new StringBuilder();
     int numberOfTerms = 0;
     boolean inlineExclude =
         this.globInclude.isEmpty()
             && this.exclude != null
+            && this.exclude.getClass() == this.getClass()
             && this.exclude.globInclude.isEmpty()
             && this.exclude.exclude == null;
     if (!include.isEmpty() || this.globInclude.isEmpty()) {
@@ -419,7 +447,7 @@ public class Glob implements StarlarkValue, HasBinary {
     return builder.toString();
   }
 
-  private String toStringList(Iterable<GlobAtom> iterable) {
+  String toStringList(Iterable<GlobAtom> iterable) {
     StringBuilder sb = new StringBuilder("[");
     boolean first = true;
     for (GlobAtom atom : iterable) {

@@ -17,6 +17,7 @@
 package com.google.copybara.util;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.util.Glob.createGlob;
 
 import com.google.common.collect.ImmutableList;
@@ -75,6 +76,35 @@ public class GlobTest {
     assertThat(matcher.matches(workdir.resolve("other"))).isFalse();
   }
 
+  @Test
+  public void unionTest_list() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**', 'bar/**']) + ['baz/a']");
+
+    assertThat(glob.roots()).containsExactly("foo", "bar", "baz");
+    assertThat(glob.tips()).containsExactly("foo", "bar", "baz");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("baz/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("other"))).isFalse();
+  }
+
+    @Test
+  public void differenceTest_list() throws Exception {
+    Glob glob = parseGlob("glob(['foo/**', 'bar/**']) - ['bar/a']");
+
+    assertThat(glob.roots()).containsExactly("foo", "bar");
+    assertThat(glob.tips()).containsExactly("foo", "bar");
+
+    PathMatcher matcher = glob.relativeTo(workdir);
+
+    assertThat(matcher.matches(workdir.resolve("foo/a"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/b"))).isTrue();
+    assertThat(matcher.matches(workdir.resolve("bar/a"))).isFalse();
+    assertThat(matcher.matches(workdir.resolve("other"))).isFalse();
+  }
   @Test
   public void unionSameParent() throws Exception {
     Glob glob = parseGlob("glob(['foo/**']) + glob(['foo/bar/**', 'baz/**'])");
@@ -233,6 +263,16 @@ public class GlobTest {
   @Test
   public void errorForEmptyExcludePath() throws Exception {
     skylark.evalFails("glob(['foo'], exclude = [''])", "unexpected empty string in glob list");
+  }
+
+  @Test
+  public void sequenceWithWildcard_fails() throws Exception {
+    skylark.evalFails("glob(['foo/*']) + ['bar/**']", "Wildcards");
+  }
+
+  @Test
+  public void sequenceWithNonString_fails() throws Exception {
+    skylark.evalFails("glob(['foo/*']) + [42]", "strings");
   }
 
   @Test
@@ -396,7 +436,8 @@ public class GlobTest {
     System.err.println("---------->" + expression + "<---------");
     System.err.println("---------->" + glob.toString() + "<---------");
     // Check toString implementation is a valid glob
-    assertThat(skylark.<Glob>eval("result", "result=" + glob.toString())).isEqualTo(glob);
+    assertWithMessage("Non-equal result for " + expression +" / " + glob)
+        .that(skylark.<Glob>eval("result", "result=" + glob.toString())).isEqualTo(glob);
     return glob;
   }
 }

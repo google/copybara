@@ -38,6 +38,7 @@ import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Skylark module for transforming the code to Google's style/guidelines. */
@@ -69,6 +70,7 @@ public class FormatModule implements StarlarkValue {
             name = "paths",
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc = "Paths of the files to format relative to the workdir.",
@@ -151,7 +153,7 @@ public class FormatModule implements StarlarkValue {
     return new BuildifierFormat(
         buildifierOptions,
         generalOptions,
-        convertFromNoneable(paths, DEFAULT_BUILDIFIER_PATHS),
+        Glob.wrapGlob(paths, DEFAULT_BUILDIFIER_PATHS),
         lintMode,
         ImmutableList.copyOf(Sequence.cast(warnings, String.class, "lint_warnings")),
         typeStr);

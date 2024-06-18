@@ -74,6 +74,7 @@ import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -221,10 +222,10 @@ public class RecordsProcessCallDestination implements Destination<Revision> {
       }
 
       @Override
-      public void copyDestinationFiles(Glob glob, Object path)
-          throws RepoException {
+      public void copyDestinationFiles(Object globObj, Object path)
+          throws RepoException, EvalException {
         CheckoutPath checkoutPath = convertFromNoneable(path, null);
-
+        Glob glob = Glob.wrapGlob(globObj, null);
         if (filePrefix != null) {
           PathMatcher filePrefixMatcher = glob.relativeTo(filePrefix);
           try (Stream<Path> prefixFiles = Files.walk(filePrefix)) {

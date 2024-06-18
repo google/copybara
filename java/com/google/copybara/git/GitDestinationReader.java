@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -31,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import net.starlark.java.annot.StarlarkBuiltin;
+import net.starlark.java.eval.EvalException;
 
 /**
  * A DestinationReader for reading files from a GitDestination.
@@ -57,10 +57,12 @@ public class GitDestinationReader extends DestinationReader {
   }
 
   @Override
-  public void copyDestinationFiles(Glob glob, Object path) throws RepoException {
+  public void copyDestinationFiles(Object globObj, Object path) throws RepoException,
+      EvalException {
     CheckoutPath checkoutPath = convertFromNoneable(path, null);
+    Glob glob = Glob.wrapGlob(globObj, null);
     if (checkoutPath == null) {
-    copyDestinationFilesToDirectory(glob, workDir);
+      copyDestinationFilesToDirectory(glob, workDir);
     } else {
       copyDestinationFilesToDirectory(
           glob, checkoutPath.getCheckoutDir().resolve(checkoutPath.getPath()));

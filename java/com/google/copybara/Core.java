@@ -26,6 +26,7 @@ import static com.google.copybara.config.SkylarkUtil.convertStringMap;
 import static com.google.copybara.config.SkylarkUtil.stringToEnum;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.transform.Transformations.toTransformation;
+import static com.google.copybara.util.Glob.wrapGlob;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.ALPHABETIC;
 import static com.google.copybara.version.LatestVersionSelector.VersionElementType.NUMERIC;
 
@@ -253,12 +254,14 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
-                "A glob relative to the workdir that will be read from the"
+                "A glob or list of filesrelative to the workdir that will be read from the"
                     + " origin during the import. For example glob([\"**.java\"]), all java files,"
-                    + " recursively, which excludes all other file types.",
+                    + " recursively, which excludes all other file types, or ['foo.java'] for a"
+                    + " specific file.",
             defaultValue = "None",
             positional = false),
         @Param(
@@ -266,6 +269,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -497,6 +501,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc = "Ignore the files matching the glob in the reversible check",
@@ -655,12 +660,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.getLastRevision(),
             workflowOptions.isInitHistory(),
             generalOptions,
-            convertFromNoneable(originFiles, Glob.ALL_FILES),
-            convertFromNoneable(destinationFiles, Glob.ALL_FILES),
+            wrapGlob(originFiles, Glob.ALL_FILES),
+            wrapGlob(destinationFiles, Glob.ALL_FILES),
             effectiveMode,
             workflowOptions,
             reverseTransform,
-            convertFromNoneable(reversibleCheckIgnoreFiles, null),
+            wrapGlob(reversibleCheckIgnoreFiles, null),
             askForConfirmation,
             mainConfigFile,
             allConfigFiles,
@@ -746,6 +751,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -814,7 +820,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         before,
         after,
         convertStringMap(regexes, "regex_groups"),
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         overwrite,
         thread.getCallerLocation());
   }
@@ -822,23 +828,19 @@ public class Core implements LabelsAwareModule, StarlarkValue {
   @SuppressWarnings("unused")
   @StarlarkMethod(
       name = "rename",
-      doc = "A transformation for renaming several filenames in the working directory. This is"
-          + " a simplified version of core.move() for just renaming filenames without needing"
-          + " to use regex_groups. Note that it doesn't rename directories, only regular files.",
+      doc =
+          "A transformation for renaming several filenames in the working directory. This is a"
+              + " simplified version of core.move() for just renaming filenames without needing to"
+              + " use regex_groups. Note that it doesn't rename directories, only regular files.",
       parameters = {
-        @Param(
-            name = "before",
-            named = true,
-            doc = "The filepath or suffix to change"),
-        @Param(
-            name = "after",
-            named = true,
-            doc = "A filepath or suffix to use as replacement"),
+        @Param(name = "before", named = true, doc = "The filepath or suffix to change"),
+        @Param(name = "after", named = true, doc = "A filepath or suffix to use as replacement"),
         @Param(
             name = "paths",
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -857,15 +859,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
                 "Overwrite destination files if they already exist. Note that this makes the"
                     + " transformation non-reversible, since there is no way to know if the file"
                     + " was overwritten or not in the reverse workflow.",
-            defaultValue = "False"
-        ),
+            defaultValue = "False"),
         @Param(
             name = "suffix",
             named = true,
-            doc = "By default before/after match whole path segments. e.g. before = \"FOO\""
-                + " wouldn't match `example/barFOO`. Sometimes only part of the path name needs"
-                + " to be replaced, e.g. renaming extensions. When `suffix` is set to true, it"
-                + " will match partial parts of the path string.",
+            doc =
+                "By default before/after match whole path segments. e.g. before = \"FOO\""
+                    + " wouldn't match `example/barFOO`. Sometimes only part of the path name needs"
+                    + " to be replaced, e.g. renaming extensions. When `suffix` is set to true, it"
+                    + " will match partial parts of the path string.",
             defaultValue = "False"),
       },
       useStarlarkThread = true)
@@ -884,8 +886,9 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       title = "Rename files only in certain paths",
       before = "Renaming files in certain paths:",
       code = "core.rename(\"/FOO\", \"/FOO.txt\", paths = glob(['dir1/**', 'dir2/**']))",
-      after = "In this example, `dir1/FOO` will be renamed to `dir1/FOO.txt`. Note that"
-          + " FOO files outside `dir1` and `dir2` won't be renamed")
+      after =
+          "In this example, `dir1/FOO` will be renamed to `dir1/FOO.txt`. Note that"
+              + " FOO files outside `dir1` and `dir2` won't be renamed")
   public Transformation rename(
       String before,
       String after,
@@ -903,7 +906,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return new Rename(
         before,
         after,
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         overwrite,
         suffix,
         thread.getCallerLocation());
@@ -933,6 +936,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -999,7 +1003,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         before,
         after,
         convertStringMap(regexes, "regex_groups"),
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         overwrite,
         thread.getCallerLocation());
   }
@@ -1123,6 +1127,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -1176,6 +1181,15 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               + "    before = \"internal\",\n"
               + "    after = \"external\",\n"
               + "    paths = glob([\"**.java\"]),\n"
+              + ")")
+  @Example(
+      title = "Simple replacement in a specific file",
+      before = "Replaces the text \"internal\" with \"external\" in all java files",
+      code =
+          "core.replace(\n"
+              + "    before = \"internal\",\n"
+              + "    after = \"external\",\n"
+              + "    paths = ['foo/bar.txt'],\n"
               + ")")
   @Example(
       title = "Append some text at the end of files",
@@ -1308,7 +1322,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         before,
         after,
         convertStringMap(regexes, "regex_groups"),
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         firstOnly,
         multiline,
         repeatedGroups,
@@ -1350,6 +1364,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -1436,7 +1451,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     }
     return new TodoReplace(
         thread.getCallerLocation(),
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         tags,
         mode,
         mapping,
@@ -1481,10 +1496,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
           "Applies an initial filtering to find a substring to be replaced and then applies"
               + " a `mapping` of replaces for the matched text.",
       parameters = {
-        @Param(name = "regex", named = true, doc = "A re2 regex to match a substring of the file",
-        allowedTypes = {
-            @ParamType(type = String.class)
-        }),
+        @Param(
+            name = "regex",
+            named = true,
+            doc = "A re2 regex to match a substring of the file",
+            allowedTypes = {@ParamType(type = String.class)}),
         @Param(
             name = "mapping",
             named = true,
@@ -1506,6 +1522,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -1567,7 +1584,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         numGroup,
         numGroup,
         func,
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         thread.getCallerLocation());
   }
 
@@ -1650,6 +1667,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc =
@@ -1688,7 +1706,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     return VerifyMatch.create(
         thread.getCallerLocation(),
         regex,
-        convertFromNoneable(paths, Glob.ALL_FILES),
+        wrapGlob(paths, Glob.ALL_FILES),
         verifyNoMatch,
         alsoOnReversal,
         convertOptionalString(failureMessage),
@@ -2372,7 +2390,11 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "paths",
             doc = "Glob of paths to apply merge_import mode, relative to package_path",
-            allowedTypes = {@ParamType(type = Glob.class), @ParamType(type = NoneType.class)},
+            allowedTypes = {
+              @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
+              @ParamType(type = NoneType.class)
+            },
             defaultValue = "None",
             named = true,
             positional = false),
@@ -2385,8 +2407,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             positional = false),
       })
   public MergeImportConfiguration mergeImportConfiguration(
-      String packagePath, Object pathsObj, boolean useConsistencyFile) {
-    Glob paths = convertFromNoneable(pathsObj, Glob.ALL_FILES);
+      String packagePath, Object pathsObj, boolean useConsistencyFile) throws EvalException {
+    Glob paths = wrapGlob(pathsObj, Glob.ALL_FILES);
     return MergeImportConfiguration.create(packagePath, paths, useConsistencyFile);
   }
 
@@ -2459,6 +2481,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             named = true,
             allowedTypes = {
               @ParamType(type = Glob.class),
+              @ParamType(type = StarlarkList.class, generic1 = String.class),
               @ParamType(type = NoneType.class),
             },
             doc = "Only create patch files that match glob. Default is to match all files",
@@ -2475,7 +2498,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
       boolean stripLineNumbers,
       Object globObj)
       throws EvalException {
-    Glob glob = convertFromNoneable(globObj, Glob.ALL_FILES);
+    Glob glob = wrapGlob(globObj, Glob.ALL_FILES);
 
     if (stripFileNamesAndLineNumbers && (stripFileNames || stripLineNumbers)) {
       throw Starlark.errorf(

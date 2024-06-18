@@ -207,6 +207,25 @@ public final class ReplaceTest {
   }
 
   @Test
+  public void testWithSequence() throws Exception {
+    Replace transformation = eval("core.replace(\n"
+        + "  before = 'foo',\n"
+        + "  after = 'bar',\n"
+        + "  paths = ['file1.java', 'folder/file1.java'],\n"
+        + ")");
+
+    prepareGlobTree();
+
+    transform(transformation);
+
+    assertThatPath(checkoutDir)
+        .containsFile("file1.txt", "foo")
+        .containsFile("file1.java", "bar")
+        .containsFile("folder/file1.txt", "foo")
+        .containsFile("folder/file1.java", "bar");
+  }
+
+  @Test
   public void testWithGlobFolderPrefix() throws Exception {
     Replace transformation = eval("core.replace(\n"
         + "  before = 'foo',\n"
