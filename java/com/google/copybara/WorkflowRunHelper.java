@@ -936,7 +936,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                           preMergeImportWorkdir,
                           checkoutDir,
                           workflow.getDestination().getHashFunction(),
-                          workflow.getGeneralOptions().getEnvironment())
+                          workflow.getGeneralOptions().getEnvironment(),
+                          workflow.isVerbose())
                       .toBytes());
         } catch (InsideGitDirException e) {
           throw new ValidationException("Error generating consistency file", e);

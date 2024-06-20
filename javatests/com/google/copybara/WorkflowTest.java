@@ -2344,7 +2344,7 @@ public class WorkflowTest {
     // recreate the consistency file for the destination only change
     assertThat(deleteFile(d1, consistencyFilePath)).isTrue();
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
     // write the destination change
@@ -2445,7 +2445,7 @@ public class WorkflowTest {
     // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
@@ -2512,7 +2512,7 @@ public class WorkflowTest {
     // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment());
+        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 

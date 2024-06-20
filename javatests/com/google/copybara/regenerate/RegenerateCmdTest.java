@@ -177,7 +177,8 @@ public class RegenerateCmdTest {
             destinationRoot.resolve(pristine),
             destinationRoot.resolve(baseline),
             Hashing.sha256(),
-            env);
+            env,
+            false);
 
     writeDestination(baseline, CONSISTENCY_FILE_PATH, consistencyFile.toBytes());
   }

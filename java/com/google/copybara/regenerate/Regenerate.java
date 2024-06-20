@@ -139,7 +139,7 @@ public class Regenerate<O extends Revision, D extends Revision> {
         regenBaseline = patchRegenerator.inferRegenBaseline();
       }
       if (regenBaseline.isEmpty()) {
-        console.verbose("Regen baseline could not be inferred. Falling back to import baseline");
+        console.info("Regen baseline could not be inferred. Falling back to import baseline");
       }
     }
 
@@ -178,7 +178,8 @@ public class Regenerate<O extends Revision, D extends Revision> {
                         previousPath,
                         nextPath,
                         workflow.getDestination().getHashFunction(),
-                        workflow.getGeneralOptions().getEnvironment())
+                        workflow.getGeneralOptions().getEnvironment(),
+                        workflow.isVerbose())
                     .toBytes());
       } catch (InsideGitDirException e) {
         throw new ValidationException("Error generating consistency file", e);

@@ -82,9 +82,13 @@ public class ConsistencyFile {
    * @param destination is the version containing all the destination only changes.
    */
   public static ConsistencyFile generate(
-      Path baseline, Path destination, HashFunction hashFunction, Map<String, String> environment)
+      Path baseline,
+      Path destination,
+      HashFunction hashFunction,
+      Map<String, String> environment,
+      boolean verbose)
       throws IOException, InsideGitDirException {
-    byte[] diff = DiffUtil.diff(baseline, destination, true, environment);
+    byte[] diff = DiffUtil.diff(baseline, destination, verbose, environment);
     return new ConsistencyFile(computeFileHashes(destination, hashFunction), diff);
   }
 
