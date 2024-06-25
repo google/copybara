@@ -172,10 +172,6 @@ def _non_module_deps(_):
         sha256 = bazel_sha256,
         strip_prefix = "bazel-" + bazel_version,
         url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
-        patch_args = ["-p1"],
-        patches = [
-            "//third_party/bazel:bazel.patch",
-        ],
     )
 
     # LICENSE: The Apache Software License, Version 2.0
