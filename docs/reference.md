@@ -3079,7 +3079,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
-<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.github_destination" aria-hidden="true"></a>
 ### git.github_destination
@@ -3336,7 +3336,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
-<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate
