@@ -2291,6 +2291,7 @@ public class GitRepository {
     private final boolean firstParent;
     private final int skip;
     private final boolean includeTags;
+    private final boolean noWalk;
     private final GitRepository repo;
 
     @Nullable
@@ -2308,7 +2309,8 @@ public class GitRepository {
         @Nullable String grepString,
         boolean includeMergeDiff,
         int skip,
-        boolean includeTags) {
+        boolean includeTags,
+        boolean noWalk) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -2320,6 +2322,7 @@ public class GitRepository {
       this.grepString = grepString;
       this.skip = skip;
       this.includeTags = includeTags;
+      this.noWalk = noWalk;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
@@ -2334,7 +2337,8 @@ public class GitRepository {
           /* grepString= */ null,
           /* includeMergeDiff= */ false,
           /* skip= */ 0,
-          /* includeTags= */ false);
+          /* includeTags= */ false,
+          /* noWalk= */ false);
     }
 
     /**
@@ -2354,7 +2358,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2374,7 +2379,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2394,7 +2400,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2413,7 +2420,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /** If files affected by the commit should be included in the response. */
@@ -2430,7 +2438,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2449,7 +2458,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2468,7 +2478,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2487,7 +2498,8 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
     }
 
     /** Include tags in the response. */
@@ -2504,7 +2516,26 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          includeTags,
+          noWalk);
+    }
+
+    /** If the ancestors of commits should be included in the output. */
+    @CanIgnoreReturnValue
+    public LogCmd noWalk(boolean noWalk) {
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2537,6 +2568,14 @@ public class GitRepository {
       if (skip > 0) {
         cmd.add("--skip");
         cmd.add(Integer.toString(skip));
+      }
+
+      if (includeTags) {
+        cmd.add("--tags");
+      }
+
+      if (noWalk) {
+        cmd.add("--no-walk");
       }
 
       if (!Strings.isNullOrEmpty(grepString)) {

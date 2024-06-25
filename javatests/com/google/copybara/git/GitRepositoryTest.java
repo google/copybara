@@ -1358,10 +1358,31 @@ public class GitRepositoryTest {
   public void testLogWithTag() throws Exception {
     simpleChange(repository, "foo.txt", "1", "message_a");
     repository.tag("1.2.3").withAnnotatedTag("message_1").run();
+    simpleChange(repository, "foo.txt", "2", "message_b");
+    repository.tag("1.2.4").withAnnotatedTag("message_2").run();
+    simpleChange(repository, "foo.txt", "3", "message_c");
+    repository.tag("1.3.0").withAnnotatedTag("message_3").run();
 
-    ImmutableList<GitLogEntry> result = repository.log("--tags").includeTags(true).run();
+    ImmutableList<GitLogEntry> result = repository.log("*").includeTags(true).run();
+    ImmutableList<String> tags =
+        result.stream()
+            .map(e -> e.getTag().contextReference())
+            .collect(ImmutableList.toImmutableList());
 
-    assertThat(result.get(0).getTag().contextReference()).isEqualTo("1.2.3");
+    assertThat(tags).containsExactly("1.2.3", "1.2.4", "1.3.0");
+  }
+
+  @Test
+  public void testLogWithNoWalk() throws Exception {
+    simpleChange(repository, "foo.txt", "1", "message_a");
+    simpleChange(repository, "foo.txt", "2", "message_b");
+    simpleChange(repository, "foo.txt", "3", "message_c");
+
+    ImmutableList<GitLogEntry> resultWithWalk = repository.log("*").run();
+    ImmutableList<GitLogEntry> resultNoWalk = repository.log("*").noWalk(true).run();
+
+    assertThat(resultWithWalk.size()).isEqualTo(3);
+    assertThat(resultNoWalk.size()).isEqualTo(1);
   }
 
   @Test
