@@ -838,9 +838,11 @@ public class GitOriginTest {
 
     GitRevision unused = getLastCommitRef();
 
-    ImmutableList<GitRevision> tags = newReader().getVersions();
+    ImmutableList<Change<GitRevision>> tags = newReader().getVersions();
     ImmutableList<String> tagNames =
-        tags.stream().map(GitRevision::contextReference).collect(ImmutableList.toImmutableList());
+        tags.stream()
+            .map(t -> t.getRevision().contextReference())
+            .collect(ImmutableList.toImmutableList());
 
     assertThat(tagNames).containsExactly("1.0.1", "1.0.2", "1.0.3");
   }
