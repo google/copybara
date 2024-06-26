@@ -707,6 +707,19 @@ public class GitRepository {
     return lsRemote(getCwd(), url, refs, gitEnv, maxLogLines, flags);
   }
 
+  /**
+   * Same as {@link #lsRemote(String, Collection)} but allows you to specify additional flags.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @param flags - additional flags to pass to ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
+   */
+  public Map<String, String> lsRemote(String url, Collection<String> refs, Collection<String> flags)
+      throws RepoException, ValidationException {
+    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+  }
+
   @CheckReturnValue
   static String validateUrl(String url) throws RepoException, ValidationException {
     RepositoryUtil.validateNotHttp(url);
