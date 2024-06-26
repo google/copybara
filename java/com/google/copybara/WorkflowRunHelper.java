@@ -900,7 +900,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               workflow.getGeneralOptions().getDiffBin(),
               workflow.getGeneralOptions().getEnvironment(),
               debugPattern);
-      if (workflow.getGeneralOptions().isTemporaryFeature("use_patch_merge", false)) {
+      if (workflow.getGeneralOptions().isTemporaryFeature("use_patch_merge", false)
+          || workflow.getMergeImport().mergeStrategy()
+              == MergeImportConfiguration.MergeStrategy.PATCH_MERGE) {
         mergeRunner =
             new ApplyDestinationPatch(
                 console,

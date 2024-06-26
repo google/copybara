@@ -2808,6 +2808,8 @@ public class WorkflowTest {
             .getWorkdir()
             .get("foo2.txt"))
         .isEqualTo("pre\nx\ny\nz\npost");
+    assertThat(workflow.getMergeImport().mergeStrategy())
+        .isEqualTo(MergeImportConfiguration.MergeStrategy.DIFF3);
   }
 
   @Test
@@ -2949,6 +2951,16 @@ public class WorkflowTest {
             .getWorkdir()
             .get("not_merged.txt"))
         .isEqualTo("pre\nx\ny\nz\n");
+  }
+
+  @Test
+  public void mergeImportConfiguration_mergeStrategy() throws Exception {
+    mergeImport = "core.merge_import_config(package_path = \"\", merge_strategy = 'PATCH_MERGE')";
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+
+    assertThat(workflow.getMergeImport().mergeStrategy())
+        .isEqualTo(MergeImportConfiguration.MergeStrategy.PATCH_MERGE);
   }
 
   @Test

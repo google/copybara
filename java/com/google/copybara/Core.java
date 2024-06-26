@@ -632,7 +632,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     if (mergeImportObj instanceof Boolean) {
       Boolean objectValue = (Boolean) mergeImportObj;
       mergeImport =
-          objectValue ? MergeImportConfiguration.create("", Glob.ALL_FILES, false) : null;
+          objectValue
+              ? MergeImportConfiguration.create(
+                  "", Glob.ALL_FILES, false, MergeImportConfiguration.MergeStrategy.DIFF3)
+              : null;
     } else {
       mergeImport = convertFromNoneable(mergeImportObj, null);
     }
@@ -2405,11 +2408,26 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false),
+        @Param(
+            name = "merge_strategy",
+            doc =
+                "The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag"
+                    + " to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the"
+                    + " baseline and destination files, and then applies the patch to the origin"
+                    + " file.",
+            defaultValue = "'DIFF3'",
+            named = true,
+            positional = false)
       })
   public MergeImportConfiguration mergeImportConfiguration(
-      String packagePath, Object pathsObj, boolean useConsistencyFile) throws EvalException {
+      String packagePath, Object pathsObj, boolean useConsistencyFile, String mergeStrategy)
+      throws EvalException {
     Glob paths = wrapGlob(pathsObj, Glob.ALL_FILES);
-    return MergeImportConfiguration.create(packagePath, paths, useConsistencyFile);
+    return MergeImportConfiguration.create(
+        packagePath,
+        paths,
+        useConsistencyFile,
+        MergeImportConfiguration.MergeStrategy.valueOf(mergeStrategy));
   }
 
   @SuppressWarnings("unused")
