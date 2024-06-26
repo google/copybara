@@ -434,10 +434,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       lastMigratedChange,
                       affectedChanges);
 
+              ImmutableList<Change<O>> originVersions = ImmutableList.of();
+              if (workflowOptions.infoIncludeVersions) {
+                originVersions = oReader.getVersions();
+              }
+
               return Info.create(
                   getOriginDescription(),
                   getDestinationDescription(),
-                  ImmutableList.of(migrationRef));
+                  ImmutableList.of(migrationRef),
+                  originVersions);
             });
   }
 

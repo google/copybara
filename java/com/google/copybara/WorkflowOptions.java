@@ -90,6 +90,11 @@ public class WorkflowOptions implements Option {
   public boolean ignoreNoop = false;
 
   @Parameter(
+      names = "--info-include-versions",
+      description = "Include upstream versions in the info command output.")
+  public boolean infoIncludeVersions = true;
+
+  @Parameter(
     names = "--squash-skip-history",
     description =
         "Avoid exposing the history of changes that are being migrated. This is"
