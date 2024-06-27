@@ -850,7 +850,19 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
             consistencyFileGlob(workflow), consistencyFileWorkdir);
 
         if (reader.exists(workflow.getConsistencyFilePath())) {
-          baselineWorkdir = checkoutConsistencyFileBaseline(reader);
+          try {
+            @Nullable
+            String consistencyFileVersion = reader.lastModified(workflow.getConsistencyFilePath());
+            DestinationReader consistencyFileVersionReader = reader;
+            if (consistencyFileVersion != null) {
+              consistencyFileVersionReader =
+                  writer.getDestinationReader(console, consistencyFileVersion, checkoutDir);
+            }
+            baselineWorkdir = checkoutConsistencyFileBaseline(consistencyFileVersionReader);
+          } catch (UnsupportedOperationException e) {
+            throw new ValidationException(
+                "Destination does not support consistency file operations", e);
+          }
         } else {
           // onboarding case, using import baseline
           console.info("No consistency file found. Generating new consistency file.");

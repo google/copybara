@@ -22,6 +22,7 @@ import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.Glob;
 import java.io.IOException;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
@@ -163,6 +164,13 @@ public abstract class DestinationReader implements StarlarkValue {
       })
   @SuppressWarnings("unused")
   public abstract boolean exists(String path);
+
+  /** Fetch the destination version at which this file was last modified. */
+  @Nullable
+  public String lastModified(String path) throws IOException, RepoException {
+    throw new UnsupportedOperationException(
+        "Last modified is not implemented in this destination reader.");
+  }
 
   /**
    * Obtain the hash of the destination file at this path.

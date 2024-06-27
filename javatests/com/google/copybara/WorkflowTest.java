@@ -2341,6 +2341,65 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_consistencyFile_validatesAgainstVersionOfConsistencyFileEdit()
+      throws Exception {
+    // options setup
+    skylark = new SkylarkTestExecutor(options);
+
+    // config setup
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    Path testDir = Files.createTempDirectory("consistencyFile");
+    String consistencyFilePath = workflow.getConsistencyFilePath();
+
+    // create writer for emulating manual destination changes
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+
+    // create the baseline origin change
+    Path o1 = Files.createDirectories(testDir.resolve("o1"));
+    writeFile(o1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(0, o1, "test change", true);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a change to import on top of the baseline
+    Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/bar.txt", "bar\n");
+    origin.addChange(0, o2, "test change", true);
+
+    // import into the destination
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a destination-only change
+    Path d1 = Files.createDirectories(testDir.resolve("d1"));
+    writeProcessedChange(latestProcessedChange(), d1);
+    assertThatPath(d1).containsFiles(consistencyFilePath);
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // create an invalid ConsistencyFile state by updating a file without updating the
+    // ConsistencyFile
+    writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // the inconsistency in the destination should not result in a validation error
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+  }
+
+  @Test
   public void mergeImport_consistencyFile_validationFails() throws Exception {
     // options setup
     skylark = new SkylarkTestExecutor(options);
