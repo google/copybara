@@ -19,6 +19,7 @@ package com.google.copybara.util;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.copybara.util.Glob.createGlob;
+import static com.google.copybara.util.Glob.wrapGlob;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.jimfs.Configuration;
@@ -33,6 +34,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import net.starlark.java.eval.StarlarkList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -315,7 +317,7 @@ public class GlobTest {
   }
 
   @Test
-  public void testRoots() {
+  public void testRoots() throws Exception {
     assertThat(createGlob(ImmutableList.of()).roots())
         .isEmpty();
     assertThat(createGlob(ImmutableList.of("**")).roots())
@@ -329,6 +331,8 @@ public class GlobTest {
         .containsExactly("");
     assertThat(createGlob(ImmutableList.of("foo/*.java")).roots())
         .containsExactly("foo");
+    assertThat(wrapGlob(StarlarkList.immutableCopyOf(ImmutableList.of("foo")), null).roots())
+        .containsExactly("");
 
     // If we include a single file in root, then the all-encompassing root list must include the
     // repo root.

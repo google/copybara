@@ -137,7 +137,11 @@ public final class GlobAtom {
 
       @Override
       Root root(String pattern, boolean allowFiles) {
-        return new Root(false, pattern.substring(0, pattern.lastIndexOf('/')));
+        int lastSlash = pattern.lastIndexOf('/');
+        if (lastSlash == -1) {
+          return new Root(false, "");
+        }
+        return new Root(false, pattern.substring(0, lastSlash));
       }
     };
 
