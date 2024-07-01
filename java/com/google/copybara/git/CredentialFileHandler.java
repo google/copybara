@@ -83,8 +83,7 @@ public class CredentialFileHandler {
       throws CredentialIssuingException, CredentialRetrievalException {
     if (currentPassword == null || !currentPassword.valid()) {
       currentPassword = password.issue();
-      logger.atInfo().log("Refreshing password %s", currentPassword.provideSecret());
-
+      logger.atInfo().log("Refreshing password %s", currentPassword.printableValue());
     }
     return currentPassword;
   }
