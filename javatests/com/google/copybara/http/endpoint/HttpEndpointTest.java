@@ -398,6 +398,22 @@ public class HttpEndpointTest {
         CheckerException.class, () -> endpoint.get("http://badword.com", Dict.of(null), false));
   }
 
+  @Test
+  public void testResolveStringSecret() throws Exception {
+    HttpEndpoint endpoint =
+        starlark.eval(
+            "endpoint",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", issuers = {\n"
+                + "    \"foo\": credentials.static_secret(\"secret\", \"bar\")\n"
+                + "},\n"
+                + "))\n");
+    assertThat(endpoint.resolveStringSecrets("http://foo.com/${{foo}}"))
+        .isEqualTo("http://foo.com/bar");
+    assertThat(endpoint.resolveStringSecrets("multiple/${{foo}}/${{foo}}"))
+        .isEqualTo("multiple/bar/bar");
+  }
+
   private static class TestContent implements HttpEndpointBody {
     @Override
     public HttpContent getContent() {

@@ -27,12 +27,17 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.credentials.CredentialIssuer;
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -49,6 +54,12 @@ import net.starlark.java.eval.NoneType;
  */
 @StarlarkBuiltin(name = "http_endpoint", doc = "Calls via HTTP.")
 public class HttpEndpoint implements Endpoint {
+
+  // Immutable list to keep the issuers as key value pairs
+  // The key will be used to identify the issuer
+  // before executing the http call
+  private final ImmutableMap<String, CredentialIssuer> issuers;
+
   private final ImmutableMap<String, Optional<AuthInterceptor>> hosts;
   HttpTransport transport;
   Console console;
@@ -61,11 +72,13 @@ public class HttpEndpoint implements Endpoint {
       Console console,
       HttpTransport transport,
       ImmutableMap<String, Optional<AuthInterceptor>> hosts,
+      ImmutableMap<String, CredentialIssuer> issuers,
       @Nullable Checker checker) {
     this.hosts = hosts;
     this.transport = transport;
     this.console = console;
     this.checker = checker;
+    this.issuers = issuers;
   }
 
   @StarlarkMethod(
@@ -166,7 +179,9 @@ public class HttpEndpoint implements Endpoint {
     Dict<String, String> headersDict = Dict.cast(headersIn, String.class, String.class, "headers");
     HttpHeaders headers = new HttpHeaders();
     for (Entry<String, String> e : headersDict.entrySet()) {
-      headers.set(e.getKey(), ImmutableList.of(e.getValue()));
+      String val = e.getValue();
+      val = resolveStringSecrets(val);
+      headers.set(e.getKey(), ImmutableList.of(val));
     }
 
     @Nullable
@@ -203,6 +218,23 @@ public class HttpEndpoint implements Endpoint {
     HttpRequest request = req.build();
     request.setFollowRedirects(this.followRedirects);
     return new HttpEndpointResponse(request.execute());
+  }
+
+  public String resolveStringSecrets(String value)
+      throws CredentialIssuingException, CredentialRetrievalException {
+    String template = "\\$\\{\\{(.*?)\\}\\}";
+    Pattern pattern = Pattern.compile(template);
+    Matcher matcher = pattern.matcher(value);
+    while (matcher.find()) {
+      String issuerName = matcher.group(1);
+      CredentialIssuer issuer = issuers.get(issuerName);
+      if (issuer == null) {
+        throw new IllegalArgumentException(
+            String.format("Credential issuer %s is not found", issuerName));
+      }
+      value = value.replace(matcher.group(0), issuer.issue().provideSecret());
+    }
+    return value;
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
@@ -249,6 +281,16 @@ public class HttpEndpoint implements Endpoint {
         list.add(describe.build());
       }
     }
+
+    // add generic credentials
+    for (Entry<String, CredentialIssuer> entry : issuers.entrySet()) {
+      ImmutableSetMultimap.Builder<String, String> describe = ImmutableSetMultimap.builder();
+      describe.put("type", "generic_credential");
+      describe.put("key", entry.getKey());
+      describe.putAll(entry.getValue().describe());
+      list.add(describe.build());
+    }
+
     return list.build();
   }
 }

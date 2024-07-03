@@ -4802,7 +4802,7 @@ Module for working with http endpoints.
 
 Endpoint that executes any sort of http request. Currently restrictedto requests to specific hosts.
 
-<code>endpoint_provider</code> <code>http.endpoint(<a href=#http.endpoint.host>host</a>='', <a href=#http.endpoint.checker>checker</a>=None, <a href=#http.endpoint.hosts>hosts</a>=[])</code>
+<code>endpoint_provider</code> <code>http.endpoint(<a href=#http.endpoint.host>host</a>='', <a href=#http.endpoint.checker>checker</a>=None, <a href=#http.endpoint.hosts>hosts</a>=[], <a href=#http.endpoint.issuers>issuers</a>={})</code>
 
 
 <h4 id="parameters.http.endpoint">Parameters:</h4>
@@ -4812,6 +4812,7 @@ Parameter | Description
 <span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code>string</code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
 <span id=http.endpoint.checker href=#http.endpoint.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 <span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionaty of credential issuers.</p>
 
 <a id="http.host" aria-hidden="true"></a>
 ### http.host
@@ -4893,7 +4894,7 @@ Parameter | Description
 
 Trigger for http endpoint
 
-<code>trigger</code> <code>http.trigger(<a href=#http.trigger.hosts>hosts</a>=[], <a href=#http.trigger.checker>checker</a>=None)</code>
+<code>trigger</code> <code>http.trigger(<a href=#http.trigger.hosts>hosts</a>=[], <a href=#http.trigger.issuers>issuers</a>={}, <a href=#http.trigger.checker>checker</a>=None)</code>
 
 
 <h4 id="parameters.http.trigger">Parameters:</h4>
@@ -4901,6 +4902,7 @@ Trigger for http endpoint
 Parameter | Description
 --------- | -----------
 <span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionary of credential issuers.</p>
 <span id=http.trigger.checker href=#http.trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 
 <a id="http.url_encode" aria-hidden="true"></a>
