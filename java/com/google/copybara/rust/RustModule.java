@@ -239,7 +239,8 @@ public class RustModule implements StarlarkValue {
 
       ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url.get(), sha1.get());
       GitRepository repo = gitOptions.cachedBareRepoForUrl(url.get());
-      GitRevision rev = getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo());
+      GitRevision rev =
+          getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo(), Optional.empty());
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       String relativePath = getPathInVcs(vcsJsonObject).orElse("");
@@ -302,7 +303,11 @@ public class RustModule implements StarlarkValue {
   }
 
   protected GitRevision getGitRevision(
-      String url, String sha1, GitRepository repo, DestinationInfo destinationInfo)
+      String url,
+      String sha1,
+      GitRepository repo,
+      DestinationInfo destinationInfo,
+      Optional<String> crateName)
       throws RepoException, ValidationException {
     return repo.fetchSingleRef(url, sha1, true, Optional.empty());
   }
