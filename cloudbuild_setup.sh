@@ -20,7 +20,6 @@ apt-get install -y software-properties-common
 apt install -y openjdk-17-jdk openjdk-17-jre
 add-apt-repository ppa:git-core/ppa -y
 apt install git -y
-
 apt-get install -y quilt
 
 log "Extracting Bazel"
