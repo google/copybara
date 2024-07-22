@@ -324,7 +324,7 @@ public final class FileUtil {
       }
       Files.createDirectories(destFile.getParent());
 
-      boolean symlink = Files.isSymbolicLink(file);
+      boolean symlink = attrs.isSymbolicLink();
       if (symlink) {
         // If the symlink remains under 'from' we keep the symlink as relative.
         // Otherwise we copy it as a regular file.
@@ -362,7 +362,9 @@ public final class FileUtil {
           return FileVisitResult.CONTINUE;
         }
       }
-      Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
+      if (symlink || attrs.isRegularFile()) {
+        Files.copy(file, destFile, StandardCopyOption.COPY_ATTRIBUTES);
+      }
       // Make writable any symlink that we materialize. This is safe since we have already
       // done a copy of the file. And it is probable that we will want to modify it.
       if (symlink) {
