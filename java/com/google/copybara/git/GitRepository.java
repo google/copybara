@@ -82,6 +82,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -728,6 +729,13 @@ public class GitRepository {
 
   @CheckReturnValue
   static String validateUrl(String url) throws RepoException, ValidationException {
+    // support remote helper syntax <transport>::<address>
+    List<String> parts = Splitter.on("::").splitToList(url);
+    if (parts.size() == 2) {
+      // run validation on the address portion
+      return parts.get(0) + "::" + validateUrl(parts.get(1));
+    }
+
     RepositoryUtil.validateNotHttp(url);
     if (FULL_URI.matcher(url).matches()) {
       return url;
@@ -1462,7 +1470,8 @@ public class GitRepository {
         throw new RepoException("Unexpected format for ls-tree output: " + line);
       }
       // We ignore the mode for now
-      GitObjectType objectType = GitObjectType.valueOf(matcher.group(2).toUpperCase());
+      GitObjectType objectType =
+          GitObjectType.valueOf(matcher.group(2).toUpperCase(Locale.getDefault()));
       String sha1 = matcher.group(3);
       String path = matcher.group(4);
 
