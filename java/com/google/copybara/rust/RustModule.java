@@ -239,16 +239,14 @@ public class RustModule implements StarlarkValue {
 
       ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url.get(), sha1.get());
       GitRepository repo = gitOptions.cachedBareRepoForUrl(url.get());
+      Optional<String> maybeCrateName =
+          Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName));
       GitRevision rev =
-          getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo(), Optional.empty());
+          getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo(), maybeCrateName);
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       String relativePath = getPathInVcs(vcsJsonObject).orElse("");
-      Optional<String> fuzzersDir =
-          getFuzzersDir(
-              destinationReader,
-              Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName)),
-              relativePath);
+      Optional<String> fuzzersDir = getFuzzersDir(destinationReader, maybeCrateName, relativePath);
 
       if (fuzzersDir.isEmpty()) {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
