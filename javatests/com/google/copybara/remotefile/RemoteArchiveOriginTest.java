@@ -31,6 +31,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.testing.FakeTicker;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
@@ -540,5 +541,40 @@ public final class RemoteArchiveOriginTest {
     assertThat(description).containsEntry("url", "https://foo.tar");
     assertThat(description).containsEntry("type", "remotefiles.origin");
     assertThat(description).containsEntry("root", "path/to");
+  }
+
+  @Test
+  public void testChangeWithUpgradeRef() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.1")),
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.2")));
+
+    assertThat(changesResponse.getChanges().get(0).getRevision().fixedReference())
+        .isEqualTo("v0.1.2");
+  }
+
+  @Test
+  public void testChangeWithDownGradeRef_defaultsToBaseline() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.2")),
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.1")));
+
+    assertThat(changesResponse.getChanges()).isEmpty();
   }
 }
