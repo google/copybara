@@ -400,18 +400,28 @@ public class HttpEndpointTest {
 
   @Test
   public void testResolveStringSecret() throws Exception {
-    HttpEndpoint endpoint =
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          assertThat(req.getHeaders().get("token").get(0)).isEqualTo("foo");
+          assertThat(req.getContentAsString()).isEqualTo("{\"password\":\"bar\"}");
+          resp.setStatusCode(200);
+        });
+
+    HttpEndpointResponse resp =
         starlark.eval(
-            "endpoint",
+            "resp",
             "endpoint = testing.get_endpoint(\n"
                 + "  http.endpoint(host = \"foo.com\", issuers = {\n"
-                + "    \"foo\": credentials.static_secret(\"secret\", \"bar\")\n"
+                + "    \"token\": credentials.static_secret(\"secret\", \"foo\"),\n"
+                + "    \"password\": credentials.static_secret(\"secret\", \"bar\")\n"
                 + "},\n"
-                + "))\n");
-    assertThat(endpoint.resolveStringSecrets("http://foo.com/${{foo}}"))
-        .isEqualTo("http://foo.com/bar");
-    assertThat(endpoint.resolveStringSecrets("multiple/${{foo}}/${{foo}}"))
-        .isEqualTo("multiple/bar/bar");
+                + "))\n"
+                + "resp = endpoint.post(\n"
+                + "  url = \"http://foo.com\",\n"
+                + "  headers = {\"token\": \"${{token}}\"},\n"
+                + "  content = http.json({\"password\": \"${{password}}\"}),\n"
+                + ")\n");
+    assertThat(resp.getStatusCode()).isEqualTo(200);
   }
 
   private static class TestContent implements HttpEndpointBody {

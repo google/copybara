@@ -28,16 +28,12 @@ import com.google.copybara.Endpoint;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.credentials.CredentialIssuer;
-import com.google.copybara.credentials.CredentialIssuingException;
-import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
 import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.ParamType;
@@ -176,11 +172,12 @@ public class HttpEndpoint implements Endpoint {
     GenericUrl url = new GenericUrl(urlIn);
     validateUrl(url);
 
+    HttpSecretInterceptor secretInterceptor = new HttpSecretInterceptor(issuers);
     Dict<String, String> headersDict = Dict.cast(headersIn, String.class, String.class, "headers");
     HttpHeaders headers = new HttpHeaders();
     for (Entry<String, String> e : headersDict.entrySet()) {
       String val = e.getValue();
-      val = resolveStringSecrets(val);
+      val = secretInterceptor.resolveStringSecrets(val);
       headers.set(e.getKey(), ImmutableList.of(val));
     }
 
@@ -188,7 +185,7 @@ public class HttpEndpoint implements Endpoint {
     HttpEndpointBody endpointContent = SkylarkUtil.convertFromNoneable(endpointContentIn, null);
     HttpContent content = null;
     if (endpointContent != null) {
-      content = endpointContent.getContent();
+      content = new HttpContentInterceptor(endpointContent.getContent(), secretInterceptor);
     }
 
     @Nullable AuthInterceptor creds = null;
@@ -218,23 +215,6 @@ public class HttpEndpoint implements Endpoint {
     HttpRequest request = req.build();
     request.setFollowRedirects(this.followRedirects);
     return new HttpEndpointResponse(request.execute());
-  }
-
-  public String resolveStringSecrets(String value)
-      throws CredentialIssuingException, CredentialRetrievalException {
-    String template = "\\$\\{\\{(.*?)\\}\\}";
-    Pattern pattern = Pattern.compile(template);
-    Matcher matcher = pattern.matcher(value);
-    while (matcher.find()) {
-      String issuerName = matcher.group(1);
-      CredentialIssuer issuer = issuers.get(issuerName);
-      if (issuer == null) {
-        throw new IllegalArgumentException(
-            String.format("Credential issuer %s is not found", issuerName));
-      }
-      value = value.replace(matcher.group(0), issuer.issue().provideSecret());
-    }
-    return value;
   }
 
   public void validateUrl(GenericUrl url) throws ValidationException {
