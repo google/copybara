@@ -73,7 +73,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
+import net.starlark.java.eval.StarlarkList;
 
 /**
  * A Git repository destination.
@@ -723,11 +725,15 @@ public class GitDestination implements Destination<GitRevision> {
       // have to check all the existing tree.
       if (files != null && files.size() < SMALL_NUM_FILES_CHECKER_THRESHOLD) {
         Path dest = generalOptions.getDirFactory().newTempDir("git_dest_checker");
-        copyFilesRecursively(
-            alternate.getWorkTree(),
-            dest,
-            CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
-            Glob.createGlob(files));
+        try {
+          copyFilesRecursively(
+              alternate.getWorkTree(),
+              dest,
+              CopySymlinkStrategy.IGNORE_INVALID_SYMLINKS,
+              Glob.wrapGlob(StarlarkList.immutableCopyOf(files), null));
+        } catch (EvalException e) {
+          throw new ValidationException("Could not copy files.", e);
+        }
         target = dest;
       }
       checker.doCheck(target, baseConsole);

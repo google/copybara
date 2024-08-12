@@ -42,7 +42,10 @@ public final class GlobAtom {
   public static GlobAtom of(String pattern, AtomType type) {
     Preconditions.checkArgument(!pattern.isEmpty(), "unexpected empty string in glob list");
     FileUtil.checkNormalizedRelative(pattern);
-    FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+    if (type == AtomType.JAVA_GLOB) {
+      // Try to create a PathMatcher to check if the glob pattern is correct.
+      var unused = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+    }
     return new GlobAtom(pattern, type);
   }
 

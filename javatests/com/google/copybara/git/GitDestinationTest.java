@@ -2149,6 +2149,34 @@ public class GitDestinationTest {
   }
 
   @Test
+  public void testFilesWithRegexTokens() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    options.testingOptions.checker = new DummyChecker(ImmutableSet.of("does_not_matter"));
+    checker = "testing.dummy_checker()";
+    Writer<GitRevision> writer = firstCommitWriter();
+    // Use a file with backslash name.
+    Files.writeString(workdir.resolve("\\"), "");
+    DummyRevision rev = new DummyRevision("first");
+    // The below should not throw a PatternSyntaxException.
+    writer.write(
+        new TransformResult(
+            workdir,
+            rev,
+            rev.getAuthor(),
+            "test",
+            rev, /*workflowName*/
+            "default",
+            TransformWorks.EMPTY_CHANGES,
+            "first_commit",
+            /* setRevId= */ true,
+            ImmutableList::of,
+            DummyOrigin.LABEL_NAME),
+        destinationFiles,
+        console);
+  }
+
+  @Test
   public void testFetchPushParamsSimple() throws Exception {
     GitDestination gitDestination = skylark.eval("result",
         "result = git.destination(\n"
