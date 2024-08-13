@@ -115,7 +115,7 @@ public class GitRepoTypeTest {
     disableFetchMocks();
     String sha1 = fileRepo.parseRef("HEAD");
     GitRevision rev = GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1, generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false);
+        /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1);
     assertThat(rev.getSha1()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isNull();
@@ -129,7 +129,7 @@ public class GitRepoTypeTest {
     String sha1 = fileRepo.parseRef("HEAD");
     GitRevision rev =
         GitRepoType.GIT.resolveRef(testRepo, fileUrl, sha1 + " more stuff",
-            generalOptions, /*describeVersion=*/false, false);
+            generalOptions, /*describeVersion=*/false, false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1 + " more stuff");
     assertThat(rev.getSha1()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isEqualTo("more stuff");
@@ -142,7 +142,7 @@ public class GitRepoTypeTest {
     disableFetchMocks();
     String sha1 = fileRepo.parseRef("HEAD");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileRepo.getPrimaryBranch(),
-        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false)
+        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty())
         .asString())
         .isEqualTo(sha1);
     console.assertThat()
@@ -154,7 +154,8 @@ public class GitRepoTypeTest {
     disableFetchMocks();
     String firstCommitBranchSha1 = fileRepo.parseRef("first_commit");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, fileUrl, fileUrl + " first_commit",
-        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false,
+        Optional.empty()).asString())
         .isEqualTo(firstCommitBranchSha1);
     assertUrlOverwritten();
   }
@@ -162,7 +163,8 @@ public class GitRepoTypeTest {
   @Test
   public void testGitResolveUrl() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use", "https://github.com/google/example",
-        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false,
+        Optional.empty()).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "HEAD");
     assertUrlOverwritten();
@@ -172,7 +174,7 @@ public class GitRepoTypeTest {
   public void testGitResolveUrlAndRef() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
         "https://github.com/google/example master", generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+        /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty()).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "master");
     assertUrlOverwritten();
@@ -183,7 +185,7 @@ public class GitRepoTypeTest {
     fileRepo.simpleCommand("tag", "v1.0.0");
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
         "https://github.com/google/example v1.0.0", generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+        /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty()).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "v1.0.0");
     assertUrlOverwritten();
@@ -193,7 +195,7 @@ public class GitRepoTypeTest {
   public void testGitResolveUrlAndCompleteRef() throws Exception {
     assertThat(GitRepoType.GIT.resolveRef(testRepo, "dont use",
         "https://github.com/google/example refs/pull/1234/head", generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false).asString())
+        /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty()).asString())
         .hasLength(40);
     assertFetch("https://github.com/google/example", "refs/pull/1234/head");
     assertUrlOverwritten();
@@ -204,7 +206,7 @@ public class GitRepoTypeTest {
     disableFetchMocks();
     String sha1 = fileRepo.parseRef("HEAD");
     GitRevision rev = GitRepoType.GERRIT.resolveRef(testRepo, fileUrl, "1204", generalOptions,
-        /*describeVersion=*/false, /*partialFetch=*/ false);
+        /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty());
     assertThat(rev.asString()).isEqualTo(sha1 + " PatchSet 1");
     assertThat(rev.getSha1()).isEqualTo(sha1);
     assertThat(rev.getReviewReference()).isEqualTo("PatchSet 1");

@@ -282,7 +282,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
   private GitRevision resolveStringRef(String ref) throws RepoException, ValidationException {
     GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
-        describeVersion, partialFetch);
+        describeVersion, partialFetch, gitOptions.getFetchDepth());
     return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 

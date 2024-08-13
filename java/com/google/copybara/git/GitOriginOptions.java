@@ -27,9 +27,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.OriginUtil.CheckoutHook;
 import java.nio.file.Path;
 
-/**
- * Options for {@link GitOrigin}.
- */
+/** Options for {@link GitOrigin}. */
 @Parameters(separators = "=")
 public class GitOriginOptions implements Option {
 

@@ -139,7 +139,7 @@ public class GerritOrigin extends GitOrigin {
         this.generalOptions);
     if (change == null) {
       GitRevision gitRevision = GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
-          this.generalOptions, describeVersion, partialFetch);
+          this.generalOptions, describeVersion, partialFetch, Optional.empty());
       return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
     }
     GerritApi api = gerritOptions.newGerritApi(repoUrl);

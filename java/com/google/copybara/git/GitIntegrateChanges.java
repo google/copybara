@@ -134,7 +134,7 @@ public class GitIntegrateChanges implements StarlarkValue {
                     label.getValue(),
                     generalOptions,
                     /* describeVersion= */ false,
-                    /* partialFetch= */ false);
+                    /* partialFetch= */ false, Optional.empty());
             integrateLabel = IntegrateLabel.genericGitRevision(gitRevision);
           }
         }

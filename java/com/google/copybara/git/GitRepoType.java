@@ -54,7 +54,7 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
-        boolean describeVersion, boolean partialFetch)
+        boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       logger.atInfo().log("Resolving %s reference: %s", repoUrl, ref);
       //TODO(chriscampos): Confirm once we know "fetch --tags" works without issues
@@ -67,7 +67,7 @@ public enum GitRepoType {
                 sha1WithPatchSet.group(1),
                 /* fetchTags= */ describeVersion,
                 partialFetch,
-                Optional.empty(),
+                fetchDepth,
                 false);
         return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
                                rev.contextReference(), rev.associatedLabels(), repoUrl);
@@ -77,7 +77,7 @@ public enum GitRepoType {
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
         return fetchFromUrl(
-            repository, repoUrl, ref, describeVersion, partialFetch, useFetchTagsFlag);
+            repository, repoUrl, ref, describeVersion, partialFetch, useFetchTagsFlag, fetchDepth);
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
       generalOptions.console().warn(msg);
@@ -98,9 +98,11 @@ public enum GitRepoType {
             ref.substring(spaceIdx + 1),
             describeVersion,
             partialFetch,
-            useFetchTagsFlag);
+            useFetchTagsFlag,
+            fetchDepth);
       }
-      return fetchFromUrl(repository, ref, "HEAD", describeVersion, partialFetch, useFetchTagsFlag);
+      return fetchFromUrl(
+          repository, ref, "HEAD", describeVersion, partialFetch, useFetchTagsFlag, fetchDepth);
     }
 
     private GitRevision fetchFromUrl(
@@ -109,14 +111,15 @@ public enum GitRepoType {
         String ref,
         boolean describeVersion,
         boolean partialFetch,
-        boolean useFetchTagsFlag)
+        boolean useFetchTagsFlag,
+        Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       return repository.fetchSingleRefWithTags(
           repoUrl,
           ref,
           /* fetchTags= */ describeVersion,
           partialFetch,
-          Optional.empty(),
+          fetchDepth,
           useFetchTagsFlag);
     }
   },
@@ -130,7 +133,7 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
-        boolean describeVersion, boolean partialFetch)
+        boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       if ((ref.startsWith("https://github.com") && ref.startsWith(repoUrl))
           || GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
@@ -140,7 +143,8 @@ public enum GitRepoType {
           return ghPullRequest;
         }
       }
-      return GIT.resolveRef(repository, repoUrl, ref, generalOptions, describeVersion, partialFetch);
+      return GIT.resolveRef(
+          repository, repoUrl, ref, generalOptions, describeVersion, partialFetch, fetchDepth);
     }
   },
   @DocField(description = "A Gerrit code review repository")
@@ -148,12 +152,13 @@ public enum GitRepoType {
     @Override
     GitRevision resolveRef(
         GitRepository repository, String repoUrl, String ref, GeneralOptions options,
-        boolean describeVersion, boolean partialFetch)
+        boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       if (ref == null || ref.isEmpty()) {
         // TODO(malcon): Deprecate this. Gerrit origin should only be used with changes or
         // (maybe) overwrite url as a ref.
-        return GIT.resolveRef(repository, repoUrl, ref, options, describeVersion, partialFetch);
+        return GIT.resolveRef(repository, repoUrl, ref, options, describeVersion, partialFetch,
+            fetchDepth);
       }
 
       GerritChange change = GerritChange
@@ -164,7 +169,8 @@ public enum GitRepoType {
       }
 
       // Try git base resolve to resolve almost anything that can be git (sha, random urls, etc.)
-      return GIT.resolveRef(repository, repoUrl, ref, options, describeVersion, partialFetch);
+      return GIT.resolveRef(repository, repoUrl, ref, options, describeVersion, partialFetch,
+          fetchDepth);
 
     }
   };
@@ -236,7 +242,7 @@ public enum GitRepoType {
 
   abstract GitRevision resolveRef(
       GitRepository repository, String repoUrl, String ref, GeneralOptions generalOptions,
-      boolean describeVersion, boolean partialFetch)
+      boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
       throws RepoException, ValidationException;
 
 }
