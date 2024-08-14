@@ -95,8 +95,8 @@ public class RustModule implements StarlarkValue {
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(
-      String crateName, boolean ignorePreReleaseVersions) {
-    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, ignorePreReleaseVersions);
+      String crateName, boolean matchPreReleaseVersions) {
+    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, matchPreReleaseVersions);
   }
 
   @StarlarkMethod(
@@ -114,8 +114,8 @@ public class RustModule implements StarlarkValue {
             defaultValue = "False")
       })
   @SuppressWarnings("unused")
-  public VersionResolver getResolver(String crate, boolean ignorePreReleaseVersions) {
-    return new RustCratesIoVersionResolver(crate, remoteFileOptions, ignorePreReleaseVersions);
+  public VersionResolver getResolver(String crate, boolean matchPreReleaseVersions) {
+    return new RustCratesIoVersionResolver(crate, remoteFileOptions, matchPreReleaseVersions);
   }
 
   @StarlarkMethod(

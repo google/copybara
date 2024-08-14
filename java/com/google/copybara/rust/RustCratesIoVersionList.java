@@ -44,8 +44,8 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
   private final boolean matchPreReleaseVersions;
 
   public static RustCratesIoVersionList forCrate(
-      String crate, RemoteFileOptions remoteFileOptions, boolean ignorePreReleaseVersions) {
-    return new RustCratesIoVersionList(crate, remoteFileOptions, ignorePreReleaseVersions);
+      String crate, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
+    return new RustCratesIoVersionList(crate, remoteFileOptions, matchPreReleaseVersions);
   }
 
   private RustCratesIoVersionList(
