@@ -36,13 +36,10 @@ import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -51,7 +48,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
@@ -75,7 +71,6 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRevision;
 import com.google.copybara.hg.HgRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
-import com.google.copybara.remotefile.HttpStreamFactory;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyOrigin;
@@ -98,7 +93,6 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -126,7 +120,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -4766,120 +4759,6 @@ public class WorkflowTest {
                 skylarkWorkflow("default", WorkflowMode.CHANGE_REQUEST)
                     .run(workdir, ImmutableList.of("")));
     assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
-  }
-
-  @Test
-  public void testRemoteArchiveOriginThrowsOnUnforcedDowngrade() throws Exception {
-    HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
-    options.general.setForceForTest(false);
-    when(mockTransport.open(any()))
-        .thenReturn(
-            new ByteArrayInputStream(
-                BaseEncoding.base64()
-                    .decode(
-                        "UEsDBAoAAAAAAGptUVQtOwivDAAAAAwAAAAIABw"
-                            + "AdGVzdC50eHRVVAkAA0iXDmJIlw5idXgLAAEE"
-                            + "Se4JAARTXwEAaGVsbG8gd29ybGQKUEsBAh4DCg"
-                            + "AAAAAAam1RVC07CK8MAAAADAAAAAgAGAAAAAAA"
-                            + "AQAAAKSBAAAAAHRlc3QudHh0VVQFAANIlw5idX"
-                            + "gLAAEESe4JAARTXwEAUEsFBgAAAAABAAEATgAA"
-                            + "AE4AAAAAAA==")));
-    options.remoteFile.transport = Suppliers.memoize(() -> mockTransport);
-    options.workflowOptions.lastRevision = "v2.0.0";
-
-    String config =
-        ""
-            + "core.workflow("
-            + "  name = 'default',"
-            + "authoring = "
-            + authoring
-            + ","
-            + "  origin = remotefiles.origin("
-            + "    unpack_method = 'ZIP',"
-            + "    archive_source = 'https://example.com/archive-${VERSION}.zip',"
-            + "    origin_version_selector = core.latest_version("
-            + "      format = 'v${n0}.${n1}.${n2}',"
-            + "      regex_groups = {"
-            + "        'n0': '[0-9]+',"
-            + "        'n1': '[0-9]+',"
-            + "        'n2': '[0-9]+',"
-            + "      },"
-            + "    ),"
-            + "  ),"
-            + "  destination = testing.destination(),"
-            + "  origin_files = glob(['**']),"
-            + "  destination_files = glob(['**']),"
-            + ")"
-            + "";
-
-    Migration workflow = loadConfig(config).getMigration("default");
-
-    EmptyChangeException e =
-        assertThrows(
-            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("v1.0.0")));
-
-    assertThat(e)
-        .hasMessageThat()
-        .matches(
-            "'v1.0.0' has been already migrated. Use --force if you really want to run the"
-                + " migration again \\(For example if the copy.bara.sky file has changed\\).");
-    console()
-        .assertThat()
-        .onceInLog(
-            MessageType.WARNING,
-            "The baseline ref \\[v2.0.0\\] is newer than incoming ref \\[v1.0.0\\]. The change"
-                + " response will have no changes generated because the current baseline is newer");
-  }
-
-  @Test
-  public void testRemoteArchiveOriginThrowsOnForcedDowngrade() throws Exception {
-    HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
-    when(mockTransport.open(any()))
-        .thenReturn(
-            new ByteArrayInputStream(
-                BaseEncoding.base64()
-                    .decode(
-                        "UEsDBAoAAAAAAGptUVQtOwivDAAAAAwAAAAIABw"
-                            + "AdGVzdC50eHRVVAkAA0iXDmJIlw5idXgLAAEE"
-                            + "Se4JAARTXwEAaGVsbG8gd29ybGQKUEsBAh4DCg"
-                            + "AAAAAAam1RVC07CK8MAAAADAAAAAgAGAAAAAAA"
-                            + "AQAAAKSBAAAAAHRlc3QudHh0VVQFAANIlw5idX"
-                            + "gLAAEESe4JAARTXwEAUEsFBgAAAAABAAEATgAA"
-                            + "AE4AAAAAAA==")));
-    options.remoteFile.transport = Suppliers.memoize(() -> mockTransport);
-    options.workflowOptions.lastRevision = "v2.0.0";
-    options.general.setForceForTest(true);
-    String config =
-        ""
-            + "core.workflow("
-            + "  name = 'default',"
-            + "authoring = "
-            + authoring
-            + ","
-            + "  origin = remotefiles.origin("
-            + "    unpack_method = 'ZIP',"
-            + "    archive_source = 'https://example.com/archive-${VERSION}.zip',"
-            + "    origin_version_selector = core.latest_version("
-            + "      format = 'v${n0}.${n1}.${n2}',"
-            + "      regex_groups = {"
-            + "        'n0': '[0-9]+',"
-            + "        'n1': '[0-9]+',"
-            + "        'n2': '[0-9]+',"
-            + "      },"
-            + "    ),"
-            + "  ),"
-            + "  destination = testing.destination(),"
-            + "  origin_files = glob(['**']),"
-            + "  destination_files = glob(['**']),"
-            + ")"
-            + "";
-
-    Migration workflow = loadConfig(config).getMigration("default");
-
-    workflow.run(workdir, ImmutableList.of("v1.0.0"));
-
-    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().fixedReference())
-        .isEqualTo("v1.0.0");
   }
 
   /**

@@ -16,18 +16,14 @@
 
 package com.google.copybara.remotefile;
 
-import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.io.MoreFiles;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin;
-import com.google.copybara.Origin.Reader.ChangesResponse.EmptyReason;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
@@ -131,7 +127,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
 
     // It's a versionless import.
     if (versionList == null || versionSelector == null) {
-      return new RemoteArchiveRevision(new RemoteArchiveVersion(archiveSourceUrl, versionRef));
+      return new RemoteArchiveRevision(new RemoteArchiveVersion(archiveSourceUrl, ""));
     }
 
     try {
@@ -146,6 +142,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
         return (RemoteArchiveRevision)
             this.versionResolver.resolve(version, this::getUrlAssemblyStrategy);
       }
+
       RemoteArchiveVersion remoteArchiveVersion =
           new RemoteArchiveVersion(resolveURLTemplate(archiveSourceUrl, version), version);
       return new RemoteArchiveRevision(remoteArchiveVersion);
@@ -222,36 +219,6 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
       @Override
       public ChangesResponse<RemoteArchiveRevision> changes(
           RemoteArchiveRevision fromRef, RemoteArchiveRevision toRef) throws RepoException {
-        if (versionSelector == null) {
-          return ChangesResponse.forChanges(ImmutableList.of(change(toRef)));
-        }
-
-        try {
-          Optional<String> selectedVersion =
-              versionSelector.select(
-                  new VersionList.SetVersionList(
-                      ImmutableSet.of(toRef.fixedReference(), fromRef.fixedReference())),
-                  /* requestedRef= */ null,
-                  generalOptions.console());
-
-          if (selectedVersion.isPresent()
-              && selectedVersion.get().equals(fromRef.fixedReference())) {
-            generalOptions
-                .console()
-                .warnFmt(
-                    "The baseline ref [%s] is newer than incoming ref [%s]. The change response"
-                        + " will have no changes generated because the current baseline is newer.",
-                    fromRef.fixedReference(), toRef.fixedReference());
-            return noChanges(EmptyReason.TO_IS_ANCESTOR);
-          }
-        } catch (ValidationException e) {
-          generalOptions
-              .console()
-              .warnFmt(
-                  "An error has occurred while validating the order of changes between %s and %s:"
-                      + " '%s'. Defaulting to a changelist with only the incoming ref.",
-                  fromRef.fixedReference(), toRef.fixedReference(), e.getMessage());
-        }
         return ChangesResponse.forChanges(ImmutableList.of(change(toRef)));
       }
 
