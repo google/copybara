@@ -48,7 +48,9 @@ public class RemoteArchiveRevision implements Revision {
 
   @Override
   public String asString() {
-    return version.getVersion();
+    return !Strings.isNullOrEmpty(version.getVersion())
+        ? version.getVersion()
+        : version.getFullUrl();
   }
 
   @Override
@@ -58,9 +60,7 @@ public class RemoteArchiveRevision implements Revision {
 
   @Override
   public String fixedReference() {
-    return !Strings.isNullOrEmpty(version.getVersion())
-        ? version.getVersion()
-        : version.getFullUrl();
+    return asString();
   }
 
   @Override
