@@ -83,13 +83,8 @@ public class DiffUtilTest {
     writeFile(left, "file2.txt", "foo\r\n");
     writeFile(right, "file1.txt", "foo\r\n");
     writeFile(right, "file2.txt", "foo\r");
-    Path foo = Files.createTempDirectory("foo");
-    writeFile(foo, ".gitconfig", ""
-        + "[core]\n"
-        + "autocrlf=true\n"
-        + "safecrlf=warn\n");
-    Map<String, String> env = new HashMap<>(testEnv);
-    env.put("HOME", foo.toAbsolutePath().toString());
+    Map<String, String> env =
+        setDotGitconfigContents("[core]\n" + "autocrlf=true\n" + "safecrlf=warn\n");
 
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, env);
 
@@ -155,6 +150,29 @@ public class DiffUtilTest {
         + "+foo-right\n"
         + "\\ No newline at end of file");
     assertThat(one).doesNotContain("diff --git a/left/file2.txt b/right/file2.txt");
+  }
+
+  @Test
+  public void testNoPrefixSuppressed() throws Exception {
+    // set no prefix in git config
+    writeFile(left, "file1.txt", "foo-left");
+    writeFile(right, "file1.txt", "foo-right");
+
+    Map<String, String> env = setDotGitconfigContents("[diff]\n" + "noprefix = true\n");
+
+    // diffutil ignores git prefix setting
+    byte[] bytes = DiffUtil.diff(left, right, VERBOSE, env);
+    assertThat(new String(bytes, StandardCharsets.UTF_8))
+        .isEqualTo(
+            "diff --git a/left/file1.txt b/right/file1.txt\n"
+                + "index 5ca5c10..5fcb760 100644\n"
+                + "--- a/left/file1.txt\n"
+                + "+++ b/right/file1.txt\n"
+                + "@@ -1 +1 @@\n"
+                + "-foo-left\n"
+                + "\\ No newline at end of file\n"
+                + "+foo-right\n"
+                + "\\ No newline at end of file\n");
   }
 
   @Test
@@ -238,5 +256,13 @@ public class DiffUtilTest {
     Path filePath = parent.resolve(fileName);
     Files.createDirectories(filePath.getParent());
     Files.write(parent.resolve(filePath), fileContents.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private Map<String, String> setDotGitconfigContents(String contents) throws IOException {
+    Path foo = Files.createTempDirectory("foo");
+    Map<String, String> env = new HashMap<>(testEnv);
+    env.put("HOME", foo.toAbsolutePath().toString());
+    writeFile(foo, ".gitconfig", contents);
+    return env;
   }
 }

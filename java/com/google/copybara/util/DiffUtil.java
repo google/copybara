@@ -328,6 +328,11 @@ public class DiffUtil {
       if (ignoreCrAtEol) {
         params.add("--ignore-cr-at-eol");
       }
+
+      // https://git-scm.com/docs/git-diff#Documentation/git-diff.txt---default-prefix
+      // force prefix to a/ and b/, overriding diff.noprefix
+      params.add("--default-prefix");
+
       params.add("--");
       params.add(root.relativize(one).toString());
       params.add(root.relativize(other).toString());
