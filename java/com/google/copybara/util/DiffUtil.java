@@ -313,9 +313,16 @@ public class DiffUtil {
       } else {
         checkNotInsideGitRepo(one, verbose, gitEnv);
       }
-      List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color",
-          // Be careful, no test coverage for this:
-          "--no-ext-diff");
+      List<String> params =
+          Lists.newArrayList(
+              gitEnv.resolveGitBinary(),
+              // override diff.noprefix for consistent diff output, must come after "git"
+              "-c",
+              "diff.noprefix=false",
+              "diff",
+              "--no-color",
+              // Be careful, no test coverage for this:
+              "--no-ext-diff");
       if (nameStatus) {
         params.add("--name-status");
       }
@@ -328,10 +335,6 @@ public class DiffUtil {
       if (ignoreCrAtEol) {
         params.add("--ignore-cr-at-eol");
       }
-
-      // https://git-scm.com/docs/git-diff#Documentation/git-diff.txt---default-prefix
-      // force prefix to a/ and b/, overriding diff.noprefix
-      params.add("--default-prefix");
 
       params.add("--");
       params.add(root.relativize(one).toString());
