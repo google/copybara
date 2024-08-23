@@ -42,6 +42,10 @@ import net.starlark.java.eval.StarlarkValue;
 public class ChangeInfo implements StarlarkValue {
 
   @Key private String id;
+
+  @Key("triplet_id")
+  private String tripletId;
+
   @Key private String project;
   @Key private String branch;
   @Key private String topic;
@@ -76,6 +80,18 @@ public class ChangeInfo implements StarlarkValue {
   @Nullable
   public String getId() {
     return id;
+  }
+
+  @StarlarkMethod(
+      name = "triplet_id",
+      doc =
+          "The ID of the change in the format \"'<project>~<branch>~<Change-Id>'\", where 'project'"
+              + " and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.",
+      structField = true,
+      allowReturnNones = true)
+  @Nullable
+  public String getTripletId() {
+    return tripletId;
   }
 
   @StarlarkMethod(

@@ -2678,6 +2678,7 @@ submit_requirements | <code>sequence of SubmitRequirementResultInfo</code><br><p
 submittable | <code>bool</code><br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
 submitted | <code>string</code><br><p>The timestamp of when the change was submitted.</p>
 topic | <code>string</code><br><p>The topic to which this change belongs.</p>
+triplet_id | <code>string</code><br><p>The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project' and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
 updated | <code>string</code><br><p>The timestamp of when the change was last updated.</p>
 
 
