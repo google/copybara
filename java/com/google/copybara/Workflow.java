@@ -389,7 +389,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       () ->
                           (destinationStatus == null)
                               ? null
-                              : origin.resolve(destinationStatus.getBaseline()));
+                              : origin.resolveLastRev(destinationStatus.getBaseline()));
 
               Change<O> lastMigratedChange = null;
               try {
