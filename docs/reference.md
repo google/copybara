@@ -2863,13 +2863,39 @@ Set of functions to define Git origins and destinations.
 Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--allowed-git-push-options`</span> | *list* | This is a flag used to allowlist push options sent to git servers. E.g. copybara copy.bara.sky --git-push-option="foo,bar" would make copybara validate push so that the only push options (if there are any) used are 'foo' and 'bar'. If this flag is unset, it will skip push options validation. Set to "" to allow no push options.
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
 <span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
+<span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
+<span style="white-space: nowrap;">`--github-required-check-run`</span> | *list* | Required check runs in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-label`</span> | *list* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-status-context-name`</span> | *list* | Required status context names in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-retryable-label`</span> | *list* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-skip-required-check-runs`</span> | *boolean* | Skip checking check runs for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 <span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
 
 <a id="git.destination" aria-hidden="true"></a>
@@ -7024,6 +7050,7 @@ Name | Type | Description
 ---- | ---- | -----------
 <span style="white-space: nowrap;">`--allow-empty-diff`</span> | *boolean* | If set to false, Copybara will not write to the destination if the exact same change is already pending in the destination. Currently only supported for `git.github_pr_destination` and `git.gerrit_destination`.
 <span style="white-space: nowrap;">`--allowed-git-push-options`</span> | *list* | This is a flag used to allowlist push options sent to git servers. E.g. copybara copy.bara.sky --git-push-option="foo,bar" would make copybara validate push so that the only push options (if there are any) used are 'foo' and 'bar'. If this flag is unset, it will skip push options validation. Set to "" to allow no push options.
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--commands-timeout`</span> | *duration* | Commands timeout.  Example values: 30s, 20m, 1h, etc.
 <span style="white-space: nowrap;">`--config-root`</span> | *string* | Configuration root path to be used for resolving absolute config labels like '//foo/bar'
 <span style="white-space: nowrap;">`--console-file-flush-interval`</span> | *duration* | How often Copybara should flush the console to the output file. (10s, 1m, etc.)If set to 0s, console will be flushed only at the end.  Example values: 30s, 20m, 1h, etc.
@@ -7037,15 +7064,40 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--event-monitor`</span> | *list* | Eventmonitors to enable. These must be in the list of available monitors.
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--force, --force-update`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
+<span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
+<span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
+<span style="white-space: nowrap;">`--git-destination-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.destination
+<span style="white-space: nowrap;">`--git-destination-ignore-integration-errors`</span> | *boolean* | If an integration error occurs, ignore it and continue without the integrate
+<span style="white-space: nowrap;">`--git-destination-last-rev-first-parent`</span> | *boolean* | Use git --first-parent flag when looking for last-rev in previous commits
+<span style="white-space: nowrap;">`--git-destination-non-fast-forward`</span> | *boolean* | Allow non-fast-forward pushes to the destination. We only allow this when used with different push != fetch references.
+<span style="white-space: nowrap;">`--git-destination-path`</span> | *string* | If set, the tool will use this directory for the local repository. Note that if the directory exists it needs to be a git repository. Copybara will revert any staged/unstaged changes. For example, you can override destination url with a local non-bare repo (or existing empty folder) with this flag.
+<span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
+<span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
 <span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
 <span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
+<span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
+<span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
+<span style="white-space: nowrap;">`--github-required-check-run`</span> | *list* | Required check runs in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-label`</span> | *list* | Required labels in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-required-status-context-name`</span> | *list* | Required status context names in the Pull Request to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-retryable-label`</span> | *list* | Required labels in the Pull Request that should be retryed to be imported by github_pr_origin
+<span style="white-space: nowrap;">`--github-skip-required-check-runs`</span> | *boolean* | Skip checking check runs for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
+<span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.
 <span style="white-space: nowrap;">`--noansi`</span> | *boolean* | Don't use ANSI output for messages
 <span style="white-space: nowrap;">`--nocleanup`</span> | *boolean* | Cleanup the output directories. This includes the workdir, scratch clones of Git repos, etc. By default is set to false and directories will be cleaned prior to the execution. If set to true, the previous run output will not be cleaned up. Keep in mind that running in this mode will lead to an ever increasing disk usage.
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
+<span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 <span style="white-space: nowrap;">`--nogit-prompt`</span> | *boolean* | Disable username/password prompt and fail if no credentials are found. This flag sets the environment variable GIT_TERMINAL_PROMPT which is intended for automated jobs running Git https://git-scm.com/docs/git/2.3.0#git-emGITTERMINALPROMPTem
 <span style="white-space: nowrap;">`--noprompt`</span> | *boolean* | Don't prompt, this will answer all prompts with 'yes'
 <span style="white-space: nowrap;">`--output-limit`</span> | *int* | Limit the output in the console to a number of records. Each subcommand might use this flag differently. Defaults to 0, which shows all the output.

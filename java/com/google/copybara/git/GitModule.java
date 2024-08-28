@@ -125,7 +125,13 @@ import net.starlark.java.syntax.Location;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
 @StarlarkBuiltin(name = "git", doc = "Set of functions to define Git origins and destinations.")
-@UsesFlags(GitOptions.class)
+@UsesFlags({
+  GitOptions.class,
+  GitMirrorOptions.class,
+  GitHubOptions.class,
+  GitHubPrOriginOptions.class,
+  GitDestinationOptions.class
+})
 public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
