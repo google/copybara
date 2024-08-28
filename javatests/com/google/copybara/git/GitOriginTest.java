@@ -996,6 +996,21 @@ public class GitOriginTest {
     }
   }
 
+
+  @Test
+  public void testChangesMerge_paginated() throws Exception {
+    String author = "John Name <john@name.com>";
+    createBranchMerge(author);
+    options.gitOrigin.gitOriginLogBatchSize = 1;
+    ImmutableList<Change<GitRevision>> changes = newReader()
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
+
+    assertThat(changes).hasSize(3);
+    assertThat(changes.get(0).getMessage()).isEqualTo("main1\n");
+    assertThat(changes.get(1).getMessage()).isEqualTo("main2\n");
+    assertThat(changes.get(2).getMessage()).contains("Merge branch 'feature'");
+  }
+
   @Test
   public void testIncludeBranchCommitLogNoCommitsInMerge() throws Exception {
 

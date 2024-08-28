@@ -562,6 +562,37 @@ public class GitRepositoryTest {
     assertThat(paged.toString()).isEqualTo(singlePage.toString());
   }
 
+  @Test
+  public void testPagination_batchFeature() throws Exception {
+    createGraphOfCommits();
+    ImmutableList<GitLogEntry> singlePage = repository.log(defaultBranch)
+        .firstParent(false)
+        .run();
+    ImmutableList<GitLogEntry> paged = repository.log(defaultBranch)
+        .firstParent(false)
+        .withBatchSize(5)
+        .run();
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+  }
+
+  @Test
+  public void testPagination_batchFeatureMergeCommit() throws Exception {
+    createGraphOfCommits();
+    ImmutableList<GitLogEntry> singlePage = repository.log(defaultBranch)
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .run();
+    ImmutableList<GitLogEntry> paged = repository.log(defaultBranch)
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .withBatchSize(3)
+        .run();
+
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+  }
+
   private void createGraphOfCommits() throws Exception {
     for (int i = 0; i < 10; i++) {
       singleFileCommit("main_" + i, "foo.txt", "foo_" + i);

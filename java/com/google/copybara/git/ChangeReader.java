@@ -51,11 +51,14 @@ class ChangeReader {
   private final boolean firstParent;
   private final boolean partialFetch;
   private final int skip;
+  private final int batchSize;
+
   @Nullable private final String grepString;
 
   private ChangeReader(@Nullable Authoring authoring, GitRepository repository, int limit,
       Iterable<String> roots, boolean includeBranchCommitLogs, @Nullable String url,
-      boolean firstParent, boolean partialFetch, int skip, @Nullable String grepString) {
+      boolean firstParent, boolean partialFetch, int skip, int batchSize,
+      @Nullable String grepString) {
     this.authoring = authoring;
     this.repository = checkNotNull(repository, "repository");
     this.limit = limit;
@@ -65,6 +68,7 @@ class ChangeReader {
     this.firstParent = firstParent;
     this.partialFetch = partialFetch;
     this.skip = skip;
+    this.batchSize = batchSize;
     this.grepString = grepString;
   }
 
@@ -90,6 +94,9 @@ class ChangeReader {
     }
     if (skip > 0) {
       logCmd = logCmd.withSkip(skip);
+    }
+    if (batchSize > 0) {
+      logCmd = logCmd.withBatchSize(batchSize);
     }
     if (grepString != null) {
       logCmd = logCmd.grep(grepString);
@@ -195,6 +202,7 @@ class ChangeReader {
     private boolean firstParent;
     private boolean partialFetch;
     private int skip;
+    private int batchSize;
     private String grepString;
 
     // TODO(matvore): Consider adding destinationFiles.
@@ -223,6 +231,12 @@ class ChangeReader {
     Builder setSkip(int skip) {
       Preconditions.checkArgument(skip >= 0);
       this.skip = skip;
+      return this;
+    }
+
+    Builder setBatchSize(int batchSize) {
+      Preconditions.checkArgument(batchSize >= 0);
+      this.batchSize = batchSize;
       return this;
     }
 
@@ -270,7 +284,7 @@ class ChangeReader {
     ChangeReader build() {
       return new ChangeReader(
           authoring, repository, limit, roots, includeBranchCommitLogs, url,
-          firstParent, partialFetch, skip, grepString);
+          firstParent, partialFetch, skip, batchSize, grepString);
     }
   }
 
