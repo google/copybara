@@ -107,8 +107,10 @@ public class AskInputProviderTest {
         new ConstantProvider<>(INPUT, null), Mode.AUTO, console);
     console.respondWithString("hello");
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("hello"));
-    console.assertThat().onceInLog(MessageType.INFO,
-        "Value for just for test\\(AskInputProviderTest\\)\\? ");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO, "just for test\\(AskInputProviderTest\\)\\? \\[default: none\\]");
   }
 
   @Test
@@ -118,8 +120,12 @@ public class AskInputProviderTest {
     console.respondWithString("hello");
     console.respondWithString("42");
     assertThat(provider.resolve(INT_INPUT, RESOLVER)).isEqualTo(Optional.of(42));
-    console.assertThat().timesInLog(2, MessageType.INFO,
-        "Value for just for test\\(AskInputProviderTestInt\\)\\? ");
+    console
+        .assertThat()
+        .timesInLog(
+            2,
+            MessageType.INFO,
+            "just for test\\(AskInputProviderTestInt\\)\\? \\[default: none\\]");
   }
 
   @Test
@@ -130,8 +136,7 @@ public class AskInputProviderTest {
     console.respondWithString("hello");
     console.respondWithString("42");
     assertThat(provider.resolve(CANNOT_CONVERT, RESOLVER)).isEqualTo(Optional.of(42));
-    console.assertThat().timesInLog(2, MessageType.INFO,
-        "Value for just for test.*");
+    console.assertThat().timesInLog(2, MessageType.INFO, "just for test.*");
   }
 
   @Test
@@ -140,8 +145,10 @@ public class AskInputProviderTest {
         new ConstantProvider<>(INPUT, "hello"), Mode.CONFIRM, console);
     console.respondWithString("bye");
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("bye"));
-    console.assertThat().onceInLog(MessageType.INFO,
-        "Value for just for test\\(AskInputProviderTest\\)\\[hello\\]\\? ");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO, "just for test\\(AskInputProviderTest\\)\\? \\[default: 'hello'\\]");
   }
 
   @Test
@@ -150,7 +157,9 @@ public class AskInputProviderTest {
         new ConstantProvider<>(INPUT, "hello"), Mode.CONFIRM, console);
     console.respondWithString("");
     assertThat(provider.resolve(INPUT, RESOLVER)).isEqualTo(Optional.of("hello"));
-    console.assertThat().onceInLog(MessageType.INFO,
-        "Value for just for test\\(AskInputProviderTest\\)\\[hello\\]\\? ");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.INFO, "just for test\\(AskInputProviderTest\\)\\? \\[default: 'hello'\\]");
   }
 }
