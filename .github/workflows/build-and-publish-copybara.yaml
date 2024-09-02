@@ -2,8 +2,8 @@ name: Build and Publish Copybara
 
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - "master"
 
 jobs:
   tagged-release:
@@ -46,5 +46,6 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
+          automatic_release_tag: "latest"
           files: |
             copybara.jar
