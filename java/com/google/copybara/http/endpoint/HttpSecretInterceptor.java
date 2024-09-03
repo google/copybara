@@ -36,9 +36,20 @@ class HttpSecretInterceptor {
       throws CredentialIssuingException, CredentialRetrievalException {
     String template = "\\$\\{\\{(.*?)\\}\\}";
     Matcher matcher = Pattern.compile(template).matcher(value);
+    value = replaceMatchesWithSecrets(value, matcher);
+
+    String encodedTemplate = "\\%24\\%7B\\%7B(.*?)\\%7D\\%7D";
+    Matcher encodedMatcher = Pattern.compile(encodedTemplate).matcher(value);
+    value = replaceMatchesWithSecrets(value, encodedMatcher);
+
+    return value;
+  }
+
+  private String replaceMatchesWithSecrets(String value, Matcher matcher)
+      throws CredentialIssuingException, CredentialRetrievalException {
     while (matcher.find()) {
       String issuerName = matcher.group(1);
-      CredentialIssuer issuer = issuers.get(issuerName);
+      CredentialIssuer issuer = this.issuers.get(issuerName);
       if (issuer == null) {
         throw new IllegalArgumentException(
             String.format("Credential issuer %s is not found", issuerName));

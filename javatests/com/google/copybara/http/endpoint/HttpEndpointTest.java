@@ -424,6 +424,29 @@ public class HttpEndpointTest {
     assertThat(resp.getStatusCode()).isEqualTo(200);
   }
 
+  @Test
+  public void testResolveURLEncodedStringSecret() throws Exception {
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          assertThat(req.getContentAsString()).isEqualTo("password=bar");
+          resp.setStatusCode(200);
+        });
+
+    HttpEndpointResponse resp =
+        starlark.eval(
+            "resp",
+            "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(host = \"foo.com\", issuers = {\n"
+                + "    \"password\": credentials.static_secret(\"secret\", \"bar\")\n"
+                + "  },\n"
+                + "))\n"
+                + "resp = endpoint.post(\n"
+                + "  url = \"http://foo.com\",\n"
+                + "  content = http.urlencoded_form({\"password\": \"${{password}}\"}),\n"
+                + ")\n");
+    assertThat(resp.getStatusCode()).isEqualTo(200);
+  }
+
   private static class TestContent implements HttpEndpointBody {
     @Override
     public HttpContent getContent() {
