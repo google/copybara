@@ -616,6 +616,26 @@ public class GitRepository {
         ImmutableList.of());
   }
 
+  /**
+   * Runs a git ls-remote from the current directory for a repository url. Assumes the path to the
+   * git binary is already set. You don't have to be in a git repository to run this command. Does
+   * not work with remote names.
+   *
+   * @param url - see <repository> in git help ls-remote
+   * @param refs - see <refs> in git help ls-remote
+   * @param gitEnv - determines where the Git binaries are
+   * @param flags - flags to pass to the ls-remote command.
+   * @return - a map of refs to sha1 from the git ls-remote output. Can also contain symbolic refs
+   *     if --symref is set.
+   * @throws RepoException if the operation fails
+   */
+  public static ImmutableMap<String, String> lsRemote(
+      String url, Collection<String> refs, GitEnvironment gitEnv, Collection<String> flags)
+      throws RepoException, ValidationException {
+    return lsRemote(
+        FileSystems.getDefault().getPath("."), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+  }
+
   private static ImmutableMap<String, String> lsRemote(
       Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines,
       Collection<String> flags) throws RepoException, ValidationException {
