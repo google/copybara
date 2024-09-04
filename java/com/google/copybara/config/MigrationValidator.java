@@ -27,26 +27,27 @@ import com.google.copybara.git.Mirror;
  */
 public abstract class MigrationValidator {
 
-  public final ValidationResult validate(Migration migration) {
+  public final ValidationResult validate(Migration migration, Config config) {
     if (migration instanceof Workflow) {
-      return validateWorkflow(migration.getName(), (Workflow<?, ?>) migration);
+      return validateWorkflow(migration.getName(), (Workflow<?, ?>) migration, config);
     }
     if (migration instanceof Mirror) {
-      return validateMirror(migration.getName(), (Mirror) migration);
+      return validateMirror(migration.getName(), (Mirror) migration, config);
     }
     if (migration instanceof ActionMigration) {
-      return validateActionMigration(migration.getName(), (ActionMigration) migration);
+      return validateActionMigration(migration.getName(), (ActionMigration) migration, config);
     }
     throw new IllegalStateException(String.format("Validation missing for %s", migration));
   }
 
   /** Performs specific validation of a {@link Workflow} migration. */
-  protected abstract ValidationResult validateWorkflow(String name, Workflow<?, ?> workflow);
+  protected abstract ValidationResult validateWorkflow(
+      String name, Workflow<?, ?> workflow, Config config);
 
   /** Performs specific validation of a {@link Mirror} migration. */
-  protected abstract ValidationResult validateMirror(String name, Mirror mirror);
+  protected abstract ValidationResult validateMirror(String name, Mirror mirror, Config config);
 
   /** Performs specific validation of a {@link ActionMigration} migration. */
   protected abstract ValidationResult validateActionMigration(
-      String name, ActionMigration actionMigration);
+      String name, ActionMigration actionMigration, Config config);
 }
