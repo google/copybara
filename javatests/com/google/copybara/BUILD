@@ -219,7 +219,8 @@ all_tests(
 bzl_library(
     name = "test_bzl",
     srcs = ["test.bzl"],
-    visibility = ["//visibility:private"],
+    # Used for extending the tests internally. Not a public API.
+    visibility = ["//visibility:public"],
     deps = ["@rules_java//java:rules"],
 )
 
