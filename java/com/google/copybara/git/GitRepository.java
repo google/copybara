@@ -179,7 +179,7 @@ public class GitRepository {
   private final Path workTree;
 
   private final boolean verbose;
-  private final GitEnvironment gitEnv;
+  protected final GitEnvironment gitEnv;
   private final Duration repoTimeout;
   protected final PushOptionsValidator pushOptionsValidator;
   protected final boolean noVerify;
