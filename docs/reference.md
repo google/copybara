@@ -270,6 +270,8 @@
   - [PathAttributes](#pathattributes)
   - [python](#python)
     - [python.parse_metadata](#pythonparse_metadata)
+  - [random](#random)
+    - [random.sample](#randomsample)
   - [re2](#re2)
     - [re2.compile](#re2compile)
     - [re2.quote](#re2quote)
@@ -6152,6 +6154,27 @@ Extract the metadata from a python METADATA file into a dictionary. Returns a li
 Parameter | Description
 --------- | -----------
 <span id=python.parse_metadata.path href=#python.parse_metadata.path>path</span> | <code><a href="#path">Path</a></code><br><p>path relative to workdir root of the .whl file</p>
+
+
+
+## random
+
+A module for randomization-related functions.
+
+<a id="random.sample" aria-hidden="true"></a>
+### random.sample
+
+Returns a list of k unique elements randomly sampled from the list.
+
+<code>sequence</code> <code>random.sample(<a href=#random.sample.population>population</a>, <a href=#random.sample.k>k</a>)</code>
+
+
+<h4 id="parameters.random.sample">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=random.sample.population href=#random.sample.population>population</span> | <code>list</code><br><p>The list to sample from.</p>
+<span id=random.sample.k href=#random.sample.k>k</span> | <code>int</code><br><p>The number of elements to sample from the population list.</p>
 
 
 
