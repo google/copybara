@@ -748,18 +748,20 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
+      ImmutableList<String> mergeErrorPaths = ImmutableList.of();
       if (workflow.isMergeImport() && originBaselineForPrune != null) {
-        runMergeImport(
-            console,
-            writer,
-            destinationBaseline,
-            checkoutDir,
-            lastRev,
-            metadata,
-            originBaselineForPrune,
-            originApi,
-            destinationApi,
-            transformWork);
+        mergeErrorPaths =
+            runMergeImport(
+                console,
+                writer,
+                destinationBaseline,
+                checkoutDir,
+                lastRev,
+                metadata,
+                originBaselineForPrune,
+                originApi,
+                destinationApi,
+                transformWork);
       } else {
         if (workflow.getConsistencyFilePath() != null) {
           byte[] consistencyFileContents =
@@ -815,10 +817,28 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       Verify.verifyNotNull(result, "Destination returned a null result.");
       Verify
           .verify(!result.isEmpty(), "Destination " + writer + " returned an empty set of effects");
+
+      if (!mergeErrorPaths.isEmpty()) {
+        DestinationEffect mergeErrorDestinationEffect =
+            new DestinationEffect(
+                Type.CREATED,
+                String.format("Found merge errors for paths: %s", mergeErrorPaths),
+                ImmutableList.of(),
+                new DestinationRef("merge_error", "merge_error", null));
+
+        result =
+            ImmutableList.<DestinationEffect>builder()
+                .addAll(result)
+                .add(mergeErrorDestinationEffect)
+                .build();
+      }
       return result;
     }
 
-    private void runMergeImport(
+    /**
+     * @return a list of paths that resulted in merge errors
+     */
+    private ImmutableList<String> runMergeImport(
         Console console,
         Writer<?> writer,
         Baseline<?> destinationBaseline,
@@ -928,14 +948,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
               mergeRunner,
               workflow.getWorkflowOptions().threadsForMergeImport,
               debugPattern);
+      ImmutableList<String> mergeErrorPaths;
       try (ProfilerTask ignored = profiler().start("merge_tool")) {
-        mergeImportTool.mergeImport(
-            checkoutDir,
-            destinationFilesWorkdir,
-            baselineWorkdir,
-            Files.createDirectories(workdir.resolve("merge_import")),
-            workflow.getMergeImport().paths(),
-            Path.of(workflow.getMergeImport().packagePath()));
+        mergeErrorPaths =
+            mergeImportTool.mergeImport(
+                checkoutDir,
+                destinationFilesWorkdir,
+                baselineWorkdir,
+                Files.createDirectories(workdir.resolve("merge_import")),
+                workflow.getMergeImport().paths(),
+                Path.of(workflow.getMergeImport().packagePath()));
       }
       try (ProfilerTask ignore = profiler().start("after_merge_transformations")) {
         workflow.afterMergeTransformations.transform(transformWork);
@@ -985,6 +1007,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
         Files.createDirectories(checkoutDir.resolve(workflow.getConsistencyFilePath()).getParent());
         Files.write(checkoutDir.resolve(workflow.getConsistencyFilePath()), consistencyFile.get());
       }
+      return mergeErrorPaths;
     }
 
     static Glob patchlessDestinationFiles(

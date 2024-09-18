@@ -16,9 +16,11 @@
 
 package com.google.copybara.util;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.LocalParallelizer;
@@ -82,8 +84,9 @@ public final class MergeImportTool {
    *     caller
    * @param baselineWorkdir A copy of the baseline repository state, already populated by the caller
    * @param diffToolWorkdir A working directory for the CommandLineDiffUtil
+   * @return a list of paths that resulted in merge errors.
    */
-  public void mergeImport(
+  public ImmutableList<String> mergeImport(
       Path originWorkdir,
       Path destinationWorkdir,
       Path baselineWorkdir,
@@ -183,6 +186,7 @@ public final class MergeImportTool {
           path ->
               console.warn(String.format("diff3 exited with code 2 for path %s, skipping", path)));
     }
+    return mergeErrorPaths.stream().map(Path::toString).collect(toImmutableList());
   }
 
   /**

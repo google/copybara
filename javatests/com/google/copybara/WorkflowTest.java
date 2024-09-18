@@ -168,6 +168,7 @@ public class WorkflowTest {
   private boolean migrateNoopChangesField;
   private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
   private String afterMergeTransformations;
+  private String afterMigration;
 
   public ImmutableMap<String, String> env = ImmutableMap.of();
 
@@ -218,6 +219,7 @@ public class WorkflowTest {
     autoPatchfileStripFilenamesAndLineNumbers = false;
     autoPatchfileGlob = "None";
     migrateNoopChangesField = false;
+    afterMigration = "";
     extraWorkflowFields = ImmutableList.of();
   }
 
@@ -285,6 +287,7 @@ public class WorkflowTest {
             + "    consistency_file_path = "
             + consistencyFilePath
             + ",\n"
+            + (!afterMigration.equals("") ? "    after_migration = " + afterMigration + ",\n" : "")
             + (afterMergeTransformations != null
                 ? "after_merge_transformations = " + afterMergeTransformations + ","
                 : "")
@@ -2609,6 +2612,70 @@ public class WorkflowTest {
     Path out1 = Files.createDirectories(testDir.resolve("out1"));
     writeProcessedChange(latestProcessedChange(), out1);
     assertThatPath(out1).containsFiles(consistencyFilePath);
+  }
+
+  @Test
+  public void mergeImport_mergeConflict_writesDestinationEffect() throws Exception {
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    afterMigration = "[lambda ctx: ctx.destination.message(str(ctx.effects))]";
+    Path testDir = Files.createTempDirectory("merge_import");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+
+    // populate the baseline
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // origin edits file
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "dir/foo.txt", "origin\nb\nc\n");
+    origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
+
+    // destination-only change that edits same file
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    writeFile(base3, "dir/foo.txt", "destination\nb\nc\n");
+    ConsistencyFile cf =
+        ConsistencyFile.generate(
+            base1, base3, Hashing.sha256(), getGitEnv().getEnvironment(), false);
+    writeFile(base3, "foo.bara.consistency", new String(cf.toBytes(), UTF_8));
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+    wr.write(
+        TransformResults.of(base3, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // run workflow again to import the origin edit
+    workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // check that a merge conflict was generated
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get("dir/foo.txt"))
+        .contains(">>>>>>>");
+
+    assertThat(destination.getEndpoint().getMessages().toString())
+        .contains("Found merge errors for paths");
   }
 
   @Test
