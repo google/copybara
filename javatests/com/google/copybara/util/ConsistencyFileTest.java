@@ -64,6 +64,30 @@ public final class ConsistencyFileTest {
   }
 
   @Test
+  public void testGenerateConsistencyFile_ignoresSymlinkDirs()
+      throws IOException, InsideGitDirException {
+    Path symlinkParentDir = Files.createDirectories(destination.resolve("test/symlinkparent"));
+    Path symlinkTargetDir = Files.createDirectories(destination.resolve("test/symlinktarget"));
+    Path unused = Files.createSymbolicLink(symlinkParentDir.resolve("symlink"), symlinkTargetDir);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+    assertThat(consistencyFile).isNotNull();
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_ignoresSymlinkFiles()
+      throws IOException, InsideGitDirException {
+    Path symlinkParentDir = Files.createDirectories(destination.resolve("test/symlinkparent"));
+    Path symlinkTargetFile = Path.of("/invalid/path");
+    Path unused = Files.createSymbolicLink(symlinkParentDir.resolve("symlink"), symlinkTargetFile);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+    assertThat(consistencyFile).isNotNull();
+  }
+
+  @Test
   public void testGenerateConsistencyFile_hashesFile() throws IOException, InsideGitDirException {
     String testPath = "test/foo";
     String testContents = "hello";
