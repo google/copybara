@@ -129,6 +129,7 @@ public class ModuleSupplier {
         new XmlModule(),
         new StructModule(),
         new StarlarkDateTimeModule(),
+        new StarlarkRandomModule(),
         new GoModule(options.get(RemoteFileOptions.class)),
         new RustModule(
             options.get(RemoteFileOptions.class), options.get(GitOptions.class), general),
