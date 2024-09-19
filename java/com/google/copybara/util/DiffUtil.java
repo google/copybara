@@ -62,6 +62,19 @@ public class DiffUtil {
   }
 
   /**
+   * Calculates the diff between two sibling directory trees while setting --ignore-cr-at-eol.
+   *
+   * <p>Returns the diff as an encoding-independent {@code byte[]}.
+   */
+  public static byte[] diffWithIgnoreCrAtEol(
+      Path one, Path other, boolean verbose, Map<String, String> environment)
+      throws IOException, InsideGitDirException {
+    return new FoldersDiff(verbose, environment)
+        .withIgnoreCrAtEol()
+        .run(one.getParent(), one, other);
+  }
+
+  /**
    * Calculates the diff between two files with --ignore-cr-at-eol set
    *
    * <p>Returns the single file diff as an encoding-independent {@code byte[]}

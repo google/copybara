@@ -128,6 +128,22 @@ public final class ConsistencyFileTest {
   }
 
   @Test
+  public void testGenerateConsistencyFile_diffsDirectories_ignoresCrAtEol()
+      throws IOException, InsideGitDirException {
+    String testPath = "test/foo";
+    String testDestinationContents = "hello\n";
+    write(destination, testPath, testDestinationContents);
+
+    String testBaselineContents = "hello\r\n";
+    write(baseline, testPath, testBaselineContents);
+
+    ConsistencyFile consistencyFile =
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+
+    assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEqualTo("");
+  }
+
+  @Test
   public void testGenerateConsistencyFile_diffsDirectories_multipleFiles()
       throws IOException, InsideGitDirException {
     String testPath = "test/foo";

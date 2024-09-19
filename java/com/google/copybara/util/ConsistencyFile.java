@@ -88,7 +88,7 @@ public class ConsistencyFile {
       Map<String, String> environment,
       boolean verbose)
       throws IOException, InsideGitDirException {
-    byte[] diff = DiffUtil.diff(baseline, destination, verbose, environment);
+    byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
     return new ConsistencyFile(computeFileHashes(destination, hashFunction), diff);
   }
 
