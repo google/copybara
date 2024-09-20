@@ -243,7 +243,7 @@ public class WorkflowOptions implements Option {
       names = "--baseline-for-merge-import",
       description =
           "Origin baseline to use for merge import. This overrides any inferred origin baseline")
-  String baselineForMergeImport = null;
+  public String baselineForMergeImport = null;
 
   @Parameter(
       names = "--threads-for-merge-import",
