@@ -23,7 +23,7 @@ licenses(["notice"])
 genrule(
     name = "normalised_buildifier",
     testonly = 1,
-    srcs = ["@buildtools//buildifier"],
+    srcs = ["@buildifier_prebuilt//:buildifier"],
     outs = ["buildifier"],
     cmd = "cp $(SRCS) $@",
 )
