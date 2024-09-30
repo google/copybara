@@ -354,17 +354,17 @@ public class HttpModule implements StarlarkValue {
       name = "username_password_auth",
       doc = "Authentication via username and password.",
       parameters = {
-          @Param(
-              name = "",
-              doc = "The host to be contacted.",
-              named = true,
-              allowedTypes = {
-                  @ParamType(type = UsernamePasswordIssuer.class),
-              },
-              positional = false),
+        @Param(
+            name = "creds",
+            doc = "The username and password credentials.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+            },
+            positional = false),
       })
-  public UsernamePasswordInterceptor usernamePasswordAuth(UsernamePasswordIssuer up) {
-    return new UsernamePasswordInterceptor(up);
+  public UsernamePasswordInterceptor usernamePasswordAuth(UsernamePasswordIssuer creds) {
+    return new UsernamePasswordInterceptor(creds);
   }
 
 

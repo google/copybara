@@ -5003,14 +5003,14 @@ Parameter | Description
 
 Authentication via username and password.
 
-<code>UsernamePasswordInterceptor</code> <code>http.username_password_auth(<a href=#http.username_password_auth.></a>)</code>
+<code>UsernamePasswordInterceptor</code> <code>http.username_password_auth(<a href=#http.username_password_auth.creds>creds</a>)</code>
 
 
 <h4 id="parameters.http.username_password_auth">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=http.username_password_auth. href=#http.username_password_auth.></span> | <code>UsernamePasswordIssuer</code><br><p>The host to be contacted.</p>
+<span id=http.username_password_auth.creds href=#http.username_password_auth.creds>creds</span> | <code>UsernamePasswordIssuer</code><br><p>The username and password credentials.</p>
 
 
 
