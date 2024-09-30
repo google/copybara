@@ -19,16 +19,20 @@ package com.google.copybara.tsjs.npm;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionList;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Fetches versions available for a given package in the NPM Registry */
@@ -36,15 +40,21 @@ public class NpmVersionList implements VersionList, StarlarkValue, LabelsAwareMo
   private final NpmPackageIdentifier pkg;
   private final Optional<String> listVersionsUrl;
   private final RemoteFileOptions remoteFileOptions;
+  @Nullable private final AuthInterceptor auth;
 
   private static final GsonFactory GSON_FACTORY = GsonFactory.getDefaultInstance();
 
-  public static NpmVersionList forPackage(String packageName, RemoteFileOptions remoteFileOptions)
+  public static NpmVersionList forPackage(
+      String packageName, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth)
       throws ValidationException {
-    return new NpmVersionList(NpmPackageIdentifier.fromPackage(packageName), remoteFileOptions);
+    return new NpmVersionList(
+        NpmPackageIdentifier.fromPackage(packageName), remoteFileOptions, auth);
   }
 
-  private NpmVersionList(NpmPackageIdentifier pkg, RemoteFileOptions remoteFileOptions) {
+  private NpmVersionList(
+      NpmPackageIdentifier pkg,
+      RemoteFileOptions remoteFileOptions,
+      @Nullable AuthInterceptor auth) {
     this.pkg = pkg;
     String endpoint = pkg.toHumanReadableName();
     // returns JSON listing high-level package information, including distribution info for all
@@ -53,10 +63,11 @@ public class NpmVersionList implements VersionList, StarlarkValue, LabelsAwareMo
     // Specific versions can be listed using https://registry.npmjs.com/%s/<version> where <version>
     // can sometimes be specific dist tags (e.g. latest).
     this.remoteFileOptions = remoteFileOptions;
+    this.auth = auth;
   }
 
   private String executeHttpQuery(String url) throws ValidationException {
-    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url))) {
+    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url), auth)) {
       return new String(inputStream.readAllBytes(), UTF_8);
     } catch (IOException | ValidationException e) {
       // TODO can we detect a 404? this would indicate some form of validation problem with user
@@ -88,5 +99,13 @@ public class NpmVersionList implements VersionList, StarlarkValue, LabelsAwareMo
 
   public NpmVersionListResponseObject listVersions() throws RepoException, ValidationException {
     return executeHttpQuery(listVersionsUrl.get(), NpmVersionListResponseObject.class);
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

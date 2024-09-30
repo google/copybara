@@ -36,7 +36,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 import java.util.Optional;
@@ -81,9 +80,9 @@ public class RustCratesIoVersionResolverTest {
   }
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)
-      throws IOException {
+      throws Exception {
     for (Map.Entry<String, String> pair : urlToContent.entrySet()) {
-      when(transport.open(new URL(pair.getKey())))
+      when(transport.open(new URL(pair.getKey()), null))
           .thenReturn(new ByteArrayInputStream(pair.getValue().getBytes(UTF_8)));
     }
     remoteFileOptions.transport = () -> transport;

@@ -18,6 +18,7 @@ package com.google.copybara.rust;
 
 import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.copybara.CheckoutPath;
@@ -34,6 +35,7 @@ import com.google.copybara.git.GitOptions;
 import com.google.copybara.git.GitRepository;
 import com.google.copybara.git.GitRevision;
 import com.google.copybara.git.github.util.GitHubHost;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.toml.TomlContent;
@@ -88,15 +90,26 @@ public class RustModule implements StarlarkValue {
             doc =
                 "Whether we should match pre-release versions of a crate when finding the latest"
                     + " version.",
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
   @Example(
       title = "Create a version list for a given rust crate",
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(
-      String crateName, boolean matchPreReleaseVersions) {
-    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, matchPreReleaseVersions);
+      String crateName, boolean matchPreReleaseVersions, Object auth) {
+    return RustCratesIoVersionList.forCrate(
+        crateName, remoteFileOptions, matchPreReleaseVersions, convertFromNoneable(auth, null));
   }
 
   @StarlarkMethod(
@@ -111,11 +124,22 @@ public class RustModule implements StarlarkValue {
             doc =
                 "Whether we should match pre-release versions of a crate when finding the latest"
                     + " version.",
-            defaultValue = "False")
+            defaultValue = "False"),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
   @SuppressWarnings("unused")
-  public VersionResolver getResolver(String crate, boolean matchPreReleaseVersions) {
-    return new RustCratesIoVersionResolver(crate, remoteFileOptions, matchPreReleaseVersions);
+  public VersionResolver getResolver(String crate, boolean matchPreReleaseVersions, Object auth) {
+    return new RustCratesIoVersionResolver(
+        crate, remoteFileOptions, matchPreReleaseVersions, convertFromNoneable(auth, null));
   }
 
   @StarlarkMethod(
@@ -253,7 +277,7 @@ public class RustModule implements StarlarkValue {
       } else {
         return copyFuzzersToWorkdir(
             ctx,
-            SkylarkUtil.convertFromNoneable(maybeFuzzExcludes, StarlarkList.empty()),
+            convertFromNoneable(maybeFuzzExcludes, StarlarkList.empty()),
             cratePath,
             destinationReader,
             relativePath,
@@ -289,8 +313,7 @@ public class RustModule implements StarlarkValue {
       throws ValidationException, EvalException, IOException {
     Optional<String> url =
         Optional.ofNullable(
-                SkylarkUtil.convertFromNoneable(
-                    fuzzersRepoUrl, getFuzzersDownloadUrl(cargoTomlPath)))
+                convertFromNoneable(fuzzersRepoUrl, getFuzzersDownloadUrl(cargoTomlPath)))
             .filter(Predicate.not(String::isEmpty));
 
     if (url.isPresent()) {

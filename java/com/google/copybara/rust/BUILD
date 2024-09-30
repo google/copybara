@@ -30,6 +30,7 @@ java_library(
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",
         "//java/com/google/copybara/git/github:util",
+        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/json",
         "//java/com/google/copybara/profiler",
         "//java/com/google/copybara/remotefile",

@@ -19,9 +19,12 @@ package com.google.copybara.rust;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Ascii;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.json.GsonParserUtil;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionList;
@@ -31,6 +34,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import javax.annotation.Nullable;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Used to fetch a list of versions for a Rust crate at crates.io */
@@ -42,17 +46,25 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
 
   private final RemoteFileOptions remoteFileOptions;
   private final boolean matchPreReleaseVersions;
+  @Nullable private final AuthInterceptor auth;
 
   public static RustCratesIoVersionList forCrate(
-      String crate, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
-    return new RustCratesIoVersionList(crate, remoteFileOptions, matchPreReleaseVersions);
+      String crate,
+      RemoteFileOptions remoteFileOptions,
+      boolean matchPreReleaseVersions,
+      @Nullable AuthInterceptor auth) {
+    return new RustCratesIoVersionList(crate, remoteFileOptions, matchPreReleaseVersions, auth);
   }
 
   private RustCratesIoVersionList(
-      String crateName, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
+      String crateName,
+      RemoteFileOptions remoteFileOptions,
+      boolean matchPreReleaseVersions,
+      @Nullable AuthInterceptor auth) {
     this.crateName = crateName;
     this.remoteFileOptions = remoteFileOptions;
     this.matchPreReleaseVersions = matchPreReleaseVersions;
+    this.auth = auth;
   }
 
   @Override
@@ -125,11 +137,19 @@ public final class RustCratesIoVersionList implements VersionList, StarlarkValue
   }
 
   private String executeHTTPQuery(String url) throws RepoException {
-    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url))) {
+    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url), auth)) {
       return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
     } catch (IOException | ValidationException e) {
       throw new RepoException(
           String.format("Failed to query crates.io-index for version list at %s", url), e);
     }
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

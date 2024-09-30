@@ -18,6 +18,7 @@ package com.google.copybara.remotefile;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -35,6 +36,11 @@ import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.credentials.ConstantCredentialIssuer;
+import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
+import com.google.copybara.http.auth.AuthInterceptor;
+import com.google.copybara.http.auth.UsernamePasswordInterceptor;
+import com.google.copybara.http.testing.MockHttpTester;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -47,6 +53,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -188,8 +196,8 @@ public final class RemoteArchiveOriginTest {
       VersionList versionList,
       VersionSelector versionSelector,
       VersionResolver versionResolver,
-      RemoteFileType remoteFileType
-      )
+      RemoteFileType remoteFileType,
+      AuthInterceptor auth)
       throws Exception {
     return new RemoteArchiveOrigin(
         Author.parse("Copybara <noreply@copybara.io>"),
@@ -200,20 +208,26 @@ public final class RemoteArchiveOriginTest {
         archiveSourceURL,
         versionList,
         versionSelector,
-        versionResolver);
+        versionResolver,
+        auth);
   }
 
   @Test
   public void testZipFileUnpacked() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.zip")))
+    when(transport.open(new URL("https://foo.zip"), null))
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPTURED_HELLO_WORLD_ZIP_FILE)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.ZIP,
+            null);
 
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
@@ -224,13 +238,18 @@ public final class RemoteArchiveOriginTest {
   public void testZipFileEmptyGlob() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.zip")))
+    when(transport.open(new URL("https://foo.zip"), null))
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPTURED_HELLO_WORLD_ZIP_FILE)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.ZIP,
+            null);
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
@@ -243,14 +262,19 @@ public final class RemoteArchiveOriginTest {
   public void testZipFileMultipleDirs() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.zip")))
+    when(transport.open(new URL("https://foo.zip"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_MULTIPLE_DIRS_ZIP_FILE)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.ZIP);
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.ZIP,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -262,13 +286,18 @@ public final class RemoteArchiveOriginTest {
   public void testJarFlatDirectory() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.jar")))
+    when(transport.open(new URL("https://foo.jar"), null))
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPTURED_HELLO_WORLD_JAR_FILE)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
+            "https://foo.jar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.JAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -279,13 +308,18 @@ public final class RemoteArchiveOriginTest {
   public void testJarNonFlatDirectory() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.jar")))
+    when(transport.open(new URL("https://foo.jar"), null))
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPTURED_JAR_WITH_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
+            "https://foo.jar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.JAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -296,14 +330,19 @@ public final class RemoteArchiveOriginTest {
   public void testFlatJarContents() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.jar")))
+    when(transport.open(new URL("https://foo.jar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_JAR_FILE_WITH_NO_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.jar", versionList, versionSelector, versionResolver, RemoteFileType.JAR);
+            "https://foo.jar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.JAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -314,14 +353,19 @@ public final class RemoteArchiveOriginTest {
   public void testTarFlatDirectory() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.tar")))
+    when(transport.open(new URL("https://foo.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_NO_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -332,14 +376,19 @@ public final class RemoteArchiveOriginTest {
   public void testTarNonFlatDirectory() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.tar")))
+    when(transport.open(new URL("https://foo.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -350,14 +399,19 @@ public final class RemoteArchiveOriginTest {
   public void testTarNonFlatDirectoryWithSymlinks() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.tar")))
+    when(transport.open(new URL("https://foo.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_SYMLINKS)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -370,14 +424,19 @@ public final class RemoteArchiveOriginTest {
   public void testAsIsArchiveCheckout() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.zip")))
+    when(transport.open(new URL("https://foo.zip"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.zip", versionList, versionSelector, versionResolver, RemoteFileType.AS_IS);
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.AS_IS,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -388,7 +447,7 @@ public final class RemoteArchiveOriginTest {
   public void testAsIsArchiveCheckoutWithVersionTargeting() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v.1.0.0"));
     when(versionList.list()).thenReturn(ImmutableSet.of("v1.0.0"));
-    when(transport.open(new URL("https://foo.v.1.0.0.zip")))
+    when(transport.open(new URL("https://foo.v.1.0.0.zip"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
@@ -399,7 +458,8 @@ public final class RemoteArchiveOriginTest {
             versionList,
             versionSelector,
             versionResolver,
-            RemoteFileType.AS_IS);
+            RemoteFileType.AS_IS,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolve(null), workdir);
 
@@ -410,14 +470,19 @@ public final class RemoteArchiveOriginTest {
   public void testTarFileEmptyGlob() throws Exception {
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://foo.tar")))
+    when(transport.open(new URL("https://foo.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
@@ -431,7 +496,7 @@ public final class RemoteArchiveOriginTest {
     generalOptions.setVersionSelectorUseCliRefForTest(true);
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.1"));
     when(versionList.list()).thenReturn(ImmutableSet.of());
-    when(transport.open(new URL("https://v0.1.1.tar")))
+    when(transport.open(new URL("https://v0.1.1.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
@@ -445,7 +510,8 @@ public final class RemoteArchiveOriginTest {
             versionList,
             versionSelector,
             versionResolver,
-            RemoteFileType.TAR);
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader =
         underTest.newReader(
             Glob.createGlob(ImmutableList.of("no match"), ImmutableList.of("**")), authoring);
@@ -460,7 +526,7 @@ public final class RemoteArchiveOriginTest {
     generalOptions.setVersionSelectorUseCliRefForTest(true);
     when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.1"));
     when(versionList.list()).thenReturn(ImmutableSet.of("v0.1.1"));
-    when(transport.open(new URL("https://v0.1.1.tar")))
+    when(transport.open(new URL("https://v0.1.1.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
@@ -474,7 +540,8 @@ public final class RemoteArchiveOriginTest {
             versionList,
             versionSelector,
             versionResolver,
-            RemoteFileType.TAR);
+            RemoteFileType.TAR,
+            null);
     RemoteArchiveRevision rev = underTest.resolve("v0.1.1");
     assertThat(rev.contextReference()).isEqualTo("v0.1.1");
     assertThat(rev.fixedReference()).isEqualTo("v0.1.1");
@@ -483,7 +550,7 @@ public final class RemoteArchiveOriginTest {
   @Test
   public void testArchiveCheckoutWithCliRefDisabledOnLastRev() throws Exception {
     generalOptions.setVersionSelectorUseCliRefForTest(false);
-    when(transport.open(new URL("https://v0.1.1.tar")))
+    when(transport.open(new URL("https://v0.1.1.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
@@ -497,7 +564,8 @@ public final class RemoteArchiveOriginTest {
             versionList,
             versionSelector,
             versionResolver,
-            RemoteFileType.TAR);
+            RemoteFileType.TAR,
+            null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolveLastRev("v0.1.1"), workdir);
 
@@ -508,7 +576,7 @@ public final class RemoteArchiveOriginTest {
   @Test
   public void testArchiveCheckoutWithoutResolverOnLastRev() throws Exception {
     generalOptions.setVersionSelectorUseCliRefForTest(false);
-    when(transport.open(new URL("https://v0.1.1.tar")))
+    when(transport.open(new URL("https://v0.1.1.tar"), null))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_DIRECTORIES)));
@@ -518,7 +586,7 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://${VERSION}.tar", versionList, versionSelector, null, RemoteFileType.TAR);
+            "https://${VERSION}.tar", versionList, versionSelector, null, RemoteFileType.TAR, null);
     Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
     reader.checkout(underTest.resolveLastRev("v0.1.1"), workdir);
 
@@ -529,7 +597,12 @@ public final class RemoteArchiveOriginTest {
   public void testDescribe() throws Exception {
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     ImmutableSetMultimap<String, String> description =
         underTest.describe(
             Glob.createGlob(ImmutableList.of("path/to/file.txt"), ImmutableList.of()));
@@ -545,7 +618,12 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     ChangesResponse<RemoteArchiveRevision> changesResponse =
         underTest
             .newReader(Glob.ALL_FILES, authoring)
@@ -563,7 +641,12 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     ChangesResponse<RemoteArchiveRevision> changesResponse =
         underTest
             .newReader(Glob.ALL_FILES, authoring)
@@ -580,7 +663,12 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     ChangesResponse<RemoteArchiveRevision> changesResponse =
         underTest
             .newReader(Glob.ALL_FILES, authoring)
@@ -603,7 +691,12 @@ public final class RemoteArchiveOriginTest {
 
     RemoteArchiveOrigin underTest =
         getRemoteArchiveOriginUnderTest(
-            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+            "https://foo.tar",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.TAR,
+            null);
     ChangesResponse<RemoteArchiveRevision> changesResponse =
         underTest
             .newReader(Glob.ALL_FILES, authoring)
@@ -619,5 +712,49 @@ public final class RemoteArchiveOriginTest {
             MessageType.WARNING,
             "The baseline revision could not be detected, not performing downgrade"
                 + " validation.");
+  }
+
+  private String basicAuth(String username, String password) {
+    return String.format(
+        "Basic %s",
+        BaseEncoding.base64().encode(String.format("%s:%s", username, password).getBytes(UTF_8)));
+  }
+
+  @Test
+  public void testAuthentication() throws Exception {
+    MockHttpTester http = new MockHttpTester();
+    remoteFileOptions.transport =
+        () -> new GclientHttpStreamFactory(http.getTransport(), Duration.ofSeconds(20));
+
+    final List<String> authorizationHeader = new ArrayList<>();
+    http.mockHttp(
+        (method, url, req, resp) -> {
+          authorizationHeader.addAll(req.getHeaders().get("authorization"));
+
+          resp.setStatusCode(200)
+              .setContent(BaseEncoding.base64().decode(CAPTURED_HELLO_WORLD_ZIP_FILE))
+              .setContentType("application/zip");
+        });
+
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of(""));
+    when(versionList.list()).thenReturn(ImmutableSet.of());
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.zip",
+            versionList,
+            versionSelector,
+            versionResolver,
+            RemoteFileType.ZIP,
+            new UsernamePasswordInterceptor(
+                UsernamePasswordIssuer.create(
+                    ConstantCredentialIssuer.createConstantSecret("username", "testuser"),
+                    ConstantCredentialIssuer.createConstantSecret("password", "testpass"))));
+
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    reader.checkout(underTest.resolve(null), workdir);
+    assertThatPath(workdir).containsFile("test.txt", "hello world\n");
+
+    assertThat(authorizationHeader).containsExactly(basicAuth("testuser", "testpass"));
   }
 }

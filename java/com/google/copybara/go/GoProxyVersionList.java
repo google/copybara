@@ -21,11 +21,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.common.base.Ascii;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.config.SkylarkUtil;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionList;
 import com.google.re2j.Pattern;
@@ -50,19 +53,25 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
   private final Optional<String> dotInfoURL;
   private final RemoteFileOptions remoteFileOptions;
   private final String module;
+  @Nullable private final AuthInterceptor auth;
 
   private static final GsonFactory GSON_FACTORY = GsonFactory.getDefaultInstance();
 
   public static GoProxyVersionList forInfo(
-      String module, String dotInfo, RemoteFileOptions remoteFileOptions) {
-    return new GoProxyVersionList(module, dotInfo, remoteFileOptions);
+      String module,
+      String dotInfo,
+      RemoteFileOptions remoteFileOptions,
+      @Nullable AuthInterceptor auth) {
+    return new GoProxyVersionList(module, dotInfo, remoteFileOptions, auth);
   }
 
-  public static GoProxyVersionList forVersion(String module, RemoteFileOptions remoteFileOptions) {
-    return new GoProxyVersionList(module, remoteFileOptions);
+  public static GoProxyVersionList forVersion(
+      String module, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth) {
+    return new GoProxyVersionList(module, remoteFileOptions, auth);
   }
 
-  private GoProxyVersionList(String module, RemoteFileOptions remoteFileOptions) {
+  private GoProxyVersionList(
+      String module, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth) {
     this.module = module;
     this.dotInfoURL = Optional.empty();
     // returns plain text
@@ -75,14 +84,20 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
         Optional.of(
             String.format("https://proxy.golang.org/%s/@latest", normalizeModuleName(module)));
     this.remoteFileOptions = remoteFileOptions;
+    this.auth = auth;
   }
 
-  private GoProxyVersionList(String module, String dotInfo, RemoteFileOptions remoteFileOptions) {
+  private GoProxyVersionList(
+      String module,
+      String dotInfo,
+      RemoteFileOptions remoteFileOptions,
+      @Nullable AuthInterceptor auth) {
     this.module = module;
     this.dotInfoURL = getDotInfoURL(module, dotInfo);
     this.listVersionsURL = Optional.empty();
     this.latestVersionURL = Optional.empty();
     this.remoteFileOptions = remoteFileOptions;
+    this.auth = auth;
   }
 
   private Optional<String> getDotInfoURL(String module, String dotInfo) {
@@ -97,7 +112,7 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
   }
 
   private String executeHTTPQuery(String url) throws RepoException {
-    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url))) {
+    try (InputStream inputStream = remoteFileOptions.getTransport().open(new URL(url), auth)) {
       return new String(inputStream.readAllBytes(), UTF_8);
     } catch (IOException | ValidationException e) {
       throw new RepoException(
@@ -179,5 +194,13 @@ public class GoProxyVersionList implements VersionList, StarlarkValue, LabelsAwa
     }
 
     return null;
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

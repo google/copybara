@@ -16,10 +16,13 @@
 
 package com.google.copybara.go;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
 import com.google.copybara.remotefile.RemoteArchiveVersion;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -27,15 +30,19 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.version.VersionResolver;
 import java.util.Optional;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 
 /** Object used to turn a ref into a version listed in go proxy. */
 public class GoProxyVersionResolver implements VersionResolver {
   private final String module;
   private final RemoteFileOptions remoteFileOptions;
+  @Nullable private final AuthInterceptor auth;
 
-  public GoProxyVersionResolver(String module, RemoteFileOptions remoteFileOptions) {
+  public GoProxyVersionResolver(
+      String module, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth) {
     this.module = module;
     this.remoteFileOptions = remoteFileOptions;
+    this.auth = auth;
   }
 
   /**
@@ -48,7 +55,7 @@ public class GoProxyVersionResolver implements VersionResolver {
     try {
       // try to resolve as version.
       ImmutableSet<String> version =
-          GoProxyVersionList.forVersion(this.module, this.remoteFileOptions).list();
+          GoProxyVersionList.forVersion(module, remoteFileOptions, auth).list();
       if (!version.contains(ref)) {
         throw new CannotResolveRevisionException(
             String.format("Could not locate version with ref '%s' as a version.", ref));
@@ -57,7 +64,7 @@ public class GoProxyVersionResolver implements VersionResolver {
     } catch (ValidationException e) {
       // Darn, it failed, try to resolve as .info
       return Iterables.getOnlyElement(
-          GoProxyVersionList.forInfo(this.module, ref, this.remoteFileOptions).list());
+          GoProxyVersionList.forInfo(module, ref, remoteFileOptions, auth).list());
     }
   }
 
@@ -84,5 +91,13 @@ public class GoProxyVersionResolver implements VersionResolver {
                             ref, version)));
     RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, version);
     return new RemoteArchiveRevision(remoteArchiveVersion);
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

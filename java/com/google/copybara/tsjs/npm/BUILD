@@ -30,11 +30,13 @@ java_library(
         "//java/com/google/copybara/config:base",
         "//java/com/google/copybara/doc:annotations",
         "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/http/auth",
         "//java/com/google/copybara/remotefile",
         "//java/com/google/copybara/revision",
         "//java/com/google/copybara/version",
         "//third_party:google_http_client",
         "//third_party:guava",
+        "//third_party:jsr305",
         "//third_party:starlark",
     ],
 )

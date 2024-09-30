@@ -34,7 +34,6 @@ import com.google.copybara.version.VersionList;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 import org.junit.Before;
@@ -65,9 +64,9 @@ public class NpmVersionListTest {
   }
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)
-      throws IOException {
+      throws Exception {
     for (Map.Entry<String, String> pair : urlToContent.entrySet()) {
-      when(transport.open(new URL(pair.getKey())))
+      when(transport.open(new URL(pair.getKey()), null))
           .thenReturn(new ByteArrayInputStream(pair.getValue().getBytes(UTF_8)));
     }
     remoteFileOptions.transport = () -> transport;

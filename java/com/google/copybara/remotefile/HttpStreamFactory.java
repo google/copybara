@@ -16,9 +16,13 @@
 
 package com.google.copybara.remotefile;
 
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import javax.annotation.Nullable;
 
 /**
  * Interface for opening a URL for downloading a file
@@ -27,6 +31,10 @@ public interface HttpStreamFactory {
 
   /**
    * Open the referenced URL and return the stream to the contents.
+   *
+   * @param url The URL to open.
+   * @param auth The interceptor to use for authentication. If null, no authentication will be used.
    */
-  InputStream open(URL url) throws IOException;
+  InputStream open(URL url, @Nullable AuthInterceptor auth)
+      throws IOException, CredentialRetrievalException, CredentialIssuingException;
 }

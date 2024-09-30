@@ -32,6 +32,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.remotefile.extractutil.ExtractUtil;
 import com.google.copybara.revision.Change;
@@ -63,6 +64,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
   private final VersionSelector versionSelector;
   private final RemoteFileType remoteFileType;
   private final VersionResolver versionResolver;
+  @Nullable private final AuthInterceptor auth;
 
   RemoteArchiveOrigin(
       Author author,
@@ -73,7 +75,8 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
       String archiveSourceUrl,
       VersionList versionList,
       VersionSelector versionSelector,
-      VersionResolver versionResolver) {
+      VersionResolver versionResolver,
+      @Nullable AuthInterceptor auth) {
     this.remoteFileType = remoteFileType;
     this.author = author;
     this.message = message;
@@ -83,6 +86,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
     this.versionList = versionList;
     this.versionSelector = versionSelector;
     this.versionResolver = versionResolver;
+    this.auth = auth;
   }
 
   private String resolveURLTemplate(String url, String version) throws LabelNotFoundException {
@@ -204,7 +208,7 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
           URL url = new URL(Objects.requireNonNull(ref.getUrl()));
           HttpStreamFactory transport = remoteFileOptions.getTransport();
           try (ProfilerTask ignored = generalOptions.profiler().start("remote_file_" + url);
-              InputStream returned = transport.open(url)) {
+              InputStream returned = transport.open(url, auth)) {
             if (remoteFileType == RemoteFileType.AS_IS) {
               writeArchiveAsIs(ref, workdir, returned);
             } else {
@@ -305,5 +309,21 @@ public class RemoteArchiveOrigin implements Origin<RemoteArchiveRevision> {
             .put("url", archiveSourceUrl) // the unresolved url
             .putAll("root", originFiles.roots());
     return builder.build();
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    ImmutableList.Builder<ImmutableSetMultimap<String, String>> credentials =
+        ImmutableList.builder();
+    if (versionList != null) {
+      credentials.addAll(versionList.describeCredentials());
+    }
+    if (versionResolver != null) {
+      credentials.addAll(versionResolver.describeCredentials());
+    }
+    if (auth != null) {
+      credentials.addAll(auth.describeCredentials());
+    }
+    return credentials.build();
   }
 }

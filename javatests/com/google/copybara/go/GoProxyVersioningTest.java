@@ -22,6 +22,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.remotefile.HttpStreamFactory;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -59,9 +61,9 @@ public class GoProxyVersioningTest {
   public GoProxyVersioningTest() {}
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)
-      throws IOException {
+      throws IOException, CredentialRetrievalException, CredentialIssuingException {
     for (Map.Entry<String, String> pair : urlToContent.entrySet()) {
-      when(transport.open(new URL(pair.getKey())))
+      when(transport.open(new URL(pair.getKey()), null))
           .thenReturn(new ByteArrayInputStream(pair.getValue().getBytes(UTF_8)));
     }
     options.transport = () -> transport;

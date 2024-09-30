@@ -28,6 +28,7 @@ import com.google.copybara.authoring.Author;
 import com.google.copybara.config.LabelsAwareModule;
 import com.google.copybara.doc.annotations.UsesFlags;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.version.VersionList;
 import com.google.copybara.version.VersionResolver;
 import com.google.copybara.version.VersionSelector;
@@ -75,9 +76,19 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             named = true,
             defaultValue = "'TARBALL'",
             doc = "Archive type to download, options are 'TARBALL' or 'ZIP'."),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false)
       })
   @UsesFlags(RemoteFileOptions.class)
-  public GithubArchive gitHubTarball(String project, String revision, String type)
+  public GithubArchive gitHubTarball(String project, String revision, String type, Object auth)
       throws EvalException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
@@ -94,7 +105,8 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
                           type, Arrays.asList(GithubArchive.Type.values()))),
           remoteFileOptions.getTransport(),
           generalOptions.profiler(),
-          generalOptions.console());
+          generalOptions.console(),
+          convertFromNoneable(auth, null));
     } catch (ValidationException e) {
       throw Starlark.errorf("Error setting up remote http file: %s", e.getMessage());
     }
@@ -166,7 +178,17 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
             allowedTypes = {
               @ParamType(type = VersionResolver.class),
               @ParamType(type = NoneType.class)
-            })
+            }),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false)
       })
   @UsesFlags(RemoteFileOptions.class)
   public RemoteArchiveOrigin remoteArchiveOrigin(
@@ -176,7 +198,8 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
       String archiveSourceURL,
       Object versionList,
       Object versionSelector,
-      Object versionResolver)
+      Object versionResolver,
+      Object auth)
       throws EvalException, ValidationException {
     GeneralOptions generalOptions = options.get(GeneralOptions.class);
     RemoteFileOptions remoteFileOptions = options.get(RemoteFileOptions.class);
@@ -190,6 +213,7 @@ public class RemoteFileModule implements LabelsAwareModule, StarlarkValue {
         archiveSourceURL,
         convertFromNoneable(versionList, null),
         convertFromNoneable(versionSelector, null),
-        convertFromNoneable(versionResolver, null));
+        convertFromNoneable(versionResolver, null),
+        convertFromNoneable(auth, null));
   }
 }

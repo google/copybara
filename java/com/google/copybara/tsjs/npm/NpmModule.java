@@ -17,9 +17,11 @@
 package com.google.copybara.tsjs.npm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.copybara.doc.annotations.Example;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionResolver;
 import net.starlark.java.annot.Param;
@@ -27,6 +29,7 @@ import net.starlark.java.annot.ParamType;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.EvalException;
+import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Module used for NPM related Starklark operations */
@@ -52,7 +55,17 @@ public class NpmModule implements StarlarkValue {
             allowedTypes = {
               @ParamType(type = String.class),
             },
-            doc = "The Npm package name, including scope with @ if applicable.")
+            doc = "The Npm package name, including scope with @ if applicable."),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
   @Example(
       title = "Create a version list for a given Npm package",
@@ -66,9 +79,10 @@ public class NpmModule implements StarlarkValue {
           "Example of how create a version list for a scoped package (e.g."
               + " https://npmjs.com/package/@angular/core)",
       code = "npm.npm_version_list(\n" + "        package_name='@angular/core'\n" + ")")
-  public NpmVersionList getNpmVersionList(String packageName)
+  public NpmVersionList getNpmVersionList(String packageName, Object auth)
       throws EvalException, ValidationException {
-    return NpmVersionList.forPackage(packageName, remoteFileOptions);
+    return NpmVersionList.forPackage(
+        packageName, remoteFileOptions, convertFromNoneable(auth, null));
   }
 
   @StarlarkMethod(
@@ -83,8 +97,18 @@ public class NpmModule implements StarlarkValue {
               @ParamType(type = String.class),
             },
             doc = "The Npm package name"),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
-  public VersionResolver getResolver(String packageName) {
-    return new NpmVersionResolver(packageName, remoteFileOptions);
+  public VersionResolver getResolver(String packageName, Object auth) {
+    return new NpmVersionResolver(packageName, remoteFileOptions, convertFromNoneable(auth, null));
   }
 }

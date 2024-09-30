@@ -22,10 +22,14 @@ import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.copybara.credentials.CredentialIssuingException;
+import com.google.copybara.credentials.CredentialRetrievalException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.time.Duration;
+import javax.annotation.Nullable;
 
 /**
  * A HttpStreamFactory wrapping the Google GHttp Client without side effects
@@ -46,10 +50,14 @@ public class GclientHttpStreamFactory implements HttpStreamFactory {
   }
 
   @Override
-  public InputStream open(URL url) throws IOException {
+  public InputStream open(URL url, @Nullable AuthInterceptor auth)
+      throws IOException, CredentialRetrievalException, CredentialIssuingException {
     HttpRequest req = javaNet.createRequestFactory().buildGetRequest(new GenericUrl(url))
         .setReadTimeout((int) timeout.toMillis())
         .setConnectTimeout((int) timeout.toMillis());
+    if (auth != null) {
+      req.setInterceptor(auth.interceptor());
+    }
     return req.execute().getContent();
   }
 }

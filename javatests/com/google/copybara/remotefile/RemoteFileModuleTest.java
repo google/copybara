@@ -16,8 +16,10 @@
 
 package com.google.copybara.remotefile;
 
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.copybara.testing.FileSubjects.assertThatPath;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +28,7 @@ import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
 import com.google.copybara.util.Glob;
@@ -39,6 +42,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -83,7 +87,7 @@ public final class RemoteFileModuleTest {
 
   @Test
   public void testRemoteArchiveOriginZipFile() throws Exception {
-    when(transport.open(argThat((URL url) -> url.toString().equals("https://dirs.zip"))))
+    when(transport.open(argThat((URL url) -> url.toString().equals("https://dirs.zip")), isNull()))
         .thenReturn(
             new ByteArrayInputStream(BaseEncoding.base64().decode(CAPUTRED_HELLO_WORLD_ZIP_FILE)));
     RemoteArchiveOrigin underTest =
@@ -99,7 +103,7 @@ public final class RemoteFileModuleTest {
 
   @Test
   public void testRemoteArchiveOriginTarFile() throws Exception {
-    when(transport.open(argThat((URL url) -> url.toString().equals("https://dirs.tar"))))
+    when(transport.open(argThat((URL url) -> url.toString().equals("https://dirs.tar")), isNull()))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_FILE_WITH_NO_DIRECTORIES)));
@@ -116,7 +120,8 @@ public final class RemoteFileModuleTest {
 
   @Test
   public void testRemoteArchiveOriginTarGzFile() throws Exception {
-    when(transport.open(argThat((URL url) -> url.toString().equals("https://dirs.tar.gz"))))
+    when(transport.open(
+            argThat((URL url) -> url.toString().equals("https://dirs.tar.gz")), isNull()))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64().decode(CAPTURED_TAR_GZ_FILE_WITH_NO_DIRECTORIES)));
@@ -129,5 +134,33 @@ public final class RemoteFileModuleTest {
     RemoteArchiveRevision revision = underTest.resolve(null);
     reader.checkout(revision, workdir);
     assertThatPath(workdir).containsFile("test.txt", "hello world");
+  }
+
+  @Test
+  public void testRemoteArchiveOriginAuthenticated() throws Exception {
+    ArgumentCaptor<AuthInterceptor> authCaptor = ArgumentCaptor.forClass(AuthInterceptor.class);
+
+    when(transport.open(
+            argThat((URL url) -> url.toString().equals("https://dirs.zip")), authCaptor.capture()))
+        .thenReturn(
+            new ByteArrayInputStream(BaseEncoding.base64().decode(CAPUTRED_HELLO_WORLD_ZIP_FILE)));
+    RemoteArchiveOrigin underTest =
+        skylark.eval(
+            "o",
+            "o = remotefiles.origin(unpack_method = 'ZIP', message = 'hello world',"
+                + " archive_source = 'https://dirs.zip', auth = http.username_password_auth("
+                + " creds = credentials.username_password("
+                + "   credentials.static_secret('username', 'testuser'),"
+                + "   credentials.static_secret('password', 'testpass'))))");
+    Reader<RemoteArchiveRevision> reader = underTest.newReader(Glob.ALL_FILES, authoring);
+    RemoteArchiveRevision revision = underTest.resolve(null);
+    reader.checkout(revision, workdir);
+    assertThatPath(workdir).containsFile("test.txt", "hello world\n");
+
+    AuthInterceptor auth = authCaptor.getValue();
+    assertThat(auth.describeCredentials().get(0))
+        .containsExactly("type", "constant", "name", "username", "open", "false");
+    assertThat(auth.describeCredentials().get(1))
+        .containsExactly("type", "constant", "name", "password", "open", "false");
   }
 }

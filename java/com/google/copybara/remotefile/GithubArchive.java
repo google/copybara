@@ -21,12 +21,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.io.ByteSink;
 import com.google.common.io.ByteStreams;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.console.Console;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.eval.StarlarkValue;
 
@@ -47,8 +49,9 @@ public class GithubArchive extends RemoteHttpFile implements StarlarkValue {
       Type fileType,
       HttpStreamFactory transport,
       Profiler profiler,
-      Console console) {
-    super(reference, transport, console, profiler);
+      Console console,
+      @Nullable AuthInterceptor auth) {
+    super(reference, transport, console, profiler, auth);
     this.project = checkNotNull(project);
     this.fileType = fileType;
   }

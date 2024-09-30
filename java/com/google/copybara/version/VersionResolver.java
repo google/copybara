@@ -16,6 +16,7 @@
 
 package com.google.copybara.version;
 
+import com.google.copybara.ConfigItemDescription;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.Revision;
 import java.util.Optional;
@@ -23,7 +24,7 @@ import java.util.function.Function;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Takes a ref and resolves it to the repository */
-public interface VersionResolver extends StarlarkValue {
+public interface VersionResolver extends StarlarkValue, ConfigItemDescription {
   Revision resolve(String ref, Function<String, Optional<String>> assemblyStrategy)
       throws ValidationException;
 }

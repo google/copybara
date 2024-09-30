@@ -22,6 +22,7 @@ import com.google.common.io.ByteSink;
 import com.google.common.primitives.Bytes;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.profiler.Profiler;
 import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.util.console.Console;
@@ -32,6 +33,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
 import net.starlark.java.eval.StarlarkValue;
@@ -46,16 +48,22 @@ public abstract class RemoteHttpFile implements StarlarkValue {
    private final HttpStreamFactory transport;
   private final Console console;
   protected final Profiler profiler;
+  @Nullable private final AuthInterceptor auth;
 
   Optional<String> sha256 = Optional.empty();
   boolean downloaded = false;
 
   protected RemoteHttpFile(
-      String reference, HttpStreamFactory transport, Console console, Profiler profiler) {
+      String reference,
+      HttpStreamFactory transport,
+      Console console,
+      Profiler profiler,
+      @Nullable AuthInterceptor auth) {
     this.reference = checkNotNull(reference);
     this.transport = checkNotNull(transport);
     this.console = checkNotNull(console);
     this.profiler = checkNotNull(profiler);
+    this.auth = auth;
   }
 
   /**
@@ -79,7 +87,7 @@ public abstract class RemoteHttpFile implements StarlarkValue {
       ByteSink sink = getSink();
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       try (ProfilerTask task = profiler.start("remote_file_" + remote)) {
-        try (DigestInputStream is = new DigestInputStream(transport.open(remote), digest)) {
+        try (DigestInputStream is = new DigestInputStream(transport.open(remote, auth), digest)) {
           sink.writeFrom(is);
           sha256 = Optional.of(Bytes.asList(is.getMessageDigest().digest()).stream()
               .map(b -> String.format("%02X", b)).collect(Collectors.joining()).toLowerCase());

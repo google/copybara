@@ -4677,7 +4677,7 @@ Module for Go related starlark operations
 
 Go resolver that knows what to do with command line passed refs.
 
-<code>VersionResolver</code> <code>go.go_proxy_resolver(<a href=#go.go_proxy_resolver.module>module</a>)</code>
+<code>VersionResolver</code> <code>go.go_proxy_resolver(<a href=#go.go_proxy_resolver.module>module</a>, <a href=#go.go_proxy_resolver.auth>auth</a>=None)</code>
 
 
 <h4 id="parameters.go.go_proxy_resolver">Parameters:</h4>
@@ -4685,13 +4685,14 @@ Go resolver that knows what to do with command line passed refs.
 Parameter | Description
 --------- | -----------
 <span id=go.go_proxy_resolver.module href=#go.go_proxy_resolver.module>module</span> | <code>string</code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
+<span id=go.go_proxy_resolver.auth href=#go.go_proxy_resolver.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 <a id="go.go_proxy_version_list" aria-hidden="true"></a>
 ### go.go_proxy_version_list
 
 Returns go proxy version list object
 
-<code><a href="#goproxy_version_list">goproxy_version_list</a></code> <code>go.go_proxy_version_list(<a href=#go.go_proxy_version_list.module>module</a>, <a href=#go.go_proxy_version_list.ref>ref</a>=None)</code>
+<code><a href="#goproxy_version_list">goproxy_version_list</a></code> <code>go.go_proxy_version_list(<a href=#go.go_proxy_version_list.module>module</a>, <a href=#go.go_proxy_version_list.ref>ref</a>=None, <a href=#go.go_proxy_version_list.auth>auth</a>=None)</code>
 
 
 <h4 id="parameters.go.go_proxy_version_list">Parameters:</h4>
@@ -4700,6 +4701,7 @@ Parameter | Description
 --------- | -----------
 <span id=go.go_proxy_version_list.module href=#go.go_proxy_version_list.module>module</span> | <code>string</code><br><p>The go module path name. e.g. github.com/google/gopacket. This will automatically normalize uppercase characters to '!{your_uppercase_character}' to escape them.</p>
 <span id=go.go_proxy_version_list.ref href=#go.go_proxy_version_list.ref>ref</span> | <code>string</code> or <code>NoneType</code><br><p>This parameter is primarily used to track versions at specific branches and revisions. If a value is supplied, the returned version list will attempt to extract version data from ${ref}.info found with go proxy at the /@v/${ref}.info endpoint. You can leave off the .info suffix.</p>
+<span id=go.go_proxy_version_list.auth href=#go.go_proxy_version_list.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 
 <h4 id="example.go.go_proxy_version_list">Example:</h4>
@@ -6405,7 +6407,7 @@ Name | Type | Description
 
 A tarball for a specific SHA1 on GitHub. Experimental.
 
-<code>remote_http_file.GitHubArchive</code> <code>remotefiles.github_archive(<a href=#remotefiles.github_archive.project>project</a>=[], <a href=#remotefiles.github_archive.revision>revision</a>=[], <a href=#remotefiles.github_archive.type>type</a>='TARBALL')</code>
+<code>remote_http_file.GitHubArchive</code> <code>remotefiles.github_archive(<a href=#remotefiles.github_archive.project>project</a>=[], <a href=#remotefiles.github_archive.revision>revision</a>=[], <a href=#remotefiles.github_archive.type>type</a>='TARBALL', <a href=#remotefiles.github_archive.auth>auth</a>=None)</code>
 
 
 <h4 id="parameters.remotefiles.github_archive">Parameters:</h4>
@@ -6415,6 +6417,7 @@ Parameter | Description
 <span id=remotefiles.github_archive.project href=#remotefiles.github_archive.project>project</span> | <code>string</code><br><p>The GitHub project from which to load the file, e.g. google/copybara</p>
 <span id=remotefiles.github_archive.revision href=#remotefiles.github_archive.revision>revision</span> | <code>string</code><br><p>The revision to download from the project, typically a commit SHA1.</p>
 <span id=remotefiles.github_archive.type href=#remotefiles.github_archive.type>type</span> | <code>string</code><br><p>Archive type to download, options are 'TARBALL' or 'ZIP'.</p>
+<span id=remotefiles.github_archive.auth href=#remotefiles.github_archive.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 
 
@@ -6429,7 +6432,7 @@ Name | Type | Description
 
 Defines a remote file origin.
 
-<code><a href="#origin">origin</a></code> <code>remotefiles.origin(<a href=#remotefiles.origin.author>author</a>='Copybara <noreply@copybara.io>', <a href=#remotefiles.origin.message>message</a>='Placeholder message', <a href=#remotefiles.origin.unpack_method>unpack_method</a>='AS_IS', <a href=#remotefiles.origin.archive_source>archive_source</a>='', <a href=#remotefiles.origin.version_list>version_list</a>=None, <a href=#remotefiles.origin.origin_version_selector>origin_version_selector</a>=None, <a href=#remotefiles.origin.version_resolver>version_resolver</a>=None)</code>
+<code><a href="#origin">origin</a></code> <code>remotefiles.origin(<a href=#remotefiles.origin.author>author</a>='Copybara <noreply@copybara.io>', <a href=#remotefiles.origin.message>message</a>='Placeholder message', <a href=#remotefiles.origin.unpack_method>unpack_method</a>='AS_IS', <a href=#remotefiles.origin.archive_source>archive_source</a>='', <a href=#remotefiles.origin.version_list>version_list</a>=None, <a href=#remotefiles.origin.origin_version_selector>origin_version_selector</a>=None, <a href=#remotefiles.origin.version_resolver>version_resolver</a>=None, <a href=#remotefiles.origin.auth>auth</a>=None)</code>
 
 
 <h4 id="parameters.remotefiles.origin">Parameters:</h4>
@@ -6443,6 +6446,7 @@ Parameter | Description
 <span id=remotefiles.origin.version_list href=#remotefiles.origin.version_list>version_list</span> | <code>VersionList</code> or <code>NoneType</code><br><p>Version list to select versions on. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.origin_version_selector href=#remotefiles.origin.origin_version_selector>origin_version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Version selector used to select on version_list. Omit to create a versionless origin.</p>
 <span id=remotefiles.origin.version_resolver href=#remotefiles.origin.version_resolver>version_resolver</span> | <code>VersionResolver</code> or <code>NoneType</code><br><p>Version resolvers are used to resolve refs to specific versions. Primarily used when command line refs are provided and accompanied by the '--force' or '--version-selector-use-cli-ref' flag.</p>
+<span id=remotefiles.origin.auth href=#remotefiles.origin.auth>auth</span> | <code>AuthInterceptor</code> or <code>NoneType</code><br><p>Optional, an interceptor for providing credentials.</p>
 
 
 

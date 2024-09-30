@@ -21,6 +21,7 @@ import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.base.Strings;
 import com.google.copybara.doc.annotations.Example;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteFileOptions;
 import com.google.copybara.version.VersionResolver;
 import net.starlark.java.annot.Param;
@@ -64,18 +65,30 @@ public class GoModule implements StarlarkValue {
                 "This parameter is primarily used to track versions at specific branches and"
                     + " revisions. If a value is supplied, the returned version list will attempt"
                     + " to extract version data from ${ref}.info found with go proxy at the"
-                    + " /@v/${ref}.info endpoint. You can leave off the .info suffix.")
+                    + " /@v/${ref}.info endpoint. You can leave off the .info suffix."),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
   @Example(
       title = "Create a version list for a given go package",
       before = "Example of how create a version list for github.com/google/gopacket",
       code = "go.go_proxy_version_list(\n" + "        module='github.com/google/gopacket'\n" + ")")
-  public GoProxyVersionList getGoProxyVersionList(String module, Object ref) throws EvalException {
+  public GoProxyVersionList getGoProxyVersionList(String module, Object ref, Object maybeAuth)
+      throws EvalException {
     String refConvert = convertFromNoneable(ref, null);
+    AuthInterceptor auth = convertFromNoneable(maybeAuth, null);
     if (!Strings.isNullOrEmpty(refConvert)) {
-      return GoProxyVersionList.forInfo(module, refConvert, remoteFileOptions);
+      return GoProxyVersionList.forInfo(module, refConvert, remoteFileOptions, auth);
     }
-    return GoProxyVersionList.forVersion(module, remoteFileOptions);
+    return GoProxyVersionList.forVersion(module, remoteFileOptions, auth);
   }
 
   @StarlarkMethod(
@@ -92,9 +105,19 @@ public class GoModule implements StarlarkValue {
             doc =
                 "The go module path name. e.g. github.com/google/gopacket. This will automatically"
                     + " normalize uppercase characters to '!{your_uppercase_character}' to escape"
-                    + " them.")
+                    + " them."),
+        @Param(
+            name = "auth",
+            doc = "Optional, an interceptor for providing credentials.",
+            named = true,
+            defaultValue = "None",
+            allowedTypes = {
+              @ParamType(type = AuthInterceptor.class),
+              @ParamType(type = NoneType.class)
+            },
+            positional = false),
       })
-  public VersionResolver getResolver(String module) {
-    return new GoProxyVersionResolver(module, remoteFileOptions);
+  public VersionResolver getResolver(String module, Object auth) {
+    return new GoProxyVersionResolver(module, remoteFileOptions, convertFromNoneable(auth, null));
   }
 }

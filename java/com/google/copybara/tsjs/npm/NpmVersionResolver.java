@@ -16,9 +16,12 @@
 
 package com.google.copybara.tsjs.npm;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
 import com.google.copybara.remotefile.RemoteArchiveVersion;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -26,15 +29,19 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.version.VersionResolver;
 import java.util.Optional;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 
 /** Object used to turn a ref into a version listed in the NPM registry. */
 public class NpmVersionResolver implements VersionResolver {
   private final String packageName;
   private final RemoteFileOptions remoteFileOptions;
+  @Nullable private final AuthInterceptor auth;
 
-  public NpmVersionResolver(String packageName, RemoteFileOptions remoteFileOptions) {
+  public NpmVersionResolver(
+      String packageName, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth) {
     this.packageName = packageName;
     this.remoteFileOptions = remoteFileOptions;
+    this.auth = auth;
   }
 
   /** Resolves the given reference as if it was an NPM Package version. */
@@ -42,7 +49,7 @@ public class NpmVersionResolver implements VersionResolver {
     // TODO depending on what ref could be, maybe ref could be semver-lang and that might resolve
     // to a bunch of versions?
     NpmVersionListResponseObject allVersions =
-        NpmVersionList.forPackage(this.packageName, this.remoteFileOptions).listVersions();
+        NpmVersionList.forPackage(packageName, remoteFileOptions, auth).listVersions();
     if (ref != null) {
       if (!allVersions.getAllVersions().contains(ref)) {
         throw new CannotResolveRevisionException(
@@ -72,5 +79,13 @@ public class NpmVersionResolver implements VersionResolver {
       // TODO should resolve also throw a repoexception?
       throw new ValidationException("repository error resolving reference", e);
     }
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

@@ -22,6 +22,7 @@ all_tests(
     tests = glob(["**/*Test.java"]),
     deps = [
         "//java/com/google/copybara:base",
+        "//java/com/google/copybara/credentials",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",

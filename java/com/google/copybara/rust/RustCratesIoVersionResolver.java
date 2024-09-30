@@ -16,10 +16,13 @@
 
 package com.google.copybara.rust;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.exception.CannotResolveRevisionException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.remotefile.RemoteArchiveRevision;
 import com.google.copybara.remotefile.RemoteArchiveVersion;
 import com.google.copybara.remotefile.RemoteFileOptions;
@@ -27,18 +30,24 @@ import com.google.copybara.revision.Revision;
 import com.google.copybara.version.VersionResolver;
 import java.util.Optional;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 
 /** Class that can resolve a ref to a Rust crate version from crates.io */
 public class RustCratesIoVersionResolver implements VersionResolver {
   private final String crate;
   private final RemoteFileOptions remoteFileOptions;
   private final boolean matchPreReleaseVersions;
+  @Nullable private final AuthInterceptor auth;
 
   public RustCratesIoVersionResolver(
-      String crate, RemoteFileOptions remoteFileOptions, boolean matchPreReleaseVersions) {
+      String crate,
+      RemoteFileOptions remoteFileOptions,
+      boolean matchPreReleaseVersions,
+      @Nullable AuthInterceptor auth) {
     this.crate = crate;
     this.remoteFileOptions = remoteFileOptions;
     this.matchPreReleaseVersions = matchPreReleaseVersions;
+    this.auth = auth;
   }
 
   private String resolve(String ref) throws ValidationException {
@@ -46,7 +55,7 @@ public class RustCratesIoVersionResolver implements VersionResolver {
     try {
       versionList =
           RustCratesIoVersionList.forCrate(
-                  this.crate, this.remoteFileOptions, matchPreReleaseVersions)
+                  this.crate, this.remoteFileOptions, matchPreReleaseVersions, auth)
               .list();
       if (!versionList.contains(ref)) {
         throw new CannotResolveRevisionException(
@@ -80,5 +89,13 @@ public class RustCratesIoVersionResolver implements VersionResolver {
                             ref, version)));
     RemoteArchiveVersion remoteArchiveVersion = new RemoteArchiveVersion(fullUrl, version);
     return new RemoteArchiveRevision(remoteArchiveVersion);
+  }
+
+  @Override
+  public ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
+    if (auth == null) {
+      return ImmutableList.of();
+    }
+    return auth.describeCredentials();
   }
 }

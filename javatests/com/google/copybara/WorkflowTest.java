@@ -37,6 +37,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
@@ -4839,7 +4840,7 @@ public class WorkflowTest {
   public void testRemoteArchiveOriginThrowsOnUnforcedDowngrade() throws Exception {
     HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
     options.general.setForceForTest(false);
-    when(mockTransport.open(any()))
+    when(mockTransport.open(any(), isNull()))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64()
@@ -4901,7 +4902,7 @@ public class WorkflowTest {
   @Test
   public void testRemoteArchiveOriginThrowsOnForcedDowngrade() throws Exception {
     HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
-    when(mockTransport.open(any()))
+    when(mockTransport.open(any(), isNull()))
         .thenReturn(
             new ByteArrayInputStream(
                 BaseEncoding.base64()
