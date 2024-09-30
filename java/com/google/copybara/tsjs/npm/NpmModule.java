@@ -57,6 +57,14 @@ public class NpmModule implements StarlarkValue {
             },
             doc = "The Npm package name, including scope with @ if applicable."),
         @Param(
+            name = "registry_url",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+            },
+            defaultValue = "'https://registry.npmjs.com'",
+            doc = "URL of the registry to use. Defaults to the public NPM registry."),
+        @Param(
             name = "auth",
             doc = "Optional, an interceptor for providing credentials.",
             named = true,
@@ -79,10 +87,10 @@ public class NpmModule implements StarlarkValue {
           "Example of how create a version list for a scoped package (e.g."
               + " https://npmjs.com/package/@angular/core)",
       code = "npm.npm_version_list(\n" + "        package_name='@angular/core'\n" + ")")
-  public NpmVersionList getNpmVersionList(String packageName, Object auth)
+  public NpmVersionList getNpmVersionList(String packageName, String registryUrl, Object auth)
       throws EvalException, ValidationException {
     return NpmVersionList.forPackage(
-        packageName, remoteFileOptions, convertFromNoneable(auth, null));
+        packageName, registryUrl, remoteFileOptions, convertFromNoneable(auth, null));
   }
 
   @StarlarkMethod(
@@ -98,6 +106,14 @@ public class NpmModule implements StarlarkValue {
             },
             doc = "The Npm package name"),
         @Param(
+            name = "registry_url",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = String.class),
+            },
+            defaultValue = "'https://registry.npmjs.com'",
+            doc = "URL of the registry to use. Defaults to the public NPM registry."),
+        @Param(
             name = "auth",
             doc = "Optional, an interceptor for providing credentials.",
             named = true,
@@ -108,7 +124,8 @@ public class NpmModule implements StarlarkValue {
             },
             positional = false),
       })
-  public VersionResolver getResolver(String packageName, Object auth) {
-    return new NpmVersionResolver(packageName, remoteFileOptions, convertFromNoneable(auth, null));
+  public VersionResolver getResolver(String packageName, String registryUrl, Object auth) {
+    return new NpmVersionResolver(
+        packageName, registryUrl, remoteFileOptions, convertFromNoneable(auth, null));
   }
 }

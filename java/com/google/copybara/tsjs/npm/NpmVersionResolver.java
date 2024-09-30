@@ -34,12 +34,17 @@ import javax.annotation.Nullable;
 /** Object used to turn a ref into a version listed in the NPM registry. */
 public class NpmVersionResolver implements VersionResolver {
   private final String packageName;
+  private final String registryUrl;
   private final RemoteFileOptions remoteFileOptions;
   @Nullable private final AuthInterceptor auth;
 
   public NpmVersionResolver(
-      String packageName, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth) {
+      String packageName,
+      String registryUrl,
+      RemoteFileOptions remoteFileOptions,
+      @Nullable AuthInterceptor auth) {
     this.packageName = packageName;
+    this.registryUrl = registryUrl;
     this.remoteFileOptions = remoteFileOptions;
     this.auth = auth;
   }
@@ -49,7 +54,7 @@ public class NpmVersionResolver implements VersionResolver {
     // TODO depending on what ref could be, maybe ref could be semver-lang and that might resolve
     // to a bunch of versions?
     NpmVersionListResponseObject allVersions =
-        NpmVersionList.forPackage(packageName, remoteFileOptions, auth).listVersions();
+        NpmVersionList.forPackage(packageName, registryUrl, remoteFileOptions, auth).listVersions();
     if (ref != null) {
       if (!allVersions.getAllVersions().contains(ref)) {
         throw new CannotResolveRevisionException(

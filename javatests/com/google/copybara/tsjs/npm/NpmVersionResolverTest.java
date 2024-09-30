@@ -94,7 +94,7 @@ public class NpmVersionResolverTest {
     String content = listResponse.toString();
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of("https://registry.npmjs.com/@scope/package/", content));
+        ImmutableMap.of("https://registry.npmjs.com/@scope/package", content));
   }
 
   private void setUpMockTransportForSkylarkExecutor(Map<String, String> urlToContent)

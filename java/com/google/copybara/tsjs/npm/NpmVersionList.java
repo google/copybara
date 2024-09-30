@@ -45,21 +45,25 @@ public class NpmVersionList implements VersionList, StarlarkValue, LabelsAwareMo
   private static final GsonFactory GSON_FACTORY = GsonFactory.getDefaultInstance();
 
   public static NpmVersionList forPackage(
-      String packageName, RemoteFileOptions remoteFileOptions, @Nullable AuthInterceptor auth)
+      String packageName,
+      String registryUrl,
+      RemoteFileOptions remoteFileOptions,
+      @Nullable AuthInterceptor auth)
       throws ValidationException {
     return new NpmVersionList(
-        NpmPackageIdentifier.fromPackage(packageName), remoteFileOptions, auth);
+        NpmPackageIdentifier.fromPackage(packageName), registryUrl, remoteFileOptions, auth);
   }
 
   private NpmVersionList(
       NpmPackageIdentifier pkg,
+      String registryUrl,
       RemoteFileOptions remoteFileOptions,
       @Nullable AuthInterceptor auth) {
     this.pkg = pkg;
     String endpoint = pkg.toHumanReadableName();
     // returns JSON listing high-level package information, including distribution info for all
     // published versions
-    this.listVersionsUrl = Optional.of(String.format("https://registry.npmjs.com/%s/", endpoint));
+    this.listVersionsUrl = Optional.of(String.format("%s/%s", registryUrl, endpoint));
     // Specific versions can be listed using https://registry.npmjs.com/%s/<version> where <version>
     // can sometimes be specific dist tags (e.g. latest).
     this.remoteFileOptions = remoteFileOptions;
@@ -74,8 +78,7 @@ public class NpmVersionList implements VersionList, StarlarkValue, LabelsAwareMo
       // input, vs a repoexception for something probably broken with the registry itself.
       throw new ValidationException(
           String.format(
-              "Failed to query registry.npmjs.com for %s (URL: %s)",
-              pkg.toHumanReadableName(), url),
+              "Failed to query NPM registry for %s (URL: %s)", pkg.toHumanReadableName(), url),
           e);
     }
   }

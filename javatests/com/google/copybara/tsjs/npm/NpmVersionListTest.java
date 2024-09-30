@@ -94,7 +94,7 @@ public class NpmVersionListTest {
     String content = listResponse.toString();
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of("https://registry.npmjs.com/@scope/package/", content));
+        ImmutableMap.of("https://registry.npmjs.com/@scope/package", content));
     VersionList versionList =
         skylark.eval(
             "version_list", "version_list = npm.npm_version_list(package_name = '@scope/package')");
@@ -121,7 +121,7 @@ public class NpmVersionListTest {
     String content = listResponse.toString();
 
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of("https://registry.npmjs.com/package/", content));
+        ImmutableMap.of("https://registry.npmjs.com/package", content));
     VersionList versionList =
         skylark.eval(
             "version_list", "version_list = npm.npm_version_list(package_name = 'package')");
@@ -131,7 +131,7 @@ public class NpmVersionListTest {
   @Test
   public void testNPMVersionList_badJson() throws Exception {
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of("https://registry.npmjs.com/@scope/package/", "foo"));
+        ImmutableMap.of("https://registry.npmjs.com/@scope/package", "foo"));
     VersionList versionList =
         skylark.eval(
             "version_list", "version_list = npm.npm_version_list(package_name = '@scope/package')");
@@ -140,13 +140,13 @@ public class NpmVersionListTest {
         .hasMessageThat()
         .contains(
             "Failed to parse NPM registry response for version list at"
-                + " https://registry.npmjs.com/@scope/package/");
+                + " https://registry.npmjs.com/@scope/package");
   }
 
   @Test
   public void testNPMVersionList_invalidScopeValue() throws Exception {
     setUpMockTransportForSkylarkExecutor(
-        ImmutableMap.of("https://registry.npmjs.com/@scope/package/", "foo"));
+        ImmutableMap.of("https://registry.npmjs.com/@scope/package", "foo"));
     ValidationException expected =
         assertThrows(
             ValidationException.class,
@@ -156,5 +156,33 @@ public class NpmVersionListTest {
                   "version_list = npm.npm_version_list(package_name = 'scope/package')");
             });
     assertThat(expected).hasMessageThat().contains("package scopes should start with \"@\"");
+  }
+
+  @Test
+  public void testNPMVersionList_customRegistry() throws Exception {
+    JsonObject listResponse = new JsonObject();
+    JsonObject versions = new JsonObject();
+    listResponse.add("versions", versions);
+    JsonObject v1 = new JsonObject();
+    v1.add("version", new JsonPrimitive("1.0.0"));
+    versions.add("1.0.0", v1);
+
+    JsonObject v2 = new JsonObject();
+    v2.add("version", new JsonPrimitive("2.1.0"));
+    versions.add("2.1.0", v2);
+
+    JsonObject v3 = new JsonObject();
+    v3.add("version", new JsonPrimitive("3.1.1"));
+    versions.add("3.1.1", v3);
+
+    String content = listResponse.toString();
+
+    setUpMockTransportForSkylarkExecutor(ImmutableMap.of("https://myregistry/package", content));
+    VersionList versionList =
+        skylark.eval(
+            "version_list",
+            "version_list = npm.npm_version_list(package_name = 'package', registry_url ="
+                + " 'https://myregistry')");
+    assertThat(versionList.list()).containsExactly("1.0.0", "2.1.0", "3.1.1");
   }
 }
