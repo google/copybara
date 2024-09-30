@@ -215,6 +215,7 @@
   - [html_element](#html_element)
     - [html_element.attr](#html_elementattr)
   - [http](#http)
+    - [http.bearer_auth](#httpbearer_auth)
     - [http.endpoint](#httpendpoint)
     - [http.host](#httphost)
     - [http.json](#httpjson)
@@ -4861,6 +4862,20 @@ Parameter | Description
 ## http
 
 Module for working with http endpoints.
+
+<a id="http.bearer_auth" aria-hidden="true"></a>
+### http.bearer_auth
+
+Authentication via a bearer token.
+
+<code>BearerInterceptor</code> <code>http.bearer_auth(<a href=#http.bearer_auth.creds>creds</a>)</code>
+
+
+<h4 id="parameters.http.bearer_auth">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.bearer_auth.creds href=#http.bearer_auth.creds>creds</span> | <code>CredentialIssuer</code><br><p>The token credentials.</p>
 
 <a id="http.endpoint" aria-hidden="true"></a>
 ### http.endpoint

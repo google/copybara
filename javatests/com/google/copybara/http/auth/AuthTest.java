@@ -98,6 +98,32 @@ public class AuthTest {
   }
 
   @Test
+  public void testBearerAuth() throws ValidationException {
+    String token = "test-token-123";
+
+    String expectedAuthString = String.format("Bearer %s", token);
+    http.mockHttp(
+        (method, url, req, resp) ->
+            assertThat(req.getHeaders().get("authorization")).containsExactly(expectedAuthString));
+    starlark.eval(
+        "resp",
+        String.format(
+            ""
+                + "endpoint = testing.get_endpoint(\n"
+                + "  http.endpoint(hosts = ["
+                + "    http.host(host='foo.com',"
+                + "      auth=http.bearer_auth("
+                + "        creds=credentials.static_value('%s')"
+                + "      ))])\n"
+                + ")\n"
+                + "resp = endpoint.post(\n"
+                + "  url = \"http://foo.com\",\n"
+                + "  auth = True"
+                + ")",
+            token));
+  }
+
+  @Test
   public void testTomlDataSource() throws ValidationException, IOException {
     String username = "testuser";
     String password = "testpassword";

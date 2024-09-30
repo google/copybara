@@ -29,6 +29,7 @@ import com.google.copybara.credentials.CredentialIssuer;
 import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.AuthInterceptor;
+import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.http.auth.UsernamePasswordInterceptor;
 import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.json.HttpEndpointJsonContent;
@@ -367,7 +368,22 @@ public class HttpModule implements StarlarkValue {
     return new UsernamePasswordInterceptor(creds);
   }
 
-
+  @StarlarkMethod(
+      name = "bearer_auth",
+      doc = "Authentication via a bearer token.",
+      parameters = {
+        @Param(
+            name = "creds",
+            doc = "The token credentials.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = CredentialIssuer.class),
+            },
+            positional = false),
+      })
+  public BearerInterceptor bearerAuth(CredentialIssuer creds) {
+    return new BearerInterceptor(creds);
+  }
 
   /** A username/password issuer pair tied to a host */
   @AutoValue
