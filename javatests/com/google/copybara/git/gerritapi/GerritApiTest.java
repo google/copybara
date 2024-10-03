@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -707,16 +707,16 @@ public class GerritApiTest {
     assertThat(info.getAccountId()).isEqualTo(42);
   }
 
-  private void mockResponse(Predicate<String> filter, String response) {
+  protected void mockResponse(Predicate<String> filter, String response) {
     requestToResponse.put(filter, response.getBytes(StandardCharsets.UTF_8));
   }
 
-  private class CheckRequest implements Predicate<String> {
+  public class CheckRequest implements Predicate<String> {
 
     private final String method;
     private final String path;
 
-    CheckRequest(String method, String path) {
+    public CheckRequest(String method, String path) {
       this.method = Preconditions.checkNotNull(method);
       this.path = Preconditions.checkNotNull(path);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,26 +102,24 @@ public class GerritOptions implements Option {
         checker == null ? newGerritApi(url) : newGerritApi(url, new ApiChecker(checker, console));
   }
 
-  /**
-   * Override this method in a class for a specific Gerrit implementation.
-   */
-  public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
-    return new GerritApi(newGerritApiTransport(hostUrl(url)),
-                         generalOptions.profiler());
+  /** Override this method in a class for a specific Gerrit implementation. */
+  public final GerritApi newGerritApi(String url) throws RepoException, ValidationException {
+    return newGerritApi(url, null);
   }
 
-  /**
-   * Creates a new {@link GerritApi} enforcing the given {@link Checker}.
-   */
-  private GerritApi newGerritApi(String url, ApiChecker checker)
+  /** Creates a new {@link GerritApi} enforcing the given {@link Checker}. */
+  protected GerritApi newGerritApi(String url, @Nullable ApiChecker checker)
       throws ValidationException, RepoException {
+    if (checker == null) {
+      return new GerritApi(newGerritApiTransport(hostUrl(url)), generalOptions.profiler());
+    }
     return new GerritApi(newGerritApiTransport(hostUrl(url), checker), generalOptions.profiler());
   }
 
   /**
    * Return the url removing the path part, since the API needs the host.
    */
-  private static URI hostUrl(String url) throws ValidationException {
+  protected static URI hostUrl(String url) throws ValidationException {
     URI result = asUri(url);
     try {
       checkCondition(result.getHost() != null, "Wrong url: %s", url);
@@ -171,7 +169,7 @@ public class GerritOptions implements Option {
   /**
    * Create a Gerrit http transport for a URI and {@link Checker}.
    */
-  private GerritApiTransport newGerritApiTransport(URI uri, ApiChecker checker)
+  protected GerritApiTransport newGerritApiTransport(URI uri, ApiChecker checker)
       throws RepoException, ValidationException {
     return new GerritApiTransportWithChecker(newGerritApiTransport(uri), checker);
   }
