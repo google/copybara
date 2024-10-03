@@ -4996,6 +4996,40 @@ public class WorkflowTest {
         .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
   }
 
+  @Test
+  public void testCredDescription() throws Exception{
+    Path someRoot = Files.createTempDirectory("someRoot");
+    Path originPath = someRoot.resolve("origin");
+    Files.createDirectories(originPath);
+
+    String config = "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin( url = 'https://copybara.io', "
+        + "      credentials = credentials.username_password(\n"
+        + "        credentials.static_value('test@example.com'),\n"
+        + "        credentials.static_secret('password', 'top_secret'))),\n"
+        + "    destination = git.destination( url = 'https://copybara.io', "
+        + "      credentials = credentials.username_password(\n"
+        + "        credentials.static_value('test@example.com'),\n"
+        + "        credentials.static_secret('password', 'top_secret'))),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    origin_files = glob(['included/**']),\n"
+        + "    mode = 'SQUASH',\n"
+        + "    transformations = ["
+        + "metadata.add_header('Resolved revision is ${GIT_DESCRIBE_REQUESTED_VERSION}"
+        + " and change revision is ${GIT_DESCRIBE_CHANGE_VERSION}')]"
+        + ")\n";
+
+
+    Workflow<?, ?> workflow = (Workflow) loadConfig(config).getMigration("default");
+    assertThat(workflow.getCredentialDescription().get(0))
+        .valuesForKey("endpoint")
+        .containsExactly("origin");
+    assertThat(workflow.getCredentialDescription().get(2))
+        .valuesForKey("endpoint")
+        .containsExactly("destination");
+  }
+
   private GitRevision commit(GitRepository origin, String msg)
       throws RepoException, ValidationException {
     origin.commit("Foo <foo@bara.com>", ZonedDateTime.now(ZoneId.systemDefault()), msg);

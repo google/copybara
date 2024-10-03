@@ -44,4 +44,18 @@ public interface ConfigItemDescription {
   default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials() {
     return ImmutableList.of();
   }
+
+  /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
+  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials(String endpoint) {
+    ImmutableList<ImmutableSetMultimap<String, String>> creds = describeCredentials();
+    if (creds.isEmpty()) {
+      return creds;
+    }
+    ImmutableList.Builder <ImmutableSetMultimap<String, String>> builder = ImmutableList.builder();
+    for (ImmutableSetMultimap<String, String> cred : creds) {
+      builder.add(ImmutableSetMultimap.<String, String>builder().putAll(cred)
+          .put("endpoint", endpoint).build());
+    }
+    return builder.build();
+  }
 }
