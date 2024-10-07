@@ -258,7 +258,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = NoneType.class),
             },
             doc =
-                "A glob or list of filesrelative to the workdir that will be read from the"
+                "A glob or list of files relative to the workdir that will be read from the"
                     + " origin during the import. For example glob([\"**.java\"]), all java files,"
                     + " recursively, which excludes all other file types, or ['foo.java'] for a"
                     + " specific file.",
