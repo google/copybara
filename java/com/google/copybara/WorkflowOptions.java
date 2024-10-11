@@ -90,6 +90,11 @@ public class WorkflowOptions implements Option {
   public boolean ignoreNoop = false;
 
   @Parameter(
+      names = "--info-include-versions",
+      description = "Include upstream versions in the info command output.")
+  public boolean infoIncludeVersions = true;
+
+  @Parameter(
     names = "--squash-skip-history",
     description =
         "Avoid exposing the history of changes that are being migrated. This is"
@@ -238,7 +243,7 @@ public class WorkflowOptions implements Option {
       names = "--baseline-for-merge-import",
       description =
           "Origin baseline to use for merge import. This overrides any inferred origin baseline")
-  String baselineForMergeImport = null;
+  public String baselineForMergeImport = null;
 
   @Parameter(
       names = "--threads-for-merge-import",

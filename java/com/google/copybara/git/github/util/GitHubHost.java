@@ -66,7 +66,7 @@ public class GitHubHost {
     try {
       uri = URI.create(url);
     } catch (IllegalArgumentException e) {
-      throw new ValidationException("Cannot find project name from url " + url);
+      throw new ValidationException("Cannot find project name from url " + url, e);
     }
     if (uri.getScheme() == null) {
       uri = URI.create("notimportant://" + url);

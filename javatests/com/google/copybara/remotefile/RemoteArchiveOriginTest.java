@@ -31,12 +31,12 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.testing.FakeTicker;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.Origin.Reader;
+import com.google.copybara.Origin.Reader.ChangesResponse;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
 import com.google.copybara.authoring.Authoring.AuthoringMappingMode;
-import com.google.copybara.profiler.Profiler;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.console.Console;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import com.google.copybara.version.VersionList;
 import com.google.copybara.version.VersionResolver;
@@ -161,11 +161,9 @@ public final class RemoteArchiveOriginTest {
   @Mock VersionList versionList;
   @Mock VersionResolver versionResolver;
   private Path workdir;
-  private Profiler profiler;
   private FakeTicker ticker;
   private RemoteFileOptions remoteFileOptions;
   private Authoring authoring;
-  private Console console;
   private GeneralOptions generalOptions;
 
 
@@ -173,7 +171,6 @@ public final class RemoteArchiveOriginTest {
   public void setUp() throws Exception {
     workdir = Files.createTempDirectory("workdir");
     ticker = new FakeTicker().setAutoIncrementStep(Duration.ofMillis(1));
-    // profiler = new Profiler(ticker);
     remoteFileOptions = new RemoteFileOptions();
     remoteFileOptions.transport = () -> transport;
     generalOptions =
@@ -540,5 +537,87 @@ public final class RemoteArchiveOriginTest {
     assertThat(description).containsEntry("url", "https://foo.tar");
     assertThat(description).containsEntry("type", "remotefiles.origin");
     assertThat(description).containsEntry("root", "path/to");
+  }
+
+  @Test
+  public void testChangeWithUpgradeRef() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.1")),
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.2")));
+
+    assertThat(changesResponse.getChanges().get(0).getRevision().fixedReference())
+        .isEqualTo("v0.1.2");
+  }
+
+  @Test
+  public void testChangeWithDownGradeRef_defaultsToBaseline() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.2")),
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.1")));
+
+    assertThat(changesResponse.getChanges()).isEmpty();
+  }
+
+  @Test
+  public void testChangeWithnoFixedRefProvided_defaultsToIncomingRef() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                new RemoteArchiveRevision(new RemoteArchiveVersion("", "")),
+                new RemoteArchiveRevision(new RemoteArchiveVersion("", "")));
+
+    assertThat(changesResponse.getChanges().get(0).getRevision().fixedReference()).isEqualTo("");
+    ((TestingConsole) generalOptions.console())
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "Either the baseline ref\\[\\] or the incoming ref\\[\\] form as a fixed ref were not"
+                + " known, not performing downgrade validation.");
+  }
+
+  @Test
+  public void testChangeWithFromRefNull_defaultsToIncomingRef() throws Exception {
+    when(versionSelector.select(any(), any(), any())).thenReturn(Optional.of("v0.1.2"));
+
+    RemoteArchiveOrigin underTest =
+        getRemoteArchiveOriginUnderTest(
+            "https://foo.tar", versionList, versionSelector, versionResolver, RemoteFileType.TAR);
+    ChangesResponse<RemoteArchiveRevision> changesResponse =
+        underTest
+            .newReader(Glob.ALL_FILES, authoring)
+            .changes(
+                null,
+                new RemoteArchiveRevision(new RemoteArchiveVersion("https://foo.tar", "v0.1.2")));
+
+    assertThat(changesResponse.getChanges().get(0).getRevision().fixedReference())
+        .isEqualTo("v0.1.2");
+    ((TestingConsole) generalOptions.console())
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "The baseline revision could not be detected, not performing downgrade"
+                + " validation.");
   }
 }

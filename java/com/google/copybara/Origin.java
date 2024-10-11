@@ -115,7 +115,7 @@ public interface Origin<R extends Revision> extends ConfigItemDescription, Starl
     /**
      * Returns the list of versions from the origin repository. By default it returns an empty list.
      */
-    default ImmutableList<R> getVersions() throws RepoException, ValidationException {
+    default ImmutableList<Change<R>> getVersions() throws RepoException {
       return ImmutableList.of();
     }
 

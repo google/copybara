@@ -28,9 +28,23 @@ import net.starlark.java.eval.StarlarkValue;
     documented = false)
 public abstract class MergeImportConfiguration implements StarlarkValue {
 
+  /**
+   * The strategy to use for merging files.
+   *
+   * <p>DIFF3 shells out to diff3 with the -m flag to perform a 3-way merge. PATCH_MERGE creates a
+   * patch file by diffing the baseline and destination files, and then applies the patch to the
+   * origin file.
+   */
+  public enum MergeStrategy {
+    DIFF3,
+    PATCH_MERGE,
+    UNKNOWN
+  }
+
   public static MergeImportConfiguration create(
-      String packagePath, Glob paths, boolean useConsistencyFile) {
-    return new AutoValue_MergeImportConfiguration(packagePath, paths, useConsistencyFile);
+      String packagePath, Glob paths, boolean useConsistencyFile, MergeStrategy mergeStrategy) {
+    return new AutoValue_MergeImportConfiguration(
+        packagePath, paths, useConsistencyFile, mergeStrategy);
   }
 
   public abstract String packagePath();
@@ -38,4 +52,6 @@ public abstract class MergeImportConfiguration implements StarlarkValue {
   public abstract Glob paths();
 
   public abstract boolean useConsistencyFile();
+
+  public abstract MergeStrategy mergeStrategy();
 }

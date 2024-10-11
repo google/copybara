@@ -215,6 +215,7 @@
   - [html_element](#html_element)
     - [html_element.attr](#html_elementattr)
   - [http](#http)
+    - [http.bearer_auth](#httpbearer_auth)
     - [http.endpoint](#httpendpoint)
     - [http.host](#httphost)
     - [http.json](#httpjson)
@@ -270,6 +271,8 @@
   - [PathAttributes](#pathattributes)
   - [python](#python)
     - [python.parse_metadata](#pythonparse_metadata)
+  - [random](#random)
+    - [random.sample](#randomsample)
   - [re2](#re2)
     - [re2.compile](#re2compile)
     - [re2.quote](#re2quote)
@@ -1243,7 +1246,7 @@ core.latest_version(
 
 Describes which paths merge_import mode should be applied
 
-<code><a href="#coremerge_import_config">core.merge_import_config</a></code> <code>core.merge_import_config(<a href=#core.merge_import_config.package_path>package_path</a>, <a href=#core.merge_import_config.paths>paths</a>=None, <a href=#core.merge_import_config.use_consistency_file>use_consistency_file</a>=False)</code>
+<code><a href="#coremerge_import_config">core.merge_import_config</a></code> <code>core.merge_import_config(<a href=#core.merge_import_config.package_path>package_path</a>, <a href=#core.merge_import_config.paths>paths</a>=None, <a href=#core.merge_import_config.use_consistency_file>use_consistency_file</a>=False, <a href=#core.merge_import_config.merge_strategy>merge_strategy</a>='DIFF3')</code>
 
 
 <h4 id="parameters.core.merge_import_config">Parameters:</h4>
@@ -1253,6 +1256,7 @@ Parameter | Description
 <span id=core.merge_import_config.package_path href=#core.merge_import_config.package_path>package_path</span> | <code>string</code><br><p>Package location (ex. 'google3/third_party/java/foo').</p>
 <span id=core.merge_import_config.paths href=#core.merge_import_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
 <span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code>bool</code><br><p>under development</p>
+<span id=core.merge_import_config.merge_strategy href=#core.merge_import_config.merge_strategy>merge_strategy</span> | <code>string</code><br><p>The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the baseline and destination files, and then applies the patch to the origin file.</p>
 
 <a id="core.move" aria-hidden="true"></a>
 ### core.move
@@ -1437,7 +1441,7 @@ Parameter | Description
 <span id=core.replace.first_only href=#core.replace.first_only>first_only</span> | <code>bool</code><br><p>If true, only replaces the first instance rather than all. In single line mode, replaces the first instance on each line. In multiline mode, replaces the first instance in each file.</p>
 <span id=core.replace.multiline href=#core.replace.multiline>multiline</span> | <code>bool</code><br><p>Whether to replace text that spans more than one line.</p>
 <span id=core.replace.repeated_groups href=#core.replace.repeated_groups>repeated_groups</span> | <code>bool</code><br><p>Allow to use a group multiple times. For example foo${repeated}/${repeated}. Note that this won't match "fooX/Y". This mechanism doesn't use backtracking. In other words, the group instances are treated as different groups in regex construction and then a validation is done after that.</p>
-<span id=core.replace.ignore href=#core.replace.ignore>ignore</span> | <code>sequence</code><br><p>A set of regexes. Any line that matches any expression in this set, which might otherwise be transformed, will be ignored. Furthermore, it is not possible to ignore a selected text, and replace another, if they exist on the same line. The entire line will be ignored. Note that `ignore` is matched to the whole file, not just the parts that match `before` comparing the to-be-transformed string to the ignore regexes, meaning text outside the transform may be used to determine whether or not to apply a transformation.</p>
+<span id=core.replace.ignore href=#core.replace.ignore>ignore</span> | <code>sequence</code><br><p>A set of regexes. If the entire content of any line (or file, if `multiline` is enabled) matches any expression in this set, then Copybara will not apply this transformation to any text there. Because `ignore` is matched against the entire line (or entire file under `multiline`), not just the parts that match `before`, the `ignore` regex can refer to text outside the span that would be replaced.</p>
 
 
 <h4 id="example.core.replace">Examples:</h4>
@@ -1759,7 +1763,7 @@ Parameter | Description
 <span id=core.workflow.destination href=#core.workflow.destination>destination</span> | <code><a href="#destination">destination</a></code><br><p>Where to write to the code being migrated, after applying the transformations. This is usually a VCS like Git, but can also be a local folder or even a pending change in a code review system like Gerrit.</p>
 <span id=core.workflow.authoring href=#core.workflow.authoring>authoring</span> | <code><a href="#authoring_class">authoring_class</a></code><br><p>The author mapping configuration from origin to destination.</p>
 <span id=core.workflow.transformations href=#core.workflow.transformations>transformations</span> | <code>sequence</code><br><p>The transformations to be run for this workflow. They will run in sequence.</p>
-<span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob or list of filesrelative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types, or ['foo.java'] for a specific file.</p>
+<span id=core.workflow.origin_files href=#core.workflow.origin_files>origin_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob or list of files relative to the workdir that will be read from the origin during the import. For example glob(["**.java"]), all java files, recursively, which excludes all other file types, or ['foo.java'] for a specific file.</p>
 <span id=core.workflow.destination_files href=#core.workflow.destination_files>destination_files</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>A glob relative to the root of the destination repository that matches files that are part of the migration. Files NOT matching this glob will never be removed, even if the file does not exist in the source. For example glob(['**'], exclude = ['**/BUILD']) keeps all BUILD files in destination when the origin does not have any BUILD files. You can also use this to limit the migration to a subdirectory of the destination, e.g. glob(['java/src/**'], exclude = ['**/BUILD']) to only affect non-BUILD files in java/src.</p>
 <span id=core.workflow.mode href=#core.workflow.mode>mode</span> | <code>string</code><br><p>Workflow mode. Currently we support four modes:<br><ul><li><b>'SQUASH'</b>: Create a single commit in the destination with new tree state.</li><li><b>'ITERATIVE'</b>: Import each origin change individually.</li><li><b>'CHANGE_REQUEST'</b>: Import a pending change to the Source-of-Truth. This could be a GH Pull Request, a Gerrit Change, etc. The final intention should be to submit the change in the SoT (destination in this case).</li><li><b>'CHANGE_REQUEST_FROM_SOT'</b>: Import a pending change **from** the Source-of-Truth. This mode is useful when, despite the pending change being already in the SoT, the users want to review the code on a different system. The final intention should never be to submit in the destination, but just review or test</li></ul></p>
 <span id=core.workflow.reversible_check href=#core.workflow.reversible_check>reversible_check</span> | <code>bool</code> or <code>NoneType</code><br><p>Indicates if the tool should try to to reverse all the transformations at the end to check that they are reversible.<br/>The default value is True for 'CHANGE_REQUEST' mode. False otherwise</p>
@@ -1800,6 +1804,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--force-message`</span> | *string* | Force the change description to this. Note that this only changes the message before the transformations happen, you can still use the transformations to alter it.
 <span style="white-space: nowrap;">`--ignore-noop`</span> | *boolean* | Only warn about operations/transforms that didn't have any effect. For example: A transform that didn't modify any file, non-existent origin directories, etc.
 <span style="white-space: nowrap;">`--import-noop-changes`</span> | *boolean* | By default Copybara will only try to migrate changes that could affect the destination. Ignoring changes that only affect excluded files in origin_files. This flag disables that behavior and runs for all the changes.
+<span style="white-space: nowrap;">`--info-include-versions`</span> | *boolean* | Include upstream versions in the info command output.
 <span style="white-space: nowrap;">`--init-history`</span> | *boolean* | Import all the changes from the beginning of the history up to the resolved ref. For 'ITERATIVE' workflows this will import individual changes since the first one. For 'SQUASH' it will import the squashed change up to the resolved ref. WARNING: Use with care, this flag should be used only for the very first run of Copybara for a workflow.
 <span style="white-space: nowrap;">`--iterative-limit-changes`</span> | *int* | Import just a number of changes instead of all the pending ones
 <span style="white-space: nowrap;">`--last-rev`</span> | *string* | Last revision that was migrated to the destination
@@ -2676,6 +2681,7 @@ submit_requirements | <code>sequence of SubmitRequirementResultInfo</code><br><p
 submittable | <code>bool</code><br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
 submitted | <code>string</code><br><p>The timestamp of when the change was submitted.</p>
 topic | <code>string</code><br><p>The topic to which this change belongs.</p>
+triplet_id | <code>string</code><br><p>The ID of the change in the format "'<project>~<branch>~<Change-Id>'", where 'project' and 'branch' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
 updated | <code>string</code><br><p>The timestamp of when the change was last updated.</p>
 
 
@@ -2863,6 +2869,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--experiment-checkout-affected-files`</span> | *boolean* | If set, copybara will only checkout affected files at git origin. Note that this is experimental.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
+<span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
 <span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
 <span style="white-space: nowrap;">`--nogit-credential-helper-store`</span> | *boolean* | Disable using credentials store. See https://git-scm.com/docs/git-credential-store
@@ -2974,6 +2981,10 @@ Parameter | Description
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--force-gerrit-submit`</span> | *boolean* | Override the gerrit submit setting that is set in the config. This also flips the submit bit.
+<span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+<span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
+<span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
@@ -3025,6 +3036,21 @@ Parameter | Description
 <span id=git.gerrit_origin.describe_version href=#git.gerrit_origin.describe_version>describe_version</span> | <code>bool</code> or <code>NoneType</code><br><p>Download tags and use 'git describe' to create four labels with a meaningful version identifier:<br><br>  - `GIT_DESCRIBE_CHANGE_VERSION`: The version for the change or changes being migrated. The value changes per change in `ITERATIVE` mode and will be the latest migrated change in `SQUASH` (In other words, doesn't include excluded changes). this is normally what users want to use.<br> - `GIT_DESCRIBE_REQUESTED_VERSION`: `git describe` for the requested/head version. Constant in `ITERATIVE` mode and includes filtered changes.<br>  -`GIT_DESCRIBE_FIRST_PARENT`: `git describe` for the first parent version.<br>  -`GIT_SEQUENTIAL_REVISION_NUMBER`: The sequential number of the commit. Falls back to the SHA1 if not applicable.<br></p>
 <span id=git.gerrit_origin.ignore_gerrit_noop href=#git.gerrit_origin.ignore_gerrit_noop>ignore_gerrit_noop</span> | <code>bool</code><br><p>Option to not migrate Gerrit changes that do not change origin_files</p>
 <span id=git.gerrit_origin.primary_branch_migration href=#git.gerrit_origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--force-gerrit-submit`</span> | *boolean* | Override the gerrit submit setting that is set in the config. This also flips the submit bit.
+<span style="white-space: nowrap;">`--gerrit-change-id`</span> | *string* | ChangeId to use in the generated commit message. Use this flag if you want to reuse the same Gerrit review for an export.
+<span style="white-space: nowrap;">`--gerrit-new-change`</span> | *boolean* | Create a new change instead of trying to reuse an existing one.
+<span style="white-space: nowrap;">`--gerrit-topic`</span> | *string* | Gerrit topic to use
+<span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
+<span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.gerrit_trigger" aria-hidden="true"></a>
 ### git.gerrit_trigger
@@ -3079,7 +3105,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
-<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.github_destination" aria-hidden="true"></a>
 ### git.github_destination
@@ -3113,6 +3139,7 @@ Parameter | Description
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
@@ -3124,6 +3151,9 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_origin" aria-hidden="true"></a>
@@ -3150,6 +3180,21 @@ Parameter | Description
 <span id=git.github_origin.primary_branch_migration href=#git.github_origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.github_origin.enable_lfs href=#git.github_origin.enable_lfs>enable_lfs</span> | <code>bool</code><br><p>If true, Large File Storage support is enabled for the origin.</p>
 <span id=git.github_origin.credentials href=#git.github_origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
+<span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
+<span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.github_pr_destination" aria-hidden="true"></a>
 ### git.github_pr_destination
@@ -3229,6 +3274,7 @@ git.github_pr_destination(
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--git-committer-email`</span> | *string* | If set, overrides the committer e-mail for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-committer-name`</span> | *string* | If set, overrides the committer name for the generated commits in git destination.
 <span style="white-space: nowrap;">`--git-destination-fetch`</span> | *string* | If set, overrides the git destination fetch reference.
@@ -3240,8 +3286,11 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--git-destination-push`</span> | *string* | If set, overrides the git destination push reference.
 <span style="white-space: nowrap;">`--git-destination-url`</span> | *string* | If set, overrides the git destination URL.
 <span style="white-space: nowrap;">`--git-skip-checker`</span> | *boolean* | If true and git.destination has a configured checker, it will not be used in the migration.
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--github-destination-pr-branch`</span> | *string* | If set, uses this branch for creating the pull request instead of using a generated one
 <span style="white-space: nowrap;">`--github-destination-pr-create`</span> | *boolean* | If the pull request should be created
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 <span style="white-space: nowrap;">`--nogit-destination-rebase`</span> | *boolean* | Don't rebase the change automatically for workflows CHANGE_REQUEST mode
 
 <a id="git.github_pr_origin" aria-hidden="true"></a>
@@ -3299,6 +3348,12 @@ Parameter | Description
 
 Name | Type | Description
 ---- | ---- | -----------
+<span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
+<span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
+<span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
+<span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
 <span style="white-space: nowrap;">`--github-force-import`</span> | *boolean* | Force import regardless of the state of the PR
 <span style="white-space: nowrap;">`--github-pr-merge`</span> | *boolean* | Override merge bit from config
 <span style="white-space: nowrap;">`--github-required-check-run`</span> | *list* | Required check runs in the Pull Request to be imported by github_pr_origin
@@ -3309,6 +3364,8 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--github-skip-required-labels`</span> | *boolean* | Skip checking labels for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-skip-required-status-context-names`</span> | *boolean* | Skip checking status context names for importing Pull Requests. Note that this is dangerous as it might import an unsafe PR.
 <span style="white-space: nowrap;">`--github-use-repo`</span> | *string* | Use a different git repository instead
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.github_trigger" aria-hidden="true"></a>
 ### git.github_trigger
@@ -3336,7 +3393,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--allstar-app-ids`</span> | *list* | Flag used to set AllStar GitHub app id aliases. See https://github.com/ossf/allstar.
 <span style="white-space: nowrap;">`--github-api-bearer-auth`</span> | *boolean* | If using a token for GitHub access, bearer auth might be required
 <span style="white-space: nowrap;">`--github-destination-delete-pr-branch`</span> | *boolean* | Overwrite git.github_destination delete_pr_branch field
-<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. This should be rarely used for repos that don't fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each commit, 5 reviews per PR
+<span style="white-space: nowrap;">`--gql-commit-history-override`</span> | *list* | Flag used to target GraphQL params 'first' arguments in the event the defaults are over or underusing the api ratelimit. The flag value should be semicolon separated. This should be rarely used for repos that don't fit well in our defaults. E.g. '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR
 
 <a id="git.integrate" aria-hidden="true"></a>
 ### git.integrate
@@ -3439,6 +3496,17 @@ Parameter | Description
 <span id=git.origin.version_selector href=#git.origin.version_selector>version_selector</span> | <code><a href="#versionselector">VersionSelector</a></code> or <code>NoneType</code><br><p>Select a custom version (tag)to migrate instead of 'ref'. Version selector is expected to match the whole refspec (e.g. 'refs/heads/${n1}')</p>
 <span id=git.origin.primary_branch_migration href=#git.origin.primary_branch_migration>primary_branch_migration</span> | <code>bool</code><br><p>When enabled, copybara will ignore the 'ref' param if it is 'master' or 'main' and instead try to establish the default git branch. If this fails, it will fall back to the 'ref' param.<br>This is intended to help migrating to the new standard of using 'main' without breaking users relying on the legacy default.</p>
 <span id=git.origin.credentials href=#git.origin.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
+
+
+
+**Command line flags:**
+
+Name | Type | Description
+---- | ---- | -----------
+<span style="white-space: nowrap;">`--git-fuzzy-last-rev`</span> | *boolean* | By default Copybara will try to migrate the revision listed as the version in the metadata file from github. This flag tells Copybara to first find the git tag which most closely matches the metadata version, and use that for the migration.
+<span style="white-space: nowrap;">`--git-origin-log-batch`</span> | *int* | Read the origin git log in batches of n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.
+<span style="white-space: nowrap;">`--git-origin-rebase-ref`</span> | *string* | When importing a change from a Git origin ref, it will be rebased to this ref, if set. A common use case: importing a Github PR, rebase it to the main branch (usually 'master'). Note that, if the repo uses submodules, they won't be rebased.
+<span style="white-space: nowrap;">`--nogit-origin-version-selector`</span> | *boolean* | Disable the version selector for the migration. Only useful for forcing a migration to the passed version in the CLI
 
 <a id="git.review_input" aria-hidden="true"></a>
 ### git.review_input
@@ -4795,12 +4863,26 @@ Parameter | Description
 
 Module for working with http endpoints.
 
+<a id="http.bearer_auth" aria-hidden="true"></a>
+### http.bearer_auth
+
+Authentication via a bearer token.
+
+<code>BearerInterceptor</code> <code>http.bearer_auth(<a href=#http.bearer_auth.creds>creds</a>)</code>
+
+
+<h4 id="parameters.http.bearer_auth">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=http.bearer_auth.creds href=#http.bearer_auth.creds>creds</span> | <code>CredentialIssuer</code><br><p>The token credentials.</p>
+
 <a id="http.endpoint" aria-hidden="true"></a>
 ### http.endpoint
 
 Endpoint that executes any sort of http request. Currently restrictedto requests to specific hosts.
 
-<code>endpoint_provider</code> <code>http.endpoint(<a href=#http.endpoint.host>host</a>='', <a href=#http.endpoint.checker>checker</a>=None, <a href=#http.endpoint.hosts>hosts</a>=[])</code>
+<code>endpoint_provider</code> <code>http.endpoint(<a href=#http.endpoint.host>host</a>='', <a href=#http.endpoint.checker>checker</a>=None, <a href=#http.endpoint.hosts>hosts</a>=[], <a href=#http.endpoint.issuers>issuers</a>={})</code>
 
 
 <h4 id="parameters.http.endpoint">Parameters:</h4>
@@ -4810,6 +4892,7 @@ Parameter | Description
 <span id=http.endpoint.host href=#http.endpoint.host>host</span> | <code>string</code><br><p>DEPRECATED. A single host to allow HTTP traffic to.</p>
 <span id=http.endpoint.checker href=#http.endpoint.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 <span id=http.endpoint.hosts href=#http.endpoint.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+<span id=http.endpoint.issuers href=#http.endpoint.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionaty of credential issuers.</p>
 
 <a id="http.host" aria-hidden="true"></a>
 ### http.host
@@ -4891,7 +4974,7 @@ Parameter | Description
 
 Trigger for http endpoint
 
-<code>trigger</code> <code>http.trigger(<a href=#http.trigger.hosts>hosts</a>=[], <a href=#http.trigger.checker>checker</a>=None)</code>
+<code>trigger</code> <code>http.trigger(<a href=#http.trigger.hosts>hosts</a>=[], <a href=#http.trigger.issuers>issuers</a>={}, <a href=#http.trigger.checker>checker</a>=None)</code>
 
 
 <h4 id="parameters.http.trigger">Parameters:</h4>
@@ -4899,6 +4982,7 @@ Trigger for http endpoint
 Parameter | Description
 --------- | -----------
 <span id=http.trigger.hosts href=#http.trigger.hosts>hosts</span> | <code>sequence</code><br><p>A list of hosts to allow HTTP traffic to.</p>
+<span id=http.trigger.issuers href=#http.trigger.issuers>issuers</span> | <code>dict</code> or <code>NoneType</code><br><p>A dictionary of credential issuers.</p>
 <span id=http.trigger.checker href=#http.trigger.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that will check calls made by the endpoint</p>
 
 <a id="http.url_encode" aria-hidden="true"></a>
@@ -4934,14 +5018,14 @@ Parameter | Description
 
 Authentication via username and password.
 
-<code>UsernamePasswordInterceptor</code> <code>http.username_password_auth(<a href=#http.username_password_auth.></a>)</code>
+<code>UsernamePasswordInterceptor</code> <code>http.username_password_auth(<a href=#http.username_password_auth.creds>creds</a>)</code>
 
 
 <h4 id="parameters.http.username_password_auth">Parameters:</h4>
 
 Parameter | Description
 --------- | -----------
-<span id=http.username_password_auth. href=#http.username_password_auth.></span> | <code>UsernamePasswordIssuer</code><br><p>The host to be contacted.</p>
+<span id=http.username_password_auth.creds href=#http.username_password_auth.creds>creds</span> | <code>UsernamePasswordIssuer</code><br><p>The username and password credentials.</p>
 
 
 
@@ -6088,6 +6172,27 @@ Parameter | Description
 
 
 
+## random
+
+A module for randomization-related functions.
+
+<a id="random.sample" aria-hidden="true"></a>
+### random.sample
+
+Returns a list of k unique elements randomly sampled from the list.
+
+<code>sequence</code> <code>random.sample(<a href=#random.sample.population>population</a>, <a href=#random.sample.k>k</a>)</code>
+
+
+<h4 id="parameters.random.sample">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=random.sample.population href=#random.sample.population>population</span> | <code>list</code><br><p>The list to sample from.</p>
+<span id=random.sample.k href=#random.sample.k>k</span> | <code>int</code><br><p>The number of elements to sample from the population list.</p>
+
+
+
 ## re2
 
 Set of functions to work with regexes in Copybara.
@@ -7033,6 +7138,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--force, --force-update`</span> | *boolean* | Force the migration even if Copybara cannot find in the destination a change that is an ancestor of the one(s) being migrated. This should be used with care, as it could lose changes when migrating a previous/conflicting change.
 <span style="white-space: nowrap;">`--git-credential-helper-store-file`</span> | *string* | Credentials store file to be used. See https://git-scm.com/docs/git-credential-store
 <span style="white-space: nowrap;">`--git-no-verify`</span> | *boolean* | Pass the '--no-verify' option to git pushes and commits to disable git commit hooks.
+<span style="white-space: nowrap;">`--git-origin-fetch-depth`</span> | *integer* | Use a shallow clone of the specified depth for git.origin. If set, only the n most recent changes' tree states are imported with older changes omitted.
 <span style="white-space: nowrap;">`--git-push-option`</span> | *list* | This is a repeatable flag used to set git push level flags to send to git servers. E.g. copybara copy.bara.sky --git-push-option foo --git-push-option bar would make git operations done by copybara under the hood use the --push-option flags: git push -push-option=foo -push-option=bar ...
 <span style="white-space: nowrap;">`--git-tag-overwrite`</span> | *boolean* | If set, copybara will force update existing git tag
 <span style="white-space: nowrap;">`--info-list-only`</span> | *boolean* | When set, the INFO command will print a list of workflows defined in the file.

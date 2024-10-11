@@ -211,6 +211,9 @@ public final class GitRevision implements Revision {
     if (label.equals(GitRepository.GIT_DESCRIBE_ABBREV)) {
       return populateDescribeAbbrev();
     }
+    if (label.equals(GitRepository.GIT_TAG_POINTS_AT)) {
+      return populateTagPointsAt();
+    }
     return ImmutableList.copyOf(associatedLabels.get(label));
   }
 
@@ -234,6 +237,22 @@ public final class GitRevision implements Revision {
       }
     }
     return ImmutableList.of(describe);
+  }
+
+  private synchronized ImmutableList<String> populateTagPointsAt() {
+    if (associatedLabels.containsKey(GitRepository.GIT_TAG_POINTS_AT)) {
+      return ImmutableList.copyOf(associatedLabels.get(GitRepository.GIT_TAG_POINTS_AT));
+    }
+
+    try {
+      ImmutableList<String> tags = repository.tagPointsAt(this);
+      associatedLabels.putAll(GitRepository.GIT_TAG_POINTS_AT, tags);
+      return tags;
+    } catch (RepoException e) {
+      logger.atWarning().withCause(e).log("Cannot get 'tag --points-to' output for %s", sha1);
+    }
+
+    return ImmutableList.of();
   }
 
   private synchronized ImmutableList<String> populateDescribeAbbrev() {

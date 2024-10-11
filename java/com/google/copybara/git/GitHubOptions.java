@@ -58,9 +58,10 @@ public class GitHubOptions implements Option {
       names = "--gql-commit-history-override",
       description =
           "Flag used to target GraphQL params 'first' arguments in the event the defaults are over"
-              + " or underusing the api ratelimit. This should be rarely used for repos that don't"
-              + " fit well in our defaults. E.g. 50,5,5 represent 50 commits, 5 PRs for each"
-              + " commit, 5 reviews per PR",
+              + " or underusing the api ratelimit. The flag value should be semicolon separated."
+              + " This should be rarely used for repos that don't fit well in our defaults. E.g."
+              + " '50;5;5' represent 50 commits, 5 PRs for each commit, 5 reviews per PR",
+      splitter = SemicolonSeparatedListSplitter.class,
       validateWith = GreaterThanZeroListValidator.class)
   public List<Integer> gqlOverride = ImmutableList.of(50, 5, 5);
 

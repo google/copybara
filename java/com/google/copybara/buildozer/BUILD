@@ -14,6 +14,8 @@
 
 # Support for expressing Buildozer operations as Copybara transformations
 
+load("@rules_java//java:defs.bzl", "java_library")
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

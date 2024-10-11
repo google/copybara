@@ -125,7 +125,9 @@ import net.starlark.java.syntax.Location;
 
 /** Main module that groups all the functions that create Git origins and destinations. */
 @StarlarkBuiltin(name = "git", doc = "Set of functions to define Git origins and destinations.")
-@UsesFlags(GitOptions.class)
+@UsesFlags({
+    GitOptions.class,
+})
 public class GitModule implements LabelsAwareModule, StarlarkValue {
 
   static final String DEFAULT_INTEGRATE_LABEL = "COPYBARA_INTEGRATE_REVIEW";
@@ -307,6 +309,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
+  @UsesFlags(GitOriginOptions.class)
   public GitOrigin origin(
       String url,
       Object ref,
@@ -783,6 +786,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + " without breaking users relying on the legacy default."),
       },
       useStarlarkThread = true)
+  @UsesFlags({GitOriginOptions.class, GerritOptions.class})
   public GitOrigin gerritOrigin(
       String url,
       Object ref,
@@ -1102,7 +1106,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
-  @UsesFlags(GitHubPrOriginOptions.class)
+  @UsesFlags({GitHubPrOriginOptions.class, GitOriginOptions.class, GitHubOptions.class})
   @DocDefault(field = "review_approvers", value = "[\"COLLABORATOR\", \"MEMBER\", \"OWNER\"]")
   public Origin<GitRevision> githubPrOrigin(
       String url,
@@ -1341,6 +1345,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
+  @UsesFlags({GitOriginOptions.class, GitHubOptions.class})
   public GitOrigin githubOrigin(
       String url,
       Object ref,
@@ -1715,19 +1720,19 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "is used, that checker will only apply to API calls.",
             named = true,
             positional = false),
-          @Param(
-              name = "credentials",
-              allowedTypes = {
-                  @ParamType(type = UsernamePasswordIssuer.class),
-                  @ParamType(type = NoneType.class),
-              },
-              defaultValue = "None",
-              named = true,
-              positional = false,
-              doc = CREDENTIAL_DOC)
+        @Param(
+            name = "credentials",
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+              @ParamType(type = NoneType.class),
+            },
+            defaultValue = "None",
+            named = true,
+            positional = false,
+            doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
-  @UsesFlags(GitDestinationOptions.class)
+  @UsesFlags({GitDestinationOptions.class, GitHubOptions.class})
   // Used to detect in the future users that don't set it and change the default
   @DocDefault(field = "delete_pr_branch", value = "False")
   public GitDestination gitHubDestination(
@@ -2009,7 +2014,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
-  @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class})
+  @UsesFlags({GitDestinationOptions.class, GitHubDestinationOptions.class, GitHubOptions.class})
   @Example(
       title = "Common usage",
       before = "Create a branch by using copybara's computerIdentity algorithm:",
@@ -2335,7 +2340,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
               doc = CREDENTIAL_DOC)
       },
       useStarlarkThread = true)
-  @UsesFlags(GitDestinationOptions.class)
+  @UsesFlags({GitDestinationOptions.class, GerritOptions.class})
   @DocDefault(field = "push_to_refs_for", value = "fetch value")
   public GerritDestination gerritDestination(
       String url,

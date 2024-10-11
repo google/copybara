@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Endpoint;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.credentials.CredentialIssuer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.AuthInterceptor;
 import com.google.copybara.util.console.Console;
@@ -49,6 +50,12 @@ import net.starlark.java.eval.NoneType;
  */
 @StarlarkBuiltin(name = "http_endpoint", doc = "Calls via HTTP.")
 public class HttpEndpoint implements Endpoint {
+
+  // Immutable list to keep the issuers as key value pairs
+  // The key will be used to identify the issuer
+  // before executing the http call
+  private final ImmutableMap<String, CredentialIssuer> issuers;
+
   private final ImmutableMap<String, Optional<AuthInterceptor>> hosts;
   HttpTransport transport;
   Console console;
@@ -61,11 +68,13 @@ public class HttpEndpoint implements Endpoint {
       Console console,
       HttpTransport transport,
       ImmutableMap<String, Optional<AuthInterceptor>> hosts,
+      ImmutableMap<String, CredentialIssuer> issuers,
       @Nullable Checker checker) {
     this.hosts = hosts;
     this.transport = transport;
     this.console = console;
     this.checker = checker;
+    this.issuers = issuers;
   }
 
   @StarlarkMethod(
@@ -163,17 +172,20 @@ public class HttpEndpoint implements Endpoint {
     GenericUrl url = new GenericUrl(urlIn);
     validateUrl(url);
 
+    HttpSecretInterceptor secretInterceptor = new HttpSecretInterceptor(issuers);
     Dict<String, String> headersDict = Dict.cast(headersIn, String.class, String.class, "headers");
     HttpHeaders headers = new HttpHeaders();
     for (Entry<String, String> e : headersDict.entrySet()) {
-      headers.set(e.getKey(), ImmutableList.of(e.getValue()));
+      String val = e.getValue();
+      val = secretInterceptor.resolveStringSecrets(val);
+      headers.set(e.getKey(), ImmutableList.of(val));
     }
 
     @Nullable
     HttpEndpointBody endpointContent = SkylarkUtil.convertFromNoneable(endpointContentIn, null);
     HttpContent content = null;
     if (endpointContent != null) {
-      content = endpointContent.getContent();
+      content = new HttpContentInterceptor(endpointContent.getContent(), secretInterceptor);
     }
 
     @Nullable AuthInterceptor creds = null;
@@ -249,6 +261,16 @@ public class HttpEndpoint implements Endpoint {
         list.add(describe.build());
       }
     }
+
+    // add generic credentials
+    for (Entry<String, CredentialIssuer> entry : issuers.entrySet()) {
+      ImmutableSetMultimap.Builder<String, String> describe = ImmutableSetMultimap.builder();
+      describe.put("type", "generic_credential");
+      describe.put("key", entry.getKey());
+      describe.putAll(entry.getValue().describe());
+      list.add(describe.build());
+    }
+
     return list.build();
   }
 }

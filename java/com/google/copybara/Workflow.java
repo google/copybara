@@ -60,6 +60,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -389,7 +390,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       () ->
                           (destinationStatus == null)
                               ? null
-                              : origin.resolve(destinationStatus.getBaseline()));
+                              : origin.resolveLastRev(destinationStatus.getBaseline()));
 
               Change<O> lastMigratedChange = null;
               try {
@@ -434,10 +435,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       lastMigratedChange,
                       affectedChanges);
 
+              ImmutableList<Change<O>> originVersions = ImmutableList.of();
+              if (workflowOptions.infoIncludeVersions) {
+                originVersions = oReader.getVersions();
+              }
+
               return Info.create(
                   getOriginDescription(),
                   getDestinationDescription(),
-                  ImmutableList.of(migrationRef));
+                  ImmutableList.of(migrationRef),
+                  originVersions);
             });
   }
 
@@ -487,8 +494,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   @Override
   public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription() {
     ImmutableList.Builder<ImmutableSetMultimap<String, String>> allCreds = ImmutableList.builder();
-    for (ConfigItemDescription ep : ImmutableList.of(origin, destination)) {
-      allCreds.addAll(ep.describeCredentials());
+    for (Map.Entry<String, ConfigItemDescription> entry :
+        ImmutableMap.<String, ConfigItemDescription>
+            of("origin", origin, "destination", destination).entrySet()) {
+      allCreds.addAll(entry.getValue().describeCredentials(entry.getKey()));
     }
     return allCreds.build();
   }

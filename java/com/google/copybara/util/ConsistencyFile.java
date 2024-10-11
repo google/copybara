@@ -88,7 +88,7 @@ public class ConsistencyFile {
       Map<String, String> environment,
       boolean verbose)
       throws IOException, InsideGitDirException {
-    byte[] diff = DiffUtil.diff(baseline, destination, verbose, environment);
+    byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
     return new ConsistencyFile(computeFileHashes(destination, hashFunction), diff);
   }
 
@@ -106,6 +106,12 @@ public class ConsistencyFile {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
               throws IOException {
+            if (Files.isSymbolicLink(file)) {
+              // skip symbolic links
+              // if they are materialized, then they will be hashed elsewhere
+              // the symbolic link itself will not be hashed
+              return FileVisitResult.CONTINUE;
+            }
             HashCode hashCode = MoreFiles.asByteSource(file).hash(hashFunction);
             hashesBuilder.put(directory.relativize(file).toString(), hashCode.toString());
             return FileVisitResult.CONTINUE;

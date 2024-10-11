@@ -49,6 +49,20 @@ public class GitEnvironment {
   }
 
   /**
+   * Returns a copy of this environment, with the given vars added.
+   *
+   * <p>If a key is already present, its value is overwritten.
+   *
+   * @param vars the vars to add
+   * @return a new GitEnvironment with the vars added
+   */
+  public GitEnvironment withVars(Map<String, String> vars) {
+    ImmutableMap.Builder<String, String> allVars = ImmutableMap.builder();
+    allVars.putAll(this.environment).putAll(vars);
+    return new GitEnvironment(allVars.buildKeepingLast(), this.noGitPrompt);
+  }
+
+  /**
    * Returns a copy of this environment, setting explicitly to prevent Git from asking for
    * username/password and fail if the credentials cannot be resolved.
    */

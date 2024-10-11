@@ -16,10 +16,8 @@
 
 package com.google.copybara;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.effect.DestinationEffect.DestinationRef;
-import com.google.copybara.exception.ValidationException;
 import com.google.copybara.revision.OriginRef;
 import com.google.copybara.util.console.Console;
 import javax.annotation.Nullable;
@@ -41,7 +39,7 @@ import net.starlark.java.eval.StarlarkValue;
  */
 @SuppressWarnings("unused")
 @StarlarkBuiltin(name = "endpoint", doc = "An origin or destination API in a feedback migration.")
-public interface Endpoint extends StarlarkValue {
+public interface Endpoint extends StarlarkValue, ConfigItemDescription {
 
   /**
    * To be used for core.workflow origin/destinations that don't want to provide an api for giving
@@ -67,12 +65,6 @@ public interface Endpoint extends StarlarkValue {
 
   /** Returns a key-value list of the options the endpoint was instantiated with. */
   ImmutableSetMultimap<String, String> describe();
-
-  /** Returns a key-value list describing the credentials the endpoint was instantiated with. */
-  default ImmutableList<ImmutableSetMultimap<String, String>> describeCredentials()
-      throws ValidationException {
-    return ImmutableList.of();
-  }
 
   @StarlarkMethod(
       name = "new_origin_ref",

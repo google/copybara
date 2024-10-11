@@ -106,7 +106,7 @@ public class Main {
     System.exit(new Main(System.getenv()).run(args).getCode());
   }
 
-  protected final ExitCode run(String[] args) {
+  protected ExitCode run(String[] args) {
     // We need a console before parsing the args because it could fail with wrong
     // arguments and we need to show the error.
     this.console = getConsole(args);

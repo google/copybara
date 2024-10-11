@@ -42,7 +42,10 @@ public final class GlobAtom {
   public static GlobAtom of(String pattern, AtomType type) {
     Preconditions.checkArgument(!pattern.isEmpty(), "unexpected empty string in glob list");
     FileUtil.checkNormalizedRelative(pattern);
-    FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+    if (type == AtomType.JAVA_GLOB) {
+      // Try to create a PathMatcher to check if the glob pattern is correct.
+      var unused = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+    }
     return new GlobAtom(pattern, type);
   }
 
@@ -137,7 +140,11 @@ public final class GlobAtom {
 
       @Override
       Root root(String pattern, boolean allowFiles) {
-        return new Root(false, pattern.substring(0, pattern.lastIndexOf('/')));
+        int lastSlash = pattern.lastIndexOf('/');
+        if (lastSlash == -1) {
+          return new Root(false, "");
+        }
+        return new Root(false, pattern.substring(0, lastSlash));
       }
     };
 

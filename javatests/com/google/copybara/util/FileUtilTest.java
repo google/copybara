@@ -26,8 +26,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
+import com.google.copybara.shell.Command;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -146,6 +148,28 @@ public class FileUtilTest {
 
     FileUtil.copyFilesRecursively(orig.resolve("../" + orig.getFileName()), dest,
         FAIL_OUTSIDE_SYMLINKS, Glob.createGlob(ImmutableList.of("foo/*", "bar/*")));
+  }
+
+  @Test
+  public void testCopyFilesRecursively_skipFifoFiles() throws Exception {
+    Path orig = Files.createDirectory(temp.resolve("orig"));
+    Path dest = Files.createDirectory(temp.resolve("dest"));
+
+    Files.writeString(orig.resolve("normal_file"), "hello");
+    Path fifoFile = orig.resolve("test_fifo");
+
+    CommandOutputWithStatus output =
+        new CommandRunner(
+                new Command(
+                    new String[] {"mkfifo", fifoFile.toString()}, ImmutableMap.of(), temp.toFile()))
+            .execute();
+
+    FileUtil.copyFilesRecursively(orig, dest, FAIL_OUTSIDE_SYMLINKS, Glob.ALL_FILES);
+    assertThat(output.getTerminationStatus().getExitCode()).isEqualTo(0);
+    assertThat(Files.readString(dest.resolve("normal_file"))).isEqualTo("hello");
+    // If we try to copy over a FIFO file, the test will probably hang and timeout.
+    assertThat(Files.exists(dest.resolve("test_fifo"))).isFalse();
+    Files.delete(fifoFile);
   }
 
   @Test

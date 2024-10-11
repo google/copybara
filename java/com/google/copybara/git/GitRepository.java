@@ -82,6 +82,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -165,6 +166,7 @@ public class GitRepository {
   public static final String GIT_SEQUENTIAL_REVISION_NUMBER = "GIT_SEQUENTIAL_REVISION_NUMBER";
   // Closest tag, if any
   public static final String GIT_DESCRIBE_ABBREV = "GIT_DESCRIBE_ABBREV";
+  public static final String GIT_TAG_POINTS_AT = "GIT_TAG_POINTS_TO";
   public static final String HTTP_PERMISSION_DENIED = "The requested URL returned error: 403";
 
   /**
@@ -177,7 +179,7 @@ public class GitRepository {
   private final Path workTree;
 
   private final boolean verbose;
-  private final GitEnvironment gitEnv;
+  protected final GitEnvironment gitEnv;
   private final Duration repoTimeout;
   protected final PushOptionsValidator pushOptionsValidator;
   protected final boolean noVerify;
@@ -465,6 +467,11 @@ public class GitRepository {
     return describe(rev, false, "--tag", "--abbrev=0");
   }
 
+  public ImmutableList<String> tagPointsAt(GitRevision rev) throws RepoException {
+    return ImmutableList.copyOf(
+        simpleCommand("tag", "--points-at", rev.getSha1()).getStdout().trim().split("\n"));
+  }
+
   public String showDiff(String referenceFrom, String referenceTo) throws RepoException {
     Preconditions.checkNotNull(referenceFrom, "Parameter referenceFrom should not be null");
     Preconditions.checkNotNull(referenceTo, "Parameter referenceTo should not be null");
@@ -609,6 +616,26 @@ public class GitRepository {
         ImmutableList.of());
   }
 
+  /**
+   * Runs a git ls-remote from the current directory for a repository url. Assumes the path to the
+   * git binary is already set. You don't have to be in a git repository to run this command. Does
+   * not work with remote names.
+   *
+   * @param url - see <repository> in git help ls-remote
+   * @param refs - see <refs> in git help ls-remote
+   * @param gitEnv - determines where the Git binaries are
+   * @param flags - flags to pass to the ls-remote command.
+   * @return - a map of refs to sha1 from the git ls-remote output. Can also contain symbolic refs
+   *     if --symref is set.
+   * @throws RepoException if the operation fails
+   */
+  public static ImmutableMap<String, String> lsRemote(
+      String url, Collection<String> refs, GitEnvironment gitEnv, Collection<String> flags)
+      throws RepoException, ValidationException {
+    return lsRemote(
+        FileSystems.getDefault().getPath("."), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+  }
+
   private static ImmutableMap<String, String> lsRemote(
       Path cwd, String url, Collection<String> refs, GitEnvironment gitEnv, int maxLogLines,
       Collection<String> flags) throws RepoException, ValidationException {
@@ -707,8 +734,28 @@ public class GitRepository {
     return lsRemote(getCwd(), url, refs, gitEnv, maxLogLines, flags);
   }
 
+  /**
+   * Same as {@link #lsRemote(String, Collection)} but allows you to specify additional flags.
+   *
+   * @param refs - see <refs> in git help ls-remote
+   * @param flags - additional flags to pass to ls-remote
+   * @return - a map of refs to sha1 from the git ls-remote output.
+   * @throws RepoException if the operation fails
+   */
+  public Map<String, String> lsRemote(String url, Collection<String> refs, Collection<String> flags)
+      throws RepoException, ValidationException {
+    return lsRemote(getCwd(), url, refs, gitEnv, DEFAULT_MAX_LOG_LINES, flags);
+  }
+
   @CheckReturnValue
   static String validateUrl(String url) throws RepoException, ValidationException {
+    // support remote helper syntax <transport>::<address>
+    List<String> parts = Splitter.on("::").splitToList(url);
+    if (parts.size() == 2) {
+      // run validation on the address portion
+      return parts.get(0) + "::" + validateUrl(parts.get(1));
+    }
+
     RepositoryUtil.validateNotHttp(url);
     if (FULL_URI.matcher(url).matches()) {
       return url;
@@ -1443,7 +1490,8 @@ public class GitRepository {
         throw new RepoException("Unexpected format for ls-tree output: " + line);
       }
       // We ignore the mode for now
-      GitObjectType objectType = GitObjectType.valueOf(matcher.group(2).toUpperCase());
+      GitObjectType objectType =
+          GitObjectType.valueOf(matcher.group(2).toUpperCase(Locale.getDefault()));
       String sha1 = matcher.group(3);
       String path = matcher.group(4);
 
@@ -2290,7 +2338,9 @@ public class GitRepository {
     private final boolean includeMergeDiff;
     private final boolean firstParent;
     private final int skip;
+    private final int batchSize;
     private final boolean includeTags;
+    private final boolean noWalk;
     private final GitRepository repo;
 
     @Nullable
@@ -2308,7 +2358,9 @@ public class GitRepository {
         @Nullable String grepString,
         boolean includeMergeDiff,
         int skip,
-        boolean includeTags) {
+        int batchSize,
+        boolean includeTags,
+        boolean noWalk) {
       this.limit = limit;
       this.paths = paths;
       this.refExpr = refExpr;
@@ -2319,7 +2371,9 @@ public class GitRepository {
       this.repo = repo;
       this.grepString = grepString;
       this.skip = skip;
+      this.batchSize = batchSize;
       this.includeTags = includeTags;
+      this.noWalk = noWalk;
     }
 
     static LogCmd create(GitRepository repository, String refExpr) {
@@ -2334,7 +2388,9 @@ public class GitRepository {
           /* grepString= */ null,
           /* includeMergeDiff= */ false,
           /* skip= */ 0,
-          /* includeTags= */ false);
+          /* batchSize= */ 0,
+          /* includeTags= */ false,
+          /* noWalk= */ false);
     }
 
     /**
@@ -2354,7 +2410,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2374,7 +2432,29 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
+    }
+
+    /** Read in batches of siz {@code batchSize} commits. Should be >= 0. */
+    @CheckReturnValue
+    LogCmd withBatchSize(int batchSize) {
+      Preconditions.checkArgument(batchSize >= 0);
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2394,7 +2474,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2413,7 +2495,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /** If files affected by the commit should be included in the response. */
@@ -2430,7 +2514,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2449,7 +2535,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2468,7 +2556,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2487,7 +2577,9 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /** Include tags in the response. */
@@ -2504,7 +2596,28 @@ public class GitRepository {
           grepString,
           includeMergeDiff,
           skip,
-          includeTags);
+          batchSize,
+          includeTags,
+          noWalk);
+    }
+
+    /** If the ancestors of commits should be included in the output. */
+    @CanIgnoreReturnValue
+    public LogCmd noWalk(boolean noWalk) {
+      return new LogCmd(
+          repo,
+          refExpr,
+          limit,
+          paths,
+          firstParent,
+          includeStat,
+          includeBody,
+          grepString,
+          includeMergeDiff,
+          skip,
+          batchSize,
+          includeTags,
+          noWalk);
     }
 
     /**
@@ -2513,10 +2626,6 @@ public class GitRepository {
     public ImmutableList<GitLogEntry> run() throws RepoException {
       List<String> cmd =
           Lists.newArrayList("log", "--no-color", createFormat(includeBody, includeTags));
-
-      if (limit > 0) {
-        cmd.add("-" + limit);
-      }
 
       if (includeStat) {
         cmd.add("--name-only");
@@ -2534,9 +2643,13 @@ public class GitRepository {
       // Without this flag, non-ascii characters in file names are returned wrapped
       // in quotes and the unicode chars escaped.
       cmd.add("-z");
-      if (skip > 0) {
-        cmd.add("--skip");
-        cmd.add(Integer.toString(skip));
+
+      if (includeTags) {
+        cmd.add("--tags");
+      }
+
+      if (noWalk) {
+        cmd.add("--no-walk");
       }
 
       if (!Strings.isNullOrEmpty(grepString)) {
@@ -2550,18 +2663,55 @@ public class GitRepository {
         cmd.add("--");
         cmd.addAll(paths);
       }
-      logger.atInfo().log("Executing: %s", cmd);
-      // Avoid logging since git log can return LOT of entries.
-      CommandOutput output = limit > 0 && limit < 10
-          ? repo.simpleCommand(cmd)
-          : repo.simpleCommandNoRedirectOutput(cmd.toArray(new String[0]));
-      ImmutableList<GitLogEntry> res = parseLog(output.getStdout(), includeBody);
-      logger.atInfo().log("Log command returned %s entries", res.size());
-      if (!res.isEmpty()) {
-        logger.atInfo().log("First commit: %s", res.get(0));
-        logger.atInfo().log("Last commit: %s", Iterables.getLast(res));
-      }
-      return res;
+
+      return runGitLog(cmd);
+    }
+
+    private ImmutableList<GitLogEntry> runGitLog(List<String> cmd) throws RepoException {
+      ImmutableList.Builder<GitLogEntry> res = ImmutableList.builder();
+      ImmutableList<GitLogEntry> batchRes;
+      int batchSkip = skip;
+      int overallLimit = limit;
+      do {
+        ImmutableList.Builder<String> batchCmdBuilder = ImmutableList.builder();
+        batchCmdBuilder.addAll(cmd);
+
+        int batchLimit =
+            limit == 0
+                ? batchSize
+                : (batchSize == 0 ? overallLimit : Math.min(batchSize, overallLimit));
+        if (batchSkip > 0) {
+          batchCmdBuilder.add("--skip");
+          batchCmdBuilder.add(Integer.toString(batchSkip));
+        }
+        if (batchLimit > 0) {
+          batchCmdBuilder.add("-" + batchLimit);
+        }
+        ImmutableList<String> batchCmd = batchCmdBuilder.build();
+        logger.atInfo().log("Executing: %s", batchCmd);
+        // Avoid logging since git log can return LOT of entries.
+        CommandOutput output =
+            limit > 0 && limit < 10
+                ? repo.simpleCommand(batchCmd)
+                : repo.simpleCommandNoRedirectOutput(batchCmd.toArray(new String[0]));
+        batchRes = parseLog(output.getStdout(), includeBody);
+        logger.atInfo().log("Log command returned %s entries", batchRes.size());
+        if (!batchRes.isEmpty()) {
+          logger.atInfo().log("First commit: %s", batchRes.get(0));
+          logger.atInfo().log("Last commit: %s", Iterables.getLast(batchRes));
+        }
+        if (batchSize > 0) {
+          // Merge commit shows multiple entries when using -m and --name-only but first parent is
+          // disabled. Each entry represents the parent file changes.
+          batchSkip =
+              (int)
+                  (batchSkip
+                      + batchRes.stream().map(e -> e.getCommit().getSha1()).distinct().count());
+          overallLimit -= batchSkip;
+        }
+        res.addAll(batchRes);
+      } while (batchSize > 0 && (limit == 0 || overallLimit > 0) && !batchRes.isEmpty());
+      return res.build();
     }
 
     private ImmutableList<GitLogEntry> parseLog(String log, boolean includeBody)

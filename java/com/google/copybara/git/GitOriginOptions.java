@@ -27,9 +27,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.util.OriginUtil.CheckoutHook;
 import java.nio.file.Path;
 
-/**
- * Options for {@link GitOrigin}.
- */
+/** Options for {@link GitOrigin}. */
 @Parameters(separators = "=")
 public class GitOriginOptions implements Option {
 
@@ -52,6 +50,10 @@ public class GitOriginOptions implements Option {
   @Parameter(names = "--nogit-origin-version-selector", description = "Disable the version selector"
       + " for the migration. Only useful for forcing a migration to the passed version in the CLI")
   boolean noGitVersionSelector = false;
+
+  @Parameter(names = "--git-origin-log-batch", description = "Read the origin git log in batches of"
+      + " n commits. Might be needed for large migrations resulting in git logs of more than 1 GB.")
+  int gitOriginLogBatchSize = 0;
 
   public boolean useGitVersionSelector() {
     return !noGitVersionSelector;

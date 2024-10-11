@@ -35,7 +35,7 @@ import java.io.IOException;
 public class ConfigLoader {
 
   private final SkylarkParser skylarkParser;
-  private final ConfigFile configFile;
+  protected final ConfigFile configFile;
   private final ModuleSet moduleSet;
 
   public ConfigLoader(ModuleSet moduleSet, ConfigFile configFile, StarlarkMode validateStarlark) {

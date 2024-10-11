@@ -24,6 +24,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -90,7 +91,7 @@ class GitHubPrIntegrateLabel implements IntegrateLabel {
     String pr = "https://github.com/" + projectId + "/pull/" + prNumber;
     String repoUrl = "https://github.com/" + projectId;
     GitRevision gitRevision = GitRepoType.GITHUB.resolveRef(repository, repoUrl, pr,
-        generalOptions, /*describeVersion=*/ false, /*partialFetch*/ false);
+        generalOptions, /*describeVersion=*/ false, /*partialFetch*/ false, Optional.empty());
     if (sha1 == null) {
       return gitRevision;
     }

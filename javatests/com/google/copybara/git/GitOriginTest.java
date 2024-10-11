@@ -838,9 +838,11 @@ public class GitOriginTest {
 
     GitRevision unused = getLastCommitRef();
 
-    ImmutableList<GitRevision> tags = newReader().getVersions();
+    ImmutableList<Change<GitRevision>> tags = newReader().getVersions();
     ImmutableList<String> tagNames =
-        tags.stream().map(GitRevision::contextReference).collect(ImmutableList.toImmutableList());
+        tags.stream()
+            .map(t -> t.getRevision().contextReference())
+            .collect(ImmutableList.toImmutableList());
 
     assertThat(tagNames).containsExactly("1.0.1", "1.0.2", "1.0.3");
   }
@@ -992,6 +994,21 @@ public class GitOriginTest {
       assertThat(change.getDateTime())
           .isAtMost(ZonedDateTime.now(ZoneId.systemDefault()).plusSeconds(1));
     }
+  }
+
+
+  @Test
+  public void testChangesMerge_paginated() throws Exception {
+    String author = "John Name <john@name.com>";
+    createBranchMerge(author);
+    options.gitOrigin.gitOriginLogBatchSize = 1;
+    ImmutableList<Change<GitRevision>> changes = newReader()
+        .changes(origin.resolve(firstCommitRef), origin.resolve("HEAD")).getChanges();
+
+    assertThat(changes).hasSize(3);
+    assertThat(changes.get(0).getMessage()).isEqualTo("main1\n");
+    assertThat(changes.get(1).getMessage()).isEqualTo("main2\n");
+    assertThat(changes.get(2).getMessage()).contains("Merge branch 'feature'");
   }
 
   @Test
@@ -1462,6 +1479,109 @@ public class GitOriginTest {
     wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
 
     List<ProcessedChange> changes = destination.processed;
+    assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).filePresent("file.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/file_in_dir.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/subdir/file_in_subdir.txt")).isTrue();
+  }
+
+  @Test
+  public void shallowFetch_happy() throws Exception {
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+    options.git.fetchDepth = 1;
+
+    Files.write(remote.resolve("file.txt"), new byte[0]);
+    Files.createDirectories(remote.resolve("directory/subdir"));
+    Files.write(remote.resolve("directory/file_in_dir.txt"), new byte[0]);
+    Files.write(remote.resolve("directory/subdir/file_in_subdir.txt"), new byte[0]);
+
+    git("add", "file.txt");
+    git("add", "directory/file_in_dir.txt");
+    git("add", "directory/subdir/file_in_subdir.txt");
+
+    git("commit", "-m", "message");
+
+    @SuppressWarnings("unchecked")
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'default',\n"
+                        + "    origin = git.origin(\n"
+                        + "         url = '"
+                        + url
+                        + "',\n"
+                        + "         include_branch_commit_logs = True,\n"
+                        + "         partial_fetch = True,\n"
+                        + "    ),\n"
+                        + "    origin_files = glob("
+                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
+                        + "    destination = testing.destination(),\n"
+                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+                        + ")\n")
+                .getMigration("default");
+
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+
+    List<ProcessedChange> changes = destination.processed;
+    assertThat(changes).hasSize(1);
+    assertThat(changes.get(0).filePresent("file.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/file_in_dir.txt")).isTrue();
+    assertThat(changes.get(0).filePresent("directory/subdir/file_in_subdir.txt")).isTrue();
+  }
+
+  @Test
+  public void shallowFetch_moreCommits() throws Exception {
+    RecordsProcessCallDestination destination = new RecordsProcessCallDestination();
+    options.testingOptions.destination = destination;
+    options.setLastRevision(firstCommitRef);
+    options.git.fetchDepth = 1;
+
+    Files.write(remote.resolve("file.txt"), new byte[0]);
+    Files.createDirectories(remote.resolve("directory/subdir"));
+    Files.write(remote.resolve("directory/file_in_dir.txt"), new byte[0]);
+    Files.write(remote.resolve("directory/subdir/file_in_subdir.txt"), new byte[0]);
+
+    git("add", "file.txt");
+    git("add", "directory/file_in_dir.txt");
+    git("add", "directory/subdir/file_in_subdir.txt");
+
+    git("commit", "-m", "message");
+    Files.write(remote.resolve("file.txt"), new byte[]{42});
+    git("add", "file.txt");
+    git("commit", "-m", "message2");
+
+    @SuppressWarnings("unchecked")
+    Workflow<GitRevision, Revision> wf =
+        (Workflow<GitRevision, Revision>)
+            skylark
+                .loadConfig(
+                    ""
+                        + "core.workflow(\n"
+                        + "    name = 'default',\n"
+                        + "    mode = 'ITERATIVE',\n"
+                        + "    origin = git.origin(\n"
+                        + "         url = '"
+                        + url
+                        + "',\n"
+                        + "         include_branch_commit_logs = True,\n"
+                        + "         partial_fetch = True,\n"
+                        + "    ),\n"
+                        + "    origin_files = glob("
+                        + "['directory/**', 'file.txt', 'directory/subdir/file_in_subdir.txt']),\n"
+                        + "    destination = testing.destination(),\n"
+                        + "    authoring = authoring.pass_thru('example <example@example.com>'),\n"
+                        + ")\n")
+                .getMigration("default");
+
+    wf.run(Files.createTempDirectory("foo"), ImmutableList.of("HEAD"));
+
+    List<ProcessedChange> changes = destination.processed;
+    // There are actually 2 changes, but we only got the latest because of depth == 1
     assertThat(changes).hasSize(1);
     assertThat(changes.get(0).filePresent("file.txt")).isTrue();
     assertThat(changes.get(0).filePresent("directory/file_in_dir.txt")).isTrue();

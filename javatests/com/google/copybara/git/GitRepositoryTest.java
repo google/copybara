@@ -562,6 +562,37 @@ public class GitRepositoryTest {
     assertThat(paged.toString()).isEqualTo(singlePage.toString());
   }
 
+  @Test
+  public void testPagination_batchFeature() throws Exception {
+    createGraphOfCommits();
+    ImmutableList<GitLogEntry> singlePage = repository.log(defaultBranch)
+        .firstParent(false)
+        .run();
+    ImmutableList<GitLogEntry> paged = repository.log(defaultBranch)
+        .firstParent(false)
+        .withBatchSize(5)
+        .run();
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+  }
+
+  @Test
+  public void testPagination_batchFeatureMergeCommit() throws Exception {
+    createGraphOfCommits();
+    ImmutableList<GitLogEntry> singlePage = repository.log(defaultBranch)
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .run();
+    ImmutableList<GitLogEntry> paged = repository.log(defaultBranch)
+        .includeFiles(true)
+        .includeMergeDiff(true)
+        .firstParent(false)
+        .withBatchSize(3)
+        .run();
+
+    assertThat(paged.toString()).isEqualTo(singlePage.toString());
+  }
+
   private void createGraphOfCommits() throws Exception {
     for (int i = 0; i < 10; i++) {
       singleFileCommit("main_" + i, "foo.txt", "foo_" + i);
@@ -1358,10 +1389,31 @@ public class GitRepositoryTest {
   public void testLogWithTag() throws Exception {
     simpleChange(repository, "foo.txt", "1", "message_a");
     repository.tag("1.2.3").withAnnotatedTag("message_1").run();
+    simpleChange(repository, "foo.txt", "2", "message_b");
+    repository.tag("1.2.4").withAnnotatedTag("message_2").run();
+    simpleChange(repository, "foo.txt", "3", "message_c");
+    repository.tag("1.3.0").withAnnotatedTag("message_3").run();
 
-    ImmutableList<GitLogEntry> result = repository.log("--tags").includeTags(true).run();
+    ImmutableList<GitLogEntry> result = repository.log("*").includeTags(true).run();
+    ImmutableList<String> tags =
+        result.stream()
+            .map(e -> e.getTag().contextReference())
+            .collect(ImmutableList.toImmutableList());
 
-    assertThat(result.get(0).getTag().contextReference()).isEqualTo("1.2.3");
+    assertThat(tags).containsExactly("1.2.3", "1.2.4", "1.3.0");
+  }
+
+  @Test
+  public void testLogWithNoWalk() throws Exception {
+    simpleChange(repository, "foo.txt", "1", "message_a");
+    simpleChange(repository, "foo.txt", "2", "message_b");
+    simpleChange(repository, "foo.txt", "3", "message_c");
+
+    ImmutableList<GitLogEntry> resultWithWalk = repository.log("*").run();
+    ImmutableList<GitLogEntry> resultNoWalk = repository.log("*").noWalk(true).run();
+
+    assertThat(resultWithWalk.size()).isEqualTo(3);
+    assertThat(resultNoWalk.size()).isEqualTo(1);
   }
 
   @Test
@@ -1513,6 +1565,26 @@ public class GitRepositoryTest {
     GitRevision head = repository.resolveReference("HEAD");
     assertThat(repository.describe(head, false)).isNotEqualTo(repository.describe(head, true));
 }
+
+  @Test
+  public void testTagPointsAt() throws Exception {
+    Files.writeString(workdir.resolve("foo.txt"), "");
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    repository.tag("tag_1.0").run();
+    repository.tag("tag_1.1").run();
+    repository.tag("tag_1.2").run();
+    Files.writeString(workdir.resolve("foo.txt"), "modified");
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    repository.tag("tag_2.0").run();
+    repository.tag("tag_2.1").run();
+    repository.tag("tag_2.2").run();
+    GitRevision head = repository.resolveReference("HEAD");
+    GitRevision prev = repository.resolveReference("HEAD~1");
+    assertThat(repository.tagPointsAt(prev)).containsExactly("tag_1.0", "tag_1.1", "tag_1.2");
+    assertThat(repository.tagPointsAt(head)).containsExactly("tag_2.0", "tag_2.1", "tag_2.2");
+  }
 
   @Test
   public void testFindRemotePrimaryBranch() throws Exception {

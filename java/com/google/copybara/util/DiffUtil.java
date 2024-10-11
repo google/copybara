@@ -62,6 +62,19 @@ public class DiffUtil {
   }
 
   /**
+   * Calculates the diff between two sibling directory trees while setting --ignore-cr-at-eol.
+   *
+   * <p>Returns the diff as an encoding-independent {@code byte[]}.
+   */
+  public static byte[] diffWithIgnoreCrAtEol(
+      Path one, Path other, boolean verbose, Map<String, String> environment)
+      throws IOException, InsideGitDirException {
+    return new FoldersDiff(verbose, environment)
+        .withIgnoreCrAtEol()
+        .run(one.getParent(), one, other);
+  }
+
+  /**
    * Calculates the diff between two files with --ignore-cr-at-eol set
    *
    * <p>Returns the single file diff as an encoding-independent {@code byte[]}
@@ -313,9 +326,16 @@ public class DiffUtil {
       } else {
         checkNotInsideGitRepo(one, verbose, gitEnv);
       }
-      List<String> params = Lists.newArrayList(gitEnv.resolveGitBinary(), "diff", "--no-color",
-          // Be careful, no test coverage for this:
-          "--no-ext-diff");
+      List<String> params =
+          Lists.newArrayList(
+              gitEnv.resolveGitBinary(),
+              // override diff.noprefix for consistent diff output, must come after "git"
+              "-c",
+              "diff.noprefix=false",
+              "diff",
+              "--no-color",
+              // Be careful, no test coverage for this:
+              "--no-ext-diff");
       if (nameStatus) {
         params.add("--name-status");
       }
@@ -328,6 +348,7 @@ public class DiffUtil {
       if (ignoreCrAtEol) {
         params.add("--ignore-cr-at-eol");
       }
+
       params.add("--");
       params.add(root.relativize(one).toString());
       params.add(root.relativize(other).toString());

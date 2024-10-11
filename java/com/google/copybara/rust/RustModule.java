@@ -95,8 +95,8 @@ public class RustModule implements StarlarkValue {
       before = "Example: creating a version list for libc",
       code = "rust.crates_io_version_list(\n" + "crate = \"libc\"\n)")
   public RustCratesIoVersionList getRustCratesIoVersionList(
-      String crateName, boolean ignorePreReleaseVersions) {
-    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, ignorePreReleaseVersions);
+      String crateName, boolean matchPreReleaseVersions) {
+    return RustCratesIoVersionList.forCrate(crateName, remoteFileOptions, matchPreReleaseVersions);
   }
 
   @StarlarkMethod(
@@ -114,8 +114,8 @@ public class RustModule implements StarlarkValue {
             defaultValue = "False")
       })
   @SuppressWarnings("unused")
-  public VersionResolver getResolver(String crate, boolean ignorePreReleaseVersions) {
-    return new RustCratesIoVersionResolver(crate, remoteFileOptions, ignorePreReleaseVersions);
+  public VersionResolver getResolver(String crate, boolean matchPreReleaseVersions) {
+    return new RustCratesIoVersionResolver(crate, remoteFileOptions, matchPreReleaseVersions);
   }
 
   @StarlarkMethod(
@@ -239,15 +239,14 @@ public class RustModule implements StarlarkValue {
 
       ctx.getConsole().infoFmt("Downloading fuzzers from %s at ref %s", url.get(), sha1.get());
       GitRepository repo = gitOptions.cachedBareRepoForUrl(url.get());
-      GitRevision rev = getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo());
+      Optional<String> maybeCrateName =
+          Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName));
+      GitRevision rev =
+          getGitRevision(url.get(), sha1.get(), repo, ctx.getDestinationInfo(), maybeCrateName);
       GitDestinationReader destinationReader = new GitDestinationReader(repo, rev, cratePath);
 
       String relativePath = getPathInVcs(vcsJsonObject).orElse("");
-      Optional<String> fuzzersDir =
-          getFuzzersDir(
-              destinationReader,
-              Optional.ofNullable(SkylarkUtil.convertOptionalString(crateName)),
-              relativePath);
+      Optional<String> fuzzersDir = getFuzzersDir(destinationReader, maybeCrateName, relativePath);
 
       if (fuzzersDir.isEmpty()) {
         ctx.getConsole().info("Not downloading fuzzers. This crate doesn't have any fuzzers.");
@@ -302,7 +301,11 @@ public class RustModule implements StarlarkValue {
   }
 
   protected GitRevision getGitRevision(
-      String url, String sha1, GitRepository repo, DestinationInfo destinationInfo)
+      String url,
+      String sha1,
+      GitRepository repo,
+      DestinationInfo destinationInfo,
+      Optional<String> crateName)
       throws RepoException, ValidationException {
     return repo.fetchSingleRef(url, sha1, true, Optional.empty());
   }

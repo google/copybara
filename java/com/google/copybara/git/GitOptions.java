@@ -136,6 +136,17 @@ public class GitOptions implements Option {
       hidden = true)
   public Path workflowCredentialHelperPath = null;
 
+  @Nullable
+  @Parameter(names = "--git-origin-fetch-depth",
+      description = "Use a shallow clone of the specified depth for git.origin. If set, only the n"
+          + " most recent changes' tree states are imported with older changes omitted.")
+  Integer fetchDepth = null;
+
+  public Optional<Integer> getFetchDepth() {
+    return Optional.ofNullable(fetchDepth);
+  }
+
+
   /** Credential helper file path for config-based creds. */
   public Path getConfigCredsFile(GeneralOptions generalOpts) throws IOException {
     if (workflowCredentialHelperPath == null) {

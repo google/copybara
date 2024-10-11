@@ -300,9 +300,9 @@ public final class GerritDestination implements Destination<GitRevision> {
                 e.getMessage());
           }
         }
-        ChangeInfo resultInfo =
-            gerritApi.submitChange(changeInfo.getChangeId(), new SubmitInput(null));
-        console.infoFmt("Submitted change : %s/changes/%s", repoUrl, resultInfo.getChangeId());
+        String tripletId = changeInfo.getTripletId();
+        ChangeInfo resultInfo = gerritApi.submitChange(tripletId, new SubmitInput(null));
+        console.infoFmt("Submitted change : %s/changes/%s", repoUrl, tripletId);
       } catch (RepoException e) {
         Matcher matcher = USER_ERROR_REGEX_PATTERN.matcher(e.getMessage());
 

@@ -25,9 +25,11 @@ import com.google.copybara.EndpointProvider;
 import com.google.copybara.Trigger;
 import com.google.copybara.checks.Checker;
 import com.google.copybara.config.SkylarkUtil;
+import com.google.copybara.credentials.CredentialIssuer;
 import com.google.copybara.credentials.CredentialModule.UsernamePasswordIssuer;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.http.auth.AuthInterceptor;
+import com.google.copybara.http.auth.BearerInterceptor;
 import com.google.copybara.http.auth.UsernamePasswordInterceptor;
 import com.google.copybara.http.endpoint.HttpEndpoint;
 import com.google.copybara.http.json.HttpEndpointJsonContent;
@@ -38,6 +40,7 @@ import com.google.copybara.http.multipart.HttpEndpointUrlEncodedFormContent;
 import com.google.copybara.http.multipart.TextPart;
 import com.google.copybara.util.console.Console;
 import java.net.URLEncoder;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.annot.Param;
@@ -86,6 +89,13 @@ public class HttpModule implements StarlarkValue {
             defaultValue = "[]",
             positional = false),
         @Param(
+            name = "issuers",
+            doc = "A dictionary of credential issuers.",
+            named = true,
+            allowedTypes = {@ParamType(type = Dict.class), @ParamType(type = NoneType.class)},
+            defaultValue = "{}",
+            positional = false),
+        @Param(
             name = "checker",
             allowedTypes = {
               @ParamType(type = Checker.class),
@@ -96,13 +106,14 @@ public class HttpModule implements StarlarkValue {
             named = true,
             positional = false),
       })
-  public Trigger trigger(Sequence<?> hosts, @Nullable Object checkerIn)
+  public Trigger trigger(Sequence<?> hosts, @Nullable Object issuers, @Nullable Object checkerIn)
       throws ValidationException, EvalException {
     HttpEndpoint endpoint =
         new HttpEndpoint(
             console,
             options.getTransport(),
             buildHostsMapWithAuthInterceptor(hosts).buildKeepingLast(),
+            buildIssuersMap(issuers).buildKeepingLast(),
             SkylarkUtil.convertFromNoneable(checkerIn, null));
     return new HttpTrigger(endpoint);
   }
@@ -139,9 +150,19 @@ public class HttpModule implements StarlarkValue {
             allowedTypes = {@ParamType(type = Sequence.class)},
             defaultValue = "[]",
             positional = false),
+        @Param(
+            name = "issuers",
+            doc = "A dictionaty of credential issuers.",
+            named = true,
+            allowedTypes = {@ParamType(type = Dict.class), @ParamType(type = NoneType.class)},
+            defaultValue = "{}",
+            positional = false),
       })
   public EndpointProvider<HttpEndpoint> endpoint(
-      @Nullable String host, @Nullable Object checkerIn, Sequence<?> hosts)
+      @Nullable String host,
+      @Nullable Object checkerIn,
+      Sequence<?> hosts,
+      @Nullable Object issuers)
       throws ValidationException, EvalException {
     @Nullable Checker checker = SkylarkUtil.convertFromNoneable(checkerIn, null);
     ImmutableMap.Builder<String, Optional<AuthInterceptor>> h =
@@ -149,8 +170,25 @@ public class HttpModule implements StarlarkValue {
     if (host != null && !host.isEmpty()) {
       h.put(host, Optional.empty());
     }
+
     return EndpointProvider.wrap(
-        new HttpEndpoint(console, options.getTransport(), h.buildKeepingLast(), checker));
+        new HttpEndpoint(
+            console,
+            options.getTransport(),
+            h.buildKeepingLast(),
+            buildIssuersMap(issuers).buildKeepingLast(),
+            checker));
+  }
+
+  private ImmutableMap.Builder<String, CredentialIssuer> buildIssuersMap(Object issuers) {
+    ImmutableMap.Builder<String, CredentialIssuer> issuersMap = ImmutableMap.builder();
+    if (issuers == null) {
+      return issuersMap;
+    }
+    for (Map.Entry<?, ?> entry : ((Dict<?, ?>) issuers).entrySet()) {
+      issuersMap.put((String) entry.getKey(), (CredentialIssuer) entry.getValue());
+    }
+    return issuersMap;
   }
 
   private ImmutableMap.Builder<String, Optional<AuthInterceptor>> buildHostsMapWithAuthInterceptor(
@@ -317,20 +355,35 @@ public class HttpModule implements StarlarkValue {
       name = "username_password_auth",
       doc = "Authentication via username and password.",
       parameters = {
-          @Param(
-              name = "",
-              doc = "The host to be contacted.",
-              named = true,
-              allowedTypes = {
-                  @ParamType(type = UsernamePasswordIssuer.class),
-              },
-              positional = false),
+        @Param(
+            name = "creds",
+            doc = "The username and password credentials.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = UsernamePasswordIssuer.class),
+            },
+            positional = false),
       })
-  public UsernamePasswordInterceptor usernamePasswordAuth(UsernamePasswordIssuer up) {
-    return new UsernamePasswordInterceptor(up);
+  public UsernamePasswordInterceptor usernamePasswordAuth(UsernamePasswordIssuer creds) {
+    return new UsernamePasswordInterceptor(creds);
   }
 
-
+  @StarlarkMethod(
+      name = "bearer_auth",
+      doc = "Authentication via a bearer token.",
+      parameters = {
+        @Param(
+            name = "creds",
+            doc = "The token credentials.",
+            named = true,
+            allowedTypes = {
+              @ParamType(type = CredentialIssuer.class),
+            },
+            positional = false),
+      })
+  public BearerInterceptor bearerAuth(CredentialIssuer creds) {
+    return new BearerInterceptor(creds);
+  }
 
   /** A username/password issuer pair tied to a host */
   @AutoValue

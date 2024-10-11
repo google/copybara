@@ -17,6 +17,7 @@
 package com.google.copybara.git;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.copybara.Origin.Reader.ChangesResponse.noChanges;
 import static com.google.copybara.exception.ValidationException.checkCondition;
 import static com.google.copybara.git.GitModule.PRIMARY_BRANCHES;
@@ -281,7 +282,7 @@ public class GitOrigin implements Origin<GitRevision> {
 
   private GitRevision resolveStringRef(String ref) throws RepoException, ValidationException {
     GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
-        describeVersion, partialFetch);
+        describeVersion, partialFetch, gitOptions.getFetchDepth());
     return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
   }
 
@@ -357,8 +358,9 @@ public class GitOrigin implements Origin<GitRevision> {
     ChangeReader.Builder changeReaderBuilder(String repoUrl) throws RepoException {
       return ChangeReader.Builder.forOrigin(authoring, getRepository(), generalOptions.console())
           .setIncludeBranchCommitLogs(includeBranchCommitLogs)
-          .setRoots(originFiles.roots(/*allowFiles=*/ true))
+          .setRoots(originFiles.roots(/* allowFiles= */ true))
           .setPartialFetch(partialFetch)
+          .setBatchSize(gitOriginOptions.gitOriginLogBatchSize)
           .setUrl(repoUrl);
     }
 
@@ -596,13 +598,22 @@ public class GitOrigin implements Origin<GitRevision> {
     }
 
     @Override
-    public ImmutableList<GitRevision> getVersions() throws RepoException, ValidationException {
-      ImmutableList.Builder<GitRevision> result = ImmutableList.builder();
+    public ImmutableList<Change<GitRevision>> getVersions() throws RepoException {
+      ImmutableList.Builder<Change<GitRevision>> result = ImmutableList.builder();
 
-      ImmutableList<GitLogEntry> output = getRepository().log("--tags").includeTags(true).run();
+      ImmutableList<GitLogEntry> output =
+          getRepository().log("*").includeTags(true).noWalk(true).run();
 
       for (GitLogEntry entry : output) {
-        result.add(entry.getTag());
+        if (entry.getTag() != null) {
+          result.add(
+              new Change<>(
+                  entry.getTag(),
+                  entry.getAuthor(),
+                  nullToEmpty(entry.getBody()),
+                  entry.getCommitDate(),
+                  ImmutableListMultimap.of()));
+        }
       }
 
       return result.build();

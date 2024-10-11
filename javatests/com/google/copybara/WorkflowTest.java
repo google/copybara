@@ -36,10 +36,13 @@ import static com.google.copybara.util.DiffUtil.DiffFile.Operation.MODIFIED;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -48,6 +51,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
 import com.google.common.jimfs.Jimfs;
 import com.google.copybara.Destination.Writer;
 import com.google.copybara.Info.MigrationReference;
@@ -71,6 +75,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.git.GitRevision;
 import com.google.copybara.hg.HgRepository;
 import com.google.copybara.monitor.EventMonitor.ChangeMigrationFinishedEvent;
+import com.google.copybara.remotefile.HttpStreamFactory;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.testing.DummyOrigin;
@@ -93,6 +98,7 @@ import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
@@ -120,6 +126,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
 @RunWith(JUnit4.class)
 public class WorkflowTest {
@@ -161,6 +168,7 @@ public class WorkflowTest {
   private boolean migrateNoopChangesField;
   private ImmutableList<String> extraWorkflowFields = ImmutableList.of();
   private String afterMergeTransformations;
+  private String afterMigration;
 
   public ImmutableMap<String, String> env = ImmutableMap.of();
 
@@ -211,6 +219,7 @@ public class WorkflowTest {
     autoPatchfileStripFilenamesAndLineNumbers = false;
     autoPatchfileGlob = "None";
     migrateNoopChangesField = false;
+    afterMigration = "";
     extraWorkflowFields = ImmutableList.of();
   }
 
@@ -278,6 +287,7 @@ public class WorkflowTest {
             + "    consistency_file_path = "
             + consistencyFilePath
             + ",\n"
+            + (!afterMigration.equals("") ? "    after_migration = " + afterMigration + ",\n" : "")
             + (afterMergeTransformations != null
                 ? "after_merge_transformations = " + afterMergeTransformations + ","
                 : "")
@@ -1368,6 +1378,65 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testWorkflowWithTagsInOrigin() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("gitdir"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(workdir);
+    remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
+
+    Files.writeString(workdir.resolve("foo.txt"), "content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    remote.tag("tag_a").run();
+
+    Files.writeString(workdir.resolve("foo.txt"), "new content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_b");
+    remote.tag("tag_b").run();
+
+    Files.writeString(workdir.resolve("bar.txt"), "new file");
+    remote.add().files("bar.txt").run();
+    remote.simpleCommand("commit", "bar.txt", "-m", "message_c");
+    remote.tag("tag_c").run();
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
+
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.general.force = false;
+    options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + String.format(
+                            "    origin = git.origin(url='%s', ref='%s'),\n",
+                            remote.getGitDir(), primaryBranch)
+                        + "    destination = folder.destination(),\n"
+                        + "    mode = 'ITERATIVE',\n"
+                        + "    authoring = "
+                        + authoring
+                        + ",\n"
+                        + "    transformations = [metadata.replace_message(''),],\n"
+                        + ")\n")
+                .getMigration("foo");
+
+    ImmutableList<String> tags =
+        workflow.getInfo().versions().stream()
+            .map(t -> t.getRevision().contextReference())
+            .collect(ImmutableList.toImmutableList());
+
+    assertThat(tags).containsExactly("tag_a", "tag_b", "tag_c");
+  }
+
+  @Test
   public void testShowDiffInOriginFail() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     origin.addSimpleChange(/*timestamp*/ 2);
@@ -2341,6 +2410,65 @@ public class WorkflowTest {
   }
 
   @Test
+  public void mergeImport_consistencyFile_validatesAgainstVersionOfConsistencyFileEdit()
+      throws Exception {
+    // options setup
+    skylark = new SkylarkTestExecutor(options);
+
+    // config setup
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    Path testDir = Files.createTempDirectory("consistencyFile");
+    String consistencyFilePath = workflow.getConsistencyFilePath();
+
+    // create writer for emulating manual destination changes
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+
+    // create the baseline origin change
+    Path o1 = Files.createDirectories(testDir.resolve("o1"));
+    writeFile(o1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(0, o1, "test change", true);
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a change to import on top of the baseline
+    Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/bar.txt", "bar\n");
+    origin.addChange(0, o2, "test change", true);
+
+    // import into the destination
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // create a destination-only change
+    Path d1 = Files.createDirectories(testDir.resolve("d1"));
+    writeProcessedChange(latestProcessedChange(), d1);
+    assertThatPath(d1).containsFiles(consistencyFilePath);
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // create an invalid ConsistencyFile state by updating a file without updating the
+    // ConsistencyFile
+    writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
+    wr.write(
+        TransformResults.of(d1, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // the inconsistency in the destination should not result in a validation error
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+  }
+
+  @Test
   public void mergeImport_consistencyFile_validationFails() throws Exception {
     // options setup
     skylark = new SkylarkTestExecutor(options);
@@ -2484,6 +2612,70 @@ public class WorkflowTest {
     Path out1 = Files.createDirectories(testDir.resolve("out1"));
     writeProcessedChange(latestProcessedChange(), out1);
     assertThatPath(out1).containsFiles(consistencyFilePath);
+  }
+
+  @Test
+  public void mergeImport_mergeConflict_writesDestinationEffect() throws Exception {
+    mergeImport =
+        "core.merge_import_config(\n"
+            + "  package_path = \"\",\n"
+            + "  use_consistency_file = True,\n"
+            + ")";
+    consistencyFilePath = "\"foo.bara.consistency\"";
+    afterMigration = "[lambda ctx: ctx.destination.message(str(ctx.effects))]";
+    Path testDir = Files.createTempDirectory("merge_import");
+    Path base1 = Files.createDirectories(testDir.resolve("base1"));
+
+    // populate the baseline
+    writeFile(base1, "dir/foo.txt", "a\nb\nc\n");
+    origin.addChange(
+        0,
+        base1,
+        String.format("One Change\n\n%s=42", destination.getLabelNameWhenOrigin()),
+        /* matchesGlob= */ true);
+
+    // run the workflow
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // origin edits file
+    Path base2 = Files.createDirectories(testDir.resolve("base2"));
+    FileUtil.copyFilesRecursively(base1, base2, CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS);
+    writeFile(base2, "dir/foo.txt", "origin\nb\nc\n");
+    origin.addChange(1, base2, "change 1", /* matchesGlob= */ true);
+
+    // destination-only change that edits same file
+    Path base3 = Files.createDirectories(testDir.resolve("base3"));
+    writeFile(base3, "dir/foo.txt", "destination\nb\nc\n");
+    ConsistencyFile cf =
+        ConsistencyFile.generate(
+            base1, base3, Hashing.sha256(), getGitEnv().getEnvironment(), false);
+    writeFile(base3, "foo.bara.consistency", new String(cf.toBytes(), UTF_8));
+    WriterContext ctx =
+        new WriterContext(
+            "", null, false, new DummyRevision("1"), ImmutableSet.of(destinationFiles));
+    Writer<Revision> wr = destination.newWriter(ctx);
+    wr.write(
+        TransformResults.of(base3, new DummyRevision("1")),
+        Glob.createGlob(ImmutableList.of(destinationFiles)),
+        console());
+
+    // run workflow again to import the origin edit
+    workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+
+    // check that a merge conflict was generated
+    assertThat(
+            destination
+                .processed
+                .get(destination.processed.size() - 1)
+                .getWorkdir()
+                .get("dir/foo.txt"))
+        .contains(">>>>>>>");
+
+    assertThat(destination.getEndpoint().getMessages().toString())
+        .contains("Found merge errors for paths");
   }
 
   @Test
@@ -2808,6 +3000,8 @@ public class WorkflowTest {
             .getWorkdir()
             .get("foo2.txt"))
         .isEqualTo("pre\nx\ny\nz\npost");
+    assertThat(workflow.getMergeImport().mergeStrategy())
+        .isEqualTo(MergeImportConfiguration.MergeStrategy.DIFF3);
   }
 
   @Test
@@ -2949,6 +3143,16 @@ public class WorkflowTest {
             .getWorkdir()
             .get("not_merged.txt"))
         .isEqualTo("pre\nx\ny\nz\n");
+  }
+
+  @Test
+  public void mergeImportConfiguration_mergeStrategy() throws Exception {
+    mergeImport = "core.merge_import_config(package_path = \"\", merge_strategy = 'PATCH_MERGE')";
+
+    Workflow<?, ?> workflow = skylarkWorkflow("default", CHANGE_REQUEST);
+
+    assertThat(workflow.getMergeImport().mergeStrategy())
+        .isEqualTo(MergeImportConfiguration.MergeStrategy.PATCH_MERGE);
   }
 
   @Test
@@ -4631,6 +4835,120 @@ public class WorkflowTest {
     assertThat(e.getMessage()).isEqualTo("--init-history is not compatible with CHANGE_REQUEST");
   }
 
+  @Test
+  public void testRemoteArchiveOriginThrowsOnUnforcedDowngrade() throws Exception {
+    HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
+    options.general.setForceForTest(false);
+    when(mockTransport.open(any()))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64()
+                    .decode(
+                        "UEsDBAoAAAAAAGptUVQtOwivDAAAAAwAAAAIABw"
+                            + "AdGVzdC50eHRVVAkAA0iXDmJIlw5idXgLAAEE"
+                            + "Se4JAARTXwEAaGVsbG8gd29ybGQKUEsBAh4DCg"
+                            + "AAAAAAam1RVC07CK8MAAAADAAAAAgAGAAAAAAA"
+                            + "AQAAAKSBAAAAAHRlc3QudHh0VVQFAANIlw5idX"
+                            + "gLAAEESe4JAARTXwEAUEsFBgAAAAABAAEATgAA"
+                            + "AE4AAAAAAA==")));
+    options.remoteFile.transport = Suppliers.memoize(() -> mockTransport);
+    options.workflowOptions.lastRevision = "v2.0.0";
+
+    String config =
+        ""
+            + "core.workflow("
+            + "  name = 'default',"
+            + "authoring = "
+            + authoring
+            + ","
+            + "  origin = remotefiles.origin("
+            + "    unpack_method = 'ZIP',"
+            + "    archive_source = 'https://example.com/archive-${VERSION}.zip',"
+            + "    origin_version_selector = core.latest_version("
+            + "      format = 'v${n0}.${n1}.${n2}',"
+            + "      regex_groups = {"
+            + "        'n0': '[0-9]+',"
+            + "        'n1': '[0-9]+',"
+            + "        'n2': '[0-9]+',"
+            + "      },"
+            + "    ),"
+            + "  ),"
+            + "  destination = testing.destination(),"
+            + "  origin_files = glob(['**']),"
+            + "  destination_files = glob(['**']),"
+            + ")"
+            + "";
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("v1.0.0")));
+
+    assertThat(e)
+        .hasMessageThat()
+        .matches(
+            "'v1.0.0' has been already migrated. Use --force if you really want to run the"
+                + " migration again \\(For example if the copy.bara.sky file has changed\\).");
+    console()
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            "The baseline ref \\[v2.0.0\\] is newer than incoming ref \\[v1.0.0\\]. The change"
+                + " response will have no changes generated because the current baseline is newer");
+  }
+
+  @Test
+  public void testRemoteArchiveOriginThrowsOnForcedDowngrade() throws Exception {
+    HttpStreamFactory mockTransport = Mockito.mock(HttpStreamFactory.class);
+    when(mockTransport.open(any()))
+        .thenReturn(
+            new ByteArrayInputStream(
+                BaseEncoding.base64()
+                    .decode(
+                        "UEsDBAoAAAAAAGptUVQtOwivDAAAAAwAAAAIABw"
+                            + "AdGVzdC50eHRVVAkAA0iXDmJIlw5idXgLAAEE"
+                            + "Se4JAARTXwEAaGVsbG8gd29ybGQKUEsBAh4DCg"
+                            + "AAAAAAam1RVC07CK8MAAAADAAAAAgAGAAAAAAA"
+                            + "AQAAAKSBAAAAAHRlc3QudHh0VVQFAANIlw5idX"
+                            + "gLAAEESe4JAARTXwEAUEsFBgAAAAABAAEATgAA"
+                            + "AE4AAAAAAA==")));
+    options.remoteFile.transport = Suppliers.memoize(() -> mockTransport);
+    options.workflowOptions.lastRevision = "v2.0.0";
+    options.general.setForceForTest(true);
+    String config =
+        ""
+            + "core.workflow("
+            + "  name = 'default',"
+            + "authoring = "
+            + authoring
+            + ","
+            + "  origin = remotefiles.origin("
+            + "    unpack_method = 'ZIP',"
+            + "    archive_source = 'https://example.com/archive-${VERSION}.zip',"
+            + "    origin_version_selector = core.latest_version("
+            + "      format = 'v${n0}.${n1}.${n2}',"
+            + "      regex_groups = {"
+            + "        'n0': '[0-9]+',"
+            + "        'n1': '[0-9]+',"
+            + "        'n2': '[0-9]+',"
+            + "      },"
+            + "    ),"
+            + "  ),"
+            + "  destination = testing.destination(),"
+            + "  origin_files = glob(['**']),"
+            + "  destination_files = glob(['**']),"
+            + ")"
+            + "";
+
+    Migration workflow = loadConfig(config).getMigration("default");
+
+    workflow.run(workdir, ImmutableList.of("v1.0.0"));
+
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef().fixedReference())
+        .isEqualTo("v1.0.0");
+  }
+
   /**
    * Regression that test that when using git.origin with first_parent = False, if the first parent
    * of a merge is already imported and the merge is a no-op, we detect the import as
@@ -4676,6 +4994,40 @@ public class WorkflowTest {
     assertThat(e)
         .hasMessageThat()
         .matches("No changes from " + lastRev.getSha1() + " up to .* match any origin_files.*");
+  }
+
+  @Test
+  public void testCredDescription() throws Exception{
+    Path someRoot = Files.createTempDirectory("someRoot");
+    Path originPath = someRoot.resolve("origin");
+    Files.createDirectories(originPath);
+
+    String config = "core.workflow(\n"
+        + "    name = 'default',\n"
+        + "    origin = git.origin( url = 'https://copybara.io', "
+        + "      credentials = credentials.username_password(\n"
+        + "        credentials.static_value('test@example.com'),\n"
+        + "        credentials.static_secret('password', 'top_secret'))),\n"
+        + "    destination = git.destination( url = 'https://copybara.io', "
+        + "      credentials = credentials.username_password(\n"
+        + "        credentials.static_value('test@example.com'),\n"
+        + "        credentials.static_secret('password', 'top_secret'))),\n"
+        + "    authoring = " + authoring + ",\n"
+        + "    origin_files = glob(['included/**']),\n"
+        + "    mode = 'SQUASH',\n"
+        + "    transformations = ["
+        + "metadata.add_header('Resolved revision is ${GIT_DESCRIBE_REQUESTED_VERSION}"
+        + " and change revision is ${GIT_DESCRIBE_CHANGE_VERSION}')]"
+        + ")\n";
+
+
+    Workflow<?, ?> workflow = (Workflow) loadConfig(config).getMigration("default");
+    assertThat(workflow.getCredentialDescription().get(0))
+        .valuesForKey("endpoint")
+        .containsExactly("origin");
+    assertThat(workflow.getCredentialDescription().get(2))
+        .valuesForKey("endpoint")
+        .containsExactly("destination");
   }
 
   private GitRevision commit(GitRepository origin, String msg)

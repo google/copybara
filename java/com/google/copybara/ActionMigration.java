@@ -195,11 +195,11 @@ public class ActionMigration implements Migration {
   public ImmutableList<ImmutableSetMultimap<String, String>> getCredentialDescription()
       throws ValidationException {
     ImmutableList.Builder<ImmutableSetMultimap<String, String>> allCreds = ImmutableList.builder();
-    allCreds.addAll(trigger.getEndpoint().describeCredentials());
+    allCreds.addAll(trigger.getEndpoint().describeCredentials("trigger"));
     for (String name : endpoints.getFieldNames()) {
       try {
         if (endpoints.getValue(name) instanceof Endpoint) {
-          allCreds.addAll(((Endpoint) endpoints.getValue(name)).describeCredentials());
+          allCreds.addAll(((Endpoint) endpoints.getValue(name)).describeCredentials(name));
         }
       } catch (EvalException e) {
         throw new ValidationException("Cannot get credentials from " + name, e);

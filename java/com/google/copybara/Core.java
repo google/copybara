@@ -258,7 +258,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
               @ParamType(type = NoneType.class),
             },
             doc =
-                "A glob or list of filesrelative to the workdir that will be read from the"
+                "A glob or list of files relative to the workdir that will be read from the"
                     + " origin during the import. For example glob([\"**.java\"]), all java files,"
                     + " recursively, which excludes all other file types, or ['foo.java'] for a"
                     + " specific file.",
@@ -632,7 +632,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     if (mergeImportObj instanceof Boolean) {
       Boolean objectValue = (Boolean) mergeImportObj;
       mergeImport =
-          objectValue ? MergeImportConfiguration.create("", Glob.ALL_FILES, false) : null;
+          objectValue
+              ? MergeImportConfiguration.create(
+                  "", Glob.ALL_FILES, false, MergeImportConfiguration.MergeStrategy.DIFF3)
+              : null;
     } else {
       mergeImport = convertFromNoneable(mergeImportObj, null);
     }
@@ -1161,14 +1164,12 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             name = "ignore",
             named = true,
             doc =
-                "A set of regexes. Any line that matches any expression in this set, which might"
-                    + " otherwise be transformed, will be ignored. Furthermore, it is not possible"
-                    + " to ignore a selected text, and replace another, if they exist on the same"
-                    + " line. The entire line will be ignored. Note that `ignore` is matched to the"
-                    + " whole file, not just the parts that match `before` comparing the"
-                    + " to-be-transformed string to the ignore regexes, meaning text outside the"
-                    + " transform may be used to determine whether or not to apply a"
-                    + " transformation.",
+                "A set of regexes. If the entire content of any line (or file, if `multiline` is"
+                    + " enabled) matches any expression in this set, then Copybara will not apply"
+                    + " this transformation to any text there. Because `ignore` is matched against"
+                    + " the entire line (or entire file under `multiline`), not just the parts that"
+                    + " match `before`, the `ignore` regex can refer to text outside the span that"
+                    + " would be replaced.",
             defaultValue = "[]"),
       },
       useStarlarkThread = true)
@@ -2405,11 +2406,26 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             defaultValue = "False",
             named = true,
             positional = false),
+        @Param(
+            name = "merge_strategy",
+            doc =
+                "The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag"
+                    + " to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the"
+                    + " baseline and destination files, and then applies the patch to the origin"
+                    + " file.",
+            defaultValue = "'DIFF3'",
+            named = true,
+            positional = false)
       })
   public MergeImportConfiguration mergeImportConfiguration(
-      String packagePath, Object pathsObj, boolean useConsistencyFile) throws EvalException {
+      String packagePath, Object pathsObj, boolean useConsistencyFile, String mergeStrategy)
+      throws EvalException {
     Glob paths = wrapGlob(pathsObj, Glob.ALL_FILES);
-    return MergeImportConfiguration.create(packagePath, paths, useConsistencyFile);
+    return MergeImportConfiguration.create(
+        packagePath,
+        paths,
+        useConsistencyFile,
+        MergeImportConfiguration.MergeStrategy.valueOf(mergeStrategy));
   }
 
   @SuppressWarnings("unused")

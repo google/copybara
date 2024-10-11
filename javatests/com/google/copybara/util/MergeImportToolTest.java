@@ -76,8 +76,9 @@ public final class MergeImportToolTest {
     writeFile(originWorkdir, fileName, "foo\n".concat(commonFileContents));
     writeFile(destinationWorkdir, fileName, commonFileContents.concat("bar\n"));
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     assertThat(Files.readString(originWorkdir.resolve(fileName)))
         .isEqualTo("foo\n".concat(commonFileContents).concat("bar\n"));
@@ -98,8 +99,9 @@ public final class MergeImportToolTest {
     writeFile(originWorkdir, "bar.txt", "foo\n".concat(commonFileContents));
     writeFile(destinationWorkdir, "bar.txt", commonFileContents.concat("bar\n"));
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     console.assertThat().timesInLog(3, MessageType.VERBOSE, "MERGE_DEBUG.*foo.txt.*");
     console.assertThat().timesInLog(0, MessageType.VERBOSE, "MERGE_DEBUG.*bar.txt.*");
@@ -117,8 +119,9 @@ public final class MergeImportToolTest {
     String destinationFileContents = "destination only stuff";
     writeFile(destinationWorkdir, destinationFilename, "destination only stuff");
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     assertThat(Files.readString(originWorkdir.resolve(destinationFilename)))
         .isEqualTo(destinationFileContents);
@@ -132,8 +135,9 @@ public final class MergeImportToolTest {
     writeFile(baselineWorkdir, fileName, fileContents);
     writeFile(destinationWorkdir, fileName, fileContents);
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     assertThat(Files.exists(originWorkdir.resolve(fileName))).isFalse();
   }
@@ -153,8 +157,9 @@ public final class MergeImportToolTest {
         "\n˝\u000E\n#unittest_import_public_proto3.proto\u0012\u0018protobuf_unittest_import\"#\n\u0013PublicImportMessage\u0012\f\n\u0001e\u0018\u0001 \u0001(\u0005R\u0001eB\u001D™\u0002\u001AGoogle.Protobuf.TestProtosJÔ\n\u0006\u0012\u0004 \u0000(\u0001\nˆ\f\n \u0001\f\u0012\u0003 \u0000\u00122¡\f"
             .getBytes(UTF_8));
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     console
         .assertThat()
@@ -178,8 +183,9 @@ public final class MergeImportToolTest {
     Files.createDirectories(destinationWorkdir.resolve(fileName).getParent());
     writeBinaryFile(destinationWorkdir, fileName, fileContents);
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     assertThat(Files.readAllBytes(originWorkdir.resolve(fileName))).isEqualTo(fileContents);
   }
@@ -191,8 +197,9 @@ public final class MergeImportToolTest {
     writeFile(originWorkdir, fileName, "d\ne\nf\n");
     writeFile(destinationWorkdir, fileName, "g\nh\ni");
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     console
         .assertThat()
@@ -228,8 +235,9 @@ public final class MergeImportToolTest {
     writeFile(destinationWorkdir, fileName, commonFileContents);
     underTest = new MergeImportTool(console, commandLineDiffUtil, 10, null);
 
-    underTest.mergeImport(
-        originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
+    var unused =
+        underTest.mergeImport(
+            originWorkdir, destinationWorkdir, baselineWorkdir, diffToolWorkdir, glob, packagePath);
 
     verify(commandLineDiffUtil, times(0))
         .merge(any(Path.class), any(Path.class), any(Path.class), any(Path.class));

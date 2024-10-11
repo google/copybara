@@ -45,6 +45,7 @@ import java.util.List;
 public class CredentialFileHandler {
   private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
+  private final String scheme;
   private final String host;
   private final String path;
   private final CredentialIssuer username;
@@ -55,8 +56,13 @@ public class CredentialFileHandler {
   private final boolean disabled;
 
   public CredentialFileHandler(
-      String host, String path, CredentialIssuer username, CredentialIssuer password,
+      String scheme,
+      String host,
+      String path,
+      CredentialIssuer username,
+      CredentialIssuer password,
       boolean disabled) {
+    this.scheme = checkNotNull(scheme);
     this.host = checkNotNull(host);
     this.path = checkNotNull(path);
     this.username = checkNotNull(username);
@@ -65,8 +71,26 @@ public class CredentialFileHandler {
   }
 
   public CredentialFileHandler(
+      String host,
+      String path,
+      CredentialIssuer username,
+      CredentialIssuer password,
+      boolean disabled) {
+    this("https", host, path, username, password, disabled);
+  }
+
+  public CredentialFileHandler(
       String host, String path, CredentialIssuer username, CredentialIssuer password) {
-    this(host, path, username, password, false);
+    this("https", host, path, username, password, false);
+  }
+
+  public CredentialFileHandler(
+      String scheme,
+      String host,
+      String path,
+      CredentialIssuer username,
+      CredentialIssuer password) {
+    this(scheme, host, path, username, password, false);
   }
 
   /** Obtain a token for the username field from the username Issuer. */
@@ -83,8 +107,7 @@ public class CredentialFileHandler {
       throws CredentialIssuingException, CredentialRetrievalException {
     if (currentPassword == null || !currentPassword.valid()) {
       currentPassword = password.issue();
-      logger.atInfo().log("Refreshing password %s", currentPassword.provideSecret());
-
+      logger.atInfo().log("Refreshing password %s", currentPassword.printableValue());
     }
     return currentPassword;
   }
@@ -168,8 +191,8 @@ public class CredentialFileHandler {
   private String getCredentialEntry(String pw)
       throws CredentialIssuingException, CredentialRetrievalException {
     return String.format(
-        "https://%1$s:%2$s@%3$s/%4$s",
-        URLEncoder.encode(getUsername(), UTF_8), URLEncoder.encode(pw, UTF_8), host, path);
+        "%1$s://%2$s:%3$s@%4$s/%5$s",
+        scheme, URLEncoder.encode(getUsername(), UTF_8), URLEncoder.encode(pw, UTF_8), host, path);
   }
 
   /**
