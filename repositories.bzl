@@ -15,7 +15,6 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("//third_party:bazel.bzl", "bazel_sha256", "bazel_version")
-load("//third_party:bazel_buildtools.bzl", "buildtools_sha256", "buildtools_version")
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
@@ -39,27 +38,6 @@ def copybara_repositories():
         sha256 = RULES_JVM_EXTERNAL_SHA,
         strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
         url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
-        patches = ["@io_bazel//third_party:rules_jvm_external_6.0.patch"],
-        patch_args = ["-p1"],
-    )
-
-    # LICENSE: The Apache Software License, Version 2.0
-    maybe(
-        http_archive,
-        name = "io_bazel",
-        sha256 = bazel_sha256,
-        strip_prefix = "bazel-" + bazel_version,
-        url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
-    )
-
-    # LICENSE: The Apache Software License, Version 2.0
-    # Buildifier and friends:
-    maybe(
-        http_archive,
-        name = "buildtools",
-        sha256 = buildtools_sha256,
-        strip_prefix = "buildtools-" + buildtools_version,
-        url = "https://github.com/bazelbuild/buildtools/archive/" + buildtools_version + ".zip",
     )
 
     # LICENSE: The Apache Software License, Version 2.0
@@ -173,3 +151,27 @@ def copybara_repositories():
         ],
     )
 
+    # LICENSE: MIT
+    maybe(
+        http_archive,
+        name = "buildifier_prebuilt",
+        sha256 = "8ada9d88e51ebf5a1fdff37d75ed41d51f5e677cdbeafb0a22dda54747d6e07e",
+        strip_prefix = "buildifier-prebuilt-6.4.0",
+        urls = [
+            "http://github.com/keith/buildifier-prebuilt/archive/6.4.0.tar.gz",
+        ],
+    )
+
+    _non_module_deps(None)
+
+def _non_module_deps(_):
+    # LICENSE: The Apache Software License, Version 2.0
+    maybe(
+        http_archive,
+        name = "io_bazel",
+        sha256 = bazel_sha256,
+        strip_prefix = "bazel-" + bazel_version,
+        url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
+    )
+
+non_module_deps = module_extension(implementation = _non_module_deps)

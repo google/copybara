@@ -25,3 +25,11 @@ copybara_maven_repositories()
 load("//:repositories.go.bzl", "copybara_go_repositories")
 
 copybara_go_repositories()
+
+load("@buildifier_prebuilt//:deps.bzl", "buildifier_prebuilt_deps")
+
+buildifier_prebuilt_deps()
+
+load("@buildifier_prebuilt//:defs.bzl", "buildifier_prebuilt_register_toolchains")
+
+buildifier_prebuilt_register_toolchains()

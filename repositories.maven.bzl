@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_jvm_external//:defs.bzl", "DEFAULT_REPOSITORY_NAME", "maven_install")
-load("@rules_jvm_external//:specs.bzl", "maven")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
+load("@rules_jvm_external//:defs.bzl", "maven_install")
+load("@rules_jvm_external//:specs.bzl", "maven")
 
 COPYBARA_MAVEN_ARTIFACTS = [
     maven.artifact("com.github.stephenc.jcip", "jcip-annotations", "1.0-1"),
@@ -66,7 +66,13 @@ COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES = [
 def copybara_maven_repositories():
     maybe(
         maven_install,
-        name = DEFAULT_REPOSITORY_NAME,
+        name = "copybara_maven",
+        artifacts = COPYBARA_MAVEN_ARTIFACTS,
+        repositories = COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES + ["https://repo1.maven.org/maven2"],
+    )
+    maybe(
+        maven_install,
+        name = "maven",
         artifacts = COPYBARA_MAVEN_ARTIFACTS,
         repositories = COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES + ["https://repo1.maven.org/maven2"],
     )

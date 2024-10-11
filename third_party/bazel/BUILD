@@ -9,5 +9,5 @@ package(
 java_library(
     name = "shell",
     srcs = glob(["main/**/*.java"]),
-    deps = ["@maven//:com_google_guava_guava"],
+    deps = ["@copybara_maven//:com_google_guava_guava"],
 )
