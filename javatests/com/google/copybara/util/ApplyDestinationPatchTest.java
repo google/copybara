@@ -21,7 +21,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.copybara.util.MergeImportTool.MergeResult;
-import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,6 +45,11 @@ public class ApplyDestinationPatchTest {
   private TestingConsole console;
 
   public String patchBin = "patch";
+
+  public String getPatchBin() {
+    return patchBin;
+  }
+
   public ImmutableMap<String, String> env = ImmutableMap.of();
 
   @Rule public TestName testName = new TestName();
@@ -61,7 +65,7 @@ public class ApplyDestinationPatchTest {
   }
 
   private ApplyDestinationPatch getUnderTest() {
-    return new ApplyDestinationPatch(console, patchBin, env);
+    return new ApplyDestinationPatch(console, getPatchBin(), env);
   }
 
   @Test
@@ -85,34 +89,13 @@ public class ApplyDestinationPatchTest {
   }
 
   @Test
-  public void emitsFuzzWarning() throws Exception {
-    String filename = testName.getMethodName() + ".txt";
-    writeFile(baseline, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
-    writeFile(left, filename, "" + "external\n" + "baseline\n" + "baseline\n");
-    writeFile(right, filename, "" + "baseline\n" + "internal\n" + "internal\n");
-
-    String expected = "" + "external\n" + "internal\n" + "internal\n";
-
-    MergeResult output =
-        getUnderTest()
-            .merge(
-                left.resolve(filename),
-                right.resolve(filename),
-                baseline.resolve(filename),
-                workdir);
-
-    assertThat(output.fileContents().toString(UTF_8)).isEqualTo(expected);
-    console.assertThat().logContains(MessageType.WARNING, "applied with fuzz 1 around line");
-  }
-
-  @Test
-  public void emitsOffsetWarning() throws Exception {
+  public void externalChangePropagated() throws Exception {
     String filename = testName.getMethodName() + ".txt";
     writeFile(baseline, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
     writeFile(left, filename, "" + "extra line\n" + "baseline\n" + "baseline\n" + "baseline\n");
-    writeFile(right, filename, "" + "baseline\n" + "internal\n" + "internal\n");
+    writeFile(right, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
 
-    String expected = "" + "extra line\n" + "baseline\n" + "internal\n" + "internal\n";
+    String expected = "" + "extra line\n" + "baseline\n" + "baseline\n" + "baseline\n";
 
     MergeResult output =
         getUnderTest()
@@ -123,17 +106,17 @@ public class ApplyDestinationPatchTest {
                 workdir);
 
     assertThat(output.fileContents().toString(UTF_8)).isEqualTo(expected);
-    console.assertThat().logContains(MessageType.WARNING, "applied with offset 1 around line");
   }
 
   @Test
-  public void emitsFuzzAndOffsetWarning() throws Exception {
+  public void internalPatchPreserved() throws Exception {
     String filename = testName.getMethodName() + ".txt";
     writeFile(baseline, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
-    writeFile(left, filename, "" + "extra line\n" + "external\n" + "baseline\n" + "baseline\n");
-    writeFile(right, filename, "" + "baseline\n" + "internal\n" + "internal\n");
+    writeFile(left, filename, "" + "baseline\n" + "baseline\n" + "baseline\n");
+    writeFile(
+        right, filename, "" + "internal patch\n" + "baseline\n" + "baseline\n" + "baseline\n");
 
-    String expected = "" + "extra line\n" + "external\n" + "internal\n" + "internal\n";
+    String expected = "" + "internal patch\n" + "baseline\n" + "baseline\n" + "baseline\n";
 
     MergeResult output =
         getUnderTest()
@@ -144,10 +127,8 @@ public class ApplyDestinationPatchTest {
                 workdir);
 
     assertThat(output.fileContents().toString(UTF_8)).isEqualTo(expected);
-    console
-        .assertThat()
-        .logContains(MessageType.WARNING, "applied with fuzz 1 and offset 1 around line");
   }
+
 
   @Test
   public void simpleMergeConflictTest() throws Exception {
