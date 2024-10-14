@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Google Inc.
+ * Copyright (C) 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,6 +130,11 @@ public class LatestVersionSelector implements VersionSelector {
     for (String ref : refs) {
       Matcher matcher = template.getBefore().matcher(ref);
       if (!matcher.matches()) {
+        console.warnFmt(
+            "Ref '%s' didn't match version_selector didn't match any version for '%s'. This ref"
+                + " will be ignored, consider correcting the version_selector regular expression if"
+                + " this is not intended.",
+            ref, template.getBefore().pattern());
         continue;
       }
       List<Object> objs = new ArrayList<>();

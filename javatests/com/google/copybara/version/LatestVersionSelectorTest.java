@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Google Inc.
+ * Copyright (C) 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.testing.OptionsBuilder;
 import com.google.copybara.testing.SkylarkTestExecutor;
+import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -87,19 +88,26 @@ public class LatestVersionSelectorTest {
 
   @Test
   public void versionMix() throws ValidationException, RepoException {
-    runTest(""
+    runTest(
+        ""
             + "  format = 'Foo-${s1}-${n0}-${s2}',"
             + "  regex_groups = {"
             + "    's1' : '[a-c]',"
             + "    'n0' : '[0-9]+',"
             + "    's2' : '[a-z]+'"
             + "  }",
-        ImmutableSet.of("99.99.99",
-            "Foo-a-2-a",
-            "Foo-b-1-b",
-            "Foo-c-10-c",
-            "Foo-c-10-d"),
-        null, "Foo-c-10-d");
+        ImmutableSet.of("99.99.99", "Foo-a-2-a", "Foo-b-1-b", "Foo-c-10-c", "Foo-c-10-d"),
+        null,
+        "Foo-c-10-d");
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.WARNING,
+            ".*Ref '99.99.99' didn't match version_selector didn't match any version for"
+                + " 'Foo-\\(\\[a-c\\]\\)-\\(\\[0-9\\]\\+\\)-\\(\\[a-z\\]\\+\\)'. "
+                + "This ref"
+                + " will be ignored, consider correcting the version_selector regular expression if"
+                + " this is not intended..*");
   }
 
   @Test

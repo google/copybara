@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,8 +108,10 @@ public class LatestVersionSelectorForGitTest {
     assertThat(e)
         .hasMessageThat()
         .contains("Cannot find any matching version for latest_version");
-    console.assertThat().onceInLog(MessageType.WARNING,
-        ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
+    console
+        .assertThat()
+        .logContains(
+            MessageType.WARNING, ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
   }
 
   @Test
