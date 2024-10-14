@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG BAZEL_VERSION=:7.1.0
+ARG BAZEL_VERSION=:7.3.2
 
 # Set up buildtools required
 FROM golang:latest AS buildtools

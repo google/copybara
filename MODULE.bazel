@@ -14,13 +14,12 @@ bazel_dep(name = "rules_pkg", version = "0.10.1")
 bazel_dep(name = "rules_python", version = "0.31.0")
 
 non_module_deps = use_extension("//:repositories.bzl", "non_module_deps")
-use_repo(non_module_deps, "JCommander", "io_bazel")
+use_repo(non_module_deps, "io_bazel")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "copybara_maven",
     artifacts = [
-        "org.jcommander:jcommander:2.0",
         "com.github.stephenc.jcip:jcip-annotations:1.0-1",
         "com.google.auto.service:auto-service-annotations:1.1.1",
         "com.google.auto.service:auto-service:1.1.1",
@@ -45,6 +44,7 @@ maven.install(
         "com.google.truth.extensions:truth-java8-extension:1.3.0",
         "com.google.truth:truth:1.3.0",
         "com.googlecode.java-diff-utils:diffutils:1.3.0",
+        "org.jcommander:jcommander:2.0",
         "com.ryanharter.auto.value:auto-value-gson-extension:1.3.1",
         "com.ryanharter.auto.value:auto-value-gson-factory:1.3.1",
         "com.ryanharter.auto.value:auto-value-gson-runtime:1.3.1",
@@ -73,7 +73,7 @@ use_repo(maven, "copybara_maven")
 # TODO(hsudhof): Vendor bazel's starlark package instead
 maven.install(
     artifacts = [
-        "org.jcommander:jcommander:2.0",
+
         "com.github.ben-manes.caffeine:caffeine:3.0.5",
         "com.github.kevinstern:software-and-algorithms:1.0",
         "com.github.stephenc.jcip:jcip-annotations:1.0-1",
@@ -157,6 +157,7 @@ maven.install(
         "org.apache.tomcat:tomcat-annotations-api:8.0.5",
         "org.apache.velocity:velocity:1.7",
         "org.checkerframework:checker-qual:3.19.0",
+        "org.jcommander:jcommander:2.0",
         "org.ow2.asm:asm-analysis:9.2",
         "org.ow2.asm:asm-commons:9.2",
         "org.ow2.asm:asm-tree:9.2",
