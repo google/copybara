@@ -549,7 +549,7 @@ public class GitDestination implements Destination<GitRevision> {
 
       console.progress("Git Destination: Adding all files");
       try (ProfilerTask ignored = generalOptions.profiler().start("add_files")) {
-        alternate.add().force().all().run();
+        alternate.add().force().renormalize().all().run();
       }
 
       console.progress("Git Destination: Excluding files");
