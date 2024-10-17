@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -283,7 +283,17 @@ public class GitOrigin implements Origin<GitRevision> {
   private GitRevision resolveStringRef(String ref) throws RepoException, ValidationException {
     GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
         describeVersion, partialFetch, gitOptions.getFetchDepth());
-    return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
+    if (!describeVersion) {
+      return gitRevision;
+    }
+
+    String describeAsTag =
+        generalOptions.isTemporaryFeature("SHA1_AS_TAG", true)
+            ? getRepository().describeExactMatch(gitRevision)
+            : null;
+    return gitRevision.contextReference() == null
+        ? getRepository().addDescribeVersion(gitRevision).withTagReference(describeAsTag)
+        : getRepository().addDescribeVersion(gitRevision);
   }
 
   @Override

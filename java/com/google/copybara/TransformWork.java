@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -781,7 +782,11 @@ public final class TransformWork extends CheckoutFileSystem
    */
   private Map<String, ImmutableList<String>> getCoreLabels() {
     Map<String, ImmutableList<String>> labels = new HashMap<>();
-    String ctxRef = resolvedReference.contextReference();
+    // if there isn't a human readable ref, just go back to the (unoften) non-readable ref
+    String ctxRef =
+        !Strings.isNullOrEmpty(resolvedReference.contextReference())
+            ? resolvedReference.contextReference()
+            : resolvedReference.fixedReference();
     labels.put(COPYBARA_CONTEXT_REFERENCE_LABEL, ctxRef == null
         ? ImmutableList.of()
         : ImmutableList.of(ctxRef));

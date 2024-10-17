@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -404,6 +404,20 @@ public class GitOriginTest {
         .containsExactly("0.1-1-g" + head.asString().substring(0, 7));
     assertThat(origin().resolve(defaultBranch).associatedLabels().get("GIT_DESCRIBE_ABBREV"))
         .contains("0.1");
+  }
+
+  @Test
+  public void testGitOriginResolveToExactTag() throws Exception {
+    git("tag", "-m", "This is a tag", "0.1");
+    String firstSha1 = this.repo.resolveReference("HEAD").getSha1();
+
+    writeFile(remote, "test.txt", "updated");
+    repo.add().files("test.txt").run();
+    git("commit", "-m", "another commit");
+    String secondSha1 = this.repo.resolveReference("HEAD").getSha1();
+
+    assertThat(origin().resolve(firstSha1).contextReference()).isEqualTo("0.1");
+    assertThat(origin().resolve(secondSha1).contextReference()).isNull();
   }
 
   @Test

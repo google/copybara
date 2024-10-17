@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -461,6 +461,17 @@ public class GitRepository {
 
   public String describe(GitRevision rev, boolean firstParent) throws RepoException {
     return describe(rev, true, firstParent ? new String[]{"--first-parent"} : new String[]{});
+  }
+
+  /**
+   * Finds a tag that exactly points to the given revision.
+   *
+   * @param rev the revision to describe
+   * @return the describe output of the revision, or null if the revision is not found
+   */
+  @Nullable
+  public String describeExactMatch(GitRevision rev) throws RepoException {
+    return describe(rev, false, new String[] {"--exact-match", "--tags"});
   }
 
   public String describeAbbrev(GitRevision rev) throws RepoException {

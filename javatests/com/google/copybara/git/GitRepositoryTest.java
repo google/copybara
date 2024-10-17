@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Google Inc.
+ * Copyright (C) 2016 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1565,6 +1565,27 @@ public class GitRepositoryTest {
     GitRevision head = repository.resolveReference("HEAD");
     assertThat(repository.describe(head, false)).isNotEqualTo(repository.describe(head, true));
 }
+
+  @Test
+  public void testDescribeExactMatch() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "first");
+    String targetSha = repository.resolveReference("HEAD").getSha1();
+    repository.tag("main_tag").withAnnotatedTag("message").run();
+
+    Files.write(workdir.resolve("bar.txt"), "".getBytes(UTF_8));
+    repository.add().all().run();
+    repository.simpleCommand("commit", "-m", "second");
+    String targetSha2 = repository.resolveReference("HEAD").getSha1();
+    repository.tag("main_tag2").withAnnotatedTag("message").run();
+
+    repository.branch("foo").run();
+    GitRevision head = repository.resolveReference(targetSha);
+    assertThat(repository.describeExactMatch(head)).isEqualTo("main_tag");
+    assertThat(repository.describeExactMatch(repository.resolveReference(targetSha2)))
+        .isEqualTo("main_tag2");
+  }
 
   @Test
   public void testTagPointsAt() throws Exception {
