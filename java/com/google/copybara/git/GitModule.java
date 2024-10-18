@@ -298,12 +298,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
                     + "This is intended to help migrating to the new standard of using 'main'"
                     + " without breaking users relying on the legacy default."),
         @Param(
-                name = "enable_lfs",
-                defaultValue = "False",
-                named = true,
-                positional = false,
-                doc = "If true, Large File Storage support is enabled for the origin."),
-        @Param(
             name = "credentials",
             allowedTypes = {
               @ParamType(type = UsernamePasswordIssuer.class),
@@ -328,7 +322,6 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object describeVersion,
       Object versionSelector,
       Boolean primaryBranchMigration,
-      Boolean enableLfs,
       @Nullable Object credentials,
       StarlarkThread thread)
       throws EvalException {
@@ -367,7 +360,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             ? githubPostSubmitApprovalsProvider(
                 fixedUrl, SkylarkUtil.convertOptionalString(ref), credentialHandler)
             : approvalsProvider(url),
-        enableLfs,
+        /* enableLfs= */ false,
         credentialHandler
     );
   }
