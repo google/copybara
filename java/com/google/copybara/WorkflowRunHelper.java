@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Google Inc.
+ * Copyright (C) 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -735,17 +735,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       // TODO(malcon): Pass metadata object instead
       TransformResult transformResult =
           new TransformResult(
-              checkoutDir,
-              rev,
-              transformWork.getAuthor(),
-              transformWork.getMessage(),
-              resolvedRef,
-              workflow.getName(),
-              changes,
-              rawSourceRef,
-              workflow.isSetRevId(),
-              transformWork::getAllLabels,
-              workflow.getRevIdLabel())
+                  checkoutDir,
+                  rev,
+                  transformWork.getAuthor(),
+                  transformWork.getMessage(),
+                  /* requestedRevision= */ getResolvedRefForTransform(rev),
+                  workflow.getName(),
+                  changes,
+                  rawSourceRef,
+                  workflow.isSetRevId(),
+                  transformWork::getAllLabels,
+                  workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
       ImmutableList<String> mergeErrorPaths = ImmutableList.of();
