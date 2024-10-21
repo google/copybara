@@ -25,6 +25,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.BaselinesWithoutLabelVisitor;
 import com.google.copybara.Endpoint;
@@ -127,6 +128,16 @@ public class GerritOrigin extends GitOrigin {
     this.branch = branch;
     this.partialFetch = partialFetch;
     this.ignoreGerritNoop = ignoreGerritNoop;
+  }
+
+  @Override
+  public ImmutableSetMultimap<String, String> describe(Glob originFiles) {
+    ImmutableSetMultimap.Builder<String, String> builder = ImmutableSetMultimap.builder();
+    builder.putAll(super.describe(originFiles));
+    if (branch != null) {
+      builder.put("branch", branch);
+    }
+    return builder.build();
   }
 
   @Override

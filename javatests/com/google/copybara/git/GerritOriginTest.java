@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.Origin.Reader;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.Authoring;
@@ -283,10 +284,12 @@ public class GerritOriginTest {
     GerritOrigin origin = skylark.eval("g", "g = git.gerrit_origin("
         + "  url = 'https://" + REPO_URL + "',"
         + "  branch = 'master')");
+    ImmutableSetMultimap<String, String> describe = origin.describe(Glob.ALL_FILES);
 
     EmptyChangeException e =
         assertThrows(EmptyChangeException.class, () -> origin.resolve("12345"));
     assertThat(e).hasMessageThat().contains("Skipping import of change 12345 for branch my_branch");
+    assertThat(describe).containsAtLeast("branch", "master");
     // But this should work, as the last-rev needs to be resolved:
     origin.resolve(firstRevision.getSha1());
   }
