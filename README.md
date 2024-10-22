@@ -147,6 +147,12 @@ load("@com_github_google_copybara//:repositories.go.bzl", "copybara_go_repositor
 copybara_go_repositories()
 ```
 
+Add the following to your .bazelrc:
+```rc
+build --java_language_version=11
+build --tool_java_language_version=11
+```
+
 You can then build and run the Copybara tool from within your workspace:
 
 ```sh
