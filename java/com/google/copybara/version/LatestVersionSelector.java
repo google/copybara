@@ -130,7 +130,7 @@ public class LatestVersionSelector implements VersionSelector {
     for (String ref : refs) {
       Matcher matcher = template.getBefore().matcher(ref);
       if (!matcher.matches()) {
-        console.warnFmt(
+        console.verboseFmt(
             "Ref '%s' didn't match version_selector didn't match any version for '%s'. This ref"
                 + " will be ignored, consider correcting the version_selector regular expression if"
                 + " this is not intended.",

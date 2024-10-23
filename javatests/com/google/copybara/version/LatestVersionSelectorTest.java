@@ -102,7 +102,7 @@ public class LatestVersionSelectorTest {
     console
         .assertThat()
         .onceInLog(
-            MessageType.WARNING,
+            MessageType.VERBOSE,
             ".*Ref '99.99.99' didn't match version_selector didn't match any version for"
                 + " 'Foo-\\(\\[a-c\\]\\)-\\(\\[0-9\\]\\+\\)-\\(\\[a-z\\]\\+\\)'. "
                 + "This ref"

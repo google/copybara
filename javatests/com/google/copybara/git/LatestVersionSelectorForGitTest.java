@@ -105,13 +105,11 @@ public class LatestVersionSelectorForGitTest {
     createTags("1.0", "1.1", "1.2");
     options.general.setVersionSelectorUseCliRefForTest(false);
     ValidationException e = assertThrows(ValidationException.class, () -> checkTags(null));
-    assertThat(e)
-        .hasMessageThat()
-        .contains("Cannot find any matching version for latest_version");
+    assertThat(e).hasMessageThat().contains("Cannot find any matching version for latest_version");
     console
         .assertThat()
         .logContains(
-            MessageType.WARNING, ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
+            MessageType.VERBOSE, ".*didn't match any version for 'refs/tags/\\(\\[0-9\\]\\+\\).*");
   }
 
   @Test
