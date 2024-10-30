@@ -103,7 +103,7 @@ public class GerritOptions implements Option {
   }
 
   /** Override this method in a class for a specific Gerrit implementation. */
-  public final GerritApi newGerritApi(String url) throws RepoException, ValidationException {
+  public GerritApi newGerritApi(String url) throws RepoException, ValidationException {
     return newGerritApi(url, null);
   }
 
