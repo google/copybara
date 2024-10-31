@@ -685,7 +685,8 @@ public class Core implements LabelsAwareModule, StarlarkValue {
             workflowOptions.migrateNoopChanges || migrateNoopChanges,
             customRevId,
             checkout,
-            consistencyFilePath);
+            consistencyFilePath,
+            workflowOptions.expectedFixedRef);
     Module module = Module.ofInnermostEnclosingStarlarkFunction(thread);
     registerGlobalMigration(workflowName, workflow, module);
   }

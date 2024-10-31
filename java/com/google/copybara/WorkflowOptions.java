@@ -65,6 +65,14 @@ public class WorkflowOptions implements Option {
   static final String INIT_HISTORY_FLAG = "--init-history";
 
   @Parameter(
+      names = "--expected-fixed-ref",
+      description =
+          "The fixed reference that we expect the migrate ref argument to resolve to. If they do"
+              + " not match, the tool will exit with a NOOP status.",
+      hidden = true)
+  public String expectedFixedRef = null;
+
+  @Parameter(
       names = "--same-version",
       description =
           "Re-import the last version imported. This is useful for example to check that"
@@ -200,6 +208,7 @@ public class WorkflowOptions implements Option {
     this.forcedChangeMessage = other.forcedChangeMessage;
     this.forcedAuthor = other.forcedAuthor;
     this.diffInOrigin = other.diffInOrigin;
+    this.expectedFixedRef = other.expectedFixedRef;
   }
 
   public boolean canUseSmartPrune() {

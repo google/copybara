@@ -106,6 +106,20 @@ public class DummyOrigin implements Origin<DummyRevision> {
   @CanIgnoreReturnValue
   public DummyOrigin addSimpleChangeWithContextReference(int timestamp, String contextRef)
       throws IOException {
+    addChangeWithRef(timestamp, contextRef, null);
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public DummyOrigin addSimpleChangeWithFixedReference(int timestamp, String fixedReference)
+      throws IOException {
+    addChangeWithRef(timestamp, null, fixedReference);
+    return this;
+  }
+
+  private void addChangeWithRef(
+      int timestamp, @Nullable String contextRef, @Nullable String fixedReference)
+      throws IOException {
     Path path = fs.getPath("" + changes.size());
     Files.createDirectories(path);
     if (changes.size() > 1) {
@@ -126,13 +140,12 @@ public class DummyOrigin implements Origin<DummyRevision> {
             path,
             ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
             contextRef,
-            /* fixedReference= */ null,
+            fixedReference,
             /* referenceLabels= */ ImmutableListMultimap.of(),
             true,
             previousChanges,
             null,
             Optional.empty()));
-    return this;
   }
 
   @CanIgnoreReturnValue

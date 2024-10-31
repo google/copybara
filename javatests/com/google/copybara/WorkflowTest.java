@@ -384,6 +384,48 @@ public class WorkflowTest {
   }
 
   @Test
+  public void expectedFixedRefDoesNotMatch() throws Exception {
+    options.workflowOptions.expectedFixedRef = "capybara";
+    origin.addSimpleChangeWithFixedReference(42, "beaver");
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+    EmptyChangeException e =
+        assertThrows(
+            EmptyChangeException.class, () -> workflow.run(workdir, ImmutableList.of("HEAD")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains(
+            "Not migrating ref 0, its fixed ref beaver did not match the expected fixed ref"
+                + " capybara.");
+  }
+
+  @Test
+  public void expectedFixedRefDoesMatch() throws Exception {
+    options.workflowOptions.expectedFixedRef = "capybara";
+    origin.addSimpleChangeWithFixedReference(42, "capybara");
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    assertThat(destination.processed).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef())
+        .isEqualTo(origin.resolve("HEAD"));
+  }
+
+  @Test
+  public void expectedFixedRefHasNoEffect_changeHasNoFixedRefDefined() throws Exception {
+    options.workflowOptions.expectedFixedRef = "capybara";
+    origin.addSimpleChange(42); // no fixed ref defined, this should still migrate the change.
+    transformations = ImmutableList.of();
+    Workflow<?, ?> workflow = skylarkWorkflow("default", SQUASH);
+
+    workflow.run(workdir, ImmutableList.of("HEAD"));
+    assertThat(destination.processed).isNotEmpty();
+    assertThat(Iterables.getOnlyElement(destination.processed).getOriginRef())
+        .isEqualTo(origin.resolve("HEAD"));
+  }
+
+  @Test
   public void contextReferenceAsLabel() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     transformations = ImmutableList.of(

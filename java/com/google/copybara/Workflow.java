@@ -24,6 +24,7 @@ import static com.google.copybara.exception.ValidationException.checkCondition;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -39,6 +40,7 @@ import com.google.copybara.config.ConfigFile;
 import com.google.copybara.config.Migration;
 import com.google.copybara.effect.DestinationEffect;
 import com.google.copybara.exception.CommandLineException;
+import com.google.copybara.exception.EmptyChangeException;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.feedback.FinishHookContext;
@@ -124,6 +126,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
   private final boolean checkout;
 
   @Nullable String consistencyFilePath;
+  @Nullable private final String expectedFixedRef;
 
   public Workflow(
       String name,
@@ -157,7 +160,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
       boolean migrateNoopChanges,
       @Nullable String customRevId,
       boolean checkout,
-      @Nullable String consistencyFilePath) {
+      @Nullable String consistencyFilePath,
+      @Nullable String expectedFixedRef) {
     this.name = Preconditions.checkNotNull(name);
     this.description = description;
     this.origin = Preconditions.checkNotNull(origin);
@@ -194,6 +198,7 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
     this.afterMergeTransformations = afterMergeTransformations;
     this.migrateNoopChanges = migrateNoopChanges;
     this.consistencyFilePath = consistencyFilePath;
+    this.expectedFixedRef = expectedFixedRef;
   }
 
   @Override
@@ -281,6 +286,15 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
           + "Resolving " + ((sourceRef == null) ? "origin reference" : sourceRef));
       O resolvedRef = generalOptions.repoTask("origin.resolve_source_ref",
           () -> origin.resolve(sourceRef));
+
+      if (!Strings.isNullOrEmpty(expectedFixedRef)
+          && !Strings.isNullOrEmpty(resolvedRef.fixedReference())
+          && !resolvedRef.fixedReference().equals(expectedFixedRef)) {
+        throw new EmptyChangeException(
+            String.format(
+                "Not migrating ref %s, its fixed ref %s did not match the expected fixed ref %s.",
+                resolvedRef.asString(), resolvedRef.fixedReference(), expectedFixedRef));
+      }
 
       logger.atInfo().log(
               "Running Copybara for workflow '%s' and ref '%s': %s",
@@ -736,5 +750,10 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
 
   public Glob getReversibleCheckIgnoreFiles() {
     return reversibleCheckIgnoreFiles;
+  }
+
+  @Nullable
+  public String getExpectedFixedRef() {
+    return expectedFixedRef;
   }
 }
