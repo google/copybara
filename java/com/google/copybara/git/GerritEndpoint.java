@@ -87,12 +87,15 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
             positional = false,
             defaultValue = "['LABELS']"),
       })
-  public ChangeInfo getChange(String id, Sequence<?> includeResults) throws EvalException {
+  public ChangeInfo getChange(String id, Sequence<?> includeResults)
+      throws EvalException, ValidationException {
     try {
       ChangeInfo changeInfo = doGetChange(id, getIncludeResults(includeResults));
       ValidationException.checkCondition(
           !changeInfo.isMoreChanges(), "Pagination is not supported yet.");
       return changeInfo;
+    } catch (GerritApiException re) {
+      throw handleGerritApiException(re, "get_change");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error getting change: " + e.getMessage(), e);
     }
@@ -105,10 +108,13 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
         @Param(name = "id", named = true, doc = "The change id or change number."),
         @Param(name = "revision", named = true, doc = "The revision of the change."),
       })
-  public Map<String, ActionInfo> getActions(String id, String revision) throws EvalException {
+  public Map<String, ActionInfo> getActions(String id, String revision)
+      throws EvalException, ValidationException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.getActions(id, revision);
+    } catch (GerritApiException re) {
+      throw handleGerritApiException(re, "get_actions");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error getting actions: " + e.getMessage(), e);
     }
@@ -130,6 +136,20 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     return gerritApi.getChange(changeId, new GetChangeInput(includeResults));
   }
 
+  private ValidationException handleGerritApiException(GerritApiException re, String methodName) {
+    int responseCode = re.getResponseCode().getCode();
+    if (responseCode >= 400 && responseCode < 500) {
+      return new ValidationException(
+          String.format(
+              "Request error calling %s. Gerrit returned a request error while attempting to post a"
+                  + " review:\n"
+                  + "%s",
+              methodName, re.getMessage()),
+          re);
+    }
+    return new ValidationException("Error calling " + methodName, re);
+  }
+
   @StarlarkMethod(
       name = "post_review",
       doc =
@@ -144,20 +164,12 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
         @Param(name = "review_input", doc = "The review to post to Gerrit.", named = true),
       })
   public ReviewResult postReview(String changeId, String revisionId, SetReviewInput reviewInput)
-      throws EvalException {
+      throws EvalException, ValidationException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.setReview(changeId, revisionId, reviewInput);
     } catch (GerritApiException re) {
-      if (re.getGerritResponseMsg().matches("(?s).*Applying label \"\\w+\":.*is restricted.*")) {
-        throw new EvalException(
-            "Permission error calling post_review",
-            new ValidationException(
-                "Gerrit returned a permission error while attempting to post a review:\n"
-                    + re.getMessage(),
-                re));
-      }
-      throw new EvalException("Error calling post_review", re);
+      throw handleGerritApiException(re, "post_review");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling post_review: " + e.getMessage(), e);
     }
@@ -176,10 +188,13 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
                     + "if the account owner makes this api call"),
         @Param(name = "label_id", named = true, doc = "The name of the label."),
       })
-  public void deleteVote(String changeId, String accountId, String labelId) throws EvalException {
+  public void deleteVote(String changeId, String accountId, String labelId)
+      throws EvalException, ValidationException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       gerritApi.deleteVote(changeId, accountId, labelId, new DeleteVoteInput(NotifyType.NONE));
+    } catch (GerritApiException re) {
+      throw handleGerritApiException(re, "delete_vote");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling delete_vote: " + e.getMessage(), e);
     }
@@ -197,6 +212,8 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.submitChange(changeId, new SubmitInput(NotifyType.NONE));
+    } catch (GerritApiException re) {
+      throw handleGerritApiException(re, "submit_change");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error calling submit_change: " + e.getMessage(), e);
     }
@@ -206,10 +223,12 @@ public class GerritEndpoint implements Endpoint, StarlarkValue {
       name = "abandon_change",
       doc = "Abandon a Gerrit change.",
       parameters = {@Param(name = "change_id", named = true, doc = "The Gerrit change id.")})
-  public ChangeInfo abandonChange(String changeId) throws EvalException {
+  public ChangeInfo abandonChange(String changeId) throws EvalException, ValidationException {
     try {
       GerritApi gerritApi = apiSupplier.load(console);
       return gerritApi.abandonChange(changeId, AbandonInput.createWithoutComment());
+    } catch (GerritApiException re) {
+      throw handleGerritApiException(re, "abandon_change");
     } catch (RepoException | ValidationException | RuntimeException e) {
       throw new EvalException("Error getting change: " + e.getMessage(), e);
     }

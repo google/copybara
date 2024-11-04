@@ -39,6 +39,7 @@ import com.google.common.jimfs.Jimfs;
 import com.google.copybara.ActionMigration;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
+import com.google.copybara.git.gerritapi.GerritApiException;
 import com.google.copybara.testing.DummyChecker;
 import com.google.copybara.testing.DummyTrigger;
 import com.google.copybara.testing.OptionsBuilder;
@@ -173,6 +174,30 @@ public class GerritEndpointTest {
             .addAll(checkFieldStarLark("res", "label", "'Submit'"))
             .addAll(checkFieldStarLark("res", "enabled", "True"))
             .build());
+  }
+
+  @Test
+  public void testActions_gerritApiException_accessIssue() throws Exception {
+    var unused =
+        gitUtil.mockApi(
+            eq("GET"),
+            matches(BASE_URL + "/changes/12345/revisions/sha1/actions"),
+            invocation -> {
+              throw new GerritApiException(400, "", "", "");
+            });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedback(
+                    ImmutableList.<String>builder()
+                        .add("res = ctx.destination.get_actions('12345', 'sha1').get(\"submit\")")
+                        .addAll(checkFieldStarLark("res", "label", "'Submit'"))
+                        .addAll(checkFieldStarLark("res", "enabled", "True"))
+                        .build()));
+    assertThat(e).hasMessageThat().contains("Request error calling get_actions.");
+    assertThat(e.getCause()).hasMessageThat().contains("Gerrit returned a request error");
   }
 
   @Test
@@ -475,6 +500,29 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void testGetChange_gerritApiException_permissionIssue() throws IOException {
+    var unused =
+        gitUtil.mockApi(
+            eq("GET"),
+            startsWith(BASE_URL + "/changes/"),
+            invocation -> {
+              throw new GerritApiException(400, "test", "test", "test");
+            });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedback(
+                    ImmutableList.of(
+                        "ctx.destination.get_change('12345', include_results = ['LABELS'])")));
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Request error calling get_change. Gerrit returned a request error");
+    assertThat(e.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
+  }
+
+  @Test
   public void testPostLabel() throws Exception {
     mockForTest();
     runFeedback(
@@ -530,6 +578,31 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void deleteVote_gerritApiException_permissionIssue() throws Exception {
+    var unused =
+        gitUtil.mockApi(
+            eq("POST"),
+            startsWith(BASE_URL + "/changes/12345/reviewers/me/votes/Code-Review/delete"),
+            invocation -> {
+              throw new GerritApiException(400, "", "", "");
+            });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedback(
+                    ImmutableList.<String>builder()
+                        .add("ctx.destination" + ".delete_vote('12345', 'me', 'Code-Review')")
+                        .build()));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Request error calling delete_vote. Gerrit returned a request error");
+    assertThat(e.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
+  }
+
+  @Test
   public void submitChange() throws Exception {
     AtomicBoolean called = new AtomicBoolean(false);
     gitUtil.mockApi(
@@ -550,7 +623,32 @@ public class GerritEndpointTest {
 
     assertThat(called.get()).isTrue();
   }
-  
+
+  @Test
+  public void submitChange_gerritApiException_permissionIssue() throws Exception {
+    var unused =
+        gitUtil.mockApi(
+            eq("POST"),
+            startsWith(BASE_URL + "/changes/12345/submit"),
+            invocation -> {
+              throw new GerritApiException(400, "", "", "");
+            });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedbackWithSubmit(
+                    ImmutableList.<String>builder()
+                        .add("ctx.destination" + ".submit_change('12345')")
+                        .build()));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Request error calling submit_change. Gerrit returned a request error");
+    assertThat(e.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
+  }
+
     @Test
   public void submitChange_disallowed() throws Exception {
     AtomicBoolean called = new AtomicBoolean(false);
@@ -600,6 +698,31 @@ public class GerritEndpointTest {
   }
 
   @Test
+  public void abandonChange_gerritApiException_permissionIssue() throws Exception {
+    var unused =
+        gitUtil.mockApi(
+            eq("POST"),
+            startsWith(BASE_URL + "/changes/12345/abandon"),
+            invocation -> {
+              throw new GerritApiException(400, "", "", "");
+            });
+
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () ->
+                runFeedback(
+                    ImmutableList.<String>builder()
+                        .add("ctx.destination" + ".abandon_change('12345')")
+                        .build()));
+
+    assertThat(e)
+        .hasMessageThat()
+        .contains("Request error calling abandon_change. Gerrit returned a request error");
+    assertThat(e.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
+  }
+
+  @Test
   public void testPostLabel_errorCreatesVe() throws Exception {
     mockForTest();
     gitUtil.mockApi(
@@ -614,7 +737,10 @@ public class GerritEndpointTest {
                     ImmutableList.of(
                         "ctx.destination.post_review("
                             + "'12345', 'sha1', git.review_input({'Code-Review': 1}, 'foooo'))")));
-    assertThat(expected).hasMessageThat().contains("Permission error calling post_review");
+    assertThat(expected)
+        .hasMessageThat()
+        .contains("Request error calling post_review. Gerrit returned a request error");
+    assertThat(expected.getCause()).hasCauseThat().isInstanceOf(GerritApiException.class);
   }
 
   @Test

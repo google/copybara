@@ -63,6 +63,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
+import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.OngoingStubbing;
 
 /** Common utilities for creating and working with git repos in test */
@@ -253,6 +254,27 @@ public class GitTestUtil {
       when = when.thenReturn(httpRequest);
     }
     return when.thenReturn(request);
+  }
+
+  /**
+   * Mocks a Gerrit API endpoint. This method takes in an {@link Answer} to allow mocking exception
+   * throwing behavior.
+   *
+   * @param method The method to mock.
+   * @param url The URL of the mocked endpoint.
+   * @param requestAnswer The Answer to respond with.
+   * @return a {@link OngoingStubbing} object.
+   */
+  public OngoingStubbing<LowLevelHttpRequest> mockApi(
+      String method, String url, Answer<LowLevelHttpRequest> requestAnswer) {
+    OngoingStubbing<LowLevelHttpRequest> when;
+    try {
+      when = when(httpTransport().buildRequest(method, url)).then(requestAnswer);
+    } catch (IOException e) {
+      // Cannot happen as we are not really calling the method.
+      throw new AssertionError(e);
+    }
+    return when;
   }
 
   /**
