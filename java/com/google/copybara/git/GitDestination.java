@@ -70,8 +70,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.Sequence;
@@ -114,7 +116,6 @@ public class GitDestination implements Destination<GitRevision> {
   @Nullable private final Checker checker;
   private final LazyResourceLoader<GitRepository> localRepo;
   @Nullable private final CredentialFileHandler credentials;
-
   GitDestination(
       String repoUrl,
       String fetch,
@@ -432,9 +433,13 @@ public class GitDestination implements Destination<GitRevision> {
        * git repo should keep current commit as HEAD or do the proper modifications to make HEAD to
        * point to a new/modified changes(s).
        */
-      default void beforePush(GitRepository repo, MessageInfo messageInfo, boolean skipPush,
-          List<? extends Change<?>> originChanges) throws RepoException, ValidationException {
-      }
+      default void beforePush(
+          GitRepository repo,
+          MessageInfo messageInfo,
+          boolean skipPush,
+          List<IntegrateLabel> integrateLabels,
+          List<? extends Change<?>> originChanges)
+          throws RepoException, ValidationException {}
 
       /**
        * Construct the reference to push based on the pushToRefsFor reference. Implementations of
@@ -576,15 +581,21 @@ public class GitDestination implements Destination<GitRevision> {
       // Don't remove. Used internally in test
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
+      ArrayList<IntegrateLabel> integrateLabels = new ArrayList<>();
       for (GitIntegrateChanges integrate : integrates) {
-        var unused = integrate.run(
-            alternate,
-            repoUrl,
-            generalOptions,
-            messageInfo,
-            path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
-            transformResult,
-            ignoreIntegrationErrors);
+        Optional<IntegrateLabel> integrateLabel =
+            integrate.run(
+                alternate,
+                repoUrl,
+                generalOptions,
+                messageInfo,
+                path -> !pathMatcher.matches(scratchClone.getWorkTree().resolve(path)),
+                transformResult,
+                ignoreIntegrationErrors);
+
+        if (integrateLabel.isPresent()) {
+          integrateLabels.add(integrateLabel.get());
+        }
       }
 
       ValidationException.checkCondition(
@@ -654,7 +665,11 @@ public class GitDestination implements Destination<GitRevision> {
       Sequence<? extends Change<?>> originChanges = transformResult.getChanges().getCurrent();
       String tagName = createTag(scratchClone, console, transformResult);
       // BeforePush will update existing PRs in github if skip push is not true
-      writeHook.beforePush(scratchClone, messageInfo, skipPush, originChanges);
+      // Experimental feature is pushToFork. 
+      // If true, the pull request will be overwritten with a single commit.
+      writeHook.beforePush(
+          scratchClone, messageInfo, skipPush, integrateLabels, originChanges);
+
       if (skipPush) {
         console.infoFmt(
             "Git Destination: skipped push to remote. Check the local commits by running:"

@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -44,6 +45,7 @@ import com.google.copybara.effect.DestinationEffect.Type;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.exception.ValidationException;
 import com.google.copybara.git.github.api.GitHubApiException;
+import com.google.copybara.git.github.util.GitHubUtil;
 import com.google.copybara.git.testing.GitTesting;
 import com.google.copybara.revision.Change;
 import com.google.copybara.revision.Changes;
@@ -425,6 +427,385 @@ public class GitHubDestinationTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testGithubSquashMerge_successful() throws Exception {
+    String pullRequestBranch = "pull_request_123";
+
+    // add files to the primary branch and main branch of the pull request repo
+    addFiles(
+        remote,
+        primaryBranch,
+        "initial commit",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "hello world").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "second change",
+        ImmutableMap.<String, String>builder().put("bar.txt", "hello world").buildOrThrow());
+    
+    writeFile(this.workdir, "foo.txt", "hello world");
+    writeFile(this.workdir, "bar.txt", "hello world");
+
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(1), prHeadSha1);
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/pulls/1",
+        mockResponse(
+            "{\"id\": 1,"
+                + "\"number\": 1,"
+                + "\"state\": \"open\",\"title\": \"test summary\","
+                + "\"mergeable\": true,"
+                + "\"mergable_state\": \"clean\","
+                + "\"body\": \"test summary\","
+                + "\"head\": {\"sha\":"
+                + " \""
+                + prHeadSha1
+                + "\","
+                + "\"label\": \"foo:pull_request_123\",\""
+                + "ref\": \"pull_request_123\","
+                + "\"repo\": "
+                + "{\"html_url\":"
+                + " \"https://github.com/foo\"}}}\","
+                + "\"base\": {\"sha\":"
+                + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
+
+    String integrateReviewValue =
+        String.format("https://github.com/foo/pull/1 from foo:pull_request_123 %s", prHeadSha1);
+    String integrateReviewLabel =
+        String.format("COPYBARA_INTEGRATE_REVIEW=%s", integrateReviewValue);
+
+    GitDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_destination("
+                + "    url = '"
+                + url
+                + "', \n"
+                + "    push = '"
+                + primaryBranch
+                + "',\n"
+                + "    push_to_fork = True,\n"
+                + "integrates = [git.integrate (label = \"COPYBARA_INTEGRATE_REVIEW\", strategy ="
+                + " \"INCLUDE_FILES\", ignore_errors = False,)])");
+
+    ImmutableListMultimap<String, String> labels =
+        ImmutableListMultimap.of(
+            "my_label", "12345", "COPYBARA_INTEGRATE_REVIEW", integrateReviewValue);
+
+    DummyRevision ref = new DummyRevision("origin_ref1");
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "test", false, ref, Glob.ALL_FILES.roots());
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+
+    Changes changes =
+        new Changes(
+            ImmutableList.of(
+                new Change<>(
+                    ref,
+                    new Author("foo", "foo@foo.com"),
+                    "Squash Merge Commit \n\n" + integrateReviewLabel,
+                    ZonedDateTime.now(ZoneOffset.UTC),
+                    labels)),
+            ImmutableList.of());
+
+    TransformResult result =
+        TransformResults.of(workdir, new DummyRevision("origin_ref1"))
+            .withChanges(changes)
+            .withSummary("Squash Merge Commit \n\n" + integrateReviewLabel)
+            .withLabelFinder(
+                Functions.forMap(
+                    ImmutableMap.of(
+                        "COPYBARA_INTEGRATE_REVIEW", ImmutableList.of(integrateReviewLabel))));
+
+    writer.write(result, destinationFiles, console);
+
+    GitRepository worktree = remote.withWorkTree(workdir);
+
+    // verify the pull request branch commit history
+    worktree.simpleCommand("checkout", pullRequestBranch);
+    assertThat(worktree.getCurrentBranch()).isEqualTo(pullRequestBranch);
+    assertThat(worktree.simpleCommand("log").getStdout()).contains("Squash Merge Commit");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("first change");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("second change");
+
+    // verify the primary branch commit history
+    worktree.simpleCommand("checkout", primaryBranch);
+    assertThat(worktree.getCurrentBranch()).isEqualTo(primaryBranch);
+    assertThat(worktree.simpleCommand("log").getStdout()).contains("Squash Merge Commit");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("first change");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("second change");
+
+    // verify the files in the primary branch and pull request branch exist
+    GitTesting.assertThatCheckout(remote, primaryBranch)
+        .containsFile("foo.txt", "hello world")
+        .containsFile("bar.txt", "hello world")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, pullRequestBranch)
+        .containsFile("foo.txt", "hello world")
+        .containsFile("bar.txt", "hello world")
+        .containsNoMoreFiles();
+  }
+
+  @Test
+  public void testGithubSquashMerge_failsWithAdditionalCommitsInPrBranch() throws Exception {
+    String pullRequestBranch = "pull_request_123";
+
+    // add files to the main branch of the pull request repo
+    writeFile(this.workdir, "foo.txt", "hello world");
+    writeFile(this.workdir, "bar.txt", "hello world");
+
+    addFiles(
+        remote,
+        primaryBranch,
+        "initial commit",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "hello world").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "second change",
+        ImmutableMap.<String, String>builder().put("bar.txt", "hello world").buildOrThrow());
+
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(1), prHeadSha1);
+
+    GitRepository worktree = remote.withWorkTree(workdir);
+
+    // Add the additional commit to the PR branch
+    // if the SHA-1 in the Git PR is different from the SHA-1 in the Piper CL, the unit test needs
+    // to mock the additional commit in the PR branch
+    worktree.add().all().run();
+    worktree.simpleCommand("commit", "-m", "Additional commit in PR branch");
+    String prAddtionalCommitSha1 = worktree.parseRef("HEAD");
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/pulls/1",
+        mockResponse(
+            "{\"id\": 1,"
+                + "\"number\": 1,"
+                + "\"state\": \"open\",\"title\": \"test summary\","
+                + "\"mergeable\": true,"
+                + "\"mergable_state\": \"clean\","
+                + "\"body\": \"test summary\","
+                + "\"head\": {\"sha\":"
+                + " \""
+                + prAddtionalCommitSha1
+                + "\","
+                + "\"label\": \"foo:pull_request_123\",\""
+                + "ref\": \"pull_request_123\","
+                + "\"repo\": "
+                + "{\"html_url\":"
+                + " \"https://github.com/foo\"}}}\","
+                + "\"base\": {\"sha\":"
+                + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
+
+    String integrateReviewValue =
+        String.format("https://github.com/foo/pull/1 from foo:pull_request_123 %s", prHeadSha1);
+    String integrateReviewLabel =
+        String.format("COPYBARA_INTEGRATE_REVIEW=%s", integrateReviewValue);
+
+    GitDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_destination("
+                + "    url = '"
+                + url
+                + "', \n"
+                + "    push = '"
+                + primaryBranch
+                + "',\n"
+                + "    push_to_fork = True,\n"
+                + "integrates = [git.integrate (label = \"COPYBARA_INTEGRATE_REVIEW\", strategy ="
+                + " \"INCLUDE_FILES\", ignore_errors = False,)])");
+
+    ImmutableListMultimap<String, String> labels =
+        ImmutableListMultimap.of(
+            "my_label", "12345", "COPYBARA_INTEGRATE_REVIEW", integrateReviewValue);
+
+    DummyRevision ref = new DummyRevision("origin_ref1");
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "test", false, ref, Glob.ALL_FILES.roots());
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+
+    Changes changes =
+        new Changes(
+            ImmutableList.of(
+                new Change<>(
+                    ref,
+                    new Author("foo", "foo@foo.com"),
+                    "Squash Merge Commit \n\n" + integrateReviewLabel,
+                    ZonedDateTime.now(ZoneOffset.UTC),
+                    labels)),
+            ImmutableList.of());
+
+    TransformResult result =
+        TransformResults.of(workdir, new DummyRevision("origin_ref1"))
+            .withChanges(changes)
+            .withSummary("Squash Merge Commit \n\n" + integrateReviewLabel)
+            .withLabelFinder(
+                Functions.forMap(
+                    ImmutableMap.of(
+                        "COPYBARA_INTEGRATE_REVIEW", ImmutableList.of(integrateReviewLabel))));
+
+    writer.write(result, destinationFiles, console);
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.ERROR,
+            "The head commit of the PR 1 is not the same as the commit that was used to create the"
+                + " PR. This is likely due to a commit being pushed to the PR branch after the PR"
+                + " was created. This is not supported by Copybara.");
+
+    // verify the pull request branch commit history
+    worktree.simpleCommand("checkout", pullRequestBranch);
+    assertThat(worktree.getCurrentBranch()).isEqualTo(pullRequestBranch);
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("Squash Merge Commit");
+    assertThat(worktree.simpleCommand("log").getStdout())
+        .contains("Additional commit in PR branch");
+    assertThat(worktree.simpleCommand("log").getStdout()).contains("first change");
+    assertThat(worktree.simpleCommand("log").getStdout()).contains("second change");
+
+    // verify the primary branch commit history
+    worktree.simpleCommand("checkout", primaryBranch);
+    assertThat(worktree.getCurrentBranch()).isEqualTo(primaryBranch);
+    assertThat(worktree.simpleCommand("log").getStdout()).contains("Squash Merge Commit");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("first change");
+    assertThat(worktree.simpleCommand("log").getStdout()).doesNotContain("second change");
+
+    // verify the files in the primary branch and pull request branch exist
+    GitTesting.assertThatCheckout(remote, primaryBranch)
+        .containsFile("foo.txt", "hello world")
+        .containsFile("bar.txt", "hello world")
+        .containsNoMoreFiles();
+    GitTesting.assertThatCheckout(remote, pullRequestBranch)
+        .containsFile("foo.txt", "hello world")
+        .containsFile("bar.txt", "hello world")
+        .containsNoMoreFiles();
+  }
+
+  
+  @Test
+  public void testGithubSquashMerge_failsWithNoExistingIntegrateLabels() throws Exception {
+    String pullRequestBranch = "pull_request_123";
+
+    // add files to the primary branch and main branch of the pull request repo
+    addFiles(
+        remote,
+        primaryBranch,
+        "initial commit",
+        ImmutableMap.<String, String>builder().put("foo.txt", "foo").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "first change",
+        ImmutableMap.<String, String>builder().put("foo.txt", "hello world").buildOrThrow());
+    addFiles(
+        remote,
+        pullRequestBranch,
+        "second change",
+        ImmutableMap.<String, String>builder().put("bar.txt", "hello world").buildOrThrow());
+    
+    writeFile(this.workdir, "foo.txt", "hello world");
+    writeFile(this.workdir, "bar.txt", "hello world");
+
+    String prHeadSha1 = remote.parseRef("HEAD");
+    remote.simpleCommand("update-ref", GitHubUtil.asHeadRef(1), prHeadSha1);
+
+    gitUtil.mockApi(
+        "GET",
+        "https://api.github.com/repos/foo/pulls/1",
+        mockResponse(
+            "{\"id\": 1,"
+                + "\"number\": 1,"
+                + "\"state\": \"open\",\"title\": \"test summary\","
+                + "\"mergeable\": true,"
+                + "\"mergable_state\": \"clean\","
+                + "\"body\": \"test summary\","
+                + "\"head\": {\"sha\":"
+                + " \""
+                + prHeadSha1
+                + "\","
+                + "\"label\": \"foo:pull_request_123\",\""
+                + "ref\": \"pull_request_123\","
+                + "\"repo\": "
+                + "{\"html_url\":"
+                + " \"https://github.com/foo\"}}}\","
+                + "\"base\": {\"sha\":"
+                + " \"97d3db6a76b017a538812cc27274aa9c9fa55e26\"}}"));
+
+    GitDestination d =
+        skylark.eval(
+            "r",
+            "r = git.github_destination("
+                + "    url = '"
+                + url
+                + "', \n"
+                + "    push = '"
+                + primaryBranch
+                + "',\n"
+                + "    push_to_fork = True,\n"
+                + "integrates = [git.integrate (label = \"COPYBARA_INTEGRATE_REVIEW\", strategy ="
+                + " \"INCLUDE_FILES\", ignore_errors = False,)])");
+
+    ImmutableListMultimap<String, String> labels =
+        ImmutableListMultimap.of(
+            "my_label", "12345");
+
+    DummyRevision ref = new DummyRevision("origin_ref1");
+
+    WriterContext writerContext =
+        new WriterContext("piper_to_github", "test", false, ref, Glob.ALL_FILES.roots());
+
+    Writer<GitRevision> writer = d.newWriter(writerContext);
+
+    Changes changes =
+        new Changes(
+            ImmutableList.of(
+                new Change<>(
+                    ref,
+                    new Author("foo", "foo@foo.com"),
+                    "Squash Merge Commit \n\n",
+                    ZonedDateTime.now(ZoneOffset.UTC),
+                    labels)),
+            ImmutableList.of());
+
+    TransformResult result =
+        TransformResults.of(workdir, new DummyRevision("origin_ref1"))
+            .withChanges(changes)
+            .withSummary("Squash Merge Commit \n\n")
+            .withLabelFinder(
+                Functions.forMap(
+                    ImmutableMap.of(
+                       )));
+
+    writer.write(result, destinationFiles, console);
+
+
+    console
+        .assertThat()
+        .onceInLog(
+            MessageType.VERBOSE,
+            "No integrate labels found in push to fork");
+  }
+  
+  
   @Test
   public void testWithRefsNotFound() throws Exception {
     gitUtil.mockApi("GET",

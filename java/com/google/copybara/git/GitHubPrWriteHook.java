@@ -87,6 +87,7 @@ public class GitHubPrWriteHook extends DefaultWriteHook {
       GitRepository scratchClone,
       MessageInfo messageInfo,
       boolean skipPush,
+      List<IntegrateLabel> integrateLabels,
       List<? extends Change<?>> originChanges)
       throws ValidationException, RepoException {
     if (skipPush || generalOptions.allowEmptyDiff(allowEmptyDiff)) {

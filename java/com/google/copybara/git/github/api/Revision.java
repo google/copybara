@@ -34,6 +34,7 @@ public class Revision implements StarlarkValue {
   @Key private String label;
   @Key private String ref;
   @Key private String sha;
+  @Key private Repository repo;
 
   @StarlarkMethod(name = "label", doc = "Label for the revision", structField = true)
   public String getLabel() {
@@ -50,12 +51,18 @@ public class Revision implements StarlarkValue {
     return sha;
   }
 
+  @StarlarkMethod(name = "repo", doc = "Repository", structField = true)
+  public Repository getRepo() {
+    return repo;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
         .add("label", label)
         .add("ref", ref)
         .add("sha", sha)
+        .add("repo", repo)
         .toString();
   }
 }

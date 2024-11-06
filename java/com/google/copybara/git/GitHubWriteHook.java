@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.Endpoint;
@@ -35,8 +36,10 @@ import com.google.copybara.git.GitDestination.WriterImpl.DefaultWriteHook;
 import com.google.copybara.git.github.api.GitHubApi;
 import com.google.copybara.git.github.api.GitHubApiException;
 import com.google.copybara.git.github.api.GitHubApiException.ResponseCode;
+import com.google.copybara.git.github.api.PullRequest;
 import com.google.copybara.git.github.util.GitHubHost;
 import com.google.copybara.git.github.util.GitHubUtil;
+import com.google.copybara.profiler.Profiler.ProfilerTask;
 import com.google.copybara.revision.Change;
 import com.google.copybara.templatetoken.LabelTemplate;
 import com.google.copybara.templatetoken.LabelTemplate.LabelNotFoundException;
@@ -58,6 +61,7 @@ public class GitHubWriteHook extends DefaultWriteHook {
   private final GitHubHost ghHost;
   @Nullable private final String prBranchToUpdate;
   @Nullable private final CredentialFileHandler creds;
+  private final boolean pushToFork;
 
   GitHubWriteHook(
       GeneralOptions generalOptions,
@@ -68,7 +72,8 @@ public class GitHubWriteHook extends DefaultWriteHook {
       Console console,
       @Nullable Checker endpointChecker,
       GitHubHost ghHost,
-      @Nullable CredentialFileHandler creds) {
+      @Nullable CredentialFileHandler creds, 
+      boolean pushToFork) {
     this.generalOptions = Preconditions.checkNotNull(generalOptions);
     this.repoUrl = Preconditions.checkNotNull(repoUrl);
     this.gitHubOptions = Preconditions.checkNotNull(gitHubOptions);
@@ -78,6 +83,17 @@ public class GitHubWriteHook extends DefaultWriteHook {
     this.endpointChecker = endpointChecker;
     this.ghHost = ghHost;
     this.creds = creds;
+    this.pushToFork = pushToFork;
+  }
+
+
+
+  /** Given a PR number, use the GitHub API to look up the PR info. */
+  private PullRequest getPrFromNumber(String project, long prNumber)
+      throws RepoException, ValidationException {
+    try (ProfilerTask ignore = generalOptions.profiler().start("github_api_get_pr")) {
+      return gitHubOptions.newGitHubRestApi(project, creds).getPullRequest(project, prNumber);
+    }
   }
 
   @Override
@@ -85,13 +101,68 @@ public class GitHubWriteHook extends DefaultWriteHook {
       GitRepository scratchClone,
       MessageInfo messageInfo,
       boolean skipPush,
+      List<IntegrateLabel> integrateLabels,
       List<? extends Change<?>> originChanges)
       throws ValidationException, RepoException {
+
+    String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
+    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName, creds);
+        
+        
+    // TODO(joshgoldman): add credentials to the GitRepository object for pushing to the fork
+    if (pushToFork) {
+      if (integrateLabels.isEmpty()) {
+        console.verboseFmt("No integrate labels found in push to fork.");
+        return;
+      }
+      
+      IntegrateLabel label = integrateLabels.getFirst();
+     
+      if (label instanceof GitHubPrIntegrateLabel integrateLabel) {
+        PullRequest pr = getPrFromNumber(configProjectName, integrateLabel.getPrNumber());
+
+        String pullRequestBranch = pr.getHead().getRef();
+        String completeRef =
+            String.format("refs/heads/%s", pullRequestBranch); // head commit of the branch
+
+        String pullRequestRepoUrl = pr.getHead().getRepo().getHtmlUrl();
+
+          if (!pr.getHead().getSha().equals(integrateLabel.getRevision().getSha1())) {
+            console.errorFmt(
+                "The head commit of the PR %s is not the same as the commit that was used to "
+                    + "create the PR. This is likely due to a commit being pushed to the "
+                    + "PR branch after the PR was created. This is not supported by Copybara.",
+                pr.getNumber());
+            return;
+        }
+        try {
+          generalOptions.repoTask(
+              "push squash commit to the pull request fork branch",
+              () ->
+                  scratchClone
+                      .push()
+                      .withRefspecs(
+                          pullRequestRepoUrl,
+                          ImmutableList.of(scratchClone.createRefSpec("HEAD:" + completeRef)))
+                      .withForceLease(
+                          ImmutableMap.of(completeRef, integrateLabel.getRevision().getSha1()))
+                      .run());
+          return;
+        } catch (GitHubApiException e) {
+          if (e.getResponseCode() == ResponseCode.NOT_FOUND
+              || e.getResponseCode() == ResponseCode.UNPROCESSABLE_ENTITY) {
+            console.verboseFmt("Branch %s does not exist", pullRequestBranch);
+            logger.atInfo().log("Branch %s does not exist", pullRequestBranch);
+          }
+        }
+      } else {
+        console.verboseFmt("did not find integrate label: %s", label);
+      }
+    }
+
     if (skipPush || prBranchToUpdate == null) {
       return;
     }
-    String configProjectName = ghHost.getProjectNameFromUrl(repoUrl);
-    GitHubApi api = gitHubOptions.newGitHubRestApi(configProjectName, creds);
 
     for (Change<?> change : originChanges) {
       Dict<String, String> labelDict = change.getLabelsForSkylark();

@@ -1729,7 +1729,18 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             defaultValue = "None",
             named = true,
             positional = false,
-            doc = CREDENTIAL_DOC)
+            doc = CREDENTIAL_DOC),
+       // Experimental flag to push to a fork instead of the main repo.
+       // Do not use this flag.
+        @Param(
+            name = "push_to_fork",
+            allowedTypes = {
+              @ParamType(type = Boolean.class),
+            },
+            defaultValue = "False",
+            named = true,
+            positional = false,
+            documented = false),
       },
       useStarlarkThread = true)
   @UsesFlags({GitDestinationOptions.class, GitHubOptions.class})
@@ -1749,6 +1760,7 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
       Object tagMsg,
       Object checker,
       @Nullable Object credentials,
+      Boolean pushToFork,
       StarlarkThread thread)
       throws EvalException {
     GitDestinationOptions destinationOptions = options.get(GitDestinationOptions.class);
@@ -1811,7 +1823,8 @@ public class GitModule implements LabelsAwareModule, StarlarkValue {
             getGeneralConsole(),
             apiCheckerObj != null ? apiCheckerObj : checkerObj,
             GITHUB_COM,
-            credentialHandler),
+            credentialHandler,
+            pushToFork),
         Starlark.isNullOrNone(integrates)
             ? defaultGitIntegrate
             : Sequence.cast(integrates, GitIntegrateChanges.class, "integrates"),

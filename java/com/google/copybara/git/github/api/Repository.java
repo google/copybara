@@ -26,8 +26,23 @@ public class Repository {
   @Key("default_branch")
   private String defaultBranch;
 
+  @Key("html_url")
+  private String htmlUrl;
+
+  @Key private boolean fork;
+
   @StarlarkMethod(name = "id", doc = "Release id", structField = true)
   public String getDefaultBranch() {
     return defaultBranch;
+  }
+
+  @StarlarkMethod(name = "html_url", doc = "HTML URL of the reference", structField = true)
+  public String getHtmlUrl() {
+    return htmlUrl;
+  }
+
+  @StarlarkMethod(name = "fork", doc = "Whether the reference is a fork", structField = true)
+  public boolean getIsFork() {
+    return fork;
   }
 }

@@ -3112,7 +3112,7 @@ Name | Type | Description
 
 Creates a commit in a GitHub repository branch (for example master). For creating PullRequest use git.github_pr_destination.
 
-<code><a href="#destination">destination</a></code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None, <a href=#git.github_destination.credentials>credentials</a>=None)</code>
+<code><a href="#destination">destination</a></code> <code>git.github_destination(<a href=#git.github_destination.url>url</a>, <a href=#git.github_destination.push>push</a>='master', <a href=#git.github_destination.fetch>fetch</a>=None, <a href=#git.github_destination.pr_branch_to_update>pr_branch_to_update</a>=None, <a href=#git.github_destination.partial_fetch>partial_fetch</a>=False, <a href=#git.github_destination.delete_pr_branch>delete_pr_branch</a>=False, <a href=#git.github_destination.integrates>integrates</a>=None, <a href=#git.github_destination.api_checker>api_checker</a>=None, <a href=#git.github_destination.primary_branch_migration>primary_branch_migration</a>=False, <a href=#git.github_destination.tag_name>tag_name</a>=None, <a href=#git.github_destination.tag_msg>tag_msg</a>=None, <a href=#git.github_destination.checker>checker</a>=None, <a href=#git.github_destination.credentials>credentials</a>=None, <a href=#git.github_destination.push_to_fork>push_to_fork</a>=False)</code>
 
 
 <h4 id="parameters.git.github_destination">Parameters:</h4>
@@ -3132,6 +3132,7 @@ Parameter | Description
 <span id=git.github_destination.tag_msg href=#git.github_destination.tag_msg>tag_msg</span> | <code>string</code> or <code>NoneType</code><br><p>A template string that refers to the commit msg for a tag. If set, copybara willcreate an annotated tag with this custom message<br>Usage: Labels in the string will be resolved. E.g. .${label}_message.By default, the tag will be created with the labeled commit's message.</p>
 <span id=git.github_destination.checker href=#git.github_destination.checker>checker</span> | <code><a href="#checker">checker</a></code> or <code>NoneType</code><br><p>A checker that validates the commit files & message. If `api_checker` is not set, it will also be used for checking API calls. If only `api_checker`is used, that checker will only apply to API calls.</p>
 <span id=git.github_destination.credentials href=#git.github_destination.credentials>credentials</span> | <code>UsernamePasswordIssuer</code> or <code>NoneType</code><br><p>EXPERIMENTAL: Read credentials from config file to access the Git Repo. This expects a 'credentials.username_password' specifying the username to use for the remote git host and a password or token. This is gated by the '--use-credentials-from-config' flag</p>
+<span id=git.github_destination.push_to_fork href=#git.github_destination.push_to_fork>push_to_fork</span> | <code>bool</code><br><p></p>
 
 
 
@@ -4261,6 +4262,7 @@ Name | Description
 ---- | -----------
 label | <code>string</code><br><p>Label for the revision</p>
 ref | <code>string</code><br><p>Reference</p>
+repo | <code>Repository</code><br><p>Repository</p>
 sha | <code>string</code><br><p>SHA of the reference</p>
 
 
