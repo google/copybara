@@ -111,7 +111,7 @@ public class FormatModule implements StarlarkValue {
               @ParamType(type = Sequence.class, generic1 = String.class),
             },
             defaultValue = "[]",
-            doc = "Warnings used in the lint mode. Default is buildifier default`",
+            doc = "Warnings used in the lint mode. Default is buildifier default",
             named = true)
       })
   @DocDefault(field = "lint", value = "\"OFF\"")

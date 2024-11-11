@@ -2421,7 +2421,7 @@ Parameter | Description
 <span id=format.buildifier.paths href=#format.buildifier.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Paths of the files to format relative to the workdir.</p>
 <span id=format.buildifier.type href=#format.buildifier.type>type</span> | <code>string</code> or <code>NoneType</code><br><p>The type of the files. Can be 'auto', 'bzl', 'build' or 'workspace'. Note that this is not recommended to be set and might break in the future. The default is 'auto'. This mode formats as BUILD files "BUILD", "BUILD.bazel", "WORKSPACE" and "WORKSPACE.bazel" files. The rest as bzl files. Prefer to use those names for BUILD files instead of setting this flag.</p>
 <span id=format.buildifier.lint href=#format.buildifier.lint>lint</span> | <code>string</code> or <code>NoneType</code><br><p>If buildifier --lint should be used. This fixes several common issues. Note that this transformation is difficult to revert. For example if it removes a load statement because is not used after removing a rule, then the reverse workflow needs to add back the load statement (core.replace or similar).  Possible values: `OFF`, `FIX`. Default is `OFF`</p>
-<span id=format.buildifier.lint_warnings href=#format.buildifier.lint_warnings>lint_warnings</span> | <code>sequence of string</code><br><p>Warnings used in the lint mode. Default is buildifier default`</p>
+<span id=format.buildifier.lint_warnings href=#format.buildifier.lint_warnings>lint_warnings</span> | <code>sequence of string</code><br><p>Warnings used in the lint mode. Default is buildifier default</p>
 
 
 <h4 id="example.format.buildifier">Examples:</h4>
