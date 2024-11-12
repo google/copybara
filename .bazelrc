@@ -10,10 +10,10 @@ build --jvmopt='-Dfile.encoding=UTF-8'
 build --test_env='LANG=en_US.UTF-8'
 test --test_env=PATH
 
-build --java_language_version=11
-test --java_language_version=11
-build --tool_java_language_version=11
-test --tool_java_language_version=11
+build --java_language_version=21
+test --java_language_version=21
+build --tool_java_language_version=21
+test --tool_java_language_version=21
 
 
 ################################################################################

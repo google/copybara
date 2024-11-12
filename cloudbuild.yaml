@@ -20,7 +20,7 @@ steps:
 - name: 'ubuntu'
   args: ["rm", "-rf", "/workspace/.git"]
 - name: 'ci'
-  args: ["test", "--enable_bzlmod=false", "--java_language_version=11", "--tool_java_language_version=11", "--java_runtime_version=remotejdk_11", "--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
+  args: ["test", "--enable_bzlmod=false", "--java_language_version=21", "--tool_java_language_version=21", "--java_runtime_version=remotejdk_21", "--tool_java_runtime_version=remotejdk_21","--test_output=errors", "--subcommands",  "--sandbox_tmpfs_path=/tmp", "--jobs=1000", "--", "..."]
 options:
   machine_type: N1_HIGHCPU_32
 substitutions:

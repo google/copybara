@@ -185,16 +185,16 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['copy.bara.sky', 'excluded/**'])";
     destinationFiles = "glob(['**'])";
     destination = new RecordsProcessCallDestination();
-    transformations = ImmutableList.of(""
-        + "        core.replace(\n"
-        + "             before = '${linestart}${number}',\n"
-        + "             after = '${linestart}" + PREFIX + "${number}',\n"
-        + "             regex_groups = {\n"
-        + "                 'number'    : '[0-9]+',\n"
-        + "                 'linestart' : '^',\n"
-        + "             },\n"
-        + "             multiline = True,"
-        + "        )");
+    transformations = ImmutableList.of(String.format("""
+            core.replace(
+                before = '${linestart}${number}',
+                after = '${linestart}%s${number}',
+                regex_groups = {
+                  'number'    : '[0-9]+',
+                  'linestart' : '^',
+                },
+                multiline = True,
+            )""", PREFIX));
     TestingConsole console = new TestingConsole();
     options.setConsole(console);
     options.testingOptions.origin = origin;

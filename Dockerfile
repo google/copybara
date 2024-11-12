@@ -23,7 +23,7 @@ FROM gcr.io/bazel-public/bazel${BAZEL_VERSION} AS build
 
 USER root
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y openjdk-17-jdk-headless && \
+    apt-get install --no-install-recommends -y openjdk-21-jdk-headless && \
     rm -rf /var/lib/apt/lists/*
 
 # Bazel does not allow running as root
@@ -32,7 +32,7 @@ USER ubuntu
 WORKDIR /home/ubuntu/
 COPY . . 
 
-RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_version=11 --tool_java_language_version=11 --java_runtime_version=remotejdk_11
+RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_version=21 --tool_java_language_version=21 --java_runtime_version=remotejdk_21
 
 # Use jammy to drop Python 2
 FROM docker.io/eclipse-temurin:17-jre-jammy
