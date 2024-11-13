@@ -298,8 +298,7 @@ public class SkylarkParser {
       ModuleSet moduleSet) {
     for (Object module : moduleSet.getModules().values()) {
       // We mutate the module per file loaded. Not ideal but it is the best we can do.
-      if (module instanceof LabelsAwareModule) {
-        LabelsAwareModule m = (LabelsAwareModule) module;
+      if (module instanceof LabelsAwareModule m) {
         m.setConfigFile(mainConfigFile, currentConfigFile);
         m.setPrintHandler(printHandler);
       }

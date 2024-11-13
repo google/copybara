@@ -264,14 +264,12 @@ final class ModuleLoader {
 
   // TODO(malcon): Simplify this method when Starlark provides better type introspection.
   private String skylarkTypeName(Type type) {
-    if (type instanceof WildcardType) {
-      WildcardType wild = (WildcardType) type;
+    if (type instanceof WildcardType wild) {
       // Assume "? extends Foo" and ignore "? super Bar" for now.
       type = wild.getUpperBounds()[0];
     }
 
-    if (type instanceof ParameterizedType) {
-      ParameterizedType pType = (ParameterizedType) type;
+    if (type instanceof ParameterizedType pType) {
       if (Map.class.isAssignableFrom((Class<?>) pType.getRawType())) {
         Type first = pType.getActualTypeArguments()[0];
         Type second = pType.getActualTypeArguments()[1];
@@ -301,8 +299,7 @@ final class ModuleLoader {
     if (type == Object.class) {
       return true;
     }
-    if (type instanceof WildcardType) {
-      WildcardType wildcard = (WildcardType) type;
+    if (type instanceof WildcardType wildcard) {
       return wildcard.getUpperBounds()[0].equals(Object.class);
     }
     return false;

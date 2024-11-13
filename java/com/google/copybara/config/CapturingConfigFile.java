@@ -91,8 +91,7 @@ class CapturingConfigFile implements ConfigFile {
 
   @Override
   public boolean equals(Object otherObject) {
-    if (otherObject instanceof CapturingConfigFile) {
-      CapturingConfigFile other = (CapturingConfigFile) otherObject;
+    if (otherObject instanceof CapturingConfigFile other) {
       return other.wrapped.equals(this.wrapped) && this.children.equals(other.children);
     }
     return false;

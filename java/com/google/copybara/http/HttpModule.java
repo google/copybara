@@ -195,8 +195,7 @@ public class HttpModule implements StarlarkValue {
       Sequence<?> hosts) {
     ImmutableMap.Builder<String, Optional<AuthInterceptor>> h = ImmutableMap.builder();
     for (Object o : hosts) {
-      if (o instanceof HostCredential) {
-        HostCredential withCred = (HostCredential) o;
+      if (o instanceof HostCredential withCred) {
         h.put(withCred.host(), withCred.creds());
       } else {
         h.put((String) o, Optional.empty());

@@ -264,10 +264,8 @@ public final class RegexTemplateTokens {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof RegexTemplateTokens) {
-      RegexTemplateTokens comp = (RegexTemplateTokens) other;
-      return before.equals(comp.before)
-          && tokens.equals(comp.tokens);
+    if (other instanceof RegexTemplateTokens comp) {
+      return before.equals(comp.before) && tokens.equals(comp.tokens);
     } else {
       return false;
     }

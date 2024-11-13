@@ -71,8 +71,7 @@ public final class Author implements StarlarkValue {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Author) {
-      Author that = (Author) o;
+    if (o instanceof Author that) {
       // Authors with the same non-empty email are the same author
       return Strings.isNullOrEmpty(this.email) && Strings.isNullOrEmpty(that.email)
           ? Objects.equals(this.name, that.name)

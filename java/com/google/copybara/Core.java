@@ -629,8 +629,7 @@ public class Core implements LabelsAwareModule, StarlarkValue {
     }
 
     MergeImportConfiguration mergeImport;
-    if (mergeImportObj instanceof Boolean) {
-      Boolean objectValue = (Boolean) mergeImportObj;
+    if (mergeImportObj instanceof Boolean objectValue) {
       mergeImport =
           objectValue
               ? MergeImportConfiguration.create(
