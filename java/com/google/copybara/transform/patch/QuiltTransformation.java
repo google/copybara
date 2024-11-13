@@ -26,6 +26,7 @@ import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
 import com.google.copybara.config.ConfigFile;
 import com.google.copybara.exception.CannotResolveLabel;
+import com.google.copybara.exception.ValidationException;
 import com.google.copybara.util.BadExitStatusWithOutputException;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.shell.Command;
@@ -38,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import net.starlark.java.syntax.Location;
 
 /**
@@ -67,7 +69,7 @@ public final class QuiltTransformation implements Transformation {
 
   @Override
   public TransformationStatus transform(TransformWork work)
-      throws IOException {
+      throws IOException, ValidationException {
     boolean verbose = options.getGeneralOptions().isVerbose();
     Path checkoutDir = work.getCheckoutDir();
     work.getConsole().infoFmt("Applying and updating patches with quilt.");
@@ -97,8 +99,9 @@ public final class QuiltTransformation implements Transformation {
     return location;
   }
 
-  private void runQuiltCommand(Path checkoutDir, Map<String, String> env,
-      boolean verbose, String... args) throws IOException {
+  private void runQuiltCommand(
+      Path checkoutDir, Map<String, String> env, boolean verbose, String... args)
+      throws IOException, ValidationException {
     ImmutableList.Builder<String> params = ImmutableList.builder();
     params.add(options.quiltBin);
     params.add(args);
@@ -110,10 +113,20 @@ public final class QuiltTransformation implements Transformation {
           .withVerbose(verbose)
           .execute();
     } catch (BadExitStatusWithOutputException e) {
-      throw new IOException(
-          String.format("Error executing '%s': %s. Stderr: \n%s", String.join(" ", paramsList),
-              e.getMessage(), e.getOutput().getStdout()),
-          e);
+      Pattern patchDoesNotApplyMsgMatcher = Pattern.compile("Patch .* does not apply");
+      if (patchDoesNotApplyMsgMatcher.matcher(e.getOutput().getStdout()).find()) {
+        throw new ValidationException(
+            String.format(
+                "Error executing '%s': Patch file does not apply. Stderr: \n%s",
+                String.join(" ", paramsList), e.getOutput().getStdout()),
+            e);
+      } else {
+        throw new IOException(
+            String.format(
+                "Error executing '%s': %s. Stderr: \n%s",
+                String.join(" ", paramsList), e.getMessage(), e.getOutput().getStdout()),
+            e);
+      }
     } catch (CommandException e) {
       throw new IOException(e);
     }
@@ -172,8 +185,9 @@ public final class QuiltTransformation implements Transformation {
     return envBuilder.buildOrThrow();
   }
 
-  private void importPatches(Path checkoutDir, ImmutableList<Path> patches, Map<String, String> env,
-      boolean verbose) throws IOException {
+  private void importPatches(
+      Path checkoutDir, ImmutableList<Path> patches, Map<String, String> env, boolean verbose)
+      throws IOException, ValidationException {
     for (Path patch : patches) {
       runQuiltCommand(checkoutDir, env, verbose, "import", patch.toString());
       runQuiltCommand(checkoutDir, env, verbose, "push");

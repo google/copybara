@@ -169,6 +169,31 @@ public final class QuiltTransformationTest {
   }
 
   @Test
+  public void transformationUpdateDoesNotApplyError_validationException() throws Exception {
+    String diff =
+        "" + "--- a/file.txt\n" + "+++ b/file.txt\n" + "@@ -1 +1 @@\n" + "-foo\n" + "+new foo\n";
+    Files.write(checkoutDir.resolve("file.txt"), "bar\n".getBytes(UTF_8));
+    ImmutableMap<String, byte[]> configFiles =
+        ImmutableMap.of(
+            "patches/diff.patch", diff.getBytes(UTF_8),
+            "patches/series", SERIES.getBytes(UTF_8));
+    patchFile = new MapConfigFile(configFiles, "patches/diff.patch");
+    seriesFile = new MapConfigFile(configFiles, "patches/series");
+    QuiltTransformation transform =
+        new QuiltTransformation(
+            Optional.of(seriesFile),
+            ImmutableList.of(patchFile),
+            patchingOptions,
+            /* reverse= */ false,
+            Location.BUILTIN);
+    ValidationException e =
+        assertThrows(
+            ValidationException.class,
+            () -> transform.transform(TransformWorks.of(checkoutDir, "testmsg", console)));
+    assertThat(e).hasMessageThat().contains("Patch file does not apply.");
+  }
+
+  @Test
   public void parseSkylarkTest() throws Exception {
     Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
     Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
