@@ -51,7 +51,7 @@ public class ApplyDestinationPatch implements MergeRunner {
           DiffUtil.diffFileWithIgnoreCrAtEol(
               workdir.getParent(), baseline, rhs, false, environment);
     } catch (InsideGitDirException e) {
-      throw new IOException("Error diffing from baseline", e);
+      throw new IOException(String.format("Error diffing from baseline: %s", e.getMessage()), e);
     }
     if (diffContents.length == 0) {
       InputStream in = Files.newInputStream(lhs);
