@@ -13,7 +13,7 @@
 # limitations under the License.
 """Bazel rule to generate copybara reference docs."""
 
-load("@rules_java//java:defs.bzl", "java_binary")
+load("@rules_java//java:defs.bzl", "JavaInfo", "java_binary")
 
 def _doc_generator_impl(ctx):
     jars = []
