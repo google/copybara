@@ -21,6 +21,7 @@ import static com.google.copybara.git.GitRepository.newBareRepo;
 import static com.google.copybara.testing.git.GitTestUtil.getGitEnv;
 import static com.google.copybara.util.CommandRunner.DEFAULT_TIMEOUT;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -38,6 +39,7 @@ import com.google.copybara.testing.profiler.RecordingListener;
 import com.google.copybara.testing.profiler.RecordingListener.EventType;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.testing.junit.testparameterinjector.TestParameterInjector;
 import com.google.testing.junit.testparameterinjector.TestParameters;
 import java.io.IOException;
@@ -847,6 +849,37 @@ public class GitMirrorTest {
   }
 
   @Test
+  public void testActionForcePushFlag() throws Exception {
+    String primaryBranch = originRepo.getPrimaryBranch();
+    String cfg =
+        ""
+            + "def test(ctx):\n"
+            + "     ctx.origin_fetch(refspec = ['refs/heads/*:refs/heads/*'])\n"
+            + "     ctx.destination_push(['refs/heads/*:refs/heads/*'])\n"
+            + "     return ctx.success()\n"
+            + "\n"
+            + "git.mirror("
+            + "    name = 'default',"
+            + "    origin = 'file://" + originRepo.getGitDir().toAbsolutePath() + "',"
+            + "    destination = 'file://" + destRepo.getGitDir().toAbsolutePath() + "',"
+            + "    action = test,"
+            + ")";
+    repoChange(originRepo, "some_other_file", "1", "one");
+    GitLogEntry two = repoChange(originRepo, "some_other_file", "2", "two");
+    repoChange(originRepo, "some_other_file", "3", "three");
+
+    options.general.setForceForTest(true);
+    Migration mirror = loadMigration(cfg, "default");
+
+    mirror.run(workdir, ImmutableList.of());
+    originRepo.simpleCommand("reset", "--hard", "HEAD~1");
+    mirror.run(workdir, ImmutableList.of());
+
+    // We pushed HEAD~1 to the destination:
+    assertEquals(destRepo.getHeadRef().getSha1(), two.getCommit().getSha1());
+  }
+
+  @Test
   @TestParameters({"{fastForwardOption: \"FF\"}", "{fastForwardOption: \"FF_ONLY\"}"})
   public void testMergeConflict(String fastForwardOption) throws Exception {
     Migration mirror = mergeInit(fastForwardOption, /* partialFetch= */ false);
@@ -931,6 +964,7 @@ public class GitMirrorTest {
     return mirror;
   }
 
+  @CanIgnoreReturnValue
   private GitLogEntry repoChange(GitRepository repo, String path, String content, String msg)
       throws IOException, RepoException {
     GitRepository withWorkdir =

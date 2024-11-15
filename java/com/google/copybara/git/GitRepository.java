@@ -592,6 +592,7 @@ public class GitRepository {
         /* url= */ null,
         /* refspecs= */ ImmutableList.of(),
         /* prune= */ false,
+        /* force= */ false,
         /* pushOptions= */ ImmutableList.of(),
         /* pushOptionsValidator= */ this.pushOptionsValidator);
   }
@@ -879,6 +880,10 @@ public class GitRepository {
 
     if (pushCmd.prune) {
       cmd.add("--prune");
+    }
+
+    if (pushCmd.force) {
+      cmd.add("--force");
     }
 
     if (noVerify) {
@@ -2155,6 +2160,7 @@ public class GitRepository {
     @Nullable private final String url;
     private final ImmutableList<Refspec> refspecs;
     private final boolean prune;
+    private final boolean force;
     private final ImmutableList<String> pushOptions;
     private final PushOptionsValidator pushOptionsValidator;
 
@@ -2175,6 +2181,10 @@ public class GitRepository {
       return prune;
     }
 
+    public boolean isForce() {
+      return force;
+    }
+
     /**
      * Note: this constructor does not validate {@code pushOptions} against {@code
      * pushOptionsValidator}
@@ -2185,6 +2195,7 @@ public class GitRepository {
         @Nullable String url,
         ImmutableList<Refspec> refspecs,
         boolean prune,
+        boolean force,
         ImmutableList<String> pushOptions,
         PushOptionsValidator pushOptionsValidator) {
       this.repo = checkNotNull(repo);
@@ -2193,6 +2204,7 @@ public class GitRepository {
       Preconditions.checkArgument(
           refspecs.isEmpty() || url != null, "refspec can only be" + " used when a url is passed");
       this.prune = prune;
+      this.force = force;
       this.pushOptions = checkNotNull(pushOptions);
       this.pushOptionsValidator = pushOptionsValidator;
     }
@@ -2204,13 +2216,19 @@ public class GitRepository {
           checkNotNull(url),
           ImmutableList.copyOf(refspecs),
           prune,
+          force,
           pushOptions,
           pushOptionsValidator);
     }
 
     @CheckReturnValue
     public PushCmd prune(boolean prune) {
-      return new PushCmd(repo, url, this.refspecs, prune, pushOptions, pushOptionsValidator);
+      return new PushCmd(repo, url, this.refspecs, prune, force, pushOptions, pushOptionsValidator);
+    }
+
+    @CheckReturnValue
+    public PushCmd force(boolean force) {
+      return new PushCmd(repo, url, this.refspecs, prune, force, pushOptions, pushOptionsValidator);
     }
 
     /**
@@ -2224,7 +2242,8 @@ public class GitRepository {
     public PushCmd withPushOptions(ImmutableList<String> newPushOptions)
         throws ValidationException {
       pushOptionsValidator.validate(newPushOptions);
-      return new PushCmd(repo, url, this.refspecs, prune, newPushOptions, pushOptionsValidator);
+      return new PushCmd(repo, url, this.refspecs, prune, force, newPushOptions,
+          pushOptionsValidator);
     }
 
     /**

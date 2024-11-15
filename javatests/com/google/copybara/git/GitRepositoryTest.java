@@ -1310,6 +1310,7 @@ public class GitRepositoryTest {
             "file://" + remote.getGitDir(),
             ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
             false,
+            false,
             ImmutableList.of(),
             /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()))
         .run();

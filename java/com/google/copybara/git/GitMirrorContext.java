@@ -352,6 +352,7 @@ public class GitMirrorContext extends ActionContext<GitMirrorContext> implements
       repo.runPush(
           repo.push()
               .prune(prune)
+              .force(force)
               .withRefspecs(destinationUrl, refspecsToPush)
               .withPushOptions(resolvedPushOptions));
     }
