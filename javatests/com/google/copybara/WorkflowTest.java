@@ -4384,8 +4384,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testNonReversibleInsideGit() throws IOException, ValidationException, RepoException {
-    origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbar\n");
+  public void testReversibleInsideGit() throws IOException, ValidationException, RepoException {
+    origin.singleFileChange(0, "one commit", "foo.txt", "foo\nbaz\n");
 
     GitRepository.newRepo(/*verbose*/ true, workdir, getGitEnv()).init();
     Path subdir = Files.createDirectory(workdir.resolve("subdir"));
@@ -4394,16 +4394,14 @@ public class WorkflowTest {
         + "    name = 'default',\n"
         + "    origin = testing.origin(),\n"
         + "    destination = testing.destination(),\n"
-        + "    transformations = [core.replace('foo', 'bar')],\n"
+        + "    transformations = [core.transform(\n"
+        + "       [core.replace('foo', 'bar')], reversal=[core.replace('bar', 'foo')])],\n"
         + "    authoring = " + authoring + ",\n"
         + "    reversible_check = True,\n"
         + ")\n";
     Migration workflow = loadConfig(config).getMigration("default");
-    ValidationException e =
-        assertThrows(ValidationException.class, () -> workflow.run(subdir, ImmutableList.of()));
-    assertThat(e)
-        .hasMessageThat()
-        .contains("Cannot use 'reversible_check = True' because Copybara temporary directory");
+    // Should not throw.
+    workflow.run(subdir, ImmutableList.of());
   }
 
   @Test

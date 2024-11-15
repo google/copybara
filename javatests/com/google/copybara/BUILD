@@ -77,7 +77,9 @@ all_tests(
     tags = ["local"],
     tests = ["util/DiffUtilTest.java"],
     deps = [
+        "//java/com/google/copybara/git:environment",
         "//java/com/google/copybara/util",
+        "//third_party:shell",
         "//third_party:truth",
     ],
 )
@@ -235,9 +237,11 @@ java_library(
     # Used for extending the tests internally. Not a public API.
     visibility = ["//visibility:public"],
     deps = [
+        "//java/com/google/copybara/git",
         "//java/com/google/copybara/util",
         "//third_party:guava",
         "//third_party:junit",
+        "//third_party:shell",
         "//third_party:truth",
     ],
 )

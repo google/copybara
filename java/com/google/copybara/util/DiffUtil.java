@@ -316,16 +316,12 @@ public class DiffUtil {
           /*singleFile=*/ true);
     }
 
-    private byte[] run(Path root, Path one, Path other) throws IOException, InsideGitDirException {
+    private byte[] run(Path root, Path one, Path other) throws IOException {
       Preconditions.checkArgument(
           singleFile || one.getParent().equals(other.getParent()),
           "Paths 'one' and 'other' must be sibling directories.");
       GitEnvironment gitEnv = new GitEnvironment(environment);
-      if (singleFile) {
-        checkNotInsideGitRepo(one.getParent(), verbose, gitEnv);
-      } else {
-        checkNotInsideGitRepo(one, verbose, gitEnv);
-      }
+
       List<String> params =
           Lists.newArrayList(
               gitEnv.resolveGitBinary(),
@@ -334,7 +330,8 @@ public class DiffUtil {
               "diff.noprefix=false",
               "diff",
               "--no-color",
-              // Be careful, no test coverage for this:
+              "--no-index",
+              // Be careful, no test coverage for these:
               "--no-ext-diff");
       if (nameStatus) {
         params.add("--name-status");

@@ -23,8 +23,10 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.util.DiffUtil.DiffFile;
 import com.google.copybara.util.DiffUtil.DiffFile.Operation;
+import com.google.copybara.shell.Command;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -89,6 +91,25 @@ public class DiffUtilTest {
     byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, env);
 
     assertThat(new String(diffContents, StandardCharsets.UTF_8)).isNotEmpty();
+  }
+
+  @Test
+  public void runDiffInGitDirectory() throws Exception {
+    GitEnvironment gitEnv = new GitEnvironment(testEnv);
+    ImmutableList<String> params =
+        ImmutableList.of(gitEnv.resolveGitBinary(), "init", rootPath.toString());
+    Command cmd =
+        new Command(params.toArray(new String[] {}), gitEnv.getEnvironment(), rootPath.toFile());
+    new CommandRunner(cmd).withVerbose(true).execute();
+    writeFile(left, "file1.txt", "foo");
+    writeFile(right, "file1.txt", "foo");
+
+    byte[] diffContents = DiffUtil.diff(left, right, VERBOSE, testEnv);
+
+    assertThat(diffContents).isEmpty();
+
+    assertThat(DiffUtil.diffFiles(left, right, VERBOSE, testEnv)).isEmpty();
+    FileUtil.deleteRecursively(rootPath.resolve(".git"));
   }
 
   @Test
