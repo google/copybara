@@ -35,13 +35,13 @@ COPY . .
 RUN bazel build //java/com/google/copybara:copybara_deploy.jar --java_language_version=21 --tool_java_language_version=21 --java_runtime_version=remotejdk_21
 
 # Use jammy to drop Python 2
-FROM docker.io/eclipse-temurin:17-jre-jammy
+FROM docker.io/eclipse-temurin:21-jre-jammy
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y git mercurial quilt && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/local/bin/
+COPY --from=buildtools /go/bin/buildozer /go/bin/buildifier /usr/bin/
 COPY --from=build /home/ubuntu/bazel-bin/java/com/google/copybara/copybara_deploy.jar /opt/copybara/copybara_deploy.jar
 COPY .docker/copybara /usr/local/bin/copybara
 
