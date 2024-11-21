@@ -577,7 +577,7 @@ public class GitDestination implements Destination<GitRevision> {
       console.verboseFmt("Integrates for %s: %s", repoUrl, Iterables.size(integrates));
 
       for (GitIntegrateChanges integrate : integrates) {
-        integrate.run(
+        var unused = integrate.run(
             alternate,
             repoUrl,
             generalOptions,

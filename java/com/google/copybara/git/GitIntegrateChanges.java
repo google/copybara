@@ -72,7 +72,8 @@ public class GitIntegrateChanges implements StarlarkValue {
    * @throws CannotIntegrateException if a change cannot be integrated due to a user error
    * @throws RepoException if a git related error happens during the integrate
    */
-  void run(
+  // TODO(joshgoldman): Add unit tests for checking the return value of integrate.run()
+  Optional<IntegrateLabel> run(
       GitRepository repository,
       String repoUrl,
       GeneralOptions generalOptions,
@@ -81,8 +82,11 @@ public class GitIntegrateChanges implements StarlarkValue {
       TransformResult result,
       boolean ignoreIntegrationErrors)
       throws CannotIntegrateException, RepoException {
+    Optional<IntegrateLabel> integrateLabel = Optional.empty();
     try {
-      doIntegrate(repository, repoUrl, generalOptions, externalFileMatcher, result, messageInfo);
+      integrateLabel =
+          doIntegrate(
+              repository, repoUrl, generalOptions, externalFileMatcher, result, messageInfo);
     } catch (CannotIntegrateException e) {
       if (ignoreIntegrationErrors || ignoreErrors) {
         logger.atWarning().withCause(e).log("Cannot integrate changes");
@@ -98,9 +102,10 @@ public class GitIntegrateChanges implements StarlarkValue {
         throw e;
       }
     }
+    return integrateLabel;
   }
 
-  private void doIntegrate(
+  private Optional<IntegrateLabel> doIntegrate(
       GitRepository repository,
       String repoUrl,
       GeneralOptions generalOptions,
@@ -108,6 +113,7 @@ public class GitIntegrateChanges implements StarlarkValue {
       TransformResult result,
       MessageInfo messageInfo)
       throws CannotIntegrateException, RepoException {
+    Optional<IntegrateLabel> optionalIntegrateLabel = Optional.empty();
     for (LabelFinder label : result.findAllLabels()) {
       if (!label.isLabel() || !this.label.equals(label.getName())) {
         continue;
@@ -141,10 +147,12 @@ public class GitIntegrateChanges implements StarlarkValue {
 
         strategy.integrate(repository, integrateLabel, externalFiles, label,
             messageInfo, generalOptions.console(), generalOptions.getDirFactory());
+        optionalIntegrateLabel = Optional.of(integrateLabel);
       } catch (ValidationException e) {
         throw new CannotIntegrateException("Error resolving " + label.getValue(), e);
       }
     }
+    return optionalIntegrateLabel;
   }
 
   /**
