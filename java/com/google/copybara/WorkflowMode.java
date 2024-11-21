@@ -165,9 +165,9 @@ public enum WorkflowMode {
       Iterator<Change<O>> changesIterator = changes.iterator();
       int limit = changes.size();
       if (runHelper.workflowOptions().iterativeLimitChanges < changes.size()) {
+        limit = runHelper.workflowOptions().iterativeLimitChanges;
         runHelper.getConsole().info(String.format("Importing first %d change(s) out of %d",
             limit, changes.size()));
-        limit = runHelper.workflowOptions().iterativeLimitChanges;
       }
 
       runHelper.maybeValidateRepoInLastRevState(/*metadata=*/null);
