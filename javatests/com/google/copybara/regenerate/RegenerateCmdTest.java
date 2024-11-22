@@ -45,7 +45,6 @@ import com.google.copybara.util.ExitCode;
 import com.google.copybara.util.FileUtil;
 import com.google.copybara.util.FileUtil.CopySymlinkStrategy;
 import com.google.copybara.util.Glob;
-import com.google.copybara.util.InsideGitDirException;
 import com.google.copybara.util.console.Console;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
@@ -164,8 +163,7 @@ public class RegenerateCmdTest {
 
   // generate and write the consistency file from the regen baseline and pristine baseline directory
   // contents
-  private void setupBaselineConsistencyFile(String pristine, String baseline)
-      throws IOException, InsideGitDirException {
+  private void setupBaselineConsistencyFile(String pristine, String baseline) throws Exception {
     ConsistencyFile consistencyFile;
 
     if (!Files.exists(destinationRoot.resolve(baseline))) {
@@ -552,8 +550,7 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testConsistencyFile_generatesFile()
-      throws IOException, ValidationException, RepoException, InsideGitDirException {
+  public void testConsistencyFile_generatesFile() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
 
@@ -584,8 +581,7 @@ public class RegenerateCmdTest {
   }
 
   @Test
-  public void testConsistencyFile_capturesDiff()
-      throws IOException, ValidationException, RepoException, InsideGitDirException {
+  public void testConsistencyFile_capturesDiff() throws Exception {
     setupBaseline("foo");
     setupTarget("bar");
 

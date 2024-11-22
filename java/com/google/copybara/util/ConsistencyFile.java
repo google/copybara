@@ -19,9 +19,11 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.io.MoreFiles;
@@ -87,14 +89,80 @@ public class ConsistencyFile {
       HashFunction hashFunction,
       Map<String, String> environment,
       boolean verbose)
-      throws IOException, InsideGitDirException {
+      throws IOException, InsideGitDirException, ValidationException {
     byte[] diff = DiffUtil.diffWithIgnoreCrAtEol(baseline, destination, verbose, environment);
-    return new ConsistencyFile(computeFileHashes(destination, hashFunction), diff);
+    ImmutableMap<String, String> destinationHashes = computeFileHashes(destination, hashFunction);
+    ImmutableList<String> baselineFileNames = getFileNames(baseline);
+
+    FileSetDiff filesetDiff = calculateFileSetDiff(destinationHashes, baselineFileNames);
+
+    if (!filesetDiff.destinationOnly().isEmpty() || !filesetDiff.originOnly().isEmpty()) {
+      String message =
+          String.format(
+              "Error: Detected full-file diffs when generating consistency file: %s. Please adjust"
+                  + " destination or origin globs to exclude these files.\n",
+              filesetDiff);
+      ImmutableSet<String> extraDotFiles =
+          filesetDiff.destinationOnly.stream()
+              .filter(file -> Path.of(file).getFileName().toString().startsWith("."))
+              .collect(toImmutableSet());
+      ImmutableSet<String> origFiles =
+          filesetDiff.destinationOnly.stream()
+              .filter(file -> file.endsWith(".orig"))
+              .collect(toImmutableSet());
+
+      if (!extraDotFiles.isEmpty()) {
+        message +=
+            "If using an hg-based VCS, dot files may not be tracked by the destination, but still"
+                + " be present in the workspace.\n";
+      }
+      if (!origFiles.isEmpty()) {
+        message +=
+            "If using an hg-based VCS, '.orig' files may need to be cleaned up manually in the"
+                + " destination.\n";
+      }
+      throw new ValidationException(message);
+    }
+
+    return new ConsistencyFile(destinationHashes, diff);
+  }
+
+  record FileSetDiff(ImmutableList<String> destinationOnly, ImmutableList<String> originOnly) {}
+
+  public static FileSetDiff calculateFileSetDiff(
+      ImmutableMap<String, String> destinationHashes, ImmutableList<String> baselineFileNames) {
+    ImmutableSet<String> destinationFileSet = destinationHashes.keySet();
+    ImmutableSet<String> baselineFileSet = ImmutableSet.copyOf(baselineFileNames);
+
+    ImmutableSet<String> destinationOnly =
+        Sets.difference(destinationFileSet, baselineFileSet).immutableCopy();
+    ImmutableSet<String> originOnly =
+        Sets.difference(baselineFileSet, destinationFileSet).immutableCopy();
+
+    return new FileSetDiff(destinationOnly.asList(), originOnly.asList());
   }
 
   public static ConsistencyFile generateNoDiff(Path contents, HashFunction hashFunction)
       throws IOException {
     return new ConsistencyFile(computeFileHashes(contents, hashFunction), new byte[0]);
+  }
+
+  private static ImmutableList<String> getFileNames(Path directory) throws IOException {
+    ImmutableList.Builder<String> namesBuilder = ImmutableList.builder();
+    Files.walkFileTree(
+        directory,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            if (Files.isSymbolicLink(file)) {
+              // skip symbolic links
+              return FileVisitResult.CONTINUE;
+            }
+            namesBuilder.add(directory.relativize(file).toString());
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    return namesBuilder.build();
   }
 
   private static ImmutableMap<String, String> computeFileHashes(

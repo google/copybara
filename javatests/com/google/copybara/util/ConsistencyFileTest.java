@@ -35,19 +35,19 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public final class ConsistencyFileTest {
+public class ConsistencyFileTest {
 
   @Rule
   public final TemporaryFolder tmpFolder = new TemporaryFolder();
   private Path baseline;
   private Path destination;
 
-  private static final byte[] emptyDiff = {};
-  private static final ImmutableMap<String, String> emptyHashes = ImmutableMap.of();
 
   // Hash value produced by: 'echo -n 'hello' | sha256sum
   private static final String helloHash =
       "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+
+  public ImmutableMap<String, String> env = ImmutableMap.copyOf(System.getenv());
 
   @Before
   public void setUp() throws IOException {
@@ -57,54 +57,52 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testGenerateConsistencyFile() throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile() throws Exception {
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     assertThat(consistencyFile).isNotNull();
   }
 
   @Test
-  public void testGenerateConsistencyFile_ignoresSymlinkDirs()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_ignoresSymlinkDirs() throws Exception {
     Path symlinkParentDir = Files.createDirectories(destination.resolve("test/symlinkparent"));
     Path symlinkTargetDir = Files.createDirectories(destination.resolve("test/symlinktarget"));
     Path unused = Files.createSymbolicLink(symlinkParentDir.resolve("symlink"), symlinkTargetDir);
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     assertThat(consistencyFile).isNotNull();
   }
 
   @Test
-  public void testGenerateConsistencyFile_ignoresSymlinkFiles()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_ignoresSymlinkFiles() throws Exception {
     Path symlinkParentDir = Files.createDirectories(destination.resolve("test/symlinkparent"));
     Path symlinkTargetFile = Path.of("/invalid/path");
     Path unused = Files.createSymbolicLink(symlinkParentDir.resolve("symlink"), symlinkTargetFile);
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     assertThat(consistencyFile).isNotNull();
   }
 
   @Test
-  public void testGenerateConsistencyFile_hashesFile() throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_hashesFile() throws Exception {
     String testPath = "test/foo";
     String testContents = "hello";
     byte[] testBytes = testContents.getBytes(UTF_8);
 
     Files.createDirectories(destination.resolve(testPath).getParent());
     Files.write(destination.resolve(testPath), testBytes);
+    write(baseline, testPath, "asdf");
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     assertThat(consistencyFile.getFileHashes()).containsExactly(testPath, helloHash);
   }
 
   @Test
-  public void testGenerateConsistencyFile_diffsDirectories()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_diffsDirectories() throws Exception {
     String testPath = "test/foo";
     String testDestinationContents = "hello\n";
     write(destination, testPath, testDestinationContents);
@@ -113,7 +111,7 @@ public final class ConsistencyFileTest {
     write(baseline, testPath, testBaselineContents);
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8))
         .isEqualTo(
@@ -128,8 +126,7 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testGenerateConsistencyFile_diffsDirectories_ignoresCrAtEol()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_diffsDirectories_ignoresCrAtEol() throws Exception {
     String testPath = "test/foo";
     String testDestinationContents = "hello\n";
     write(destination, testPath, testDestinationContents);
@@ -138,14 +135,13 @@ public final class ConsistencyFileTest {
     write(baseline, testPath, testBaselineContents);
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEqualTo("");
   }
 
   @Test
-  public void testGenerateConsistencyFile_diffsDirectories_multipleFiles()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_diffsDirectories_multipleFiles() throws Exception {
     String testPath = "test/foo";
     String testPath2 = "test/bar";
 
@@ -155,7 +151,7 @@ public final class ConsistencyFileTest {
     write(baseline, testPath2, "baseline test 2\n");
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8))
         .isEqualTo(
@@ -177,8 +173,7 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testGenerateConsistencyFile_diffsDirectories_emptyDiff()
-      throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_diffsDirectories_emptyDiff() throws Exception {
     String testPath = "test/foo";
     String testDestinationContents = "hello";
     write(destination, testPath, testDestinationContents);
@@ -187,7 +182,7 @@ public final class ConsistencyFileTest {
     write(baseline, testPath, testBaselineContents);
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     assertThat(new String(consistencyFile.getDiffContent(), UTF_8)).isEqualTo("");
   }
@@ -203,9 +198,9 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testPatchContainsHeader() throws IOException, InsideGitDirException {
+  public void testPatchContainsHeader() throws Exception {
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     byte[] consistencyBytes = consistencyFile.toBytes();
 
     assertThat(new String(consistencyBytes, UTF_8)).contains("This file is generated by Copybara");
@@ -214,7 +209,7 @@ public final class ConsistencyFileTest {
   @Test
   public void testSerializeEmptyPatch() throws Exception {
     ConsistencyFile emptyPatch =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     byte[] emptyPatchBytes = emptyPatch.toBytes();
     ConsistencyFile deserializedPatch = ConsistencyFile.fromBytes(emptyPatchBytes);
 
@@ -226,7 +221,7 @@ public final class ConsistencyFileTest {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");
     ConsistencyFile testConsistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     byte[] testPatchBytes = testConsistencyFile.toBytes();
 
     ConsistencyFile deserializedPatch = ConsistencyFile.fromBytes(testPatchBytes);
@@ -235,36 +230,17 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testDeserializedObjectNotEquivalent_addedFile() throws Exception {
-    write(destination, "test/path", "123457testcontents");
-    write(baseline, "test/path", "123457testcontents");
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
-
-    // add new file to destination
-    write(destination, "test/new", "asdf");
-
-    ConsistencyFile differentPatch =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
-    byte[] differentPatchBytes = differentPatch.toBytes();
-
-    ConsistencyFile deserializedPatch = ConsistencyFile.fromBytes(differentPatchBytes);
-
-    assertThat(deserializedPatch).isNotEqualTo(consistencyFile);
-  }
-
-  @Test
   public void testDeserializedObjectNotEquivalent_changedFile() throws Exception {
     write(destination, "test/path", "123457testcontents");
     write(baseline, "test/path", "123457testcontents");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     // update file in destination
     write(destination, "test/path", "newcontents");
 
     ConsistencyFile differentPatch =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
     byte[] differentPatchBytes = differentPatch.toBytes();
 
     ConsistencyFile deserializedPatch = ConsistencyFile.fromBytes(differentPatchBytes);
@@ -277,7 +253,7 @@ public final class ConsistencyFileTest {
     write(baseline, "foo", "hello");
     write(destination, "foo", "hello");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     // Manually make an edit to the byte format
     // There should be an entry for "foo" with a corresponding hash.
@@ -298,7 +274,7 @@ public final class ConsistencyFileTest {
     write(baseline, "foo", "hello");
     write(destination, "foo", "hello");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     String consistencyContent = new String(consistencyFile.toBytes(), UTF_8);
 
@@ -327,8 +303,8 @@ public final class ConsistencyFileTest {
     assertThatPath(destination).containsFile("bardiff", "newbar");
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
-    consistencyFile.reversePatches(destination, System.getenv());
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
+    consistencyFile.reversePatches(destination, env);
 
     // destination after reversing should contain the old content
     assertThatPath(destination).containsFile("foonodiff", "foo");
@@ -336,56 +312,14 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testReversePatchConsistencyFile_deletesFile() throws Exception {
-    // Destination has a file that the baseline doesn't.
-    // Reversing the patch should delete the file.
-    write(baseline, "foonodiff", "foo");
-    write(destination, "foonodiff", "foo");
-
-    write(destination, "baradded", "bar");
-
-    // verify destination before reversing contains the new content
-    assertThatPath(destination).containsFile("foonodiff", "foo");
-    assertThatPath(destination).containsFile("baradded", "bar");
-
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
-    consistencyFile.reversePatches(destination, System.getenv());
-
-    // destination after reversing should contain the old content
-    assertThatPath(destination).containsFile("foonodiff", "foo");
-    assertThatPath(destination).containsNoFiles("baradded");
-  }
-
-  @Test
-  public void testReversePatchConsistencyFile_addsFile() throws Exception {
-    // Baseline has a file that the destination doesn't.
-    // Reversing the patch should re-add the file.
-    write(baseline, "foonodiff", "foo");
-    write(destination, "foonodiff", "foo");
-
-    write(baseline, "barremoved", "bar");
-
-    // verify destination before reversing contains the new content
-    assertThatPath(destination).containsFile("foonodiff", "foo");
-    assertThatPath(destination).containsNoFiles("barremoved");
-
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
-    consistencyFile.reversePatches(destination, System.getenv());
-
-    // destination after reversing should contain the old content
-    assertThatPath(destination).containsFile("foonodiff", "foo");
-    assertThatPath(destination).containsFile("barremoved", "bar");
-  }
-
-  @Test
   public void testValidateDirectory_success() throws Exception {
+    write(baseline, "dir/foo", "aa");
+    write(baseline, "dir/bar", "bb");
     write(destination, "dir/foo", "aaa");
     write(destination, "dir/bar", "bbb");
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     // should not throw
     consistencyFile.validateDirectory(
@@ -397,8 +331,7 @@ public final class ConsistencyFileTest {
   public void testValidateDirectory_fileAddedToDestination() throws Exception {
     write(destination, "dir/foo", "aaa");
 
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+    ConsistencyFile consistencyFile = ConsistencyFile.generateNoDiff(destination, Hashing.sha256());
 
     write(destination, "dir/bar", "bbb");
 
@@ -418,8 +351,7 @@ public final class ConsistencyFileTest {
     write(destination, "dir/foo", "aaa");
     write(destination, "dir/bar", "bbb");
 
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+    ConsistencyFile consistencyFile = ConsistencyFile.generateNoDiff(destination, Hashing.sha256());
 
     delete(destination, "dir/bar");
 
@@ -438,10 +370,10 @@ public final class ConsistencyFileTest {
 
   @Test
   public void testValidateDirectory_fileChanged() throws Exception {
+    write(baseline, "dir/foo", "zzz");
     write(destination, "dir/foo", "aaa");
 
-    ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+    ConsistencyFile consistencyFile = ConsistencyFile.generateNoDiff(destination, Hashing.sha256());
 
     write(destination, "dir/foo", "bbb");
 
@@ -459,17 +391,17 @@ public final class ConsistencyFileTest {
   }
 
   @Test
-  public void testGenerateConsistencyFile_sortedOutput() throws IOException, InsideGitDirException {
+  public void testGenerateConsistencyFile_sortedOutput() throws Exception {
     ImmutableList<String> dirs = ImmutableList.of("a", "b", "c", "d", "e", "f", "g");
 
     String testPath = "test/foo";
     for (String dir : dirs) {
       write(destination, testPath + "/" + dir, "foo");
+      write(baseline, testPath + "/" + dir, "foo");
     }
-    write(baseline, testPath, "foo");
 
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), System.getenv(), false);
+        ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false);
 
     // maybe worth noting that even if sorting behavior broke, it is technically
     // possible that these end up sorted by coincidence
@@ -482,5 +414,58 @@ public final class ConsistencyFileTest {
                 + "test/foo/e.*\n"
                 + "test/foo/f.*\n"
                 + "test/foo/g.*");
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_fullFilePatchAdditionThrows() throws Exception {
+    write(destination, "extra", "extra");
+
+    write(baseline, "existing", "foo");
+    write(destination, "existing", "foo");
+    Throwable t =
+        assertThrows(
+            ValidationException.class,
+            () -> ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false));
+    assertThat(t).hasMessageThat().contains("full-file diffs");
+    assertThat(t).hasMessageThat().contains("extra");
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_fullFilePatchDeletionThrows() throws Exception {
+    write(baseline, "existing", "foo");
+    write(destination, "existing", "foo");
+    write(baseline, "extra", "extra");
+    Throwable t =
+        assertThrows(
+            ValidationException.class,
+            () -> ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false));
+    assertThat(t).hasMessageThat().contains("full-file diffs");
+    assertThat(t).hasMessageThat().contains("extra");
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_fullFilePatchAdditionThrows_withOrigFileMessage()
+      throws Exception {
+    write(baseline, "existing", "foo");
+    write(destination, "existing", "foo");
+    write(destination, "extra.orig", "backup");
+    Throwable t =
+        assertThrows(
+            ValidationException.class,
+            () -> ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false));
+    assertThat(t).hasMessageThat().contains("'.orig' files may need to be cleaned up");
+  }
+
+  @Test
+  public void testGenerateConsistencyFile_fullFilePatchAdditionThrows_withDotfileMessage()
+      throws Exception {
+    write(baseline, "existing", "foo");
+    write(destination, "existing", "foo");
+    write(destination, ".dotfile", "contents");
+    Throwable t =
+        assertThrows(
+            ValidationException.class,
+            () -> ConsistencyFile.generate(baseline, destination, Hashing.sha256(), env, false));
+    assertThat(t).hasMessageThat().contains("dot files may not be tracked");
   }
 }

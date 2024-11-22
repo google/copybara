@@ -95,6 +95,21 @@ all_tests(
     ],
 )
 
+java_library(
+    name = "consistency_file_tests_lib",
+    testonly = 1,
+    srcs = ["util/ConsistencyFileTest.java"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//java/com/google/copybara/exception",
+        "//java/com/google/copybara/testing",
+        "//java/com/google/copybara/util:consistency",
+        "//third_party:guava",
+        "//third_party:junit",
+        "//third_party:truth",
+    ],
+)
+
 all_tests(
     name = "consistency_file_tests",
     shard_count = 1,
@@ -105,7 +120,6 @@ all_tests(
     deps = [
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/testing",
-        "//java/com/google/copybara/util",
         "//java/com/google/copybara/util:consistency",
         "//third_party:truth",
     ],

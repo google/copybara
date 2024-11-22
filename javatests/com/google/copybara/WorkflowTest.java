@@ -185,16 +185,21 @@ public class WorkflowTest {
     originFiles = "glob(['**'], exclude = ['copy.bara.sky', 'excluded/**'])";
     destinationFiles = "glob(['**'])";
     destination = new RecordsProcessCallDestination();
-    transformations = ImmutableList.of(String.format("""
-            core.replace(
-                before = '${linestart}${number}',
-                after = '${linestart}%s${number}',
-                regex_groups = {
-                  'number'    : '[0-9]+',
-                  'linestart' : '^',
-                },
-                multiline = True,
-            )""", PREFIX));
+    transformations =
+        ImmutableList.of(
+            String.format(
+                """
+                core.replace(
+                    before = '${linestart}${number}',
+                    after = '${linestart}%s${number}',
+                    regex_groups = {
+                      'number'    : '[0-9]+',
+                      'linestart' : '^',
+                    },
+                    multiline = True,
+                )\
+                """,
+                PREFIX));
     TestingConsole console = new TestingConsole();
     options.setConsole(console);
     options.testingOptions.origin = origin;
@@ -2484,6 +2489,7 @@ public class WorkflowTest {
 
     // create a change to import on top of the baseline
     Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/foo.txt", "a\nb\nc\n");
     writeFile(o2, "dir/bar.txt", "bar\n");
     origin.addChange(0, o2, "test change", true);
 
@@ -2541,6 +2547,7 @@ public class WorkflowTest {
 
     // create a change to import on top of the baseline
     Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/foo.txt", "a\nb\nc\n");
     writeFile(o2, "dir/bar.txt", "bar\n");
     origin.addChange(0, o2, "test change", true);
 
@@ -2557,7 +2564,7 @@ public class WorkflowTest {
     // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
+        ConsistencyFile.generate(o2, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
@@ -2608,6 +2615,7 @@ public class WorkflowTest {
 
     // create a change to import on top of the baseline
     Path o2 = Files.createDirectories(testDir.resolve("o2"));
+    writeFile(o2, "dir/foo.txt", "a\nb\nc\n");
     writeFile(o2, "dir/bar.txt", "bar\n");
     origin.addChange(0, o2, "test change", true);
 
@@ -2624,7 +2632,7 @@ public class WorkflowTest {
     // spoof an invalid ConsistencyFile state
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nc\n");
     ConsistencyFile consistencyFile =
-        ConsistencyFile.generate(o1, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
+        ConsistencyFile.generate(o2, d1, Hashing.sha256(), getGitEnv().getEnvironment(), false);
     writeFile(d1, "dir/foo.txt", "a\nb\nfoo\nbar\nc\n");
     writeFile(d1, consistencyFilePath, new String(consistencyFile.toBytes(), UTF_8));
 
