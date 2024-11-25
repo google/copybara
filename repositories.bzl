@@ -14,7 +14,6 @@
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
-load("//third_party:bazel.bzl", "bazel_sha256", "bazel_version")
 load("//third_party:bazel_skylib.bzl", "skylib_sha256", "skylib_version")
 
 def copybara_repositories():
@@ -48,33 +47,6 @@ def copybara_repositories():
         sha256 = skylib_sha256,
         strip_prefix = "bazel-skylib-" + skylib_version,
         url = "https://github.com/bazelbuild/bazel-skylib/archive/" + skylib_version + ".zip",
-    )
-
-    EXPORT_WORKSPACE_IN_BUILD_FILE = [
-        "test -f BUILD && chmod u+w BUILD || true",
-        "echo >> BUILD",
-        "echo 'exports_files([\"WORKSPACE\"], visibility = [\"//visibility:public\"])' >> BUILD",
-    ]
-
-    EXPORT_WORKSPACE_IN_BUILD_FILE_WIN = [
-        "Add-Content -Path BUILD -Value \"`nexports_files([`\"WORKSPACE`\"], visibility = [`\"//visibility:public`\"])`n\" -Force",
-    ]
-
-    # Stuff used by Bazel Starlark syntax package transitively:
-    # LICENSE: The Apache Software License, Version 2.0
-    maybe(
-        http_archive,
-        name = "com_google_protobuf",
-        patch_args = ["-p1"],
-        patches = ["@io_bazel//third_party/protobuf:21.7.patch"],
-        patch_cmds = EXPORT_WORKSPACE_IN_BUILD_FILE,
-        patch_cmds_win = EXPORT_WORKSPACE_IN_BUILD_FILE_WIN,
-        sha256 = "75be42bd736f4df6d702a0e4e4d30de9ee40eac024c4b845d17ae4cc831fe4ae",
-        strip_prefix = "protobuf-21.7",
-        urls = [
-            "https://mirror.bazel.build/github.com/protocolbuffers/protobuf/archive/v21.7.tar.gz",
-            "https://github.com/protocolbuffers/protobuf/archive/v21.7.tar.gz",
-        ],
     )
 
     # Stuff used by Buildifier transitively:
@@ -161,17 +133,3 @@ def copybara_repositories():
             "http://github.com/keith/buildifier-prebuilt/archive/6.4.0.tar.gz",
         ],
     )
-
-    _non_module_deps(None)
-
-def _non_module_deps(_):
-    # LICENSE: The Apache Software License, Version 2.0
-    maybe(
-        http_archive,
-        name = "io_bazel",
-        sha256 = bazel_sha256,
-        strip_prefix = "bazel-" + bazel_version,
-        url = "https://github.com/bazelbuild/bazel/archive/" + bazel_version + ".zip",
-    )
-
-non_module_deps = module_extension(implementation = _non_module_deps)

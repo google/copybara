@@ -13,9 +13,6 @@ bazel_dep(name = "rules_license", version = "0.0.8")
 bazel_dep(name = "rules_pkg", version = "0.10.1")
 bazel_dep(name = "rules_python", version = "0.31.0")
 
-non_module_deps = use_extension("//:repositories.bzl", "non_module_deps")
-use_repo(non_module_deps, "io_bazel")
-
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "copybara_maven",
