@@ -3,8 +3,8 @@
 load("@rules_java//java:defs.bzl", "java_library")
 
 package(
-    default_applicable_licenses = ["//:license"],
-    default_visibility = ["//src:__subpackages__"],
+    default_applicable_licenses = ["//third_party/bazel:license"],
+    default_visibility = ["//visibility:public"],
 )
 
 filegroup(
@@ -60,12 +60,12 @@ java_library(
         "TokenKind.java",
         "UnaryOperatorExpression.java",
     ],
-    visibility = ["//src/main/java/net/starlark/java:clients"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
     # Do not add Bazel or Google dependencies here!
     deps = [
-        "//src/main/java/net/starlark/java/spelling",
-        "//third_party:auto_value",
-        "//third_party:guava",
-        "//third_party:jsr305",
+        "//third_party/bazel/main/java/net/starlark/java/spelling",
+        "//third_party/bazel/third_party:auto_value",
+        "//third_party/bazel/third_party:guava",
+        "//third_party/bazel/third_party:jsr305",
     ],
 )

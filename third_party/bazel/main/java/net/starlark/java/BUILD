@@ -12,8 +12,8 @@ filegroup(
 package_group(
     name = "starlark",
     packages = [
-        "//src/main/java/net/starlark/java/...",
         "//src/test/java/net/starlark/java/...",
+        "//third_party/bazel/main/java/net/starlark/java/...",
     ],
 )
 

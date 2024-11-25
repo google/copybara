@@ -1,8 +1,8 @@
 load("@rules_java//java:defs.bzl", "java_library")
 
 package(
-    default_applicable_licenses = ["//:license"],
-    default_visibility = ["//src:__subpackages__"],
+    default_applicable_licenses = ["//third_party/bazel:license"],
+    default_visibility = ["//visibility:public"],
 )
 
 filegroup(
@@ -15,8 +15,8 @@ filegroup(
 # Depending on this library adds annotations processing to the build.
 java_library(
     name = "annot",
-    exported_plugins = ["//src/main/java/net/starlark/java/annot/processor"],
-    visibility = ["//src/main/java/net/starlark/java:clients"],
+    exported_plugins = ["//third_party/bazel/main/java/net/starlark/java/annot/processor"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
     exports = [":annot_sans_processor"],
 )
 
@@ -24,9 +24,9 @@ java_library(
 java_library(
     name = "annot_sans_processor",
     srcs = glob(["*.java"]),
-    visibility = ["//src/main/java/net/starlark/java/annot/processor:__pkg__"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java/annot/processor:__pkg__"],
     deps = [
-        "//third_party:guava",
-        "//third_party:jsr305",
+        "//third_party/bazel/third_party:guava",
+        "//third_party/bazel/third_party:jsr305",
     ],
 )

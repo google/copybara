@@ -166,10 +166,10 @@ java_library(
 java_library(
     name = "starlark",
     exports = [
-        "@io_bazel//src/main/java/net/starlark/java/annot",
-        "@io_bazel//src/main/java/net/starlark/java/eval",
-        "@io_bazel//src/main/java/net/starlark/java/lib/json",
-        "@io_bazel//src/main/java/net/starlark/java/syntax",
+        "//third_party/bazel/main/java/net/starlark/java/annot",
+        "//third_party/bazel/main/java/net/starlark/java/eval",
+        "//third_party/bazel/main/java/net/starlark/java/lib/json",
+        "//third_party/bazel/main/java/net/starlark/java/syntax",
     ],
 )
 
@@ -186,7 +186,7 @@ java_library(
 java_library(
     name = "error_prone",
     exports = [
-        "@io_bazel//third_party:error_prone_annotations",
+        "//third_party/bazel/third_party:error_prone_annotations",
     ],
 )
 
@@ -225,7 +225,3 @@ java_library(
         "@copybara_maven//:com_google_protobuf_protobuf_lite",
     ],
 )
-
-# Required temporarily until @io_bazel//src/main/java/com/google/devtools/build/lib/syntax/...
-# is fixed
-exports_files(["bazel.patch"])

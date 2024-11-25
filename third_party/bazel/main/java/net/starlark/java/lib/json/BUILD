@@ -1,8 +1,8 @@
 load("@rules_java//java:defs.bzl", "java_library")
 
 package(
-    default_applicable_licenses = ["//:license"],
-    default_visibility = ["//src:__subpackages__"],
+    default_applicable_licenses = ["//third_party/bazel:license"],
+    default_visibility = ["//visibility:public"],
 )
 
 filegroup(
@@ -15,10 +15,10 @@ filegroup(
 java_library(
     name = "json",
     srcs = ["Json.java"],
-    visibility = ["//src/main/java/net/starlark/java:clients"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
     deps = [
-        "//src/main/java/net/starlark/java/annot",
-        "//src/main/java/net/starlark/java/eval",
-        "//src/main/java/net/starlark/java/syntax",
+        "//third_party/bazel/main/java/net/starlark/java/annot",
+        "//third_party/bazel/main/java/net/starlark/java/eval",
+        "//third_party/bazel/main/java/net/starlark/java/syntax",
     ],
 )

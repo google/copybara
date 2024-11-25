@@ -7,7 +7,7 @@ licenses(["notice"])  # Apache 2.0
 filegroup(
     name = "srcs",
     srcs = glob(["**"]),
-    visibility = ["//src/main/java/net/starlark/java:bazel"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:bazel"],
 )
 
 # The Starlark evaluator
@@ -61,17 +61,17 @@ java_library(
         "SymbolGenerator.java",
         "Tuple.java",
     ],
-    visibility = ["//src/main/java/net/starlark/java:clients"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
     deps = [
         # Do not add Bazel or Google dependencies here!
-        "//src/main/java/net/starlark/java/annot",
-        "//src/main/java/net/starlark/java/spelling",
-        "//src/main/java/net/starlark/java/syntax",
-        "//third_party:error_prone_annotations",
-        "//third_party:auto_value",
-        "//third_party:flogger",
-        "//third_party:guava",
-        "//third_party:jsr305",
+        "//third_party/bazel/main/java/net/starlark/java/annot",
+        "//third_party/bazel/main/java/net/starlark/java/spelling",
+        "//third_party/bazel/main/java/net/starlark/java/syntax",
+        "//third_party/bazel/third_party:error_prone_annotations",
+        "//third_party/bazel/third_party:auto_value",
+        "//third_party/bazel/third_party:flogger",
+        "//third_party/bazel/third_party:guava",
+        "//third_party/bazel/third_party:jsr305",
     ],
 )
 
@@ -82,11 +82,11 @@ java_library(
 filegroup(
     name = "cpu_profiler",
     srcs = select({
-        "//src/conditions:darwin": [":libcpu_profiler.dylib"],
-        "//src/conditions:windows": [":cpu_profiler.dll"],
+        "@platforms//os:macos": [":libcpu_profiler.dylib"],
+        "@platforms//os:windows": [":cpu_profiler.dll"],
         "//conditions:default": [":libcpu_profiler.so"],  # POSIX
     }),
-    visibility = ["//src/main/java/net/starlark/java:clients"],
+    visibility = ["//third_party/bazel/main/java/net/starlark/java:clients"],
 )
 
 genrule(
@@ -107,8 +107,8 @@ genrule(
 cc_binary(
     name = "libcpu_profiler.so",
     srcs = select({
-        "//src/conditions:darwin": ["cpu_profiler_posix.cc"],
-        "//src/conditions:linux": ["cpu_profiler_posix.cc"],
+        "@platforms//os:macos": ["cpu_profiler_posix.cc"],
+        "@platforms//os:linux": ["cpu_profiler_posix.cc"],
         "//conditions:default": ["cpu_profiler_unimpl.cc"],
     }),
     linkshared = 1,

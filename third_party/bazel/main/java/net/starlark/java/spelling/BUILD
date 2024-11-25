@@ -3,8 +3,8 @@
 load("@rules_java//java:defs.bzl", "java_library")
 
 package(
-    default_applicable_licenses = ["//:license"],
-    default_visibility = ["//src:__subpackages__"],
+    default_applicable_licenses = ["//third_party/bazel:license"],
+    default_visibility = ["//visibility:public"],
 )
 
 filegroup(
@@ -18,10 +18,10 @@ java_library(
     srcs = ["SpellChecker.java"],
     # The SpellChecker is available to Starlark and Bazel, but not the world.
     visibility = [
-        "//src/main/java/net/starlark/java:bazel",
-        "//src/main/java/net/starlark/java:starlark",
+        "//third_party/bazel/main/java/net/starlark/java:bazel",
+        "//third_party/bazel/main/java/net/starlark/java:starlark",
     ],
     deps = [
-        "//third_party:jsr305",
+        "//third_party/bazel/third_party:jsr305",
     ],
 )
