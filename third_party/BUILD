@@ -67,7 +67,7 @@ java_library(
 java_library(
     name = "jcommander",
     exports = [
-        "@maven//:org_jcommander_jcommander",
+        "@copybara_maven//:org_jcommander_jcommander",
     ],
 )
 
