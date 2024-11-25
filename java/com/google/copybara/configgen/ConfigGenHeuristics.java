@@ -118,6 +118,15 @@ public class ConfigGenHeuristics {
         similarFiles.put(originPath.get(), file);
       }
     }
+
+    IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
+    ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
+    return new ConfigGenHeuristics.Result(originGlob.glob, new GeneratorTransformations(moves));
+  }
+
+  private IncludesGlob getOriginGlob(
+      ImmutableSet<Path> gitFiles, Map<Path, Path> similarFiles, ImmutableSet<Path> g3Files) {
+
     HashSet<Path> originOnly = new HashSet<>(gitFiles);
     originOnly.removeAll(similarFiles.keySet());
 
@@ -128,14 +137,11 @@ public class ConfigGenHeuristics {
         new IncludesGlob(ImmutableSet.of("**"), ImmutableSet.of())
             .minimizeScore(similarFiles.keySet(), originOnly, 0);
 
-    originGlob =
-        consolidateCommonPattern(originGlob, similarFiles.keySet(), p -> p.startsWith("."), ".**");
-
     // Enable to debug what is being generated:
     debug(similarFiles, destinationOnly, originGlob);
 
-    ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
-    return new ConfigGenHeuristics.Result(originGlob.glob, new GeneratorTransformations(moves));
+    return consolidateCommonPattern(
+        originGlob, similarFiles.keySet(), p -> p.startsWith("."), ".**");
   }
 
   /**
