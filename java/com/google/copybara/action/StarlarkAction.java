@@ -18,8 +18,6 @@ package com.google.copybara.action;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.copybara.SkylarkContext;
 import com.google.copybara.exception.RepoException;
@@ -59,9 +57,7 @@ public class StarlarkAction implements Action {
     try (Mutability mu = Mutability.create("dynamic_action")) {
       StarlarkThread thread = StarlarkThread.createTransient(mu, StarlarkSemantics.DEFAULT);
       thread.setPrintHandler(printHandler);
-      Object result =
-          Starlark.call(
-              thread, function, ImmutableList.of(actionContext), /*kwargs=*/ ImmutableMap.of());
+      Object result = Starlark.positionalOnlyCall(thread, function, actionContext);
       context.onFinish(result, actionContext);
     } catch (EvalException e) {
       Throwable cause = e.getCause();

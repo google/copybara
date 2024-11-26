@@ -22,8 +22,6 @@ import com.google.common.base.CaseFormat;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.MoreObjects.ToStringHelper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.copybara.TransformWork;
 import com.google.copybara.Transformation;
 import com.google.copybara.TransformationStatus;
@@ -68,9 +66,7 @@ public class SkylarkTransformation implements Transformation {
     try (Mutability mu = Mutability.create("dynamic_transform")) {
       StarlarkThread thread = StarlarkThread.createTransient(mu, StarlarkSemantics.DEFAULT);
       thread.setPrintHandler(printHandler);
-      Object result =
-          Starlark.call(
-              thread, function, ImmutableList.of(skylarkWork), /*kwargs=*/ ImmutableMap.of());
+      Object result = Starlark.positionalOnlyCall(thread, function, skylarkWork);
       result = result == Starlark.NONE ? TransformationStatus.success() : result;
       checkCondition(
           result instanceof TransformationStatus,
