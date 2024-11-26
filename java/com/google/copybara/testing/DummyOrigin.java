@@ -145,6 +145,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
             true,
             previousChanges,
             null,
+            Optional.empty(),
             Optional.empty()));
   }
 
@@ -186,11 +187,21 @@ public class DummyOrigin implements Origin<DummyRevision> {
   public DummyOrigin addChange(int timestamp, Path path, String message, boolean matchesGlob,
       ImmutableListMultimap<String, String> labels) {
     Path previousChanges = changes.isEmpty() ? null : Iterables.getLast(changes).changesBase;
-    changes.add(new DummyRevision(
-        "" + changes.size(), message, author, path,
-        ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
-        /*contextReference=*/ null, /*fixedReference=*/ null, labels,
-        matchesGlob, previousChanges, "", Optional.empty()));
+    changes.add(
+        new DummyRevision(
+            "" + changes.size(),
+            message,
+            author,
+            path,
+            ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.systemDefault()),
+            /* contextReference= */ null,
+            /* fixedReference= */ null,
+            labels,
+            matchesGlob,
+            previousChanges,
+            "",
+            Optional.empty(),
+            Optional.empty()));
     return this;
   }
 
