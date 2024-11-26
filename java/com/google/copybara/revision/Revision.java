@@ -73,6 +73,19 @@ public interface Revision {
   }
 
   /**
+   * Returns a stable name representing the reference from where this {@link Revision} was created.
+   *
+   * <p>The difference between this and {@link #contextReference()} is that this method returns a
+   * complete reference path, if possible. For example, if the user passed in `main`, this method
+   * would return `refs/heads/main`, while {@link #contextReference()} would return `main`.
+   *
+   * @return An {@link Optional<String>} representing the full context reference.
+   */
+  default Optional<String> fullReference() {
+    return Optional.ofNullable(contextReference());
+  }
+
+  /**
    * Return any associated label with the revision. Keys are the label name and values are the
    * content of the label.
    *

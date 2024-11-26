@@ -786,8 +786,7 @@ public class GitRepository {
    * Execute show-ref git command in the local repository and returns a map from reference name to
    * GitReference(SHA-1).
    */
-  private ImmutableMap<String, GitRevision> showRef(Iterable<String> refs)
-      throws RepoException {
+  ImmutableMap<String, GitRevision> showRef(Iterable<String> refs) throws RepoException {
     ImmutableMap.Builder<String, GitRevision> result = ImmutableMap.builder();
     CommandOutput commandOutput = gitAllowNonZeroExit(NO_INPUT,
         ImmutableList.<String>builder().add("show-ref").addAll(refs).build(),

@@ -16,6 +16,8 @@
 
 package com.google.copybara.git;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
@@ -31,6 +33,7 @@ import com.google.copybara.git.GitRepository.GitLogEntry;
 import com.google.copybara.revision.Revision;
 import com.google.copybara.util.CommandOutput;
 import java.time.ZonedDateTime;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -51,6 +54,8 @@ public final class GitRevision implements Revision {
   private String describe;
   private String describeAbbrev;
   private String revisionNumber;
+  private Optional<String> fullReference = Optional.empty();
+
   /**
    * Create a git revision from a complete (40 characters) git SHA-1 string.
    *
@@ -129,6 +134,42 @@ public final class GitRevision implements Revision {
   @Override
   public String fixedReference() {
     return sha1;
+  }
+
+  @Override
+  public Optional<String> fullReference() {
+    if (fullReference.isPresent()) {
+      return fullReference;
+    }
+
+    if (reference == null || reference.startsWith("refs/")) {
+      fullReference = Optional.ofNullable(reference);
+    } else {
+      try {
+        ImmutableList<String> matchingRefs =
+            repository.showRef(ImmutableList.of(reference)).entrySet().stream()
+                .filter(e -> !e.getKey().startsWith("refs/remotes/"))
+                .filter(e -> e.getValue().getSha1().equals(sha1))
+                .map(Entry::getKey)
+                .collect(toImmutableList());
+
+        if (matchingRefs.isEmpty()) {
+          logger.atInfo().log("No full reference for ref: %s", reference);
+        } else {
+          // Git allows having branches and tags with the same name. Prioritize tags over branches.
+          fullReference =
+              matchingRefs.stream()
+                  .filter(e -> e.startsWith("refs/tags/"))
+                  .findFirst()
+                  .or(() -> matchingRefs.stream().findFirst());
+        }
+      } catch (RepoException e) {
+        logger.atWarning().withCause(e).log(
+            "Could not determine full reference for ref: %s. Cause: %s", reference, e.getMessage());
+        return Optional.empty();
+      }
+    }
+    return fullReference;
   }
 
   @Override

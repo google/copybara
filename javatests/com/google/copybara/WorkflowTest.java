@@ -1485,6 +1485,107 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testWorkflowWithFullReferenceBranch() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("gitdir"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(workdir);
+    remote.init();
+    String primaryBranch = remote.getPrimaryBranch();
+
+    Files.writeString(workdir.resolve("foo.txt"), "content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+
+    GitRevision lastRev = remote.resolveReference(primaryBranch);
+
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.general.force = false;
+    options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + String.format(
+                            "    origin = git.origin(url='%s', ref='%s'),\n",
+                            remote.getGitDir(), primaryBranch)
+                        + "    destination = folder.destination(),\n"
+                        + "    mode = 'ITERATIVE',\n"
+                        + "    authoring = "
+                        + authoring
+                        + ",\n"
+                        + "    transformations = [metadata.replace_message(''),],\n"
+                        + ")\n")
+                .getMigration("foo");
+
+    String fullRef =
+        Iterables.getOnlyElement(workflow.getInfo().migrationReferences())
+            .getLastResolvedChange()
+            .getRevision()
+            .fullReference()
+            .get();
+
+    assertThat(fullRef).isEqualTo("refs/copybara_fetch/" + primaryBranch);
+  }
+
+  @Test
+  public void testWorkflowWithFullReferenceTag() throws Exception {
+    GitRepository remote =
+        GitRepository.newBareRepo(
+                Files.createTempDirectory("gitdir"),
+                getGitEnv(),
+                /* verbose= */ true,
+                DEFAULT_TIMEOUT,
+                /* noVerify= */ false)
+            .withWorkTree(workdir);
+    remote.init();
+
+    Files.writeString(workdir.resolve("foo.txt"), "content");
+    remote.add().files("foo.txt").run();
+    remote.simpleCommand("commit", "foo.txt", "-m", "message_a");
+    remote.tag("tag_a").run();
+
+    GitRevision lastRev = remote.resolveReference("tag_a");
+
+    options.workflowOptions.lastRevision = lastRev.getSha1();
+    options.general.force = false;
+    options.setWorkdirToRealTempDir().setHomeDir(StandardSystemProperty.USER_HOME.value());
+
+    Workflow<?, ?> workflow =
+        (Workflow<?, ?>)
+            new SkylarkTestExecutor(options)
+                .loadConfig(
+                    "core.workflow(\n"
+                        + "    name = 'foo',\n"
+                        + String.format(
+                            "    origin = git.origin(url='%s', ref='tag_a'),\n", remote.getGitDir())
+                        + "    destination = folder.destination(),\n"
+                        + "    mode = 'ITERATIVE',\n"
+                        + "    authoring = "
+                        + authoring
+                        + ",\n"
+                        + "    transformations = [metadata.replace_message(''),],\n"
+                        + ")\n")
+                .getMigration("foo");
+
+    String fullRef =
+        Iterables.getOnlyElement(workflow.getInfo().migrationReferences())
+            .getLastResolvedChange()
+            .getRevision()
+            .fullReference()
+            .get();
+
+    assertThat(fullRef).isEqualTo("refs/tags/tag_a");
+  }
+
+  @Test
   public void testShowDiffInOriginFail() throws Exception {
     origin.addSimpleChange(/*timestamp*/ 1);
     origin.addSimpleChange(/*timestamp*/ 2);

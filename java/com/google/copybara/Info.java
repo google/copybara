@@ -88,7 +88,7 @@ public abstract class Info<O extends Revision> {
         @Nullable Change<O> lastMigratedChange,
         Iterable<Change<O>> availableToMigrate) {
       return new AutoValue_Info_MigrationReference<>(
-          label, lastMigrated, lastMigratedChange, ImmutableList.copyOf(availableToMigrate));
+          label, lastMigrated, lastMigratedChange, ImmutableList.copyOf(availableToMigrate), null);
     }
 
     public static <O extends Revision> MigrationReference<O> create(
@@ -99,7 +99,22 @@ public abstract class Info<O extends Revision> {
           label,
           lastMigratedChange == null ? null : lastMigratedChange.getRevision(),
           lastMigratedChange,
-          ImmutableList.copyOf(availableToMigrate));
+          ImmutableList.copyOf(availableToMigrate),
+          null);
+    }
+
+    public static <O extends Revision> MigrationReference<O> create(
+        String label,
+        @Nullable O lastMigrated,
+        @Nullable Change<O> lastMigratedChange,
+        Iterable<Change<O>> availableToMigrate,
+        @Nullable Change<O> lastResolvedChange) {
+      return new AutoValue_Info_MigrationReference<>(
+          label,
+          lastMigrated,
+          lastMigratedChange,
+          ImmutableList.copyOf(availableToMigrate),
+          lastResolvedChange);
     }
 
     /**
@@ -148,5 +163,12 @@ public abstract class Info<O extends Revision> {
      */
     public abstract ImmutableList<Change<O>> getAvailableToMigrate();
 
+    /**
+     * Returns the most recent {@link Change} that was resolved by the migration.
+     *
+     * @return The resolved {@link Change}.
+     */
+    @Nullable
+    public abstract Change<O> getLastResolvedChange();
   }
 }

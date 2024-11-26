@@ -394,6 +394,16 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       "origin.last_resolved", () -> origin.resolve(/* reference= */ null));
 
               Reader<O> oReader = origin.newReader(originFiles, authoring);
+              Change<O> lastResolvedChange = null;
+              try {
+                lastResolvedChange =
+                    generalOptions.repoTask(
+                        "origin.last_resolved",
+                        () -> (lastResolved == null) ? null : oReader.change(lastResolved));
+              } catch (RepoException | ValidationException e) {
+                logger.atInfo().withCause(e).log("Error resolving change for %s", lastResolved);
+              }
+
               DestinationStatus destinationStatus =
                   generalOptions.repoTask(
                       "destination.previous_ref", () -> getDestinationStatus(lastResolved));
@@ -447,7 +457,8 @@ public class Workflow<O extends Revision, D extends Revision> implements Migrati
                       String.format("workflow_%s", name),
                       lastMigrated,
                       lastMigratedChange,
-                      affectedChanges);
+                      affectedChanges,
+                      lastResolvedChange);
 
               ImmutableList<Change<O>> originVersions = ImmutableList.of();
               if (workflowOptions.infoIncludeVersions) {
