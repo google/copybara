@@ -25,6 +25,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.copybara.util.Glob;
 import com.google.copybara.util.RenameDetector;
@@ -84,10 +85,15 @@ public class ConfigGenHeuristics {
 
     private final Glob originGlob;
     private final GeneratorTransformations transformations;
+    private final DestinationExcludePaths destinationExcludePaths;
 
-    public Result(Glob originFiles, GeneratorTransformations transformations) {
+    public Result(
+        Glob originFiles,
+        GeneratorTransformations transformations,
+        DestinationExcludePaths destinationExcludePaths) {
       this.originGlob = originFiles;
       this.transformations = transformations;
+      this.destinationExcludePaths = destinationExcludePaths;
     }
 
     public Glob getOriginGlob() {
@@ -96,6 +102,10 @@ public class ConfigGenHeuristics {
 
     public GeneratorTransformations getTransformations() {
       return transformations;
+    }
+
+    public DestinationExcludePaths getDestinationExcludePaths() {
+      return destinationExcludePaths;
     }
   }
 
@@ -121,7 +131,11 @@ public class ConfigGenHeuristics {
 
     IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
     ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
-    return new ConfigGenHeuristics.Result(originGlob.glob, new GeneratorTransformations(moves));
+    DestinationExcludePaths destinationExcludePaths =
+        new DestinationExcludePaths(
+            getDestinationExcludePaths(g3Files, similarFiles, destinationOnlyPaths));
+    return new ConfigGenHeuristics.Result(
+        originGlob.glob, new GeneratorTransformations(moves), destinationExcludePaths);
   }
 
   private IncludesGlob getOriginGlob(
@@ -142,6 +156,20 @@ public class ConfigGenHeuristics {
 
     return consolidateCommonPattern(
         originGlob, similarFiles.keySet(), p -> p.startsWith("."), ".**");
+  }
+
+  /**
+   * Returns the set of files that are in the destination but not in the origin. This is the union
+   * the known destinationOnlyPaths and the files that are in g3Files but not in similarFiles.
+   */
+  private ImmutableSet<Path> getDestinationExcludePaths(
+      ImmutableSet<Path> g3Files,
+      Map<Path, Path> similarFiles,
+      ImmutableSet<Path> destinationOnlyPaths) {
+    return Sets.union(
+            destinationOnlyPaths,
+            g3Files.stream().filter(p -> !similarFiles.containsValue(p)).collect(toImmutableSet()))
+        .immutableCopy();
   }
 
   /**
@@ -522,6 +550,23 @@ public class ConfigGenHeuristics {
 
     public ImmutableSet<GeneratorMove> getMoves() {
       return moves;
+    }
+  }
+
+  /**
+   * Represents a collection of paths that are found to only be present in the destination. This
+   * should be a union of the given destinationOnlyPaths and files found to only exist in the
+   * destination.
+   */
+  public static class DestinationExcludePaths {
+    private final ImmutableSet<Path> paths;
+
+    public DestinationExcludePaths(ImmutableSet<Path> paths) {
+      this.paths = paths;
+    }
+
+    public ImmutableSet<Path> getPaths() {
+      return paths;
     }
   }
 }

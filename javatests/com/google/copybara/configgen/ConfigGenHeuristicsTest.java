@@ -178,6 +178,28 @@ public class ConfigGenHeuristicsTest {
         .containsExactly(new GeneratorMove("a/b", ""));
   }
 
+  @Test
+  public void testDestinationExcludePaths_populatedWithDestinationOnlyFile() throws IOException {
+    writeFile(origin, "a/b/include/fileA", "foo1");
+    writeFile(destination, "include/fileA", "foo1");
+    writeFile(destination, "include/fileB", "foo2");
+
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+
+    assertThat(result.getDestinationExcludePaths().getPaths())
+        .containsExactly(Path.of("include/fileB"));
+  }
+
+  @Test
+  public void testDestinationOnlyPaths_propagatedToDestinationExcludePaths() throws IOException {
+    destinationOnlyPaths = ImmutableSet.of(Path.of("include/fileA"));
+
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+
+    assertThat(result.getDestinationExcludePaths().getPaths())
+        .containsExactly(Path.of("include/fileA"));
+  }
+
   private void globMatches(Glob glob, String path) {
     Path root = Paths.get("/");
     PathMatcher matcher = glob.relativeTo(root);
