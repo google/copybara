@@ -17,13 +17,17 @@
 package com.google.copybara.onboard;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.authoring.AuthorParser;
 import com.google.copybara.authoring.InvalidAuthorException;
+import com.google.copybara.configgen.ConfigGenHeuristics.DestinationExcludePaths;
 import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformations;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.Converter;
@@ -72,6 +76,22 @@ public class Inputs {
   public static final Input<GeneratorTransformations> TRANSFORMATIONS = Input.createInfer(
       "transformations", "`core.move`s and other transformations",
       null, GeneratorTransformations.class);
+
+  public static final Input<DestinationExcludePaths> DESTINATION_EXCLUDE_PATHS =
+      Input.create(
+          "destination_exclude_paths",
+          "automatically detected destination-only paths",
+          null,
+          DestinationExcludePaths.class,
+          new Converter<DestinationExcludePaths>() {
+            @Override
+            public DestinationExcludePaths convert(String value, InputProviderResolver resolver) {
+              ImmutableList<String> pathStrings =
+                  ImmutableList.copyOf(Splitter.on(',').splitToList(value));
+              return new DestinationExcludePaths(
+                  pathStrings.stream().map(Path::of).collect(toImmutableSet()));
+            }
+          });
 
   public static final Input<Boolean> NEW_PACKAGE =
       Input.createInfer(

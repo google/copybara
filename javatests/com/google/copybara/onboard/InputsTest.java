@@ -18,6 +18,7 @@ package com.google.copybara.onboard;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.copybara.configgen.ConfigGenHeuristics.DestinationExcludePaths;
 import com.google.copybara.onboard.core.CannotConvertException;
 import com.google.copybara.onboard.core.CannotProvideException;
 import com.google.copybara.onboard.core.Input;
@@ -73,5 +74,20 @@ public class InputsTest {
     Path root = Paths.get("/");
     assertThat(value.relativeTo(root).matches(root.resolve("foo"))).isTrue();
     assertThat(value.relativeTo(root).matches(root.resolve("bar"))).isFalse();
+  }
+
+  @Test
+  public void destinationExcludePathsTest() throws CannotConvertException {
+    InputProviderResolver resolver =
+        new InputProviderResolver() {
+          @Override
+          public <T> T resolve(Input<T> input) throws CannotProvideException {
+            throw new CannotProvideException("Don't call me");
+          }
+        };
+
+    DestinationExcludePaths value = Inputs.DESTINATION_EXCLUDE_PATHS.convert("foo,bar", resolver);
+
+    assertThat(value.getPaths()).containsExactly(Path.of("foo"), Path.of("bar"));
   }
 }
