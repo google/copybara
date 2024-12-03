@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Optional;
 import net.starlark.java.syntax.Location;
 import org.junit.Before;
@@ -249,6 +250,26 @@ public final class QuiltTransformationTest {
                 + ")\n"));
   }
 
+  @Test
+  public void quiltApplyIgnoresUserQuiltConfigurationViaEnvironmentVariableTest() throws Exception {
+    Files.write(checkoutDir.resolve("file1.txt"), "line1\nfoo\nline3".getBytes(UTF_8));
+    Files.write(checkoutDir.resolve("file2.txt"), "bar\n".getBytes(UTF_8));
+    skylark.addConfigFile("patches/diff.patch", patchFile.readContent());
+    skylark.addConfigFile("patches/series", seriesFile.readContent());
+    QuiltTransformation transformation =
+        skylark.eval("r",
+            "r = patch.quilt_apply(\n"
+                + "  series = 'patches/series',\n"
+                + ")\n");
+
+    // Add some configuration to the environment that will cause quilt to fail. Copybara needs to
+    // strip that configuration from the environment before it invokes quilt.
+    HashMap<String, String> environment = new HashMap<>(options.general.getEnvironment());
+    environment.put("QUILT_PC", "/dev/null");
+    options.setEnvironment(environment);
+
+    transformation.transform(TransformWorks.of(checkoutDir, "testmsg", console));
+  }
 
   @Test
   public void describeTest() {

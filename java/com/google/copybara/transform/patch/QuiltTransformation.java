@@ -170,8 +170,16 @@ public final class QuiltTransformation implements Transformation {
         wr.append(String.format("%s=\"%s\"\n", entry.getKey(), entry.getValue()));
       }
     }
+
     ImmutableMap.Builder<String, String> envBuilder = ImmutableMap.builder();
-    envBuilder.putAll(env).put("QUILTRC", quilrcPath.toRealPath().toString());
+    // Don't pass user settings through to Quilt.
+    for (Map.Entry<String, String> var : env.entrySet()) {
+      if (var.getKey().startsWith("QUILT_")) {
+        continue;
+      }
+      envBuilder.put(var);
+    }
+    envBuilder.put("QUILTRC", quilrcPath.toRealPath().toString());
 
     // Creates and checks for necessary directories.
     Path patchesDir = checkoutDir.resolve("patches");
