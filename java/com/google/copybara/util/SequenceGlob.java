@@ -42,7 +42,16 @@ class SequenceGlob extends Glob {
   public PathMatcher relativeTo(Path path) {
     ImmutableSet<Path> matcher =
         include.stream().map(GlobAtom::pattern).map(path::resolve).collect(toImmutableSet());
-    return matcher::contains;
+    return new PathMatcher() {
+      @Override
+      public boolean matches(Path path) {
+        return matcher.contains(path);
+      }
+      @Override
+      public String toString() {
+        return toStringList(include);
+      }
+    };
   }
 
   public static SequenceGlob ofStarlarkList(StarlarkList<?> patterns) throws EvalException {
