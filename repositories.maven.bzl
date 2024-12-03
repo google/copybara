@@ -70,9 +70,3 @@ def copybara_maven_repositories():
         artifacts = COPYBARA_MAVEN_ARTIFACTS,
         repositories = COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES + ["https://repo1.maven.org/maven2"],
     )
-    maybe(
-        maven_install,
-        name = "maven",
-        artifacts = COPYBARA_MAVEN_ARTIFACTS,
-        repositories = COPYBARA_MAVEN_ARTIFACT_ADDITIONAL_REPOSITORIES + ["https://repo1.maven.org/maven2"],
-    )
