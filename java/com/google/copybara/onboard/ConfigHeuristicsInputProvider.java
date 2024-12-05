@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.flogger.FluentLogger;
 import com.google.copybara.GeneralOptions;
 import com.google.copybara.configgen.ConfigGenHeuristics;
+import com.google.copybara.configgen.ConfigGenHeuristics.DestinationExcludePaths;
 import com.google.copybara.configgen.ConfigGenHeuristics.GeneratorTransformations;
 import com.google.copybara.configgen.ConfigGenHeuristics.Result;
 import com.google.copybara.exception.RepoException;
@@ -96,6 +97,10 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
     if (input == Inputs.TRANSFORMATIONS) {
       GeneratorTransformations transformations = result.get().getTransformations();
       return Optional.of(Inputs.TRANSFORMATIONS.asValue(transformations));
+    }
+    if (input == Inputs.DESTINATION_EXCLUDE_PATHS) {
+      DestinationExcludePaths destinationExcludePaths = result.get().getDestinationExcludePaths();
+      return Optional.of(Inputs.DESTINATION_EXCLUDE_PATHS.asValue(destinationExcludePaths));
     }
     return Optional.empty();
   }

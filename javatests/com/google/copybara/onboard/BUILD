@@ -58,6 +58,7 @@ all_tests(
     tests = ["ConfigHeuristicsInputProviderTest.java"],
     deps = [
         "//java/com/google/copybara:general_options",
+        "//java/com/google/copybara/configgen",
         "//java/com/google/copybara/exception",
         "//java/com/google/copybara/git",
         "//java/com/google/copybara/git:core",

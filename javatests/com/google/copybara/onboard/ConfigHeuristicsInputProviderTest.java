@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.copybara.GeneralOptions;
+import com.google.copybara.configgen.ConfigGenHeuristics.DestinationExcludePaths;
 import com.google.copybara.exception.RepoException;
 import com.google.copybara.git.GitEnvironment;
 import com.google.copybara.git.GitOptions;
@@ -123,6 +124,43 @@ public class ConfigHeuristicsInputProviderTest {
     // The result is an empty glob rather than glob(include = ["**"], exclude = ["**"])
     assertThat(Files.isDirectory(workDir)).isTrue();
     assertThat(glob).isEmpty();
+  }
+
+  @Test
+  public void destinationExcludes_resolves() throws Exception {
+    Files.writeString(workDir.resolve("foo.txt"), "hi");
+    origin.add().files("foo.txt").run();
+    origin.simpleCommand("commit", "foo.txt", "-m", "message");
+    origin.tag("1.0.0").run();
+    Files.writeString(destination.resolve("destination-only.txt"), "I'm a destination-only file");
+    InputProviderResolver resolver =
+        new InputProviderResolver() {
+          @Override
+          public <T> T resolve(Input<T> input) throws CannotProvideException {
+            try {
+              if (input == Inputs.GIT_ORIGIN_URL) {
+                return Inputs.GIT_ORIGIN_URL.asValue(new URL(url));
+              }
+              if (input == Inputs.CURRENT_VERSION) {
+                return Inputs.CURRENT_VERSION.asValue("1.0.0");
+              }
+              if (input == Inputs.GENERATOR_FOLDER) {
+                return Inputs.GENERATOR_FOLDER.asValue(destination);
+              }
+            } catch (MalformedURLException e) {
+              Assert.fail("Malformed url, shouldn't happen: " + e);
+            }
+            throw new CannotProvideException("Cannot provide " + input);
+          }
+        };
+    ConfigHeuristicsInputProvider inputProvider =
+        new ConfigHeuristicsInputProvider(
+            gitOptions, generalOptions, ImmutableSet.of(), 30, console);
+
+    DestinationExcludePaths paths =
+        inputProvider.resolve(Inputs.DESTINATION_EXCLUDE_PATHS, resolver).get();
+
+    assertThat(paths.getPaths()).containsExactly(Path.of("destination-only.txt"));
   }
 
   @Test
