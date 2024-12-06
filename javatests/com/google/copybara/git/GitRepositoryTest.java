@@ -1164,20 +1164,21 @@ public class GitRepositoryTest {
     repository.simpleCommand("commit", "-m", "message2");
 
     // Try a simple push that is fast-forward
-    repository.push()
-        .withRefspecs(remoteUrl, ImmutableList.of(
-            repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
+    repository
+        .push()
+        .withRefspecs(
+            remoteUrl,
+            ImmutableList.of(repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
         .run();
-
     assertThat(Iterables.transform(remote.log(defaultBranch).run(), GitLogEntry::getBody))
         .containsExactly("message2\n", "message\n");
 
     repository.simpleCommand("reset", "--hard", "HEAD~1");
+    String sha1 = repository.getHeadRef().getSha1();
 
     Files.write(workdir.resolve("foo.txt"), "a".getBytes(UTF_8));
     repository.add().files("foo.txt").run();
     repository.simpleCommand("commit", "-m", "message3");
-
     // We replaced the last commit. Should fail because we don't force
     NonFastForwardRepositoryException e =
         assertThrows(
@@ -1192,7 +1193,21 @@ public class GitRepositoryTest {
     assertThat(e).hasMessageThat().matches(".*Failed to push to .*"
         + "because local/origin history is behind destination.*");
     assertThat(e.getCause()).hasMessageThat().contains("[rejected]");
-
+    // Now it fails because we expect a different sha
+    NonFastForwardRepositoryException expectedFail =
+        assertThrows(
+            NonFastForwardRepositoryException.class,
+            () ->
+                repository
+                    .push()
+                    .withForceLease(ImmutableMap.of(defaultBranch, sha1))
+                    .withRefspecs(
+                        remoteUrl,
+                        ImmutableList.of(
+                            repository.createRefSpec(defaultBranch + ":" + defaultBranch)))
+                    .run());
+    assertThat(expectedFail.getCause()).hasMessageThat().contains("(stale info)");
+    assertThat(expectedFail.getCause()).hasMessageThat().contains("[rejected]");
     // Now it works because we force the push
     repository.push()
         .withRefspecs(remoteUrl, ImmutableList.of(
@@ -1311,6 +1326,7 @@ public class GitRepositoryTest {
             ImmutableList.of(repository.createRefSpec("+" + defaultBranch + ":" + defaultBranch)),
             false,
             false,
+            ImmutableMap.of(),
             ImmutableList.of(),
             /* pushOptionsValidator= */ new GitRepository.PushOptionsValidator(Optional.empty()))
         .run();

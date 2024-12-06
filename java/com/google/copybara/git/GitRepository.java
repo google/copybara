@@ -84,6 +84,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -593,6 +594,7 @@ public class GitRepository {
         /* refspecs= */ ImmutableList.of(),
         /* prune= */ false,
         /* force= */ false,
+        /* forceLease= */ ImmutableMap.of(),
         /* pushOptions= */ ImmutableList.of(),
         /* pushOptionsValidator= */ this.pushOptionsValidator);
   }
@@ -886,6 +888,10 @@ public class GitRepository {
       cmd.add("--force");
     }
 
+    for (Entry<String, String> entry : pushCmd.forceLease.entrySet()) {
+      cmd.add(String.format("--force-with-lease=%s:%s", entry.getKey(), entry.getValue()));
+    }
+
     if (noVerify) {
       cmd.add("--no-verify");
     }
@@ -896,7 +902,6 @@ public class GitRepository {
         cmd.add(refspec.toString());
       }
     }
-
     try {
       return simpleCommand(repoTimeout, cmd).getStderr();
     } catch (RepoException e) {
@@ -2149,6 +2154,13 @@ public class GitRepository {
           "Failed to push to %s %s, because local/origin history is behind destination",
           cmd.url, cmd.getRefspecs()), e);
     }
+    if (e.getMessage().contains("(stale info)")) {
+      throw new NonFastForwardRepositoryException(
+          String.format(
+              "Failed to push to %s %s, because destination is not in expected state",
+              cmd.url, cmd.getRefspecs()),
+          e);
+    }
     Throwables.throwIfInstanceOf(e, RepoException.class);
     Throwables.throwIfInstanceOf(e, ValidationException.class);
   }
@@ -2159,6 +2171,7 @@ public class GitRepository {
     private final GitRepository repo;
     @Nullable private final String url;
     private final ImmutableList<Refspec> refspecs;
+    private final ImmutableMap<String, String> forceLease;
     private final boolean prune;
     private final boolean force;
     private final ImmutableList<String> pushOptions;
@@ -2185,6 +2198,10 @@ public class GitRepository {
       return force;
     }
 
+    public ImmutableMap<String, String> getForceLease() {
+      return forceLease;
+    }
+
     /**
      * Note: this constructor does not validate {@code pushOptions} against {@code
      * pushOptionsValidator}
@@ -2196,6 +2213,7 @@ public class GitRepository {
         ImmutableList<Refspec> refspecs,
         boolean prune,
         boolean force,
+        ImmutableMap<String, String> forceLease,
         ImmutableList<String> pushOptions,
         PushOptionsValidator pushOptionsValidator) {
       this.repo = checkNotNull(repo);
@@ -2205,6 +2223,7 @@ public class GitRepository {
           refspecs.isEmpty() || url != null, "refspec can only be" + " used when a url is passed");
       this.prune = prune;
       this.force = force;
+      this.forceLease = checkNotNull(forceLease);
       this.pushOptions = checkNotNull(pushOptions);
       this.pushOptionsValidator = pushOptionsValidator;
     }
@@ -2217,18 +2236,34 @@ public class GitRepository {
           ImmutableList.copyOf(refspecs),
           prune,
           force,
+          forceLease,
+          pushOptions,
+          pushOptionsValidator);
+    }
+
+    @CheckReturnValue
+    public PushCmd withForceLease(Map<String, String> forceLease) {
+      return new PushCmd(
+          repo,
+          url,
+          refspecs,
+          prune,
+          force,
+          ImmutableMap.copyOf(forceLease),
           pushOptions,
           pushOptionsValidator);
     }
 
     @CheckReturnValue
     public PushCmd prune(boolean prune) {
-      return new PushCmd(repo, url, this.refspecs, prune, force, pushOptions, pushOptionsValidator);
+      return new PushCmd(
+          repo, url, this.refspecs, prune, force, forceLease, pushOptions, pushOptionsValidator);
     }
 
     @CheckReturnValue
     public PushCmd force(boolean force) {
-      return new PushCmd(repo, url, this.refspecs, prune, force, pushOptions, pushOptionsValidator);
+      return new PushCmd(
+          repo, url, this.refspecs, prune, force, forceLease, pushOptions, pushOptionsValidator);
     }
 
     /**
@@ -2242,8 +2277,8 @@ public class GitRepository {
     public PushCmd withPushOptions(ImmutableList<String> newPushOptions)
         throws ValidationException {
       pushOptionsValidator.validate(newPushOptions);
-      return new PushCmd(repo, url, this.refspecs, prune, force, newPushOptions,
-          pushOptionsValidator);
+      return new PushCmd(
+          repo, url, this.refspecs, prune, force, forceLease, newPushOptions, pushOptionsValidator);
     }
 
     /**
