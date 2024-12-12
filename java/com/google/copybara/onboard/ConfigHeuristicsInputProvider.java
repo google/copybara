@@ -150,6 +150,8 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
 
   @Override
   public ImmutableMap<Input<?>, Integer> provides() throws CannotProvideException {
-    return defaultPriority(ImmutableSet.of(Inputs.ORIGIN_GLOB, Inputs.TRANSFORMATIONS));
+    return defaultPriority(
+        ImmutableSet.of(
+            Inputs.ORIGIN_GLOB, Inputs.TRANSFORMATIONS, Inputs.DESTINATION_EXCLUDE_PATHS));
   }
 }

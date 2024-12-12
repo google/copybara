@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.lang.Math.max;
 import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
@@ -567,6 +568,11 @@ public class ConfigGenHeuristics {
 
     public ImmutableSet<Path> getPaths() {
       return paths;
+    }
+
+    @Override
+    public String toString() {
+      return paths.stream().map(Path::toString).collect(joining(", "));
     }
   }
 }
