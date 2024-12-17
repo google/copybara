@@ -31,7 +31,7 @@ public interface DescriptionChecker extends StarlarkValue {
 
   /**
    * Process the passed description, validates it and optionally transform to an acceptable
-   * description
+   * description.
    *
    * @param description current description of the change
    * @return returns the description that should be used for the change
