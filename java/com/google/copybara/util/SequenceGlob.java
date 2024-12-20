@@ -16,9 +16,10 @@
 
 package com.google.copybara.util;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.copybara.util.GlobAtom.AtomType;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -26,7 +27,7 @@ import net.starlark.java.eval.EvalException;
 import net.starlark.java.eval.StarlarkList;
 
 /** A "glob" that matches lists of fully qualified file names. */
-public class SequenceGlob extends Glob {
+class SequenceGlob extends Glob {
 
   private SequenceGlob(Iterable<GlobAtom> include) {
     super(include, ImmutableList.of(), null);
@@ -39,10 +40,9 @@ public class SequenceGlob extends Glob {
 
   @Override
   public PathMatcher relativeTo(Path path) {
-    return new ReadablePathMatcher(
-        FileUtil.anyPathMatcher(
-            include.stream().map(g -> g.matcher(path)).collect(toImmutableList())),
-        this.toString());
+    ImmutableSet<Path> matcher =
+        include.stream().map(GlobAtom::pattern).map(path::resolve).collect(toImmutableSet());
+    return matcher::contains;
   }
 
   public static SequenceGlob ofStarlarkList(StarlarkList<?> patterns) throws EvalException {
