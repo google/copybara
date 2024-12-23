@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.re2j.Pattern;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -135,7 +136,26 @@ public final class GlobAtom {
     SINGLE_FILE {
       @Override
       PathMatcher matcher(Path root, String pattern) {
-        return path -> root.resolve(pattern).equals(path);
+        return new PathMatcher() {
+          final Path relativePath = getRelativePath(root, pattern);
+
+          @Override
+          public boolean matches(Path path) {
+            return path.normalize().equals(relativePath);
+          }
+
+          private Path getRelativePath(Path root, String filePath) {
+            FileSystem fs = root.getFileSystem();
+            String rootStr = root.normalize().toString();
+            String separator = fs.getSeparator();
+
+            if (!rootStr.endsWith(separator)) {
+              rootStr += separator;
+            }
+
+            return fs.getPath(rootStr + filePath);
+          }
+        };
       }
 
       @Override

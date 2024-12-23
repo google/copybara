@@ -92,6 +92,7 @@ all_tests(
         "//java/com/google/copybara/util",
         "//java/com/google/copybara/util/console",
         "//java/com/google/copybara/util/console/testing",
+        "//third_party:starlark",
         "//third_party:truth",
     ],
 )

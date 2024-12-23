@@ -63,6 +63,7 @@ import com.google.copybara.testing.TransformWorks;
 import com.google.copybara.testing.git.GitTestUtil;
 import com.google.copybara.util.CommandOutput;
 import com.google.copybara.util.Glob;
+import com.google.copybara.util.SequenceGlob;
 import com.google.copybara.util.console.Message.MessageType;
 import com.google.copybara.util.console.testing.TestingConsole;
 import java.io.IOException;
@@ -76,6 +77,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
+import net.starlark.java.eval.StarlarkList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -665,6 +667,34 @@ public class GitDestinationTest {
     EmptyChangeException thrown =
         assertThrows(EmptyChangeException.class, () -> process(newWriter(), ref));
     assertThat(thrown).hasMessageThat().contains("empty change");
+  }
+
+  @Test
+  public void getDestinationStatus_withSequenceGlob() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+
+    Files.createDirectories(workdir.resolve("dir"));
+    Files.writeString(workdir.resolve("dir/file"), "");
+    GitRepository repo = repo().withWorkTree(workdir);
+    repo.add().files("dir/file").run();
+    repo.simpleCommand(
+        "commit", "-m", String.format("first commit\n\n%s: foo", DummyOrigin.LABEL_NAME));
+
+    destinationFiles = SequenceGlob.ofStarlarkList(StarlarkList.immutableOf("dir/file"));
+
+    WriterContext writerContext =
+        new WriterContext(
+            "piper_to_github", "TEST", false, new DummyRevision("feature"), Glob.ALL_FILES.roots());
+    // Our DestinationStatus should not be null, meaning we were able to find the git commit created
+    // above.
+    DestinationStatus status =
+        destination()
+            .newWriter(writerContext)
+            .getDestinationStatus(destinationFiles, DummyOrigin.LABEL_NAME);
+
+    assertThat(status).isNotNull();
+    assertThat(status.getBaseline()).isEqualTo("foo");
   }
 
   /**
