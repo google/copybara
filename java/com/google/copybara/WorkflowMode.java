@@ -138,7 +138,9 @@ public enum WorkflowMode {
           new Changes(changes.reverse(), ImmutableList.of()),
           /*destinationBaseline=*/ null,
           runHelper.getResolvedRef(),
-          lastRev);
+          runHelper.workflowOptions().baselineForMergeImport == null
+            ? lastRev
+            : runHelper.originResolveLastRev(runHelper.workflowOptions().baselineForMergeImport));
     }
   },
 
