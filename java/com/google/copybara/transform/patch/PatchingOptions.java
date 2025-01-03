@@ -17,7 +17,6 @@
 package com.google.copybara.transform.patch;
 
 import static com.google.copybara.exception.ValidationException.checkCondition;
-import static com.google.copybara.util.DiffUtil.checkNotInsideGitRepo;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
@@ -205,16 +204,14 @@ public class PatchingOptions implements Option {
       throws IOException, InsideGitDirException {
 
     GitEnvironment gitEnv = new GitEnvironment(environment);
-    if (gitDir == null) {
-      checkNotInsideGitRepo(rootDir, verbose, gitEnv);
-    }
     ImmutableList.Builder<String> params = ImmutableList.builder();
 
     // Show verbose output unconditionally since it is helpful for debugging issues with patches.
     params.add(gitEnv.resolveGitBinary());
-    if (gitDir != null) {
-      params.add("--git-dir=" + gitDir.normalize().toAbsolutePath());
-    }
+    // If there is no git dir, we force it to /dev/null to make sure git
+    // doesn't accidentally pick up some git repo from higher up the directory
+    // tree.
+    params.add("--git-dir=" + (gitDir == null ? "/dev/null" : gitDir.normalize().toAbsolutePath()));
     params.add("apply", "-v", "--stat", "--apply", "-p" + stripSlashes);
     if (gitDir != null) {
       params.add("--3way");

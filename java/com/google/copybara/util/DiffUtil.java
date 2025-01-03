@@ -325,6 +325,10 @@ public class DiffUtil {
       List<String> params =
           Lists.newArrayList(
               gitEnv.resolveGitBinary(),
+              // We want to use `git apply` as a glorified patch command without any
+              // git repo involvement. Make sure git doesn't accidentally pick up some
+              // git repo from higher up the directory tree.
+              "--git-dir=/dev/null",
               // override diff.noprefix for consistent diff output, must come after "git"
               "-c",
               "diff.noprefix=false",
@@ -378,6 +382,10 @@ public class DiffUtil {
       GitEnvironment gitEnv = new GitEnvironment(environment);
       List<String> params = com.google.api.client.util.Lists.newArrayList();
       params.add(gitEnv.resolveGitBinary());
+      // We want to use `git apply` as a glorified patch command without any
+      // git repo involvement. Make sure git doesn't accidentally pick up some
+      // git repo from higher up the directory tree.
+      params.add("--git-dir=/dev/null");
       params.add("apply");
       params.add("--reverse");
       params.add("-p2");
@@ -422,39 +430,5 @@ public class DiffUtil {
       }
     }
     return sb.toString();
-  }
-
-  /**
-   * It is very common for users to have a git repo for their $HOME, so that they can version their
-   * configurations. Unfortunately this fails for the default output directory (inside $HOME).
-   */
-  public static void checkNotInsideGitRepo(Path path, boolean verbose, GitEnvironment gitEnv)
-      throws IOException, InsideGitDirException {
-    try {
-      Command cmd =
-          new Command(
-              new String[] {gitEnv.resolveGitBinary(), "rev-parse", "--git-dir"},
-              gitEnv.getEnvironment(),
-              path.toFile());
-
-      String gitDir = new CommandRunner(cmd)
-          .withVerbose(verbose)
-          .execute()
-          .getStdout()
-          .trim();
-
-      // If it doesn't fail it means taht we are inside a git directory
-      throw new InsideGitDirException(String.format(
-          "Cannot diff/patch because Copybara temporary directory (%s) is inside a git"
-              + " directory (%s).", path, gitDir),
-          gitDir, path);
-    } catch (BadExitStatusWithOutputException e) {
-      // Some git versions return "Not", others "not"
-      if (!e.getOutput().getStderr().contains(/*N*/"ot a git repository")) {
-        throw new IOException("Error executing rev-parse", e);
-      }
-    } catch (CommandException e) {
-      throw new IOException("Error executing rev-parse", e);
-    }
   }
 }
