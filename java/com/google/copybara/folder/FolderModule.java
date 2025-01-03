@@ -22,6 +22,7 @@ import com.google.copybara.GeneralOptions;
 import com.google.copybara.authoring.Author;
 import com.google.copybara.doc.annotations.UsesFlags;
 import java.nio.file.FileSystem;
+import java.util.Optional;
 import net.starlark.java.annot.Param;
 import net.starlark.java.annot.StarlarkBuiltin;
 import net.starlark.java.annot.StarlarkMethod;
@@ -94,7 +95,8 @@ public class FolderModule implements StarlarkValue {
         originOptions.message,
         generalOptions.getCwd(),
         materializeOutsideSymlinks,
-        originOptions.ignoreInvalidSymlinks);
+        originOptions.ignoreInvalidSymlinks,
+        Optional.ofNullable(originOptions.version));
   }
 
 }

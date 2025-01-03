@@ -155,6 +155,24 @@ public class FolderOriginTest {
         .containsNoMoreFiles();
   }
 
+  @Test
+  public void testWithDefinedVersionFlag() throws Exception {
+    options.folderOrigin.version = "custom_version";
+    Path localFolder = Files.createTempDirectory("local_folder");
+    touch(localFolder.resolve("file1"), "foo");
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+    assertThat(origin.resolve(localFolder.toString()).asString()).isEqualTo("custom_version");
+  }
+
+  @Test
+  public void testWithNullVersionFlag() throws Exception {
+    options.folderOrigin.version = null;
+    Path localFolder = Files.createTempDirectory("local_folder");
+    touch(localFolder.resolve("file1"), "foo");
+    FolderOrigin origin = skylark.eval("f", "f = folder.origin()");
+    assertThat(origin.resolve(localFolder.toString()).asString()).isEqualTo(localFolder.toString());
+  }
+
   /**
    * Regression test for folder.origin refs that contain '..' and globs that wouldn't match
    * globs like foo/../foo/file if we didn't normalize symlinks before.

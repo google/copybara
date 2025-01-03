@@ -21,6 +21,7 @@ import com.google.copybara.exception.RepoException;
 import com.google.copybara.revision.Revision;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 
 /**
  * A reference for folder origins.
@@ -29,16 +30,25 @@ public class FolderRevision implements Revision {
 
   final Path path;
   private final ZonedDateTime timestamp;
+  final Optional<String> version;
 
   public FolderRevision(Path path, ZonedDateTime timestamp) {
     Preconditions.checkState(path.isAbsolute());
     this.path = path;
     this.timestamp = Preconditions.checkNotNull(timestamp);
+    this.version = Optional.empty();
+  }
+
+  FolderRevision(Path path, ZonedDateTime timestamp, Optional<String> version) {
+    Preconditions.checkState(path.isAbsolute());
+    this.path = path;
+    this.timestamp = Preconditions.checkNotNull(timestamp);
+    this.version = version;
   }
 
   @Override
   public String asString() {
-    return path.toString();
+    return version.orElse(path.toString());
   }
 
   @Override

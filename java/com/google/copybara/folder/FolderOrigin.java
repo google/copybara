@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 /**
@@ -56,9 +57,16 @@ public class FolderOrigin implements Origin<FolderRevision> {
   private final String message;
   private final Path cwd;
   private final CopySymlinkStrategy copySymlinkStrategy;
+  private final Optional<String> version;
 
-  FolderOrigin(FileSystem fs, Author author, String message, Path cwd,
-      boolean materializeOutsideSymlinks, boolean ignoreInvalidSymlinks) {
+  FolderOrigin(
+      FileSystem fs,
+      Author author,
+      String message,
+      Path cwd,
+      boolean materializeOutsideSymlinks,
+      boolean ignoreInvalidSymlinks,
+      Optional<String> version) {
     this.fs = Preconditions.checkNotNull(fs);
     this.author = author;
     this.message = message;
@@ -68,6 +76,7 @@ public class FolderOrigin implements Origin<FolderRevision> {
             : materializeOutsideSymlinks
                 ? CopySymlinkStrategy.MATERIALIZE_OUTSIDE_SYMLINKS
                 : CopySymlinkStrategy.FAIL_OUTSIDE_SYMLINKS;
+    this.version = version;
   }
 
   @Override
@@ -81,9 +90,10 @@ public class FolderOrigin implements Origin<FolderRevision> {
     }
     checkCondition(Files.exists(path), "%s folder doesn't exist", path);
     checkCondition(Files.isDirectory(path), "%s is not a folder", path);
-    checkCondition(Files.isReadable(path) && Files.isExecutable(path), "%s is not readable/executable", path);
+    checkCondition(
+        Files.isReadable(path) && Files.isExecutable(path), "%s is not readable/executable", path);
 
-    return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()));
+    return new FolderRevision(path, ZonedDateTime.now(ZoneId.systemDefault()), version);
   }
 
   @Override

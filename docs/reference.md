@@ -2399,6 +2399,7 @@ Name | Type | Description
 <span style="white-space: nowrap;">`--folder-origin-author`</span> | *string* | Deprecated. Please use '--force-author'. Author of the change being migrated from folder.origin()
 <span style="white-space: nowrap;">`--folder-origin-ignore-invalid-symlinks`</span> | *boolean* | If an invalid symlink is found, ignore it instead of failing
 <span style="white-space: nowrap;">`--folder-origin-message`</span> | *string* | Deprecated. Please use '--force-message'. Message of the change being migrated from folder.origin()
+<span style="white-space: nowrap;">`--folder-origin-version`</span> | *string* | The version string associated with the change migrated from folder.origin(). If not specified, the default will be the folder path.
 
 
 

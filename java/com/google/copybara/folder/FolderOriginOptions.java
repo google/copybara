@@ -19,6 +19,7 @@ package com.google.copybara.folder;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.copybara.Option;
+import javax.annotation.Nullable;
 
 /**
  * Arguments for FolderDestination
@@ -35,6 +36,14 @@ public final class FolderOriginOptions implements Option {
       description = "Deprecated. Please use '--force-message'. Message of the change being migrated"
           + " from folder.origin()")
   public String message = "Copybara code migration";
+
+  @Nullable
+  @Parameter(
+      names = "--folder-origin-version",
+      description =
+          "The version string associated with the change migrated from folder.origin(). If not"
+              + " specified, the default will be the folder path.")
+  public String version = null;
 
   @Parameter(names = "--folder-origin-ignore-invalid-symlinks",
       description = "If an invalid symlink is found, ignore it instead of failing")
