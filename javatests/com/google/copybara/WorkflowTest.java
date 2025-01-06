@@ -2477,6 +2477,10 @@ public class WorkflowTest {
             + "  use_consistency_file = True,\n"
             + ")";
     consistencyFilePath = "\"foo.bara.consistency\"";
+    // Make sure that the entire flow works even if the origin doesn't support
+    // history (e.g. folder origin). There should be no need to look at origin
+    // history because the baseline is provided by the consistency file.
+    origin.disableHistory();
     transformations = ImmutableList.of();
     Workflow<?, ?> workflow = skylarkWorkflowInDirectory("default", SQUASH, "dir/");
     Path testDir = Files.createTempDirectory("consistency");
@@ -2497,6 +2501,11 @@ public class WorkflowTest {
 
     // import into the destination
     workflow.run(workdir, ImmutableList.of("HEAD"));
+    // Merge import is enabled, but since this is the first import, there is no
+    // baseline. In this case we're supposed to skip merge import, but we should
+    // still generate the consistency file.
+    console().assertThat().onceInLog(MessageType.WARNING,
+        "Unable to determine a baseline; disabling merge import.");
 
     // create a destination-only change
     Path d1 = Files.createDirectories(testDir.resolve("d1"));

@@ -748,8 +748,8 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                   workflow.getRevIdLabel())
               .withDestinationInfo(transformWork.getDestinationInfo());
 
-      ImmutableList<String> mergeErrorPaths = ImmutableList.of();
-      if (workflow.isMergeImport() && originBaselineForPrune != null) {
+      ImmutableList<String> mergeErrorPaths = null;
+      if (workflow.isMergeImport()) {
         mergeErrorPaths =
             runMergeImport(
                 console,
@@ -762,7 +762,16 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
                 originApi,
                 destinationApi,
                 transformWork);
-      } else {
+        if (mergeErrorPaths == null) {
+          console.warn(
+            "Unable to determine a baseline; disabling merge import. This is expected"
+              + " if this is an initial import. Otherwise, you may have to provide a"
+              + " baseline using --baseline-for-merge-import, or using an existing"
+              + " consistency file.");
+        }
+      }
+      if (mergeErrorPaths == null) {
+        mergeErrorPaths = ImmutableList.of();
         if (workflow.getConsistencyFilePath() != null) {
           byte[] consistencyFileContents =
               ConsistencyFile.generateNoDiff(
@@ -836,16 +845,17 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
     }
 
     /**
-     * @return a list of paths that resulted in merge errors
+     * @return a list of paths that resulted in merge errors, or null if a
+     * baseline could not be determined
      */
-    private ImmutableList<String> runMergeImport(
+    private @Nullable ImmutableList<String> runMergeImport(
         Console console,
         Writer<?> writer,
         Baseline<?> destinationBaseline,
         Path checkoutDir,
         O lastRev,
         Metadata metadata,
-        O originBaselineForPrune,
+        @Nullable O originBaselineForPrune,
         LazyResourceLoader<Endpoint> originApi,
         LazyResourceLoader<Endpoint> destinationApi,
         TransformWork transformWork)
@@ -905,6 +915,9 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
       }
 
       if (baselineWorkdir == null) {
+        if (originBaselineForPrune == null) {
+          return null;
+        }
         baselineWorkdir =
             checkoutBaselineAndTransform(
                 "baseline",

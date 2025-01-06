@@ -69,6 +69,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
   private final FileSystem fs;
   private Author author;
+  private boolean supportsHistory = true;
   private final DummyEndpoint endpoint = new DummyEndpoint();
 
   public DummyOrigin() {
@@ -91,6 +92,10 @@ public class DummyOrigin implements Origin<DummyRevision> {
   public DummyOrigin setAuthor(Author author) {
     this.author = author;
     return this;
+  }
+
+  public void disableHistory() {
+    supportsHistory = false;
   }
 
   public void addRevisionToGroup(DummyRevision rev, String group) {
@@ -247,6 +252,9 @@ public class DummyOrigin implements Origin<DummyRevision> {
     @Override
     public ImmutableList<DummyRevision> findBaselinesWithoutLabel(DummyRevision startRevision,
         int limit) throws RepoException {
+      if (!supportsHistory) {
+        throw new RepoException("Origin does't support history");
+      }
       BaselinesWithoutLabelVisitor<DummyRevision> visitor =
           new BaselinesWithoutLabelVisitor<>(
               originFiles, limit, Optional.of(startRevision), /* skipFirst= */ false);
@@ -274,7 +282,10 @@ public class DummyOrigin implements Origin<DummyRevision> {
 
     @Override
     public ChangesResponse<DummyRevision> changes(
-        @Nullable DummyRevision oldRev, DummyRevision newRev) {
+        @Nullable DummyRevision oldRev, DummyRevision newRev) throws RepoException {
+      if (!supportsHistory) {
+        return ChangesResponse.forChanges(ImmutableList.of(change(newRev)));
+      }
 
       if (oldRev != null
           && Integer.parseInt(oldRev.asString()) >= Integer.parseInt(newRev.asString())) {
@@ -302,6 +313,11 @@ public class DummyOrigin implements Origin<DummyRevision> {
     }
 
     @Override
+    public boolean supportsHistory() {
+      return supportsHistory;
+    }
+
+    @Override
     public Change<DummyRevision> change(DummyRevision rev) throws RepoException {
       int idx = Integer.parseInt(rev.asString());
       DummyRevision dummyRev;
@@ -324,7 +340,7 @@ public class DummyOrigin implements Origin<DummyRevision> {
           found = true;
         }
         if (found && change.matchesGlob()) {
-          if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE) {
+          if (visitor.visit(change.toChange(authoring)) == VisitResult.TERMINATE || !supportsHistory) {
             return;
           }
         }
