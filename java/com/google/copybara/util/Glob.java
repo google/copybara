@@ -215,7 +215,20 @@ public class Glob implements StarlarkValue, HasBinary {
         ImmutableList.of(),
         Iterables.isEmpty(exclude) ? null : createGlob(exclude));
   }
-  
+
+  /**
+   * Creates a function {@link Glob} that when a {@link Path} is passed it returns a {@link
+   * PathMatcher} relative to the path.
+   *
+   * @param singleFilePaths list of paths to the files to match
+   */
+  public static Glob createSingleFilesGlob(Iterable<String> singleFilePaths) {
+    return new Glob(
+        ImmutableList.copyOf(GlobAtom.ofIterable(singleFilePaths, GlobAtom.AtomType.SINGLE_FILE)),
+        ImmutableList.of(),
+        null);
+  }
+
    /**
    * Handles a Glob/Squence Parameter passed to a Glob consuming function.
    *

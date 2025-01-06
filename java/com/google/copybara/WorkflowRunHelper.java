@@ -1043,7 +1043,7 @@ public class WorkflowRunHelper<O extends Revision, D extends Revision> {
           ConsistencyFile.fromBytes(Files.readAllBytes(consistencyFilePath));
 
       // copy the current destination files to the baseline directory
-      Glob baselineFiles = Glob.createGlob(consistencyFile.getFileHashes().keySet().asList());
+      Glob baselineFiles = Glob.createSingleFilesGlob(consistencyFile.getFileHashes().keySet().asList());
 
       Path baselineWorkdir = Files.createDirectories(workdir.resolve("baseline"));
       reader.copyDestinationFilesToDirectory(baselineFiles, baselineWorkdir);

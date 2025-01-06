@@ -2490,6 +2490,9 @@ public class WorkflowTest {
     // create origin change
     Path o1 = Files.createDirectories(testDir.resolve("o1"));
     writeFile(o1, "dir/foo.txt", "a\nb\nc\n");
+    // Add a file with special characters in its name to ensure they are handled
+    // correctly
+    writeFile(o1, "dir/special[]+*?.txt", "special");
     origin.addChange(0, o1, "test change", true);
 
     // import into the destination
