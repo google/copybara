@@ -1434,10 +1434,32 @@ public class GitRepositoryTest {
   }
 
   @Test
+  public void testReadFileBytes() throws Exception {
+    Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
+    singleFileCommit("test", "foo.txt", "Hello");
+    assertThat(new String(repository.readFileBytes("refs/heads/" + defaultBranch, "foo.txt"), StandardCharsets.UTF_8)).isEqualTo("Hello");
+  }
+
+  @Test
   public void testReadFile() throws Exception {
     Files.write(workdir.resolve("foo.txt"), "foo".getBytes(UTF_8));
     singleFileCommit("test", "foo.txt", "Hello");
     assertThat(repository.readFile("refs/heads/" + defaultBranch, "foo.txt")).isEqualTo("Hello");
+  }
+
+  @Test
+  public void testLastModified() throws Exception {
+    var change1 = simpleChange(repository, "bar.txt", "1", "1");
+    var change2 = simpleChange(repository, "foo.txt", "2", "2");
+    var change3 = simpleChange(repository, "bar.txt", "3", "3");
+    var change4 = simpleChange(repository, "foo.txt", "4", "4");
+    var change5 = simpleChange(repository, "bar.txt", "5", "5");
+
+    assertThat(repository.lastModified("HEAD", "bar.txt")).isEqualTo(change5.getSha1());
+    assertThat(repository.lastModified("HEAD", "foo.txt")).isEqualTo(change4.getSha1());
+    assertThat(repository.lastModified(change4.getSha1(), "foo.txt")).isEqualTo(change4.getSha1());
+    assertThat(repository.lastModified(change4.getSha1(), "bar.txt")).isEqualTo(change3.getSha1());
+    assertThat(repository.lastModified(change2.getSha1(), "bar.txt")).isEqualTo(change1.getSha1());
   }
 
   @Test

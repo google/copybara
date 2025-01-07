@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.copybara.config.SkylarkUtil.convertFromNoneable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.hash.Hashing;
 import com.google.copybara.CheckoutPath;
 import com.google.copybara.DestinationReader;
 import com.google.copybara.exception.RepoException;
@@ -93,5 +94,17 @@ public class GitDestinationReader extends DestinationReader {
     } catch (RepoException e) {
       return false;
     }
+  }
+
+  @Override
+  public String lastModified(String path) throws RepoException {
+    return repository.lastModified(baseline.getSha1(), path);
+  }
+
+  @Override
+  public String getHash(String path) throws RepoException {
+    return Hashing.sha256()
+        .hashBytes(repository.readFileBytes(baseline.getSha1(), path))
+        .toString();
   }
 }

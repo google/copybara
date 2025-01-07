@@ -874,11 +874,18 @@ public class GitDestination implements Destination<GitRevision> {
     public DestinationReader getDestinationReader(
         Console console, Origin.Baseline<?> baseline, Path workdir)
         throws ValidationException, RepoException {
+      return getDestinationReader(
+          console, baseline == null ? null : baseline.getBaseline(), workdir);
+    }
+
+    @Override
+    public DestinationReader getDestinationReader(Console console, String baseline, Path workdir)
+        throws ValidationException, RepoException {
       GitRepository repo = getRepository(console);
       fetchIfNeeded(repo, console);
       GitRevision rev;
-      if (baseline != null && baseline.getBaseline() != null) {
-        rev = repo.resolveReference(baseline.getBaseline());
+      if (baseline != null) {
+        rev = repo.resolveReference(baseline);
       } else {
         rev = getLocalBranchRevision(repo);
       }

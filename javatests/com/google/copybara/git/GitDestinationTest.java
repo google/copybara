@@ -2352,7 +2352,7 @@ public class GitDestinationTest {
   }
 
   @Test
-  public void testDestinationReader() throws Exception {
+  public void testDestinationReaderReadFile() throws Exception {
     fetch = primaryBranch;
     push = primaryBranch;
     Path file = workdir.resolve("test.txt");
@@ -2365,6 +2365,46 @@ public class GitDestinationTest {
             new Baseline<>(repo().resolveReference("HEAD").getSha1(), null),
             workdir)
             .readFile("test.txt")).contains("some content");
+  }
+
+  @Test
+  public void testDestinationReaderLastModified() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+
+    Files.write(workdir.resolve("1.txt"), "content 1".getBytes(UTF_8));
+    Writer<GitRevision> writer = firstCommitWriter();
+    process(writer, new DummyRevision("first_commit"));
+    var firstCommit = lastCommit(primaryBranch);
+
+    Files.write(workdir.resolve("2.txt"), "content 2".getBytes(UTF_8));
+    process(writer, new DummyRevision("first_commit"));
+    var secondCommit = lastCommit(primaryBranch);
+
+    assertThat(
+        writer.getDestinationReader(console, "HEAD", workdir)
+          .lastModified("1.txt"))
+      .isEqualTo(firstCommit.getCommit().getSha1());
+    assertThat(
+        writer.getDestinationReader(console, "HEAD", workdir)
+          .lastModified("2.txt"))
+      .isEqualTo(secondCommit.getCommit().getSha1());
+  }
+
+  @Test
+  public void testDestinationReaderGetHash() throws Exception {
+    fetch = primaryBranch;
+    push = primaryBranch;
+    Files.write(workdir.resolve("test.txt"), "some content".getBytes(UTF_8));
+    Writer<GitRevision> writer = firstCommitWriter();
+    process(writer, new DummyRevision("first_commit"));
+    assertThat(
+        writer.getDestinationReader(
+            console,
+            new Baseline<>(repo().resolveReference("HEAD").getSha1(), null),
+            workdir)
+            .getHash("test.txt")).isEqualTo(
+              /*SHA256("some content")=*/"290f493c44f5d63d06b374d0a5abd292fae38b92cab2fae5efefe1b0e9347f56");
   }
 
 }

@@ -1895,15 +1895,33 @@ public class GitRepository {
     throw throwUnknownGitError(output, params);
   }
 
-  /**
-   * Reads a file at the given revision
-   */
-  public String readFile(String revision, String path) throws RepoException {
+  public byte[] readFileBytes(String revision, String path) throws RepoException {
     CommandOutputWithStatus result = gitAllowNonZeroExit(NO_INPUT,
         ImmutableList.of("--no-pager", "show", String.format("%s:%s", revision, path)),
         DEFAULT_TIMEOUT, 0);
     if (!result.getTerminationStatus().success()) {
       throw new RepoException(String.format("Cannot read file '%s' in '%s'", path, revision));
+    }
+    return result.getStdoutBytes();
+  }
+
+  /** Reads a file at the given revision */
+  public String readFile(String revision, String path) throws RepoException {
+    return new String(readFileBytes(revision, path), StandardCharsets.UTF_8);
+  }
+
+  /** Returns the commit hash at which the given file was last modified. */
+  public String lastModified(String revision, String path) throws RepoException {
+    CommandOutputWithStatus result =
+        gitAllowNonZeroExit(
+            NO_INPUT,
+            ImmutableList.of(
+                "--no-pager", "log", "--pretty=format:%H", "--max-count=1", revision, "--", path),
+            DEFAULT_TIMEOUT,
+            0);
+    if (!result.getTerminationStatus().success()) {
+      throw new RepoException(
+          String.format("Cannot get last modified revision of '%s' in '%s'", path, revision));
     }
     return result.getStdout();
   }
