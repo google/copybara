@@ -219,6 +219,8 @@ public class GitOrigin implements Origin<GitRevision> {
     String ref;
     boolean canUseResolverOnCliRef =
         this.generalOptions.isVersionSelectorUseCliRef() || this.generalOptions.isForced();
+    boolean fetchTags = describeVersion;
+    boolean fetchHeads = false;
 
     if (gitOriginOptions.useGitVersionSelector() && versionSelector != null) {
       if (canUseResolverOnCliRef && !Strings.isNullOrEmpty(reference)) {
@@ -245,6 +247,11 @@ public class GitOrigin implements Origin<GitRevision> {
                     + " present in the remote repo.\n",
                 versionSelector, repoUrl));
         ref = res.get();
+        if (ref.startsWith("refs/tags/")) {
+          fetchTags = true;
+        } else if (ref.startsWith("refs/heads/")) {
+          fetchHeads = true;
+        }
         // It is rare that a branch and a tag has the same name. The reason for this is that
         // destinations expect that the context_reference is a non-full reference. Also it is
         // more readable when we use it in transformations.
@@ -262,7 +269,7 @@ public class GitOrigin implements Origin<GitRevision> {
       ref = reference;
     }
 
-    return resolveStringRef(ref);
+    return resolveStringRef(ref, fetchTags, fetchHeads);
   }
 
   private ImmutableList<Refspec> getVersionSelectorRefspec(GitRepository repository)
@@ -280,9 +287,18 @@ public class GitOrigin implements Origin<GitRevision> {
     return specs.build();
   }
 
-  private GitRevision resolveStringRef(String ref) throws RepoException, ValidationException {
-    GitRevision gitRevision = repoType.resolveRef(getRepository(), repoUrl, ref, generalOptions,
-        describeVersion, partialFetch, gitOptions.getFetchDepth());
+  private GitRevision resolveStringRef(String ref, boolean fetchTags, boolean fetchHeads)
+      throws RepoException, ValidationException {
+    GitRevision gitRevision =
+        repoType.resolveRef(
+            getRepository(),
+            repoUrl,
+            ref,
+            generalOptions,
+            describeVersion || fetchTags,
+            fetchHeads,
+            partialFetch,
+            gitOptions.getFetchDepth());
     if (!describeVersion) {
       return gitRevision;
     }
@@ -302,7 +318,7 @@ public class GitOrigin implements Origin<GitRevision> {
       FuzzyClosestVersionSelector selector = new FuzzyClosestVersionSelector();
       ref = selector.selectVersion(ref, getRepository(), repoUrl, generalOptions.console());
     }
-    return resolveStringRef(ref);
+    return resolveStringRef(ref, false, false);
   }
 
   @Override

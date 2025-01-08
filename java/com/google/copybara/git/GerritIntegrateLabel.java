@@ -113,8 +113,14 @@ class GerritIntegrateLabel implements IntegrateLabel {
           latestPatchSet);
     }
 
-    return GitRepoType.GERRIT.resolveRef(repository, url,
+    return GitRepoType.GERRIT.resolveRef(
+        repository,
+        url,
         String.format("refs/changes/%02d/%d", changeNumber % 100, changeNumber) + "/" + patchSet,
-        generalOptions, /*describeVersion=*/false, /*partialFetch=*/ false, Optional.empty());
+        generalOptions,
+        /* describeVersion= */ false,
+        /* fetchHeads= */ false,
+        /* partialFetch= */ false,
+        Optional.empty());
   }
 }

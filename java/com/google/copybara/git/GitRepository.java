@@ -362,11 +362,16 @@ public class GitRepository {
   public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch,
       Optional<Integer> depth)
       throws RepoException, ValidationException {
-    return fetchSingleRefWithTags(url, ref, /* fetchTags= */ false, partialFetch, depth);
+    return fetchSingleRefWithTags(url, ref, /* fetchTags= */ false, false, partialFetch, depth);
   }
 
   public GitRevision fetchSingleRefWithTags(
-      String url, String ref, boolean fetchTags, boolean partialFetch, Optional<Integer> depth)
+      String url,
+      String ref,
+      boolean fetchTags,
+      boolean fetchHeads,
+      boolean partialFetch,
+      Optional<Integer> depth)
       throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
@@ -402,27 +407,17 @@ public class GitRepository {
       }
     }
 
+    ImmutableList.Builder<String> refspec = ImmutableList.builder();
+    refspec.add(String.format("%s:refs/copybara_fetch/%s", ref, ref));
     if (fetchTags) {
-      fetch(
-          url,
-          /* prune= */ false,
-          /* force= */ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref, "refs/tags/*:refs/tags/*"),
-          partialFetch,
-          depth,
-          false);
-      return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
-    } else {
-      fetch(
-          url,
-          /* prune= */ false,
-          /* force= */ true,
-          ImmutableList.of(ref + ":refs/copybara_fetch/" + ref),
-          partialFetch,
-          depth,
-          false);
-      return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /*contextRef=*/ref, url);
+      refspec.add("refs/tags/*:refs/tags/*");
     }
+    if (fetchHeads) {
+      refspec.add("refs/heads/*:refs/heads/*");
+    }
+
+    fetch(url, /* prune= */ false, /* force= */ true, refspec.build(), partialFetch, depth, false);
+    return resolveReferenceWithContext("refs/copybara_fetch/" + ref, /* contextRef= */ ref, url);
   }
 
   public GitRevision addDescribeVersion(GitRevision rev) throws RepoException {

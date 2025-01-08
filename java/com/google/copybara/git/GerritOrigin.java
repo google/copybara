@@ -149,8 +149,16 @@ public class GerritOrigin extends GitOrigin {
     GerritChange change = GerritChange.resolve(getRepository(), repoUrl, reference,
         this.generalOptions);
     if (change == null) {
-      GitRevision gitRevision = GitRepoType.GIT.resolveRef(getRepository(), repoUrl, reference,
-          this.generalOptions, describeVersion, partialFetch, Optional.empty());
+      GitRevision gitRevision =
+          GitRepoType.GIT.resolveRef(
+              getRepository(),
+              repoUrl,
+              reference,
+              this.generalOptions,
+              describeVersion,
+              false,
+              partialFetch,
+              Optional.empty());
       return describeVersion ? getRepository().addDescribeVersion(gitRevision) : gitRevision;
     }
     GerritApi api = gerritOptions.newGerritApi(repoUrl);
