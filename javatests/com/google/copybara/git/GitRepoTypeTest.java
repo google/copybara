@@ -70,8 +70,7 @@ public class GitRepoTypeTest {
               String ref,
               boolean fetchTags,
               boolean partialFetch,
-              Optional<Integer> depth,
-              boolean useFetchTagsOption) {
+              Optional<Integer> depth) {
             interceptedFetches.add(new String[] {url, ref});
             return new GitRevision(this, Strings.repeat("0", 40));
           }

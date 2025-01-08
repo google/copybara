@@ -57,8 +57,6 @@ public enum GitRepoType {
         boolean describeVersion, boolean partialFetch, Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       logger.atInfo().log("Resolving %s reference: %s", repoUrl, ref);
-      //TODO(chriscampos): Confirm once we know "fetch --tags" works without issues
-      boolean useFetchTagsFlag = generalOptions.isTemporaryFeature("GIT_FETCH_TAGS_OPTION", true);
       Matcher sha1WithPatchSet = SHA_1_WITH_REVIEW_DATA.matcher(ref);
       if (sha1WithPatchSet.matches()) {
         GitRevision rev =
@@ -67,8 +65,7 @@ public enum GitRepoType {
                 sha1WithPatchSet.group(1),
                 /* fetchTags= */ describeVersion,
                 partialFetch,
-                fetchDepth,
-                false);
+                fetchDepth);
         return new GitRevision(repository, rev.getSha1(), sha1WithPatchSet.group(2),
                                rev.contextReference(), rev.associatedLabels(), repoUrl);
       }
@@ -76,8 +73,7 @@ public enum GitRepoType {
 
       if (!GIT_URL.matcher(ref).matches() && !FILE_URL.matcher(ref).matches()) {
         // If ref is not an url try a normal fetch of repoUrl and ref
-        return fetchFromUrl(
-            repository, repoUrl, ref, describeVersion, partialFetch, useFetchTagsFlag, fetchDepth);
+        return fetchFromUrl(repository, repoUrl, ref, describeVersion, partialFetch, fetchDepth);
       }
       String msg = "Git origin URL overwritten in the command line as " + ref;
       generalOptions.console().warn(msg);
@@ -98,11 +94,9 @@ public enum GitRepoType {
             ref.substring(spaceIdx + 1),
             describeVersion,
             partialFetch,
-            useFetchTagsFlag,
             fetchDepth);
       }
-      return fetchFromUrl(
-          repository, ref, "HEAD", describeVersion, partialFetch, useFetchTagsFlag, fetchDepth);
+      return fetchFromUrl(repository, ref, "HEAD", describeVersion, partialFetch, fetchDepth);
     }
 
     private GitRevision fetchFromUrl(
@@ -111,16 +105,10 @@ public enum GitRepoType {
         String ref,
         boolean describeVersion,
         boolean partialFetch,
-        boolean useFetchTagsFlag,
         Optional<Integer> fetchDepth)
         throws RepoException, ValidationException {
       return repository.fetchSingleRefWithTags(
-          repoUrl,
-          ref,
-          /* fetchTags= */ describeVersion,
-          partialFetch,
-          fetchDepth,
-          useFetchTagsFlag);
+          repoUrl, ref, /* fetchTags= */ describeVersion, partialFetch, fetchDepth);
     }
   },
   @DocField(description = "A git repository hosted in Github")
@@ -194,8 +182,7 @@ public enum GitRepoType {
               stableRef,
               /* fetchTags= */ describeVersion,
               partialFetch,
-              Optional.empty(),
-              false);
+              Optional.empty());
       return new GitRevision(
           repository,
           gitRevision.getSha1(),
@@ -206,12 +193,7 @@ public enum GitRepoType {
     if (GitHubUtil.maybeParseGithubPrFromMergeOrHeadRef(ref).isPresent()) {
       GitRevision gitRevision =
           repository.fetchSingleRefWithTags(
-              repoUrl,
-              ref,
-              /* fetchTags= */ describeVersion,
-              partialFetch,
-              Optional.empty(),
-              false);
+              repoUrl, ref, /* fetchTags= */ describeVersion, partialFetch, Optional.empty());
       return new GitRevision(
           repository,
           gitRevision.getSha1(),

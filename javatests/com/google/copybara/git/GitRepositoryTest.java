@@ -732,7 +732,7 @@ public class GitRepositoryTest {
 
     var unused =
         local.fetchSingleRefWithTags(
-            fetchUrl, repository.getHeadRef().getSha1(), true, false, Optional.empty(), true);
+            fetchUrl, repository.getHeadRef().getSha1(), true, false, Optional.empty());
 
     String gitTagStdOut = local.simpleCommand("tag").getStdout();
     assertThat(gitTagStdOut).contains("foo");

@@ -362,16 +362,11 @@ public class GitRepository {
   public GitRevision fetchSingleRef(String url, String ref, boolean partialFetch,
       Optional<Integer> depth)
       throws RepoException, ValidationException {
-    return fetchSingleRefWithTags(url, ref, /* fetchTags= */ false, partialFetch, depth, false);
+    return fetchSingleRefWithTags(url, ref, /* fetchTags= */ false, partialFetch, depth);
   }
 
   public GitRevision fetchSingleRefWithTags(
-      String url,
-      String ref,
-      boolean fetchTags,
-      boolean partialFetch,
-      Optional<Integer> depth,
-      boolean useFetchTagsOption)
+      String url, String ref, boolean fetchTags, boolean partialFetch, Optional<Integer> depth)
       throws RepoException, ValidationException {
     if (ref.contains(":") || ref.contains("*")) {
       throw new CannotResolveRevisionException("Fetching refspecs that"
@@ -384,7 +379,7 @@ public class GitRepository {
     // If we fail to find the SHA-1 with that fetch we fetch the SHA-1 directly and hope the server
     // allows to download it.
     if (isSha1Reference(ref)) {
-      boolean tags = useFetchTagsOption && !partialFetch && fetchTags;
+      boolean tags = !partialFetch && fetchTags;
       try {
         fetch(
             url,
