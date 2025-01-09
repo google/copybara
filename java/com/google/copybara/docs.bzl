@@ -29,7 +29,7 @@ def _doc_generator_impl(ctx):
         arguments = [
             ",".join([j.path for j in jars]),
             ctx.outputs.out.path,
-        ] + [f.path for f in ctx.files.template_file],
+        ] + [f.path for f in ctx.files.template_file] + ctx.attr.generator_flags,
     )
 
 # Generates documentation by scanning the transitive set of dependencies of a Java binary.
@@ -46,28 +46,45 @@ doc_generator = rule(
         ),
         "template_file": attr.label(mandatory = False, allow_single_file = True),
         "out": attr.output(mandatory = True),
+        "generator_flags": attr.string_list(),
     },
     implementation = _doc_generator_impl,
 )
 
-def copybara_reference(name, *, out, libraries, template_file = None):
+def copybara_reference(
+        name,
+        out,
+        libraries,
+        template_file = None,
+        generator_target = "//java/com/google/copybara/doc:generator-lib",
+        main_class = "com.google.copybara.doc.Generator",
+        generator_flags = [],
+        **kwargs):
     """
     Auto-generate reference documentation for a target containing Copybara libraries.
 
     out: Name of the output file to generate.
     libraries: List of libraries for which to generate reference documentation.
     template_file: Optional template file in which to insert the generated reference.
+    generator_target: The build target for the generator
+    main_class: generator entry point
+    generator_flags: args passed to the generator
+    visibility: visibility of the generated targets
     """
+    target_name = name + "_generator"
     java_binary(
-        name = "generator",
-        main_class = "com.google.copybara.doc.Generator",
-        runtime_deps = ["//java/com/google/copybara/doc:generator-lib"] + libraries,
+        name = target_name,
+        main_class = main_class,
+        runtime_deps = [generator_target] + libraries,
+        visibility = ["//visibility:private"],
     )
 
     doc_generator(
         name = name,
         out = out,
-        generator = ":generator",
+        generator = ":" + target_name,
         targets = libraries,
         template_file = template_file,
+        generator_flags = generator_flags,
+        **kwargs
     )

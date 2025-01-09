@@ -39,7 +39,8 @@ public final class Generator {
   public static void main(String[] args) throws IOException {
 
     List<String> jarNames = Splitter.on(",").omitEmptyStrings().splitToList(args[0]);
-    List<DocModule> modules = new ModuleLoader().load(jarNames);
+
+    ImmutableList<DocModule> modules = new ModuleLoader().load(jarNames, ImmutableList.of());
     CharSequence markdown =
         new MarkdownRenderer().render(modules, /* includeFlagAggregate= */ true);
 

@@ -20,13 +20,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.copybara.doc.annotations.Example;
 import java.util.List;
 import java.util.TreeSet;
 import javax.annotation.Nullable;
 
-abstract class DocBase implements Comparable<DocBase> {
+/** Helper for generating documentation from the Starlark annotations in the Copybara codebase. */
+public abstract class DocBase implements Comparable<DocBase> {
 
   protected final String name;
   protected final String description;
@@ -36,12 +38,21 @@ abstract class DocBase implements Comparable<DocBase> {
     this.description = checkNotNull(description);
   }
 
+  public String getName() {
+    return name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
   @Override
   public int compareTo(DocBase o) {
     return name.compareTo(o.name);
   }
 
-  static final class DocModule extends DocBase {
+  /** Module level */
+  public static final class DocModule extends DocBase {
 
     final TreeSet<DocField> fields = new TreeSet<>();
     final TreeSet<DocFunction> functions = new TreeSet<>();
@@ -56,6 +67,13 @@ abstract class DocBase implements Comparable<DocBase> {
       return MoreObjects.toStringHelper(this).add("name", name).toString();
     }
 
+    public ImmutableSet<DocFunction> getFunctions() {
+      return ImmutableSet.copyOf(functions);
+    }
+
+    public ImmutableSet<DocField> getFields() {
+      return ImmutableSet.copyOf(fields);
+    }
   }
 
   static final class DocFlag extends DocBase {
@@ -68,12 +86,25 @@ abstract class DocBase implements Comparable<DocBase> {
     }
   }
 
-  static final class DocFunction extends DocBase {
+  /** Function level */
+  public static final class DocFunction extends DocBase {
 
     final TreeSet<DocFlag> flags = new TreeSet<>();
     @Nullable final String returnType;
     final ImmutableList<DocParam> params;
     final ImmutableList<DocExample> examples;
+
+    public final boolean hasStar;
+    public final boolean hasStarStar;
+    public final boolean isSelfCall;
+
+    public ImmutableList<DocParam> getParams() {
+      return params;
+    }
+
+    public String getReturnType() {
+      return DocBase.handleType(returnType);
+    }
 
     DocFunction(
         String name,
@@ -81,19 +112,35 @@ abstract class DocBase implements Comparable<DocBase> {
         @Nullable String returnType,
         Iterable<DocParam> params,
         Iterable<DocFlag> flags,
-        Iterable<DocExample> examples) {
+        Iterable<DocExample> examples,
+        boolean hasStar,
+        boolean hasStarStar,
+        boolean isSelfCall) {
       super(name, description);
       this.returnType = returnType;
       this.params = ImmutableList.copyOf(params);
       this.examples = ImmutableList.copyOf(examples);
+      this.hasStar = hasStar;
+      this.hasStarStar = hasStarStar;
+      this.isSelfCall = isSelfCall;
       Iterables.addAll(this.flags, flags);
     }
   }
 
-  static final class DocParam extends DocBase {
+  /** Function parameter level */
+  public static final class DocParam extends DocBase {
 
     @Nullable final String defaultValue;
     final List<String> allowedTypes;
+
+    @Nullable
+    public String getDefaultValue() {
+      return defaultValue;
+    }
+
+    public ImmutableList<String> getAllowedTypes() {
+      return ImmutableList.copyOf(allowedTypes);
+    }
 
     DocParam(
         String name, @Nullable String defaultValue, List<String> allowedTypes, String description) {
@@ -112,7 +159,8 @@ abstract class DocBase implements Comparable<DocBase> {
     }
   }
 
-  static final class DocField extends DocBase {
+  /** Field level */
+  public static final class DocField extends DocBase {
 
     @Nullable final String type;
 
@@ -120,5 +168,13 @@ abstract class DocBase implements Comparable<DocBase> {
       super(name, description);
       this.type = type;
     }
+
+    public String getType() {
+      return DocBase.handleType(type);
+    }
+  }
+
+  private static String handleType(String type) {
+    return type == null ? "NoneType" : type;
   }
 }

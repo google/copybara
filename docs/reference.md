@@ -643,7 +643,7 @@ author | <code><a href="#author">author</a></code><br><p>The author of the chang
 date_time_iso_offset | <code>string</code><br><p>Return a ISO offset date time. Example:  2011-12-03T10:15:30+01:00'</p>
 first_line_message | <code>string</code><br><p>The message of the change</p>
 labels | <code>dict[string, string]</code><br><p>A dictionary with the labels detected for the change. If the label is present multiple times it returns the last value. Note that this is a heuristic and it could include things that are not labels.</p>
-labels_all_values | <code>dict[string, sequence of string]</code><br><p>A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.</p>
+labels_all_values | <code>dict[string, list of string]</code><br><p>A dictionary with the labels detected for the change. Note that the value is a collection of the values for each time the label was found. Use 'labels' instead if you are only interested in the last value. Note that this is a heuristic and it could include things that are not labels.</p>
 merge | <code>bool</code><br><p>Returns true if the change represents a merge</p>
 message | <code>string</code><br><p>The message of the change</p>
 original_author | <code><a href="#author">author</a></code><br><p>The author of the change before any mapping</p>
@@ -673,7 +673,7 @@ text | <code>string</code><br><p>The text description this message, not includin
 
 Returns a list of values associated with the label name.
 
-<code>sequence of string</code> <code>message.label_values(<a href=#message.label_values.label_name>label_name</a>)</code>
+<code>list of string</code> <code>message.label_values(<a href=#message.label_values.label_name>label_name</a>)</code>
 
 
 <h4 id="parameters.message.label_values">Parameters:</h4>
@@ -693,8 +693,8 @@ Data about the set of changes that are being migrated. Each change includes info
 
 Name | Description
 ---- | -----------
-current | <code>sequence of <a href="#change">change</a></code><br><p>List of changes that will be migrated</p>
-migrated | <code>sequence of <a href="#change">change</a></code><br><p>List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.</p>
+current | <code>list of change</code><br><p>List of changes that will be migrated</p>
+migrated | <code>list of change</code><br><p>List of changes that where migrated in previous Copybara executions or if using ITERATIVE mode in previous iterations of this workflow.</p>
 
 
 
@@ -1625,7 +1625,7 @@ Parameter | Description
 
 Given a list of transformations, returns the list of transformations equivalent to undoing all the transformations
 
-<code>sequence of <a href="#transformation">transformation</a></code> <code>core.reverse(<a href=#core.reverse.transformations>transformations</a>)</code>
+<code>list of transformation</code> <code>core.reverse(<a href=#core.reverse.transformations>transformations</a>)</code>
 
 
 <h4 id="parameters.core.reverse">Parameters:</h4>
@@ -1965,8 +1965,8 @@ Represents an effect that happened in the destination due to a single migration
 Name | Description
 ---- | -----------
 destination_ref | <code><a href="#destination_ref">destination_ref</a></code><br><p>Destination reference updated/created. Might be null if there was no effect. Might be set even if the type is error (For example a synchronous presubmit test failed but a review was created).</p>
-errors | <code>sequence of string</code><br><p>List of errors that happened during the migration</p>
-origin_refs | <code>sequence of <a href="#origin_ref">origin_ref</a></code><br><p>List of origin changes that were included in this migration</p>
+errors | <code>list of string</code><br><p>List of errors that happened during the migration</p>
+origin_refs | <code>list of origin_ref</code><br><p>List of origin changes that were included in this migration</p>
 summary | <code>string</code><br><p>Textual summary of what happened. Users of this class should not try to parse this field.</p>
 type | <code>string</code><br><p>Return the type of effect that happened: CREATED, UPDATED, NOOP, INSUFFICIENT_APPROVALS or ERROR</p>
 
@@ -2174,7 +2174,7 @@ fs | <code>action.filesystem</code><br><p>If a migration of type `core.action_mi
 migration_name | <code>string</code><br><p>The name of the migration calling this action.</p>
 origin | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
 params | <code>dict</code><br><p>Parameters for the function if created with core.action</p>
-refs | <code>sequence of string</code><br><p>A list containing string representations of the entities that triggered the event</p>
+refs | <code>list of string</code><br><p>A list containing string representations of the entities that triggered the event</p>
 
 <a id="feedback.context.error" aria-hidden="true"></a>
 ### feedback.context.error
@@ -2244,7 +2244,7 @@ action_name | <code>string</code><br><p>The name of the current action.</p>
 cli_labels | <code>dict[string, string]</code><br><p>Access labels that a user passes through flag '--labels'. For example: --labels=foo:value1,bar:value2. Then it can access in this way:cli_labels['foo'].</p>
 console | <code><a href="#console">Console</a></code><br><p>Get an instance of the console to report errors or warnings</p>
 destination | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the destination. Can be used to query or modify the destination state</p>
-effects | <code>sequence of <a href="#destination_effect">destination_effect</a></code><br><p>The list of effects that happened in the destination</p>
+effects | <code>list of destination_effect</code><br><p>The list of effects that happened in the destination</p>
 origin | <code><a href="#endpoint">endpoint</a></code><br><p>An object representing the origin. Can be used to query about the ref or modifying the origin state</p>
 params | <code>dict</code><br><p>Parameters for the function if created with core.action</p>
 revision | <code><a href="#feedbackrevision_context">feedback.revision_context</a></code><br><p>Get the requested/resolved revision</p>
@@ -2313,7 +2313,7 @@ Information about the revision request/resolved for the migration
 
 Name | Description
 ---- | -----------
-labels | <code>dict[string, sequence of string]</code><br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
+labels | <code>dict[string, list of string]</code><br><p>A dictionary with the labels detected for the requested/resolved revision.</p>
 
 <a id="feedback.revision_context.fill_template" aria-hidden="true"></a>
 ### feedback.revision_context.fill_template
@@ -2547,7 +2547,7 @@ Parameter | Description
 Get changes from Gerrit based on a query. See https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#list-changes.
 
 
-<code>sequence of <a href="#gerritapichangeinfo">gerritapi.ChangeInfo</a></code> <code>gerrit_api_obj.list_changes(<a href=#gerrit_api_obj.list_changes.query>query</a>, <a href=#gerrit_api_obj.list_changes.include_results>include_results</a>=[])</code>
+<code>list of gerritapi.ChangeInfo</code> <code>gerrit_api_obj.list_changes(<a href=#gerrit_api_obj.list_changes.query>query</a>, <a href=#gerrit_api_obj.list_changes.include_results>include_results</a>=[])</code>
 
 
 <h4 id="parameters.gerrit_api_obj.list_changes">Parameters:</h4>
@@ -2632,7 +2632,7 @@ Name | Description
 account_id | <code>string</code><br><p>The numeric ID of the account.</p>
 email | <code>string</code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
 name | <code>string</code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
-secondary_emails | <code>sequence of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
+secondary_emails | <code>list of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
 username | <code>string</code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 
 
@@ -2650,7 +2650,7 @@ account_id | <code>string</code><br><p>The numeric ID of the account.</p>
 date | <code>string</code><br><p>The time and date describing when the approval was made.</p>
 email | <code>string</code><br><p>The email address the user prefers to be contacted through.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and options DETAILS and ALL_EMAILS for account queries.</p>
 name | <code>string</code><br><p>The full name of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
-secondary_emails | <code>sequence of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
+secondary_emails | <code>list of string</code><br><p>A list of the secondary email addresses of the user.<br>Only set for account queries when the ALL_EMAILS option or the suggest parameter is set.<br>Secondary emails are only included if the calling user has the Modify Account, and hence is allowed to see secondary emails of other users.</p>
 username | <code>string</code><br><p>The username of the user.<br>Only set if detailed account information is requested.<br>See option DETAILED_ACCOUNTS for change queries<br>and option DETAILS for account queries.</p>
 value | <code>int</code><br><p>The vote that the user has given for the label. If present and zero, the user is permitted to vote on the label. If absent, the user is not permitted to vote on that label.</p>
 
@@ -2671,14 +2671,14 @@ created | <code>string</code><br><p>The timestamp of when the change was created
 current_revision | <code>string</code><br><p>The commit ID of the current patch set of this change.<br>Only set if the current revision is requested or if all revisions are requested.</p>
 id | <code>string</code><br><p>The ID of the change in the format "`<project>~<branch>~<Change-Id>`", where 'project', 'branch' and 'Change-Id' are URL encoded. For 'branch' the refs/heads/ prefix is omitted.</p>
 labels | <code>dict[string, <a href="#gerritapilabelinfo">gerritapi.LabelInfo</a>]</code><br><p>The labels of the change as a map that maps the label names to LabelInfo entries.<br>Only set if labels or detailed labels are requested.</p>
-messages | <code>sequence of <a href="#gerritapichangemessageinfo">gerritapi.ChangeMessageInfo</a></code><br><p>Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.</p>
+messages | <code>list of gerritapi.ChangeMessageInfo</code><br><p>Messages associated with the change as a list of ChangeMessageInfo entities.<br>Only set if messages are requested.</p>
 number | <code>string</code><br><p>The legacy numeric ID of the change.</p>
 owner | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>The owner of the change as an AccountInfo entity.</p>
 project | <code>string</code><br><p>The name of the project.</p>
 revisions | <code>dict[string, <a href="#gerritapirevisioninfo">gerritapi.RevisionInfo</a>]</code><br><p>All patch sets of this change as a map that maps the commit ID of the patch set to a RevisionInfo entity.<br>Only set if the current revision is requested (in which case it will only contain a key for the current revision) or if all revisions are requested.</p>
 status | <code>string</code><br><p>The status of the change (NEW, MERGED, ABANDONED).</p>
 subject | <code>string</code><br><p>The subject of the change (header line of the commit message).</p>
-submit_requirements | <code>sequence of SubmitRequirementResultInfo</code><br><p>A list of the evaluated submit requirements for the change.</p>
+submit_requirements | <code>list of SubmitRequirementResultInfo</code><br><p>A list of the evaluated submit requirements for the change.</p>
 submittable | <code>bool</code><br><p>Whether the change has been approved by the project submit rules. Only set if requested via additional field SUBMITTABLE.</p>
 submitted | <code>string</code><br><p>The timestamp of when the change was submitted.</p>
 topic | <code>string</code><br><p>The topic to which this change belongs.</p>
@@ -2688,7 +2688,7 @@ updated | <code>string</code><br><p>The timestamp of when the change was last up
 
 <h4 id="returned_by.gerritapi.ChangeInfo">Returned By:</h4>
 
-<ul><li><a href="#gerrit_api_obj.abandon_change">gerrit_api_obj.abandon_change</a></li><li><a href="#gerrit_api_obj.get_change">gerrit_api_obj.get_change</a></li><li><a href="#gerrit_api_obj.list_changes">gerrit_api_obj.list_changes</a></li><li><a href="#gerrit_api_obj.submit_change">gerrit_api_obj.submit_change</a></li></ul>
+<ul><li><a href="#gerrit_api_obj.abandon_change">gerrit_api_obj.abandon_change</a></li><li><a href="#gerrit_api_obj.get_change">gerrit_api_obj.get_change</a></li><li><a href="#gerrit_api_obj.submit_change">gerrit_api_obj.submit_change</a></li></ul>
 
 
 
@@ -2730,7 +2730,7 @@ author | <code><a href="#gerritapigitpersoninfo">gerritapi.GitPersonInfo</a></co
 commit | <code>string</code><br><p>The commit ID. Not set if included in a RevisionInfo entity that is contained in a map which has the commit ID as key.</p>
 committer | <code><a href="#gerritapigitpersoninfo">gerritapi.GitPersonInfo</a></code><br><p>The committer of the commit as a GitPersonInfo entity.</p>
 message | <code>string</code><br><p>The commit message.</p>
-parents | <code>sequence of <a href="#gerritapiparentcommitinfo">gerritapi.ParentCommitInfo</a></code><br><p>The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.</p>
+parents | <code>list of gerritapi.ParentCommitInfo</code><br><p>The parent commits of this commit as a list of CommitInfo entities. In each parent only the commit and subject fields are populated.</p>
 subject | <code>string</code><br><p>The subject of the commit (header line of the commit message).</p>
 
 
@@ -2778,7 +2778,7 @@ Gerrit label information.
 
 Name | Description
 ---- | -----------
-all | <code>sequence of <a href="#gerritapiapprovalinfo">gerritapi.ApprovalInfo</a></code><br><p>List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.</p>
+all | <code>list of gerritapi.ApprovalInfo</code><br><p>List of all approvals for this label as a list of ApprovalInfo entities. Items in this list may not represent actual votes cast by users; if a user votes on any label, a corresponding ApprovalInfo will appear in this list for all labels.</p>
 approved | <code><a href="#gerritapiaccountinfo">gerritapi.AccountInfo</a></code><br><p>One user who approved this label on the change (voted the maximum value) as an AccountInfo entity.</p>
 blocking | <code>bool</code><br><p>If true, the label blocks submit operation. If not set, the default is false.</p>
 default_value | <code>int</code><br><p>The default voting value for the label. This value may be outside the range specified in permitted_labels.</p>
@@ -3773,7 +3773,7 @@ Name | Description
 ---- | -----------
 sha | <code>string</code><br><p>The SHA-1 of the commit</p>
 state | <code>string</code><br><p>The overall state of all statuses for a commit: success, failure, pending or error</p>
-statuses | <code>sequence of <a href="#github_api_status_obj">github_api_status_obj</a></code><br><p>List of statuses for the commit</p>
+statuses | <code>list of github_api_status_obj</code><br><p>List of statuses for the commit</p>
 total_count | <code>int</code><br><p>Total number of statuses</p>
 
 
@@ -3847,11 +3847,6 @@ Name | Description
 body | <code>string</code><br><p>Body of the comment</p>
 id | <code>long</code><br><p>Comment identifier</p>
 user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p>Comment user</p>
-
-
-<h4 id="returned_by.github_api_issue_comment_obj">Returned By:</h4>
-
-<ul><li><a href="#github_api_obj.list_issue_comments">github_api_obj.list_issue_comments</a></li></ul>
 
 
 
@@ -3955,7 +3950,7 @@ Get autenticated user info, return null if not found
 
 Get the list of check runs for a sha. https://developer.github.com/v3/checks/runs/#check-runs
 
-<code>sequence of <a href="#github_check_run_obj">github_check_run_obj</a></code> <code>github_api_obj.get_check_runs(<a href=#github_api_obj.get_check_runs.sha>sha</a>)</code>
+<code>list of github_check_run_obj</code> <code>github_api_obj.get_check_runs(<a href=#github_api_obj.get_check_runs.sha>sha</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_check_runs">Parameters:</h4>
@@ -4011,7 +4006,7 @@ Parameter | Description
 
 Get all pull request comments
 
-<code>sequence of <a href="#github_api_pull_request_comment_obj">github_api_pull_request_comment_obj</a></code> <code>github_api_obj.get_pull_request_comments(<a href=#github_api_obj.get_pull_request_comments.number>number</a>)</code>
+<code>list of github_api_pull_request_comment_obj</code> <code>github_api_obj.get_pull_request_comments(<a href=#github_api_obj.get_pull_request_comments.number>number</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.get_pull_request_comments">Parameters:</h4>
@@ -4025,7 +4020,7 @@ Parameter | Description
 
 Get Pull Requests for a repo
 
-<code>sequence of <a href="#github_api_pull_request_obj">github_api_pull_request_obj</a></code> <code>github_api_obj.get_pull_requests(<a href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.state>state</a>="OPEN", <a href=#github_api_obj.get_pull_requests.sort>sort</a>="CREATED", <a href=#github_api_obj.get_pull_requests.direction>direction</a>="ASC")</code>
+<code>list of github_api_pull_request_obj</code> <code>github_api_obj.get_pull_requests(<a href=#github_api_obj.get_pull_requests.head_prefix>head_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.base_prefix>base_prefix</a>=None, <a href=#github_api_obj.get_pull_requests.state>state</a>="OPEN", <a href=#github_api_obj.get_pull_requests.sort>sort</a>="CREATED", <a href=#github_api_obj.get_pull_requests.direction>direction</a>="ASC")</code>
 
 
 <h4 id="parameters.github_api_obj.get_pull_requests">Parameters:</h4>
@@ -4057,14 +4052,14 @@ Parameter | Description
 
 Get all the reference SHA-1s from GitHub. Note that Copybara only returns a maximum number of 500.
 
-<code>sequence of <a href="#github_api_ref_obj">github_api_ref_obj</a></code> <code>github_api_obj.get_references()</code>
+<code>list of github_api_ref_obj</code> <code>github_api_obj.get_references()</code>
 
 <a id="github_api_obj.list_issue_comments" aria-hidden="true"></a>
 ### github_api_obj.list_issue_comments
 
 Lists comments for an issue
 
-<code>sequence of <a href="#github_api_issue_comment_obj">github_api_issue_comment_obj</a></code> <code>github_api_obj.list_issue_comments(<a href=#github_api_obj.list_issue_comments.number>number</a>)</code>
+<code>list of github_api_issue_comment_obj</code> <code>github_api_obj.list_issue_comments(<a href=#github_api_obj.list_issue_comments.number>number</a>)</code>
 
 
 <h4 id="parameters.github_api_obj.list_issue_comments">Parameters:</h4>
@@ -4200,7 +4195,7 @@ user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p
 
 <h4 id="returned_by.github_api_pull_request_comment_obj">Returned By:</h4>
 
-<ul><li><a href="#github_api_obj.get_pull_request_comment">github_api_obj.get_pull_request_comment</a></li><li><a href="#github_api_obj.get_pull_request_comments">github_api_obj.get_pull_request_comments</a></li></ul>
+<ul><li><a href="#github_api_obj.get_pull_request_comment">github_api_obj.get_pull_request_comment</a></li></ul>
 
 
 
@@ -4228,7 +4223,7 @@ user | <code><a href="#github_api_user_obj">github_api_user_obj</a></code><br><p
 
 <h4 id="returned_by.github_api_pull_request_obj">Returned By:</h4>
 
-<ul><li><a href="#github_api_obj.get_pull_requests">github_api_obj.get_pull_requests</a></li><li><a href="#github_api_obj.update_pull_request">github_api_obj.update_pull_request</a></li></ul>
+<ul><li><a href="#github_api_obj.update_pull_request">github_api_obj.update_pull_request</a></li></ul>
 
 
 
@@ -4248,7 +4243,7 @@ url | <code>string</code><br><p>The url of the reference</p>
 
 <h4 id="returned_by.github_api_ref_obj">Returned By:</h4>
 
-<ul><li><a href="#github_api_obj.get_reference">github_api_obj.get_reference</a></li><li><a href="#github_api_obj.get_references">github_api_obj.get_references</a></li><li><a href="#github_api_obj.update_reference">github_api_obj.update_reference</a></li></ul>
+<ul><li><a href="#github_api_obj.get_reference">github_api_obj.get_reference</a></li><li><a href="#github_api_obj.update_reference">github_api_obj.update_reference</a></li></ul>
 
 
 
@@ -4336,14 +4331,9 @@ conclusion | <code>string</code><br><p>The final conclusion of the check. Can be
 detail_url | <code>string</code><br><p>The URL of the integrator's site that has the full details of the check.</p>
 name | <code>string</code><br><p>The name of the check</p>
 output | <code><a href="#output_obj">output_obj</a></code><br><p>The description of a GitHub App's run, including title, summary, text.</p>
-pulls | <code>sequence of PullRequest</code><br><p>Pull requests associated with this check_run ('number' only)</p>
+pulls | <code>list of PullRequest</code><br><p>Pull requests associated with this check_run ('number' only)</p>
 sha | <code>string</code><br><p>The SHA-1 the check run is based on</p>
 status | <code>string</code><br><p>The current status of the check run. Can be one of queued, in_progress, or completed.</p>
-
-
-<h4 id="returned_by.github_check_run_obj">Returned By:</h4>
-
-<ul><li><a href="#github_api_obj.get_check_runs">github_api_obj.get_check_runs</a></li></ul>
 
 
 
@@ -4356,7 +4346,7 @@ List check runs for a specific ref https://developer.github.com/v3/checks/runs/#
 
 Name | Description
 ---- | -----------
-check_runs | <code>sequence of <a href="#github_check_run_obj">github_check_run_obj</a></code><br><p>The list of the detail for each check run.</p>
+check_runs | <code>list of github_check_run_obj</code><br><p>The list of the detail for each check run.</p>
 total_count | <code>int</code><br><p>The total count of check runs.</p>
 
 
@@ -4827,7 +4817,7 @@ Set of functions to work with HTML in copybara
 
 Run an xpath expression on HTML content to select elements. This only supports a subset of xpath expressions.
 
-<code>sequence of <a href="#html_element">html_element</a></code> <code>html.xpath(<a href=#html.xpath.content>content</a>, <a href=#html.xpath.expression>expression</a>)</code>
+<code>list of html_element</code> <code>html.xpath(<a href=#html.xpath.content>content</a>, <a href=#html.xpath.expression>expression</a>)</code>
 
 
 <h4 id="parameters.html.xpath">Parameters:</h4>
@@ -4842,11 +4832,6 @@ Parameter | Description
 ## html_element
 
 A HTML element.
-
-
-<h4 id="returned_by.html_element">Returned By:</h4>
-
-<ul><li><a href="#html.xpath">html.xpath</a></li></ul>
 
 <a id="html_element.attr" aria-hidden="true"></a>
 ### html_element.attr
@@ -5182,7 +5167,7 @@ Parameter | Description
 
 Returns the value of the response header specified by the field name
 
-<code>sequence of string</code> <code>http_response.header(<a href=#http_response.header.key>key</a>)</code>
+<code>list of string</code> <code>http_response.header(<a href=#http_response.header.key>key</a>)</code>
 
 
 <h4 id="parameters.http_response.header">Parameters:</h4>
@@ -6059,7 +6044,7 @@ path | <code>string</code><br><p>Full path relative to the checkout directory</p
 
 <h4 id="returned_by.Path">Returned By:</h4>
 
-<ul><li><a href="#path.read_symlink">path.read_symlink</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.list">ctx.list</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li></ul>
+<ul><li><a href="#path.read_symlink">path.read_symlink</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#ctx.new_path">ctx.new_path</a></li></ul>
 <h4 id="consumed_by.Path">Consumed By:</h4>
 
 <ul><li><a href="#archive.extract">archive.extract</a></li><li><a href="#compression.unzip_path">compression.unzip_path</a></li><li><a href="#destination_reader.copy_destination_files">destination_reader.copy_destination_files</a></li><li><a href="#hashing.path_md5_sum">hashing.path_md5_sum</a></li><li><a href="#hashing.path_sha256_sum">hashing.path_sha256_sum</a></li><li><a href="#http.multipart_form_file">http.multipart_form_file</a></li><li><a href="#http_response.download">http_response.download</a></li><li><a href="#path.relativize">path.relativize</a></li><li><a href="#path.resolve">path.resolve</a></li><li><a href="#path.resolve_sibling">path.resolve_sibling</a></li><li><a href="#python.parse_metadata">python.parse_metadata</a></li><li><a href="#ctx.create_symlink">ctx.create_symlink</a></li><li><a href="#ctx.read_path">ctx.read_path</a></li><li><a href="#ctx.set_executable">ctx.set_executable</a></li><li><a href="#ctx.write_path">ctx.write_path</a></li></ul>
@@ -6166,7 +6151,7 @@ utilities for interacting with the pypi package manager
 
 Extract the metadata from a python METADATA file into a dictionary. Returns a list of key value tuples.
 
-<code>sequence of tuple</code> <code>python.parse_metadata(<a href=#python.parse_metadata.path>path</a>)</code>
+<code>list of tuple</code> <code>python.parse_metadata(<a href=#python.parse_metadata.path>path</a>)</code>
 
 
 <h4 id="parameters.python.parse_metadata">Parameters:</h4>
@@ -6536,7 +6521,14 @@ Immutable struct type.
 
 Creates a new immutable struct. Structs with the same keys/values are equal. The struct's keys and values are passed in as keyword arguments.
 
-<code>StructImpl</code> <code>struct()</code>
+<code>StructImpl</code> <code>struct(<a href=#struct.kwargs>kwargs</a>)</code>
+
+
+<h4 id="parameters.struct">Parameters:</h4>
+
+Parameter | Description
+--------- | -----------
+<span id=struct.kwargs href=#struct.kwargs>kwargs</span> | <code>dict</code><br><p>Dictionary of Args.</p>
 
 
 <h4 id="example.struct">Example:</h4>
@@ -6673,7 +6665,7 @@ A single operation which modifies the source checked out from the origin, prior 
 
 <h4 id="returned_by.transformation">Returned By:</h4>
 
-<ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.dynamic_transform">core.dynamic_transform</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.reverse">core.reverse</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#metadata.add_header">metadata.add_header</a></li><li><a href="#metadata.expose_label">metadata.expose_label</a></li><li><a href="#metadata.map_author">metadata.map_author</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#metadata.remove_label">metadata.remove_label</a></li><li><a href="#metadata.replace_message">metadata.replace_message</a></li><li><a href="#metadata.restore_author">metadata.restore_author</a></li><li><a href="#metadata.save_author">metadata.save_author</a></li><li><a href="#metadata.scrubber">metadata.scrubber</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#metadata.use_last_change">metadata.use_last_change</a></li><li><a href="#metadata.verify_match">metadata.verify_match</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#patch.quilt_apply">patch.quilt_apply</a></li></ul>
+<ul><li><a href="#buildozer.create">buildozer.create</a></li><li><a href="#buildozer.delete">buildozer.delete</a></li><li><a href="#buildozer.modify">buildozer.modify</a></li><li><a href="#core.convert_encoding">core.convert_encoding</a></li><li><a href="#core.copy">core.copy</a></li><li><a href="#core.dynamic_transform">core.dynamic_transform</a></li><li><a href="#core.move">core.move</a></li><li><a href="#core.remove">core.remove</a></li><li><a href="#core.rename">core.rename</a></li><li><a href="#core.replace">core.replace</a></li><li><a href="#core.todo_replace">core.todo_replace</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#core.verify_match">core.verify_match</a></li><li><a href="#format.buildifier">format.buildifier</a></li><li><a href="#metadata.add_header">metadata.add_header</a></li><li><a href="#metadata.expose_label">metadata.expose_label</a></li><li><a href="#metadata.map_author">metadata.map_author</a></li><li><a href="#metadata.map_references">metadata.map_references</a></li><li><a href="#metadata.remove_label">metadata.remove_label</a></li><li><a href="#metadata.replace_message">metadata.replace_message</a></li><li><a href="#metadata.restore_author">metadata.restore_author</a></li><li><a href="#metadata.save_author">metadata.save_author</a></li><li><a href="#metadata.scrubber">metadata.scrubber</a></li><li><a href="#metadata.squash_notes">metadata.squash_notes</a></li><li><a href="#metadata.use_last_change">metadata.use_last_change</a></li><li><a href="#metadata.verify_match">metadata.verify_match</a></li><li><a href="#patch.apply">patch.apply</a></li><li><a href="#patch.quilt_apply">patch.quilt_apply</a></li></ul>
 <h4 id="consumed_by.transformation">Consumed By:</h4>
 
 <ul><li><a href="#core.replace_mapper">core.replace_mapper</a></li><li><a href="#core.reverse">core.reverse</a></li><li><a href="#core.transform">core.transform</a></li><li><a href="#git.gerrit_origin">git.gerrit_origin</a></li><li><a href="#git.github_origin">git.github_origin</a></li><li><a href="#git.github_pr_origin">git.github_pr_origin</a></li><li><a href="#git.origin">git.origin</a></li><li><a href="#ctx.run">ctx.run</a></li></ul>
@@ -6836,7 +6828,7 @@ filled_template will contain (for example) 'Current Revision: abcdef12'
 
 Tries to find all the values for a label. First it looks at the generated message (that is, labels that might have been added by previous transformations), then it looks in all the commit messages being imported and finally in the resolved reference passed in the CLI.
 
-<code>sequence of string</code> <code>ctx.find_all_labels(<a href=#ctx.find_all_labels.label>label</a>)</code>
+<code>list of string</code> <code>ctx.find_all_labels(<a href=#ctx.find_all_labels.label>label</a>)</code>
 
 
 <h4 id="parameters.ctx.find_all_labels">Parameters:</h4>
@@ -6864,7 +6856,7 @@ Parameter | Description
 
 List files in the checkout/work directory that matches a glob
 
-<code>sequence of <a href="#path">Path</a></code> <code>ctx.list(<a href=#ctx.list.paths>paths</a>)</code>
+<code>list of Path</code> <code>ctx.list(<a href=#ctx.list.paths>paths</a>)</code>
 
 
 <h4 id="parameters.ctx.list">Parameters:</h4>

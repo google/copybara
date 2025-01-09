@@ -50,6 +50,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,10 +72,15 @@ import net.starlark.java.eval.NoneType;
 import net.starlark.java.eval.Starlark;
 import net.starlark.java.eval.StarlarkSemantics;
 
-final class ModuleLoader {
+/** Gather copybara sources from jars. */
+public final class ModuleLoader {
 
-  public ImmutableList<DocModule> load(List<String> jarFiles) throws IOException {
-    List<String> classes = loadClassList(jarFiles);
+  public ImmutableList<DocModule> load(List<String> jarFiles, List<String> additionalClasses)
+      throws IOException {
+    ImmutableList<String> classes = ImmutableList.<String>builder()
+        .addAll(loadClassList(jarFiles))
+        .addAll(additionalClasses)
+        .build();
     List<DocModule> modules = new ArrayList<>();
     DocModule docModule = new DocModule("Globals", "Global functions available in Copybara");
     modules.add(docModule);
@@ -93,7 +99,6 @@ final class ModuleLoader {
                   }
                   DocSignaturePrefix prefixAnn = cls.getAnnotation(DocSignaturePrefix.class);
                   String prefix = prefixAnn != null ? prefixAnn.value() : library.name();
-
                   DocModule mod = new DocModule(library.name(), library.doc());
                   mod.functions.addAll(processFunctions(cls, prefix));
                   mod.fields.addAll(processFields(cls));
@@ -194,6 +199,23 @@ final class ModuleLoader {
               starlarkParam.doc()));
     }
 
+    if (!annotation.extraKeywords().name().isEmpty()) {
+      params.add(
+          new DocParam(
+              annotation.extraKeywords().name(),
+              null,
+              ImmutableList.of("dict"),
+              annotation.extraKeywords().doc()));
+    }
+    if (!annotation.extraPositionals().name().isEmpty()) {
+      params.add(
+          new DocParam(
+              annotation.extraPositionals().name(),
+              null,
+              ImmutableList.of("list"),
+              annotation.extraPositionals().doc()));
+    }
+
     String returnType =
         method.getGenericReturnType().equals(NoneType.class)
                 || method.getGenericReturnType().equals(void.class)
@@ -209,7 +231,10 @@ final class ModuleLoader {
         generateFlagsInfo(method),
         stream(method.getAnnotationsByType(Example.class))
             .map(DocExample::new)
-            .collect(toImmutableList()));
+            .collect(toImmutableList()),
+        !annotation.extraPositionals().name().isEmpty(),
+        !annotation.extraKeywords().name().isEmpty(),
+        annotation.selfCall());
   }
 
   private Collection<DocFlag> generateFlagsInfo(AnnotatedElement el) {
@@ -282,7 +307,7 @@ final class ModuleLoader {
         Type first = pType.getActualTypeArguments()[0];
         return isObject(first)
             ? "sequence"
-            : String.format("sequence of %s", skylarkTypeName(first));
+            : String.format("list of %s", skylarkTypeName(first));
       }
 
       return Starlark.classType((Class<?>) pType.getRawType());
@@ -290,6 +315,10 @@ final class ModuleLoader {
 
     if (type instanceof Class<?>) {
       return Starlark.classType((Class<?>) type);
+    }
+
+    if (type instanceof TypeVariable) {
+      return "?";
     }
 
     throw new IllegalArgumentException("Unsupported type " + type + " " + type.getClass());
