@@ -70,6 +70,24 @@ public class ConfigGenHeuristicsTest {
   }
 
   @Test
+  public void testIgnoreCarriageReturn() throws IOException {
+    writeFile(origin, "fileA", "aaa\n".repeat(20));
+    writeFile(destination, "fileB", "aaa\r\n".repeat(20) + "CHANGED");
+    ConfigGenHeuristics.Result result = createHeuristics(true).run();
+
+    globMatches(result.getOriginGlob(), "a/b/c/fileA");
+  }
+
+  @Test
+  public void testLineDifference() throws IOException {
+    writeFile(origin, "fileA", "aaa\n".repeat(20));
+    writeFile(destination, "fileB", "aaa\n".repeat(20) + "CHANGED");
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+
+    globMatches(result.getOriginGlob(), "a/b/c/fileA");
+  }
+
+  @Test
   public void testRenameDestinationOnlyPaths() throws IOException {
     writeFile(origin, "fileA", "aaa\n".repeat(20));
     writeFile(destination, "fileB", "aaa\n".repeat(20) + "CHANGED");
@@ -219,6 +237,11 @@ public class ConfigGenHeuristicsTest {
   }
 
   private ConfigGenHeuristics createHeuristics() {
-    return new ConfigGenHeuristics(origin, destination, destinationOnlyPaths, 30);
+    return createHeuristics(false);
+  }
+
+  private ConfigGenHeuristics createHeuristics(boolean ignoreCarriageReturn) {
+    return new ConfigGenHeuristics(
+        origin, destination, destinationOnlyPaths, 30, ignoreCarriageReturn);
   }
 }

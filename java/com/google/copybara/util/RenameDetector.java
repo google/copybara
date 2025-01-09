@@ -36,8 +36,13 @@ import java.util.List;
  * @param <I> type of key to use for referencing files in the prior revision
  */
 public final class RenameDetector<I> {
+  private final boolean ignoreCarriageReturn;
 
   private final List<PriorFile<I>> priorFiles = new ArrayList<>();
+
+  public RenameDetector(boolean ignoreCarriageReturn) {
+    this.ignoreCarriageReturn = ignoreCarriageReturn;
+  }
 
   private static final class PriorFile<I> {
     /**
@@ -57,13 +62,23 @@ public final class RenameDetector<I> {
   private static final class HashingByteProcessor implements ByteProcessor<int[]> {
 
     int hash;
+    final boolean ignoreCarriageReturn;
     final HashSet<Integer> hashes = new HashSet<>();
+
+    HashingByteProcessor(boolean ignoreCarriageReturn) {
+      this.ignoreCarriageReturn = ignoreCarriageReturn;
+    }
 
     @Override
     public boolean processBytes(byte[] buf, int off, int len) {
       while (off != len) {
-        hash *= 31;
         byte b = buf[off++];
+        if (ignoreCarriageReturn && b == '\r') {
+          // Skip carriage return in Windows-style line endings when hashing.
+          continue;
+        }
+
+        hash *= 31;
         hash += b;
         if (b == '\n') {
           hashes.add(hash);
@@ -87,7 +102,7 @@ public final class RenameDetector<I> {
    */
   private int[] hashes(InputStream input) throws IOException {
     try {
-      return ByteStreams.readBytes(input, new HashingByteProcessor());
+      return ByteStreams.readBytes(input, new HashingByteProcessor(ignoreCarriageReturn));
     } finally {
       input.close();
     }

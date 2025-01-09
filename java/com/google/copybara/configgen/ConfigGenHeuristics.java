@@ -63,6 +63,7 @@ public class ConfigGenHeuristics {
   private final Path destination;
   private final ImmutableSet<Path> destinationOnlyPaths;
   private final int percentSimilar;
+  private final boolean ignoreCarriageReturn;
 
   /**
    * Creates the Generator object
@@ -72,13 +73,20 @@ public class ConfigGenHeuristics {
    * @param destinationOnlyPaths paths known to be only in the destination so they are skipped in
    *     the similarity check.
    * @param percentSimilar percentage of similar lines to consider two files the same.
+   * @param ignoreCarriageReturn Whether to ignore carriage return characters in file content
+   *     comparisons.
    */
   public ConfigGenHeuristics(
-      Path origin, Path destination, ImmutableSet<Path> destinationOnlyPaths, int percentSimilar) {
+      Path origin,
+      Path destination,
+      ImmutableSet<Path> destinationOnlyPaths,
+      int percentSimilar,
+      boolean ignoreCarriageReturn) {
     this.origin = checkNotNull(origin);
     this.destination = checkNotNull(destination);
     this.destinationOnlyPaths = checkNotNull(destinationOnlyPaths);
     this.percentSimilar = percentSimilar;
+    this.ignoreCarriageReturn = ignoreCarriageReturn;
   }
 
   /** Result of the config generation */
@@ -120,7 +128,8 @@ public class ConfigGenHeuristics {
     ImmutableSet<Path> gitFiles = listFiles(origin);
     ImmutableSet<Path> g3Files = listFiles(destination);
     SimilarityDetector similarityDetector =
-        SimilarityDetector.create(origin, gitFiles, destinationOnlyPaths, percentSimilar);
+        SimilarityDetector.create(
+            origin, gitFiles, destinationOnlyPaths, percentSimilar, ignoreCarriageReturn);
     Map<Path, Path> similarFiles = new TreeMap<>();
 
     for (Path file : g3Files) {
@@ -465,9 +474,10 @@ public class ConfigGenHeuristics {
         Path parent,
         ImmutableSet<Path> files,
         ImmutableSet<Path> destinationOnlyPaths,
-        int percentSimilar)
+        int percentSimilar,
+        boolean ignoreCarriageReturn)
         throws IOException {
-      RenameDetector<Path> similarLines = new RenameDetector<>();
+      RenameDetector<Path> similarLines = new RenameDetector<>(ignoreCarriageReturn);
       HashMultimap<String, Path> hashes = HashMultimap.create(files.size(), 1);
       for (Path file : files) {
         byte[] bytes = Files.readAllBytes(parent.resolve(file));

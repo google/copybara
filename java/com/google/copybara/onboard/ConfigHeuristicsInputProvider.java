@@ -135,7 +135,12 @@ public class ConfigHeuristicsInputProvider implements InputProvider {
       repo.withWorkTree(git).forceCheckout(gitRevision.getSha1());
 
       ConfigGenHeuristics heuristics =
-          new ConfigGenHeuristics(origin, destination, destinationOnlyPaths, percentSimilar);
+          new ConfigGenHeuristics(
+              origin,
+              destination,
+              destinationOnlyPaths,
+              percentSimilar,
+              generalOptions.isTemporaryFeature("GENERATOR_IGNORE_CARRIAGE_RETURN", true));
 
       console.progressFmt("Computing globs");
       cached = Optional.of(heuristics.run());
