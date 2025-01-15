@@ -149,50 +149,52 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         eq("POST"),
         eq("https://api.github.com/graphql"),
         GitTestUtil.mockResponse(
-            "{"
-                + "\"data\": {"
-                + "\"repository\": {"
-                + "\"ref\": {"
-                + "\"target\": {"
-                + "\"id\": \"C_notreadatall\","
-                + "\"history\": {"
-                + "\"nodes\": ["
-                + "{"
-                + "\"id\": \"C_notreadatall\","
-                + "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
-                + "\"associatedPullRequests\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"title\": \"title place holder\","
-                + "\"author\": {"
-                + "\"login\": \"copybaraauthor\""
-                + "},"
-                + "\"reviewDecision\": \"APPROVED\","
-                + "\"latestOpinionatedReviews\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"author\": {"
-                + "\"login\": \"copybarareviewer\""
-                + "},"
-                + "\"state\": \"APPROVED\""
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"));
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """));
     ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github, null);
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
@@ -240,50 +242,52 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         eq("POST"),
         eq("https://api.github.com/graphql"),
         GitTestUtil.mockResponse(
-            "{"
-                + "\"data\": {"
-                + "\"repository\": {"
-                + "\"ref\": {"
-                + "\"target\": {"
-                + "\"id\": \"C_notreadatall\","
-                + "\"history\": {"
-                + "\"nodes\": ["
-                + "{"
-                + "\"id\": \"C_notreadatall\","
-                + "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
-                + "\"associatedPullRequests\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"title\": \"title place holder\","
-                + "\"author\": {"
-                + "\"login\": \"copybaraauthor\""
-                + "},"
-                + "\"reviewDecision\": \"APPROVED\","
-                + "\"latestOpinionatedReviews\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"author\": {"
-                + "\"login\": \"copybarareviewer\""
-                + "},"
-                + "\"state\": \"APPROVED\""
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"));
+            """
+            {
+              "data": {
+                "repository": {
+                    "ref": {
+                      "target": {
+                        "id": "C_notreadatall",
+                        "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """));
     ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github);
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
@@ -331,50 +335,52 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         eq("POST"),
         eq("https://api.github.com/graphql"),
         GitTestUtil.mockResponse(
-            "{"
-                + "\"data\": {"
-                + "\"repository\": {"
-                + "\"ref\": {"
-                + "\"target\": {"
-                + "\"id\": \"C_notreadatall\","
-                + "\"history\": {"
-                + "\"nodes\": ["
-                + "{"
-                + "\"id\": \"C_notreadatall\","
-                + "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
-                + "\"associatedPullRequests\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"title\": \"title place holder\","
-                + "\"author\": {"
-                + "\"login\": \"copybaraauthor\""
-                + "},"
-                + "\"reviewDecision\": \"APPROVED\","
-                + "\"latestOpinionatedReviews\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"author\": {"
-                + "\"login\": \"copybarareviewer\""
-                + "},"
-                + "\"state\": \"CHANGES_REQUESTED\""
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"));
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": "3368ee55bcad7df67a18b588144e0888d6fa93ac",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                              "login": "copybarareviewer"
+                                            },
+                                            "state": "CHANGES_REQUESTED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """));
     ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github);
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
@@ -421,50 +427,52 @@ public final class GitHubPostSubmitApprovalsProviderTest {
         eq("POST"),
         eq("https://api.github.com/graphql"),
         GitTestUtil.mockResponse(
-            "{"
-                + "\"data\": {"
-                + "\"repository\": {"
-                + "\"ref\": {"
-                + "\"target\": {"
-                + "\"id\": \"C_notreadatall\","
-                + "\"history\": {"
-                + "\"nodes\": ["
-                + "{"
-                + "\"id\": \"C_notreadatall\","
-                + "\"oid\": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\","
-                + "\"associatedPullRequests\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"title\": \"title place holder\","
-                + "\"author\": {"
-                + "\"login\": \"copybaraauthor\""
-                + "},"
-                + "\"reviewDecision\": \"APPROVED\","
-                + "\"latestOpinionatedReviews\": {"
-                + "\"edges\": ["
-                + "{"
-                + "\"node\": {"
-                + "\"author\": {"
-                + "\"login\": \"copybarareviewer\""
-                + "},"
-                + "\"state\": \"APPROVED\""
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "]"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"
-                + "}"));
+            """
+            {
+              "data": {
+                "repository": {
+                  "ref": {
+                    "target": {
+                      "id": "C_notreadatall",
+                      "history": {
+                        "nodes": [
+                          {
+                            "id": "C_notreadatall",
+                            "oid": \"3368ee55bcad7df67a18b588144e0888d6fa93ac\",
+                            "associatedPullRequests": {
+                              "edges": [
+                                {
+                                  "node": {
+                                    "title": "title place holder",
+                                    "author": {
+                                      "login": "copybaraauthor"
+                                    },
+                                    "reviewDecision": "APPROVED",
+                                    "latestOpinionatedReviews": {
+                                      "edges": [
+                                        {
+                                          "node": {
+                                            "author": {
+                                            "login": "copybarareviewer"
+                                            },
+                                          "state": "APPROVED"
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """));
     ApprovalsProvider underTest = getApprovalProviderUnderTest(builder.github);
     ImmutableList<ChangeWithApprovals> changes =
         generateChangeList(
