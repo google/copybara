@@ -34,12 +34,17 @@ import net.starlark.java.eval.StarlarkList;
 import net.starlark.java.eval.StarlarkValue;
 
 /** Starlark utilities for working with compressed formats such as zip files. */
-@StarlarkBuiltin(name = "compression", doc = "Module for compression related starlark utilities")
+@StarlarkBuiltin(
+    name = "compression",
+    doc =
+        "DEPRECATED. Use the `archive` module.\nModule for compression related starlark utilities")
 public class CompressionModule implements StarlarkValue {
 
   @StarlarkMethod(
       name = "unzip_path",
-      doc = "Unzip the zipped source CheckoutPath and unzip it to the destination CheckoutPath",
+      doc =
+          "DEPRECATED: Use `archive.extract` instead.\n"
+              + "Unzip the zipped source CheckoutPath and unzip it to the destination CheckoutPath",
       parameters = {
         @Param(
             name = "source_path",

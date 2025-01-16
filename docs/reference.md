@@ -725,11 +725,13 @@ Buildozer command type
 
 ## compression
 
+DEPRECATED. Use the `archive` module.
 Module for compression related starlark utilities
 
 <a id="compression.unzip_path" aria-hidden="true"></a>
 ### compression.unzip_path
 
+DEPRECATED: Use `archive.extract` instead.
 Unzip the zipped source CheckoutPath and unzip it to the destination CheckoutPath
 
 <code>compression.unzip_path(<a href=#compression.unzip_path.source_path>source_path</a>, <a href=#compression.unzip_path.destination_path>destination_path</a>, <a href=#compression.unzip_path.filter>filter</a>=None)</code>
