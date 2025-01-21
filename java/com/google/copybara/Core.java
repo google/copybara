@@ -2402,7 +2402,10 @@ public class Core implements LabelsAwareModule, StarlarkValue {
         @Param(
             name = "use_consistency_file",
             documented = false,
-            doc = "under development",
+            doc =
+                "When merging, if a consistency file exists, use it to construct the center of the"
+                    + " 3-way merge. This can result in a more accurate merge in some cases, such"
+                    + " as when the config file has changed since the last import.",
             defaultValue = "False",
             named = true,
             positional = false),

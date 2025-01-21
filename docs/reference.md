@@ -1257,7 +1257,7 @@ Parameter | Description
 --------- | -----------
 <span id=core.merge_import_config.package_path href=#core.merge_import_config.package_path>package_path</span> | <code>string</code><br><p>Package location (ex. 'google3/third_party/java/foo').</p>
 <span id=core.merge_import_config.paths href=#core.merge_import_config.paths>paths</span> | <code><a href="#glob">glob</a></code> or <code>list of string</code> or <code>NoneType</code><br><p>Glob of paths to apply merge_import mode, relative to package_path</p>
-<span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code>bool</code><br><p>under development</p>
+<span id=core.merge_import_config.use_consistency_file href=#core.merge_import_config.use_consistency_file>use_consistency_file</span> | <code>bool</code><br><p>When merging, if a consistency file exists, use it to construct the center of the 3-way merge. This can result in a more accurate merge in some cases, such as when the config file has changed since the last import.</p>
 <span id=core.merge_import_config.merge_strategy href=#core.merge_import_config.merge_strategy>merge_strategy</span> | <code>string</code><br><p>The strategy to use for merging files. DIFF3 shells out to diff3 with the -m flag to perform a 3-way merge. PATCH_MERGE creates a patch file by diffing the baseline and destination files, and then applies the patch to the origin file.</p>
 
 <a id="core.move" aria-hidden="true"></a>
