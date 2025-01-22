@@ -128,6 +128,20 @@ public class ConfigGenHeuristicsTest {
   }
 
   @Test
+  public void testMapDestinationFileToOriginFileHighestScore() throws IOException {
+    writeFile(origin, "a/b/c/fileA", "foo\nbar\na");
+    writeFile(origin, "a/b/c/fileB", "foo\nbar\nb");
+    writeFile(origin, "a/b/c/fileC", "foo\nbar\nc");
+    writeFile(destination, "x/y/z/fileD", "foo\nbar\nc");
+    ConfigGenHeuristics.Result result = createHeuristics().run();
+
+    // We generated glob(["**", exclude = ["a/b/c/fileA", "a/b/c/fileB"])
+    globMatches(result.getOriginGlob(), "a/b/c/fileC");
+    globNoMatch(result.getOriginGlob(), "a/b/c/fileB");
+    globNoMatch(result.getOriginGlob(), "a/b/c/fileA");
+  }
+
+  @Test
   public void testMoves() throws IOException {
     writeFile(origin, "a/b/include/fileA", "foo1");
     writeFile(origin, "a/b/include/fileB", "foo2");

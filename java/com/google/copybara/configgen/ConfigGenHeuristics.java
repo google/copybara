@@ -41,6 +41,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,7 +49,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Given a set of files from the origin and a set of files from the destination, it generates
@@ -118,6 +121,8 @@ public class ConfigGenHeuristics {
     }
   }
 
+  private record PathAndScore(Path path, int score) {}
+
   /**
    * Run the config generation to find a good origin_files, destination_files and core.moves needed
    * to convert the code form {@code origin} to {@code destination}.
@@ -130,14 +135,33 @@ public class ConfigGenHeuristics {
     SimilarityDetector similarityDetector =
         SimilarityDetector.create(
             origin, gitFiles, destinationOnlyPaths, percentSimilar, ignoreCarriageReturn);
-    Map<Path, Path> similarFiles = new TreeMap<>();
+    // Map of destination file paths to origin file paths with similarity score.
+    Map<Path, PathAndScore> destinationToOriginMapping = new TreeMap<>();
 
     for (Path file : g3Files) {
-      Optional<Path> originPath = similarityDetector.find(destination.resolve(file));
-      if (originPath.isPresent()) {
-        similarFiles.put(originPath.get(), file);
-      }
+      Optional<PathAndScore> originPathAndScore =
+          similarityDetector.find(destination.resolve(file));
+      // If we find an origin file with a higher similarity score to the destination file, map
+      // that origin file instead to the destination file.
+      originPathAndScore.ifPresent(
+          pathAndScore ->
+              destinationToOriginMapping.merge(
+                  file,
+                  pathAndScore,
+                  BinaryOperator.maxBy(Comparator.comparingInt(PathAndScore::score))));
     }
+
+    // Map of Origin file paths to destination file paths.
+    // If multiple destination file map to the same origin file, we preserve the mapping with the
+    // highest score.
+    Map<Path, Path> similarFiles =
+        destinationToOriginMapping.entrySet().stream()
+            .collect(
+                Collectors.groupingBy(
+                    e -> e.getValue().path(),
+                    Collectors.collectingAndThen(
+                        Collectors.maxBy(comparingInt(e -> e.getValue().score())),
+                        e -> e.orElseThrow().getKey())));
 
     IncludesGlob originGlob = getOriginGlob(gitFiles, similarFiles, g3Files);
     ImmutableSet<GeneratorMove> moves = generateMoves(similarFiles);
@@ -444,7 +468,7 @@ public class ConfigGenHeuristics {
       this.percentSimilar = percentSimilar;
     }
 
-    private Optional<Path> find(Path path) throws IOException {
+    private Optional<PathAndScore> find(Path path) throws IOException {
       if (destinationOnlyPaths.contains(path.getFileName())) {
         return Optional.empty();
       }
@@ -457,7 +481,7 @@ public class ConfigGenHeuristics {
           hashBased.get(hash(content)).stream()
               .max(comparingInt(o -> commonSuffix(path, o).getNameCount()));
       if (hashFinding.isPresent()) {
-        return hashFinding;
+        return hashFinding.map(p -> new PathAndScore(p, RenameDetector.MAX_SCORE));
       }
 
       // Second priority similarity
@@ -465,7 +489,7 @@ public class ConfigGenHeuristics {
           Iterables.getFirst(
               similarLines.scoresForLaterFile(new ByteArrayInputStream(content)), null);
       if (score != null && score.getScore() > RenameDetector.MAX_SCORE * percentSimilar / 100) {
-        return Optional.ofNullable(score.getKey());
+        return Optional.of(new PathAndScore(score.getKey(), score.getScore()));
       }
       return Optional.empty();
     }
